@@ -1,0 +1,267 @@
+# Nex — Product Specification
+
+> Companion to [`01-product-vision.md`](./01-product-vision.md). The vision defines *why*; this document defines *what* is being built.
+
+**Status:** Authoritative · **Owner:** Product · **Last updated:** 2026
+
+---
+
+## Product Overview
+
+Nex is a cross-platform capture application built around a single timeline of notes. A note is text, a voice recording, or a photo. Every note is created through one universal `+` action, saved automatically, and immediately returned to the timeline. Organization (tags) is optional and always applied after capture. Search operates on text content, tags, dates, and content type.
+
+---
+
+## Goals
+
+- Make capture feel instantaneous to the user (< 3 s, the product promise — see [`01-product-vision.md`](./01-product-vision.md#non-negotiable-principles)).
+- Make finding a previously captured note feel instantaneous to the user (< 3 s).
+- Provide a single, chronological home (the Timeline) with no default folders.
+- Support three capture types in v1: text, voice, photo.
+- Provide lightweight, fully optional organization via tags.
+- Lay a local-first data architecture that supports future sync **without a rewrite**.
+
+## Non-Goals
+
+- Rich text editing, nested documents, or databases.
+- Task/project management.
+- Multi-user collaboration or shared workspaces.
+- A generic file attachment type (deferred to v2).
+- Full cross-device sync (architected for in v1, delivered in v2).
+- Speech-to-text and OCR (delivered in v3).
+
+---
+
+## MVP Scope
+
+| In Scope (v1) | Out of Scope (v1) |
+|---|---|
+| Timeline home screen | Default/system folders |
+| Text capture | Rich text formatting |
+| Voice capture | Speech-to-text transcription |
+| Photo capture (camera + gallery) | Generic file attachments |
+| Auto-save, no Save button | Manual save / drafts |
+| Tags (optional, freeform) | Nested tags / tag hierarchies |
+| Search by text, tag, date | Semantic / AI-powered search |
+| Content-type filter (layered onto search) | Content-type as a separate search mode |
+| Local-first storage, sync-ready schema | Real multi-device sync |
+
+---
+
+## User Stories
+
+1. As a user, I can tap `+` and immediately type a text note so it is saved with no extra steps.
+2. As a user, I can start recording audio with a single tap so I capture a spoken idea instantly.
+3. As a user, I can snap a photo or pick one from my gallery in two taps.
+4. As a user, my note is saved automatically — I never see a Save button.
+5. As a user, I return straight to the timeline after capturing.
+6. As a user, I see my notes newest-first in a single timeline.
+7. As a user, I can optionally add one or more tags to a note, at any time, never as a precondition.
+8. As a user, I can search text notes by keyword, and filter by tag, date, and content type.
+9. As a user, I understand that voice notes are found by tag/date rather than keyword in v1, so I don't form the wrong expectation of search.
+10. As a user, the app works fully offline for every core flow.
+
+---
+
+## Functional Requirements
+
+### FR-1 — Capture
+- FR-1.1 A persistent `+` action is reachable from the Timeline in one tap.
+- FR-1.2 Tapping `+` presents exactly three options: Text, Voice, Photo.
+- FR-1.3 **Text** opens an empty field, keyboard focused immediately.
+- FR-1.4 **Voice** starts recording immediately — no intermediate "press to start" step.
+- FR-1.5 **Photo** opens the camera immediately, with an explicit option to switch to gallery.
+- FR-1.6 No field is ever mandatory. Title, tags, and folders are never requested during capture.
+- FR-1.7 A note is saved automatically as soon as it has content (first character, recording stopped, photo confirmed) — there is no explicit save action.
+- FR-1.8 After saving, the user returns directly to the Timeline with the new note at the top.
+- FR-1.9 Canceling an empty capture discards it silently, with no confirmation dialog.
+
+### FR-2 — Timeline
+- FR-2.1 The Timeline is the default/home screen on launch.
+- FR-2.2 Notes are ordered reverse-chronologically.
+- FR-2.3 Each note renders as a minimal card: content preview, timestamp, tags (if any).
+- FR-2.4 No default folders, sections, or pre-existing categories.
+- FR-2.5 Smooth infinite scroll/pagination for large note counts.
+
+### FR-3 — Tags
+- FR-3.1 Tags are entirely optional on every note type.
+- FR-3.2 Tags can be added or removed at any time after capture.
+- FR-3.3 Tags are freeform strings (no required taxonomy); common suggestions (`Idea`, `Work`, `Shopping`, `Learning`, `Inspiration`) are offered for discoverability.
+- FR-3.4 A note may have zero, one, or multiple tags.
+
+### FR-4 — Search
+- FR-4.1 A persistent search entry point is reachable from the Timeline in one tap.
+- FR-4.2 Full-text search runs against text-note content.
+- FR-4.3 Search supports filtering by one or more tags.
+- FR-4.4 Search supports filtering by date or date range.
+- FR-4.5 Search supports filtering by content type, as an additional filter layered on top of tag/date search — not a separate search mode.
+- FR-4.6 Voice notes are excluded from full-text matching in v1/v2 (no transcript exists) and are discoverable only via tag/date/type filters. The UI labels each voice note, e.g. *"Searchable by tag/date only"*.
+- FR-4.7 Search results update incrementally as the user types.
+
+### FR-5 — Data Integrity, Offline, and Sync-Readiness
+- FR-5.1 The app is fully functional offline for capture, browsing, tagging, and search.
+- FR-5.2 Every note is assigned a **client-generated UUIDv7** and `created_at` / `updated_at` timestamps at creation time, regardless of sync status. UUIDv7 is used specifically (rather than UUIDv4 or an auto-increment key) because it is time-ordered: it sorts naturally by creation time, which matches the Timeline's primary access pattern and keeps database indexes efficient at scale — see [ADR-018](./10-decisions.md#adr-018--uuidv7-as-the-note-identifier).
+- FR-5.3 Every note carries a monotonic `rev` (revision counter) and a soft-delete `deleted_at` tombstone from v1, even though sync is inactive until v2.
+- FR-5.4 Media notes (voice, photo) carry a `media_hash` — a content hash of the underlying file — computed at capture time, so that identical media captured or re-synced from multiple devices can be deduplicated without a network round trip. See [ADR-019](./10-decisions.md#adr-019--content-addressed-media-for-dedupe).
+- FR-5.5 No user action should ever produce data loss under normal operation (app kill, restart, low storage excluded).
+
+---
+
+## Non-Functional Requirements
+
+There are two distinct kinds of performance requirement in this document, and they are deliberately not conflated (see [ADR-017](./10-decisions.md#adr-017--separate-user-facing-goals-from-engineering-performance-budgets)):
+
+- **User-facing goals** describe what the product promises to a person and are validated through usability testing.
+- **Engineering performance budgets** are stricter, machine-measurable numbers enforced in CI, chosen so that real-world variance (device speed, note volume) still lands comfortably inside the user-facing goal.
+
+| Category | User-facing goal | Engineering budget (CI-enforced) |
+|---|---|---|
+| **Capture** | Feels instant; < 3 s app-open to stored note | Cold start to capture-ready < 1.5 s; capture flow start-to-content-ready < 1 s; local write durable within 300 ms of content change |
+| **Search / Find** | Feels instant; < 3 s to locate a note | Local query latency < 200 ms, index-backed (FTS5), regardless of corpus size at personal scale |
+
+| Category | Requirement |
+|---|---|
+| **Reliability** | Auto-save persists to durable local storage within 300 ms of content change. |
+| **Offline** | 100% of core flows (capture, timeline, tag, search) function with no network connection. |
+| **Portability** | Data model is platform-agnostic (Android, Windows, and future iOS clients share the same schema). |
+| **Accessibility** | All interactive elements meet WCAG 2.1 AA contrast and tap-target guidelines. |
+| **Privacy** | No note content is transmitted anywhere unless the user explicitly enables a cloud/AI feature. |
+| **Localization** | UI text externalized from day one; initial ship English, with Persian as a first-class future target given the product's origin. |
+| **Footprint** | Minimal install size and idle memory footprint; no bundled frameworks not essential to capture, timeline, or search. |
+
+---
+
+## Feature Specifications
+
+### Navigation
+
+```mermaid
+flowchart LR
+    A[Timeline - Home] -->|tap "+"| B[Capture Sheet]
+    B -->|Text| B1[Text Capture]
+    B -->|Voice| B2[Voice Capture]
+    B -->|Photo| B3[Photo Capture]
+    B1 -->|auto-save| A
+    B2 -->|auto-save| A
+    B3 -->|auto-save| A
+    A -->|tap Search| C[Search]
+    A -->|tap a card| D[Note Detail]
+    D -->|edit tags| D
+    D -->|back| A
+    C -->|tap a result| D
+```
+
+No hamburger menu, no settings-heavy home screen, no navigation deeper than two levels from the Timeline.
+
+### Search
+
+Search is a first-class, equally-weighted pillar alongside capture:
+
+| Mode | Scope | Notes |
+|---|---|---|
+| Text | Text-note content | Keyword/substring match, case-insensitive |
+| Tag | Any note's tags | Combinable, multi-select |
+| Date | `created_at` | Day / range presets |
+| Content type | Filter: text / voice / photo | Layered on top of the active search, not a separate mode ([ADR-011](./10-decisions.md#adr-011--content-type-filter-is-part-of-the-single-search-surface-not-a-separate-mode)) |
+
+**Design note — voice search limitation:** Since speech-to-text is deferred to v3, voice notes carry no transcribed body text in v1/v2. The UI marks each voice note — e.g. *"Searchable by tag/date only"* — so users never expect that speaking something aloud makes it keyword-searchable before v3 ships.
+
+---
+
+## Data Model
+
+```mermaid
+erDiagram
+    NOTE ||--o{ NOTE_TAG : has
+    TAG ||--o{ NOTE_TAG : has
+    NOTE {
+        uuid id PK "UUIDv7 - client-generated, time-ordered"
+        string type "text | voice | photo"
+        text content "text body, or null for voice/photo"
+        string media_uri "local URI for voice/photo, or null for text"
+        string media_hash "content hash of media file, for dedupe/sync"
+        int duration_ms "voice only, null otherwise"
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz deleted_at "soft delete, nullable"
+        string device_id "originating device, for future sync"
+        int rev "monotonically increasing, for conflict detection"
+        string sync_state "pending | synced | conflict (v2)"
+    }
+    TAG {
+        uuid id PK
+        string name
+        timestamptz created_at
+    }
+    NOTE_TAG {
+        uuid note_id FK
+        uuid tag_id FK
+    }
+```
+
+### Design notes
+
+- **`id` is a UUIDv7**, not a random UUIDv4 or an auto-increment integer. UUIDv7 embeds a millisecond timestamp in its most significant bits, so IDs sort chronologically — the Timeline's primary query ("newest first") benefits directly from index locality, and no separate `created_at` index is strictly required for ordering, only for range filters.
+- **`deleted_at`** implements soft deletes so a future sync engine propagates deletions instead of losing them to a hard delete.
+- **`media_hash`** enables content-addressed deduplication: if the same photo or voice file already exists locally or on another synced device, it is not stored or transferred twice.
+- **`rev` and `device_id`** are present from v1, even though sync is inactive, so v2 sync requires no schema migration or data rewrite.
+- Full-text indexing (FTS5) applies to `content` for text notes only, matching v1 search scope.
+
+---
+
+## Sync Strategy
+
+Sync is **not** a v1 user-facing feature, but the data layer is built as if it were arriving next release.
+
+- **v1:** Local-first storage only. Every record already has a UUIDv7, timestamps, `device_id`, `rev`, and `media_hash`. A minimal backend API surface exists (even if unused by the client) so the contract is proven early.
+- **v2:** Real sync between Android and Windows (first item of v2, not the last).
+  - **Conflict resolution is field-aware, not record-blind:** the note's scalar fields (`content`, `media_uri`) resolve by last-writer-wins keyed on `updated_at` / `rev`. **Tags resolve by union-merge**, not last-writer-wins — if Device A adds a tag while Device B edits the note body concurrently, both changes survive; a tag is never silently dropped because it lost a last-writer-wins race on the whole record. See [ADR-020](./10-decisions.md#adr-020--union-merge-for-concurrent-tag-edits).
+  - **Media sync is content-addressed:** uploads are keyed by `media_hash`, so identical files are deduplicated across devices rather than re-uploaded.
+  - Soft-deletes replicate as tombstones across devices.
+- **v2.x:** iOS client joins the same sync backend.
+
+See [`04-architecture.md`](./04-architecture.md) for the technical design and [`08-roadmap.md`](./08-roadmap.md) for sequencing.
+
+---
+
+## AI Roadmap
+
+AI capabilities are additive and strictly post-capture; none are part of the v1 MVP capture flow. Full detail in [`09-ai.md`](./09-ai.md).
+
+| Capability | Target Version |
+|---|---|
+| Speech-to-text transcription | v3 |
+| OCR on photos | v3 |
+| Tag suggestions | v3 |
+| Semantic search | v3 |
+| Summarization | v3 |
+| Related notes | v3 |
+
+---
+
+## Roadmap Summary
+
+- **v1 — Fastest capture experience:** Timeline, text/voice/photo capture, tags, keyword/tag/date/type search, sync-ready architecture.
+- **v2 — Sync & continuity:** Real Android ⇄ Windows sync (first, not last), generic file attachments, iOS client.
+- **v3 — Intelligence layer:** Speech-to-text, OCR, tag suggestions, semantic search, summarization, related notes.
+
+Full detail in [`08-roadmap.md`](./08-roadmap.md).
+
+## Future Features
+
+Explicitly deferred, tracked for evaluation post-MVP:
+
+- Generic file attachments (v2).
+- Full cross-device sync (v2).
+- Speech-to-text, OCR, AI tag suggestions, semantic search, summarization, Related Notes (v3).
+- Export (evaluated only after v3 stabilizes).
+
+## Release Plan
+
+| Release | Scope | Exit Criteria |
+|---|---|---|
+| v1.0 | Timeline, 3 capture types, tags, search (text/tag/date/type filter) | All FRs pass QA; capture and search both consistently feel < 3 s in usability testing; engineering budgets (§ Non-Functional Requirements) met in CI |
+| v1.x | Stability, performance, accessibility polish | Crash-free session rate > 99.9%; WCAG 2.1 AA audit passed |
+| v2.0 | Cross-device sync (Android ⇄ Windows) | Sync conflict tests pass (including tag union-merge and media dedupe); offline-edit-then-sync scenarios verified |
+| v2.x | Generic file attachments, iOS client | Feature parity with Android/Windows confirmed |
+| v3.0 | Speech-to-text, OCR, tag suggestions, semantic search, summarization, related notes | Voice/photo notes become part of full-text/semantic search without regressing capture speed |
