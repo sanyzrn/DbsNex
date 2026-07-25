@@ -106,6 +106,26 @@ WHERE id = ?
     db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
   }
 
+  /// Undo a soft-delete within the toast window (FR-2.6).
+  void undelete(String noteId) {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final rows = db.select('SELECT * FROM notes WHERE id = ?', [noteId]);
+    if (rows.isEmpty) return;
+    db.execute(
+      '''
+UPDATE notes
+SET deleted_at = NULL, updated_at = ?, rev = rev + 1, sync_state = 'pending'
+WHERE id = ?
+''',
+      [now, noteId],
+    );
+    final content = rows.first['content'] as String?;
+    final type = rows.first['type'] as String?;
+    if (type == 'text' && content != null && content.isNotEmpty) {
+      _upsertFts(noteId, content);
+    }
+  }
+
   Note? getById(String id, {bool includeDeleted = false}) {
     final rows = db.select(
       '''

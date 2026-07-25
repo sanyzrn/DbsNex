@@ -9,10 +9,12 @@ class NoteDetailSheet extends StatefulWidget {
     super.key,
     required this.services,
     required this.noteId,
+    this.focusAddTag = false,
   });
 
   final NexServices services;
   final String noteId;
+  final bool focusAddTag;
 
   @override
   State<NoteDetailSheet> createState() => _NoteDetailSheetState();
@@ -25,6 +27,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   void initState() {
     super.initState();
     _reload();
+    if (widget.focusAddTag) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _addTag());
+    }
   }
 
   void _reload() {
