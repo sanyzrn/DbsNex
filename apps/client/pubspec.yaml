@@ -15,7 +15,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   image_picker: ^1.1.2
-  file_picker: ^8.1.6
+  file_picker: ^11.0.0
   intl: any
   nex_core:
     path: ../../packages/core

@@ -237,7 +237,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
   }
 
   Future<void> _captureFile() async {
-    final result = await FilePicker.platform.pickFiles(withData: true);
+    final result = await FilePicker.pickFiles(withData: true);
     if (result == null || result.files.isEmpty) return;
     final picked = result.files.first;
     final bytes = picked.bytes;
