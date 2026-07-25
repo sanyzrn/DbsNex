@@ -10,6 +10,7 @@ apps/client/.flutter-plugins-dependencies
 
 # Node / Backend
 node_modules/
+dist/
 apps/backend/dist/
 npm-debug.log*
 
