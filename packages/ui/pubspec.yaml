@@ -1,7 +1,6 @@
 name: nex_ui
 description: >-
-  Nex shared Flutter widget / design-system package. Depends on Flutter by
-  design; never imported by packages/core or packages/data.
+  Shared Flutter widget and design-token package for Nex.
 publish_to: "none"
 version: 0.0.1
 
@@ -12,6 +11,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  nex_core:
+    path: ../core
 
 dev_dependencies:
   flutter_test:
@@ -19,3 +20,4 @@ dev_dependencies:
   flutter_lints: ^4.0.0
 
 flutter:
+  uses-material-design: true

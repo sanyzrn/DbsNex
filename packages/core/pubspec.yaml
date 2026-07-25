@@ -9,8 +9,10 @@ environment:
   sdk: ^3.5.0
 
 dependencies:
+  crypto: ^3.0.6
   nex_data:
     path: ../data
+  uuid: ^4.5.1
 
 dev_dependencies:
   lints: ^4.0.0

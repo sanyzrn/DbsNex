@@ -1,0 +1,191 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:nex_data/nex_data.dart';
+import 'package:path/path.dart' as p;
+import 'package:test/test.dart';
+
+void main() {
+  late Directory tmp;
+  late NexDatabase db;
+  late NoteRepository repo;
+
+  setUp(() {
+    tmp = Directory.systemTemp.createTempSync('nex_data_');
+    db = NexDatabase.open(p.join(tmp.path, 'nex.sqlite'));
+    repo = NoteRepository(db);
+  });
+
+  tearDown(() {
+    db.close();
+    tmp.deleteSync(recursive: true);
+  });
+
+  Note makeText(String content, {DateTime? at}) {
+    final now = at ?? DateTime.now().toUtc();
+    return Note(
+      id: newUuidV7(),
+      type: NoteType.text,
+      content: content,
+      createdAt: now,
+      updatedAt: now,
+      deviceId: 'test-device',
+      rev: 1,
+      syncState: SyncState.pending,
+    );
+  }
+
+  group('1.1 repository integration', () {
+    test('insert returns note with UUIDv7-shaped id', () {
+      final note = repo.insert(makeText('hello'));
+      expect(note.id.length, 36);
+      expect(note.content, 'hello');
+      expect(note.rev, 1);
+      expect(note.syncState, SyncState.pending);
+      // UUIDv7 version nibble is 7 at character index 14 of the hex form.
+      final hex = note.id.replaceAll('-', '');
+      expect(hex[12], '7');
+    });
+
+    test('soft-delete hides note from timeline and FTS', () {
+      final note = repo.insert(makeText('vanish me'));
+      repo.softDelete(note.id);
+      expect(repo.getById(note.id), isNull);
+      expect(repo.listTimeline(), isEmpty);
+      expect(repo.search(const SearchFilters(query: 'vanish')), isEmpty);
+      expect(repo.getById(note.id, includeDeleted: true)?.isDeleted, isTrue);
+    });
+
+    test('tag attach and detach', () {
+      final note = repo.insert(makeText('tagged'));
+      final tag = repo.upsertTag(name: 'Work', color: tagAccentPalette.first);
+      repo.attachTag(noteId: note.id, tagId: tag.id);
+      expect(repo.getById(note.id)!.tags.map((t) => t.name), ['Work']);
+      repo.detachTag(noteId: note.id, tagId: tag.id);
+      expect(repo.getById(note.id)!.tags, isEmpty);
+    });
+
+    test('FTS query finds English text notes', () {
+      repo.insert(makeText('alpha bravo charlie'));
+      repo.insert(makeText('delta echo'));
+      final hits = repo.search(const SearchFilters(query: 'bravo'));
+      expect(hits, hasLength(1));
+      expect(hits.first.content, contains('bravo'));
+    });
+
+    test('Persian FTS correctness (ADR-028)', () {
+      // Includes ZWNJ (U+200C) between می and رود — common Persian orthography.
+      const zwnj = '\u200C';
+      final persian = 'این یک ایده$zwnjی مهم است';
+      repo.insert(makeText(persian));
+      repo.insert(makeText('unrelated english'));
+
+      final byStem = repo.search(const SearchFilters(query: 'ایده'));
+      expect(byStem, hasLength(1),
+          reason: 'should find Persian note by content token');
+      expect(byStem.first.content, contains('ایده'));
+
+      final byWord = repo.search(const SearchFilters(query: 'مهم'));
+      expect(byWord, hasLength(1));
+    });
+
+    test('voice notes excluded from keyword FTS (FR-4.6)', () {
+      final now = DateTime.now().toUtc();
+      final voice = Note(
+        id: newUuidV7(),
+        type: NoteType.voice,
+        content: null,
+        mediaUri: '/tmp/x.m4a',
+        mediaHash: sha256OfBytes(Uint8List.fromList([1, 2, 3])),
+        durationMs: 1200,
+        createdAt: now,
+        updatedAt: now,
+        deviceId: 'test-device',
+        rev: 1,
+        syncState: SyncState.pending,
+      );
+      repo.insert(voice);
+      // Even if we wrongly put text in content, FTS only indexes text types
+      // via insert path — voice has no FTS row.
+      expect(repo.search(const SearchFilters(query: 'anything')), isEmpty);
+      expect(
+        repo.search(const SearchFilters(types: [NoteType.voice])),
+        hasLength(1),
+      );
+    });
+
+    test('timeline is reverse-chronological', () {
+      final t0 = DateTime.utc(2026, 1, 1);
+      final t1 = DateTime.utc(2026, 1, 2);
+      final t2 = DateTime.utc(2026, 1, 3);
+      repo.insert(makeText('old', at: t0));
+      repo.insert(makeText('mid', at: t1));
+      repo.insert(makeText('new', at: t2));
+      final page = repo.listTimeline();
+      expect(page.map((n) => n.content).toList(), ['new', 'mid', 'old']);
+    });
+  });
+
+  group('1.9 export round-trip', () {
+    test('export archive JSON matches source notes', () async {
+      final mediaDir = Directory(p.join(tmp.path, 'media'))..createSync();
+      final mediaFile = File(p.join(mediaDir.path, 'shot.jpg'))
+        ..writeAsBytesSync([10, 20, 30]);
+      final now = DateTime.now().toUtc();
+      final text = repo.insert(makeText('export me'));
+      final tag = repo.upsertTag(name: 'Idea');
+      repo.attachTag(noteId: text.id, tagId: tag.id);
+      repo.insert(
+        Note(
+          id: newUuidV7(),
+          type: NoteType.photo,
+          mediaUri: mediaFile.path,
+          mediaHash: sha256OfFile(mediaFile.path),
+          createdAt: now,
+          updatedAt: now,
+          deviceId: 'test-device',
+          rev: 1,
+          syncState: SyncState.pending,
+        ),
+      );
+
+      final archivePath = p.join(tmp.path, 'export.zip');
+      final archive = await repo.exportArchive(
+        outputPath: archivePath,
+        mediaRoot: mediaDir.path,
+      );
+      final payload = NoteRepository.readExportJson(archive);
+      final exportedNotes =
+          (payload['notes'] as List).cast<Map<String, dynamic>>();
+      expect(exportedNotes, hasLength(2));
+      final exportedText =
+          exportedNotes.firstWhere((n) => n['type'] == 'text');
+      expect(exportedText['content'], 'export me');
+      expect((exportedText['tags'] as List).first['name'], 'Idea');
+      final exportedPhoto =
+          exportedNotes.firstWhere((n) => n['type'] == 'photo');
+      expect(exportedPhoto['media_hash'], sha256OfFile(mediaFile.path));
+    });
+  });
+
+  group('1.10 backup & restore after corruption', () {
+    test('restore recovers notes after simulated DB corruption', () {
+      repo.insert(makeText('precious'));
+      final backupDir = p.join(tmp.path, 'backups');
+      final backup = repo.backup(backupDir);
+      expect(backup.existsSync(), isTrue);
+
+      // Simulate corruption: truncate live DB.
+      db.close();
+      File(p.join(tmp.path, 'nex.sqlite')).writeAsBytesSync([0, 1, 2]);
+
+      NexDatabase.restoreFromBackup(
+        liveDbPath: p.join(tmp.path, 'nex.sqlite'),
+        backupFile: backup.path,
+      );
+      db = NexDatabase.open(p.join(tmp.path, 'nex.sqlite'));
+      repo = NoteRepository(db);
+      expect(repo.listTimeline().single.content, 'precious');
+    });
+  });
+}

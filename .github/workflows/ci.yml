@@ -5,10 +5,9 @@ on:
     branches: [main]
   pull_request:
 
-# Phase 0 pipeline (11-build-prompt.md): Dart analyze/lint, `dart test` for
-# packages/*, a Flutter build check for apps/client, and backend lint/typecheck.
-# There is deliberately almost nothing to test yet — the pipeline must exist
-# before Phase 1 code lands.
+# Phase 1 pipeline (11-build-prompt.md): Dart analyze/lint, `dart test` for
+# packages/* (including SQLite/FTS integration), Flutter analyze/test/build for
+# apps/client, and backend lint/typecheck.
 
 jobs:
   dart-packages:
@@ -26,6 +25,8 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
+      # sqlite3 Dart FFI needs the system library (packages/data uses package:sqlite3).
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
       # Proves packages/core and packages/data carry zero Flutter dependency:
       # this job never installs Flutter.
       - run: dart pub get
