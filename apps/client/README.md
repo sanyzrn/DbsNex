@@ -3,11 +3,9 @@
 One Flutter app target that builds to **Android**, **Windows** and (later) iOS
 — see ADR-024. Phase 0 contains an empty screen and nothing else.
 
-## Platform folders (`android/`, `windows/`) are not committed yet
+## Platform folders (`android/`, `windows/`)
 
-The generated platform shells could not be produced in the authoring
-environment (no Flutter SDK available — see the Phase 0 report). Materialise
-them once, in a checkout that has Flutter installed:
+Generated with:
 
 ```bash
 cd apps/client
