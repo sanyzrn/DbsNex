@@ -21,6 +21,8 @@ class _SearchScreenState extends State<SearchScreen> {
   DateTime? _from;
   DateTime? _to;
   List<Note> _results = const [];
+  Map<String, double> _semanticScores = const {};
+  bool _semantic = false;
 
   @override
   void initState() {
@@ -34,8 +36,21 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  void _run() {
+  Future<void> _run() async {
+    if (_semantic) {
+      final hits = await widget.services.enrichment.semanticSearch(_query.text);
+      if (!mounted) return;
+      setState(() {
+        _semanticScores = {for (final h in hits) h.noteId: h.score};
+        _results = [
+          for (final h in hits)
+            if (widget.services.repo.getById(h.noteId) case final note?) note,
+        ];
+      });
+      return;
+    }
     setState(() {
+      _semanticScores = const {};
       _results = widget.services.search.search(
         SearchFilters(
           query: _query.text,
@@ -71,14 +86,42 @@ class _SearchScreenState extends State<SearchScreen> {
             child: TextField(
               controller: _query,
               autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Search notes…',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: _semantic ? 'Search by meaning…' : 'Search notes…',
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
               ),
               onChanged: (_) => _run(),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FilterChip(
+                label: const Text('Semantic (meaning)'),
+                selected: _semantic,
+                onSelected: (v) {
+                  setState(() => _semantic = v);
+                  _run();
+                },
+              ),
+            ),
+          ),
+          if (_semantic)
+            const Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: NexSpacing.md,
+                vertical: NexSpacing.xs,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Semantic results — distinct from exact keyword matches',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
@@ -159,23 +202,28 @@ class _SearchScreenState extends State<SearchScreen> {
                 ],
               ),
             ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: NexSpacing.md),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Voice notes: searchable by tag/date only',
-                style: TextStyle(fontSize: 12),
+          if (!_semantic)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: NexSpacing.md),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Keyword search includes transcripts and OCR when available',
+                  style: TextStyle(fontSize: 12),
+                ),
               ),
             ),
-          ),
           Expanded(
             child: ListView.builder(
               itemCount: _results.length,
               itemBuilder: (context, index) {
                 final note = _results[index];
+                final score = _semanticScores[note.id];
                 return NoteCard(
                   note: note,
+                  footnote: score == null
+                      ? null
+                      : 'Semantic · ${score.toStringAsFixed(2)}',
                   onTap: () async {
                     await showModalBottomSheet<void>(
                       context: context,

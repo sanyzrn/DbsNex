@@ -421,14 +421,85 @@ WHERE id = ?
     db.execute('UPDATE tags SET color = ? WHERE id = ?', [color, tagId]);
   }
 
-  /// FR-4 search: FTS on text content + tag/date/type filters on one surface.
+  /// Persist AI transcript alongside the voice note (09-ai.md — non-destructive).
+  void setTranscriptText(String noteId, String text) {
+    db.execute(
+      'UPDATE notes SET transcript_text = ? WHERE id = ?',
+      [text, noteId],
+    );
+    if (text.isNotEmpty) _upsertFts(noteId, text);
+  }
+
+  /// Persist AI OCR text alongside the photo note.
+  void setOcrText(String noteId, String text) {
+    db.execute(
+      'UPDATE notes SET ocr_text = ? WHERE id = ?',
+      [text, noteId],
+    );
+    if (text.isNotEmpty) _upsertFts(noteId, text);
+  }
+
+  void setSummaryText(String noteId, String text) {
+    db.execute(
+      'UPDATE notes SET summary_text = ? WHERE id = ?',
+      [text, noteId],
+    );
+  }
+
+  void setEmbedding(String noteId, List<double> values) {
+    final json = '[${values.join(',')}]';
+    final now = DateTime.now().toUtc().toIso8601String();
+    db.execute(
+      '''
+INSERT INTO note_embeddings (note_id, dims, values_json, updated_at)
+VALUES (?, ?, ?, ?)
+ON CONFLICT(note_id) DO UPDATE SET
+  dims = excluded.dims,
+  values_json = excluded.values_json,
+  updated_at = excluded.updated_at
+''',
+      [noteId, values.length, json, now],
+    );
+  }
+
+  List<double>? getEmbedding(String noteId) {
+    final rows = db.select(
+      'SELECT values_json FROM note_embeddings WHERE note_id = ?',
+      [noteId],
+    );
+    if (rows.isEmpty) return null;
+    return _parseVector(rows.first['values_json']! as String);
+  }
+
+  List<NoteEmbedding> listEmbeddings() {
+    final rows = db.select(
+      'SELECT note_id, values_json FROM note_embeddings',
+    );
+    return [
+      for (final r in rows)
+        NoteEmbedding(
+          noteId: r['note_id']! as String,
+          values: _parseVector(r['values_json']! as String),
+        ),
+    ];
+  }
+
+  List<double> _parseVector(String json) {
+    final trimmed = json.trim();
+    if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) return const [];
+    final inner = trimmed.substring(1, trimmed.length - 1).trim();
+    if (inner.isEmpty) return const [];
+    return inner.split(',').map((s) => double.parse(s.trim())).toList();
+  }
+
+  /// FR-4 search: FTS on text content + AI-derived transcript/OCR when present.
   List<Note> search(SearchFilters filters) {
     final where = <String>['n.deleted_at IS NULL'];
     final args = <Object?>[];
 
     final q = filters.query.trim();
     if (q.isNotEmpty) {
-      // Match text notes via FTS; voice/photo never match by keyword (FR-4.6).
+      // Match via FTS: text bodies, plus voice transcripts / photo OCR when present.
       where.add('''
 n.id IN (
   SELECT note_id FROM notes_fts WHERE notes_fts MATCH ?
@@ -598,10 +669,16 @@ WHERE id = ?
         if (note.mediaUri != null) {
           buffer.writeln('Media: ${p.basename(note.mediaUri!)}');
         }
+        if (note.transcriptText != null) {
+          buffer.writeln('Transcript: ${note.transcriptText}');
+        }
       case NoteType.photo:
         buffer.writeln('_Photo note_');
         if (note.mediaUri != null) {
           buffer.writeln('![photo](../media/${p.basename(note.mediaUri!)})');
+        }
+        if (note.ocrText != null) {
+          buffer.writeln('OCR: ${note.ocrText}');
         }
       case NoteType.file:
         buffer.writeln('_File attachment_');
@@ -611,4 +688,11 @@ WHERE id = ?
     }
     return buffer.toString();
   }
+}
+
+class NoteEmbedding {
+  const NoteEmbedding({required this.noteId, required this.values});
+
+  final String noteId;
+  final List<double> values;
 }

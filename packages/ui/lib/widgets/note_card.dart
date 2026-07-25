@@ -9,10 +9,14 @@ class NoteCard extends StatelessWidget {
     super.key,
     required this.note,
     this.onTap,
+    this.footnote,
   });
 
   final Note note;
   final VoidCallback? onTap;
+
+  /// Optional secondary line (e.g. semantic similarity score).
+  final String? footnote;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +32,10 @@ class NoteCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _preview(theme),
+            if (footnote != null) ...[
+              const SizedBox(height: NexSpacing.xs),
+              Text(footnote!, style: theme.textTheme.bodySmall),
+            ],
             const SizedBox(height: NexSpacing.xs),
             Row(
               children: [
@@ -67,15 +75,21 @@ class NoteCard extends StatelessWidget {
         );
       case NoteType.voice:
         final secs = ((note.durationMs ?? 0) / 1000).ceil();
+        final status = note.transcriptText != null
+            ? 'Transcribed'
+            : 'Searchable by tag/date only';
         return Row(
           children: [
             Icon(Icons.graphic_eq, size: 20, color: theme.colorScheme.secondary),
             const SizedBox(width: NexSpacing.sm),
             Text('Voice · ${secs}s', style: theme.textTheme.bodyLarge),
             const SizedBox(width: NexSpacing.sm),
-            Text(
-              'Searchable by tag/date only',
-              style: theme.textTheme.bodySmall,
+            Expanded(
+              child: Text(
+                status,
+                style: theme.textTheme.bodySmall,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         );
@@ -85,6 +99,10 @@ class NoteCard extends StatelessWidget {
             Icon(Icons.image_outlined, size: 20, color: theme.colorScheme.secondary),
             const SizedBox(width: NexSpacing.sm),
             Text('Photo', style: theme.textTheme.bodyLarge),
+            if (note.ocrText != null) ...[
+              const SizedBox(width: NexSpacing.sm),
+              Text('OCR', style: theme.textTheme.bodySmall),
+            ],
           ],
         );
       case NoteType.file:

@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:nex_ai/nex_ai.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
-/// App-wide services. Local-only — no network (Phase 1.8).
+import 'nex_preferences.dart';
+
+/// App-wide services. Capture path never awaits AI (09-ai.md).
 class NexServices {
   NexServices._({
     required this.db,
@@ -15,6 +18,7 @@ class NexServices {
     required this.capture,
     required this.tags,
     required this.search,
+    required this.enrichment,
     required this.dbPath,
     required this.mediaDir,
     required this.backupDir,
@@ -25,6 +29,7 @@ class NexServices {
   final CaptureService capture;
   final TagService tags;
   final SearchService search;
+  final EnrichmentService enrichment;
   final String dbPath;
   final String mediaDir;
   final String backupDir;
@@ -33,7 +38,10 @@ class NexServices {
 
   Stream<List<Note>> get timelineStream => _timelineController.stream;
 
-  static Future<NexServices> bootstrap({String? deviceId}) async {
+  static Future<NexServices> bootstrap({
+    String? deviceId,
+    NexPreferences? preferences,
+  }) async {
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isWindows)) {
       await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
     }
@@ -47,22 +55,28 @@ class NexServices {
     final db = NexDatabase.open(dbPath);
     final id = deviceId ?? Platform.localHostname;
     final repo = NoteRepository(db, localDeviceId: id);
+    final caps = preferences?.aiCapabilities ?? const AiCapabilities();
+    final enrichment = EnrichmentService(
+      repo: repo,
+      adapter: const OnDeviceAIAdapter(),
+      capabilities: caps,
+    );
     final services = NexServices._(
       db: db,
       repo: repo,
       capture: CaptureService(repo, deviceId: id),
       tags: TagService(repo),
       search: SearchService(repo),
+      enrichment: enrichment,
       dbPath: dbPath,
       mediaDir: mediaDir,
       backupDir: backupDir,
     );
     services.refreshTimeline();
-    // Automatic rotating backup on launch (FR-7.1).
     try {
       services.repo.backup(backupDir);
     } catch (_) {
-      // Fail open — never block launch on backup (06-development error handling).
+      // Fail open — never block launch on backup.
     }
     return services;
   }
@@ -73,6 +87,7 @@ class NexServices {
     required CaptureService capture,
     required TagService tags,
     required SearchService search,
+    EnrichmentService? enrichment,
     required String dbPath,
     required String mediaDir,
     required String backupDir,
@@ -83,10 +98,21 @@ class NexServices {
       capture: capture,
       tags: tags,
       search: search,
+      enrichment: enrichment ??
+          EnrichmentService(repo: repo, adapter: const NullAIAdapter()),
       dbPath: dbPath,
       mediaDir: mediaDir,
       backupDir: backupDir,
     );
+  }
+
+  void applyAiPreferences(NexPreferences preferences) {
+    enrichment.updateCapabilities(preferences.aiCapabilities);
+  }
+
+  /// Fire-and-forget post-capture enrichment — never awaited by capture UI.
+  void scheduleEnrichment(String noteId) {
+    unawaited(enrichment.enrichNote(noteId));
   }
 
   void refreshTimeline() {
@@ -108,7 +134,6 @@ class NexServices {
 
   String get deviceId => capture.deviceId;
 
-  /// Phase 2: flush outbox and pull remote deltas.
   Future<SyncResult> syncNow({String baseUrl = 'http://127.0.0.1:4000'}) async {
     final client = SyncClient(
       baseUrl: baseUrl,

@@ -33,6 +33,9 @@ enum SyncState {
 }
 
 /// A captured note. Field names match `02-product-specification.md` Data Model.
+///
+/// AI-derived fields (`transcriptText`, `ocrText`, `summaryText`) are clearly
+/// labeled and never overwrite original `content` / `mediaUri` (09-ai.md).
 class Note {
   const Note({
     required this.id,
@@ -41,6 +44,9 @@ class Note {
     this.mediaUri,
     this.mediaHash,
     this.durationMs,
+    this.transcriptText,
+    this.ocrText,
+    this.summaryText,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -56,6 +62,9 @@ class Note {
   final String? mediaUri;
   final String? mediaHash;
   final int? durationMs;
+  final String? transcriptText;
+  final String? ocrText;
+  final String? summaryText;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -66,11 +75,28 @@ class Note {
 
   bool get isDeleted => deletedAt != null;
 
+  /// Text used for keyword search — original body or AI-derived text.
+  String? get searchableDerivedText {
+    switch (type) {
+      case NoteType.text:
+        return content;
+      case NoteType.voice:
+        return transcriptText;
+      case NoteType.photo:
+        return ocrText;
+      case NoteType.file:
+        return content;
+    }
+  }
+
   Note copyWith({
     String? content,
     String? mediaUri,
     String? mediaHash,
     int? durationMs,
+    String? transcriptText,
+    String? ocrText,
+    String? summaryText,
     DateTime? updatedAt,
     DateTime? deletedAt,
     bool clearDeletedAt = false,
@@ -85,6 +111,9 @@ class Note {
       mediaUri: mediaUri ?? this.mediaUri,
       mediaHash: mediaHash ?? this.mediaHash,
       durationMs: durationMs ?? this.durationMs,
+      transcriptText: transcriptText ?? this.transcriptText,
+      ocrText: ocrText ?? this.ocrText,
+      summaryText: summaryText ?? this.summaryText,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
@@ -102,6 +131,9 @@ class Note {
         'media_uri': mediaUri,
         'media_hash': mediaHash,
         'duration_ms': durationMs,
+        'transcript_text': transcriptText,
+        'ocr_text': ocrText,
+        'summary_text': summaryText,
         'created_at': createdAt.toUtc().toIso8601String(),
         'updated_at': updatedAt.toUtc().toIso8601String(),
         'deleted_at': deletedAt?.toUtc().toIso8601String(),
@@ -119,6 +151,9 @@ class Note {
       mediaUri: row['media_uri'] as String?,
       mediaHash: row['media_hash'] as String?,
       durationMs: row['duration_ms'] as int?,
+      transcriptText: row['transcript_text'] as String?,
+      ocrText: row['ocr_text'] as String?,
+      summaryText: row['summary_text'] as String?,
       createdAt: DateTime.parse(row['created_at']! as String).toUtc(),
       updatedAt: DateTime.parse(row['updated_at']! as String).toUtc(),
       deletedAt: (row['deleted_at'] as String?) != null

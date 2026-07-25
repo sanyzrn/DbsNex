@@ -22,6 +22,9 @@ class NoteDetailSheet extends StatefulWidget {
 
 class _NoteDetailSheetState extends State<NoteDetailSheet> {
   Note? _note;
+  List<TagSuggestion> _suggestions = const [];
+  List<SemanticHit> _related = const [];
+  String? _color;
 
   @override
   void initState() {
@@ -30,15 +33,28 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     if (widget.focusAddTag) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _addTag());
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAi());
   }
 
   void _reload() {
     setState(() => _note = widget.services.repo.getById(widget.noteId));
   }
 
+  Future<void> _loadAi() async {
+    final suggestions =
+        await widget.services.enrichment.suggestTags(widget.noteId);
+    final related =
+        await widget.services.enrichment.relatedNotes(widget.noteId);
+    if (!mounted) return;
+    setState(() {
+      _suggestions = suggestions;
+      _related = related;
+    });
+  }
+
   Future<void> _addTag() async {
     final controller = TextEditingController();
-    String? color;
+    _color = null;
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) {
@@ -72,7 +88,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                     children: [
                       for (final hex in tagAccentPalette)
                         GestureDetector(
-                          onTap: () => setLocal(() => color = hex),
+                          onTap: () => setLocal(() => _color = hex),
                           child: Container(
                             width: 24,
                             height: 24,
@@ -82,8 +98,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                                     0xFF000000,
                               ),
                               shape: BoxShape.circle,
-                              border: color == hex
-                                  ? Border.all(width: 2)
+                              border: _color == hex
+                                  ? Border.all(
+                                      color: Theme.of(ctx).colorScheme.primary,
+                                      width: 2,
+                                    )
                                   : null,
                             ),
                           ),
@@ -107,13 +126,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         );
       },
     );
-    // Capture color from dialog local state: re-prompt is avoided by reading
-    // the last selected color via a closure — store on the State.
     if (name != null && name.isNotEmpty) {
       widget.services.tags.addTag(
         noteId: widget.noteId,
         name: name,
-        color: color,
+        color: _color,
       );
       _reload();
     }
@@ -150,13 +167,37 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                 note.content ?? '',
                 style: Theme.of(context).textTheme.bodyLarge,
               )
-            else if (note.type == NoteType.voice)
+            else if (note.type == NoteType.voice) ...[
               Text(
-                'Voice · ${((note.durationMs ?? 0) / 1000).ceil()}s\nSearchable by tag/date only',
+                'Voice · ${((note.durationMs ?? 0) / 1000).ceil()}s',
                 style: Theme.of(context).textTheme.bodyLarge,
-              )
-            else
+              ),
+              if (note.transcriptText != null) ...[
+                const SizedBox(height: NexSpacing.sm),
+                Text(
+                  'Transcript',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                Text(note.transcriptText!),
+              ] else
+                Text(
+                  'Searchable by tag/date only',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+            ] else if (note.type == NoteType.photo) ...[
               Text('Photo', style: Theme.of(context).textTheme.bodyLarge),
+              if (note.ocrText != null) ...[
+                const SizedBox(height: NexSpacing.sm),
+                Text('OCR', style: Theme.of(context).textTheme.bodySmall),
+                Text(note.ocrText!),
+              ],
+            ] else
+              Text('File', style: Theme.of(context).textTheme.bodyLarge),
+            if (note.summaryText != null) ...[
+              const SizedBox(height: NexSpacing.md),
+              Text('Summary', style: Theme.of(context).textTheme.bodySmall),
+              Text(note.summaryText!),
+            ],
             const SizedBox(height: NexSpacing.md),
             Wrap(
               spacing: NexSpacing.xs,
@@ -179,7 +220,70 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: NexSpacing.lg),
+            if (_suggestions.isNotEmpty) ...[
+              const SizedBox(height: NexSpacing.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Suggested tags (dismissible)',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _suggestions = const []),
+                    child: const Text('Dismiss'),
+                  ),
+                ],
+              ),
+              Wrap(
+                spacing: NexSpacing.xs,
+                children: [
+                  for (final s in _suggestions)
+                    ActionChip(
+                      label: Text(s.name),
+                      onPressed: () {
+                        widget.services.tags.addTag(
+                          noteId: note.id,
+                          name: s.name,
+                        );
+                        setState(() {
+                          _suggestions =
+                              _suggestions.where((x) => x.name != s.name).toList();
+                        });
+                        _reload();
+                      },
+                    ),
+                ],
+              ),
+            ],
+            if (_related.isNotEmpty) ...[
+              const SizedBox(height: NexSpacing.md),
+              Text(
+                'Related notes',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              for (final hit in _related)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: Text(
+                    widget.services.repo.getById(hit.noteId)?.content ??
+                        hit.noteId,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text('similarity ${hit.score.toStringAsFixed(2)}'),
+                ),
+            ],
+            const SizedBox(height: NexSpacing.md),
+            TextButton(
+              onPressed: () async {
+                await widget.services.enrichment.summarizeOnDemand(note.id);
+                _reload();
+              },
+              child: const Text('Summarize'),
+            ),
             TextButton(
               onPressed: () {
                 widget.services.repo.softDelete(note.id);

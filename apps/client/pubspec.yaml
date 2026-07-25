@@ -19,6 +19,8 @@ dependencies:
   intl: any
   nex_core:
     path: ../../packages/core
+  nex_ai:
+    path: ../../packages/ai
   nex_ui:
     path: ../../packages/ui
   path: ^1.9.1

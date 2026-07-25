@@ -7,8 +7,9 @@ import 'platform/os_capture_bridge.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final services = await NexServices.bootstrap();
   final preferences = await NexPreferences.load();
+  final services = await NexServices.bootstrap(preferences: preferences);
+  services.applyAiPreferences(preferences);
   final osCapture = OsCaptureBridge(services);
   await osCapture.start();
   runApp(

@@ -193,6 +193,30 @@ void main() {
     );
   });
 
+  test('AI preferences default on; cloud opt-in defaults off', () {
+    expect(preferences.aiCapabilities.transcription, isTrue);
+    expect(preferences.cloudAiOptIn, isFalse);
+  });
+
+  test('scheduleEnrichment does not block capture budget', () {
+    final sw = Stopwatch()..start();
+    final note = services.capture.submitTextCapture('enrich later')!;
+    services.scheduleEnrichment(note.id);
+    sw.stop();
+    expect(sw.elapsedMilliseconds, lessThan(300));
+  });
+
+  testWidgets('Settings sheet exposes Intelligence toggles', (tester) async {
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.tap(find.byIcon(Icons.account_circle_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('Intelligence'), findsOneWidget);
+    expect(find.text('Transcription'), findsOneWidget);
+    expect(find.text('Cloud AI (opt-in)'), findsOneWidget);
+  });
+
   testWidgets('UI tokens apply bg-primary; Comfort swaps tokens',
       (tester) async {
     await tester.pumpWidget(

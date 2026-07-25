@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:nex_core/nex_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Fixed swipe action set (ADR-022) — not an extensible framework.
@@ -31,6 +32,13 @@ class NexPreferences extends ChangeNotifier {
   static const _kLeading = 'swipe.leading';
   static const _kTrailing = 'swipe.trailing';
   static const _kComfort = 'appearance.comfort_mode';
+  static const _kAiTranscription = 'ai.transcription';
+  static const _kAiOcr = 'ai.ocr';
+  static const _kAiTags = 'ai.tag_suggestions';
+  static const _kAiSemantic = 'ai.semantic_search';
+  static const _kAiSummary = 'ai.summarization';
+  static const _kAiRelated = 'ai.related_notes';
+  static const _kAiCloud = 'ai.cloud_opt_in';
 
   static Future<NexPreferences> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -46,8 +54,35 @@ class NexPreferences extends ChangeNotifier {
 
   bool get comfortMode => _prefs.getBool(_kComfort) ?? false;
 
+  /// Cloud AI is opt-in per 09-ai.md (default off — on-device only).
+  bool get cloudAiOptIn => _prefs.getBool(_kAiCloud) ?? false;
+
+  AiCapabilities get aiCapabilities => AiCapabilities(
+        transcription: _prefs.getBool(_kAiTranscription) ?? true,
+        ocr: _prefs.getBool(_kAiOcr) ?? true,
+        tagSuggestions: _prefs.getBool(_kAiTags) ?? true,
+        semanticSearch: _prefs.getBool(_kAiSemantic) ?? true,
+        summarization: _prefs.getBool(_kAiSummary) ?? true,
+        relatedNotes: _prefs.getBool(_kAiRelated) ?? true,
+      );
+
   Future<void> setComfortMode(bool value) async {
     await _prefs.setBool(_kComfort, value);
+    notifyListeners();
+  }
+
+  Future<void> setCloudAiOptIn(bool value) async {
+    await _prefs.setBool(_kAiCloud, value);
+    notifyListeners();
+  }
+
+  Future<void> setAiCapabilities(AiCapabilities value) async {
+    await _prefs.setBool(_kAiTranscription, value.transcription);
+    await _prefs.setBool(_kAiOcr, value.ocr);
+    await _prefs.setBool(_kAiTags, value.tagSuggestions);
+    await _prefs.setBool(_kAiSemantic, value.semanticSearch);
+    await _prefs.setBool(_kAiSummary, value.summarization);
+    await _prefs.setBool(_kAiRelated, value.relatedNotes);
     notifyListeners();
   }
 
