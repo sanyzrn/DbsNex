@@ -190,11 +190,12 @@ class _TimelineScreenState extends State<TimelineScreen> {
     }
     final bytes = await File(recordedPath).readAsBytes();
     final durationMs = DateTime.now().difference(started).inMilliseconds;
-    widget.services.capture.submitVoiceCapture(
+    final note = widget.services.capture.submitVoiceCapture(
       mediaUri: recordedPath,
       mediaBytes: Uint8List.fromList(bytes),
       durationMs: durationMs,
     );
+    widget.services.scheduleEnrichment(note.id);
     widget.services.refreshTimeline();
   }
 
@@ -230,10 +231,11 @@ class _TimelineScreenState extends State<TimelineScreen> {
       'photo-${DateTime.now().millisecondsSinceEpoch}${p.extension(file.path)}',
     );
     await File(dest).writeAsBytes(bytes);
-    widget.services.capture.submitPhotoCapture(
+    final note = widget.services.capture.submitPhotoCapture(
       mediaUri: dest,
       mediaBytes: Uint8List.fromList(bytes),
     );
+    widget.services.scheduleEnrichment(note.id);
     widget.services.refreshTimeline();
   }
 
@@ -259,10 +261,11 @@ class _TimelineScreenState extends State<TimelineScreen> {
       'file-${DateTime.now().millisecondsSinceEpoch}-${p.basename(path)}',
     );
     await File(dest).writeAsBytes(bytes);
-    widget.services.capture.submitFileCapture(
+    final note = widget.services.capture.submitFileCapture(
       mediaUri: dest,
       mediaBytes: Uint8List.fromList(bytes),
     );
+    widget.services.scheduleEnrichment(note.id);
     widget.services.refreshTimeline();
   }
 

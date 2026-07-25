@@ -1,13 +1,21 @@
 name: nex_ai
 description: >-
   Nex optional AI adapters (v3+). Optional leaf package — nothing in the
-  capture path may import it.
+  capture path may import it. Deleting this package must leave core/data/client
+  compiling (see docs/09-ai.md).
 publish_to: "none"
-version: 0.0.1
+version: 0.1.0
 
 environment:
   sdk: ^3.5.0
 
+dependencies:
+  crypto: ^3.0.6
+  nex_core:
+    path: ../core
+
 dev_dependencies:
   lints: ^4.0.0
+  nex_data:
+    path: ../data
   test: ^1.25.0

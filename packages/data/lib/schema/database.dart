@@ -83,6 +83,28 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     db.execute(
       'CREATE INDEX IF NOT EXISTS idx_notes_deleted_at ON notes(deleted_at);',
     );
+
+    // Phase 3: AI-derived columns (idempotent ADD COLUMN).
+    _addColumnIfMissing('notes', 'transcript_text', 'TEXT');
+    _addColumnIfMissing('notes', 'ocr_text', 'TEXT');
+    _addColumnIfMissing('notes', 'summary_text', 'TEXT');
+
+    db.execute('''
+CREATE TABLE IF NOT EXISTS note_embeddings (
+  note_id TEXT PRIMARY KEY NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  dims INTEGER NOT NULL,
+  values_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+''');
+  }
+
+  void _addColumnIfMissing(String table, String column, String type) {
+    final rows = db.select('PRAGMA table_info($table)');
+    final exists = rows.any((r) => r['name'] == column);
+    if (!exists) {
+      db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+    }
   }
 
   void close() => db.dispose();

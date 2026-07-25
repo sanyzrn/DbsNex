@@ -135,6 +135,85 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
             const Divider(),
 
+            Text('Intelligence', style: Theme.of(context).textTheme.bodySmall),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Transcription'),
+              subtitle: const Text('Voice notes become keyword-searchable'),
+              value: prefs.aiCapabilities.transcription,
+              onChanged: (v) async {
+                await prefs.setAiCapabilities(
+                  prefs.aiCapabilities.copyWith(transcription: v),
+                );
+                widget.services.applyAiPreferences(prefs);
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('OCR'),
+              subtitle: const Text('Photo notes become keyword-searchable'),
+              value: prefs.aiCapabilities.ocr,
+              onChanged: (v) async {
+                await prefs.setAiCapabilities(
+                  prefs.aiCapabilities.copyWith(ocr: v),
+                );
+                widget.services.applyAiPreferences(prefs);
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Tag suggestions'),
+              value: prefs.aiCapabilities.tagSuggestions,
+              onChanged: (v) async {
+                await prefs.setAiCapabilities(
+                  prefs.aiCapabilities.copyWith(tagSuggestions: v),
+                );
+                widget.services.applyAiPreferences(prefs);
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Semantic search'),
+              value: prefs.aiCapabilities.semanticSearch,
+              onChanged: (v) async {
+                await prefs.setAiCapabilities(
+                  prefs.aiCapabilities.copyWith(semanticSearch: v),
+                );
+                widget.services.applyAiPreferences(prefs);
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Summarization'),
+              value: prefs.aiCapabilities.summarization,
+              onChanged: (v) async {
+                await prefs.setAiCapabilities(
+                  prefs.aiCapabilities.copyWith(summarization: v),
+                );
+                widget.services.applyAiPreferences(prefs);
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Related notes'),
+              value: prefs.aiCapabilities.relatedNotes,
+              onChanged: (v) async {
+                await prefs.setAiCapabilities(
+                  prefs.aiCapabilities.copyWith(relatedNotes: v),
+                );
+                widget.services.applyAiPreferences(prefs);
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Cloud AI (opt-in)'),
+              subtitle: const Text('Off by default — on-device only'),
+              value: prefs.cloudAiOptIn,
+              onChanged: (v) => prefs.setCloudAiOptIn(v),
+            ),
+
+            const Divider(),
+
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.sync),
