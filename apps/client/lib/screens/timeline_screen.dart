@@ -9,15 +9,27 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
 
+import '../l10n/app_localizations.dart';
+import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/os_capture_bridge.dart';
 import 'note_detail_sheet.dart';
 import 'search_screen.dart';
 import 'settings_sheet.dart';
 
 class TimelineScreen extends StatefulWidget {
-  const TimelineScreen({super.key, required this.services});
+  const TimelineScreen({
+    super.key,
+    required this.services,
+    required this.preferences,
+    this.osCapture,
+    this.openTextCaptureOnLaunch = false,
+  });
 
   final NexServices services;
+  final NexPreferences preferences;
+  final OsCaptureBridge? osCapture;
+  final bool openTextCaptureOnLaunch;
 
   @override
   State<TimelineScreen> createState() => _TimelineScreenState();
@@ -26,9 +38,11 @@ class TimelineScreen extends StatefulWidget {
 class _TimelineScreenState extends State<TimelineScreen> {
   late List<Note> _notes;
   StreamSubscription<List<Note>>? _sub;
+  StreamSubscription<Map<Object?, Object?>>? _osSub;
   final _scroll = ScrollController();
   bool _loadingMore = false;
   bool _exhausted = false;
+  String? _openCardId;
 
   @override
   void initState() {
@@ -41,13 +55,33 @@ class _TimelineScreenState extends State<TimelineScreen> {
       });
     });
     _scroll.addListener(_onScroll);
+    widget.preferences.addListener(_onPrefs);
+    _osSub = widget.osCapture?.events.listen(_onOsCapture);
+    if (widget.openTextCaptureOnLaunch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _captureText());
+    }
   }
 
   @override
   void dispose() {
     _sub?.cancel();
+    _osSub?.cancel();
+    widget.preferences.removeListener(_onPrefs);
     _scroll.dispose();
     super.dispose();
+  }
+
+  void _onPrefs() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _onOsCapture(Map<Object?, Object?> payload) async {
+    if (payload['type'] == 'text_capture' && mounted) {
+      await _captureText();
+    } else if (mounted) {
+      // shared_text / shared_photo already persisted by OsCaptureBridge.
+      widget.services.refreshTimeline();
+    }
   }
 
   void _onScroll() {
@@ -97,11 +131,12 @@ class _TimelineScreenState extends State<TimelineScreen> {
   }
 
   Future<void> _captureVoice() async {
+    final l10n = AppLocalizations.of(context);
     final recorder = AudioRecorder();
     if (!await recorder.hasPermission()) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Microphone permission required')),
+          SnackBar(content: Text(l10n.micPermission)),
         );
       }
       return;
@@ -123,7 +158,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Recording…'),
+              Text(l10n.recording),
               const SizedBox(height: NexSpacing.lg),
               SizedBox(
                 width: nexMinTapTarget * 2,
@@ -135,7 +170,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Discard'),
+                child: Text(l10n.discard),
               ),
             ],
           ),
@@ -160,22 +195,22 @@ class _TimelineScreenState extends State<TimelineScreen> {
   }
 
   Future<void> _capturePhoto() async {
+    final l10n = AppLocalizations.of(context);
     final picker = ImagePicker();
-    // FR-1.5: open camera immediately; gallery is an explicit switch option.
     XFile? file = await picker.pickImage(source: ImageSource.camera);
     if (file == null && mounted) {
       final useGallery = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          content: const Text('No photo captured. Switch to gallery?'),
+          content: Text(l10n.gallerySwitch),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Gallery'),
+              child: Text(l10n.gallery),
             ),
           ],
         ),
@@ -198,14 +233,55 @@ class _TimelineScreenState extends State<TimelineScreen> {
     widget.services.refreshTimeline();
   }
 
+  void _softDeleteWithUndo(Note note) {
+    final l10n = AppLocalizations.of(context);
+    widget.services.repo.softDelete(note.id);
+    widget.services.refreshTimeline();
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.noteDeleted),
+        action: SnackBarAction(
+          label: l10n.undo,
+          onPressed: () {
+            // Soft-delete undo: clear deleted_at by re-inserting isn't ideal;
+            // restore via copyWith clearDeletedAt through a small repo helper.
+            widget.services.repo.undelete(note.id);
+            widget.services.refreshTimeline();
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _swipeAddTag(Note note) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => NoteDetailSheet(
+        services: widget.services,
+        noteId: note.id,
+        focusAddTag: true,
+      ),
+    );
+    widget.services.refreshTimeline();
+  }
+
+  NexSwipeAction _mapAction(SwipeAction action) => switch (action) {
+        SwipeAction.delete => NexSwipeAction.delete,
+        SwipeAction.addTag => NexSwipeAction.addTag,
+      };
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nex'),
+        title: Text(l10n.appTitle),
         actions: [
           IconButton(
-            tooltip: 'Search',
+            tooltip: l10n.search,
             icon: const Icon(Icons.search),
             onPressed: () {
               Navigator.of(context).push(
@@ -216,13 +292,16 @@ class _TimelineScreenState extends State<TimelineScreen> {
             },
           ),
           IconButton(
-            tooltip: 'Settings',
+            tooltip: l10n.settings,
             icon: const Icon(Icons.account_circle_outlined),
             onPressed: () {
               showModalBottomSheet<void>(
                 context: context,
                 showDragHandle: true,
-                builder: (_) => SettingsSheet(services: widget.services),
+                builder: (_) => SettingsSheet(
+                  services: widget.services,
+                  preferences: widget.preferences,
+                ),
               );
             },
           ),
@@ -231,7 +310,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
       body: _notes.isEmpty
           ? Center(
               child: Text(
-                'Tap + to capture',
+                l10n.emptyTimeline,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: Theme.of(context).colorScheme.secondary,
                     ),
@@ -239,6 +318,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
             )
           : ListView.builder(
               controller: _scroll,
+              semanticChildCount: _notes.length,
               itemCount: _notes.length + (_loadingMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index >= _notes.length) {
@@ -248,20 +328,30 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   );
                 }
                 final note = _notes[index];
-                return NoteCard(
-                  note: note,
-                  onTap: () async {
-                    await showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      showDragHandle: true,
-                      builder: (_) => NoteDetailSheet(
-                        services: widget.services,
-                        noteId: note.id,
-                      ),
-                    );
-                    widget.services.refreshTimeline();
-                  },
+                return SwipeableNoteCard(
+                  cardId: note.id,
+                  openCardId: _openCardId,
+                  onOpenChanged: (id) => setState(() => _openCardId = id),
+                  resolveAction: ({required bool isLeading}) => _mapAction(
+                    widget.preferences.actionFor(isLeading: isLeading),
+                  ),
+                  onDelete: () => _softDeleteWithUndo(note),
+                  onAddTag: () => _swipeAddTag(note),
+                  child: NoteCard(
+                    note: note,
+                    onTap: () async {
+                      await showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        showDragHandle: true,
+                        builder: (_) => NoteDetailSheet(
+                          services: widget.services,
+                          noteId: note.id,
+                        ),
+                      );
+                      widget.services.refreshTimeline();
+                    },
+                  ),
                 );
               },
             ),
@@ -270,7 +360,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
         height: nexMinTapTarget + 12,
         child: FloatingActionButton(
           onPressed: _openCapture,
-          tooltip: 'Capture',
+          tooltip: l10n.capture,
           child: const Icon(Icons.add, size: 28),
         ),
       ),
@@ -283,23 +373,24 @@ class _CaptureChooser extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
             leading: const Icon(Icons.short_text),
-            title: const Text('Text'),
+            title: Text(l10n.text),
             onTap: () => Navigator.pop(context, NoteType.text),
           ),
           ListTile(
             leading: const Icon(Icons.mic_none),
-            title: const Text('Voice'),
+            title: Text(l10n.voice),
             onTap: () => Navigator.pop(context, NoteType.voice),
           ),
           ListTile(
             leading: const Icon(Icons.photo_camera_outlined),
-            title: const Text('Photo'),
+            title: Text(l10n.photo),
             onTap: () => Navigator.pop(context, NoteType.photo),
           ),
         ],
@@ -308,7 +399,6 @@ class _CaptureChooser extends StatelessWidget {
   }
 }
 
-/// Text capture sheet — auto-saves on first content, no Save button (ADR-002).
 class _TextCaptureSheet extends StatefulWidget {
   const _TextCaptureSheet({required this.services});
 
@@ -341,6 +431,7 @@ class _TextCaptureSheetState extends State<_TextCaptureSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.only(
         left: NexSpacing.md,
@@ -353,8 +444,8 @@ class _TextCaptureSheetState extends State<_TextCaptureSheet> {
         autofocus: true,
         maxLines: null,
         minLines: 4,
-        decoration: const InputDecoration(
-          hintText: 'Capture…',
+        decoration: InputDecoration(
+          hintText: l10n.captureHint,
           border: InputBorder.none,
         ),
         onChanged: _onChanged,

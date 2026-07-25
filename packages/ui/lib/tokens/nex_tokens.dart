@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Light/Dark token pairs from `05-design.md` (Phase 1.7).
+/// Light/Dark (+ Comfort) token pairs from `05-design.md`.
 abstract final class NexColors {
   static const Color bgPrimaryLight = Color(0xFFFFFFFF);
   static const Color bgPrimaryDark = Color(0xFF0A0A0A);
@@ -14,6 +14,15 @@ abstract final class NexColors {
   static const Color borderDark = Color(0xFF262626);
   static const Color accentLight = Color(0xFF0A0A0A);
   static const Color accentDark = Color(0xFFFAFAFA);
+
+  // Comfort Mode exact deltas from 05-design.md §Comfort Mode.
+  static const Color bgPrimaryLightComfort = Color(0xFFF7F1E6);
+  static const Color bgPrimaryDarkComfort = Color(0xFF17130F);
+  static const Color textPrimaryLightComfort = Color(0xFF2E2A22);
+  static const Color textPrimaryDarkComfort = Color(0xFFD9CFC0);
+
+  /// Muted red for Delete swipe reveal only (05-design.md §Swipe Actions).
+  static const Color swipeDelete = Color(0xFFE24B3B);
 }
 
 abstract final class NexSpacing {
@@ -27,59 +36,77 @@ abstract final class NexSpacing {
 /// Minimum tap target (05-design.md).
 const double nexMinTapTarget = 44;
 
-ThemeData nexLightTheme() {
+/// Swipe reveal threshold as a fraction of card width.
+const double nexSwipeThreshold = 0.35;
+
+ThemeData nexLightTheme({bool comfortMode = false}) {
+  final bg = comfortMode ? NexColors.bgPrimaryLightComfort : NexColors.bgPrimaryLight;
+  final on = comfortMode
+      ? NexColors.textPrimaryLightComfort
+      : NexColors.textPrimaryLight;
+  final elevated = comfortMode
+      ? const Color(0xFFF0E8DA)
+      : NexColors.bgElevatedLight;
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    scaffoldBackgroundColor: NexColors.bgPrimaryLight,
-    colorScheme: const ColorScheme.light(
-      surface: NexColors.bgPrimaryLight,
-      onSurface: NexColors.textPrimaryLight,
-      primary: NexColors.accentLight,
-      onPrimary: NexColors.bgPrimaryLight,
+    scaffoldBackgroundColor: bg,
+    colorScheme: ColorScheme.light(
+      surface: bg,
+      onSurface: on,
+      primary: on,
+      onPrimary: bg,
       secondary: NexColors.textSecondaryLight,
       outline: NexColors.borderLight,
+      surfaceContainerHighest: elevated,
     ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: NexColors.bgPrimaryLight,
-      foregroundColor: NexColors.textPrimaryLight,
+    appBarTheme: AppBarTheme(
+      backgroundColor: bg,
+      foregroundColor: on,
       elevation: 0,
       scrolledUnderElevation: 0,
     ),
-    floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: NexColors.accentLight,
-      foregroundColor: NexColors.bgPrimaryLight,
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: on,
+      foregroundColor: bg,
     ),
     dividerColor: NexColors.borderLight,
-    textTheme: _textTheme(NexColors.textPrimaryLight, NexColors.textSecondaryLight),
+    textTheme: _textTheme(on, NexColors.textSecondaryLight),
   );
 }
 
-ThemeData nexDarkTheme() {
+ThemeData nexDarkTheme({bool comfortMode = false}) {
+  final bg = comfortMode ? NexColors.bgPrimaryDarkComfort : NexColors.bgPrimaryDark;
+  final on =
+      comfortMode ? NexColors.textPrimaryDarkComfort : NexColors.textPrimaryDark;
+  final elevated = comfortMode
+      ? const Color(0xFF1F1A15)
+      : NexColors.bgElevatedDark;
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    scaffoldBackgroundColor: NexColors.bgPrimaryDark,
-    colorScheme: const ColorScheme.dark(
-      surface: NexColors.bgPrimaryDark,
-      onSurface: NexColors.textPrimaryDark,
-      primary: NexColors.accentDark,
-      onPrimary: NexColors.bgPrimaryDark,
+    scaffoldBackgroundColor: bg,
+    colorScheme: ColorScheme.dark(
+      surface: bg,
+      onSurface: on,
+      primary: on,
+      onPrimary: bg,
       secondary: NexColors.textSecondaryDark,
       outline: NexColors.borderDark,
+      surfaceContainerHighest: elevated,
     ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: NexColors.bgPrimaryDark,
-      foregroundColor: NexColors.textPrimaryDark,
+    appBarTheme: AppBarTheme(
+      backgroundColor: bg,
+      foregroundColor: on,
       elevation: 0,
       scrolledUnderElevation: 0,
     ),
-    floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: NexColors.accentDark,
-      foregroundColor: NexColors.bgPrimaryDark,
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: on,
+      foregroundColor: bg,
     ),
     dividerColor: NexColors.borderDark,
-    textTheme: _textTheme(NexColors.textPrimaryDark, NexColors.textSecondaryDark),
+    textTheme: _textTheme(on, NexColors.textSecondaryDark),
   );
 }
 
@@ -116,4 +143,13 @@ TextTheme _textTheme(Color primary, Color secondary) {
       height: 1.4,
     ),
   );
+}
+
+/// Relative luminance contrast ratio (WCAG).
+double nexContrastRatio(Color a, Color b) {
+  final la = a.computeLuminance();
+  final lb = b.computeLuminance();
+  final lighter = la > lb ? la : lb;
+  final darker = la > lb ? lb : la;
+  return (lighter + 0.05) / (darker + 0.05);
 }
