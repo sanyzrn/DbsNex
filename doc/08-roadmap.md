@@ -39,15 +39,20 @@ timeline
 | Search — keyword, tag, date, content-type filter | Content-type layered onto the same search surface, not a separate mode |
 | Local-first storage, sync-ready schema | UUIDv7 ids, `rev`, `device_id`, `media_hash`, soft delete — see [`04-architecture.md`](./04-architecture.md) |
 | Minimal dormant backend | Proves the sync contract early without being load-bearing |
+| **Data export** (JSON + Markdown + media) | Manual, one-tap, offline — see [ADR-025](./10-decisions.md#adr-025--data-export-ships-in-v1-not-after-v3) |
+| **Automatic backup + one-tap restore** | Rotating local SQLite snapshots — see [ADR-026](./10-decisions.md#adr-026--automatic-local-backup--restore-ships-in-v1) |
 
-**Exit criteria:** Usability testing shows capture and find both feel instant (< 3 s) across all three content types; engineering performance budgets met in CI; crash-free session rate > 99.9%.
+**Exit criteria:** Usability testing shows capture and find both feel instant (< 3 s) across all three content types; engineering performance budgets met in CI; crash-free session rate > 99.9%; export round-trip and backup-restore-after-corruption both verified.
 
 ### v1.x — Stability & Polish
 
+Ranked by leverage against the core "capture in under 3 seconds" promise — OS-level capture surfaces ship first, ahead of in-app polish that touches fewer moments of actual friction:
+
+- **Home-screen widget + Android share-intent capture** — opens directly into text capture, or accepts shared text/links/photos from other apps, without requiring the user to open Nex first. Higher-leverage against the core promise than the in-app items below — see [ADR-027](./10-decisions.md#adr-027--os-level-capture-surfaces-home-screen-widget-share-intent-added-to-v1x-scope).
 - Performance tuning for large timelines (thousands of notes).
 - WCAG 2.1 AA accessibility audit and fixes.
 - Expanded automated performance budget tests in CI.
-- Localization groundwork (externalized strings; Persian as the first additional language).
+- Localization groundwork (externalized strings; Persian as the first additional language); Persian FTS5 tokenization verified per [ADR-028](./10-decisions.md#adr-028--explicit-fts5-tokenization-strategy-for-multilingual-persian-first-search).
 - Swipe actions on Timeline cards (Delete, Add Tag), with a user-configurable direction mapping and a new lightweight Settings sheet — see [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set).
 - Comfort Mode — a lower-contrast, warmer-color-temperature toggle independent of Light/Dark theme, for late-night and light-sensitive use — see [ADR-023](./10-decisions.md#adr-023--comfort-mode-as-an-independent-axis-from-lightdark-theme).
 
@@ -88,7 +93,6 @@ timeline
 
 ## Explicitly Deferred / Not Currently Planned
 
-- **Export** — evaluated only after v3 stabilizes; must not imply Nex becomes a long-term storage/organization system.
 - **Team/multi-user collaboration** — out of scope indefinitely; contradicts the single-player, personal-inbox identity.
 - **Complex organizational features** (nested tags, folders, databases) — would contradict "Organize Later" as a philosophy, not just a feature gap.
 

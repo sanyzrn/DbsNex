@@ -45,6 +45,9 @@ Nex is a cross-platform capture application built around a single timeline of no
 | Search by text, tag, date | Semantic / AI-powered search |
 | Content-type filter (layered onto search) | Content-type as a separate search mode |
 | Local-first storage, sync-ready schema | Real multi-device sync |
+| **Manual data export** (JSON + Markdown + media) | — |
+| **Automatic local backup + one-tap restore** | — |
+| **Home-screen widget + Android share-intent capture** (v1.x) | Desktop global hotkey / system tray (future) |
 
 ---
 
@@ -108,6 +111,21 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-5.3 Every note carries a monotonic `rev` (revision counter) and a soft-delete `deleted_at` tombstone from v1, even though sync is inactive until v2.
 - FR-5.4 Media notes (voice, photo) carry a `media_hash` — a content hash of the underlying file — computed at capture time, so that identical media captured or re-synced from multiple devices can be deduplicated without a network round trip. See [ADR-019](./10-decisions.md#adr-019--content-addressed-media-for-dedupe).
 - FR-5.5 No user action should ever produce data loss under normal operation (app kill, restart, low storage excluded).
+
+### FR-6 — Export
+- FR-6.1 A **Settings → Export** action produces, in one tap, a JSON dump of all notes and tags (full fidelity, machine-readable) and a Markdown export (one file per note, human-readable), plus the referenced media files, bundled into a single archive the user saves wherever they choose.
+- FR-6.2 Export never requires network access — it is a fully local, offline operation.
+- FR-6.3 A round-trip check (export, then verify the archive's content matches the source data) is part of the v1.0 release exit criteria — see [ADR-025](./10-decisions.md#adr-025--data-export-ships-in-v1-not-after-v3).
+
+### FR-7 — Backup & Restore
+- FR-7.1 The app automatically maintains a small, fixed number of rotating local backups of the SQLite database, on-device, with no user action required to create them.
+- FR-7.2 A one-tap **Restore** action is available from Settings, recovering the most recent (or a selected) backup.
+- FR-7.3 Backup/restore correctness is verified in testing against a simulated database-corruption scenario, per [ADR-026](./10-decisions.md#adr-026--automatic-local-backup--restore-ships-in-v1).
+
+### FR-8 — OS-Level Capture Surfaces
+- FR-8.1 A home-screen widget (Android) opens directly into text capture, bypassing the need to open the app first.
+- FR-8.2 An Android share-intent target accepts text, links, or photos shared from other apps directly into Nex as a new capture, with the same zero-mandatory-fields, auto-save behavior as in-app capture (FR-1.6–1.7).
+- FR-8.3 These surfaces are held to the same performance and zero-decision principles as in-app Quick Capture — see [ADR-027](./10-decisions.md#adr-027--os-level-capture-surfaces-home-screen-widget-share-intent-added-to-v1x-scope).
 
 ---
 
@@ -214,7 +232,7 @@ erDiagram
 - **`deleted_at`** implements soft deletes so a future sync engine propagates deletions instead of losing them to a hard delete.
 - **`media_hash`** enables content-addressed deduplication: if the same photo or voice file already exists locally or on another synced device, it is not stored or transferred twice.
 - **`rev` and `device_id`** are present from v1, even though sync is inactive, so v2 sync requires no schema migration or data rewrite.
-- Full-text indexing (FTS5) applies to `content` for text notes only, matching v1 search scope.
+- Full-text indexing (FTS5) applies to `content` for text notes only, matching v1 search scope. The tokenizer is `unicode61` with explicit diacritic-removal and separator tuning for Persian script (Persian is space-delimited, so word-based tokenization applies, but needs explicit handling of ZWNJ and diacritics) — see [ADR-028](./10-decisions.md#adr-028--explicit-fts5-tokenization-strategy-for-multilingual-persian-first-search). A dedicated Persian search-correctness test suite is part of the Phase 1 test plan, not an afterthought.
 - **Swipe-action mapping** (FR-2.7) is stored as a simple local key-value preference (e.g., `swipe.leading = add_tag`, `swipe.trailing = delete`), not a note or schema field — it's a device-level UI preference, not user content. It is not synced in v1; whether it should sync in v2 (so the mapping is consistent across a user's devices) is an open question, not yet decided — see [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set).
 
 ---
@@ -264,14 +282,15 @@ Explicitly deferred, tracked for evaluation post-MVP:
 - Generic file attachments (v2).
 - Full cross-device sync (v2).
 - Speech-to-text, OCR, AI tag suggestions, semantic search, summarization, Related Notes (v3).
-- Export (evaluated only after v3 stabilizes).
+
+> Export is **no longer deferred** — see [FR-6](#fr-6--export) and [ADR-025](./10-decisions.md#adr-025--data-export-ships-in-v1-not-after-v3). It ships in v1.
 
 ## Release Plan
 
 | Release | Scope | Exit Criteria |
 |---|---|---|
-| v1.0 | Timeline, 3 capture types, tags, search (text/tag/date/type filter) | All FRs pass QA; capture and search both consistently feel < 3 s in usability testing; engineering budgets (§ Non-Functional Requirements) met in CI |
-| v1.x | Stability, performance, accessibility polish | Crash-free session rate > 99.9%; WCAG 2.1 AA audit passed |
+| v1.0 | Timeline, 3 capture types, tags, search (text/tag/date/type filter), **export, backup/restore** | All FRs pass QA; capture and search both consistently feel < 3 s in usability testing; engineering budgets (§ Non-Functional Requirements) met in CI; export round-trip verified (FR-6.3); backup survives simulated DB corruption (FR-7.3) |
+| v1.x | Stability, performance, accessibility polish, **home-screen widget + share-intent capture** | Crash-free session rate > 99.9%; WCAG 2.1 AA audit passed; OS-level capture surfaces (FR-8) shipped and meeting the same capture-speed budget as in-app capture |
 | v2.0 | Cross-device sync (Android ⇄ Windows) | Sync conflict tests pass (including tag union-merge and media dedupe); offline-edit-then-sync scenarios verified |
 | v2.x | Generic file attachments, iOS client | Feature parity with Android/Windows confirmed |
 | v3.0 | Speech-to-text, OCR, tag suggestions, semantic search, summarization, related notes | Voice/photo notes become part of full-text/semantic search without regressing capture speed |

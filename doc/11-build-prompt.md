@@ -63,6 +63,7 @@
 ### 1.6 — Search
 - Text/tag/date/type-filter per [FR-4](./02-product-specification.md#fr-4--search), content-type as a filter layered on the same surface, **not** a separate mode ([ADR-011](./10-decisions.md#adr-011--content-type-filter-is-part-of-the-single-search-surface-not-a-separate-mode)).
 - Voice notes excluded from keyword match in this phase; UI must label them "searchable by tag/date only" (FR-4.6).
+- Use FTS5's `unicode61` tokenizer with explicit diacritic/separator handling for Persian, per [ADR-028](./10-decisions.md#adr-028--explicit-fts5-tokenization-strategy-for-multilingual-persian-first-search). **Do not ship with only English test content** — a Persian-content search-correctness test is required in this phase's test suite, not deferred, since a wrong tokenizer choice fails silently (search just returns nothing, with no error).
 
 ### 1.7 — Visual design pass
 - Implement the Light/Dark token pairs from [`05-design.md`](./05-design.md#color-philosophy) — monochrome surface, no categorical color anywhere except the tag accent dot.
@@ -71,13 +72,23 @@
 ### 1.8 — Offline verification
 - Manually (and then automatically, in CI) verify every Phase 1 flow works with the network fully disabled. There is no code path in this phase that should touch the network at all.
 
-**Definition of Done (Phase 1):** matches the [v1.0 Release Plan exit criteria](./02-product-specification.md#release-plan) — all FR-1 through FR-5 pass, capture and search both consistently *feel* instant in manual testing, and the engineering budgets in [Non-Functional Requirements](./02-product-specification.md#non-functional-requirements) (cold start < 1.5s, capture-ready < 1s, search query < 200ms) are met, not just "close."
+### 1.9 — Export
+- Implement **Settings → Export** exactly per [FR-6](./02-product-specification.md#fr-6--export): a one-tap, fully offline action producing a JSON dump, a Markdown export (one file per note), and the referenced media, bundled into a single archive.
+- **Acceptance:** a round-trip test — export, then programmatically verify the archive's content matches the source database — per [ADR-025](./10-decisions.md#adr-025--data-export-ships-in-v1-not-after-v3). This is a release exit criterion, not a nice-to-have.
+
+### 1.10 — Backup & Restore
+- Implement automatic, rotating local SQLite backups (a small fixed retention count) and a one-tap Restore action, per [FR-7](./02-product-specification.md#fr-7--backup--restore).
+- **Acceptance:** a simulated database-corruption test that verifies successful restore, per [ADR-026](./10-decisions.md#adr-026--automatic-local-backup--restore-ships-in-v1). This is a release exit criterion.
+
+**Definition of Done (Phase 1):** matches the [v1.0 Release Plan exit criteria](./02-product-specification.md#release-plan) — all FR-1 through FR-7 pass, capture and search both consistently *feel* instant in manual testing, the engineering budgets in [Non-Functional Requirements](./02-product-specification.md#non-functional-requirements) (cold start < 1.5s, capture-ready < 1s, search query < 200ms) are met, not just "close," **and** export round-trip + backup-restore-after-corruption both pass.
 
 **Stop-and-verify checklist before Phase 1.x:**
 - [ ] Every capture type reachable in one tap from Timeline, with zero fields.
 - [ ] No Save button exists anywhere in the codebase.
 - [ ] No folders, pinning, or manual reordering exist anywhere in the codebase.
 - [ ] All Phase 1 flows pass with airplane mode on.
+- [ ] Export produces a verifiable, lossless archive.
+- [ ] Restoring from an automatic backup after a simulated corruption succeeds.
 
 ---
 
@@ -87,24 +98,29 @@
 
 **Primary references:** [`08-roadmap.md`](./08-roadmap.md#v1x--stability--polish), [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set), [ADR-023](./10-decisions.md#adr-023--comfort-mode-as-an-independent-axis-from-lightdark-theme).
 
-### 1.x.1 — Stability
+### 1.x.1 — OS-level capture surfaces (highest leverage item in this phase — build first)
+- Implement a home-screen widget (Android) that opens directly into text capture, and an Android share-intent target that accepts shared text/links/photos as a new capture — per [FR-8](./02-product-specification.md#fr-8--os-level-capture-surfaces) and [ADR-027](./10-decisions.md#adr-027--os-level-capture-surfaces-home-screen-widget-share-intent-added-to-v1x-scope).
+- These surfaces get the same zero-mandatory-field, auto-save treatment as in-app Quick Capture — no exceptions because the entry point is different.
+- **Do this before 1.x.2 and 1.x.3 below** — it has materially more leverage on the core "capture in under 3 seconds" promise than either.
+
+### 1.x.2 — Stability
 - Performance tuning for large timelines (thousands of notes).
 - WCAG 2.1 AA accessibility audit and fixes.
 - Expanded automated performance-budget tests in CI (make the Phase 1 budgets regression-proof, not just met once).
 - Localization groundwork: externalize all UI strings now, even though the UI ships English-only; Persian is the first planned language pack ([ADR-015](./10-decisions.md#adr-015--persian-as-the-first-additional-language-target-kept-as-a-non-functional-requirement-rather-than-a-v1-feature)). Note the app shell stays English/LTR while note **content** must render correctly for RTL scripts via `dir`-equivalent (Flutter's `Directionality`/bidi text handling) — this is already exercised in the mockup and must hold in the real client.
 
-### 1.x.2 — Swipe actions
+### 1.x.3 — Swipe actions
 - Implement exactly two swipe-revealed actions on Timeline cards — **Delete** (soft-delete, undoable via toast) and **Add Tag** — per [FR-2.6–2.8](./02-product-specification.md#fr-2--timeline). Do **not** build a general/extensible action framework; the set is deliberately closed at two.
 - Direction-to-action mapping is a local, user-configurable preference (not synced in this phase), exposed from a new, minimal **Settings** sheet reached by tapping the avatar — not a nested settings app.
 - Visual spec (threshold, reveal color for Delete vs. neutral for Add Tag, one-open-card-at-a-time) is in [Swipe Actions](./05-design.md#swipe-actions).
 - **Do not add Pin/Archive as a third swipe action** — Nex has already ruled out pinning and manual reordering in the Timeline; re-adding it here through swipe would quietly reverse that decision.
 
-### 1.x.3 — Comfort Mode
+### 1.x.4 — Comfort Mode
 - Implement as an independent toggle from Light/Dark theme (not a third theme) per [Comfort Mode](./05-design.md#comfort-mode) — same Settings sheet as the swipe mapping.
 - Use the exact token deltas in the doc's table; verify WCAG AA is still met for both Comfort on/off in both themes.
 - Default off in both themes.
 
-**Definition of Done (Phase 1.x):** Settings sheet exists with exactly two preference groups (swipe mapping, appearance incl. Comfort Mode); swipe actions work with the fixed two-action set and configurable mapping; Comfort Mode token swap verified in both themes; accessibility audit passed; all Phase 1 performance budgets still hold.
+**Definition of Done (Phase 1.x):** home-screen widget and share-intent capture both ship and meet the same capture-speed budget as in-app capture; Settings sheet exists with exactly two preference groups (swipe mapping, appearance incl. Comfort Mode); swipe actions work with the fixed two-action set and configurable mapping; Comfort Mode token swap verified in both themes; accessibility audit passed; all Phase 1 performance budgets still hold.
 
 ---
 

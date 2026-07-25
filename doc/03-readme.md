@@ -41,7 +41,7 @@ Everything else — tags, filters, sync, AI — exists only to serve those two g
 ### Available in v1 (MVP)
 
 - ⚡ **One-tap capture** — a single `+` button branches into three capture types: text, voice, photo.
-- 🔇 **Zero-friction recording** — voice capture starts immediately, no "press to start" step.
+- 🔇 **Zero-friction recording** — voice capture starts immediately, no "press to start" step. *Voice (and photo) notes are searchable by tag/date in v1, not by keyword — full transcription/OCR search lands in v3 (see [`09-ai.md`](./09-ai.md)).*
 - 🖼️ **Instant photo capture** — camera or gallery, two taps max.
 - 💾 **No Save button** — every capture persists automatically the moment it has content.
 - 🗂️ **Optional tags** — the only organizational tool, entirely opt-in, applied after the fact.
@@ -49,6 +49,11 @@ Everything else — tags, filters, sync, AI — exists only to serve those two g
 - 🔍 **Fast search** — full-text search on text notes, plus tag / date / content-type filters.
 - 📡 **Offline-first** — every core flow works with zero network connection.
 - 🧬 **Sync-ready by design** — every record carries a time-ordered UUIDv7, revision, and content hash from day one, so v2 sync arrives without a rewrite.
+- 📤 **Data export** — one-tap JSON + Markdown + media export, fully offline. Data belongs to the user from day one, not from v2 or v3.
+- 🛟 **Automatic backup + restore** — rotating local backups protect against device loss or corruption, independent of sync.
+
+### Also in v1.x
+- 🏠 **Home-screen widget + share-intent capture** — capture without opening the app at all; see [ADR-027](./10-decisions.md#adr-027--os-level-capture-surfaces-home-screen-widget-share-intent-added-to-v1x-scope).
 
 ### Planned
 

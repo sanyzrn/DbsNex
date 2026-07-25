@@ -252,6 +252,46 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 
 ---
 
+## ADR-025 — Data export ships in v1, not after v3
+
+- **Context:** [`01-product-vision.md`](./01-product-vision.md#core-values) states "data belongs to the user" as a core value, but export was originally deferred until "evaluated post-v3" (see the now-superseded [Future Features](./02-product-specification.md#future-features) list). Two independent external reviews of the documentation set flagged this as the single largest concrete contradiction in the project: a local-first app with no sync until v2 and no export at all leaves a v1 user's data effectively locked to one device for roughly two major versions, with no way out on their own terms.
+- **Decision:** v1 ships a manual **Settings → Export** action producing a JSON dump (full fidelity, machine-readable) and a Markdown export (one file per note, human-readable) plus the referenced media files, bundled as a single archive the user saves wherever they choose. A lossless round-trip (export, then manually verify the data against the original) is part of the v1.0 release exit criteria.
+- **Rationale:** This is the minimum viable trust posture for a tool whose entire premise is "capture first, trust that it's safe." It does not compromise Nex's identity as the inbox rather than the destination — if anything, a working export is the concrete mechanism behind the vision's own claim that Nex "feeds" other tools rather than trapping data (see [`01-product-vision.md`](./01-product-vision.md#vision)), a claim that had no actual mechanism behind it before this decision.
+- **Alternatives Considered:** (1) Leave export deferred to post-v3 as originally planned — rejected; the cost of building a one-directional export is low and the trust cost of not having one for ~two major versions is high. (2) JSON-only export — rejected; a Markdown export honors the "front door to other tools" positioning more directly, since Markdown is what most note tools (Obsidian, plain filesystems) can actually ingest.
+- **Status:** Accepted. Supersedes the "Export evaluated only after v3" line in [`02-product-specification.md`](./02-product-specification.md#future-features) and [`08-roadmap.md`](./08-roadmap.md#explicitly-deferred--not-currently-planned).
+
+---
+
+## ADR-026 — Automatic local backup & restore ships in v1
+
+- **Context:** Nex's storage is local-only until v2 sync. Alongside ADR-025 (export), the same external reviews pointed out that "a captured note must never be lost" ([`01-product-vision.md`](./01-product-vision.md#non-negotiable-principles)) currently has no protective mechanism behind it at all in v1 — a lost, stolen, or factory-reset device, or a corrupted local database, destroys 100% of a user's captures with no recovery path.
+- **Decision:** v1 ships automatic, rotating local backups of the SQLite database (a small fixed number of recent snapshots, stored on-device) and a one-tap restore path. Surviving a simulated database-corruption scenario in testing is part of the v1.0 release exit criteria.
+- **Rationale:** Export (ADR-025) protects against wanting to leave; backup protects against losing data by accident, which is a distinct and arguably more common failure mode (app crash mid-write, storage corruption, accidental deletion) than the deliberate device-loss scenario export doesn't fully cover either. Both are cheap relative to the cost of the promise they're backing.
+- **Alternatives Considered:** Rely on the user's own OS-level device backup (e.g., Android's system backup) as the only safety net — rejected as a silent, unverified dependency Nex doesn't control and can't test against; an app-level backup guarantees the behavior regardless of OS backup settings the user may have disabled.
+- **Status:** Accepted, v1.
+
+---
+
+## ADR-027 — OS-level capture surfaces (home-screen widget, share-intent) added to v1.x scope
+
+- **Context:** Every functional requirement in [`02-product-specification.md`](./02-product-specification.md) assumes the user opens the Nex app before capturing. Both external reviews independently identified this as an unexamined gap of real consequence: for a product whose entire premise is minimizing the time between a thought and its capture, requiring an app-icon tap in every scenario concedes exactly the argument Nex is trying to win, at the OS-integration layer rather than inside its own app shell. This is a materially higher-leverage improvement to the "capture in under 3 seconds" promise than the swipe-action configurability or Comfort Mode already scheduled for v1.x.
+- **Decision:** Add, to v1.x scope, ranked **above** swipe-action configuration and Comfort Mode: (a) a home-screen widget (Android first) that opens directly into text capture, and (b) an Android share-intent target, so text, a link, or a photo can be sent into Nex from any other app without opening Nex first. A desktop global-hotkey/system-tray quick-capture entry point is noted as a reasonable future addition once the Windows client exists, but is not required for this ADR's scope.
+- **Rationale:** These entry points reduce the single largest remaining source of capture friction — opening the app at all — for the two platforms already in v1/v1.x scope, at a cost that's small relative to their leverage on the product's core promise.
+- **Alternatives Considered:** Leave OS-level capture to a later version once the in-app experience is fully polished — rejected; the in-app polish items already scheduled (Comfort Mode, swipe config) are lower-leverage than this by the reviews' own reasoning and by direct comparison against the product's stated success metrics.
+- **Status:** Accepted, v1.x. Re-ranks [`08-roadmap.md`](./08-roadmap.md#v1x--stability--polish) — this ships before, or at minimum alongside, ADR-022 and ADR-023, not after.
+
+---
+
+## ADR-028 — Explicit FTS5 tokenization strategy for multilingual (Persian-first) search
+
+- **Context:** [`02-product-specification.md`](./02-product-specification.md) commits to full-text search via SQLite FTS5, and [ADR-015](#adr-015--persian-as-the-first-additional-language-target-kept-as-a-non-functional-requirement-rather-than-a-v1-feature) names Persian as the first planned additional language — but no document specifies which FTS5 tokenizer handles this correctly. Getting this wrong is a silent failure mode: search simply returns nothing for affected content, and to the user, Nex just looks broken, with no error to report.
+- **Decision:** Use FTS5's `unicode61` tokenizer with explicit `remove_diacritics` and `tokenchars`/`separators` tuned for Persian script (Persian is space-delimited, unlike CJK, so word-based tokenization is viable, but Persian-specific characters like ZWNJ (zero-width non-joiner) and diacritics need explicit handling to avoid false-negative matches). A dedicated search-correctness test suite covering Persian sample content is added to the Phase 1 test plan, alongside the existing English-only test cases — see [`11-build-prompt.md`](./11-build-prompt.md#16--search).
+- **Rationale:** This is a cheap, specific fix once named, and expensive to debug later as a vague "search feels unreliable" bug report once real Persian content exists in the wild.
+- **Alternatives Considered:** Bundle an ICU tokenizer for broader script coverage (CJK, etc.) — deferred, not rejected; not needed for Persian specifically (which is space-delimited), and adds a build dependency not currently justified until a CJK language is actually on the roadmap.
+- **Status:** Accepted, v1.
+
+---
+
 ## Decision-Making Heuristic
 
 When facing a new choice, run it through the product's filter:
