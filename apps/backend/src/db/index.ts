@@ -1,13 +1,17 @@
-import { Pool } from "pg";
+import pg from "pg";
 
 /**
  * Phase 0: a lazily-created PostgreSQL pool and a liveness probe. No schema and
  * no migrations exist yet — the sync schema lands with Phase 2.
+ *
+ * `pg` is CommonJS; default-import then use `pg.Pool` so
+ * `node --experimental-strip-types` (ESM) can load it. Named
+ * `import { Pool } from "pg"` fails at runtime with SyntaxError.
  */
-let pool: Pool | undefined;
+let pool: pg.Pool | undefined;
 
-export function getPool(): Pool {
-  pool ??= new Pool({ connectionString: process.env.DATABASE_URL });
+export function getPool(): pg.Pool {
+  pool ??= new pg.Pool({ connectionString: process.env.DATABASE_URL });
   return pool;
 }
 
