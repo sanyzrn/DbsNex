@@ -1,8 +1,8 @@
 import pg from "pg";
 
 /**
- * Phase 0: a lazily-created PostgreSQL pool and a liveness probe. No schema and
- * no migrations exist yet — the sync schema lands with Phase 2.
+ * PostgreSQL pool for the Phase 2 sync API. Connection is opened lazily;
+ * `/health` reports database liveness without failing the process.
  *
  * `pg` is CommonJS; default-import then use `pg.Pool` so
  * `node --experimental-strip-types` (ESM) can load it. Named

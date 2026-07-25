@@ -49,6 +49,18 @@ class _SettingsSheetState extends State<SettingsSheet> {
     }
   }
 
+  Future<void> _sync() async {
+    final l10n = AppLocalizations.of(context);
+    try {
+      final result = await widget.services.syncNow();
+      setState(
+        () => _status = l10n.syncOk(result.pushed, result.pulled),
+      );
+    } catch (_) {
+      setState(() => _status = l10n.syncFailed);
+    }
+  }
+
   Future<void> _restore() async {
     final l10n = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
@@ -123,6 +135,16 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
             const Divider(),
 
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.sync),
+              title: Text(l10n.sync),
+              subtitle: Text(l10n.syncSubtitle),
+              trailing: TextButton(
+                onPressed: _sync,
+                child: Text(l10n.syncNow),
+              ),
+            ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.ios_share_outlined),

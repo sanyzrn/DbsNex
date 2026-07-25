@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nex_core/nex_core.dart';
@@ -118,6 +119,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
         await _captureVoice();
       case NoteType.photo:
         await _capturePhoto();
+      case NoteType.file:
+        await _captureFile();
     }
   }
 
@@ -227,6 +230,24 @@ class _TimelineScreenState extends State<TimelineScreen> {
     );
     await File(dest).writeAsBytes(bytes);
     widget.services.capture.submitPhotoCapture(
+      mediaUri: dest,
+      mediaBytes: Uint8List.fromList(bytes),
+    );
+    widget.services.refreshTimeline();
+  }
+
+  Future<void> _captureFile() async {
+    final result = await FilePicker.platform.pickFiles(withData: true);
+    if (result == null || result.files.isEmpty) return;
+    final picked = result.files.first;
+    final bytes = picked.bytes;
+    if (bytes == null) return;
+    final dest = p.join(
+      widget.services.mediaDir,
+      'file-${DateTime.now().millisecondsSinceEpoch}-${picked.name}',
+    );
+    await File(dest).writeAsBytes(bytes);
+    widget.services.capture.submitFileCapture(
       mediaUri: dest,
       mediaBytes: Uint8List.fromList(bytes),
     );
@@ -392,6 +413,11 @@ class _CaptureChooser extends StatelessWidget {
             leading: const Icon(Icons.photo_camera_outlined),
             title: Text(l10n.photo),
             onTap: () => Navigator.pop(context, NoteType.photo),
+          ),
+          ListTile(
+            leading: const Icon(Icons.attach_file),
+            title: Text(l10n.file),
+            onTap: () => Navigator.pop(context, NoteType.file),
           ),
         ],
       ),

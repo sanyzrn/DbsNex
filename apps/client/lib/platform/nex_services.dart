@@ -45,8 +45,8 @@ class NexServices {
     Directory(backupDir).createSync(recursive: true);
 
     final db = NexDatabase.open(dbPath);
-    final repo = NoteRepository(db);
     final id = deviceId ?? Platform.localHostname;
+    final repo = NoteRepository(db, localDeviceId: id);
     final services = NexServices._(
       db: db,
       repo: repo,
@@ -104,6 +104,24 @@ class NexServices {
       'nex-export-$stamp.zip',
     );
     return repo.exportArchive(outputPath: out, mediaRoot: mediaDir);
+  }
+
+  String get deviceId => capture.deviceId;
+
+  /// Phase 2: flush outbox and pull remote deltas.
+  Future<SyncResult> syncNow({String baseUrl = 'http://127.0.0.1:4000'}) async {
+    final client = SyncClient(
+      baseUrl: baseUrl,
+      deviceId: deviceId,
+      repo: repo,
+    );
+    try {
+      final result = await client.sync();
+      refreshTimeline();
+      return result;
+    } finally {
+      client.close();
+    }
   }
 
   void restoreLatestBackup() {

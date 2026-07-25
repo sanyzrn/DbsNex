@@ -87,6 +87,14 @@ class NoteCard extends StatelessWidget {
             Text('Photo', style: theme.textTheme.bodyLarge),
           ],
         );
+      case NoteType.file:
+        return Row(
+          children: [
+            Icon(Icons.attach_file, size: 20, color: theme.colorScheme.secondary),
+            const SizedBox(width: NexSpacing.sm),
+            Text('File', style: theme.textTheme.bodyLarge),
+          ],
+        );
     }
   }
 

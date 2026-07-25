@@ -98,6 +98,61 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
 
+  sync-integration:
+    name: Phase 2 sync matrix (live SyncClient + PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      - name: Install backend deps
+        working-directory: apps/backend
+        run: npm install
+      - name: Start Phase 2 backend
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nex
+          PORT: "4000"
+          NEX_TEST_MODE: "1"
+          NEX_AUTO_MIGRATE: "1"
+        run: |
+          node --experimental-strip-types src/index.ts &
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:4000/health | grep -q '"phase":2'; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "backend failed to become healthy"
+          exit 1
+      - name: Run mandatory 6-row sync matrix
+        working-directory: packages/data
+        env:
+          RUN_SYNC_MATRIX: "1"
+          SYNC_BASE_URL: http://127.0.0.1:4000
+        run: |
+          dart pub get
+          dart test test/sync_matrix_test.dart
+
   react-prototype:
     name: React prototype (build only — not a shipping target)
     runs-on: ubuntu-latest

@@ -11,6 +11,7 @@ environment:
 dependencies:
   archive: ^4.0.2
   crypto: ^3.0.6
+  http: ^1.2.2
   path: ^1.9.1
   sqlite3: ^2.7.5
   uuid: ^4.5.1

@@ -33,6 +33,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photo => 'Photo';
 
   @override
+  String get file => 'File';
+
+  @override
+  String get sync => 'Sync';
+
+  @override
+  String get syncSubtitle => 'Push pending notes and pull remote changes';
+
+  @override
+  String get syncNow => 'Sync now';
+
+  @override
+  String syncOk(int pushed, int pulled) {
+    return 'Synced — pushed $pushed, pulled $pulled';
+  }
+
+  @override
+  String get syncFailed => 'Sync failed';
+
+  @override
   String get emptyTimeline => 'Tap + to capture';
 
   @override
