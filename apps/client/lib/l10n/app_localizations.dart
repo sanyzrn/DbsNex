@@ -142,6 +142,42 @@ abstract class AppLocalizations {
   /// **'Photo'**
   String get photo;
 
+  /// No description provided for @file.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get file;
+
+  /// No description provided for @sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get sync;
+
+  /// No description provided for @syncSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Push pending notes and pull remote changes'**
+  String get syncSubtitle;
+
+  /// No description provided for @syncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get syncNow;
+
+  /// No description provided for @syncOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced — pushed {pushed}, pulled {pulled}'**
+  String syncOk(int pushed, int pulled);
+
+  /// No description provided for @syncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed'**
+  String get syncFailed;
+
   /// No description provided for @emptyTimeline.
   ///
   /// In en, this message translates to:

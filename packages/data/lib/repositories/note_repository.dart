@@ -43,9 +43,12 @@ String? sha256OfFile(String? path) {
 }
 
 class NoteRepository {
-  NoteRepository(this._db);
+  NoteRepository(this._db, {this.localDeviceId});
 
   final NexDatabase _db;
+
+  /// When set, local mutations stamp this as `device_id` (sync concurrency).
+  final String? localDeviceId;
 
   Database get db => _db.db;
 
@@ -86,9 +89,15 @@ INSERT INTO notes (
       '''
 UPDATE notes
 SET content = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
+    ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ? AND deleted_at IS NULL
 ''',
-      [content, now, noteId],
+      [
+        content,
+        now,
+        if (localDeviceId != null) localDeviceId,
+        noteId,
+      ],
     );
     _upsertFts(noteId, content);
   }
@@ -99,9 +108,15 @@ WHERE id = ? AND deleted_at IS NULL
       '''
 UPDATE notes
 SET deleted_at = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
+    ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [now, now, noteId],
+      [
+        now,
+        now,
+        if (localDeviceId != null) localDeviceId,
+        noteId,
+      ],
     );
     db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
   }
@@ -115,9 +130,14 @@ WHERE id = ?
       '''
 UPDATE notes
 SET deleted_at = NULL, updated_at = ?, rev = rev + 1, sync_state = 'pending'
+    ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [now, noteId],
+      [
+        now,
+        if (localDeviceId != null) localDeviceId,
+        noteId,
+      ],
     );
     final content = rows.first['content'] as String?;
     final type = rows.first['type'] as String?;
@@ -228,6 +248,170 @@ ORDER BY t.name COLLATE NOCASE
   List<Tag> listTags() {
     final rows = db.select('SELECT * FROM tags ORDER BY name COLLATE NOCASE');
     return rows.map(Tag.fromRow).toList();
+  }
+
+  /// Outbox: notes still pending sync (including tombstones).
+  List<Note> listPending({bool includeDeleted = false}) {
+    final rows = db.select(
+      '''
+SELECT * FROM notes
+WHERE sync_state = 'pending'
+ORDER BY updated_at ASC
+''',
+    );
+    return rows
+        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
+        .where((n) => includeDeleted || !n.isDeleted)
+        .toList();
+  }
+
+  void markSynced(String noteId) {
+    db.execute(
+      "UPDATE notes SET sync_state = 'synced' WHERE id = ?",
+      [noteId],
+    );
+  }
+
+  /// Test/helper: set content with an explicit `updated_at` (sync matrix).
+  void updateContentAt(String noteId, String content, DateTime updatedAt) {
+    db.execute(
+      '''
+UPDATE notes
+SET content = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
+    ${localDeviceId != null ? ', device_id = ?' : ''}
+WHERE id = ? AND deleted_at IS NULL
+''',
+      [
+        content,
+        updatedAt.toUtc().toIso8601String(),
+        if (localDeviceId != null) localDeviceId,
+        noteId,
+      ],
+    );
+    _upsertFts(noteId, content);
+  }
+
+  Tag upsertTagFromSync({
+    required String id,
+    required String name,
+    String? color,
+    required DateTime createdAt,
+  }) {
+    final existing = db.select('SELECT * FROM tags WHERE id = ?', [id]);
+    if (existing.isNotEmpty) {
+      db.execute(
+        'UPDATE tags SET name = ?, color = COALESCE(?, color) WHERE id = ?',
+        [name, color, id],
+      );
+      return Tag.fromRow(
+        db.select('SELECT * FROM tags WHERE id = ?', [id]).first,
+      );
+    }
+    final byName = db.select(
+      'SELECT * FROM tags WHERE name = ? COLLATE NOCASE',
+      [name],
+    );
+    if (byName.isNotEmpty) {
+      final localId = byName.first['id']! as String;
+      if (localId != id) {
+        // Remap local id → server id so note_tags from pull resolve.
+        db.execute('UPDATE note_tags SET tag_id = ? WHERE tag_id = ?', [
+          id,
+          localId,
+        ]);
+        db.execute('DELETE FROM tags WHERE id = ?', [localId]);
+        db.execute(
+          'INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)',
+          [
+            id,
+            name,
+            color ?? byName.first['color'],
+            createdAt.toUtc().toIso8601String(),
+          ],
+        );
+      }
+      return Tag.fromRow(db.select('SELECT * FROM tags WHERE id = ?', [id]).first);
+    }
+    db.execute(
+      'INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)',
+      [id, name, color, createdAt.toUtc().toIso8601String()],
+    );
+    return Tag.fromRow(db.select('SELECT * FROM tags WHERE id = ?', [id]).first);
+  }
+
+  /// Apply a server-merged note as local truth (does not mark pending).
+  void applyRemoteNote({
+    required String id,
+    required NoteType type,
+    String? content,
+    String? mediaUri,
+    String? mediaHash,
+    int? durationMs,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    DateTime? deletedAt,
+    required String deviceId,
+    required int rev,
+    required List<String> tagIds,
+  }) {
+    final existing = db.select('SELECT id FROM notes WHERE id = ?', [id]);
+    if (existing.isEmpty) {
+      db.execute(
+        '''
+INSERT INTO notes (
+  id, type, content, media_uri, media_hash, duration_ms,
+  created_at, updated_at, deleted_at, device_id, rev, sync_state
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')
+''',
+        [
+          id,
+          type.wireName,
+          content,
+          mediaUri,
+          mediaHash,
+          durationMs,
+          createdAt.toUtc().toIso8601String(),
+          updatedAt.toUtc().toIso8601String(),
+          deletedAt?.toUtc().toIso8601String(),
+          deviceId,
+          rev,
+        ],
+      );
+    } else {
+      db.execute(
+        '''
+UPDATE notes SET
+  type = ?, content = ?, media_uri = ?, media_hash = ?, duration_ms = ?,
+  created_at = ?, updated_at = ?, deleted_at = ?, device_id = ?, rev = ?,
+  sync_state = 'synced'
+WHERE id = ?
+''',
+        [
+          type.wireName,
+          content,
+          mediaUri,
+          mediaHash,
+          durationMs,
+          createdAt.toUtc().toIso8601String(),
+          updatedAt.toUtc().toIso8601String(),
+          deletedAt?.toUtc().toIso8601String(),
+          deviceId,
+          rev,
+          id,
+        ],
+      );
+    }
+    db.execute('DELETE FROM notes_fts WHERE note_id = ?', [id]);
+    if (type == NoteType.text && content != null && content.isNotEmpty && deletedAt == null) {
+      _upsertFts(id, content);
+    }
+    db.execute('DELETE FROM note_tags WHERE note_id = ?', [id]);
+    for (final tagId in tagIds) {
+      db.execute(
+        'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
+        [id, tagId],
+      );
+    }
   }
 
   void setTagColor({required String tagId, String? color}) {
@@ -357,9 +541,14 @@ ORDER BY n.created_at DESC
       '''
 UPDATE notes
 SET updated_at = ?, rev = rev + 1, sync_state = 'pending'
+    ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [now, noteId],
+      [
+        now,
+        if (localDeviceId != null) localDeviceId,
+        noteId,
+      ],
     );
   }
 
@@ -413,6 +602,11 @@ WHERE id = ?
         buffer.writeln('_Photo note_');
         if (note.mediaUri != null) {
           buffer.writeln('![photo](../media/${p.basename(note.mediaUri!)})');
+        }
+      case NoteType.file:
+        buffer.writeln('_File attachment_');
+        if (note.mediaUri != null) {
+          buffer.writeln('File: ${p.basename(note.mediaUri!)}');
         }
     }
     return buffer.toString();

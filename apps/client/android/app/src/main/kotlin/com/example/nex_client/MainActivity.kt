@@ -20,6 +20,7 @@ class MainActivity : FlutterActivity() {
     private val channelName = "nex/os_capture"
     private var channel: MethodChannel? = null
     private var pending: Map<String, Any?>? = null
+    private var filePickResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -31,10 +32,32 @@ class MainActivity : FlutterActivity() {
                     pending = null
                     result.success(payload)
                 }
+                "pickFile" -> {
+                    filePickResult = result
+                    val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                        type = "*/*"
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                    }
+                    startActivityForResult(intent, REQUEST_PICK_FILE)
+                }
                 else -> result.notImplemented()
             }
         }
         handleIncoming(intent)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_PICK_FILE) return
+        val pendingResult = filePickResult
+        filePickResult = null
+        if (resultCode != RESULT_OK || data?.data == null) {
+            pendingResult?.success(null)
+            return
+        }
+        val path = copyUriToCache(data.data!!)
+        pendingResult?.success(path)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -104,5 +127,6 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         const val ACTION_TEXT_CAPTURE = "com.example.nex_client.TEXT_CAPTURE"
+        private const val REQUEST_PICK_FILE = 9911
     }
 }

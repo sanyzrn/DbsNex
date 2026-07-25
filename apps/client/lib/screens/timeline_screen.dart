@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -118,6 +120,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
         await _captureVoice();
       case NoteType.photo:
         await _capturePhoto();
+      case NoteType.file:
+        await _captureFile();
     }
   }
 
@@ -227,6 +231,35 @@ class _TimelineScreenState extends State<TimelineScreen> {
     );
     await File(dest).writeAsBytes(bytes);
     widget.services.capture.submitPhotoCapture(
+      mediaUri: dest,
+      mediaBytes: Uint8List.fromList(bytes),
+    );
+    widget.services.refreshTimeline();
+  }
+
+  Future<void> _captureFile() async {
+    String? path;
+    Uint8List? bytes;
+
+    if (!kIsWeb && Platform.isAndroid) {
+      const channel = MethodChannel('nex/os_capture');
+      final picked = await channel.invokeMethod<String>('pickFile');
+      if (picked == null) return;
+      path = picked;
+      bytes = await File(picked).readAsBytes();
+    } else {
+      final file = await openFile();
+      if (file == null) return;
+      path = file.path;
+      bytes = await file.readAsBytes();
+    }
+
+    final dest = p.join(
+      widget.services.mediaDir,
+      'file-${DateTime.now().millisecondsSinceEpoch}-${p.basename(path)}',
+    );
+    await File(dest).writeAsBytes(bytes);
+    widget.services.capture.submitFileCapture(
       mediaUri: dest,
       mediaBytes: Uint8List.fromList(bytes),
     );
@@ -392,6 +425,11 @@ class _CaptureChooser extends StatelessWidget {
             leading: const Icon(Icons.photo_camera_outlined),
             title: Text(l10n.photo),
             onTap: () => Navigator.pop(context, NoteType.photo),
+          ),
+          ListTile(
+            leading: const Icon(Icons.attach_file),
+            title: Text(l10n.file),
+            onTap: () => Navigator.pop(context, NoteType.file),
           ),
         ],
       ),

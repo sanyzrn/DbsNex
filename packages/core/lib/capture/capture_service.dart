@@ -71,6 +71,27 @@ class CaptureService {
       ),
     );
   }
+
+  /// Persist a generic file attachment (Phase 2 / ADR-008).
+  Note submitFileCapture({
+    required String mediaUri,
+    required Uint8List mediaBytes,
+  }) {
+    final now = DateTime.now().toUtc();
+    return _repo.insert(
+      Note(
+        id: newUuidV7(),
+        type: NoteType.file,
+        mediaUri: mediaUri,
+        mediaHash: sha256OfBytes(mediaBytes),
+        createdAt: now,
+        updatedAt: now,
+        deviceId: deviceId,
+        rev: 1,
+        syncState: SyncState.pending,
+      ),
+    );
+  }
 }
 
 class TagService {

@@ -1,8 +1,9 @@
-/// Note types allowed in v1 (FR-1.2). No generic files (ADR-008).
+/// Note types. Generic `file` ships in Phase 2 (ADR-008 deferred out of v1).
 enum NoteType {
   text,
   voice,
-  photo;
+  photo,
+  file;
 
   String get wireName => name;
 

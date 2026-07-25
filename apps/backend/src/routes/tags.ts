@@ -1,12 +1,20 @@
-import { Router } from "express";
+import type { Request, Response, Router } from "express";
+import { Router as createRouter } from "express";
 
-/** Phase 0 stub. Implemented when sync ships (Phase 2). */
-export const tagsRouter: Router = Router();
+import { getPool } from "../db/index.ts";
 
-tagsRouter.all("/{*splat}", (_req, res) => {
-  res.status(501).json({ error: "NotImplemented", phase: 0 });
-});
+export const tagsRouter: Router = createRouter();
 
-tagsRouter.all("/", (_req, res) => {
-  res.status(501).json({ error: "NotImplemented", phase: 0 });
+tagsRouter.get("/", async (_req: Request, res: Response) => {
+  try {
+    const result = await getPool().query(
+      `SELECT * FROM tags ORDER BY name ASC`,
+    );
+    res.json({ tags: result.rows });
+  } catch (e) {
+    res.status(500).json({
+      error: "ListFailed",
+      message: e instanceof Error ? e.message : String(e),
+    });
+  }
 });

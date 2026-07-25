@@ -37,7 +37,7 @@ class NexDatabase {
     db.execute('''
 CREATE TABLE IF NOT EXISTS notes (
   id TEXT PRIMARY KEY NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('text', 'voice', 'photo')),
+  type TEXT NOT NULL CHECK (type IN ('text', 'voice', 'photo', 'file')),
   content TEXT,
   media_uri TEXT,
   media_hash TEXT,

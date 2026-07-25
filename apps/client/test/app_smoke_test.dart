@@ -60,8 +60,7 @@ void main() {
     expect(find.text('Save'), findsNothing);
   });
 
-  testWidgets('Text capture chooser offers Text/Voice/Photo only',
-      (tester) async {
+  testWidgets('Capture chooser offers Text/Voice/Photo/File', (tester) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -70,6 +69,7 @@ void main() {
     expect(find.text('Text'), findsOneWidget);
     expect(find.text('Voice'), findsOneWidget);
     expect(find.text('Photo'), findsOneWidget);
+    expect(find.text('File'), findsOneWidget);
     expect(find.text('Save'), findsNothing);
   });
 

@@ -8,6 +8,18 @@
   "text": "Text",
   "voice": "Voice",
   "photo": "Photo",
+  "file": "File",
+  "sync": "Sync",
+  "syncSubtitle": "Push pending notes and pull remote changes",
+  "syncNow": "Sync now",
+  "syncOk": "Synced — pushed {pushed}, pulled {pulled}",
+  "@syncOk": {
+    "placeholders": {
+      "pushed": {"type": "int"},
+      "pulled": {"type": "int"}
+    }
+  },
+  "syncFailed": "Sync failed",
   "emptyTimeline": "Tap + to capture",
   "export": "Export",
   "exportSubtitle": "JSON + Markdown + media archive",

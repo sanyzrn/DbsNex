@@ -6,3 +6,4 @@ library nex_data;
 export 'repositories/note_repository.dart';
 export 'schema/database.dart';
 export 'schema/models.dart';
+export 'sync_client/sync_client.dart';
