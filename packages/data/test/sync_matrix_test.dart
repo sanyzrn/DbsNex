@@ -49,16 +49,10 @@ void main() {
         await a.sync();
         await b.sync();
 
-        a.repo.updateContentAt(
-          note.id,
-          'from A',
-          DateTime.utc(2026, 7, 1, 10),
-        );
-        b.repo.updateContentAt(
-          note.id,
-          'from B',
-          DateTime.utc(2026, 7, 1, 11),
-        );
+        final tA = DateTime.now().toUtc().add(const Duration(seconds: 1));
+        final tB = DateTime.now().toUtc().add(const Duration(seconds: 2));
+        a.repo.updateContentAt(note.id, 'from A', tA);
+        b.repo.updateContentAt(note.id, 'from B', tB);
 
         await a.sync();
         await b.sync();
@@ -84,15 +78,16 @@ void main() {
 
         final work = a.repo.upsertTag(name: 'work');
         a.repo.attachTag(noteId: note.id, tagId: work.id);
+        final tTag = DateTime.now().toUtc().add(const Duration(seconds: 1));
         a.repo.db.execute(
           "UPDATE notes SET updated_at = ? WHERE id = ?",
-          [DateTime.utc(2026, 7, 2, 10).toIso8601String(), note.id],
+          [tTag.toIso8601String(), note.id],
         );
 
         b.repo.updateContentAt(
           note.id,
           'edited on B',
-          DateTime.utc(2026, 7, 2, 11),
+          DateTime.now().toUtc().add(const Duration(seconds: 2)),
         );
 
         await a.sync();
@@ -122,9 +117,10 @@ void main() {
         final beta = a.repo.upsertTag(name: 'beta');
         a.repo.attachTag(noteId: note.id, tagId: alpha.id);
         a.repo.attachTag(noteId: note.id, tagId: beta.id);
+        final t0 = DateTime.now().toUtc();
         a.repo.db.execute(
           "UPDATE notes SET sync_state = 'pending', updated_at = ? WHERE id = ?",
-          [DateTime.utc(2026, 7, 3, 9).toIso8601String(), note.id],
+          [t0.toIso8601String(), note.id],
         );
         await a.sync();
         await b.sync();
@@ -133,14 +129,14 @@ void main() {
         a.repo.attachTag(noteId: note.id, tagId: gamma.id);
         a.repo.db.execute(
           "UPDATE notes SET updated_at = ? WHERE id = ?",
-          [DateTime.utc(2026, 7, 3, 10).toIso8601String(), note.id],
+          [t0.add(const Duration(seconds: 1)).toIso8601String(), note.id],
         );
 
         final betaOnB = b.repo.listTags().firstWhere((t) => t.name == 'beta');
         b.repo.detachTag(noteId: note.id, tagId: betaOnB.id);
         b.repo.db.execute(
           "UPDATE notes SET updated_at = ? WHERE id = ?",
-          [DateTime.utc(2026, 7, 3, 11).toIso8601String(), note.id],
+          [t0.add(const Duration(seconds: 2)).toIso8601String(), note.id],
         );
 
         await a.sync();
@@ -173,7 +169,7 @@ void main() {
         b.repo.updateContentAt(
           note.id,
           'still editing',
-          DateTime.utc(2026, 7, 4, 12),
+          DateTime.now().toUtc().add(const Duration(seconds: 2)),
         );
 
         await a.sync();

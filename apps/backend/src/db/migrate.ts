@@ -19,8 +19,6 @@ CREATE TABLE IF NOT EXISTS notes (
   rev INTEGER NOT NULL,
   sync_state TEXT NOT NULL DEFAULT 'synced'
 );
-CREATE INDEX IF NOT EXISTS idx_notes_updated_at ON notes (updated_at);
-CREATE INDEX IF NOT EXISTS idx_notes_media_hash ON notes (media_hash);
 
 CREATE TABLE IF NOT EXISTS tags (
   id TEXT PRIMARY KEY,
@@ -45,5 +43,17 @@ CREATE TABLE IF NOT EXISTS device_acks (
   device_id TEXT PRIMARY KEY,
   last_pull_at TIMESTAMPTZ NOT NULL
 );
+`);
+
+  // Upgrade path: column may be missing on DBs created earlier in Phase 2.
+  await pool.query(`
+ALTER TABLE notes
+  ADD COLUMN IF NOT EXISTS server_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+`);
+
+  await pool.query(`
+CREATE INDEX IF NOT EXISTS idx_notes_updated_at ON notes (updated_at);
+CREATE INDEX IF NOT EXISTS idx_notes_server_updated_at ON notes (server_updated_at);
+CREATE INDEX IF NOT EXISTS idx_notes_media_hash ON notes (media_hash);
 `);
 }

@@ -67,8 +67,9 @@ async function writeNote(pool: Pool, note: NoteRow): Promise<void> {
     `
 INSERT INTO notes (
   id, type, content, media_uri, media_hash, duration_ms,
-  created_at, updated_at, deleted_at, device_id, rev, sync_state
-) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'synced')
+  created_at, updated_at, deleted_at, device_id, rev, sync_state,
+  server_updated_at
+) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'synced', NOW())
 ON CONFLICT (id) DO UPDATE SET
   type = EXCLUDED.type,
   content = EXCLUDED.content,
@@ -80,7 +81,8 @@ ON CONFLICT (id) DO UPDATE SET
   deleted_at = EXCLUDED.deleted_at,
   device_id = EXCLUDED.device_id,
   rev = EXCLUDED.rev,
-  sync_state = 'synced'
+  sync_state = 'synced',
+  server_updated_at = NOW()
 `,
     [
       note.id,
@@ -192,8 +194,8 @@ export async function pullChanges(input: {
   const notesRes = await pool.query(
     `
 SELECT * FROM notes
-WHERE updated_at > $1 OR (deleted_at IS NOT NULL AND deleted_at > $1)
-ORDER BY updated_at ASC
+WHERE server_updated_at > $1
+ORDER BY server_updated_at ASC
 `,
     [since],
   );
