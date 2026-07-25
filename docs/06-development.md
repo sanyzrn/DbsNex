@@ -64,9 +64,6 @@ Each `packages/*` module is independently unit-testable and has no dependency on
 
 ## Naming Conventions
 
-| Element | Convention | Example |
-|---|---|---|
-| Files (components) | `PascalCase.tsx` | `NoteCard.tsx` |
 | Element | Convention | Example | Applies to |
 |---|---|---|---|
 | Files | `snake_case.dart` | `note_card.dart`, `capture_sheet.dart` | Client (Dart) |
