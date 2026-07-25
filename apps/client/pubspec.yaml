@@ -1,9 +1,9 @@
 name: nex_client
 description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
-  (later) iOS — see ADR-024. Phase 0: empty screen only.
+  (later) iOS — see ADR-024.
 publish_to: "none"
-version: 0.0.1
+version: 0.1.0
 
 environment:
   sdk: ^3.5.0
@@ -12,10 +12,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  image_picker: ^1.1.2
   nex_core:
     path: ../../packages/core
   nex_ui:
     path: ../../packages/ui
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  record: ^6.0.0
+  sqlite3: ^2.7.5
+  sqlite3_flutter_libs: ^0.5.28
 
 dev_dependencies:
   flutter_test:
