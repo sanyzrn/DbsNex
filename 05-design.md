@@ -50,7 +50,7 @@ A single, highly legible sans-serif family is used throughout (a system-native f
 
 ## Color Philosophy
 
-Nex is deliberately black-and-white first. Color is a signal of meaning, never of style — using color to encode categories, priorities, or tags would subtly reintroduce organizational decision-making at the point of interaction.
+Nex is deliberately black-and-white first. The surface — backgrounds, cards, chips, borders, icons — carries no decorative color anywhere. The one exception is a **tag accent dot**, and it exists to carry the user's own meaning, not the product's: see [Tag Accent Color](#tag-accent-color) below. This supersedes the original blanket "no color-coding" rule — see [ADR-021](./10-decisions.md#adr-021--optional-user-chosen-tag-accent-color).
 
 | Token | Light Mode | Dark Mode | Usage |
 |---|---|---|---|
@@ -61,9 +61,37 @@ Nex is deliberately black-and-white first. Color is a signal of meaning, never o
 | `border` | `#E5E5E5` | `#262626` | Dividers, card outlines |
 | `accent` | `#0A0A0A` (inverted per mode) | `#FAFAFA` | The `+` action, active states — never a "brand color," always the inverse of the background |
 
-- **Tags are visually neutral** — simple bordered chips in `text-secondary`/`border` tones, never color-coded, so tag color never becomes an implicit categorization system users must maintain.
 - **Dark mode is a first-class, symmetric palette**, not an inverted afterthought — capture often happens in low light, at night, or first thing in the morning.
-- The **only** deliberate use of stronger visual weight is the `+` capture action and active/recording states (e.g., a pulsing indicator during voice capture).
+- Aside from the tag accent dot, the **only** deliberate use of stronger visual weight is the `+` capture action and active/recording states (e.g., a pulsing indicator during voice capture).
+
+### Tag Accent Color
+
+A tag may optionally carry a single small accent color, shown only as a small dot (6–8px) next to the tag's label — never as a filled chip, a colored card border, or a colored background. Everything else about the tag (the chip shape, the text, the card it's attached to) stays neutral.
+
+- **User-chosen, not system-assigned.** The color is not derived automatically from the tag's name or category. The user picks it — or doesn't — when creating or editing a tag, from a small, restrained, low-saturation palette (5–6 options, no free color picker). This is deliberate: it lets a person encode *their own* meaning — e.g., using red for "urgent/important" regardless of which tag it's attached to, and a neutral gray dot (or no dot at all) for everything low-priority — rather than the product imposing a fixed category-to-color mapping the user has no say in.
+- **Optional, with a neutral default.** An unset tag renders with no dot, or a neutral gray dot. Nothing about search, filtering, or capture requires a color to be set.
+- **Never at capture time.** Color, like the tag itself, is only ever assigned when organizing — after a note is already safely captured. This keeps the rule from [ADR-001](./10-decisions.md#adr-001--capture-has-zero-mandatory-fields) intact: capture still has zero decisions.
+- **Small enough to stay quiet.** The dot is a recognition aid, not a design statement — it should be visible at a glance without turning the Timeline into a colorful list.
+
+### Comfort Mode
+
+Dark theme alone does not solve late-night eye strain, and can make it worse. In a genuinely dark room, a very high-contrast pairing — pure white text on pure black — causes a real, well-documented perceptual effect (halation/glare): the eye perceives a glow around high-contrast edges, which is often *more* fatiguing than a well-lit screen in a well-lit room, not less. Separately, blue-heavy light in the evening suppresses melatonin production regardless of overall brightness. Neither problem is fixed by "make it dark" on its own.
+
+**Comfort Mode** is therefore an independent toggle, orthogonal to the Light/Dark theme choice — not a third theme. It can be switched on or off within either theme, in Settings, and does two things at once:
+
+1. **Lowers contrast**, moving both ends of the palette inward: background lightens toward warm off-black in Dark, or softens toward warm off-white in Light; text moves away from pure `#FFFFFF`/`#000000` toward a warm off-white or warm charcoal.
+2. **Shifts color temperature warmer** (reduces the blue channel across backgrounds and text), the same principle behind Night Shift / f.lux, to reduce blue-light exposure during evening and night capture.
+
+| Token | Light, Comfort off | Light, Comfort on | Dark, Comfort off | Dark, Comfort on |
+|---|---|---|---|---|
+| `bg-primary` | `#FFFFFF` | `#F7F1E6` | `#0A0A0A` | `#17130F` |
+| `text-primary` | `#0A0A0A` | `#2E2A22` | `#FAFAFA` | `#D9CFC0` |
+
+Both combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode reduces *glare*, not *legibility*.
+
+- **Default off**, in both themes; a person opts in once they notice the problem, consistent with Nex never making an aesthetic decision on the user's behalf without cause.
+- **Manual toggle in v1.x.** Automatically scheduling it by time of day (sunset/sunrise, like Night Shift) is a reasonable future addition but adds scheduling and location complexity not justified for the initial release — see [ADR-023](./10-decisions.md#adr-023--comfort-mode-as-an-independent-axis-from-lightdark-theme).
+- **Applies everywhere**, not just the Timeline — Capture Sheet, Search, and Settings all inherit the same tokens, since the moment this exists to protect (a 2 AM capture) touches the capture flow first.
 
 ---
 
@@ -74,12 +102,27 @@ Nex is deliberately black-and-white first. Color is a signal of meaning, never o
 | **Capture Button (`+`)** | Universal entry point to text/voice/photo capture | Always visible on the Timeline, fixed position, largest single interactive element on screen |
 | **Capture Sheet** | Presents the three capture types | Appears instantly (no loading state), dismissible by outside tap |
 | **Timeline Card** | Represents one note in the stream | Adapts preview to content type (text snippet / waveform + duration / photo thumbnail); shows relative timestamp and tag chips if present |
-| **Tag Chip** | Represents a single tag | Neutral color, rounded, removable via inline "×" in edit contexts |
+| **Tag Chip** | Represents a single tag | Neutral chip shape and text; an optional small accent dot (user-chosen, see [Tag Accent Color](#tag-accent-color)) may render beside the label. Rounded, removable via inline "×" in edit contexts |
 | **Search Bar** | Entry point + live query field | Paired with filter affordances (tag / date / type) that expand without navigating away |
 | **Filter Control** | Tag / date / content-type filters | Simple toggles/pills, combinable, always reversible with a single "clear" action |
 | **Note Detail Sheet** | Expanded view of a single note, tag editing | Lightweight overlay, not a full context switch |
 | **Voice Recorder Bar** | Active recording state | Live waveform and elapsed time; the stop action is the single largest control on screen |
 | **Empty State** | Shown only when the Timeline has zero notes | A single, quiet prompt pointing at the `+` button — never a tutorial carousel |
+| **Swipe Action Reveal** | Quick Delete / Add Tag from the Timeline | See [Swipe Actions](#swipe-actions) below |
+| **Settings Sheet** | Holds the small set of v1 preferences (swipe mapping, theme) | Reached by tapping the avatar; a single sheet, not a nested settings app |
+
+---
+
+## Swipe Actions
+
+Each Timeline card supports a horizontal swipe to reveal one quick action per edge, per [FR-2.6–2.8](./02-product-specification.md#fr-2--timeline).
+
+- **Reveal, don't confirm.** Dragging a card exposes a colored panel behind it in real time, tracking the finger 1:1; there is no modal or confirmation step for either action.
+- **Delete is destructive-looking, but never actually destructive.** Its reveal panel uses the only saturated warning-style color in the entire system (a muted red), paired with a trash icon and the word "Delete" — because this is the one place in Nex where a stronger visual warning is earned. The note is soft-deleted (per [`02-product-specification.md`](./02-product-specification.md#data-model)) and a brief "Note deleted · Undo" toast follows, so the action is always reversible for a short window.
+- **Add Tag stays neutral.** Its reveal panel uses a plain surface tone, not a color, since it isn't destructive and doesn't need to compete visually with Delete.
+- **Threshold, not a hair-trigger.** A short drag re-settles the card closed; only a deliberate drag past a clear threshold snaps the action panel fully open. This keeps ordinary vertical scrolling from ever misfiring a swipe.
+- **One open card at a time.** Starting a swipe on any card closes whichever other card was previously revealed.
+- **The mapping is configurable, the action set is not.** Which edge triggers Delete vs. Add Tag is a Settings preference (so the gesture can match a person's left- or right-hand swiping habit); which two actions exist is fixed, deliberately, per [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set).
 
 ---
 

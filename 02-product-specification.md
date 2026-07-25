@@ -82,12 +82,16 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-2.3 Each note renders as a minimal card: content preview, timestamp, tags (if any).
 - FR-2.4 No default folders, sections, or pre-existing categories.
 - FR-2.5 Smooth infinite scroll/pagination for large note counts.
+- FR-2.6 Each Timeline card supports two swipe gestures — one revealing a **leading-edge** action, one revealing a **trailing-edge** action. The default mapping is: trailing swipe → **Delete** (soft-delete, undoable); leading swipe → **Add Tag** (opens inline tag input). No confirmation dialog interrupts either action; Delete surfaces a brief, dismissible "Undo" toast instead.
+- FR-2.7 The action bound to each swipe direction is **user-configurable** from Settings — the two directions can be swapped (e.g., a left-handed user moves Delete to the leading edge) — but the action set itself stays fixed at exactly these two (Delete, Add Tag). This is a deliberately closed set, not an open action framework — see [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set).
+- FR-2.8 Swipe actions never introduce a decision at capture time — they operate only on already-captured notes in the Timeline, consistent with [ADR-001](./10-decisions.md#adr-001--capture-has-zero-mandatory-fields).
 
 ### FR-3 — Tags
 - FR-3.1 Tags are entirely optional on every note type.
-- FR-3.2 Tags can be added or removed at any time after capture.
+- FR-3.2 Tags can be added or removed at any time after capture, including via the swipe-to-tag action (FR-2.6).
 - FR-3.3 Tags are freeform strings (no required taxonomy); common suggestions (`Idea`, `Work`, `Shopping`, `Learning`, `Inspiration`) are offered for discoverability.
 - FR-3.4 A note may have zero, one, or multiple tags.
+- FR-3.5 A tag may optionally carry one accent color, chosen by the user from a small fixed palette when creating or editing the tag; unset tags render with no color (neutral). Color is never requested or required during capture — see [`05-design.md`](./05-design.md#tag-accent-color) and [ADR-021](./10-decisions.md#adr-021--optional-user-chosen-tag-accent-color).
 
 ### FR-4 — Search
 - FR-4.1 A persistent search entry point is reachable from the Timeline in one tap.
@@ -146,10 +150,14 @@ flowchart LR
     B3 -->|auto-save| A
     A -->|tap Search| C[Search]
     A -->|tap a card| D[Note Detail]
+    A -->|swipe a card| E[Quick Action: Delete / Add Tag]
+    A -->|tap avatar| F[Settings sheet]
     D -->|edit tags| D
     D -->|back| A
     C -->|tap a result| D
 ```
+
+**Settings** is intentionally not a nested screen or a "maze" — it is a single lightweight sheet reachable by tapping the avatar, holding only the handful of preferences that exist in v1 (currently: the swipe-action mapping from FR-2.7, light/dark theme, and Comfort Mode — see [`05-design.md`](./05-design.md#comfort-mode)). This preserves the "no settings-heavy home screen" navigation principle while still giving these few preferences somewhere to live.
 
 No hamburger menu, no settings-heavy home screen, no navigation deeper than two levels from the Timeline.
 
@@ -191,6 +199,7 @@ erDiagram
     TAG {
         uuid id PK
         string name
+        string color "optional, user-chosen accent dot; null = neutral"
         timestamptz created_at
     }
     NOTE_TAG {
@@ -206,6 +215,7 @@ erDiagram
 - **`media_hash`** enables content-addressed deduplication: if the same photo or voice file already exists locally or on another synced device, it is not stored or transferred twice.
 - **`rev` and `device_id`** are present from v1, even though sync is inactive, so v2 sync requires no schema migration or data rewrite.
 - Full-text indexing (FTS5) applies to `content` for text notes only, matching v1 search scope.
+- **Swipe-action mapping** (FR-2.7) is stored as a simple local key-value preference (e.g., `swipe.leading = add_tag`, `swipe.trailing = delete`), not a note or schema field — it's a device-level UI preference, not user content. It is not synced in v1; whether it should sync in v2 (so the mapping is consistent across a user's devices) is an open question, not yet decided — see [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set).
 
 ---
 

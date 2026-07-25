@@ -77,16 +77,14 @@ Chosen to support a **local-first, offline-first, cross-platform** product witho
 
 | Layer | Recommendation | Why |
 |---|---|---|
-| **Mobile (Android, future iOS)** | React Native | Single codebase across mobile platforms; mature offline storage ecosystem |
-| **Desktop (Windows)** | Tauri (preferred) or Electron | Reuses the shared UI layer; Tauri preferred long-term for footprint/performance |
-| **Shared UI core** | React + TypeScript | One component/business-logic layer shared across desktop and (via React Native) mobile |
-| **Local storage** | SQLite (via a platform-appropriate driver) | Durable, transactional, queryable; trivial full-text search via FTS5 |
-| **State management** | Repository + reactive subscriptions; lightweight local UI state | Predictable, minimal, no over-engineering — see [`06-development.md`](./06-development.md) |
-| **Backend (minimal, v1 dormant)** | Node.js + PostgreSQL, small REST/JSON API | Provides the sync-ready contract described in [`04-architecture.md`](./04-architecture.md) without being load-bearing in v1 |
+| **Client (Android, Windows, future iOS)** | **Flutter / Dart** — one codebase for all three | A single language and rendering engine across mobile and desktop, compiled to native (not a webview), avoids maintaining a separate mobile stack and a separate Electron/Tauri desktop stack in parallel. Built-in bidirectional text support handles Persian content inside an English/LTR shell (see [`05-design.md`](./05-design.md)) without extra plugins. Full control over custom gestures and transitions (Capture Sheet, swipe actions — see [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set)) without wrestling a browser engine for animation performance. |
+| **Local storage** | SQLite via `sqflite`/`drift` | Durable, transactional, queryable local-first storage; FTS5 for full-text search, matching the data model in [`02-product-specification.md`](./02-product-specification.md#data-model) |
+| **State management** | Reactive repository + a lightweight Flutter state layer (`Provider`/`Riverpod`) | Predictable, minimal, no over-engineering — see [`06-development.md`](./06-development.md) |
+| **Backend (minimal, v1 dormant)** | Node.js + PostgreSQL, exposed via a small REST/JSON API | Client language choice doesn't constrain the backend; provides the sync-ready contract described in [`04-architecture.md`](./04-architecture.md) without being load-bearing in v1 |
 | **Sync transport (v2)** | HTTPS + incremental delta sync | Simple, debuggable; pairs naturally with `updated_at`/`rev`-based conflict resolution and content-hash media dedupe |
 | **AI services (v3, optional)** | On-device or server-side speech-to-text/OCR, pluggable via a provider-agnostic adapter interface | Keeps AI optional and swappable; never blocks capture — see [`09-ai.md`](./09-ai.md) |
 
-This is a recommendation, not a hard requirement — any substitution must preserve local-first, offline-first, and minimal-footprint constraints.
+This is a recommendation, not a hard requirement — any substitution must preserve local-first, offline-first, and minimal-footprint constraints. See [ADR-024](./10-decisions.md#adr-024--flutter-as-the-single-cross-platform-client-framework) for why Flutter was chosen over a React Native + Electron/Tauri split.
 
 ---
 
@@ -97,17 +95,18 @@ Nex is organized as a monorepo so that mobile, desktop, and backend shells can s
 ```
 nex/
 ├── apps/
-│   ├── mobile/            # React Native shell (Android, future iOS)
-│   ├── desktop/           # Tauri/Electron shell (Windows)
-│   └── backend/           # Minimal Node.js + PostgreSQL API (dormant in v1)
+│   ├── client/             # Single Flutter app target — builds to Android, Windows, future iOS
+│   └── backend/            # Minimal Node.js + PostgreSQL API (dormant in v1)
 ├── packages/
-│   ├── core/              # Shared business logic (capture, search, tags, sync orchestration)
-│   ├── data/              # Local-first storage layer, schema, sync-ready models
-│   ├── ui/                # Shared design system components
-│   └── ai/                # Optional AI adapters (transcription, OCR, tagging) — v3+
-├── docs/                  # This documentation set
+│   ├── core/                # Shared Dart package: capture, search, tags, sync orchestration
+│   ├── data/                 # Local-first storage layer (SQLite), schema, sync-ready models
+│   ├── ui/                   # Shared Flutter widget/design-system package
+│   └── ai/                   # Optional AI adapters (transcription, OCR, tagging) — v3+
+├── docs/                    # This documentation set
 └── README.md
 ```
+
+Unlike a React Native + Electron split, Flutter builds Android, Windows, and iOS from the **same app target** (`apps/client`), so there is one client app, not two — see [ADR-024](./10-decisions.md#adr-024--flutter-as-the-single-cross-platform-client-framework). `packages/core` and `packages/data` are plain Dart, with no Flutter/UI dependency, so they stay fully unit-testable in isolation.
 
 See [`06-development.md`](./06-development.md) for full folder conventions inside each package.
 
@@ -115,17 +114,20 @@ See [`06-development.md`](./06-development.md) for full folder conventions insid
 
 ## Getting Started
 
-> Nex ships per-platform (mobile/desktop clients + backend). Refer to each app package's own setup instructions once those packages are scaffolded.
+> Nex ships per-platform (Android, Windows, future iOS) from one Flutter app target, plus a backend. Refer to each package's own setup instructions once scaffolded.
 
 ```bash
-# install dependencies at the workspace root
-npm install
+# fetch dependencies for the client app
+cd apps/client && flutter pub get
 
-# run the shared core's tests
-npm run test --workspace=packages/core
+# run the shared core package's tests
+cd packages/core && dart test
 
-# start the desktop shell in development mode
-npm run dev --workspace=apps/desktop
+# run the client on a connected Android device or emulator
+cd apps/client && flutter run
+
+# run the client as a Windows desktop app
+cd apps/client && flutter run -d windows
 ```
 
 See [`06-development.md`](./06-development.md) for coding standards and testing strategy.
@@ -157,6 +159,7 @@ Full detail in [`08-roadmap.md`](./08-roadmap.md).
 | [`08-roadmap.md`](./08-roadmap.md) | Version plan, MVP through v3 |
 | [`09-ai.md`](./09-ai.md) | AI strategy and boundaries |
 | [`10-decisions.md`](./10-decisions.md) | Architectural and product decision log (ADRs) |
+| [`11-build-prompt.md`](./11-build-prompt.md) | Phased, execution-ready build prompt for a developer or AI coding agent |
 
 ---
 

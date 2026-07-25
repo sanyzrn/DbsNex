@@ -48,6 +48,8 @@ timeline
 - WCAG 2.1 AA accessibility audit and fixes.
 - Expanded automated performance budget tests in CI.
 - Localization groundwork (externalized strings; Persian as the first additional language).
+- Swipe actions on Timeline cards (Delete, Add Tag), with a user-configurable direction mapping and a new lightweight Settings sheet — see [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set).
+- Comfort Mode — a lower-contrast, warmer-color-temperature toggle independent of Light/Dark theme, for late-night and light-sensitive use — see [ADR-023](./10-decisions.md#adr-023--comfort-mode-as-an-independent-axis-from-lightdark-theme).
 
 ---
 

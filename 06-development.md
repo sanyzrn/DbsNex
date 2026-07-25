@@ -20,50 +20,45 @@
 
 ## Folder Structure
 
-The structure mirrors the architecture layers, and is organized as a monorepo so that the mobile, desktop, and backend shells share one Core and Data layer — required for a genuinely cross-platform, sync-ready product from day one.
+The structure mirrors the architecture layers, and is organized as a monorepo so that the client and backend share one Core and Data layer — required for a genuinely cross-platform, sync-ready product from day one. See [ADR-024](./10-decisions.md#adr-024--flutter-as-the-single-cross-platform-client-framework) for why this is a single Flutter client target rather than a separate mobile shell and desktop shell.
 
 ```
 nex/
 ├── apps/
-│   ├── mobile/                  # React Native app shell (Android, future iOS)
-│   │   ├── src/
-│   │   │   ├── screens/         # Timeline, Capture, Search, NoteDetail
+│   ├── client/                    # Single Flutter app — builds to Android, Windows, future iOS
+│   │   ├── lib/
+│   │   │   ├── screens/           # Timeline, Capture, Search, NoteDetail, Settings
 │   │   │   ├── navigation/
-│   │   │   └── platform/        # native module bridges (camera, mic, filesystem)
+│   │   │   └── platform/          # platform channels (camera, mic, filesystem) where a plugin doesn't already cover it
 │   │   └── ...
-│   ├── desktop/                  # Tauri/Electron app shell (Windows)
-│   │   ├── src/
-│   │   │   ├── screens/
-│   │   │   └── platform/
-│   │   └── ...
-│   └── backend/                  # Minimal Node.js + PostgreSQL sync API
+│   └── backend/                   # Minimal Node.js + PostgreSQL sync API
 │       ├── src/
-│       │   ├── routes/           # notes, tags, sync
-│       │   ├── db/                # schema + migrations
+│       │   ├── routes/            # notes, tags, sync
+│       │   ├── db/                 # schema + migrations
 │       │   └── services/
 │       └── ...
 ├── packages/
-│   ├── core/                     # Platform-agnostic domain logic
+│   ├── core/                      # Platform-agnostic domain logic (pure Dart, no Flutter dependency)
 │   │   ├── capture/
 │   │   ├── search/
 │   │   ├── tags/
-│   │   └── sync/                 # conflict resolution: LWW for scalars, union-merge for tags
-│   ├── data/                     # Local-first storage layer
-│   │   ├── schema/                # note.id: UUIDv7, rev, media_hash, deleted_at
+│   │   └── sync/                  # conflict resolution: LWW for scalars, union-merge for tags
+│   ├── data/                      # Local-first storage layer (pure Dart)
+│   │   ├── schema/                 # note.id: UUIDv7, rev, media_hash, deleted_at
 │   │   ├── repositories/
-│   │   └── sync-client/
-│   ├── ui/                       # Shared design system components
-│   │   ├── components/
-│   │   └── tokens/                 # colors, typography, spacing — see 05-design.md
-│   └── ai/                       # Optional AI adapters (v3+) — never imported by capture
+│   │   └── sync_client/
+│   ├── ui/                        # Shared Flutter widget/design-system package
+│   │   ├── widgets/
+│   │   └── tokens/                  # colors, typography, spacing — see 05-design.md
+│   └── ai/                        # Optional AI adapters (v3+) — never imported by capture
 │       ├── transcription/
 │       ├── ocr/
 │       └── tagging/
-├── docs/                          # This documentation set
+├── docs/                           # This documentation set
 └── README.md
 ```
 
-Each `packages/*` module is independently unit-testable and has no dependency on any `apps/*` shell. **Dependency rule:** `apps/* → packages/core → packages/data`. `packages/ai` and the sync client are optional leaves — nothing in the capture path may import them.
+Each `packages/*` module is independently unit-testable and has no dependency on `apps/client` or `apps/backend`. `packages/core` and `packages/data` are plain Dart with zero Flutter/widget dependency, so Core domain logic can be tested with `dart test` alone, with no simulator, emulator, or widget test harness required. **Dependency rule:** `apps/* → packages/core → packages/data`. `packages/ui` depends on Flutter; `packages/ai` and the sync client are optional leaves — nothing in the capture path may import them.
 
 ---
 
@@ -72,16 +67,19 @@ Each `packages/*` module is independently unit-testable and has no dependency on
 | Element | Convention | Example |
 |---|---|---|
 | Files (components) | `PascalCase.tsx` | `NoteCard.tsx` |
-| Files (logic/modules) | `kebab-case.ts` | `note-repository.ts` |
-| Components | `PascalCase` | `NoteCard`, `CaptureSheet` |
-| Functions/variables | `camelCase` | `submitCapture`, `createdAt` |
-| Types/interfaces | `PascalCase`, no `I` prefix | `Note`, `SearchFilters` |
-| Constants | `UPPER_SNAKE_CASE` for true constants | `MAX_TAG_LENGTH` |
-| Database columns | `snake_case` | `created_at`, `media_hash` |
-| Branches | `type/short-description` | `feat/voice-capture-waveform`, `fix/search-date-filter-timezone` |
-| Commits | [Conventional Commits](https://www.conventionalcommits.org/) | `feat:`, `fix:`, `perf:`, `refactor:`, `test:`, `docs:`, `chore:` |
+| Element | Convention | Example | Applies to |
+|---|---|---|---|
+| Files | `snake_case.dart` | `note_card.dart`, `capture_sheet.dart` | Client (Dart) |
+| Classes / Widgets | `PascalCase` | `NoteCard`, `CaptureSheet` | Client (Dart) |
+| Functions/variables | `camelCase` | `submitCapture`, `createdAt` | Client (Dart) + backend (TS) |
+| Types/classes (domain) | `PascalCase`, no `I` prefix | `Note`, `SearchFilters` | Client (Dart) |
+| Constants | `lowerCamelCase` per Dart convention (`k`-prefix only if truly global) | `maxTagLength` | Client (Dart) |
+| Backend files | `kebab-case.ts` | `note-repository.ts` | Backend (Node/TS) |
+| Database columns | `snake_case` | `created_at`, `media_hash` | Backend / schema |
+| Branches | `type/short-description` | `feat/voice-capture-waveform`, `fix/search-date-filter-timezone` | All |
+| Commits | [Conventional Commits](https://www.conventionalcommits.org/) | `feat:`, `fix:`, `perf:`, `refactor:`, `test:`, `docs:`, `chore:` | All |
 
-Be consistent within a file and descriptive over abbreviated: `createdAt` beats `ca`.
+Be consistent within a file and descriptive over abbreviated: `createdAt` beats `ca`. The client (`apps/client`, `packages/core`, `packages/data`, `packages/ui`) is Dart and follows standard [Effective Dart](https://dart.dev/effective-dart) style; only the backend (`apps/backend`) is Node.js/TypeScript, since the client's move to Flutter (see [ADR-024](./10-decisions.md#adr-024--flutter-as-the-single-cross-platform-client-framework)) doesn't change the backend's language.
 
 ---
 
@@ -89,31 +87,31 @@ Be consistent within a file and descriptive over abbreviated: `createdAt` beats 
 
 Nex's state needs are intentionally modest.
 
-- **Persisted domain state** (notes, tags): owned by the **Data layer** (SQLite-backed repositories), exposed to the UI via reactive subscriptions — the Timeline updates automatically as the local store changes, including from background sync writes.
-- **Local, ephemeral UI state** (capture sheet open/closed, in-progress text before persistence, active search filters): component-local state. No global state library is needed for v1 — a large, generalized framework would be over-engineering relative to the product's scope.
+- **Persisted domain state** (notes, tags): owned by the **Data layer** (SQLite-backed repositories, via `drift`/`sqflite`), exposed to the UI via reactive streams — the Timeline updates automatically as the local store changes, including from background sync writes.
+- **Local, ephemeral UI state** (capture sheet open/closed, in-progress text before persistence, active search filters, swipe-reveal position): local widget state (`StatefulWidget` / `ValueNotifier`). A minimal reactive layer (`Provider` or `Riverpod`) is enough for cross-cutting app state (active filters, current Settings values) — a large, generalized framework (e.g., BLoC's full ceremony) would be over-engineering relative to the product's scope.
 - **Explicit rule:** state management choices must never introduce a delay between "user provided content" and "content is durably saved." Any layer between UI and Data must be write-through, not write-behind, for capture actions.
 
 ```mermaid
 flowchart LR
     A[User Action] --> R[Repository]
     R --> DB[(Local SQLite)]
-    DB -.emits.-> S[Subscribers]
-    S --> UI[UI re-renders]
+    DB -.emits stream.-> S[Listeners]
+    S --> UI[Widget rebuilds]
 ```
 
 ---
 
 ## AI Adapter Interface
 
-AI integrations live entirely in `packages/ai` and are consumed by Core through a single provider-agnostic interface. This is the concrete, code-level expression of "AI is optional and swappable" — Core calls the interface, never a specific vendor SDK, and every method is optional so an adapter may implement any subset of capabilities:
+AI integrations live entirely in `packages/ai` and are consumed by Core through a single provider-agnostic interface. This is the concrete, code-level expression of "AI is optional and swappable" — Core calls the interface, never a specific vendor SDK, and every method is nullable/optional so an adapter may implement any subset of capabilities:
 
-```typescript
-interface AIAdapter {
-  transcribe?(audio: AudioRef): Promise<Transcript>
-  embed?(text: string): Promise<Vector>
-  suggestTags?(note: Note): Promise<Tag[]>
-  summarize?(note: Note): Promise<Summary>
-  ocr?(image: ImageRef): Promise<OCRText>
+```dart
+abstract class AIAdapter {
+  Future<Transcript>? transcribe(AudioRef audio);
+  Future<Vector>? embed(String text);
+  Future<List<Tag>>? suggestTags(Note note);
+  Future<Summary>? summarize(Note note);
+  Future<OCRText>? ocr(ImageRef image);
 }
 ```
 
