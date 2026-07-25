@@ -165,6 +165,7 @@ Full detail in [`08-roadmap.md`](./08-roadmap.md).
 | [`09-ai.md`](./09-ai.md) | AI strategy and boundaries |
 | [`10-decisions.md`](./10-decisions.md) | Architectural and product decision log (ADRs) |
 | [`11-build-prompt.md`](./11-build-prompt.md) | Phased, execution-ready build prompt for a developer or AI coding agent |
+| [`12-agent-handoff-prompts.md`](./12-agent-handoff-prompts.md) | Literal, paste-ready prompts per phase for a GitHub-connected coding agent |
 
 ---
 

@@ -1,0 +1,2 @@
+# Platform channels (camera, mic, filesystem) where no plugin already covers it.
+# Empty in Phase 0.

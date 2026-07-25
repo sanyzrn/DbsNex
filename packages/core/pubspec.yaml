@@ -1,0 +1,17 @@
+name: nex_core
+description: >-
+  Nex core domain layer. Platform-agnostic, pure Dart, zero Flutter dependency.
+  Dependency rule (06-development.md): apps/* -> packages/core -> packages/data.
+publish_to: "none"
+version: 0.0.1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  nex_data:
+    path: ../data
+
+dev_dependencies:
+  lints: ^4.0.0
+  test: ^1.25.0

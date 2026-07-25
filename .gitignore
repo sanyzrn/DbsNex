@@ -1,0 +1,27 @@
+# Flutter / Dart
+**/.dart_tool/
+**/.packages
+**/build/
+**/pubspec.lock
+apps/client/android/.gradle/
+apps/client/windows/flutter/ephemeral/
+apps/client/.flutter-plugins
+apps/client/.flutter-plugins-dependencies
+
+# Node / Backend
+node_modules/
+apps/backend/dist/
+npm-debug.log*
+
+# Env
+.env
+apps/backend/.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.iml
