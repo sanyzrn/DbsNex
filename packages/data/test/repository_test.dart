@@ -187,5 +187,34 @@ void main() {
       repo = NoteRepository(db);
       expect(repo.listTimeline().single.content, 'precious');
     });
+
+    test('corrupt backup leaves live database intact (ADR-026)', () {
+      repo.insert(makeText('must-survive'));
+      db.close();
+
+      final livePath = p.join(tmp.path, 'nex.sqlite');
+      final liveBytesBefore = File(livePath).readAsBytesSync();
+      expect(liveBytesBefore, isNotEmpty);
+
+      final corruptBackup = File(p.join(tmp.path, 'corrupt.sqlite'))
+        ..writeAsBytesSync([0x00, 0x01, 0x02, 0x03, 0xFF]);
+
+      expect(
+        () => NexDatabase.restoreFromBackup(
+          liveDbPath: livePath,
+          backupFile: corruptBackup.path,
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      // Live file must be byte-identical — never deleted on failed restore.
+      expect(File(livePath).existsSync(), isTrue);
+      expect(File(livePath).readAsBytesSync(), liveBytesBefore);
+      expect(File('$livePath.restoring').existsSync(), isFalse);
+
+      db = NexDatabase.open(livePath);
+      repo = NoteRepository(db);
+      expect(repo.listTimeline().single.content, 'must-survive');
+    });
   });
 }

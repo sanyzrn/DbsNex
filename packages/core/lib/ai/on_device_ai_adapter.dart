@@ -3,13 +3,15 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:nex_core/nex_core.dart';
+import 'package:nex_data/nex_data.dart';
+
+import 'ai_adapter.dart';
 
 /// Default on-device adapter (09-ai.md — "Default to local").
 ///
-/// Deterministic local heuristics suitable for tests and offline use. No
-/// network calls; no note content leaves the device. Real platform STT/OCR
-/// engines can replace this behind the same [AIAdapter] contract.
+/// Lives in `packages/core` so apps/client can wire it via DI without depending
+/// on optional `packages/ai`. Deterministic local heuristics; no network.
+/// Vendor/cloud adapters remain in `packages/ai` behind [CloudGatedAIAdapter].
 class OnDeviceAIAdapter implements AIAdapter {
   const OnDeviceAIAdapter({this.embeddingDims = 32});
 
@@ -101,8 +103,7 @@ class OnDeviceAIAdapter implements AIAdapter {
 
 /// Gates cloud-backed adapters behind explicit per-capability opt-in (09-ai.md).
 ///
-/// When [cloudOptIn] is false, all methods return null (unavailable) so callers
-/// fall back to on-device-only behavior or skip enrichment.
+/// When [cloudOptIn] is false, all methods return null (unavailable).
 class CloudGatedAIAdapter implements AIAdapter {
   const CloudGatedAIAdapter({
     required this.inner,

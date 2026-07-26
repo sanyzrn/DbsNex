@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:nex_ai/nex_ai.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -11,6 +10,9 @@ import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 import 'nex_preferences.dart';
 
 /// App-wide services. Capture path never awaits AI (09-ai.md).
+///
+/// Depends only on `nex_core` — never on `packages/ai` — so deleting the AI
+/// package leaves this client compiling (Phase 3 deletability guarantee).
 class NexServices {
   NexServices._({
     required this.db,
@@ -38,9 +40,13 @@ class NexServices {
 
   Stream<List<Note>> get timelineStream => _timelineController.stream;
 
+  /// [aiAdapter] is injected from Core types only. Defaults to
+  /// [AIAdapterBinding.instance] (NullAIAdapter until a composition root
+  /// binds an on-device or cloud adapter).
   static Future<NexServices> bootstrap({
     String? deviceId,
     NexPreferences? preferences,
+    AIAdapter? aiAdapter,
   }) async {
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isWindows)) {
       await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
@@ -58,7 +64,7 @@ class NexServices {
     final caps = preferences?.aiCapabilities ?? const AiCapabilities();
     final enrichment = EnrichmentService(
       repo: repo,
-      adapter: const OnDeviceAIAdapter(),
+      adapter: aiAdapter ?? AIAdapterBinding.instance,
       capabilities: caps,
     );
     final services = NexServices._(
