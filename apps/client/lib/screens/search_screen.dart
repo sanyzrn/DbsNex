@@ -1,238 +1,148 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
-
+import '../l10n/app_localizations.dart';
 import '../platform/nex_services.dart';
-import 'note_detail_sheet.dart';
+import '../platform/polish_service.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key, required this.services});
-
   final NexServices services;
-
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final _query = TextEditingController();
-  String? _selectedTagId;
-  DateTime? _from;
-  DateTime? _to;
-  List<Note> _results = const [];
-  Map<String, double> _semanticScores = const {};
-  bool _semantic = false;
+  final query = TextEditingController();
+  final tags = <String>{};
+  final types = <NoteType>{};
+  Timer? debounce;
+  DateTimeRange? range;
+  List<Note> results = const [];
+  Note? nearest;
+  bool filtersOpen = false;
+  int request = 0;
+
+  late final polish = PolishService(widget.services.repo);
 
   @override
-  void initState() {
-    super.initState();
-    _run();
+  void initState() { super.initState(); run(); }
+
+  void schedule() {
+    debounce?.cancel();
+    debounce = Timer(const Duration(milliseconds: 150), run);
+  }
+
+  void run() {
+    final current = ++request;
+    final found = widget.services.search.search(SearchFilters(
+      query: query.text,
+      tagIds: tags.toList(),
+      types: types.toList(),
+      createdFrom: range?.start,
+      createdTo: range?.end.add(const Duration(days: 1)),
+    ));
+    final close = found.isEmpty && query.text.trim().isNotEmpty
+        ? polish.nearestMiss(query.text)
+        : null;
+    if (!mounted || current != request) return;
+    setState(() { results = found; nearest = close; });
   }
 
   @override
-  void dispose() {
-    _query.dispose();
-    super.dispose();
-  }
-
-  Future<void> _run() async {
-    if (_semantic) {
-      final hits = await widget.services.enrichment.semanticSearch(_query.text);
-      if (!mounted) return;
-      setState(() {
-        _semanticScores = {for (final h in hits) h.noteId: h.score};
-        _results = [
-          for (final h in hits)
-            if (widget.services.repo.getById(h.noteId) case final note?) note,
-        ];
-      });
-      return;
-    }
-    setState(() {
-      _semanticScores = const {};
-      _results = widget.services.search.search(
-        SearchFilters(
-          query: _query.text,
-          tagIds: _selectedTagId == null ? const [] : [_selectedTagId!],
-          createdFrom: _from,
-          createdTo: _to,
-        ),
-      );
-    });
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
-    );
-    if (picked != null) {
-      setState(() {
-        _from = picked.start.toUtc();
-        _to = picked.end.add(const Duration(days: 1)).toUtc();
-      });
-      _run();
-    }
-  }
+  void dispose() { debounce?.cancel(); query.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final allTags = widget.services.tags.listTags();
+    final active = tags.length + types.length + (range == null ? 0 : 1);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Search'),
+        titleSpacing: 0,
+        title: TextField(
+          controller: query,
+          autofocus: true,
+          decoration: InputDecoration(hintText: l10n.searchHint, border: InputBorder.none, prefixIcon: const Icon(Icons.search)),
+          onChanged: (_) => schedule(),
+        ),
+        actions: [TextButton(
+          onPressed: () => setState(() => filtersOpen = !filtersOpen),
+          child: Text(active == 0 ? l10n.filters : l10n.filtersCount(active)),
+        )],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              NexSpacing.md,
-              NexSpacing.sm,
-              NexSpacing.md,
-              0,
-            ),
-            child: TextField(
-              controller: _query,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: _semantic ? 'Search by meaning…' : 'Search notes…',
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: theme.colorScheme.secondary,
-                ),
+      body: Column(children: [
+        AnimatedSize(
+          duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : NexMotion.standard,
+          child: !filtersOpen ? const SizedBox.shrink() : Padding(
+            padding: const EdgeInsets.all(16),
+            child: Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final type in NoteType.values) FilterChip(
+                label: Text(l10n.noteType(type.name)),
+                selected: types.contains(type),
+                onSelected: (value) { setState(() => value ? types.add(type) : types.remove(type)); run(); },
               ),
-              onChanged: (_) => _run(),
-            ),
-          ),
-          TagFilterRow(
-            tags: allTags,
-            selectedTagId: _selectedTagId,
-            onSelected: (id) {
-              setState(() => _selectedTagId = id);
-              _run();
-            },
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: NexSpacing.sm),
-                  child: _FilterActionPill(
-                    label: _from == null ? 'Date' : 'Date ✓',
-                    selected: _from != null,
-                    onTap: _pickDate,
-                  ),
-                ),
-                _FilterActionPill(
-                  label: 'Semantic',
-                  selected: _semantic,
-                  onTap: () {
-                    setState(() => _semantic = !_semantic);
-                    _run();
-                  },
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              NexSpacing.md + 4,
-              0,
-              NexSpacing.md,
-              NexSpacing.sm,
-            ),
-            child: Text(
-              _semantic
-                  ? '${_results.length} semantic results'
-                  : '${_results.length} results',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.secondary,
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
+              for (final tag in allTags) FilterChip(
+                label: Text(tag.name),
+                selected: tags.contains(tag.id),
+                onSelected: (value) { setState(() => value ? tags.add(tag.id) : tags.remove(tag.id)); run(); },
               ),
-            ),
+              ActionChip(
+                label: Text(range == null ? l10n.date :
+                  DateFormat.yMMMd().format(range!.start) + ' – ' + DateFormat.yMMMd().format(range!.end)),
+                onPressed: () async {
+                  final value = await showDateRangePicker(
+                    context: context,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now(),
+                  );
+                  if (value != null) setState(() => range = value);
+                  run();
+                },
+              ),
+            ]),
           ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: NexSpacing.xl),
-              itemCount: _results.length,
-              itemBuilder: (context, index) {
-                final note = _results[index];
-                final score = _semanticScores[note.id];
-                return NoteCard(
-                  note: note,
-                  padded: true,
-                  footnote: score == null
-                      ? null
-                      : 'Semantic · ${score.toStringAsFixed(2)}',
-                  onTap: () async {
-                    await showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      showDragHandle: true,
-                      useSafeArea: true,
-                      builder: (_) => SizedBox(
-                        width: double.infinity,
-                        child: NoteDetailSheet(
-                          services: widget.services,
-                          noteId: note.id,
-                        ),
-                      ),
-                    );
-                    _run();
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+        ),
+        Expanded(child: results.isEmpty
+          ? _Zero(query: query.text, nearest: nearest)
+          : ListView.builder(
+              itemCount: results.length + 1,
+              itemBuilder: (context, index) => index == 0
+                ? Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(l10n.resultCount(results.length), style: Theme.of(context).textTheme.bodySmall),
+                  )
+                : NoteCard(note: results[index - 1]),
+            )),
+      ]),
     );
   }
 }
 
-class _FilterActionPill extends StatelessWidget {
-  const _FilterActionPill({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
+class _Zero extends StatelessWidget {
+  const _Zero({required this.query, required this.nearest});
+  final String query;
+  final Note? nearest;
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bg =
-        selected ? theme.colorScheme.onSurface : theme.colorScheme.surface;
-    final fg =
-        selected ? theme.colorScheme.surface : theme.colorScheme.onSurface;
-    return Material(
-      color: bg,
-      shape: StadiumBorder(
-        side: BorderSide(
-          color: selected ? bg : theme.colorScheme.outline,
-        ),
+    final l10n = AppLocalizations.of(context);
+    if (query.trim().isEmpty) return Center(child: Text(l10n.searchStart));
+    return Center(child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 560),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(l10n.nothingMatches(query), style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 24),
+          if (nearest != null) ...[
+            Text(l10n.closestThing, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 8),
+            NoteCard(note: nearest!),
+          ] else Text(l10n.nothingClose),
+        ]),
       ),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const StadiumBorder(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: fg,
-            ),
-          ),
-        ),
-      ),
-    );
+    ));
   }
 }

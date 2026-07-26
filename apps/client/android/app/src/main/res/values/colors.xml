@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="nex_icon_background">#111113</color>
+    <color name="nex_launch_light">#FFFFFF</color>
+    <color name="nex_launch_dark">#0A0A0A</color>
+</resources>

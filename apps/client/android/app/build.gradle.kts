@@ -3,70 +3,44 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Release signing via android/key.properties (generated in CI from GitHub secrets;
-// never committed — see android/.gitignore). Absent locally → debug signing so
-// `flutter run --release` still works on developer machines.
-val keystoreProperties = Properties()
-val keystorePropertiesFile = rootProject.file("key.properties")
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-}
+val keys = Properties()
+val keyFile = rootProject.file("key.properties")
+if (keyFile.exists()) keys.load(FileInputStream(keyFile))
 
 android {
-    namespace = "com.example.nex_client"
+    namespace = "com.sanyzrn.nex"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.nex_client"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "com.sanyzrn.nex"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
-
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
-            create("release") {
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-            }
+        if (keyFile.exists()) create("release") {
+            keyAlias = keys["keyAlias"] as String
+            keyPassword = keys["keyPassword"] as String
+            storeFile = file(keys["storeFile"] as String)
+            storePassword = keys["storePassword"] as String
         }
     }
-
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
+            signingConfig = if (keyFile.exists())
                 signingConfigs.getByName("release")
-            } else {
-                // Local/dev only. CI release workflow fails before build if
-                // ANDROID_KEYSTORE_* secrets are missing — never ships this.
-                signingConfigs.getByName("debug")
-            }
+            else signingConfigs.getByName("debug")
         }
     }
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
-    }
-}
-
-flutter {
-    source = "../.."
-}
+kotlin { compilerOptions { jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17 } }
+flutter { source = "../.." }

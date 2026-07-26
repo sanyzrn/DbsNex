@@ -1,56 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nex_ui/nex_ui.dart';
-
 import 'l10n/app_localizations.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/os_capture_bridge.dart';
+import 'screens/search_screen.dart';
 import 'screens/timeline_screen.dart';
 
-/// Nex application shell (Phase 1.x).
 class NexApp extends StatefulWidget {
   const NexApp({
     super.key,
     required this.services,
     required this.preferences,
     this.osCapture,
-    this.openTextCaptureOnLaunch = false,
   });
-
   final NexServices services;
   final NexPreferences preferences;
   final OsCaptureBridge? osCapture;
-  final bool openTextCaptureOnLaunch;
-
   @override
   State<NexApp> createState() => _NexAppState();
 }
 
 class _NexAppState extends State<NexApp> {
+  final timelineKey = GlobalKey<TimelineScreenState>();
+
   @override
   void initState() {
     super.initState();
-    widget.preferences.addListener(_onPrefs);
+    widget.preferences.addListener(_refresh);
   }
 
   @override
   void dispose() {
-    widget.preferences.removeListener(_onPrefs);
+    widget.preferences.removeListener(_refresh);
     super.dispose();
   }
 
-  void _onPrefs() => setState(() {});
+  void _refresh() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
-    final comfort = widget.preferences.comfortMode;
+    final prefs = widget.preferences;
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
-      themeMode: widget.preferences.themeMode,
-      theme: nexLightTheme(comfortMode: comfort),
-      darkTheme: nexDarkTheme(comfortMode: comfort),
+      locale: prefs.locale,
+      themeMode: prefs.themeMode,
+      theme: nexLightTheme(comfortMode: prefs.comfortMode),
+      darkTheme: nexDarkTheme(comfortMode: prefs.comfortMode),
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -58,12 +57,45 @@ class _NexAppState extends State<NexApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(
+            disableAnimations: prefs.reduceMotion || media.disableAnimations,
+            textScaler: media.textScaler.clamp(minScaleFactor: 0.85, maxScaleFactor: 1.6),
+          ),
+          child: Shortcuts(
+            shortcuts: const {
+              SingleActivator(LogicalKeyboardKey.keyN, control: true): _CaptureIntent(),
+              SingleActivator(LogicalKeyboardKey.keyF, control: true): _SearchIntent(),
+            },
+            child: Actions(
+              actions: {
+                _CaptureIntent: CallbackAction<_CaptureIntent>(
+                  onInvoke: (_) => timelineKey.currentState?.openCapture(),
+                ),
+                _SearchIntent: CallbackAction<_SearchIntent>(
+                  onInvoke: (_) => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => SearchScreen(services: widget.services),
+                    ),
+                  ),
+                ),
+              },
+              child: FocusTraversalGroup(child: child!),
+            ),
+          ),
+        );
+      },
       home: TimelineScreen(
+        key: timelineKey,
         services: widget.services,
-        preferences: widget.preferences,
+        preferences: prefs,
         osCapture: widget.osCapture,
-        openTextCaptureOnLaunch: widget.openTextCaptureOnLaunch,
       ),
     );
   }
 }
+
+class _CaptureIntent extends Intent { const _CaptureIntent(); }
+class _SearchIntent extends Intent { const _SearchIntent(); }

@@ -2,118 +2,86 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Fixed swipe action set (ADR-022) — not an extensible framework.
-enum SwipeAction {
-  delete,
-  addTag;
+enum SwipeAction { delete, addTag }
 
-  String get wireName => switch (this) {
-        SwipeAction.delete => 'delete',
-        SwipeAction.addTag => 'add_tag',
-      };
-
-  static SwipeAction fromWire(String value) => switch (value) {
-        'add_tag' => SwipeAction.addTag,
-        _ => SwipeAction.delete,
-      };
-
-  String get label => switch (this) {
-        SwipeAction.delete => 'Delete',
-        SwipeAction.addTag => 'Add Tag',
-      };
+extension SwipeActionWire on SwipeAction {
+  String get wireName => this == SwipeAction.delete ? 'delete' : 'add_tag';
+  static SwipeAction fromWire(String value) =>
+      value == 'add_tag' ? SwipeAction.addTag : SwipeAction.delete;
 }
 
-/// Device-local preferences (not synced in v1.x — ADR-022).
 class NexPreferences extends ChangeNotifier {
   NexPreferences._(this._prefs);
-
   final SharedPreferences _prefs;
 
-  static const _kLeading = 'swipe.leading';
-  static const _kTrailing = 'swipe.trailing';
-  static const _kComfort = 'appearance.comfort_mode';
-  static const _kThemeMode = 'appearance.theme_mode';
-  static const _kAiTranscription = 'ai.transcription';
-  static const _kAiOcr = 'ai.ocr';
-  static const _kAiTags = 'ai.tag_suggestions';
-  static const _kAiSemantic = 'ai.semantic_search';
-  static const _kAiSummary = 'ai.summarization';
-  static const _kAiRelated = 'ai.related_notes';
-  static const _kAiCloud = 'ai.cloud_opt_in';
+  static Future<NexPreferences> load() async =>
+      NexPreferences._(await SharedPreferences.getInstance());
 
-  static Future<NexPreferences> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    return NexPreferences._(prefs);
-  }
-
-  /// Defaults: leading = Add Tag, trailing = Delete (FR-2.6).
   SwipeAction get leadingAction =>
-      SwipeAction.fromWire(_prefs.getString(_kLeading) ?? 'add_tag');
-
+      SwipeActionWire.fromWire(_prefs.getString('swipe.leading') ?? 'add_tag');
   SwipeAction get trailingAction =>
-      SwipeAction.fromWire(_prefs.getString(_kTrailing) ?? 'delete');
+      SwipeActionWire.fromWire(_prefs.getString('swipe.trailing') ?? 'delete');
+  bool get comfortMode => _prefs.getBool('appearance.comfort') ?? false;
+  bool get reduceMotion => _prefs.getBool('accessibility.reduce_motion') ?? false;
+  bool get haptics => _prefs.getBool('accessibility.haptics') ?? true;
+  bool get quietAnniversary => _prefs.getBool('timeline.quiet_anniversary') ?? true;
+  bool get cloudAiOptIn => _prefs.getBool('ai.cloud_opt_in') ?? false;
 
-  bool get comfortMode => _prefs.getBool(_kComfort) ?? false;
-
-  /// Light / Dark / System (default System) — mockup Appearance control.
-  ThemeMode get themeMode {
-    switch (_prefs.getString(_kThemeMode)) {
-      case 'light':
-        return ThemeMode.light;
-      case 'dark':
-        return ThemeMode.dark;
-      default:
-        return ThemeMode.system;
-    }
+  Locale? get locale {
+    final code = _prefs.getString('appearance.locale');
+    return code == null || code == 'system' ? null : Locale(code);
   }
 
-  /// Cloud AI is opt-in per 09-ai.md (default off — on-device only).
-  bool get cloudAiOptIn => _prefs.getBool(_kAiCloud) ?? false;
+  ThemeMode get themeMode => switch (_prefs.getString('appearance.theme')) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.system,
+      };
 
   AiCapabilities get aiCapabilities => AiCapabilities(
-        transcription: _prefs.getBool(_kAiTranscription) ?? true,
-        ocr: _prefs.getBool(_kAiOcr) ?? true,
-        tagSuggestions: _prefs.getBool(_kAiTags) ?? true,
-        semanticSearch: _prefs.getBool(_kAiSemantic) ?? true,
-        summarization: _prefs.getBool(_kAiSummary) ?? true,
-        relatedNotes: _prefs.getBool(_kAiRelated) ?? true,
+        transcription: _prefs.getBool('ai.transcription') ?? true,
+        ocr: _prefs.getBool('ai.ocr') ?? true,
+        tagSuggestions: _prefs.getBool('ai.tags') ?? true,
+        semanticSearch: _prefs.getBool('ai.semantic') ?? true,
+        summarization: _prefs.getBool('ai.summary') ?? true,
+        relatedNotes: _prefs.getBool('ai.related') ?? true,
       );
 
-  Future<void> setComfortMode(bool value) async {
-    await _prefs.setBool(_kComfort, value);
+  Future<void> _setBool(String key, bool value) async {
+    await _prefs.setBool(key, value);
     notifyListeners();
   }
 
-  Future<void> setThemeMode(ThemeMode mode) async {
-    final wire = switch (mode) {
-      ThemeMode.light => 'light',
-      ThemeMode.dark => 'dark',
-      ThemeMode.system => 'system',
-    };
-    await _prefs.setString(_kThemeMode, wire);
+  Future<void> setComfortMode(bool value) => _setBool('appearance.comfort', value);
+  Future<void> setReduceMotion(bool value) => _setBool('accessibility.reduce_motion', value);
+  Future<void> setHaptics(bool value) => _setBool('accessibility.haptics', value);
+  Future<void> setQuietAnniversary(bool value) => _setBool('timeline.quiet_anniversary', value);
+  Future<void> setCloudAiOptIn(bool value) => _setBool('ai.cloud_opt_in', value);
+
+  Future<void> setLocale(String value) async {
+    await _prefs.setString('appearance.locale', value);
     notifyListeners();
   }
 
-  Future<void> setCloudAiOptIn(bool value) async {
-    await _prefs.setBool(_kAiCloud, value);
+  Future<void> setThemeMode(ThemeMode value) async {
+    await _prefs.setString('appearance.theme', value.name);
     notifyListeners();
   }
 
   Future<void> setAiCapabilities(AiCapabilities value) async {
-    await _prefs.setBool(_kAiTranscription, value.transcription);
-    await _prefs.setBool(_kAiOcr, value.ocr);
-    await _prefs.setBool(_kAiTags, value.tagSuggestions);
-    await _prefs.setBool(_kAiSemantic, value.semanticSearch);
-    await _prefs.setBool(_kAiSummary, value.summarization);
-    await _prefs.setBool(_kAiRelated, value.relatedNotes);
+    await _prefs.setBool('ai.transcription', value.transcription);
+    await _prefs.setBool('ai.ocr', value.ocr);
+    await _prefs.setBool('ai.tags', value.tagSuggestions);
+    await _prefs.setBool('ai.semantic', value.semanticSearch);
+    await _prefs.setBool('ai.summary', value.summarization);
+    await _prefs.setBool('ai.related', value.relatedNotes);
     notifyListeners();
   }
 
   Future<void> swapSwipeMapping() async {
-    final leading = leadingAction;
-    final trailing = trailingAction;
-    await _prefs.setString(_kLeading, trailing.wireName);
-    await _prefs.setString(_kTrailing, leading.wireName);
+    final old = leadingAction;
+    await _prefs.setString('swipe.leading', trailingAction.wireName);
+    await _prefs.setString('swipe.trailing', old.wireName);
     notifyListeners();
   }
 
