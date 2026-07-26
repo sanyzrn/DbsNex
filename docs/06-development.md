@@ -166,4 +166,15 @@ CI gates on: unit + integration test suites, capture/search performance budgets,
 - **Releases are tagged** (`vMAJOR.MINOR.PATCH`); sync-contract changes are `MAJOR`.
 - **No direct commits to `main`**, including for documentation.
 
+### Cutting a Release
+
+1. Bump `version:` in `apps/client/pubspec.yaml` (and commit on a PR as usual).
+2. After merge to `main`, tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`
+3. The **Release** workflow (`.github/workflows/release.yml`) builds a signed Android APK and a Windows Inno Setup installer (`.exe`) and attaches both to a new GitHub Release automatically.
+4. **One-time signing setup** (Saeed, local machine — never commit the keystore):
+   - Generate: `keytool -genkey -v -keystore nex-release.keystore -alias nex -keyalg RSA -keysize 2048 -validity 10000`
+   - Base64-encode and store the file somewhere safe (it is not recoverable if lost).
+   - Add GitHub Actions secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
+5. Manual verification without a real tag: Actions → Release → Run workflow → enter e.g. `v0.0.1-test` (publishes a **draft** release).
+
 See [`07-contributing.md`](./07-contributing.md) for the contributor workflow.
