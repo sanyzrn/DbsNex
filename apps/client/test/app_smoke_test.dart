@@ -60,6 +60,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('All'), findsOneWidget);
     expect(find.text('Work'), findsWidgets);
+    expect(find.byIcon(Icons.add), findsOneWidget);
+    expect(find.text('Save'), findsNothing);
+  });
+
+  testWidgets('Timeline is home with capture FAB and no Save button',
+      (tester) async {
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    expect(find.text('Nex'), findsOneWidget);
+    expect(find.byIcon(Icons.add), findsOneWidget);
+    expect(find.text('Save'), findsNothing);
   });
 
   testWidgets('Capture sheet focuses text with Voice/Photo/File inline',
