@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
@@ -45,16 +45,17 @@ class _TimelineScreenState extends State<TimelineScreen> {
   bool _loadingMore = false;
   bool _exhausted = false;
   String? _openCardId;
+  String? _selectedTagId;
+  AudioPlayer? _timelinePlayer;
+  String? _playingNoteId;
 
   @override
   void initState() {
     super.initState();
-    _notes = widget.services.search.timeline(limit: 50);
-    _sub = widget.services.timelineStream.listen((notes) {
-      setState(() {
-        _notes = notes;
-        _exhausted = false;
-      });
+    _notes = widget.services.search.timeline(limit: 50, tagId: _selectedTagId);
+    _sub = widget.services.timelineStream.listen((_) {
+      if (!mounted) return;
+      _reloadNotes(keepCount: true);
     });
     _scroll.addListener(_onScroll);
     widget.preferences.addListener(_onPrefs);
@@ -64,12 +65,24 @@ class _TimelineScreenState extends State<TimelineScreen> {
     }
   }
 
+  void _reloadNotes({bool keepCount = false}) {
+    final limit = keepCount ? (_notes.length < 50 ? 50 : _notes.length) : 50;
+    setState(() {
+      _notes = widget.services.search.timeline(
+        limit: limit,
+        tagId: _selectedTagId,
+      );
+      _exhausted = false;
+    });
+  }
+
   @override
   void dispose() {
     _sub?.cancel();
     _osSub?.cancel();
     widget.preferences.removeListener(_onPrefs);
     _scroll.dispose();
+    _timelinePlayer?.dispose();
     super.dispose();
   }
 
@@ -94,7 +107,11 @@ class _TimelineScreenState extends State<TimelineScreen> {
 
   Future<void> _loadMore() async {
     setState(() => _loadingMore = true);
-    final more = widget.services.loadMore(offset: _notes.length, limit: 50);
+    final more = widget.services.search.timeline(
+      offset: _notes.length,
+      limit: 50,
+      tagId: _selectedTagId,
+    );
     setState(() {
       if (more.isEmpty) {
         _exhausted = true;
@@ -103,6 +120,34 @@ class _TimelineScreenState extends State<TimelineScreen> {
       }
       _loadingMore = false;
     });
+  }
+
+  Future<void> _toggleVoicePlay(Note note) async {
+    final uri = note.mediaUri;
+    if (uri == null || !File(uri).existsSync()) return;
+    if (_playingNoteId == note.id) {
+      await _timelinePlayer?.stop();
+      setState(() => _playingNoteId = null);
+      return;
+    }
+    _timelinePlayer ??= AudioPlayer();
+    try {
+      await _timelinePlayer!.stop();
+      await _timelinePlayer!.setFilePath(uri);
+      setState(() => _playingNoteId = note.id);
+      unawaited(
+        _timelinePlayer!.play().then((_) async {
+          await _timelinePlayer!.playerStateStream.firstWhere(
+            (s) => s.processingState == ProcessingState.completed,
+          );
+          if (mounted && _playingNoteId == note.id) {
+            setState(() => _playingNoteId = null);
+          }
+        }),
+      );
+    } catch (_) {
+      if (mounted) setState(() => _playingNoteId = null);
+    }
   }
 
   /// Mockup pattern: one sheet with focused text field + Voice/Photo/File.
@@ -235,23 +280,24 @@ class _TimelineScreenState extends State<TimelineScreen> {
   }
 
   Future<void> _captureFile() async {
-    String? path;
     Uint8List? bytes;
+    String? originalName;
+    String? mimeType;
 
     if (!kIsWeb && Platform.isAndroid) {
-      const channel = MethodChannel('nex/os_capture');
-      final picked = await channel.invokeMethod<String>('pickFile');
+      final picked = await OsCaptureBridge.pickFile();
       if (picked == null) return;
-      path = picked;
-      bytes = await File(picked).readAsBytes();
+      originalName = picked.filename;
+      mimeType = picked.mimeType;
+      bytes = await File(picked.path).readAsBytes();
     } else {
       final file = await openFile();
       if (file == null) return;
-      path = file.path;
+      originalName = p.basename(file.path);
       bytes = await file.readAsBytes();
+      mimeType = file.mimeType;
     }
 
-    final originalName = p.basename(path);
     final dest = p.join(
       widget.services.mediaDir,
       'file-${DateTime.now().millisecondsSinceEpoch}-$originalName',
@@ -261,6 +307,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
       mediaUri: dest,
       mediaBytes: Uint8List.fromList(bytes),
       originalFilename: originalName,
+      mimeType: mimeType,
     );
     widget.services.scheduleEnrichment(note.id);
     widget.services.refreshTimeline();
@@ -268,6 +315,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
 
   void _softDeleteWithUndo(Note note) {
     final l10n = AppLocalizations.of(context);
+    setState(() => _openCardId = null);
     widget.services.repo.softDelete(note.id);
     widget.services.refreshTimeline();
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -339,7 +387,15 @@ class _TimelineScreenState extends State<TimelineScreen> {
           onAddTag: () => _swipeAddTag(note),
           child: NoteCard(
             note: note,
+            isVoicePlaying: _playingNoteId == note.id,
+            onPlayVoice: note.type == NoteType.voice
+                ? () => _toggleVoicePlay(note)
+                : null,
             onTap: () async {
+              if (_openCardId != null) {
+                setState(() => _openCardId = null);
+                return;
+              }
               await showModalBottomSheet<void>(
                 context: context,
                 isScrollControlled: true,
@@ -374,6 +430,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final tags = widget.services.tags.listTags();
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.appTitle),
@@ -386,7 +443,9 @@ class _TimelineScreenState extends State<TimelineScreen> {
                 MaterialPageRoute<void>(
                   builder: (_) => SearchScreen(services: widget.services),
                 ),
-              );
+              ).then((_) {
+                if (mounted) _reloadNotes(keepCount: true);
+              });
             },
           ),
           IconButton(
@@ -405,20 +464,35 @@ class _TimelineScreenState extends State<TimelineScreen> {
           ),
         ],
       ),
-      body: _notes.isEmpty
-          ? Center(
-              child: Text(
-                l10n.emptyTimeline,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.secondary,
-                ),
-              ),
-            )
-          : ListView(
-              controller: _scroll,
-              padding: const EdgeInsets.only(bottom: 118),
-              children: _buildTimelineChildren(context),
-            ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TagFilterRow(
+            tags: tags,
+            selectedTagId: _selectedTagId,
+            onSelected: (id) {
+              setState(() => _selectedTagId = id);
+              _reloadNotes();
+            },
+          ),
+          Expanded(
+            child: _notes.isEmpty
+                ? Center(
+                    child: Text(
+                      l10n.emptyTimeline,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.secondary,
+                      ),
+                    ),
+                  )
+                : ListView(
+                    controller: _scroll,
+                    padding: const EdgeInsets.only(bottom: 118),
+                    children: _buildTimelineChildren(context),
+                  ),
+          ),
+        ],
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Theme(
         data: theme.copyWith(

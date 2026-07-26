@@ -16,8 +16,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final _query = TextEditingController();
-  final _selectedTags = <String>{};
-  final _selectedTypes = <NoteType>{};
+  String? _selectedTagId;
   DateTime? _from;
   DateTime? _to;
   List<Note> _results = const [];
@@ -54,173 +53,117 @@ class _SearchScreenState extends State<SearchScreen> {
       _results = widget.services.search.search(
         SearchFilters(
           query: _query.text,
-          tagIds: _selectedTags.toList(),
+          tagIds: _selectedTagId == null ? const [] : [_selectedTagId!],
           createdFrom: _from,
           createdTo: _to,
-          types: _selectedTypes.toList(),
         ),
       );
     });
   }
 
-  void _clearFilters() {
-    setState(() {
-      _selectedTags.clear();
-      _selectedTypes.clear();
-      _from = null;
-      _to = null;
-      _query.clear();
-    });
-    _run();
+  Future<void> _pickDate() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (picked != null) {
+      setState(() {
+        _from = picked.start.toUtc();
+        _to = picked.end.add(const Duration(days: 1)).toUtc();
+      });
+      _run();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final allTags = widget.services.tags.listTags();
     return Scaffold(
-      appBar: AppBar(title: const Text('Search')),
+      appBar: AppBar(
+        title: const Text('Search'),
+      ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.all(NexSpacing.md),
+            padding: const EdgeInsets.fromLTRB(
+              NexSpacing.md,
+              NexSpacing.sm,
+              NexSpacing.md,
+              0,
+            ),
             child: TextField(
               controller: _query,
               autofocus: true,
               decoration: InputDecoration(
                 hintText: _semantic ? 'Search by meaning…' : 'Search notes…',
-                prefixIcon: const Icon(Icons.search),
-                border: const OutlineInputBorder(),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: theme.colorScheme.secondary,
+                ),
               ),
               onChanged: (_) => _run(),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: FilterChip(
-                label: const Text('Semantic (meaning)'),
-                selected: _semantic,
-                onSelected: (v) {
-                  setState(() => _semantic = v);
-                  _run();
-                },
-              ),
-            ),
-          ),
-          if (_semantic)
-            const Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: NexSpacing.md,
-                vertical: NexSpacing.xs,
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Semantic results — distinct from exact keyword matches',
-                  style: TextStyle(fontSize: 12),
-                ),
-              ),
-            ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
-            child: Row(
+          TagFilterRow(
+            tags: allTags,
+            selectedTagId: _selectedTagId,
+            onSelected: (id) {
+              setState(() => _selectedTagId = id);
+              _run();
+            },
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                for (final type in NoteType.values)
-                  Padding(
-                    padding: const EdgeInsets.only(right: NexSpacing.xs),
-                    child: FilterChip(
-                      label: Text(_typeLabel(type)),
-                      selected: _selectedTypes.contains(type),
-                      onSelected: (v) {
-                        setState(() {
-                          if (v) {
-                            _selectedTypes.add(type);
-                          } else {
-                            _selectedTypes.remove(type);
-                          }
-                        });
-                        _run();
-                      },
-                    ),
-                  ),
-                TextButton(
-                  onPressed: () async {
-                    final picked = await showDateRangePicker(
-                      context: context,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime.now().add(const Duration(days: 1)),
-                    );
-                    if (picked != null) {
-                      setState(() {
-                        _from = picked.start.toUtc();
-                        _to = picked.end
-                            .add(const Duration(days: 1))
-                            .toUtc();
-                      });
-                      _run();
-                    }
-                  },
-                  child: Text(
-                    _from == null
-                        ? 'Date'
-                        : '${_from!.toLocal().toString().split(' ').first} → ${_to!.toLocal().toString().split(' ').first}',
+                Padding(
+                  padding: const EdgeInsets.only(right: NexSpacing.sm),
+                  child: _FilterActionPill(
+                    label: _from == null ? 'Date' : 'Date ✓',
+                    selected: _from != null,
+                    onTap: _pickDate,
                   ),
                 ),
-                TextButton(onPressed: _clearFilters, child: const Text('Clear')),
+                _FilterActionPill(
+                  label: 'Semantic',
+                  selected: _semantic,
+                  onTap: () {
+                    setState(() => _semantic = !_semantic);
+                    _run();
+                  },
+                ),
               ],
             ),
           ),
-          if (allTags.isNotEmpty)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                horizontal: NexSpacing.md,
-                vertical: NexSpacing.xs,
-              ),
-              child: Row(
-                children: [
-                  for (final tag in allTags)
-                    Padding(
-                      padding: const EdgeInsets.only(right: NexSpacing.xs),
-                      child: FilterChip(
-                        label: Text(tag.name),
-                        selected: _selectedTags.contains(tag.id),
-                        onSelected: (v) {
-                          setState(() {
-                            if (v) {
-                              _selectedTags.add(tag.id);
-                            } else {
-                              _selectedTags.remove(tag.id);
-                            }
-                          });
-                          _run();
-                        },
-                      ),
-                    ),
-                ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              NexSpacing.md + 4,
+              0,
+              NexSpacing.md,
+              NexSpacing.sm,
+            ),
+            child: Text(
+              _semantic
+                  ? '${_results.length} semantic results'
+                  : '${_results.length} results',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.secondary,
+                fontWeight: FontWeight.w500,
+                fontSize: 13,
               ),
             ),
-          if (!_semantic)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: NexSpacing.md),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Keyword search includes transcripts and OCR when available',
-                  style: TextStyle(fontSize: 12),
-                ),
-              ),
-            ),
+          ),
           Expanded(
             child: ListView.builder(
+              padding: const EdgeInsets.only(bottom: NexSpacing.xl),
               itemCount: _results.length,
               itemBuilder: (context, index) {
                 final note = _results[index];
                 final score = _semanticScores[note.id];
                 return NoteCard(
                   note: note,
+                  padded: true,
                   footnote: score == null
                       ? null
                       : 'Semantic · ${score.toStringAsFixed(2)}',
@@ -248,11 +191,48 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
     );
   }
+}
 
-  static String _typeLabel(NoteType type) => switch (type) {
-        NoteType.text => 'Text',
-        NoteType.voice => 'Voice',
-        NoteType.photo => 'Photo',
-        NoteType.file => 'File',
-      };
+class _FilterActionPill extends StatelessWidget {
+  const _FilterActionPill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bg =
+        selected ? theme.colorScheme.onSurface : theme.colorScheme.surface;
+    final fg =
+        selected ? theme.colorScheme.surface : theme.colorScheme.onSurface;
+    return Material(
+      color: bg,
+      shape: StadiumBorder(
+        side: BorderSide(
+          color: selected ? bg : theme.colorScheme.outline,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const StadiumBorder(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: fg,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -88,6 +88,9 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     _addColumnIfMissing('notes', 'transcript_text', 'TEXT');
     _addColumnIfMissing('notes', 'ocr_text', 'TEXT');
     _addColumnIfMissing('notes', 'summary_text', 'TEXT');
+    // User-authored caption (optional, post-capture) + share/file MIME.
+    _addColumnIfMissing('notes', 'caption', 'TEXT');
+    _addColumnIfMissing('notes', 'mime_type', 'TEXT');
 
     db.execute('''
 CREATE TABLE IF NOT EXISTS note_embeddings (

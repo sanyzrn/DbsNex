@@ -50,14 +50,16 @@ void main() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
-  testWidgets('Timeline is home with capture FAB and no Save button',
-      (tester) async {
+  testWidgets('Timeline shows tag filter chip row with All', (tester) async {
+    final note = services.capture.submitTextCapture('tagged')!;
+    services.tags.addTag(noteId: note.id, name: 'Work', color: '#F0A93B');
+    services.refreshTimeline();
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
-    expect(find.text('Nex'), findsOneWidget);
-    expect(find.byIcon(Icons.add), findsOneWidget);
-    expect(find.text('Save'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.text('All'), findsOneWidget);
+    expect(find.text('Work'), findsWidgets);
   });
 
   testWidgets('Capture sheet focuses text with Voice/Photo/File inline',
@@ -114,6 +116,46 @@ void main() {
     final note = services.search.timeline().first;
     expect(note.type, NoteType.photo);
     expect(note.mediaHash, isNotNull);
+  });
+
+  test('OS share-intent file preserves original filename and MIME', () async {
+    final src = File(p.join(services.mediaDir, 'cache-placeholder.bin'))
+      ..writeAsBytesSync([9, 8, 7, 6]);
+    final bridge = OsCaptureBridge(services);
+    await bridge.handle({
+      'type': 'shared_file',
+      'path': src.path,
+      'filename': 'Quarterly-Report.pdf',
+      'mimeType': 'application/pdf',
+    });
+    final note = services.search.timeline().first;
+    expect(note.type, NoteType.file);
+    expect(note.content, 'Quarterly-Report.pdf');
+    expect(note.mimeType, 'application/pdf');
+    expect(note.content, isNot(contains('.bin')));
+  });
+
+  test('Optional caption on media notes is distinct from OCR/transcript', () {
+    final bytes = Uint8List.fromList([1, 2, 3]);
+    final photo = services.capture.submitPhotoCapture(
+      mediaUri: p.join(services.mediaDir, 'p.jpg'),
+      mediaBytes: bytes,
+    );
+    expect(photo.caption, isNull);
+    services.repo.setCaption(photo.id, 'whiteboard from sync');
+    final updated = services.repo.getById(photo.id)!;
+    expect(updated.caption, 'whiteboard from sync');
+    expect(updated.ocrText, isNull);
+  });
+
+  test('Timeline tag filter returns only matching notes', () {
+    final a = services.capture.submitTextCapture('alpha')!;
+    final b = services.capture.submitTextCapture('beta')!;
+    services.tags.addTag(noteId: a.id, name: 'Work');
+    services.tags.addTag(noteId: b.id, name: 'Idea');
+    final work = services.tags.listTags().firstWhere((t) => t.name == 'Work');
+    final filtered = services.search.timeline(tagId: work.id);
+    expect(filtered.map((n) => n.id), [a.id]);
   });
 
   test('Swipe mapping defaults and swap (ADR-022)', () async {

@@ -12,8 +12,8 @@ typedef NexSwipeActionResolver = NexSwipeAction Function({required bool isLeadin
 
 /// Timeline card swipe reveal: Delete (warning red) / Add Tag (neutral).
 ///
-/// After a drag past threshold the reveal stays open; the user must tap the
-/// revealed action to execute it (mockup / FR-2.6 interaction).
+/// Per mockup `.card-wrap`: overflow clipped, reveal only while this card is
+/// open, one open card at a time. Tap the revealed action to execute it.
 class SwipeableNoteCard extends StatefulWidget {
   const SwipeableNoteCard({
     super.key,
@@ -43,6 +43,8 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
   double _dx = 0;
   late final AnimationController _controller;
 
+  bool get _isOpen => _dx.abs() > 0.5;
+
   @override
   void initState() {
     super.initState();
@@ -55,6 +57,7 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
   @override
   void didUpdateWidget(covariant SwipeableNoteCard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Close when another card becomes the open one.
     if (widget.openCardId != null &&
         widget.openCardId != widget.cardId &&
         _dx != 0) {
@@ -78,7 +81,9 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     _controller.forward(from: 0).whenComplete(() {
       anim.removeListener(listener);
       if (target == 0) {
-        widget.onOpenChanged?.call(null);
+        if (widget.openCardId == widget.cardId) {
+          widget.onOpenChanged?.call(null);
+        }
       } else if (widget.cardId != null) {
         widget.onOpenChanged?.call(widget.cardId);
       }
@@ -87,7 +92,7 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
 
   void _onDragUpdate(DragUpdateDetails d) {
     setState(() => _dx = (_dx + d.delta.dx).clamp(-160.0, 160.0));
-    if (widget.cardId != null) {
+    if (widget.cardId != null && widget.openCardId != widget.cardId) {
       widget.onOpenChanged?.call(widget.cardId);
     }
   }
@@ -99,7 +104,6 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
       return;
     }
     final openingLeading = _dx > 0;
-    // Stay open so the user can tap the revealed action (do not auto-fire).
     _animateTo(openingLeading ? width * 0.45 : -width * 0.45);
   }
 
@@ -115,50 +119,64 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final leading = widget.resolveAction(isLeading: true);
-        final trailing = widget.resolveAction(isLeading: false);
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _RevealPanel(
-                      action: leading,
-                      alignEnd: false,
-                      neutralBg: theme.colorScheme.surfaceContainerHighest,
-                      onTap: () => _run(leading),
+    return Padding(
+      // Horizontal padding lives outside the clip so reveal never bleeds
+      // between neighboring cards (mockup .card-wrap).
+      padding: const EdgeInsets.symmetric(
+        horizontal: NexSpacing.md,
+        vertical: NexSpacing.xs + 1,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final leading = widget.resolveAction(isLeading: true);
+          final trailing = widget.resolveAction(isLeading: false);
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(NexColors.cardRadius),
+            clipBehavior: Clip.hardEdge,
+            child: Stack(
+              children: [
+                if (_isOpen)
+                  Positioned.fill(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _RevealPanel(
+                            action: leading,
+                            alignEnd: false,
+                            neutralBg: theme.colorScheme.surfaceContainerHighest,
+                            onTap: () => _run(leading),
+                          ),
+                        ),
+                        Expanded(
+                          child: _RevealPanel(
+                            action: trailing,
+                            alignEnd: true,
+                            neutralBg: theme.colorScheme.surfaceContainerHighest,
+                            onTap: () => _run(trailing),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Expanded(
-                    child: _RevealPanel(
-                      action: trailing,
-                      alignEnd: true,
-                      neutralBg: theme.colorScheme.surfaceContainerHighest,
-                      onTap: () => _run(trailing),
+                Transform.translate(
+                  offset: Offset(_dx, 0),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.deferToChild,
+                    onHorizontalDragUpdate: _onDragUpdate,
+                    onHorizontalDragEnd: (d) => _onDragEnd(d, width),
+                    onTap: _isOpen ? () => _animateTo(0) : null,
+                    child: Material(
+                      color: theme.colorScheme.surface,
+                      child: widget.child,
                     ),
                   ),
-                ],
-              ),
-            ),
-            Transform.translate(
-              offset: Offset(_dx, 0),
-              child: GestureDetector(
-                onHorizontalDragUpdate: _onDragUpdate,
-                onHorizontalDragEnd: (d) => _onDragEnd(d, width),
-                onTap: _dx != 0 ? () => _animateTo(0) : null,
-                child: Material(
-                  color: Colors.transparent,
-                  child: widget.child,
                 ),
-              ),
+              ],
             ),
-          ],
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

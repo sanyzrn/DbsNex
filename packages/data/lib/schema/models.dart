@@ -47,6 +47,8 @@ class Note {
     this.transcriptText,
     this.ocrText,
     this.summaryText,
+    this.caption,
+    this.mimeType,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -65,6 +67,10 @@ class Note {
   final String? transcriptText;
   final String? ocrText;
   final String? summaryText;
+  /// Optional user-authored description on photo/voice/file (never at capture).
+  final String? caption;
+  /// MIME type from share-intent / file pick when known.
+  final String? mimeType;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -75,18 +81,31 @@ class Note {
 
   bool get isDeleted => deletedAt != null;
 
+  /// Display filename for file notes (stored in [content]).
+  String? get originalFilename =>
+      type == NoteType.file ? content : null;
+
   /// Text used for keyword search — original body or AI-derived text.
   String? get searchableDerivedText {
     switch (type) {
       case NoteType.text:
         return content;
       case NoteType.voice:
-        return transcriptText;
+        return _joinSearchable([transcriptText, caption]);
       case NoteType.photo:
-        return ocrText;
+        return _joinSearchable([ocrText, caption]);
       case NoteType.file:
-        return content;
+        return _joinSearchable([content, caption]);
     }
+  }
+
+  static String? _joinSearchable(List<String?> parts) {
+    final joined = parts
+        .whereType<String>()
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .join(' ');
+    return joined.isEmpty ? null : joined;
   }
 
   Note copyWith({
@@ -97,6 +116,9 @@ class Note {
     String? transcriptText,
     String? ocrText,
     String? summaryText,
+    String? caption,
+    bool clearCaption = false,
+    String? mimeType,
     DateTime? updatedAt,
     DateTime? deletedAt,
     bool clearDeletedAt = false,
@@ -114,6 +136,8 @@ class Note {
       transcriptText: transcriptText ?? this.transcriptText,
       ocrText: ocrText ?? this.ocrText,
       summaryText: summaryText ?? this.summaryText,
+      caption: clearCaption ? null : (caption ?? this.caption),
+      mimeType: mimeType ?? this.mimeType,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
@@ -134,6 +158,8 @@ class Note {
         'transcript_text': transcriptText,
         'ocr_text': ocrText,
         'summary_text': summaryText,
+        'caption': caption,
+        'mime_type': mimeType,
         'created_at': createdAt.toUtc().toIso8601String(),
         'updated_at': updatedAt.toUtc().toIso8601String(),
         'deleted_at': deletedAt?.toUtc().toIso8601String(),
@@ -154,6 +180,8 @@ class Note {
       transcriptText: row['transcript_text'] as String?,
       ocrText: row['ocr_text'] as String?,
       summaryText: row['summary_text'] as String?,
+      caption: row['caption'] as String?,
+      mimeType: row['mime_type'] as String?,
       createdAt: DateTime.parse(row['created_at']! as String).toUtc(),
       updatedAt: DateTime.parse(row['updated_at']! as String).toUtc(),
       deletedAt: (row['deleted_at'] as String?) != null

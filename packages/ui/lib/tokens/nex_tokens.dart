@@ -84,6 +84,23 @@ ThemeData nexLightTheme({bool comfortMode = false}) {
       ),
     ),
     dividerColor: NexColors.borderLight,
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: elevated,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+    ),
     textTheme: _textTheme(on, NexColors.textSecondaryLight),
   );
 }
@@ -124,6 +141,23 @@ ThemeData nexDarkTheme({bool comfortMode = false}) {
       ),
     ),
     dividerColor: NexColors.borderDark,
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: elevated,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+    ),
     textTheme: _textTheme(on, NexColors.textSecondaryDark),
   );
 }
