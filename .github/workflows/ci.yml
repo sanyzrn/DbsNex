@@ -152,14 +152,3 @@ jobs:
         run: |
           dart pub get
           dart test test/sync_matrix_test.dart
-
-  react-prototype:
-    name: React prototype (build only — not a shipping target)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - run: npm install
-      - run: npm run build
