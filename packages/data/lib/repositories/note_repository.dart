@@ -57,8 +57,9 @@ class NoteRepository {
       '''
 INSERT INTO notes (
   id, type, content, media_uri, media_hash, duration_ms,
-  created_at, updated_at, deleted_at, device_id, rev, sync_state
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  created_at, updated_at, deleted_at, device_id, rev, sync_state,
+  caption, mime_type
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ''',
       [
         note.id,
@@ -73,12 +74,13 @@ INSERT INTO notes (
         note.deviceId,
         note.rev,
         note.syncState.wireName,
+        note.caption,
+        note.mimeType,
       ],
     );
-    if (note.type == NoteType.text &&
-        note.content != null &&
-        note.content!.isNotEmpty) {
-      _upsertFts(note.id, note.content!);
+    final searchable = note.searchableDerivedText;
+    if (searchable != null && searchable.isNotEmpty) {
+      _upsertFts(note.id, searchable);
     }
     return getById(note.id)!;
   }
@@ -160,16 +162,34 @@ WHERE id = ?
   }
 
   /// Reverse-chronological timeline page (FR-2.2 / FR-2.5).
-  List<Note> listTimeline({int limit = 50, int offset = 0}) {
-    final rows = db.select(
-      '''
+  ///
+  /// When [tagId] is set, only notes with that tag are returned (Timeline
+  /// filter chips / FR-4).
+  List<Note> listTimeline({
+    int limit = 50,
+    int offset = 0,
+    String? tagId,
+  }) {
+    final rows = tagId == null
+        ? db.select(
+            '''
 SELECT * FROM notes
 WHERE deleted_at IS NULL
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?
 ''',
-      [limit, offset],
-    );
+            [limit, offset],
+          )
+        : db.select(
+            '''
+SELECT n.* FROM notes n
+INNER JOIN note_tags nt ON nt.note_id = n.id
+WHERE n.deleted_at IS NULL AND nt.tag_id = ?
+ORDER BY n.created_at DESC
+LIMIT ? OFFSET ?
+''',
+            [tagId, limit, offset],
+          );
     return rows
         .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
         .toList();
@@ -444,6 +464,34 @@ WHERE id = ?
       'UPDATE notes SET summary_text = ? WHERE id = ?',
       [text, noteId],
     );
+  }
+
+  /// Optional post-capture caption on photo/voice/file (distinct from OCR/transcript).
+  void setCaption(String noteId, String? caption) {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final trimmed = caption?.trim();
+    final value = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+    db.execute(
+      '''
+UPDATE notes
+SET caption = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
+    ${localDeviceId != null ? ', device_id = ?' : ''}
+WHERE id = ? AND deleted_at IS NULL
+''',
+      [
+        value,
+        now,
+        if (localDeviceId != null) localDeviceId,
+        noteId,
+      ],
+    );
+    final note = getById(noteId);
+    final searchable = note?.searchableDerivedText;
+    if (searchable != null && searchable.isNotEmpty) {
+      _upsertFts(noteId, searchable);
+    } else if (note?.type != NoteType.text) {
+      db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+    }
   }
 
   void setEmbedding(String noteId, List<double> values) {

@@ -179,6 +179,41 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     controller.dispose();
   }
 
+  Future<void> _editCaption() async {
+    final note = _note;
+    if (note == null || note.type == NoteType.text) return;
+    final controller = TextEditingController(text: note.caption ?? '');
+    final value = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Caption'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Optional description…',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null) return;
+    widget.services.repo.setCaption(widget.noteId, value);
+    widget.services.refreshTimeline();
+    _reload();
+  }
+
   bool _summaryIsMeaningful(Note note) {
     final summary = note.summaryText?.trim();
     if (summary == null || summary.isEmpty) return false;
@@ -304,13 +339,44 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               if (note.mediaUri != null && File(note.mediaUri!).existsSync()) ...[
                 const SizedBox(height: NexSpacing.xs),
                 Text(
-                  nexFormatBytes(File(note.mediaUri!).lengthSync()),
+                  [
+                    nexFormatBytes(File(note.mediaUri!).lengthSync()),
+                    if (note.mimeType != null) note.mimeType!,
+                  ].join(' · '),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.secondary,
                         fontWeight: FontWeight.w400,
                       ),
                 ),
               ],
+            ],
+            if (note.type != NoteType.text) ...[
+              const SizedBox(height: NexSpacing.md),
+              Text('Caption', style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: NexSpacing.xs),
+              if (note.caption != null && note.caption!.trim().isNotEmpty)
+                Text(
+                  note.caption!,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                )
+              else
+                Text(
+                  'No caption',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: _editCaption,
+                  child: Text(
+                    note.caption == null || note.caption!.trim().isEmpty
+                        ? 'Add caption'
+                        : 'Edit caption',
+                  ),
+                ),
+              ),
             ],
             if (_summaryIsMeaningful(note)) ...[
               const SizedBox(height: NexSpacing.md),

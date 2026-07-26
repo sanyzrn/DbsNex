@@ -75,10 +75,12 @@ class CaptureService {
   /// Persist a generic file attachment (Phase 2 / ADR-008).
   ///
   /// [originalFilename] is stored in [Note.content] for display (basename only).
+  /// [mimeType] is stored when known (share-intent / picker).
   Note submitFileCapture({
     required String mediaUri,
     required Uint8List mediaBytes,
     String? originalFilename,
+    String? mimeType,
   }) {
     final now = DateTime.now().toUtc();
     return _repo.insert(
@@ -86,6 +88,7 @@ class CaptureService {
         id: newUuidV7(),
         type: NoteType.file,
         content: originalFilename,
+        mimeType: mimeType,
         mediaUri: mediaUri,
         mediaHash: sha256OfBytes(mediaBytes),
         createdAt: now,
@@ -131,6 +134,6 @@ class SearchService {
 
   List<Note> search(SearchFilters filters) => _repo.search(filters);
 
-  List<Note> timeline({int limit = 50, int offset = 0}) =>
-      _repo.listTimeline(limit: limit, offset: offset);
+  List<Note> timeline({int limit = 50, int offset = 0, String? tagId}) =>
+      _repo.listTimeline(limit: limit, offset: offset, tagId: tagId);
 }
