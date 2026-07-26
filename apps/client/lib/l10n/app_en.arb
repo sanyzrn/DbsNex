@@ -24,9 +24,20 @@
   "export": "Export",
   "exportSubtitle": "JSON + Markdown + media archive",
   "restore": "Restore",
-  "restoreSubtitle": "Recover from latest automatic backup",
+  "restoreSubtitle": "Recover from an automatic backup",
   "restoreConfirmTitle": "Restore backup?",
-  "restoreConfirmBody": "This replaces the current local database with the latest automatic backup.",
+  "restoreConfirmBody": "This replaces the current local database with the selected automatic backup.",
+  "restoreConfirmBodyNamed": "This replaces the current local database with backup “{label}”. This cannot be undone from the app.",
+  "@restoreConfirmBodyNamed": {
+    "placeholders": {
+      "label": {"type": "String"}
+    }
+  },
+  "chooseBackup": "Choose a backup",
+  "latestBackup": "Latest",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeSystem": "System",
   "cancel": "Cancel",
   "addTag": "Add Tag",
   "delete": "Delete",

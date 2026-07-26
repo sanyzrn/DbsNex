@@ -60,7 +60,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
     widget.preferences.addListener(_onPrefs);
     _osSub = widget.osCapture?.events.listen(_onOsCapture);
     if (widget.openTextCaptureOnLaunch) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _captureText());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openCapture());
     }
   }
 
@@ -79,9 +79,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
 
   Future<void> _onOsCapture(Map<Object?, Object?> payload) async {
     if (payload['type'] == 'text_capture' && mounted) {
-      await _captureText();
+      await _openCapture();
     } else if (mounted) {
-      // shared_text / shared_photo already persisted by OsCaptureBridge.
       widget.services.refreshTimeline();
     }
   }
@@ -106,31 +105,27 @@ class _TimelineScreenState extends State<TimelineScreen> {
     });
   }
 
+  /// Mockup pattern: one sheet with focused text field + Voice/Photo/File.
   Future<void> _openCapture() async {
-    final choice = await showModalBottomSheet<NoteType>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => const _CaptureChooser(),
-    );
-    if (choice == null || !mounted) return;
-    switch (choice) {
-      case NoteType.text:
-        await _captureText();
-      case NoteType.voice:
-        await _captureVoice();
-      case NoteType.photo:
-        await _capturePhoto();
-      case NoteType.file:
-        await _captureFile();
-    }
-  }
-
-  Future<void> _captureText() async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (ctx) => _TextCaptureSheet(services: widget.services),
+      builder: (ctx) => _CaptureSheet(
+        services: widget.services,
+        onVoice: () {
+          Navigator.pop(ctx);
+          _captureVoice();
+        },
+        onPhoto: () {
+          Navigator.pop(ctx);
+          _capturePhoto();
+        },
+        onFile: () {
+          Navigator.pop(ctx);
+          _captureFile();
+        },
+      ),
     );
   }
 
@@ -256,14 +251,16 @@ class _TimelineScreenState extends State<TimelineScreen> {
       bytes = await file.readAsBytes();
     }
 
+    final originalName = p.basename(path);
     final dest = p.join(
       widget.services.mediaDir,
-      'file-${DateTime.now().millisecondsSinceEpoch}-${p.basename(path)}',
+      'file-${DateTime.now().millisecondsSinceEpoch}-$originalName',
     );
     await File(dest).writeAsBytes(bytes);
     final note = widget.services.capture.submitFileCapture(
       mediaUri: dest,
       mediaBytes: Uint8List.fromList(bytes),
+      originalFilename: originalName,
     );
     widget.services.scheduleEnrichment(note.id);
     widget.services.refreshTimeline();
@@ -280,8 +277,6 @@ class _TimelineScreenState extends State<TimelineScreen> {
         action: SnackBarAction(
           label: l10n.undo,
           onPressed: () {
-            // Soft-delete undo: clear deleted_at by re-inserting isn't ideal;
-            // restore via copyWith clearDeletedAt through a small repo helper.
             widget.services.repo.undelete(note.id);
             widget.services.refreshTimeline();
           },
@@ -309,9 +304,76 @@ class _TimelineScreenState extends State<TimelineScreen> {
         SwipeAction.addTag => NexSwipeAction.addTag,
       };
 
+  List<Widget> _buildTimelineChildren(BuildContext context) {
+    final children = <Widget>[];
+    String? lastLabel;
+    for (var i = 0; i < _notes.length; i++) {
+      final note = _notes[i];
+      final label = nexDayLabel(note.createdAt);
+      if (label != lastLabel) {
+        lastLabel = label;
+        children.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              NexSpacing.md + 4,
+              NexSpacing.md,
+              NexSpacing.md,
+              NexSpacing.sm,
+            ),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        );
+      }
+      children.add(
+        SwipeableNoteCard(
+          cardId: note.id,
+          openCardId: _openCardId,
+          onOpenChanged: (id) => setState(() => _openCardId = id),
+          resolveAction: ({required bool isLeading}) => _mapAction(
+            widget.preferences.actionFor(isLeading: isLeading),
+          ),
+          onDelete: () => _softDeleteWithUndo(note),
+          onAddTag: () => _swipeAddTag(note),
+          child: NoteCard(
+            note: note,
+            onTap: () async {
+              await showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                showDragHandle: true,
+                useSafeArea: true,
+                builder: (_) => SizedBox(
+                  width: double.infinity,
+                  child: NoteDetailSheet(
+                    services: widget.services,
+                    noteId: note.id,
+                  ),
+                ),
+              );
+              widget.services.refreshTimeline();
+            },
+          ),
+        ),
+      );
+    }
+    if (_loadingMore) {
+      children.add(
+        const Padding(
+          padding: EdgeInsets.all(NexSpacing.md),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+    return children;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.appTitle),
@@ -347,109 +409,55 @@ class _TimelineScreenState extends State<TimelineScreen> {
           ? Center(
               child: Text(
                 l10n.emptyTimeline,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.secondary,
-                    ),
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.secondary,
+                ),
               ),
             )
-          : ListView.builder(
+          : ListView(
               controller: _scroll,
-              semanticChildCount: _notes.length,
-              itemCount: _notes.length + (_loadingMore ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index >= _notes.length) {
-                  return const Padding(
-                    padding: EdgeInsets.all(NexSpacing.md),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final note = _notes[index];
-                return SwipeableNoteCard(
-                  cardId: note.id,
-                  openCardId: _openCardId,
-                  onOpenChanged: (id) => setState(() => _openCardId = id),
-                  resolveAction: ({required bool isLeading}) => _mapAction(
-                    widget.preferences.actionFor(isLeading: isLeading),
-                  ),
-                  onDelete: () => _softDeleteWithUndo(note),
-                  onAddTag: () => _swipeAddTag(note),
-                  child: NoteCard(
-                    note: note,
-                    onTap: () async {
-                      await showModalBottomSheet<void>(
-                        context: context,
-                        isScrollControlled: true,
-                        showDragHandle: true,
-                        builder: (_) => NoteDetailSheet(
-                          services: widget.services,
-                          noteId: note.id,
-                        ),
-                      );
-                      widget.services.refreshTimeline();
-                    },
-                  ),
-                );
-              },
+              padding: const EdgeInsets.only(bottom: 118),
+              children: _buildTimelineChildren(context),
             ),
-      floatingActionButton: SizedBox(
-        width: nexMinTapTarget + 12,
-        height: nexMinTapTarget + 12,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Theme(
+        data: theme.copyWith(
+          floatingActionButtonTheme: theme.floatingActionButtonTheme.copyWith(
+            sizeConstraints: const BoxConstraints.tightFor(
+              width: nexCaptureFabSize,
+              height: nexCaptureFabSize,
+            ),
+          ),
+        ),
         child: FloatingActionButton(
           onPressed: _openCapture,
           tooltip: l10n.capture,
-          child: const Icon(Icons.add, size: 28),
+          child: const Icon(Icons.add, size: 32),
         ),
       ),
     );
   }
 }
 
-class _CaptureChooser extends StatelessWidget {
-  const _CaptureChooser();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.short_text),
-            title: Text(l10n.text),
-            onTap: () => Navigator.pop(context, NoteType.text),
-          ),
-          ListTile(
-            leading: const Icon(Icons.mic_none),
-            title: Text(l10n.voice),
-            onTap: () => Navigator.pop(context, NoteType.voice),
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_camera_outlined),
-            title: Text(l10n.photo),
-            onTap: () => Navigator.pop(context, NoteType.photo),
-          ),
-          ListTile(
-            leading: const Icon(Icons.attach_file),
-            title: Text(l10n.file),
-            onTap: () => Navigator.pop(context, NoteType.file),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TextCaptureSheet extends StatefulWidget {
-  const _TextCaptureSheet({required this.services});
+/// Unified capture sheet (mockup): text field focused + Voice/Photo/File.
+class _CaptureSheet extends StatefulWidget {
+  const _CaptureSheet({
+    required this.services,
+    required this.onVoice,
+    required this.onPhoto,
+    required this.onFile,
+  });
 
   final NexServices services;
+  final VoidCallback onVoice;
+  final VoidCallback onPhoto;
+  final VoidCallback onFile;
 
   @override
-  State<_TextCaptureSheet> createState() => _TextCaptureSheetState();
+  State<_CaptureSheet> createState() => _CaptureSheetState();
 }
 
-class _TextCaptureSheetState extends State<_TextCaptureSheet> {
+class _CaptureSheetState extends State<_CaptureSheet> {
   final _controller = TextEditingController();
   String? _noteId;
 
@@ -470,9 +478,19 @@ class _TextCaptureSheetState extends State<_TextCaptureSheet> {
     widget.services.refreshTimeline();
   }
 
+  void _send() {
+    final value = _controller.text;
+    if (value.isNotEmpty && _noteId == null) {
+      widget.services.capture.submitTextCapture(value);
+      widget.services.refreshTimeline();
+    }
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     return Padding(
       padding: EdgeInsets.only(
         left: NexSpacing.md,
@@ -480,16 +498,54 @@ class _TextCaptureSheetState extends State<_TextCaptureSheet> {
         bottom: MediaQuery.viewInsetsOf(context).bottom + NexSpacing.md,
         top: NexSpacing.sm,
       ),
-      child: TextField(
-        controller: _controller,
-        autofocus: true,
-        maxLines: null,
-        minLines: 4,
-        decoration: InputDecoration(
-          hintText: l10n.captureHint,
-          border: InputBorder.none,
-        ),
-        onChanged: _onChanged,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            maxLines: null,
+            minLines: 3,
+            decoration: InputDecoration(
+              hintText: l10n.captureHint,
+              border: InputBorder.none,
+            ),
+            onChanged: _onChanged,
+            onSubmitted: (_) => _send(),
+          ),
+          const Divider(height: 1),
+          const SizedBox(height: NexSpacing.sm),
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: widget.onVoice,
+                icon: const Icon(Icons.mic_none, size: 18),
+                label: Text(l10n.voice),
+              ),
+              TextButton.icon(
+                onPressed: widget.onPhoto,
+                icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                label: Text(l10n.photo),
+              ),
+              TextButton.icon(
+                onPressed: widget.onFile,
+                icon: const Icon(Icons.attach_file, size: 18),
+                label: Text(l10n.file),
+              ),
+              const Spacer(),
+              IconButton.filled(
+                onPressed: _send,
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.colorScheme.onSurface,
+                  foregroundColor: theme.colorScheme.surface,
+                ),
+                icon: const Icon(Icons.arrow_upward),
+                tooltip: l10n.capture,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

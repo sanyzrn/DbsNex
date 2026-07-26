@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:path/path.dart' as p;
 
 import '../platform/nex_services.dart';
 
@@ -25,6 +30,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   List<TagSuggestion> _suggestions = const [];
   List<SemanticHit> _related = const [];
   String? _color;
+  AudioPlayer? _player;
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+  StreamSubscription<Duration>? _posSub;
+  StreamSubscription<Duration?>? _durSub;
 
   @override
   void initState() {
@@ -36,8 +46,40 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadAi());
   }
 
+  @override
+  void dispose() {
+    _posSub?.cancel();
+    _durSub?.cancel();
+    _player?.dispose();
+    super.dispose();
+  }
+
   void _reload() {
     setState(() => _note = widget.services.repo.getById(widget.noteId));
+    final note = _note;
+    if (note?.type == NoteType.voice &&
+        note?.mediaUri != null &&
+        _player == null) {
+      _initPlayer(note!.mediaUri!);
+    }
+  }
+
+  Future<void> _initPlayer(String uri) async {
+    if (!File(uri).existsSync()) return;
+    final player = AudioPlayer();
+    try {
+      await player.setFilePath(uri);
+      _player = player;
+      _posSub = player.positionStream.listen((p) {
+        if (mounted) setState(() => _position = p);
+      });
+      _durSub = player.durationStream.listen((d) {
+        if (mounted && d != null) setState(() => _duration = d);
+      });
+      if (mounted) setState(() {});
+    } catch (_) {
+      await player.dispose();
+    }
   }
 
   Future<void> _loadAi() async {
@@ -137,6 +179,20 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     controller.dispose();
   }
 
+  bool _summaryIsMeaningful(Note note) {
+    final summary = note.summaryText?.trim();
+    if (summary == null || summary.isEmpty) return false;
+    final source = (note.content ??
+            note.transcriptText ??
+            note.ocrText ??
+            '')
+        .trim();
+    if (source.isEmpty) return summary.isNotEmpty;
+    if (summary == source) return false;
+    if (summary.length >= source.length) return false;
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final note = _note;
@@ -155,7 +211,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       ),
       child: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               note.type.wireName.toUpperCase(),
@@ -172,6 +228,14 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                 'Voice · ${((note.durationMs ?? 0) / 1000).ceil()}s',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
+              if (_player != null) ...[
+                const SizedBox(height: NexSpacing.sm),
+                _VoicePlayerControls(
+                  player: _player!,
+                  position: _position,
+                  duration: _duration,
+                ),
+              ],
               if (note.transcriptText != null) ...[
                 const SizedBox(height: NexSpacing.sm),
                 Text(
@@ -185,15 +249,70 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
             ] else if (note.type == NoteType.photo) ...[
-              Text('Photo', style: Theme.of(context).textTheme.bodyLarge),
+              if (note.mediaUri != null && File(note.mediaUri!).existsSync()) ...[
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => _FullScreenPhoto(path: note.mediaUri!),
+                      ),
+                    );
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      File(note.mediaUri!),
+                      fit: BoxFit.cover,
+                      height: 220,
+                      width: double.infinity,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: NexSpacing.sm),
+                Text(
+                  'Tap image to view full screen',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ] else
+                Text('Photo', style: Theme.of(context).textTheme.bodyLarge),
               if (note.ocrText != null) ...[
                 const SizedBox(height: NexSpacing.sm),
                 Text('OCR', style: Theme.of(context).textTheme.bodySmall),
                 Text(note.ocrText!),
               ],
-            ] else
-              Text('File', style: Theme.of(context).textTheme.bodyLarge),
-            if (note.summaryText != null) ...[
+            ] else ...[
+              // File — same sheet, ADR-008 display fields.
+              Row(
+                children: [
+                  Icon(
+                    Icons.insert_drive_file_outlined,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                  const SizedBox(width: NexSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      note.content?.trim().isNotEmpty == true
+                          ? note.content!
+                          : (note.mediaUri != null
+                              ? p.basename(note.mediaUri!)
+                              : 'File'),
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                ],
+              ),
+              if (note.mediaUri != null && File(note.mediaUri!).existsSync()) ...[
+                const SizedBox(height: NexSpacing.xs),
+                Text(
+                  nexFormatBytes(File(note.mediaUri!).lengthSync()),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontWeight: FontWeight.w400,
+                      ),
+                ),
+              ],
+            ],
+            if (_summaryIsMeaningful(note)) ...[
               const SizedBox(height: NexSpacing.md),
               Text('Summary', style: Theme.of(context).textTheme.bodySmall),
               Text(note.summaryText!),
@@ -248,8 +367,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           name: s.name,
                         );
                         setState(() {
-                          _suggestions =
-                              _suggestions.where((x) => x.name != s.name).toList();
+                          _suggestions = _suggestions
+                              .where((x) => x.name != s.name)
+                              .toList();
                         });
                         _reload();
                       },
@@ -292,6 +412,87 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               child: const Text('Delete'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VoicePlayerControls extends StatelessWidget {
+  const _VoicePlayerControls({
+    required this.player,
+    required this.position,
+    required this.duration,
+  });
+
+  final AudioPlayer player;
+  final Duration position;
+  final Duration duration;
+
+  String _fmt(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final totalMs = duration.inMilliseconds == 0 ? 1 : duration.inMilliseconds;
+    return Column(
+      children: [
+        Row(
+          children: [
+            StreamBuilder<PlayerState>(
+              stream: player.playerStateStream,
+              builder: (context, snap) {
+                final playing = snap.data?.playing ?? false;
+                return IconButton.filled(
+                  onPressed: () {
+                    if (playing) {
+                      player.pause();
+                    } else {
+                      player.play();
+                    }
+                  },
+                  icon: Icon(playing ? Icons.pause : Icons.play_arrow),
+                );
+              },
+            ),
+            Expanded(
+              child: Slider(
+                value: position.inMilliseconds.clamp(0, totalMs).toDouble(),
+                max: totalMs.toDouble(),
+                onChanged: (v) =>
+                    player.seek(Duration(milliseconds: v.round())),
+              ),
+            ),
+            Text(
+              '${_fmt(position)} / ${_fmt(duration)}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _FullScreenPhoto extends StatelessWidget {
+  const _FullScreenPhoto({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          child: Image.file(File(path), fit: BoxFit.contain),
         ),
       ),
     );

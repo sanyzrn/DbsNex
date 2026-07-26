@@ -48,7 +48,7 @@ class _NexAppState extends State<NexApp> {
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.system,
+      themeMode: widget.preferences.themeMode,
       theme: nexLightTheme(comfortMode: comfort),
       darkTheme: nexDarkTheme(comfortMode: comfort),
       localizationsDelegates: const [

@@ -131,7 +131,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   Padding(
                     padding: const EdgeInsets.only(right: NexSpacing.xs),
                     child: FilterChip(
-                      label: Text(type.wireName),
+                      label: Text(_typeLabel(type)),
                       selected: _selectedTypes.contains(type),
                       onSelected: (v) {
                         setState(() {
@@ -229,9 +229,13 @@ class _SearchScreenState extends State<SearchScreen> {
                       context: context,
                       isScrollControlled: true,
                       showDragHandle: true,
-                      builder: (_) => NoteDetailSheet(
-                        services: widget.services,
-                        noteId: note.id,
+                      useSafeArea: true,
+                      builder: (_) => SizedBox(
+                        width: double.infinity,
+                        child: NoteDetailSheet(
+                          services: widget.services,
+                          noteId: note.id,
+                        ),
                       ),
                     );
                     _run();
@@ -244,4 +248,11 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
     );
   }
+
+  static String _typeLabel(NoteType type) => switch (type) {
+        NoteType.text => 'Text',
+        NoteType.voice => 'Voice',
+        NoteType.photo => 'Photo',
+        NoteType.file => 'File',
+      };
 }

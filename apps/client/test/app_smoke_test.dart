@@ -60,17 +60,41 @@ void main() {
     expect(find.text('Save'), findsNothing);
   });
 
-  testWidgets('Capture chooser offers Text/Voice/Photo/File', (tester) async {
+  testWidgets('Capture sheet focuses text with Voice/Photo/File inline',
+      (tester) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
-    expect(find.text('Text'), findsOneWidget);
+    // Text is the default mode — a focused field, not a menu tile.
+    expect(find.byType(TextField), findsWidgets);
     expect(find.text('Voice'), findsOneWidget);
     expect(find.text('Photo'), findsOneWidget);
     expect(find.text('File'), findsOneWidget);
+    // Not a type-picker-first menu of four equal choices.
+    expect(find.text('Text'), findsNothing);
     expect(find.text('Save'), findsNothing);
+  });
+
+  testWidgets('Capture FAB is centered and large (~64px)', (tester) async {
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    final fab = tester.widget<FloatingActionButton>(
+      find.byType(FloatingActionButton),
+    );
+    expect(fab, isNotNull);
+    final box = tester.renderObject<RenderBox>(
+      find.byType(FloatingActionButton),
+    );
+    expect(box.size.width, closeTo(nexCaptureFabSize, 1));
+    expect(box.size.height, closeTo(nexCaptureFabSize, 1));
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+    expect(
+      scaffold.floatingActionButtonLocation,
+      FloatingActionButtonLocation.centerFloat,
+    );
   });
 
   test('OS share-intent text auto-saves with zero fields', () async {
@@ -104,6 +128,41 @@ void main() {
     expect(preferences.comfortMode, isFalse);
     await preferences.setComfortMode(true);
     expect(preferences.comfortMode, isTrue);
+  });
+
+  test('Theme mode defaults to System and can force Light/Dark', () async {
+    expect(preferences.themeMode, ThemeMode.system);
+    await preferences.setThemeMode(ThemeMode.dark);
+    expect(preferences.themeMode, ThemeMode.dark);
+    await preferences.setThemeMode(ThemeMode.light);
+    expect(preferences.themeMode, ThemeMode.light);
+  });
+
+  test('File capture stores original filename for display', () {
+    final bytes = Uint8List.fromList([1, 2, 3, 4, 5, 6]);
+    final note = services.capture.submitFileCapture(
+      mediaUri: p.join(services.mediaDir, 'doc.pdf'),
+      mediaBytes: bytes,
+      originalFilename: 'Quarterly-Report.pdf',
+    );
+    expect(note.type, NoteType.file);
+    expect(note.content, 'Quarterly-Report.pdf');
+  });
+
+  test('listBackups returns newest-first sqlite files', () async {
+    final older = File(p.join(services.backupDir, 'nex-2020.sqlite'))
+      ..writeAsBytesSync([1, 2, 3]);
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    final newer = File(p.join(services.backupDir, 'nex-2021.sqlite'))
+      ..writeAsBytesSync([1, 2, 3, 4]);
+    // Touch mtimes via path sort (listBackups sorts by path desc).
+    final listed = services.listBackups();
+    expect(listed.map((f) => p.basename(f.path)), containsAll([
+      'nex-2020.sqlite',
+      'nex-2021.sqlite',
+    ]));
+    expect(listed.first.path, newer.path);
+    expect(older.existsSync(), isTrue);
   });
 
   test('Comfort Mode tokens keep WCAG AA contrast', () {
@@ -234,7 +293,7 @@ void main() {
     );
   });
 
-  testWidgets('Settings sheet exposes swipe + Comfort preference groups',
+  testWidgets('Settings sheet exposes swipe + Appearance + Comfort',
       (tester) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
@@ -244,6 +303,9 @@ void main() {
     expect(find.text('Swipe actions'), findsOneWidget);
     expect(find.text('Comfort Mode'), findsOneWidget);
     expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Light'), findsOneWidget);
+    expect(find.text('Dark'), findsOneWidget);
+    expect(find.text('System'), findsOneWidget);
   });
 
   test('No Pin/Archive swipe actions exist', () {

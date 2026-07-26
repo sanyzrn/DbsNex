@@ -156,23 +156,30 @@ class NexServices {
   }
 
   void restoreLatestBackup() {
-    final dir = Directory(backupDir);
-    if (!dir.existsSync()) {
+    final backups = listBackups();
+    if (backups.isEmpty) {
       throw StateError('No backups available');
     }
-    final backups = dir
+    restoreBackup(backups.first);
+  }
+
+  /// Newest-first list of local SQLite backup files (FR-7.2).
+  List<File> listBackups() {
+    final dir = Directory(backupDir);
+    if (!dir.existsSync()) return const [];
+    return dir
         .listSync()
         .whereType<File>()
         .where((f) => f.path.endsWith('.sqlite'))
         .toList()
       ..sort((a, b) => b.path.compareTo(a.path));
-    if (backups.isEmpty) {
-      throw StateError('No backups available');
-    }
+  }
+
+  void restoreBackup(File backup) {
     db.close();
     NexDatabase.restoreFromBackup(
       liveDbPath: dbPath,
-      backupFile: backups.first.path,
+      backupFile: backup.path,
     );
   }
 

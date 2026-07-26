@@ -11,6 +11,9 @@ enum NexSwipeAction {
 typedef NexSwipeActionResolver = NexSwipeAction Function({required bool isLeading});
 
 /// Timeline card swipe reveal: Delete (warning red) / Add Tag (neutral).
+///
+/// After a drag past threshold the reveal stays open; the user must tap the
+/// revealed action to execute it (mockup / FR-2.6 interaction).
 class SwipeableNoteCard extends StatefulWidget {
   const SwipeableNoteCard({
     super.key,
@@ -52,7 +55,6 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
   @override
   void didUpdateWidget(covariant SwipeableNoteCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // One open card at a time (05-design.md).
     if (widget.openCardId != null &&
         widget.openCardId != widget.cardId &&
         _dx != 0) {
@@ -97,18 +99,17 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
       return;
     }
     final openingLeading = _dx > 0;
-    final action = widget.resolveAction(isLeading: openingLeading);
+    // Stay open so the user can tap the revealed action (do not auto-fire).
     _animateTo(openingLeading ? width * 0.45 : -width * 0.45);
-    // Fire after snap so the reveal is visible briefly.
-    Future<void>.delayed(const Duration(milliseconds: 120), () {
-      if (!mounted) return;
-      if (action == NexSwipeAction.delete) {
-        widget.onDelete();
-      } else {
-        widget.onAddTag();
-      }
-      _animateTo(0);
-    });
+  }
+
+  void _run(NexSwipeAction action) {
+    if (action == NexSwipeAction.delete) {
+      widget.onDelete();
+    } else {
+      widget.onAddTag();
+    }
+    _animateTo(0);
   }
 
   @override
@@ -129,6 +130,7 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
                       action: leading,
                       alignEnd: false,
                       neutralBg: theme.colorScheme.surfaceContainerHighest,
+                      onTap: () => _run(leading),
                     ),
                   ),
                   Expanded(
@@ -136,6 +138,7 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
                       action: trailing,
                       alignEnd: true,
                       neutralBg: theme.colorScheme.surfaceContainerHighest,
+                      onTap: () => _run(trailing),
                     ),
                   ),
                 ],
@@ -146,8 +149,9 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
               child: GestureDetector(
                 onHorizontalDragUpdate: _onDragUpdate,
                 onHorizontalDragEnd: (d) => _onDragEnd(d, width),
+                onTap: _dx != 0 ? () => _animateTo(0) : null,
                 child: Material(
-                  color: theme.scaffoldBackgroundColor,
+                  color: Colors.transparent,
                   child: widget.child,
                 ),
               ),
@@ -164,35 +168,42 @@ class _RevealPanel extends StatelessWidget {
     required this.action,
     required this.alignEnd,
     required this.neutralBg,
+    required this.onTap,
   });
 
   final NexSwipeAction action;
   final bool alignEnd;
   final Color neutralBg;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final isDelete = action == NexSwipeAction.delete;
     final bg = isDelete ? NexColors.swipeDelete : neutralBg;
     final fg = isDelete ? Colors.white : Theme.of(context).colorScheme.onSurface;
-    return Container(
+    return Material(
       color: bg,
-      alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isDelete ? Icons.delete_outline : Icons.label_outline,
-            color: fg,
-            size: 20,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isDelete ? Icons.delete_outline : Icons.label_outline,
+                color: fg,
+                size: 20,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                isDelete ? 'Delete' : 'Add Tag',
+                style: TextStyle(color: fg, fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
-          Text(
-            isDelete ? 'Delete' : 'Add Tag',
-            style: TextStyle(color: fg, fontWeight: FontWeight.w600),
-          ),
-        ],
+        ),
       ),
     );
   }

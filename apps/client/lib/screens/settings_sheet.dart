@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
@@ -63,11 +65,64 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
   Future<void> _restore() async {
     final l10n = AppLocalizations.of(context);
+    final backups = widget.services.listBackups();
+    if (backups.isEmpty) {
+      setState(() => _status = 'No backup available');
+      return;
+    }
+
+    late final File backup;
+    if (backups.length == 1) {
+      backup = backups.first;
+    } else {
+      final picked = await showModalBottomSheet<File>(
+        context: context,
+        showDragHandle: true,
+        builder: (ctx) => SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  NexSpacing.md,
+                  NexSpacing.sm,
+                  NexSpacing.md,
+                  NexSpacing.xs,
+                ),
+                child: Text(
+                  l10n.chooseBackup,
+                  style: Theme.of(ctx).textTheme.titleMedium,
+                ),
+              ),
+              for (var i = 0; i < backups.length; i++)
+                ListTile(
+                  leading: Icon(
+                    i == 0 ? Icons.backup : Icons.history,
+                  ),
+                  title: Text(_backupLabel(backups[i])),
+                  subtitle: Text(
+                    [
+                      if (i == 0) l10n.latestBackup,
+                      nexFormatBytes(backups[i].lengthSync()),
+                    ].join(' · '),
+                  ),
+                  onTap: () => Navigator.pop(ctx, backups[i]),
+                ),
+            ],
+          ),
+        ),
+      );
+      if (picked == null || !mounted) return;
+      backup = picked;
+    }
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.restoreConfirmTitle),
-        content: Text(l10n.restoreConfirmBody),
+        content: Text(
+          l10n.restoreConfirmBodyNamed(_backupLabel(backup)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -82,11 +137,22 @@ class _SettingsSheetState extends State<SettingsSheet> {
     );
     if (ok != true || !mounted) return;
     try {
-      widget.services.restoreLatestBackup();
+      widget.services.restoreBackup(backup);
       setState(() => _status = 'Restored. Restart the app to continue.');
     } catch (_) {
       setState(() => _status = 'No backup available');
     }
+  }
+
+  String _backupLabel(File file) {
+    final name = p.basenameWithoutExtension(file.path);
+    // Prefer human timestamp from mtime when filename isn't already clear.
+    final mtime = file.lastModifiedSync().toLocal();
+    final stamp =
+        '${mtime.year}-${mtime.month.toString().padLeft(2, '0')}-${mtime.day.toString().padLeft(2, '0')} '
+        '${mtime.hour.toString().padLeft(2, '0')}:${mtime.minute.toString().padLeft(2, '0')}';
+    if (name.contains(RegExp(r'\d{4}'))) return '$name ($stamp)';
+    return stamp;
   }
 
   @override
@@ -123,8 +189,32 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
             const Divider(),
 
-            // Preference group 2: appearance / Comfort Mode (ADR-023).
+            // Preference group 2: appearance — theme + Comfort Mode.
             Text(l10n.appearance, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: NexSpacing.sm),
+            SegmentedButton<ThemeMode>(
+              segments: [
+                ButtonSegment(
+                  value: ThemeMode.light,
+                  label: Text(l10n.themeLight),
+                  icon: const Icon(Icons.light_mode_outlined, size: 16),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  label: Text(l10n.themeDark),
+                  icon: const Icon(Icons.dark_mode_outlined, size: 16),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  label: Text(l10n.themeSystem),
+                  icon: const Icon(Icons.brightness_auto_outlined, size: 16),
+                ),
+              ],
+              selected: {prefs.themeMode},
+              onSelectionChanged: (set) {
+                if (set.isNotEmpty) prefs.setThemeMode(set.first);
+              },
+            ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.comfortMode),

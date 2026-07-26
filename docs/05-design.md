@@ -55,11 +55,11 @@ Nex is deliberately black-and-white first. The surface — backgrounds, cards, c
 | Token | Light Mode | Dark Mode | Usage |
 |---|---|---|---|
 | `bg-primary` | `#FFFFFF` | `#0A0A0A` | App background |
-| `bg-elevated` | `#F5F5F5` | `#171717` | Cards, sheets |
-| `text-primary` | `#0A0A0A` | `#FAFAFA` | Primary text/content |
-| `text-secondary` | `#6B6B6B` | `#A3A3A3` | Timestamps, metadata, captions |
-| `border` | `#E5E5E5` | `#262626` | Dividers, card outlines |
-| `accent` | `#0A0A0A` (inverted per mode) | `#FAFAFA` | The `+` action, active states — never a "brand color," always the inverse of the background |
+| `bg-elevated` | `#F5F4F2` | `#171717` | Cards, sheets |
+| `text-primary` | `#111113` | `#FAFAFA` | Primary text/content (mockup `--text`) |
+| `text-secondary` | `#8B8B90` | `#A3A3A3` | Timestamps, metadata, captions (mockup `--text-soft`) |
+| `border` | `#EBEAE8` | `#262626` | Dividers, card outlines (mockup `--border`) |
+| `accent` | `#111113` (inverted per mode) | `#FAFAFA` | The `+` action, active states — never a "brand color," always the inverse of the background |
 
 - **Dark mode is a first-class, symmetric palette**, not an inverted afterthought — capture often happens in low light, at night, or first thing in the morning.
 - Aside from the tag accent dot, the **only** deliberate use of stronger visual weight is the `+` capture action and active/recording states (e.g., a pulsing indicator during voice capture).
@@ -85,7 +85,7 @@ Dark theme alone does not solve late-night eye strain, and can make it worse. In
 | Token | Light, Comfort off | Light, Comfort on | Dark, Comfort off | Dark, Comfort on |
 |---|---|---|---|---|
 | `bg-primary` | `#FFFFFF` | `#F7F1E6` | `#0A0A0A` | `#17130F` |
-| `text-primary` | `#0A0A0A` | `#2E2A22` | `#FAFAFA` | `#D9CFC0` |
+| `text-primary` | `#111113` | `#2E2A22` | `#FAFAFA` | `#D9CFC0` |
 
 Both combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode reduces *glare*, not *legibility*.
 
