@@ -77,6 +77,17 @@ class EnrichmentService {
     if (call == null) return null;
     try {
       final summary = await call;
+      // Never persist a pass-through "summary" identical to the source.
+      final source = (note.content ??
+              note.transcriptText ??
+              note.ocrText ??
+              '')
+          .trim();
+      if (summary.text.trim().isEmpty ||
+          summary.text.trim() == source ||
+          summary.text.trim().length >= source.length) {
+        return null;
+      }
       _repo.setSummaryText(noteId, summary.text);
       return summary;
     } catch (_) {
@@ -154,6 +165,12 @@ class EnrichmentService {
     final call = _adapter.summarize(note);
     if (call == null) return;
     final result = await call;
+    final source = (note.content ?? '').trim();
+    if (result.text.trim().isEmpty ||
+        result.text.trim() == source ||
+        result.text.trim().length >= source.length) {
+      return;
+    }
     _repo.setSummaryText(note.id, result.text);
   }
 

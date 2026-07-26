@@ -73,15 +73,19 @@ class CaptureService {
   }
 
   /// Persist a generic file attachment (Phase 2 / ADR-008).
+  ///
+  /// [originalFilename] is stored in [Note.content] for display (basename only).
   Note submitFileCapture({
     required String mediaUri,
     required Uint8List mediaBytes,
+    String? originalFilename,
   }) {
     final now = DateTime.now().toUtc();
     return _repo.insert(
       Note(
         id: newUuidV7(),
         type: NoteType.file,
+        content: originalFilename,
         mediaUri: mediaUri,
         mediaHash: sha256OfBytes(mediaBytes),
         createdAt: now,

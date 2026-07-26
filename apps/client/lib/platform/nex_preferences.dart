@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -32,6 +32,7 @@ class NexPreferences extends ChangeNotifier {
   static const _kLeading = 'swipe.leading';
   static const _kTrailing = 'swipe.trailing';
   static const _kComfort = 'appearance.comfort_mode';
+  static const _kThemeMode = 'appearance.theme_mode';
   static const _kAiTranscription = 'ai.transcription';
   static const _kAiOcr = 'ai.ocr';
   static const _kAiTags = 'ai.tag_suggestions';
@@ -54,6 +55,18 @@ class NexPreferences extends ChangeNotifier {
 
   bool get comfortMode => _prefs.getBool(_kComfort) ?? false;
 
+  /// Light / Dark / System (default System) — mockup Appearance control.
+  ThemeMode get themeMode {
+    switch (_prefs.getString(_kThemeMode)) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
+  }
+
   /// Cloud AI is opt-in per 09-ai.md (default off — on-device only).
   bool get cloudAiOptIn => _prefs.getBool(_kAiCloud) ?? false;
 
@@ -68,6 +81,16 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setComfortMode(bool value) async {
     await _prefs.setBool(_kComfort, value);
+    notifyListeners();
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    final wire = switch (mode) {
+      ThemeMode.light => 'light',
+      ThemeMode.dark => 'dark',
+      ThemeMode.system => 'system',
+    };
+    await _prefs.setString(_kThemeMode, wire);
     notifyListeners();
   }
 

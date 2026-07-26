@@ -65,14 +65,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restore => 'Restore';
 
   @override
-  String get restoreSubtitle => 'Recover from latest automatic backup';
+  String get restoreSubtitle => 'Recover from an automatic backup';
 
   @override
   String get restoreConfirmTitle => 'Restore backup?';
 
   @override
   String get restoreConfirmBody =>
-      'This replaces the current local database with the latest automatic backup.';
+      'This replaces the current local database with the selected automatic backup.';
+
+  @override
+  String restoreConfirmBodyNamed(String label) {
+    return 'This replaces the current local database with backup “$label”. This cannot be undone from the app.';
+  }
+
+  @override
+  String get chooseBackup => 'Choose a backup';
+
+  @override
+  String get latestBackup => 'Latest';
+
+  @override
+  String get themeLight => 'Light';
+
+  @override
+  String get themeDark => 'Dark';
+
+  @override
+  String get themeSystem => 'System';
 
   @override
   String get cancel => 'Cancel';

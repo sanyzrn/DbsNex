@@ -205,7 +205,7 @@ abstract class AppLocalizations {
   /// No description provided for @restoreSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Recover from latest automatic backup'**
+  /// **'Recover from an automatic backup'**
   String get restoreSubtitle;
 
   /// No description provided for @restoreConfirmTitle.
@@ -217,8 +217,44 @@ abstract class AppLocalizations {
   /// No description provided for @restoreConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'This replaces the current local database with the latest automatic backup.'**
+  /// **'This replaces the current local database with the selected automatic backup.'**
   String get restoreConfirmBody;
+
+  /// No description provided for @restoreConfirmBodyNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces the current local database with backup “{label}”. This cannot be undone from the app.'**
+  String restoreConfirmBodyNamed(String label);
+
+  /// No description provided for @chooseBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a backup'**
+  String get chooseBackup;
+
+  /// No description provided for @latestBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get latestBackup;
+
+  /// No description provided for @themeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get themeLight;
+
+  /// No description provided for @themeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get themeDark;
+
+  /// No description provided for @themeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get themeSystem;
 
   /// No description provided for @cancel.
   ///
