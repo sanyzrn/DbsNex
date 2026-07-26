@@ -65,11 +65,21 @@ export function isDuplicateMedia(
   return !!a && !!b && a === b;
 }
 
+/**
+ * Invariant: later(a, b) and later(b, a) always return the same row
+ * (commutativity). When updated_at and rev both tie, break by lexical
+ * device_id so argument order cannot disagree across devices.
+ */
 function later(a: NoteRow, b: NoteRow): NoteRow {
   const cmp = a.updated_at.localeCompare(b.updated_at);
   if (cmp > 0) return a;
   if (cmp < 0) return b;
-  return a.rev >= b.rev ? a : b;
+  if (a.rev !== b.rev) return a.rev > b.rev ? a : b;
+  const byDevice = a.device_id.localeCompare(b.device_id);
+  if (byDevice > 0) return a;
+  if (byDevice < 0) return b;
+  // Identical timestamps, revs, and device ids — either side is fine.
+  return a;
 }
 
 function earlier(a: string, b: string): string {

@@ -134,16 +134,62 @@ CREATE TABLE IF NOT EXISTS note_embeddings (
   }
 
   /// Replaces this database file with [backupFile]. Caller must reopen afterward.
+  ///
+  /// ADR-026: validate the backup **before** touching the live database. A
+  /// corrupt or missing backup must leave the live files untouched.
   static void restoreFromBackup({
     required String liveDbPath,
     required String backupFile,
   }) {
+    final backup = File(backupFile);
+    if (!backup.existsSync()) {
+      throw StateError('Backup file does not exist: $backupFile');
+    }
+    if (backup.lengthSync() == 0) {
+      throw StateError('Backup file is empty: $backupFile');
+    }
+
     final live = File(liveDbPath);
     live.parent.createSync(recursive: true);
+
+    // Copy to a sibling temp path first — never overwrite live until validated.
+    final restoringPath = '$liveDbPath.restoring';
+    final restoring = File(restoringPath);
+    if (restoring.existsSync()) restoring.deleteSync();
+    backup.copySync(restoringPath);
+
+    try {
+      _assertSqliteIntegrity(restoringPath);
+    } catch (e) {
+      if (restoring.existsSync()) restoring.deleteSync();
+      throw StateError(
+        'Backup failed integrity check; live database left untouched: $e',
+      );
+    }
+
+    // Validation passed — swap into place.
     for (final suffix in ['', '-wal', '-shm']) {
       final f = File('$liveDbPath$suffix');
       if (f.existsSync()) f.deleteSync();
     }
-    File(backupFile).copySync(liveDbPath);
+    restoring.renameSync(liveDbPath);
+  }
+
+  /// Opens [dbPath] read-only and requires `PRAGMA integrity_check` → `ok`.
+  static void _assertSqliteIntegrity(String dbPath) {
+    Database? probe;
+    try {
+      probe = sqlite3.open(dbPath, mode: OpenMode.readOnly);
+      final rows = probe.select('PRAGMA integrity_check;');
+      if (rows.isEmpty) {
+        throw StateError('integrity_check returned no rows');
+      }
+      final result = rows.first.values.first?.toString() ?? '';
+      if (result != 'ok') {
+        throw StateError('integrity_check: $result');
+      }
+    } finally {
+      probe?.dispose();
+    }
   }
 }

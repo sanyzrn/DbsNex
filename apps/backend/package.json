@@ -11,7 +11,8 @@
     "dev": "tsx watch src/index.ts",
     "start": "node --experimental-strip-types src/index.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "tsx --test src/services/merge.test.ts"
   },
   "dependencies": {
     "dotenv": "16.4.7",

@@ -144,11 +144,20 @@ class FieldAwareMerger {
   static bool isDuplicateMedia(String? hashA, String? hashB) =>
       hashA != null && hashB != null && hashA == hashB;
 
+  /// Invariant: `_later(a, b)` and `_later(b, a)` always return the same
+  /// revision (commutativity). When `updated_at` and `rev` both tie, break
+  /// by lexical `device_id` so argument order cannot disagree across devices.
   NoteRevision _later(NoteRevision a, NoteRevision b) {
     final byTime = a.updatedAt.compareTo(b.updatedAt);
     if (byTime > 0) return a;
     if (byTime < 0) return b;
-    return a.rev >= b.rev ? a : b;
+    if (a.rev != b.rev) return a.rev > b.rev ? a : b;
+    final byDevice = a.deviceId.compareTo(b.deviceId);
+    if (byDevice > 0) return a;
+    if (byDevice < 0) return b;
+    // Identical timestamps, revs, and device ids — either side is fine;
+    // prefer `a` only after all order-independent keys matched.
+    return a;
   }
 
   DateTime _earlierCreated(NoteRevision a, NoteRevision b) =>

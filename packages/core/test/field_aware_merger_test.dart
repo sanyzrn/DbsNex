@@ -141,5 +141,30 @@ void main() {
         isFalse,
       );
     });
+
+    test('updated_at+rev tie: merge is commutative (device_id tie-break)', () {
+      final t = DateTime.utc(2026, 1, 1, 12);
+      final a = rev(
+        id: 'n1',
+        content: 'from-alpha',
+        updatedAt: t,
+        rev: 5,
+        deviceId: 'device-alpha',
+      );
+      final b = rev(
+        id: 'n1',
+        content: 'from-beta',
+        updatedAt: t,
+        rev: 5,
+        deviceId: 'device-beta',
+      );
+      final ab = merger.merge(a, b);
+      final ba = merger.merge(b, a);
+      expect(ab.content, ba.content);
+      expect(ab.deviceId, ba.deviceId);
+      // Lexical device_id: 'device-beta' > 'device-alpha'
+      expect(ab.content, 'from-beta');
+      expect(ab.deviceId, 'device-beta');
+    });
   });
 }

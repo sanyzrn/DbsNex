@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nex_core/nex_core.dart';
 
 import 'app.dart';
 import 'platform/nex_preferences.dart';
@@ -7,6 +8,10 @@ import 'platform/os_capture_bridge.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Wire the local on-device adapter from Core only — never import packages/ai
+  // (09-ai.md deletability). Cloud/vendor adapters bind via AIAdapterBinding
+  // from an optional leaf when present.
+  AIAdapterBinding.bind(const OnDeviceAIAdapter());
   final preferences = await NexPreferences.load();
   final services = await NexServices.bootstrap(preferences: preferences);
   services.applyAiPreferences(preferences);
