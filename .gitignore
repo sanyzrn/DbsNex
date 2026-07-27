@@ -2,7 +2,11 @@
 **/.dart_tool/
 **/.packages
 **/build/
+# Library packages stay unpinned (Dart convention); the application does not.
+# apps/client/pubspec.lock is committed so release builds are reproducible —
+# it must be generated with the SDK pinned in .fvmrc.
 **/pubspec.lock
+!apps/client/pubspec.lock
 apps/client/android/.gradle/
 apps/client/windows/flutter/ephemeral/
 apps/client/.flutter-plugins

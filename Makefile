@@ -4,9 +4,18 @@
 .PHONY: check check-dart check-ui check-client check-backend \
         fmt clean bootstrap backend-dev migrate
 
+# Each Dart package resolves independently. A root pub workspace was tried and
+# reverted: it forces one resolution across every member, so `dart pub get` in
+# packages/core pulled in apps/client and failed with "nex_ui requires the
+# Flutter SDK" — which destroys the guarantee the dart-packages CI job exists to
+# prove. This target is the orchestration layer instead.
 bootstrap:
-	dart pub get
-	cd apps/backend && npm ci
+	cd packages/core && dart pub get
+	cd packages/data && dart pub get
+	cd packages/ai   && dart pub get
+	cd packages/ui   && flutter pub get
+	cd apps/client   && flutter pub get
+	cd apps/backend  && npm ci
 
 # Pure Dart packages: proves core and data carry zero Flutter dependency.
 check-dart:
