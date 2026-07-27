@@ -80,7 +80,7 @@ void main() {
     expect(find.text('Save'), findsNothing);
   });
 
-  testWidgets('Capture sheet focuses text with Voice/Photo/File inline',
+  testWidgets('Capture sheet focuses text with Voice/Camera/Gallery/File inline',
       (tester) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
@@ -90,7 +90,8 @@ void main() {
     // Text is the default mode — a focused field, not a menu tile.
     expect(find.byType(TextField), findsWidgets);
     expect(find.text('Voice'), findsOneWidget);
-    expect(find.text('Photo'), findsOneWidget);
+    expect(find.text('Camera'), findsOneWidget);
+    expect(find.text('Gallery'), findsOneWidget);
     expect(find.text('File'), findsOneWidget);
     // Not a type-picker-first menu of four equal choices.
     expect(find.text('Text'), findsNothing);
@@ -329,7 +330,7 @@ void main() {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
-    await tester.tap(find.byIcon(Icons.account_circle_outlined));
+    await tester.tap(find.byIcon(Icons.tune));
     await tester.pumpAndSettle();
     expect(find.text('Intelligence'), findsOneWidget);
     expect(find.text('Transcription'), findsOneWidget);
@@ -358,7 +359,7 @@ void main() {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
-    await tester.tap(find.byIcon(Icons.account_circle_outlined));
+    await tester.tap(find.byIcon(Icons.tune));
     await tester.pumpAndSettle();
     expect(find.text('Swipe actions'), findsOneWidget);
     expect(find.text('Comfort Mode'), findsOneWidget);
