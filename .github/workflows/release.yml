@@ -55,9 +55,9 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          # Pinned in .flutter-version so a stable bump cannot silently change
+          # Pinned in .fvmrc so a stable bump cannot silently change
           # the compiler, AGP defaults or the Android embedding mid-release.
-          flutter-version-file: .flutter-version
+          flutter-version-file: .fvmrc
           channel: stable
           cache: true
 
@@ -169,7 +169,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version-file: .flutter-version
+          flutter-version-file: .fvmrc
           channel: stable
           cache: true
 

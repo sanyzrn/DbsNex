@@ -10,25 +10,30 @@ import {
   type NoteRow,
 } from "./merge.ts";
 
+// The optional fields spell `| undefined` out explicitly because tsconfig sets
+// `exactOptionalPropertyTypes`, under which `content?: string | null` forbids an
+// explicit `undefined`. These objects are built by zod (`.nullish()` yields
+// `T | null | undefined`), so the wider type is the one that actually crosses
+// the route boundary. Both spellings reach pg as NULL.
 export type IncomingNote = {
   id: string;
   type: string;
-  content?: string | null;
-  media_uri?: string | null;
-  media_hash?: string | null;
-  duration_ms?: number | null;
+  content?: string | null | undefined;
+  media_uri?: string | null | undefined;
+  media_hash?: string | null | undefined;
+  duration_ms?: number | null | undefined;
   created_at: string;
   updated_at: string;
-  deleted_at?: string | null;
+  deleted_at?: string | null | undefined;
   device_id: string;
   rev: number;
-  tags?: IncomingTag[];
+  tags?: IncomingTag[] | undefined;
 };
 
 export type IncomingTag = {
   id: string;
   name: string;
-  color?: string | null;
+  color?: string | null | undefined;
   created_at: string;
 };
 

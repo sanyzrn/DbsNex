@@ -41,6 +41,7 @@ This repo's full product, design, and engineering documentation lives in [`docs/
 | [`docs/10-decisions.md`](./docs/10-decisions.md) | Decision log (ADRs) — why things are the way they are |
 | [`docs/11-build-prompt.md`](./docs/11-build-prompt.md) | Phased, execution-ready build plan |
 | [`docs/12-agent-handoff-prompts.md`](./docs/12-agent-handoff-prompts.md) | Paste-ready prompts per phase for a coding agent |
+| [`docs/13-outstanding-work.md`](./docs/13-outstanding-work.md) | **Known-broken areas and the remaining work to fix them** |
 
 **If you're a contributor or a coding agent working in this repo, read `docs/10-decisions.md` and `docs/11-build-prompt.md` before writing code.** Most judgment calls you'd otherwise have to make are already decided and justified there.
 
