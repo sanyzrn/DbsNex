@@ -15,13 +15,31 @@
   "text": "Text",
   "filters": "Filters",
   "filtersCount": "Filters ({count})",
-  "@filtersCount": {"placeholders": {"count": {"type": "int"}}},
+  "@filtersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "date": "Date",
   "clear": "Clear",
   "resultCount": "{count, plural, =0{No results} =1{1 result} other{{count} results}}",
-  "@resultCount": {"placeholders": {"count": {"type": "int"}}},
+  "@resultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "nothingMatches": "Nothing matches “{query}”.",
-  "@nothingMatches": {"placeholders": {"query": {"type": "String"}}},
+  "@nothingMatches": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "closestThing": "The closest thing you wrote:",
   "nothingClose": "Nothing close either.",
   "emptyPromise": "Anything you put here is kept.",
@@ -41,7 +59,13 @@
   "tags": "Tags",
   "tagActions": "Tag actions",
   "noteCount": "{count, plural, =0{No notes} =1{1 note} other{{count} notes}}",
-  "@noteCount": {"placeholders": {"count": {"type": "int"}}},
+  "@noteCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "renameTag": "Rename tag",
   "deleteTag": "Delete tag?",
   "deleteTagBody": "This removes the tag from notes. It never deletes the notes themselves.",
@@ -58,7 +82,13 @@
   "about": "About Nex",
   "localFirstTitle": "Stored locally",
   "localFirstBody": "Your notes are stored on this device at {path}",
-  "@localFirstBody": {"placeholders": {"path": {"type": "String"}}},
+  "@localFirstBody": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "copyPath": "Copy data path",
   "silenceTitle": "Silence is a feature",
   "silenceBody": "Nex never sends notifications, badges, reminders, or engagement prompts.",
@@ -76,14 +106,32 @@
   "quietAnniversarySubtitle": "Only inside Nex. Never a notification or badge.",
   "storage": "Storage",
   "storageUsed": "{size} used locally",
-  "@storageUsed": {"placeholders": {"size": {"type": "String"}}},
+  "@storageUsed": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "stopRecording": "Stop recording",
   "recordingElapsed": "Recording, {elapsed}",
-  "@recordingElapsed": {"placeholders": {"elapsed": {"type": "String"}}},
+  "@recordingElapsed": {
+    "placeholders": {
+      "elapsed": {
+        "type": "String"
+      }
+    }
+  },
   "discard": "Discard",
   "captureFailed": "Capture could not be stored. Your existing notes were not changed.",
   "oneYearAgo": "{count, plural, =1{One year ago · 1 capture} other{One year ago · {count} captures}}",
-  "@oneYearAgo": {"placeholders": {"count": {"type": "int"}}},
+  "@oneYearAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "noteNotFound": "Note not found",
   "mediaUnavailable": "This media file is unavailable.",
   "copy": "Copy",
@@ -103,12 +151,196 @@
   "syncComplete": "Sync complete",
   "export": "Export",
   "exportedTo": "Exported to {path}",
-  "@exportedTo": {"placeholders": {"path": {"type": "String"}}},
+  "@exportedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "restoreBackup": "Restore backup",
   "restoreBody": "Replace the local database with the newest verified backup?",
   "backupCount": "{count, plural, =0{No backups} =1{1 backup} other{{count} backups}}",
-  "@backupCount": {"placeholders": {"count": {"type": "int"}}},
+  "@backupCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "operationFailed": "The operation failed. Your existing notes were not changed.",
   "noteType": "{type, select, text{Text} voice{Voice} photo{Photo} file{File} other{Note}}",
-  "@noteType": {"placeholders": {"type": {"type": "String"}}}
+  "@noteType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "addAction": "Add",
+  "@addAction": {
+    "description": "Confirm button on the inline add-tag dialog"
+  },
+  "all": "All",
+  "@all": {
+    "description": "Filter chip that clears the content-type filter"
+  },
+  "swipeLeading": "Swipe from the leading edge",
+  "@swipeLeading": {
+    "description": "Swipe-action mapping row in Settings"
+  },
+  "swipeTrailing": "Swipe from the trailing edge",
+  "@swipeTrailing": {
+    "description": "Swipe-action mapping row in Settings"
+  },
+  "noTagsYet": "No tags yet",
+  "@noTagsYet": {
+    "description": "Empty state in the tag manager"
+  },
+  "madeBy": "Made by",
+  "@madeBy": {
+    "description": "About screen attribution"
+  },
+  "website": "Website",
+  "@website": {
+    "description": "About screen attribution"
+  },
+  "edit": "Edit",
+  "@edit": {
+    "description": "Detail sheet action: edit a text note's body"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Confirm button on the edit and caption dialogs"
+  },
+  "editNote": "Edit note",
+  "@editNote": {
+    "description": "Title of the edit-note dialog"
+  },
+  "caption": "Caption",
+  "@caption": {
+    "description": "Caption section heading in the detail sheet"
+  },
+  "captionHint": "Optional description…",
+  "@captionHint": {
+    "description": "Placeholder in the caption field"
+  },
+  "addCaption": "Add caption",
+  "@addCaption": {
+    "description": "Button shown when a media note has no caption yet"
+  },
+  "editCaption": "Edit caption",
+  "@editCaption": {
+    "description": "Button shown when a media note already has a caption"
+  },
+  "noCaption": "No caption",
+  "@noCaption": {
+    "description": "Placeholder text where a caption would appear"
+  },
+  "tagName": "Tag name",
+  "@tagName": {
+    "description": "Placeholder in the tag-name field"
+  },
+  "tag": "Tag",
+  "@tag": {
+    "description": "Short label on the chip that opens the add-tag dialog"
+  },
+  "summary": "Summary",
+  "@summary": {
+    "description": "Summary section heading in the detail sheet"
+  },
+  "summarize": "Summarize",
+  "@summarize": {
+    "description": "Detail sheet action that requests an on-demand summary"
+  },
+  "suggestedTags": "Suggested tags",
+  "@suggestedTags": {
+    "description": "Heading above dismissible AI tag suggestions"
+  },
+  "dismiss": "Dismiss",
+  "@dismiss": {
+    "description": "Dismisses the tag suggestions"
+  },
+  "transcript": "Transcript",
+  "@transcript": {
+    "description": "Heading above a voice note's transcript"
+  },
+  "voiceSearchHint": "Searchable by tag/date only",
+  "@voiceSearchHint": {
+    "description": "FR-4.6 — voice notes are not keyword-searchable in v1"
+  },
+  "voiceDuration": "Voice · {seconds}s",
+  "@voiceDuration": {
+    "description": "Voice note header in the detail sheet",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "tapToExpand": "Tap the image to view it full screen",
+  "@tapToExpand": {
+    "description": "Hint under a photo in the detail sheet"
+  },
+  "similarity": "Similarity {score}",
+  "@similarity": {
+    "description": "Subtitle of a related-note row",
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "moreOptions": "More options",
+  "@moreOptions": {
+    "description": "Opens the detail sheet's overflow menu"
+  },
+  "copied": "Copied",
+  "@copied": {
+    "description": "Toast after copying a note's text"
+  },
+  "nothingToCopy": "This note has no text to copy",
+  "@nothingToCopy": {
+    "description": "Toast when a note has no copyable text"
+  },
+  "details": "Details",
+  "@details": {
+    "description": "Opens the note's metadata panel"
+  },
+  "created": "Created",
+  "@created": {
+    "description": "Metadata row label"
+  },
+  "updated": "Updated",
+  "@updated": {
+    "description": "Metadata row label"
+  },
+  "size": "Size",
+  "@size": {
+    "description": "Metadata row label for a media file's size"
+  },
+  "createTag": "New tag",
+  "@createTag": {
+    "description": "Title of the create-tag dialog in the tag manager"
+  },
+  "libraryOpenFailed": "Nex could not open your local library. Your files were not changed.",
+  "@libraryOpenFailed": {
+    "description": "Shown when the database fails to open at startup"
+  },
+  "tryAgain": "Try again",
+  "@tryAgain": {
+    "description": "Retries startup after a failed library open"
+  },
+  "opening": "Nex is opening",
+  "@opening": {
+    "description": "Screen-reader label for the startup splash"
+  },
+  "swipeActionsHint": "These two actions are the whole set. Tap a row to swap which edge does which.",
+  "@swipeActionsHint": {
+    "description": "Explains that ADR-022 fixes the action set and only the edge mapping is configurable"
+  },
+  "revealInFolder": "Copy file path",
+  "@revealInFolder": {
+    "description": "Copies a media note's file path to the clipboard"
+  }
 }

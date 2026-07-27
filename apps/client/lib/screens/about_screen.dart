@@ -14,6 +14,22 @@ class AboutScreen extends StatelessWidget {
       body: ListView(children: [
         const ListTile(title: Text('Nex'), subtitle: Text('0.1.1')),
         ListTile(
+          leading: const Icon(Icons.business_outlined),
+          title: Text(l10n.madeBy),
+          subtitle: const Text('DbsStudio'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.link),
+          title: Text(l10n.website),
+          subtitle: const Text('SaeedZarrini.ir'),
+          trailing: IconButton(
+            tooltip: l10n.copy,
+            onPressed: () => Clipboard.setData(
+                const ClipboardData(text: 'https://SaeedZarrini.ir')),
+            icon: const Icon(Icons.copy),
+          ),
+        ),
+        ListTile(
           title: Text(l10n.localFirstTitle),
           subtitle: Text(l10n.localFirstBody(services.dbPath)),
           trailing: IconButton(

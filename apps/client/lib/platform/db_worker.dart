@@ -33,6 +33,7 @@ enum _DbCommand {
   setCaption,
   addTag,
   removeTag,
+  createTag,
   listTags,
   setTagColor,
   backup,
@@ -281,6 +282,10 @@ class NexDbWorker implements NexDb {
       _send<void>(_DbCommand.removeTag, {'noteId': noteId, 'tagId': tagId});
 
   @override
+  Future<Tag> createTag(String name, {String? color}) =>
+      _send<Tag>(_DbCommand.createTag, {'name': name, 'color': color});
+
+  @override
   Future<List<Tag>> listTags() => _send<List<Tag>>(_DbCommand.listTags);
 
   @override
@@ -491,6 +496,10 @@ class NexDbWorker implements NexDb {
                 noteId: arg('noteId')! as String,
                 tagId: arg('tagId')! as String,
               )),
+          _DbCommand.createTag => repo.upsertTag(
+              name: arg('name')! as String,
+              color: arg('color') as String?,
+            ),
           _DbCommand.listTags => tags.listTags(),
           _DbCommand.setTagColor => _voided(() => tags.setColor(
                 tagId: arg('tagId')! as String,

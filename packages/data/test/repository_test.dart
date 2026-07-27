@@ -73,6 +73,26 @@ void main() {
       expect(hits.first.content, contains('bravo'));
     });
 
+    // FR-4.7: results update incrementally as the user types. Every token used
+    // to be an exact match, so nothing appeared until a whole word was typed.
+    test('search matches a partial word as it is typed (FR-4.7)', () {
+      repo.insert(makeText('groceries for the weekend'));
+
+      expect(repo.search(const SearchFilters(query: 'gro')).length, 1);
+      expect(repo.search(const SearchFilters(query: 'grocer')).length, 1);
+      expect(repo.search(const SearchFilters(query: 'groceries')).length, 1);
+      expect(repo.search(const SearchFilters(query: 'grz')), isEmpty);
+    });
+
+    test('earlier tokens stay exact, only the last one is a prefix', () {
+      repo.insert(makeText('weekend plan'));
+
+      // "weekend" complete + "pl" still being typed -> matches.
+      expect(repo.search(const SearchFilters(query: 'weekend pl')).length, 1);
+      // A truncated earlier token is not a prefix, so it must not match.
+      expect(repo.search(const SearchFilters(query: 'week plan')), isEmpty);
+    });
+
     test('Persian FTS correctness (ADR-028)', () {
       // Includes ZWNJ (U+200C) between می and رود — common Persian orthography.
       const zwnj = '\u200C';

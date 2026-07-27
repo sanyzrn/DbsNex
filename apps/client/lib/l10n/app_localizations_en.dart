@@ -373,4 +373,127 @@ class AppLocalizationsEn extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get addAction => 'Add';
+
+  @override
+  String get all => 'All';
+
+  @override
+  String get swipeLeading => 'Swipe from the leading edge';
+
+  @override
+  String get swipeTrailing => 'Swipe from the trailing edge';
+
+  @override
+  String get noTagsYet => 'No tags yet';
+
+  @override
+  String get madeBy => 'Made by';
+
+  @override
+  String get website => 'Website';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get editNote => 'Edit note';
+
+  @override
+  String get caption => 'Caption';
+
+  @override
+  String get captionHint => 'Optional description…';
+
+  @override
+  String get addCaption => 'Add caption';
+
+  @override
+  String get editCaption => 'Edit caption';
+
+  @override
+  String get noCaption => 'No caption';
+
+  @override
+  String get tagName => 'Tag name';
+
+  @override
+  String get tag => 'Tag';
+
+  @override
+  String get summary => 'Summary';
+
+  @override
+  String get summarize => 'Summarize';
+
+  @override
+  String get suggestedTags => 'Suggested tags';
+
+  @override
+  String get dismiss => 'Dismiss';
+
+  @override
+  String get transcript => 'Transcript';
+
+  @override
+  String get voiceSearchHint => 'Searchable by tag/date only';
+
+  @override
+  String voiceDuration(int seconds) {
+    return 'Voice · ${seconds}s';
+  }
+
+  @override
+  String get tapToExpand => 'Tap the image to view it full screen';
+
+  @override
+  String similarity(String score) {
+    return 'Similarity $score';
+  }
+
+  @override
+  String get moreOptions => 'More options';
+
+  @override
+  String get copied => 'Copied';
+
+  @override
+  String get nothingToCopy => 'This note has no text to copy';
+
+  @override
+  String get details => 'Details';
+
+  @override
+  String get created => 'Created';
+
+  @override
+  String get updated => 'Updated';
+
+  @override
+  String get size => 'Size';
+
+  @override
+  String get createTag => 'New tag';
+
+  @override
+  String get libraryOpenFailed =>
+      'Nex could not open your local library. Your files were not changed.';
+
+  @override
+  String get tryAgain => 'Try again';
+
+  @override
+  String get opening => 'Nex is opening';
+
+  @override
+  String get swipeActionsHint =>
+      'These two actions are the whole set. Tap a row to swap which edge does which.';
+
+  @override
+  String get revealInFolder => 'Copy file path';
 }

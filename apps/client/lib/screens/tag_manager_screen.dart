@@ -37,7 +37,38 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tags)),
-      body: ListView.separated(
+      // The screen could rename, merge and delete tags but had no way to create
+      // one, so a tag could only ever come into existence by tagging a note.
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => unawaited(_createTag()),
+        tooltip: l10n.createTag,
+        child: const Icon(Icons.add),
+      ),
+      body: tags.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.label_outline,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.noTagsYet,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  TextButton.icon(
+                    onPressed: () => unawaited(_createTag()),
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.createTag),
+                  ),
+                ],
+              ),
+            )
+          : ListView.separated(
         itemCount: tags.length,
         separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (context, index) {
@@ -57,8 +88,40 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
             ),
           );
         },
+            ),
+    );
+  }
+
+  Future<void> _createTag() async {
+    final l10n = AppLocalizations.of(context);
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.createTag),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          decoration: InputDecoration(hintText: l10n.tagName),
+          onSubmitted: (value) => Navigator.pop(ctx, value.trim()),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(l10n.addAction),
+          ),
+        ],
       ),
     );
+    controller.dispose();
+    if (name == null || name.isEmpty) return;
+    // upsertTag is idempotent on name, so re-adding an existing tag is a no-op
+    // rather than a duplicate.
+    await widget.services.createTag(name);
+    await reload();
   }
 
   Future<void> act(String action, TagUsage value) async {

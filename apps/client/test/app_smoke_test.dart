@@ -64,10 +64,44 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
-    expect(find.text('All'), findsOneWidget);
+    // Both the tag row and the content-type row carry an "All" chip, so the
+    // finder has to say which row it means.
+    expect(
+      find.descendant(
+        of: find.byType(TagFilterRow),
+        matching: find.text('All'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Work'), findsWidgets);
     expect(find.byIcon(Icons.add), findsOneWidget);
     expect(find.text('Save'), findsNothing);
+  });
+
+  testWidgets('Content-type filter narrows the timeline to one type (FR-4.5)',
+      (tester) async {
+    await services.captureText('a written thought');
+    await services.captureVoice(
+      mediaUri: p.join(tmp.path, 'media', 'clip.m4a'),
+      mediaBytes: Uint8List.fromList([9, 9, 9]),
+      durationMs: 1500,
+    );
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('a written thought'), findsOneWidget);
+
+    // The type chips live outside TagFilterRow, so scope to FilterChip.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(FilterChip),
+        matching: find.text('Voice'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('a written thought'), findsNothing);
   });
 
   testWidgets('Timeline is home with capture FAB and no Save button',

@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 
+import '../l10n/app_localizations.dart';
 import '../platform/nex_services.dart';
 
 /// What the sheet reports back when it closes.
@@ -16,6 +18,10 @@ import '../platform/nex_services.dart';
 /// type was never declared and the sheet popped without a value, so the undo
 /// path was unreachable.
 enum DetailResult { deleted }
+
+/// The entries of the sheet's overflow menu, so the switch over the chosen
+/// entry is exhaustive rather than a string comparison.
+enum _NoteMenuAction { edit, copy, copyPath, addTag, caption, summarize, details }
 
 class NoteDetailSheet extends StatefulWidget {
   const NoteDetailSheet({
@@ -112,7 +118,225 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     });
   }
 
+  /// The text a note can hand to the clipboard: its body, or whatever the
+  /// intelligence layer derived from its media.
+  String? _copyableText(Note note) {
+    for (final candidate in [
+      note.content,
+      note.transcriptText,
+      note.ocrText,
+      note.caption,
+    ]) {
+      final text = candidate?.trim();
+      if (text != null && text.isNotEmpty) return text;
+    }
+    return null;
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _copyText() async {
+    final note = _note;
+    if (note == null) return;
+    final l10n = AppLocalizations.of(context);
+    final text = _copyableText(note);
+    if (text == null) {
+      _toast(l10n.nothingToCopy);
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    _toast(l10n.copied);
+  }
+
+  Future<void> _copyPath() async {
+    final note = _note;
+    final uri = note?.mediaUri;
+    if (uri == null) return;
+    final l10n = AppLocalizations.of(context);
+    await Clipboard.setData(ClipboardData(text: uri));
+    if (!mounted) return;
+    _toast(l10n.copied);
+  }
+
+  /// Editing a text note in place. `updateNote` existed on every layer down to
+  /// the repository, but no screen ever called it — a captured note could not
+  /// be corrected after the fact.
+  Future<void> _editContent() async {
+    final note = _note;
+    if (note == null || note.type != NoteType.text) return;
+    final l10n = AppLocalizations.of(context);
+    final controller = TextEditingController(text: note.content ?? '');
+    final value = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.editNote),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: null,
+          minLines: 3,
+          keyboardType: TextInputType.multiline,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty || trimmed == note.content) return;
+    await widget.services.updateNote(note.id, trimmed);
+    await widget.services.refreshTimeline();
+    await _reload();
+  }
+
+  Future<void> _showDetails() async {
+    final note = _note;
+    if (note == null) return;
+    final l10n = AppLocalizations.of(context);
+    final uri = note.mediaUri;
+    final file = uri == null ? null : File(uri);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.details),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _DetailRow(label: l10n.noteType(note.type.wireName), value: ''),
+            _DetailRow(
+              label: l10n.created,
+              value: _formatTimestamp(note.createdAt),
+            ),
+            _DetailRow(
+              label: l10n.updated,
+              value: _formatTimestamp(note.updatedAt),
+            ),
+            if (note.tags.isNotEmpty)
+              _DetailRow(
+                label: l10n.tags,
+                value: note.tags.map((t) => t.name).join('، '),
+              ),
+            if (file != null && file.existsSync())
+              _DetailRow(
+                label: l10n.size,
+                value: nexFormatBytes(file.lengthSync()),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _formatTimestamp(DateTime value) {
+    final local = value.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${local.year}-${two(local.month)}-${two(local.day)} '
+        '${two(local.hour)}:${two(local.minute)}';
+  }
+
+  /// FR-2 "more options": everything the sheet can do that is not already a
+  /// primary control, in one menu instead of two loose text buttons.
+  Future<void> _openMenu() async {
+    final note = _note;
+    if (note == null) return;
+    final l10n = AppLocalizations.of(context);
+    final isText = note.type == NoteType.text;
+    final hasMedia = note.mediaUri != null;
+    final choice = await showModalBottomSheet<_NoteMenuAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isText)
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: Text(l10n.edit),
+                onTap: () => Navigator.pop(ctx, _NoteMenuAction.edit),
+              ),
+            ListTile(
+              leading: const Icon(Icons.copy_outlined),
+              title: Text(l10n.copy),
+              onTap: () => Navigator.pop(ctx, _NoteMenuAction.copy),
+            ),
+            if (hasMedia)
+              ListTile(
+                leading: const Icon(Icons.folder_outlined),
+                title: Text(l10n.revealInFolder),
+                onTap: () => Navigator.pop(ctx, _NoteMenuAction.copyPath),
+              ),
+            ListTile(
+              leading: const Icon(Icons.label_outline),
+              title: Text(l10n.addTag),
+              onTap: () => Navigator.pop(ctx, _NoteMenuAction.addTag),
+            ),
+            if (!isText)
+              ListTile(
+                leading: const Icon(Icons.notes_outlined),
+                title: Text(
+                  note.caption == null || note.caption!.trim().isEmpty
+                      ? l10n.addCaption
+                      : l10n.editCaption,
+                ),
+                onTap: () => Navigator.pop(ctx, _NoteMenuAction.caption),
+              ),
+            ListTile(
+              leading: const Icon(Icons.auto_awesome_outlined),
+              title: Text(l10n.summarize),
+              onTap: () => Navigator.pop(ctx, _NoteMenuAction.summarize),
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: Text(l10n.details),
+              onTap: () => Navigator.pop(ctx, _NoteMenuAction.details),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    switch (choice) {
+      case _NoteMenuAction.edit:
+        await _editContent();
+      case _NoteMenuAction.copy:
+        await _copyText();
+      case _NoteMenuAction.copyPath:
+        await _copyPath();
+      case _NoteMenuAction.addTag:
+        await _addTag();
+      case _NoteMenuAction.caption:
+        await _editCaption();
+      case _NoteMenuAction.summarize:
+        await widget.services.summarizeOnDemand(note.id);
+        await _reload();
+      case _NoteMenuAction.details:
+        await _showDetails();
+    }
+  }
+
   Future<void> _addTag() async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     _color = null;
     final name = await showDialog<String>(
@@ -121,7 +345,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         return StatefulBuilder(
           builder: (ctx, setLocal) {
             return AlertDialog(
-              title: const Text('Add tag'),
+              title: Text(l10n.addTag),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,7 +353,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                   TextField(
                     controller: controller,
                     autofocus: true,
-                    decoration: const InputDecoration(hintText: 'Tag name'),
+                    decoration: InputDecoration(hintText: l10n.tagName),
                   ),
                   const SizedBox(height: NexSpacing.sm),
                   Wrap(
@@ -174,11 +398,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-                  child: const Text('Add'),
+                  child: Text(l10n.addAction),
                 ),
               ],
             );
@@ -200,27 +424,26 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   Future<void> _editCaption() async {
     final note = _note;
     if (note == null || note.type == NoteType.text) return;
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: note.caption ?? '');
     final value = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Caption'),
+        title: Text(l10n.caption),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Optional description…',
-          ),
+          decoration: InputDecoration(hintText: l10n.captionHint),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -248,11 +471,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final note = _note;
     if (note == null) {
-      return const Padding(
-        padding: EdgeInsets.all(NexSpacing.lg),
-        child: Text('Note not found'),
+      return Padding(
+        padding: const EdgeInsets.all(NexSpacing.lg),
+        child: Text(l10n.noteNotFound),
       );
     }
     return Padding(
@@ -266,9 +490,20 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              note.type.wireName.toUpperCase(),
-              style: Theme.of(context).textTheme.bodySmall,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.noteType(note.type.wireName),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                IconButton(
+                  tooltip: l10n.moreOptions,
+                  icon: const Icon(Icons.more_horiz),
+                  onPressed: _openMenu,
+                ),
+              ],
             ),
             const SizedBox(height: NexSpacing.sm),
             if (note.type == NoteType.text)
@@ -278,7 +513,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               )
             else if (note.type == NoteType.voice) ...[
               Text(
-                'Voice · ${((note.durationMs ?? 0) / 1000).ceil()}s',
+                l10n.voiceDuration(((note.durationMs ?? 0) / 1000).ceil()),
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               if (_player != null) ...[
@@ -292,13 +527,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               if (note.transcriptText != null) ...[
                 const SizedBox(height: NexSpacing.sm),
                 Text(
-                  'Transcript',
+                  l10n.transcript,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 Text(note.transcriptText!),
               ] else
                 Text(
-                  'Searchable by tag/date only',
+                  l10n.voiceSearchHint,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
             ] else if (note.type == NoteType.photo) ...[
@@ -323,14 +558,17 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                 ),
                 const SizedBox(height: NexSpacing.sm),
                 Text(
-                  'Tap image to view full screen',
+                  l10n.tapToExpand,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ] else
-                Text('Photo', style: Theme.of(context).textTheme.bodyLarge),
+                Text(
+                  l10n.mediaUnavailable,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
               if (note.ocrText != null) ...[
                 const SizedBox(height: NexSpacing.sm),
-                Text('OCR', style: Theme.of(context).textTheme.bodySmall),
+                Text(l10n.ocr, style: Theme.of(context).textTheme.bodySmall),
                 Text(note.ocrText!),
               ],
             ] else ...[
@@ -348,7 +586,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           ? note.content!
                           : (note.mediaUri != null
                               ? p.basename(note.mediaUri!)
-                              : 'File'),
+                              : l10n.file),
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ),
@@ -370,7 +608,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
             ],
             if (note.type != NoteType.text) ...[
               const SizedBox(height: NexSpacing.md),
-              Text('Caption', style: Theme.of(context).textTheme.bodySmall),
+              Text(l10n.caption, style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: NexSpacing.xs),
               if (note.caption != null && note.caption!.trim().isNotEmpty)
                 Text(
@@ -379,26 +617,26 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                 )
               else
                 Text(
-                  'No caption',
+                  l10n.noCaption,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.secondary,
                       ),
                 ),
               Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: TextButton(
                   onPressed: _editCaption,
                   child: Text(
                     note.caption == null || note.caption!.trim().isEmpty
-                        ? 'Add caption'
-                        : 'Edit caption',
+                        ? l10n.addCaption
+                        : l10n.editCaption,
                   ),
                 ),
               ),
             ],
             if (_summaryIsMeaningful(note)) ...[
               const SizedBox(height: NexSpacing.md),
-              Text('Summary', style: Theme.of(context).textTheme.bodySmall),
+              Text(l10n.summary, style: Theme.of(context).textTheme.bodySmall),
               Text(note.summaryText!),
             ],
             const SizedBox(height: NexSpacing.md),
@@ -418,7 +656,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                   ),
                 ActionChip(
                   avatar: const Icon(Icons.add, size: 16),
-                  label: const Text('Tag'),
+                  label: Text(l10n.tag),
                   onPressed: _addTag,
                 ),
               ],
@@ -429,13 +667,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Suggested tags (dismissible)',
+                      l10n.suggestedTags,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
                   TextButton(
                     onPressed: () => setState(() => _suggestions = const []),
-                    child: const Text('Dismiss'),
+                    child: Text(l10n.dismiss),
                   ),
                 ],
               ),
@@ -464,7 +702,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
             if (_related.isNotEmpty) ...[
               const SizedBox(height: NexSpacing.md),
               Text(
-                'Related notes',
+                l10n.relatedNotes,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               for (final hit in _related)
@@ -476,27 +714,54 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  subtitle: Text('similarity ${hit.score.toStringAsFixed(2)}'),
+                  subtitle: Text(l10n.similarity(hit.score.toStringAsFixed(2))),
                 ),
             ],
             const SizedBox(height: NexSpacing.md),
-            TextButton(
-              onPressed: () async {
-                await widget.services.summarizeOnDemand(note.id);
-                await _reload();
-              },
-              child: const Text('Summarize'),
-            ),
-            TextButton(
-              onPressed: () async {
-                await widget.services.deleteNote(note.id);
-                if (!context.mounted) return;
-                Navigator.pop(context, DetailResult.deleted);
-              },
-              child: const Text('Delete'),
+            // Delete stays outside the overflow menu: it is the one destructive
+            // action, and the timeline owns the actual soft-delete so the undo
+            // toast is offered exactly once.
+            TextButton.icon(
+              onPressed: () => Navigator.pop(context, DetailResult.deleted),
+              icon: const Icon(Icons.delete_outline),
+              label: Text(l10n.delete),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: NexSpacing.xs / 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.bodySmall),
+          if (value.isNotEmpty) ...[
+            const SizedBox(width: NexSpacing.sm),
+            Expanded(
+              child: Text(
+                value,
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.end,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

@@ -12,6 +12,9 @@ import 'about_screen.dart';
 import 'recently_deleted_screen.dart';
 import 'tag_manager_screen.dart';
 
+String _swipeLabel(AppLocalizations l10n, SwipeAction action) =>
+    action == SwipeAction.delete ? l10n.delete : l10n.addTag;
+
 class SettingsSheet extends StatelessWidget {
   const SettingsSheet({super.key, required this.services, required this.preferences});
   final NexServices services;
@@ -79,12 +82,11 @@ class SettingsSheet extends StatelessWidget {
         ),
         const Divider(),
         Text(l10n.swipeActions, style: Theme.of(context).textTheme.bodySmall),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(l10n.swapSwipeMapping),
-          trailing: const Icon(Icons.swap_horiz),
-          onTap: preferences.swapSwipeMapping,
-        ),
+        // ADR-022 fixes the action set at Delete and Add Tag; the only choice
+        // is which edge does which. Showing the current mapping makes that
+        // choice legible — the bare "swap" tile gave no way to tell what the
+        // current state even was.
+        _SwipeMapping(preferences: preferences),
         const Divider(),
         Text(l10n.intelligence, style: Theme.of(context).textTheme.bodySmall),
         Text(l10n.intelligenceLocal, style: Theme.of(context).textTheme.bodySmall),
@@ -254,6 +256,112 @@ class SettingsSheet extends StatelessWidget {
   ) async {
     await preferences.setAiCapabilities(capabilities);
     services.applyAiPreferences(preferences);
+  }
+}
+
+/// The FR-2.7 swipe mapping.
+///
+/// ADR-022 fixes the action set at exactly Delete and Add Tag; the only choice
+/// is which edge does which. Showing the live mapping makes that choice
+/// legible — the bare "swap" tile gave no way to tell what the current state
+/// even was, and because the settings sheet is stateless, swapping did not
+/// even repaint. This owns its own state so the rows update on the spot.
+class _SwipeMapping extends StatefulWidget {
+  const _SwipeMapping({required this.preferences});
+
+  final NexPreferences preferences;
+
+  @override
+  State<_SwipeMapping> createState() => _SwipeMappingState();
+}
+
+class _SwipeMappingState extends State<_SwipeMapping> {
+  Future<void> _swap() async {
+    await widget.preferences.swapSwipeMapping();
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    // The leading edge is the left in LTR and the right in RTL, so the arrow
+    // that describes the gesture has to follow the reading direction.
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SwipeRow(
+          icon: rtl ? Icons.arrow_back : Icons.arrow_forward,
+          title: l10n.swipeLeading,
+          action: widget.preferences.leadingAction,
+          onTap: _swap,
+        ),
+        _SwipeRow(
+          icon: rtl ? Icons.arrow_forward : Icons.arrow_back,
+          title: l10n.swipeTrailing,
+          action: widget.preferences.trailingAction,
+          onTap: _swap,
+        ),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton.icon(
+            onPressed: _swap,
+            icon: const Icon(Icons.swap_horiz),
+            label: Text(l10n.swapSwipeMapping),
+          ),
+        ),
+        Text(
+          l10n.swipeActionsHint,
+          style: theme.textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+}
+
+class _SwipeRow extends StatelessWidget {
+  const _SwipeRow({
+    required this.icon,
+    required this.title,
+    required this.action,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final SwipeAction action;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final destructive = action == SwipeAction.delete;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      onTap: onTap,
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Row(
+        children: [
+          Icon(
+            destructive ? Icons.delete_outline : Icons.label_outline,
+            size: 16,
+            color: destructive ? theme.colorScheme.error : theme.colorScheme.secondary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            _swipeLabel(l10n, action),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: destructive
+                  ? theme.colorScheme.error
+                  : theme.colorScheme.secondary,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

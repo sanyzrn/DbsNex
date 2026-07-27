@@ -214,6 +214,9 @@ class NexServices {
   Future<void> removeTag({required String noteId, required String tagId}) =>
       worker.removeTag(noteId: noteId, tagId: tagId);
 
+  Future<Tag> createTag(String name, {String? color}) =>
+      worker.createTag(name, color: color);
+
   Future<List<Tag>> listTags() => worker.listTags();
 
   Future<void> setTagColor({required String tagId, String? color}) =>

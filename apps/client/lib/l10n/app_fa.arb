@@ -4,8 +4,8 @@
   "capture": "ثبت",
   "captureHint": "بنویسید…",
   "search": "جست‌وجو",
-  "searchHint": "جست‌وجوی یادداشت‌ها…",
-  "searchStart": "برای یافتن یک یادداشت شروع به تایپ کنید.",
+  "searchHint": "جست‌وجو در یادداشت‌ها…",
+  "searchStart": "برای پیدا کردن یادداشت، تایپ کنید.",
   "settings": "تنظیمات",
   "voice": "صدا",
   "camera": "دوربین",
@@ -17,87 +17,253 @@
   "filtersCount": "فیلترها ({count})",
   "date": "تاریخ",
   "clear": "پاک کردن",
-  "resultCount": "{count} نتیجه",
+  "resultCount": "{count, plural, =0{نتیجه‌ای پیدا نشد} =1{یک نتیجه} other{{count} نتیجه}}",
   "nothingMatches": "چیزی با «{query}» پیدا نشد.",
   "closestThing": "نزدیک‌ترین چیزی که نوشته‌اید:",
-  "nothingClose": "چیز نزدیکی هم پیدا نشد.",
-  "emptyPromise": "هرچه اینجا بگذارید، نگه داشته می‌شود.",
-  "emptySupport": "هیچ چیز دیگری از شما خواسته نمی‌شود.",
+  "nothingClose": "چیزی نزدیک به آن هم پیدا نشد.",
+  "emptyPromise": "هر چیزی که اینجا بگذارید، می‌ماند.",
+  "emptySupport": "چیز دیگری از شما خواسته نمی‌شود.",
   "emptyType": "بنویسید",
   "emptySpeak": "بگویید",
   "emptyPhotograph": "عکس بگیرید",
-  "emptyNoSave": "دکمهٔ ذخیره‌ای وجود ندارد.",
+  "emptyNoSave": "دکمهٔ ذخیره‌ای در کار نیست.",
   "delete": "حذف",
   "addTag": "افزودن برچسب",
   "noteDeleted": "یادداشت حذف شد",
-  "undo": "واگرد",
-  "cancel": "لغو",
+  "undo": "برگرداندن",
+  "cancel": "بی‌خیال",
   "restore": "بازیابی",
   "rename": "تغییر نام",
   "merge": "ادغام",
   "tags": "برچسب‌ها",
-  "tagActions": "عملیات برچسب",
-  "noteCount": "{count} یادداشت",
+  "tagActions": "کارهای برچسب",
+  "noteCount": "{count, plural, =0{بدون یادداشت} =1{یک یادداشت} other{{count} یادداشت}}",
   "renameTag": "تغییر نام برچسب",
   "deleteTag": "برچسب حذف شود؟",
-  "deleteTagBody": "این کار برچسب را از یادداشت‌ها برمی‌دارد و خود یادداشت‌ها را حذف نمی‌کند.",
-  "recentlyDeleted": "اخیراً حذف‌شده",
-  "recentlyDeletedEmpty": "چیزی اخیراً حذف نشده است.",
+  "deleteTagBody": "برچسب فقط از روی یادداشت‌ها برداشته می‌شود؛ خود یادداشت‌ها حذف نمی‌شوند.",
+  "recentlyDeleted": "حذف‌شده‌های اخیر",
+  "recentlyDeletedEmpty": "چیزی به‌تازگی حذف نشده.",
   "appearance": "ظاهر",
   "language": "زبان",
   "accessibility": "دسترس‌پذیری",
-  "reduceMotion": "کاهش حرکت",
-  "haptics": "بازخورد لمسی ثبت",
-  "quietAnniversary": "نمایش خط سالگرد آرام",
-  "intelligence": "هوشمندی",
-  "intelligenceLocal": "مگر با فعال‌کردن هوش ابری، همه‌چیز روی همین دستگاه اجرا می‌شود.",
+  "reduceMotion": "کم‌کردن انیمیشن‌ها",
+  "haptics": "لرزش هنگام ثبت",
+  "quietAnniversary": "نمایش یادآوری آرامِ سالگرد",
+  "intelligence": "هوش مصنوعی",
+  "intelligenceLocal": "تا وقتی هوش ابری خاموش است، همه‌چیز روی همین دستگاه پردازش می‌شود.",
   "about": "دربارهٔ Nex",
-  "localFirstTitle": "ذخیره‌شده روی دستگاه",
-  "localFirstBody": "یادداشت‌های شما در این دستگاه و در {path} نگه‌داری می‌شوند",
-  "copyPath": "کپی مسیر داده",
-  "silenceTitle": "سکوت یک قابلیت است",
-  "silenceBody": "Nex هرگز اعلان، نشان، یادآور یا پیام بازگشت ارسال نمی‌کند.",
+  "localFirstTitle": "ذخیره روی همین دستگاه",
+  "localFirstBody": "یادداشت‌های شما روی همین دستگاه، در {path} نگهداری می‌شوند",
+  "copyPath": "کپی مسیر داده‌ها",
+  "silenceTitle": "سکوت، خودش یک ویژگی است",
+  "silenceBody": "Nex هیچ‌وقت اعلان، نشان، یادآور یا پیام «برگرد» نمی‌فرستد.",
   "privacy": "حریم خصوصی",
-  "privacyBody": "ثبت و جست‌وجوی اصلی یادداشت‌های شما را جمع‌آوری یا منتقل نمی‌کند.",
-  "openSourceLicenses": "مجوزهای متن‌باز",
+  "privacyBody": "ثبت و جست‌وجوی یادداشت‌ها نه چیزی جمع‌آوری می‌کند و نه چیزی به بیرون می‌فرستد.",
+  "openSourceLicenses": "پروانه‌های متن‌باز",
   "themeLight": "روشن",
   "themeDark": "تیره",
-  "themeSystem": "سیستم",
+  "themeSystem": "مثل سیستم",
   "comfortMode": "حالت آسایش",
-  "comfortModeSubtitle": "کنتراست کمتر و رنگ‌های گرم‌تر، مستقل از روشن یا تیره",
-  "languageSystem": "سیستم",
+  "comfortModeSubtitle": "کنتراست کمتر و رنگ‌های گرم‌تر؛ جدا از روشن یا تیره بودن پوسته",
+  "languageSystem": "مثل سیستم",
   "languageEnglish": "انگلیسی",
   "languagePersian": "فارسی",
-  "quietAnniversarySubtitle": "فقط داخل Nex؛ هرگز اعلان یا نشان نیست.",
+  "quietAnniversarySubtitle": "فقط داخل خودِ Nex؛ هیچ‌وقت به شکل اعلان یا نشان نیست.",
   "storage": "فضای ذخیره‌سازی",
-  "storageUsed": "{size} روی دستگاه استفاده شده",
-  "stopRecording": "توقف ضبط",
-  "recordingElapsed": "در حال ضبط، {elapsed}",
-  "discard": "دور انداختن",
-  "captureFailed": "ثبت ذخیره نشد. یادداشت‌های قبلی شما تغییری نکردند.",
-  "oneYearAgo": "یک سال پیش · {count} ثبت",
+  "storageUsed": "{size} روی این دستگاه اشغال شده",
+  "stopRecording": "پایان ضبط",
+  "recordingElapsed": "در حال ضبط · {elapsed}",
+  "discard": "دور ریختن",
+  "captureFailed": "ثبت ذخیره نشد. یادداشت‌های قبلی شما دست‌نخورده ماندند.",
+  "oneYearAgo": "{count, plural, =1{یک سال پیش · یک ثبت} other{یک سال پیش · {count} ثبت}}",
   "noteNotFound": "یادداشت پیدا نشد",
-  "mediaUnavailable": "این فایل رسانه در دسترس نیست.",
+  "mediaUnavailable": "این فایل رسانه‌ای در دسترس نیست.",
   "copy": "کپی",
-  "share": "اشتراک‌گذاری",
-  "swipeActions": "عملیات کشیدن",
-  "swapSwipeMapping": "جابه‌جایی عملیات ابتدا و انتها",
-  "transcription": "رونویسی صدا",
-  "ocr": "تشخیص متن تصویر",
+  "share": "هم‌رسانی",
+  "swipeActions": "کشیدن انگشت",
+  "swapSwipeMapping": "جابه‌جا کردن دو طرف",
+  "transcription": "تبدیل گفتار به متن",
+  "ocr": "تشخیص متن در تصویر",
   "tagSuggestions": "پیشنهاد برچسب",
   "semanticSearch": "جست‌وجوی معنایی",
   "summarization": "خلاصه‌سازی",
   "relatedNotes": "یادداشت‌های مرتبط",
-  "cloudAi": "هوش ابری (انتخابی)",
-  "cloudAiSubtitle": "به‌طور پیش‌فرض خاموش است و ثبت اصلی بدون آن کار می‌کند.",
+  "cloudAi": "هوش ابری (اختیاری)",
+  "cloudAiSubtitle": "پیش‌فرض خاموش است؛ ثبت و جست‌وجو بدون آن هم کار می‌کنند.",
   "sync": "همگام‌سازی",
-  "syncNow": "همگام‌سازی اکنون",
+  "syncNow": "همگام‌سازی همین حالا",
   "syncComplete": "همگام‌سازی انجام شد",
-  "export": "خروجی",
+  "export": "خروجی گرفتن",
   "exportedTo": "خروجی در {path} ذخیره شد",
-  "restoreBackup": "بازیابی پشتیبان",
-  "restoreBody": "پایگاه دادهٔ محلی با جدیدترین پشتیبان تأییدشده جایگزین شود؟",
-  "backupCount": "{count} پشتیبان",
-  "operationFailed": "عملیات انجام نشد. یادداشت‌های قبلی شما تغییر نکردند.",
-  "noteType": "{type, select, text{متن} voice{صدا} photo{عکس} file{فایل} other{یادداشت}}"
+  "restoreBackup": "بازیابی از پشتیبان",
+  "restoreBody": "پایگاه دادهٔ روی دستگاه با تازه‌ترین پشتیبانِ سالم جایگزین شود؟",
+  "backupCount": "{count, plural, =0{بدون پشتیبان} =1{یک پشتیبان} other{{count} پشتیبان}}",
+  "operationFailed": "این کار انجام نشد. یادداشت‌های قبلی شما دست‌نخورده ماندند.",
+  "noteType": "{type, select, text{متن} voice{صدا} photo{عکس} file{فایل} other{یادداشت}}",
+  "addAction": "افزودن",
+  "@addAction": {
+    "description": "Confirm button on the inline add-tag dialog"
+  },
+  "all": "همه",
+  "@all": {
+    "description": "Filter chip that clears the content-type filter"
+  },
+  "swipeLeading": "کشیدن از لبهٔ آغاز",
+  "@swipeLeading": {
+    "description": "Swipe-action mapping row in Settings"
+  },
+  "swipeTrailing": "کشیدن از لبهٔ پایان",
+  "@swipeTrailing": {
+    "description": "Swipe-action mapping row in Settings"
+  },
+  "noTagsYet": "هنوز برچسبی نساخته‌اید",
+  "@noTagsYet": {
+    "description": "Empty state in the tag manager"
+  },
+  "madeBy": "ساختهٔ",
+  "@madeBy": {
+    "description": "About screen attribution"
+  },
+  "website": "وب‌سایت",
+  "@website": {
+    "description": "About screen attribution"
+  },
+  "edit": "ویرایش",
+  "@edit": {
+    "description": "Detail sheet action: edit a text note's body"
+  },
+  "save": "ذخیره",
+  "@save": {
+    "description": "Confirm button on the edit and caption dialogs"
+  },
+  "editNote": "ویرایش یادداشت",
+  "@editNote": {
+    "description": "Title of the edit-note dialog"
+  },
+  "caption": "شرح",
+  "@caption": {
+    "description": "Caption section heading in the detail sheet"
+  },
+  "captionHint": "توضیح دلخواه…",
+  "@captionHint": {
+    "description": "Placeholder in the caption field"
+  },
+  "addCaption": "افزودن شرح",
+  "@addCaption": {
+    "description": "Button shown when a media note has no caption yet"
+  },
+  "editCaption": "ویرایش شرح",
+  "@editCaption": {
+    "description": "Button shown when a media note already has a caption"
+  },
+  "noCaption": "بدون شرح",
+  "@noCaption": {
+    "description": "Placeholder text where a caption would appear"
+  },
+  "tagName": "نام برچسب",
+  "@tagName": {
+    "description": "Placeholder in the tag-name field"
+  },
+  "tag": "برچسب",
+  "@tag": {
+    "description": "Short label on the chip that opens the add-tag dialog"
+  },
+  "summary": "خلاصه",
+  "@summary": {
+    "description": "Summary section heading in the detail sheet"
+  },
+  "summarize": "خلاصه کن",
+  "@summarize": {
+    "description": "Detail sheet action that requests an on-demand summary"
+  },
+  "suggestedTags": "برچسب‌های پیشنهادی",
+  "@suggestedTags": {
+    "description": "Heading above dismissible AI tag suggestions"
+  },
+  "dismiss": "نادیده بگیر",
+  "@dismiss": {
+    "description": "Dismisses the tag suggestions"
+  },
+  "transcript": "متن گفتار",
+  "@transcript": {
+    "description": "Heading above a voice note's transcript"
+  },
+  "voiceSearchHint": "فقط با برچسب یا تاریخ پیدا می‌شود",
+  "@voiceSearchHint": {
+    "description": "FR-4.6 — voice notes are not keyword-searchable in v1"
+  },
+  "voiceDuration": "صدا · {seconds} ثانیه",
+  "@voiceDuration": {
+    "description": "Voice note header in the detail sheet",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "tapToExpand": "برای نمایش تمام‌صفحه روی تصویر بزنید",
+  "@tapToExpand": {
+    "description": "Hint under a photo in the detail sheet"
+  },
+  "similarity": "شباهت {score}",
+  "@similarity": {
+    "description": "Subtitle of a related-note row",
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "moreOptions": "گزینه‌های بیشتر",
+  "@moreOptions": {
+    "description": "Opens the detail sheet's overflow menu"
+  },
+  "copied": "کپی شد",
+  "@copied": {
+    "description": "Toast after copying a note's text"
+  },
+  "nothingToCopy": "این یادداشت متنی برای کپی ندارد",
+  "@nothingToCopy": {
+    "description": "Toast when a note has no copyable text"
+  },
+  "details": "جزئیات",
+  "@details": {
+    "description": "Opens the note's metadata panel"
+  },
+  "created": "ساخته شده",
+  "@created": {
+    "description": "Metadata row label"
+  },
+  "updated": "آخرین تغییر",
+  "@updated": {
+    "description": "Metadata row label"
+  },
+  "size": "حجم",
+  "@size": {
+    "description": "Metadata row label for a media file's size"
+  },
+  "createTag": "برچسب تازه",
+  "@createTag": {
+    "description": "Title of the create-tag dialog in the tag manager"
+  },
+  "libraryOpenFailed": "Nex نتوانست کتابخانهٔ روی دستگاه شما را باز کند. فایل‌های شما دست‌نخورده ماندند.",
+  "@libraryOpenFailed": {
+    "description": "Shown when the database fails to open at startup"
+  },
+  "tryAgain": "دوباره تلاش کن",
+  "@tryAgain": {
+    "description": "Retries startup after a failed library open"
+  },
+  "opening": "Nex در حال باز شدن است",
+  "@opening": {
+    "description": "Screen-reader label for the startup splash"
+  },
+  "swipeActionsHint": "همین دو کار وجود دارد. برای جابه‌جا کردنشان روی یکی از ردیف‌ها بزنید.",
+  "@swipeActionsHint": {
+    "description": "Explains that ADR-022 fixes the action set and only the edge mapping is configurable"
+  },
+  "revealInFolder": "نمایش مسیر فایل",
+  "@revealInFolder": {
+    "description": "Copies a media note's file path to the clipboard"
+  }
 }

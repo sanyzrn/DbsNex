@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'app.dart';
+import 'l10n/app_localizations.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/os_capture_bridge.dart';
@@ -68,38 +69,33 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
           }
 
           if (snapshot.hasError) {
-            return MaterialApp(
-              debugShowCheckedModeBanner: false,
-              theme: nexLightTheme(),
-              darkTheme: nexDarkTheme(),
-              home: Scaffold(
-                body: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Nex',
-                            style: TextStyle(
-                              fontSize: 34,
-                              fontWeight: FontWeight.w600,
+            return _host(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Builder(
+                      builder: (context) {
+                        final l10n = AppLocalizations.of(context);
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const _Wordmark(),
+                            const SizedBox(height: 16),
+                            Text(
+                              l10n.libraryOpenFailed,
+                              textAlign: TextAlign.center,
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Nex could not open your local library. '
-                            'Your files were not changed.',
-                          ),
-                          const SizedBox(height: 24),
-                          FilledButton(
-                            onPressed: () => setState(() => _future = _start()),
-                            child: const Text('Try again'),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(height: 24),
+                            FilledButton(
+                              onPressed: () =>
+                                  setState(() => _future = _start()),
+                              child: Text(l10n.tryAgain),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -107,25 +103,40 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
             );
           }
 
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: nexLightTheme(),
-            darkTheme: nexDarkTheme(),
-            // Semantics has no const constructor, so the subtree cannot be
-            // const from the Scaffold down — only from the Text.
-            home: Scaffold(
-              body: Center(
-                child: Semantics(
-                  label: 'Nex is opening',
-                  child: const Text(
-                    'Nex',
-                    style: TextStyle(fontSize: 34, fontWeight: FontWeight.w600),
-                  ),
+          return _host(
+            child: Center(
+              child: Builder(
+                builder: (context) => Semantics(
+                  label: AppLocalizations.of(context).opening,
+                  child: const _Wordmark(),
                 ),
               ),
             ),
           );
         },
+      );
+
+  /// The pre-boot shells carry the localization delegates themselves.
+  ///
+  /// They render before [NexApp] exists, so without this the one screen a user
+  /// sees when their library fails to open was permanently English.
+  Widget _host({required Widget child}) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: nexLightTheme(),
+        darkTheme: nexDarkTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(body: child),
+      );
+}
+
+class _Wordmark extends StatelessWidget {
+  const _Wordmark();
+
+  @override
+  Widget build(BuildContext context) => const Text(
+        'Nex',
+        style: TextStyle(fontSize: 34, fontWeight: FontWeight.w600),
       );
 }
 
