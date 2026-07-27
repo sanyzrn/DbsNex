@@ -38,6 +38,7 @@ class TimelineScreenState extends State<TimelineScreen> {
   List<Note> anniversary = const [];
   List<Tag> filterTags = const [];
   String? selectedTagId;
+  NoteType? selectedType;
   StreamSubscription<List<Note>>? subscription;
   String? landedId;
 
@@ -73,10 +74,26 @@ class TimelineScreenState extends State<TimelineScreen> {
 
   Future<void> _selectTag(String? tagId) async {
     setState(() => selectedTagId = tagId);
-    final filtered =
-        await widget.services.timeline(limit: 200, tagId: tagId);
+    await _applyFilters();
+  }
+
+  Future<void> _selectType(NoteType? type) async {
+    setState(() => selectedType = type);
+    await _applyFilters();
+  }
+
+  /// FR-4.5: the content-type filter layers on top of the tag filter — it is
+  /// not a separate mode, so both selections resolve into one query.
+  Future<void> _applyFilters() async {
+    final filtered = await widget.services.timeline(
+      limit: 200,
+      tagId: selectedTagId,
+    );
+    final type = selectedType;
     if (!mounted) return;
-    setState(() => notes = filtered);
+    setState(() => notes = type == null
+        ? filtered
+        : filtered.where((n) => n.type == type).toList());
   }
 
   /// "A year ago today", opt-in and quiet by default. Loaded once rather than
@@ -175,18 +192,78 @@ class TimelineScreenState extends State<TimelineScreen> {
     });
   }
 
+  /// The non-destructive half of ADR-022's fixed action pair.
+  Future<void> _addTagTo(Note note) async {
+    final l10n = AppLocalizations.of(context);
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.addTag),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(hintText: l10n.tagName),
+          textInputAction: TextInputAction.done,
+          onSubmitted: (value) => Navigator.pop(ctx, value.trim()),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(l10n.addAction),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null || name.isEmpty) return;
+    await widget.services.addTag(noteId: note.id, name: name);
+    await widget.services.refreshTimeline();
+    await _loadFilterTags();
+  }
+
   Future<void> deleteWithUndo(Note note) async {
     final l10n = AppLocalizations.of(context);
     await widget.services.deleteNote(note.id);
     await widget.services.refreshTimeline();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(l10n.noteDeleted),
-      action: SnackBarAction(label: l10n.undo, onPressed: () async {
-        await widget.services.undelete(note.id);
-        await widget.services.refreshTimeline();
-      }),
-    ));
+    final theme = Theme.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        // Floating, rounded and inset so it reads as part of the surface
+        // rather than a system banner pinned to the bottom edge.
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        elevation: 6,
+        duration: const Duration(seconds: 5),
+        backgroundColor: theme.colorScheme.inverseSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(NexColors.cardRadius),
+        ),
+        content: Row(children: [
+          Icon(Icons.delete_outline,
+              size: 20, color: theme.colorScheme.onInverseSurface),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              l10n.noteDeleted,
+              style: TextStyle(color: theme.colorScheme.onInverseSurface),
+            ),
+          ),
+        ]),
+        action: SnackBarAction(
+          label: l10n.undo,
+          textColor: theme.colorScheme.inversePrimary,
+          onPressed: () async {
+            await widget.services.undelete(note.id);
+            await widget.services.refreshTimeline();
+          },
+        ),
+      ));
   }
 
   @override
@@ -210,7 +287,25 @@ class TimelineScreenState extends State<TimelineScreen> {
               TagFilterRow(
                 tags: filterTags,
                 selectedTagId: selectedTagId,
+                allLabel: l10n.all,
                 onSelected: (value) => unawaited(_selectTag(value)),
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Row(children: [
+                  for (final type in [null, ...NoteType.values])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(type == null
+                            ? l10n.all
+                            : l10n.noteType(type.name)),
+                        selected: selectedType == type,
+                        onSelected: (_) => unawaited(_selectType(type)),
+                      ),
+                    ),
+                ]),
               ),
               Expanded(child: Center(
         child: ConstrainedBox(
@@ -230,18 +325,36 @@ class TimelineScreenState extends State<TimelineScreen> {
                 offset: landedId == note.id && !MediaQuery.disableAnimationsOf(context)
                     ? const Offset(0, -0.02) : Offset.zero,
                 duration: NexMotion.standard,
-                child: NoteCard(
-                  note: note,
-                  onTap: () async {
-                    final result = await showModalBottomSheet<DetailResult>(
-                      context: context, isScrollControlled: true, useSafeArea: true,
-                      builder: (_) => NoteDetailSheet(services: widget.services, noteId: note.id),
-                    );
-                    if (result == DetailResult.deleted) {
-                      await deleteWithUndo(note);
-                    }
-                    await widget.services.refreshTimeline();
+                // ADR-022: exactly two actions, and only which edge triggers
+                // which is configurable. SwipeableNoteCard shipped in
+                // packages/ui but nothing ever wrapped a card in it, so the
+                // gesture did not exist in the app at all.
+                child: SwipeableNoteCard(
+                  deleteLabel: l10n.delete,
+                  addTagLabel: l10n.addTag,
+                  resolveAction: ({required bool isLeading}) {
+                    final action = isLeading
+                        ? widget.preferences.leadingAction
+                        : widget.preferences.trailingAction;
+                    return action == SwipeAction.delete
+                        ? NexSwipeAction.delete
+                        : NexSwipeAction.addTag;
                   },
+                  onDelete: () => unawaited(deleteWithUndo(note)),
+                  onAddTag: () => unawaited(_addTagTo(note)),
+                  child: NoteCard(
+                    note: note,
+                    onTap: () async {
+                      final result = await showModalBottomSheet<DetailResult>(
+                        context: context, isScrollControlled: true, useSafeArea: true,
+                        builder: (_) => NoteDetailSheet(services: widget.services, noteId: note.id),
+                      );
+                      if (result == DetailResult.deleted) {
+                        await deleteWithUndo(note);
+                      }
+                      await widget.services.refreshTimeline();
+                    },
+                  ),
                 ),
               );
             },

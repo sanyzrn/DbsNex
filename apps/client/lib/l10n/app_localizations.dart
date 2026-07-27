@@ -697,6 +697,240 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{type, select, text{Text} voice{Voice} photo{Photo} file{File} other{Note}}'**
   String noteType(String type);
+
+  /// Confirm button on the inline add-tag dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get addAction;
+
+  /// Filter chip that clears the content-type filter
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// Swipe-action mapping row in Settings
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe from the leading edge'**
+  String get swipeLeading;
+
+  /// Swipe-action mapping row in Settings
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe from the trailing edge'**
+  String get swipeTrailing;
+
+  /// Empty state in the tag manager
+  ///
+  /// In en, this message translates to:
+  /// **'No tags yet'**
+  String get noTagsYet;
+
+  /// About screen attribution
+  ///
+  /// In en, this message translates to:
+  /// **'Made by'**
+  String get madeBy;
+
+  /// About screen attribution
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get website;
+
+  /// Detail sheet action: edit a text note's body
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// Confirm button on the edit and caption dialogs
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// Title of the edit-note dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Edit note'**
+  String get editNote;
+
+  /// Caption section heading in the detail sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Caption'**
+  String get caption;
+
+  /// Placeholder in the caption field
+  ///
+  /// In en, this message translates to:
+  /// **'Optional description…'**
+  String get captionHint;
+
+  /// Button shown when a media note has no caption yet
+  ///
+  /// In en, this message translates to:
+  /// **'Add caption'**
+  String get addCaption;
+
+  /// Button shown when a media note already has a caption
+  ///
+  /// In en, this message translates to:
+  /// **'Edit caption'**
+  String get editCaption;
+
+  /// Placeholder text where a caption would appear
+  ///
+  /// In en, this message translates to:
+  /// **'No caption'**
+  String get noCaption;
+
+  /// Placeholder in the tag-name field
+  ///
+  /// In en, this message translates to:
+  /// **'Tag name'**
+  String get tagName;
+
+  /// Short label on the chip that opens the add-tag dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get tag;
+
+  /// Summary section heading in the detail sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get summary;
+
+  /// Detail sheet action that requests an on-demand summary
+  ///
+  /// In en, this message translates to:
+  /// **'Summarize'**
+  String get summarize;
+
+  /// Heading above dismissible AI tag suggestions
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested tags'**
+  String get suggestedTags;
+
+  /// Dismisses the tag suggestions
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get dismiss;
+
+  /// Heading above a voice note's transcript
+  ///
+  /// In en, this message translates to:
+  /// **'Transcript'**
+  String get transcript;
+
+  /// FR-4.6 — voice notes are not keyword-searchable in v1
+  ///
+  /// In en, this message translates to:
+  /// **'Searchable by tag/date only'**
+  String get voiceSearchHint;
+
+  /// Voice note header in the detail sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Voice · {seconds}s'**
+  String voiceDuration(int seconds);
+
+  /// Hint under a photo in the detail sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the image to view it full screen'**
+  String get tapToExpand;
+
+  /// Subtitle of a related-note row
+  ///
+  /// In en, this message translates to:
+  /// **'Similarity {score}'**
+  String similarity(String score);
+
+  /// Opens the detail sheet's overflow menu
+  ///
+  /// In en, this message translates to:
+  /// **'More options'**
+  String get moreOptions;
+
+  /// Toast after copying a note's text
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
+
+  /// Toast when a note has no copyable text
+  ///
+  /// In en, this message translates to:
+  /// **'This note has no text to copy'**
+  String get nothingToCopy;
+
+  /// Opens the note's metadata panel
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get details;
+
+  /// Metadata row label
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get created;
+
+  /// Metadata row label
+  ///
+  /// In en, this message translates to:
+  /// **'Updated'**
+  String get updated;
+
+  /// Metadata row label for a media file's size
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get size;
+
+  /// Title of the create-tag dialog in the tag manager
+  ///
+  /// In en, this message translates to:
+  /// **'New tag'**
+  String get createTag;
+
+  /// Shown when the database fails to open at startup
+  ///
+  /// In en, this message translates to:
+  /// **'Nex could not open your local library. Your files were not changed.'**
+  String get libraryOpenFailed;
+
+  /// Retries startup after a failed library open
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get tryAgain;
+
+  /// Screen-reader label for the startup splash
+  ///
+  /// In en, this message translates to:
+  /// **'Nex is opening'**
+  String get opening;
+
+  /// Explains that ADR-022 fixes the action set and only the edge mapping is configurable
+  ///
+  /// In en, this message translates to:
+  /// **'These two actions are the whole set. Tap a row to swap which edge does which.'**
+  String get swipeActionsHint;
+
+  /// Copies a media note's file path to the clipboard
+  ///
+  /// In en, this message translates to:
+  /// **'Copy file path'**
+  String get revealInFolder;
 }
 
 class _AppLocalizationsDelegate

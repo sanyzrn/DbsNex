@@ -13,6 +13,7 @@ class TagFilterRow extends StatelessWidget {
     required this.selectedTagId,
     required this.onSelected,
     this.showAll = true,
+    this.allLabel = 'All',
     this.trailing,
     this.padding = const EdgeInsets.fromLTRB(
       NexSpacing.md,
@@ -26,6 +27,12 @@ class TagFilterRow extends StatelessWidget {
   final String? selectedTagId;
   final ValueChanged<String?> onSelected;
   final bool showAll;
+
+  /// Label of the "clear the filter" pill. The design system carries no
+  /// localizations of its own, so the app passes the translated string in —
+  /// otherwise this pill stayed English in a Persian UI.
+  final String allLabel;
+
   final Widget? trailing;
   final EdgeInsetsGeometry padding;
 
@@ -41,7 +48,7 @@ class TagFilterRow extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: NexSpacing.sm),
               child: _Pill(
-                label: 'All',
+                label: allLabel,
                 selected: selectedTagId == null,
                 onTap: () => onSelected(null),
                 theme: theme,

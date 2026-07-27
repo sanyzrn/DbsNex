@@ -5,6 +5,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_services.dart';
 import 'package:nex_data/nex_data.dart';
+import 'note_detail_sheet.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key, required this.services});
@@ -58,6 +59,21 @@ class _SearchScreenState extends State<SearchScreen> {
     // `request` guards against an older query resolving after a newer one.
     if (!mounted || current != request) return;
     setState(() { results = found; nearest = close; });
+  }
+
+  Future<void> _open(Note note) async {
+    final result = await showModalBottomSheet<DetailResult>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) =>
+          NoteDetailSheet(services: widget.services, noteId: note.id),
+    );
+    if (result == DetailResult.deleted) {
+      await widget.services.deleteNote(note.id);
+      await widget.services.refreshTimeline();
+    }
+    await run();
   }
 
   @override
@@ -123,7 +139,12 @@ class _SearchScreenState extends State<SearchScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Text(l10n.resultCount(results.length), style: Theme.of(context).textTheme.bodySmall),
                   )
-                : NoteCard(note: results[index - 1]),
+                : NoteCard(
+                    note: results[index - 1],
+                    // Results used to be inert: the only way to open a note was
+                    // to leave search and find it again on the timeline.
+                    onTap: () => unawaited(_open(results[index - 1])),
+                  ),
             )),
       ]),
     );

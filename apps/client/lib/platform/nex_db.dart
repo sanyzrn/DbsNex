@@ -58,6 +58,10 @@ abstract interface class NexDb {
 
   Future<void> removeTag({required String noteId, required String tagId});
 
+  /// Creates a tag that is not attached to any note yet. `upsertTag` is
+  /// idempotent on name, so re-adding an existing tag returns it unchanged.
+  Future<Tag> createTag(String name, {String? color});
+
   Future<List<Tag>> listTags();
 
   Future<void> setTagColor({required String tagId, String? color});

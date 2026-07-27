@@ -120,6 +120,10 @@ class InProcessDb implements NexDb {
       _tags.removeTag(noteId: noteId, tagId: tagId);
 
   @override
+  Future<Tag> createTag(String name, {String? color}) async =>
+      _repo.upsertTag(name: name, color: color);
+
+  @override
   Future<List<Tag>> listTags() async => _tags.listTags();
 
   @override

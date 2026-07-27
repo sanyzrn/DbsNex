@@ -689,19 +689,26 @@ WHERE id = ?
     );
   }
 
-  /// Build an FTS5 MATCH query: quote tokens so ZWNJ-split Persian words match.
+  /// Build an FTS5 MATCH query: quote tokens so ZWNJ-split Persian words match,
+  /// and make the final token a prefix so results narrow as the user types.
+  ///
+  /// Every token used to be an exact match, which meant nothing was found until
+  /// a whole word had been typed — FR-4.7 requires results to update
+  /// incrementally. Only the last token gets `*`: the earlier ones are words the
+  /// user finished typing and meant literally, while the trailing one is still
+  /// mid-keystroke.
   String _ftsQuery(String raw) {
     final cleaned = raw
         .replaceAll('"', ' ')
         .replaceAll('*', ' ')
         .trim();
     if (cleaned.isEmpty) return '""';
-    final tokens = cleaned
-        .split(RegExp(r'\s+'))
-        .where((t) => t.isNotEmpty)
-        .map((t) => '"$t"')
-        .join(' ');
-    return tokens;
+    final tokens = cleaned.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+    if (tokens.isEmpty) return '""';
+    return [
+      for (var i = 0; i < tokens.length; i++)
+        i == tokens.length - 1 ? '"${tokens[i]}"*' : '"${tokens[i]}"',
+    ].join(' ');
   }
 
   String _markdownFor(Note note) {
