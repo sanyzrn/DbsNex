@@ -146,6 +146,33 @@ the backend suite passes 25/25) were listed as manual steps but are done.
 
 ---
 
+## Dependency policy
+
+Dependabot opens **at most two PRs per ecosystem per month**: one grouped
+minor+patch, one grouped major. Majors are surfaced rather than pinned away —
+silent drift is what this repo already paid for once — but they arrive together
+instead of one PR per package.
+
+Security advisories ignore all of that: Dependabot raises them from the advisory
+database regardless of schedule, grouping or limits. Merge those promptly.
+
+Deliberately **not** taken, because the backend's automated coverage is the merge
+suite plus a `/health/live` smoke boot — nothing exercises the routes, so a
+major with breaking route semantics would not be caught:
+
+| Update | Why it needs a human |
+|---|---|
+| `express` 4 → 5 | Routing, `req.query` becomes a getter, async error handling changes. Would also make `express-async-errors` removable. |
+| `express-rate-limit` 7 → 8 | Breaking option/store changes on a security control. |
+| `zod` 3 → 4 | Rewritten inference; `sync.ts` already sits on an `exactOptionalPropertyTypes` edge. |
+| `typescript` 5.7 → 7 | Compiler major. |
+| `eslint` 9 → 10 | Config/rule major, paired with `@eslint/js`. |
+| `dotenv` 16 → 17 | Changed default load behaviour. |
+| Kotlin, AGP, Gradle wrapper | Cannot be verified without the Android toolchain. |
+
+Route-level tests for the backend are the prerequisite for taking the express
+and zod majors with any confidence.
+
 ## Process
 
 The single cause of this whole class of problem: **a bulk migration was
