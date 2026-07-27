@@ -87,9 +87,55 @@ They disagree even on constructor signatures: core declares
 `EnrichmentService({required repo})`, the client calls
 `EnrichmentService(worker: worker)`.
 
-Phase 1 removed the cause of most of the client's 101 analyzer errors, so the
-real remaining count will be lower — re-measure with `flutter analyze` before
-planning against the old number.
+Measured with Flutter 3.35.5: **116 analyzer issues** — 68 in `lib/`, 48 in
+`test/app_smoke_test.dart`. (It was 141 before `LibraryMaintenance` moved to the
+storage layer.) `packages/ui` is done and green.
+
+### The design decision this hinges on
+
+`NexServices` runs on the UI isolate and holds a `NexDbWorker`, which is
+asynchronous. The `NoteRepository` port is synchronous, because the repository
+lives *inside* the isolate. So the UI cannot hold a repository, and every screen
+that touches the database has to go through the worker and become asynchronous.
+
+That is the whole remaining job, and it is **not a rename**: the screens are
+written synchronously today —
+
+```dart
+late List<Note> notes = widget.services.search.timeline(limit: 50);
+setState(() => _note = widget.services.repo.getById(widget.noteId));
+```
+
+— so each one needs a state-management conversion (async init + `setState`, or
+`FutureBuilder`), across eight stateful widgets.
+
+`EnrichmentService` has the same constraint and the same answer: it takes a
+synchronous `NoteRepository`, so it must be constructed **inside** the worker
+isolate, not on the UI isolate as `nex_services.dart` currently tries to. This
+is fortunate rather than awkward — `main.dart` binds `const OnDeviceAIAdapter()`,
+which is pure Dart in `packages/core` and therefore isolate-sendable, and it
+moves AI work off the UI thread, which is what 09-ai.md wants anyway.
+
+### Remaining steps
+
+- Extend `_DbCommand` and `NexDbWorker` to cover every call site: capture
+  (text/voice/photo/file), `getById`, `updateContent`, `softDelete`, `undelete`,
+  `setCaption`, `addTag`, `removeTag`, `listTags`, `search`, `timeline`, the
+  `LibraryMaintenance` operations, and the enrichment entry points
+  (`enrichNote`, `suggestTags`, `summarizeOnDemand`, `relatedNotes`,
+  capability updates). The worker's request handler must become `async` —
+  `exportArchive` returns a `Future` today and a `Future` cannot cross a
+  `SendPort`.
+- Turn `NexServices` into the async façade over those commands, and fix the two
+  constructor calls Phase 1 exposed: `EnrichmentService(worker:)` and
+  `SyncClient(worker:, bearerToken:)` do not match the real signatures.
+- Convert the eight screens.
+- Fix the independent bugs that are not part of the split:
+  `nex_bidi.dart` uses `TextDirection.rtl/ltr` from the wrong `TextDirection`
+  (`dart:ui` vs `package:flutter`); `listBackups()` is used without `await` in
+  three places; `useResult` is not imported; `DetailResult` is referenced but
+  never declared.
+- Rewrite `test/app_smoke_test.dart` (48 issues) against the new façade.
 
 6. **NEX-020 — route all SQLite I/O through the worker.** Grep
    `apps/client/lib` for `services.repo.` — every hit must become a worker call.
