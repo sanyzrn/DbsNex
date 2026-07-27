@@ -10,24 +10,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
 import 'package:nex_client/platform/backup_policy.dart';
-import 'package:nex_client/platform/db_worker.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/os_capture_bridge.dart';
 
-/// Builds the real service graph, worker isolate included.
+import 'support/in_process_db.dart';
+
+/// Builds the real service graph against an in-process database.
 ///
-/// The harness used to hand NexServices a database handle and pre-built
-/// services, which is a shape that no longer exists: the repository and the
-/// domain services live inside the worker isolate, so the only way to reach
-/// them from a test is the same way the app does.
+/// Not a NexDbWorker: flutter_test runs test bodies in a fake-async zone where
+/// isolate port traffic never resolves, so awaiting a worker reply hangs. The
+/// storage stack underneath is the same one the worker drives.
 Future<NexServices> _testServices(Directory tmp) async {
   final dbPath = p.join(tmp.path, 'nex.sqlite');
   final mediaDir = p.join(tmp.path, 'media');
   final backupDir = p.join(tmp.path, 'backups');
   Directory(mediaDir).createSync(recursive: true);
   Directory(backupDir).createSync(recursive: true);
-  final worker = await NexDbWorker.spawn(dbPath: dbPath, deviceId: 'test');
+  final worker = InProcessDb(dbPath: dbPath, deviceId: 'test');
   return NexServices.forTest(
     worker: worker,
     deviceId: 'test',

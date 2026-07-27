@@ -137,7 +137,44 @@ moves AI work off the UI thread, which is what 09-ai.md wants anyway.
   never declared.
 - Rewrite `test/app_smoke_test.dart` (48 issues) against the new façade.
 
-### Still open: app_smoke_test hangs
+### Still open after Phase 2
+
+`apps/client` analyzes clean and the smoke suite runs — 28 of 32 pass in 45
+seconds. Three separate things remain, none of them the isolate migration.
+
+**1. Four smoke tests assert UI that is not wired.** This is the same
+test-versus-implementation drift as the rest of the repo, now visible because
+the suite finally runs:
+
+| Test | Reality |
+|---|---|
+| `Timeline shows tag filter chip row with All` | `TagFilterRow` exists in `packages/ui` and is tested there, but **nothing in `apps/client` imports it** — the timeline has no filter chips at all (FR-4). |
+| `Capture sheet focuses text with Voice/Photo/File inline` | The sheet has four actions, labelled `l10n.voice` / `camera` / `gallery` / `file`. The test expects a single "Photo". Either the test or the labels are stale — decide which, they cannot both be right. |
+| `Settings sheet exposes Intelligence toggles` | Throws a framework assertion; needs its own look. |
+| `Settings sheet exposes swipe + Appearance + Comfort` | Same. |
+
+**2. iOS: the committed AppDelegate targeted a newer SDK.** It referenced
+`FlutterImplicitEngineDelegate` and `FlutterImplicitEngineBridge`, which do not
+exist in Flutter 3.35.5. It compiled only while CI floated to whatever `stable`
+was that day; pinning the SDK surfaced it. Rewritten against the pinned SDK,
+**unverified** — no macOS available here.
+
+**3. Windows: the runner image outgrew the pinned SDK.** `flutter build windows`
+fails with
+
+```
+Generator Visual Studio 16 2019 could not find any instance of Visual Studio.
+```
+
+Nothing in this repository pins that generator — Flutter 3.35.5 (September 2025)
+does not recognise the Visual Studio on the current `windows-latest` image and
+falls back to its oldest known generator. Two ways out, and it is a real choice:
+pin `runs-on:` to a Windows image whose VS this SDK knows, or move the SDK pin
+forward. The second contradicts `sdk: ^3.9.0` across every package, so the first
+is the smaller change — but the correct image label needs checking against
+GitHub's current runner list.
+
+### Fixed: app_smoke_test hangs
 
 `apps/client` analyzes clean and `platform_capability_test`, `nex_tokens_test`
 and `empty_timeline_test` all pass. **`app_smoke_test.dart` does not run** — all

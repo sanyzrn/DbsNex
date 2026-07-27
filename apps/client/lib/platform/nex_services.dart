@@ -14,6 +14,7 @@ import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'backup_policy.dart';
 import 'db_worker.dart';
+import 'nex_db.dart';
 import 'media_picker_impl.dart';
 import 'nex_preferences.dart';
 
@@ -54,7 +55,7 @@ class NexServices {
   })  : _backupPolicy = backupPolicy,
         _preferences = preferences;
 
-  final NexDbWorker worker;
+  final NexDb worker;
   final MediaPicker mediaPicker;
   final String deviceId;
   final String dbPath;
@@ -125,7 +126,7 @@ class NexServices {
 
   @visibleForTesting
   static NexServices forTest({
-    required NexDbWorker worker,
+    required NexDb worker,
     required String deviceId,
     required NexPreferences preferences,
     required BackupPolicy backupPolicy,
