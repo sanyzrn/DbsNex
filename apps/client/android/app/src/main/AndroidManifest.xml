@@ -1,33 +1,44 @@
-<!--
-  Apply these two edits to apps/client/android/app/src/main/AndroidManifest.xml.
-
-  Do NOT replace the whole file. It contains the capture-widget receiver and the
-  share-intent filters, which were not part of the audited read set.
-
-  ---------------------------------------------------------------------------
-  1. Ensure the INTERNET permission is declared once, above <application>.
-     (Required for sync; harmless if already present.)
-
-       <uses-permission android:name="android.permission.INTERNET" />
-
-  ---------------------------------------------------------------------------
-  2. Add these two attributes to the existing <application> element, keeping
-     every attribute already there unchanged:
-
-       android:networkSecurityConfig="@xml/network_security_config"
-       android:usesCleartextTraffic="false"
-
-     So the opening tag becomes, for example:
-
-       <application
-           android:label="Nex"
-           android:name="[dollar]{applicationName}"
-           android:icon="@mipmap/ic_launcher"
-           android:networkSecurityConfig="@xml/network_security_config"
-           android:usesCleartextTraffic="false">
-
-     (Replace "[dollar]" above with a literal dollar sign — it is escaped here
-     only so this note renders correctly.)
-
-  Everything else in the file stays exactly as it is.
--->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <application
+        android:label="Nex"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:enableOnBackInvokedCallback="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="false">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data android:name="io.flutter.embedding.android.NormalTheme" android:resource="@style/NormalTheme" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.sanyzrn.nex.TEXT_CAPTURE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity>
+        <receiver android:name=".CaptureWidgetProvider" android:exported="true" android:label="Nex Capture">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/capture_widget_info" />
+        </receiver>
+        <meta-data android:name="flutterEmbedding" android:value="2" />
+    </application>
+</manifest>
