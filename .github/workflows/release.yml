@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to build (e.g. v1.2.3 or v0.0.1-test)"
+        description: "Version to build, with or without the leading v (e.g. 0.2.1)"
         required: true
 
 permissions:
@@ -30,6 +30,49 @@ env:
   RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
 jobs:
+  # The tag is the single source of truth for the version. Every number that
+  # ends up in a build — build-name, Android versionCode, the installer, the
+  # About screen — is derived from it here, so a release never depends on
+  # remembering to edit a file first.
+  #
+  # This also fails loudly on a malformed tag. `v.0.2.0` matches the `v*.*.*`
+  # trigger glob but strips to `.0.2.0`, which used to surface as a confusing
+  # "does not match pubspec" error three steps later.
+  version:
+    name: Resolve version from tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.parse.outputs.version }}
+      base: ${{ steps.parse.outputs.base }}
+      tag: ${{ steps.parse.outputs.tag }}
+      code: ${{ steps.parse.outputs.code }}
+    steps:
+      - id: parse
+        run: |
+          RAW="${{ env.RELEASE_TAG }}"
+          # Accept both "0.2.1" and "v0.2.1"; normalise to one shape.
+          VERSION="${RAW#v}"
+          if ! printf '%s' "$VERSION" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::'$RAW' is not a valid version tag."
+            echo "::error::Expected vMAJOR.MINOR.PATCH, optionally with a pre-release suffix — for example v0.2.1 or v0.2.1-beta."
+            echo "::error::Common slips: a dot after the v (v.0.2.1), a missing v, or a trailing space."
+            exit 1
+          fi
+          BASE="${VERSION%%-*}"
+          IFS=. read -r MA MI PA <<< "$BASE"
+          # github.run_number is scoped to the workflow FILE: renaming or
+          # recreating release.yml resets it to 1. Play requires versionCode to
+          # increase strictly and forever, so it must come from the version.
+          CODE=$(( MA * 1000000 + MI * 1000 + PA ))
+          {
+            echo "version=$VERSION"
+            echo "base=$BASE"
+            echo "tag=v$VERSION"
+            echo "code=$CODE"
+          } >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION base=$BASE tag=v$VERSION versionCode=$CODE"
+
   # A tag used to ship straight to a public Release without ever running
   # analyze, tests, or the backend suite: ci.yml triggers on branches, and tags
   # do not match branches.
@@ -39,7 +82,7 @@ jobs:
 
   build-android:
     name: Android release bundle + APKs
-    needs: verify
+    needs: [version, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     defaults:
@@ -100,54 +143,36 @@ jobs:
           } > android/key.properties
           test -s android/key.properties
 
-      - name: Resolve version from tag
-        id: ver
+      # Stamps the checkout rather than asking the author to have edited it.
+      # The build already takes --build-name from the tag; this keeps the
+      # version the *app* shows in About honest too.
+      - name: Stamp the version from the tag
         run: |
-          TAG="${{ env.RELEASE_TAG }}"
-          VERSION="${TAG#v}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Building Android release for version=$VERSION"
-
-      - name: Verify the tag matches pubspec.yaml
-        run: |
-          PUBSPEC=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
-          BASE=$(echo "${{ steps.ver.outputs.version }}" | cut -d'-' -f1)
-          if [ "$PUBSPEC" != "$BASE" ]; then
-            echo "::error::tag version $BASE does not match pubspec.yaml version $PUBSPEC"
-            exit 1
-          fi
-
-      # github.run_number is scoped to the workflow FILE: renaming or recreating
-      # release.yml resets it to 1. Play requires versionCode to increase
-      # strictly and forever, so it must be derived from the semantic version.
-      - name: Compute monotonic versionCode
-        id: vc
-        run: |
-          BASE=$(echo "${{ steps.ver.outputs.version }}" | cut -d'-' -f1)
-          IFS=. read -r MA MI PA <<< "$BASE"
-          CODE=$(( MA * 1000000 + MI * 1000 + PA ))
-          echo "code=$CODE" >> "$GITHUB_OUTPUT"
-          echo "versionCode=$CODE"
+          BASE="${{ needs.version.outputs.base }}"
+          sed -i -E "s/^version: .*/version: $BASE/" pubspec.yaml
+          sed -i -E "s/^const nexAppVersion = '.*';/const nexAppVersion = '$BASE';/" lib/app_version.dart
+          grep -E '^version:' pubspec.yaml
+          grep -E 'nexAppVersion' lib/app_version.dart
 
       - run: flutter pub get
 
       - name: Build App Bundle (Play) and split APKs (direct download)
         run: |
           flutter build appbundle --release \
-            --build-name=${{ steps.ver.outputs.version }} \
-            --build-number=${{ steps.vc.outputs.code }}
+            --build-name=${{ needs.version.outputs.base }} \
+            --build-number=${{ needs.version.outputs.code }}
           flutter build apk --release --split-per-abi \
-            --build-name=${{ steps.ver.outputs.version }} \
-            --build-number=${{ steps.vc.outputs.code }}
+            --build-name=${{ needs.version.outputs.base }} \
+            --build-number=${{ needs.version.outputs.code }}
 
       - name: Collect release assets
         run: |
           mkdir -p dist
           cp build/app/outputs/bundle/release/app-release.aab \
-            "dist/Nex-${{ steps.ver.outputs.version }}.aab"
+            "dist/Nex-${{ needs.version.outputs.version }}.aab"
           for abi in armeabi-v7a arm64-v8a x86_64; do
             src="build/app/outputs/flutter-apk/app-$abi-release.apk"
-            [ -f "$src" ] && cp "$src" "dist/Nex-${{ steps.ver.outputs.version }}-$abi.apk"
+            [ -f "$src" ] && cp "$src" "dist/Nex-${{ needs.version.outputs.version }}-$abi.apk"
           done
           ls -la dist
 
@@ -158,7 +183,7 @@ jobs:
 
   build-windows:
     name: Windows Inno Setup installer
-    needs: verify
+    needs: [version, verify]
     # Same pin as CI: windows-latest is Visual Studio 2026 since June 2026, and
     # Flutter 3.35.5 does not recognise it. A release must not build on an image
     # the verification pipeline never used.
@@ -179,30 +204,21 @@ jobs:
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
 
-      - name: Resolve version from tag
-        id: ver
+      - name: Stamp the version from the tag
         shell: pwsh
         run: |
-          $tag = "${{ env.RELEASE_TAG }}"
-          $version = $tag -replace '^v',''
-          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "Building Windows release for version=$version"
-
-      - name: Compute monotonic versionCode
-        id: vc
-        shell: pwsh
-        run: |
-          $base = ("${{ steps.ver.outputs.version }}" -split '-')[0]
-          $p = $base -split '\.'
-          $code = [int]$p[0] * 1000000 + [int]$p[1] * 1000 + [int]$p[2]
-          "code=$code" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $base = "${{ needs.version.outputs.base }}"
+          (Get-Content pubspec.yaml) -replace '^version: .*', "version: $base" |
+            Set-Content pubspec.yaml
+          (Get-Content lib/app_version.dart) -replace "^const nexAppVersion = '.*';", "const nexAppVersion = '$base';" |
+            Set-Content lib/app_version.dart
 
       - name: Build Windows release
         shell: pwsh
         run: |
           flutter build windows --release `
-            --build-name=${{ steps.ver.outputs.version }} `
-            --build-number=${{ steps.vc.outputs.code }}
+            --build-name=${{ needs.version.outputs.base }} `
+            --build-number=${{ needs.version.outputs.code }}
 
       - name: Install Inno Setup
         shell: pwsh
@@ -211,7 +227,7 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: |
-          $version = "${{ steps.ver.outputs.version }}"
+          $version = "${{ needs.version.outputs.version }}"
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) {
             throw "Inno Setup ISCC.exe not found at $iscc"
@@ -226,7 +242,7 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs: [build-android, build-windows]
+    needs: [version, build-android, build-windows]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -241,8 +257,11 @@ jobs:
         # to the repository.
         uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 # v2.1.0
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: ${{ env.RELEASE_TAG }}
+          # The normalised tag, so a manual run started from a bare "0.2.1"
+          # still creates and publishes v0.2.1.
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           # Manual verification runs (workflow_dispatch) publish as draft so a
           # test tag does not look like a production release.
           draft: ${{ github.event_name == 'workflow_dispatch' }}

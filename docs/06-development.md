@@ -168,13 +168,32 @@ CI gates on: unit + integration test suites, capture/search performance budgets,
 
 ### Cutting a Release
 
-1. Bump `version:` in `apps/client/pubspec.yaml` (and commit on a PR as usual).
-2. After merge to `main`, tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`
-3. The **Release** workflow (`.github/workflows/release.yml`) builds a signed Android APK and a Windows Inno Setup installer (`.exe`) and attaches both to a new GitHub Release automatically.
-4. **One-time signing setup** (Saeed, local machine — never commit the keystore):
-   - Generate: `keytool -genkey -v -keystore nex-release.keystore -alias nex -keyalg RSA -keysize 2048 -validity 10000`
-   - Base64-encode and store the file somewhere safe (it is not recoverable if lost).
-   - Add GitHub Actions secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
-5. Manual verification without a real tag: Actions → Release → Run workflow → enter e.g. `v0.0.1-test` (publishes a **draft** release).
+**The tag is the version.** There is exactly one number to decide and one place to type it — nothing has to be edited first. The Release workflow parses the tag, stamps `pubspec.yaml` and `lib/app_version.dart` in its own checkout, derives the Android `versionCode` from it, and passes it to every build.
+
+Either way works:
+
+- **From a terminal**, once the work is merged to `main`:
+  ```
+  git fetch origin main
+  git tag v0.2.1 origin/main
+  git push origin v0.2.1
+  ```
+- **From GitHub**, with no git at all: Actions → Release → Run workflow → type `0.2.1`. A manual run publishes a **draft** release, so it is also how you rehearse one.
+
+The tag must be `vMAJOR.MINOR.PATCH`, optionally with a pre-release suffix (`v0.2.1-beta`). A leading `v` is added if you leave it off, but anything else — `v.0.2.1`, `v0.2.`, a stray space — is rejected in the first job with an explicit message, rather than surfacing later as a confusing mismatch.
+
+Two rules the numbers have to obey:
+
+- **Tag `main` after the work is merged, not before.** A tag names a commit; tagging the branch or an older `main` releases whatever was on that commit.
+- **Never reuse or go backwards.** `versionCode` is `major×1000000 + minor×1000 + patch`, so `0.2.1` is `2001`. Google Play requires it to increase strictly and forever, and Android refuses to install an APK whose `versionCode` is lower than the installed one.
+
+`version:` in `apps/client/pubspec.yaml` stays as the local development default, kept in step with `lib/app_version.dart` by `version_test.dart`. Releases overwrite both from the tag, so a stale value there can no longer block or mislabel a release.
+The workflow builds a signed Android App Bundle plus split APKs and a Windows Inno Setup installer, and attaches them all to the GitHub Release. Every build waits on the full CI suite first — tags do not match branches, so without that gate a tag would ship straight to a public release without ever running analyze or the tests.
+
+**One-time signing setup** (never commit the keystore):
+
+- Generate: `keytool -genkey -v -keystore nex-release.keystore -alias nex -keyalg RSA -keysize 2048 -validity 10000`
+- Base64-encode it and store the file somewhere safe — it is not recoverable if lost, and losing it means the app can never be updated under the same identity again.
+- Add the GitHub Actions secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
 
 See [`07-contributing.md`](./07-contributing.md) for the contributor workflow.
