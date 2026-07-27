@@ -299,3 +299,25 @@ to `main`.
 
 Enable branch protection on `main` requiring CI to pass, and run `make check`
 before committing any generated change.
+
+---
+
+## Enabling branch protection
+
+The whole of this document exists because a bulk migration was pushed straight
+to `main` without ever being built. One repository setting prevents a repeat,
+and it cannot be made from inside the repository — it needs admin access:
+
+**Settings → Branches → Add branch ruleset**, targeting `main`:
+
+- Require a pull request before merging
+- Require status checks to pass → add **`CI green`**
+- Require branches to be up to date before merging
+- Block force pushes
+
+`CI green` is a single job that gates on all ten others, so the rule never needs
+editing when a job is added or renamed — and a job that gets deleted cannot
+silently stop being required. It treats `skipped` as acceptable because
+`client-ios` deliberately does not run on pull requests (macOS minutes bill at
+10x), and it carries `if: always()` because a job that is skipped when its
+dependencies fail would otherwise report success to the branch rule.

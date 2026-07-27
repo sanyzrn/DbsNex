@@ -2,7 +2,7 @@
   "name": "@nex/backend",
   "private": true,
   "version": "0.0.1",
-  "description": "Nex minimal sync API — present from v1 as infrastructure, dormant until v2 sync ships.",
+  "description": "Nex minimal sync API \u2014 present from v1 as infrastructure, dormant until v2 sync ships.",
   "type": "module",
   "engines": {
     "node": ">=22.6"
@@ -16,7 +16,7 @@
     "migrate:dev": "tsx src/db/migrate-cli.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "tsx --test src/services/merge.test.ts src/services/merge.conformance.test.ts"
+    "test": "tsx --test src/services/merge.test.ts src/services/merge.conformance.test.ts src/routes/routes.test.ts"
   },
   "dependencies": {
     "cors": "2.8.6",

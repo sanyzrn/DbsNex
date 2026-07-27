@@ -393,3 +393,40 @@ jobs:
           cd packages/data && dart pub get && dart analyze --fatal-infos && dart test && cd -
           cd packages/ui   && flutter pub get && flutter analyze --fatal-infos && flutter test && cd -
           cd apps/client   && flutter pub get && flutter analyze --fatal-infos && flutter test && flutter build apk --debug
+
+  # Single required check for branch protection.
+  #
+  # Protecting `main` by listing every job means the rule has to be edited each
+  # time a job is added or renamed, and a job that is removed silently stops
+  # being required. This one gates on all of them, so the branch rule needs
+  # exactly one entry: "CI green".
+  #
+  # `always()` matters: without it this job is skipped when a dependency fails,
+  # and a skipped required check reads as success.
+  ci-green:
+    name: CI green
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - dart-packages
+      - core-boundary
+      - flutter-ui-package
+      - client-android
+      - client-windows
+      - client-ios
+      - backend
+      - merge-conformance
+      - sync-integration
+      - ai-deletion-proof
+    steps:
+      - name: Fail unless every job succeeded
+        run: |
+          echo "results: ${{ join(needs.*.result, ', ') }}"
+          # client-ios only runs on push, so "skipped" is legitimate there.
+          for result in ${{ join(needs.*.result, ' ') }}; do
+            case "$result" in
+              success|skipped) ;;
+              *) echo "::error::a required job reported: $result"; exit 1 ;;
+            esac
+          done
