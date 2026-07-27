@@ -159,7 +159,7 @@ exist in Flutter 3.35.5. It compiled only while CI floated to whatever `stable`
 was that day; pinning the SDK surfaced it. Rewritten against the pinned SDK,
 **unverified** — no macOS available here.
 
-**3. Windows: the runner image outgrew the pinned SDK.** `flutter build windows`
+**3. Windows is the last one left, and it is the runner image, not the code.** `flutter build windows`
 fails with
 
 ```

@@ -366,7 +366,15 @@ void main() {
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Light'), findsOneWidget);
     expect(find.text('Dark'), findsOneWidget);
-    expect(find.text('System'), findsOneWidget);
+    // Scoped to the theme control: the language dropdown also offers a
+    // "System" option, so an unscoped finder matches both.
+    expect(
+      find.descendant(
+        of: find.byType(SegmentedButton<ThemeMode>),
+        matching: find.text('System'),
+      ),
+      findsOneWidget,
+    );
   });
 
   test('No Pin/Archive swipe actions exist', () async {
