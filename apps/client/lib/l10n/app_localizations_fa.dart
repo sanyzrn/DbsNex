@@ -561,4 +561,47 @@ class AppLocalizationsFa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get checkForUpdate => 'بررسی بروزرسانی';
+
+  @override
+  String get checkingForUpdate => 'در حال گشتن دنبال نسخهٔ تازه‌تر…';
+
+  @override
+  String get upToDate => 'شما آخرین نسخه را دارید.';
+
+  @override
+  String get downloadAndInstall => 'دانلود و نصب';
+
+  @override
+  String get downloading => 'در حال دانلود…';
+
+  @override
+  String get readyToInstall => 'دانلود شد. آمادهٔ نصب است.';
+
+  @override
+  String get install => 'نصب';
+
+  @override
+  String get updateInstallNotice =>
+      'اندروید برای نصب از شما تأیید می‌گیرد. یادداشت‌های شما دست‌نخورده می‌مانند.';
+
+  @override
+  String get updateCheckFailed =>
+      'دسترسی به سرور بروزرسانی ممکن نشد. اتصال را بررسی کنید و دوباره تلاش کنید.';
+
+  @override
+  String get installBlocked =>
+      'نصب‌کننده باز نشد. در تنظیمات گوشی به Nex اجازهٔ نصب برنامهٔ ناشناس بدهید و دوباره امتحان کنید.';
+
+  @override
+  String installedVersion(String version) {
+    return 'نسخهٔ نصب‌شده $version';
+  }
+
+  @override
+  String updateAvailable(String version) {
+    return 'نسخهٔ $version منتشر شده';
+  }
 }

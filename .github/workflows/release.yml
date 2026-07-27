@@ -164,6 +164,13 @@ jobs:
           flutter build apk --release --split-per-abi \
             --build-name=${{ needs.version.outputs.base }} \
             --build-number=${{ needs.version.outputs.code }}
+          # The universal APK is what the in-app updater downloads: it cannot
+          # know the device's ABI before the download, and picking the wrong
+          # split installs nothing. Bigger, but it is the one asset that is
+          # always correct.
+          flutter build apk --release \
+            --build-name=${{ needs.version.outputs.base }} \
+            --build-number=${{ needs.version.outputs.code }}
 
       - name: Collect release assets
         run: |
@@ -174,6 +181,10 @@ jobs:
             src="build/app/outputs/flutter-apk/app-$abi-release.apk"
             [ -f "$src" ] && cp "$src" "dist/Nex-${{ needs.version.outputs.version }}-$abi.apk"
           done
+          # The updater matches this asset by the "-universal.apk" suffix, so
+          # the name is a contract, not a label.
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "dist/Nex-${{ needs.version.outputs.version }}-universal.apk"
           ls -la dist
 
       - uses: actions/upload-artifact@v4

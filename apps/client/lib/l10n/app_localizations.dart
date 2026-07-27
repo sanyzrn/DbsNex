@@ -1033,6 +1033,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 note will be gone for good. It cannot be undone.} other{{count} notes will be gone for good. It cannot be undone.}}'**
   String emptyTrashBody(int count);
+
+  /// Settings row and update sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Check for update'**
+  String get checkForUpdate;
+
+  /// Update sheet, while the check runs
+  ///
+  /// In en, this message translates to:
+  /// **'Looking for a newer release…'**
+  String get checkingForUpdate;
+
+  /// Update sheet, nothing newer exists
+  ///
+  /// In en, this message translates to:
+  /// **'You have the latest version.'**
+  String get upToDate;
+
+  /// Starts the update download
+  ///
+  /// In en, this message translates to:
+  /// **'Download and install'**
+  String get downloadAndInstall;
+
+  /// Update sheet, during the download
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get downloading;
+
+  /// Update sheet, download finished
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded. Ready to install.'**
+  String get readyToInstall;
+
+  /// Hands the downloaded package to the system installer
+  ///
+  /// In en, this message translates to:
+  /// **'Install'**
+  String get install;
+
+  /// Sets expectations before the system installer appears
+  ///
+  /// In en, this message translates to:
+  /// **'Android will ask you to confirm the install. Your notes are not touched.'**
+  String get updateInstallNotice;
+
+  /// Update sheet, the check did not complete
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach the update server. Check your connection and try again.'**
+  String get updateCheckFailed;
+
+  /// Shown when handing the package to the installer fails
+  ///
+  /// In en, this message translates to:
+  /// **'The installer did not open. Allow Nex to install unknown apps in your device settings, then try again.'**
+  String get installBlocked;
+
+  /// Update sheet subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Installed version {version}'**
+  String installedVersion(String version);
+
+  /// Update sheet headline when a newer release exists
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} is available'**
+  String updateAvailable(String version);
 }
 
 class _AppLocalizationsDelegate

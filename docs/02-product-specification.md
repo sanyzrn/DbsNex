@@ -125,6 +125,16 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-7.2 A one-tap **Restore** action is available from Settings, recovering the most recent (or a selected) backup.
 - FR-7.3 Backup/restore correctness is verified in testing against a simulated database-corruption scenario, per [ADR-026](./10-decisions.md#adr-026--automatic-local-backup--restore-ships-in-v1).
 
+### FR-8a — In-App Update
+
+- FR-8a.1 Settings offers a **Check for update** action showing the installed version. Nex is distributed outside any app store, so without it a user has no way to learn a new build exists.
+- FR-8a.2 The check runs **only when the user asks**. Nex never polls for updates in the background, and never notifies about one — consistent with the silence rule in [`05-design.md`](./05-design.md).
+- FR-8a.3 The check reads the repository's latest published release and compares versions **semantically**, not as strings. Drafts and pre-releases are never offered.
+- FR-8a.4 The request carries no note content, no device identifier and no telemetry. This is the one outbound call outside sync, and it is a plain read.
+- FR-8a.5 A failed check reports that it failed. It never reports "up to date" for a check that did not complete.
+- FR-8a.6 On Android the update downloads the **universal APK** and hands it to the system installer; the platform, not Nex, asks the user to confirm. Silent self-installation is neither possible nor attempted outside an app store. A release therefore always publishes a universal APK alongside the per-ABI splits — the app cannot know the device's ABI before downloading.
+- FR-8a.7 Updating never touches the local library. Releases are signed with one key, so an update installs over the existing app and its notes, media and preferences survive.
+
 ### FR-8 — OS-Level Capture Surfaces
 - FR-8.1 A home-screen widget (Android) opens directly into text capture, bypassing the need to open the app first.
 - FR-8.2 An Android share-intent target accepts text, links, or photos shared from other apps directly into Nex as a new capture, with the same zero-mandatory-fields, auto-save behavior as in-app capture (FR-1.6–1.7).

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
+import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -11,6 +12,7 @@ import '../restart_scope.dart';
 import 'about_screen.dart';
 import 'recently_deleted_screen.dart';
 import 'tag_manager_screen.dart';
+import 'update_sheet.dart';
 
 String _swipeLabel(AppLocalizations l10n, SwipeAction action) =>
     action == SwipeAction.delete ? l10n.delete : l10n.addTag;
@@ -376,6 +378,17 @@ class SettingsSheet extends StatelessWidget {
                       icon: Icons.info_outline,
                       title: l10n.about,
                       children: [
+                        ListTile(
+                          contentPadding: _rowPadding,
+                          leading: const Icon(Icons.system_update_outlined),
+                          title: Text(l10n.checkForUpdate),
+                          subtitle: Text(l10n.installedVersion(nexAppVersion)),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => UpdateSheet.show(
+                            context,
+                            haptics: preferences.haptics,
+                          ),
+                        ),
                         ListTile(
                           contentPadding: _rowPadding,
                           leading: const Icon(Icons.auto_stories_outlined),

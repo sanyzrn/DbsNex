@@ -561,4 +561,47 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get checkForUpdate => 'Check for update';
+
+  @override
+  String get checkingForUpdate => 'Looking for a newer release…';
+
+  @override
+  String get upToDate => 'You have the latest version.';
+
+  @override
+  String get downloadAndInstall => 'Download and install';
+
+  @override
+  String get downloading => 'Downloading…';
+
+  @override
+  String get readyToInstall => 'Downloaded. Ready to install.';
+
+  @override
+  String get install => 'Install';
+
+  @override
+  String get updateInstallNotice =>
+      'Android will ask you to confirm the install. Your notes are not touched.';
+
+  @override
+  String get updateCheckFailed =>
+      'Could not reach the update server. Check your connection and try again.';
+
+  @override
+  String get installBlocked =>
+      'The installer did not open. Allow Nex to install unknown apps in your device settings, then try again.';
+
+  @override
+  String installedVersion(String version) {
+    return 'Installed version $version';
+  }
+
+  @override
+  String updateAvailable(String version) {
+    return 'Version $version is available';
+  }
 }

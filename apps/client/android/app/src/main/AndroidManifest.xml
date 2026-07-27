@@ -5,6 +5,15 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <!--
+      Lets the in-app updater hand a downloaded APK to the system installer.
+      This is not a silent-install permission: Android still shows its own
+      install prompt, and the user must additionally allow Nex to install
+      unknown apps once, in device settings. Nex is distributed outside Play,
+      so there is no store to do this for it.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!--
       Android 11 package visibility. Opening a note's file with the device's
       default handler resolves the receiving activity first, and without this
       declaration that lookup comes back empty on API 30+ — so every "Open"
