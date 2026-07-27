@@ -156,6 +156,15 @@ moves AI work off the UI thread, which is what 09-ai.md wants anyway.
 
 ## Phase 3 — Sync correctness
 
+10a. **Done: the client never authenticated.** `SyncClient` sent no
+    `Authorization` header at all, while the API stopped being open when
+    tenancy landed — so every push and pull against a real server returned 401.
+    It now takes a bearer token, `NexPreferences` persists it beside the
+    endpoint, and the CI sync matrix seeds both simulated devices with their own
+    tokens (it previously seeded one device under an id the suite never used,
+    and the suite never sent a token anyway).
+
+
 10. **NEX-004 — tag identity remap is unimplemented on the client.** The server
     returns a `tag_remap` array from `/sync/push`; `SyncClient` ignores it. It
     must rewrite local `note_tags` rows from `client_id` to `canonical_id`
