@@ -3,6 +3,13 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    // This module has Kotlin sources (MainActivity, CaptureWidgetProvider) and
+    // configures the Kotlin compiler below, but never applied the plugin —
+    // settings.gradle.kts declares it `apply false` and nothing applied it here.
+    // Without it the `kotlin { }` extension does not exist, so Gradle resolved
+    // the block against DependencyHandler.kotlin(...) and failed to compile the
+    // script at all.
+    id("org.jetbrains.kotlin.android")
     id("dev.flutter.flutter-gradle-plugin")
 }
 

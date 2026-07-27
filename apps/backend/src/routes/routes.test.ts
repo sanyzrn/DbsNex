@@ -2,7 +2,14 @@ import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
 import { after, before, describe, test } from "node:test";
 
-import { app } from "../index.ts";
+// env.ts validates configuration at import time and refuses to load without a
+// DATABASE_URL. These cases never reach the database — they stop at the auth
+// boundary — so a placeholder is enough, and setting it here keeps the suite
+// self-contained rather than depending on the CI job's environment. The import
+// has to be dynamic: static imports are hoisted above this assignment.
+process.env.DATABASE_URL ??= "postgresql://user:pass@127.0.0.1:5432/nex-routes-test";
+
+const { app } = await import("../index.ts");
 
 /**
  * Route-level tests.
