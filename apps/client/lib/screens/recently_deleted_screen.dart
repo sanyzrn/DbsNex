@@ -1,25 +1,42 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:nex_core/nex_core.dart';
-import 'package:nex_ui/nex_ui.dart';
-import '../l10n/app_localizations.dart';
 import 'package:nex_data/nex_data.dart';
 
+import '../l10n/app_localizations.dart';
+import '../platform/nex_services.dart';
+
 class RecentlyDeletedScreen extends StatefulWidget {
-  const RecentlyDeletedScreen({super.key, required this.polish});
-  final LibraryMaintenance polish;
+  const RecentlyDeletedScreen({super.key, required this.services});
+
+  // Takes the service facade, not LibraryMaintenance: maintenance runs inside
+  // the database isolate and the UI cannot hold an instance of it.
+  final NexServices services;
+
   @override
   State<RecentlyDeletedScreen> createState() => _RecentlyDeletedScreenState();
 }
 
 class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
-  late List<Note> notes;
+  List<Note> notes = const [];
+
   @override
   void initState() {
     super.initState();
-    widget.polish.purgeDeletedBefore(DateTime.now().subtract(const Duration(days: 30)));
-    notes = widget.polish.deletedNotes();
+    unawaited(_purgeThenLoad());
   }
-  void reload() => setState(() => notes = widget.polish.deletedNotes());
+
+  Future<void> _purgeThenLoad() async {
+    await widget.services
+        .purgeDeletedBefore(DateTime.now().subtract(const Duration(days: 30)));
+    await reload();
+  }
+
+  Future<void> reload() async {
+    final loaded = await widget.services.deletedNotes();
+    if (!mounted) return;
+    setState(() => notes = loaded);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +52,10 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
               return ListTile(
                 title: Text(note.searchableDerivedText ?? note.type.name, maxLines: 2),
                 trailing: TextButton(
-                  onPressed: () { widget.polish.repo.undelete(note.id); reload(); },
+                  onPressed: () async {
+                    await widget.services.undelete(note.id);
+                    await reload();
+                  },
                   child: Text(l10n.restore),
                 ),
               );

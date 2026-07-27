@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 
 class EmptyTimeline extends StatelessWidget {

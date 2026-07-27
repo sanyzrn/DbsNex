@@ -1,17 +1,36 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '../l10n/app_localizations.dart';
 import 'package:nex_data/nex_data.dart';
 
+import '../l10n/app_localizations.dart';
+import '../platform/nex_services.dart';
+
 class TagManagerScreen extends StatefulWidget {
-  const TagManagerScreen({super.key, required this.polish});
-  final LibraryMaintenance polish;
+  const TagManagerScreen({super.key, required this.services});
+
+  // Takes the service facade, not LibraryMaintenance: maintenance runs inside
+  // the database isolate and the UI cannot hold an instance of it.
+  final NexServices services;
+
   @override
   State<TagManagerScreen> createState() => _TagManagerScreenState();
 }
 
 class _TagManagerScreenState extends State<TagManagerScreen> {
-  late List<TagUsage> tags = widget.polish.tagUsage();
-  void reload() => setState(() => tags = widget.polish.tagUsage());
+  List<TagUsage> tags = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(reload());
+  }
+
+  Future<void> reload() async {
+    final loaded = await widget.services.tagUsage();
+    if (!mounted) return;
+    setState(() => tags = loaded);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +77,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
         ),
       );
       controller.dispose();
-      if (name != null) widget.polish.renameTag(value.tag.id, name);
+      if (name != null) await widget.services.renameTag(value.tag.id, name);
     } else if (action == 'merge') {
       final target = await showModalBottomSheet<TagUsage>(
         context: context,
@@ -68,7 +87,10 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
             ListTile(title: Text(item.tag.name), onTap: () => Navigator.pop(context, item))],
         ),
       );
-      if (target != null) widget.polish.mergeTag(sourceId: value.tag.id, targetId: target.tag.id);
+      if (target != null) {
+        await widget.services
+            .mergeTag(sourceId: value.tag.id, targetId: target.tag.id);
+      }
     } else if (action == 'delete') {
       final ok = await showDialog<bool>(
         context: context,
@@ -81,8 +103,8 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
           ],
         ),
       );
-      if (ok == true) widget.polish.deleteTag(value.tag.id);
+      if (ok == true) await widget.services.deleteTag(value.tag.id);
     }
-    reload();
+    await reload();
   }
 }

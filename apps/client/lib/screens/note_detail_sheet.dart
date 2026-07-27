@@ -4,10 +4,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 
 import '../platform/nex_services.dart';
+
+/// What the sheet reports back when it closes.
+///
+/// The timeline already switched on this to offer undo after a delete, but the
+/// type was never declared and the sheet popped without a value, so the undo
+/// path was unreachable.
+enum DetailResult { deleted }
 
 class NoteDetailSheet extends StatefulWidget {
   const NoteDetailSheet({
@@ -29,6 +37,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   Note? _note;
   List<TagSuggestion> _suggestions = const [];
   List<SemanticHit> _related = const [];
+  Map<String, String> _relatedTitles = const {};
   String? _color;
   AudioPlayer? _player;
   Duration _position = Duration.zero;
@@ -54,8 +63,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     super.dispose();
   }
 
-  void _reload() {
-    setState(() => _note = widget.services.repo.getById(widget.noteId));
+  Future<void> _reload() async {
+    final loaded = await widget.services.getById(widget.noteId);
+    if (!mounted) return;
+    setState(() => _note = loaded);
     final note = _note;
     if (note?.type == NoteType.voice &&
         note?.mediaUri != null &&
@@ -83,14 +94,21 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   }
 
   Future<void> _loadAi() async {
-    final suggestions =
-        await widget.services.enrichment.suggestTags(widget.noteId);
-    final related =
-        await widget.services.enrichment.relatedNotes(widget.noteId);
+    final suggestions = await widget.services.suggestTags(widget.noteId);
+    final related = await widget.services.relatedNotes(widget.noteId);
+    // Resolve the related notes' titles here rather than in build: build runs
+    // every frame and each lookup crosses the isolate boundary.
+    final titles = <String, String>{};
+    for (final hit in related) {
+      final note = await widget.services.getById(hit.noteId);
+      final content = note?.content;
+      if (content != null) titles[hit.noteId] = content;
+    }
     if (!mounted) return;
     setState(() {
       _suggestions = suggestions;
       _related = related;
+      _relatedTitles = titles;
     });
   }
 
@@ -169,7 +187,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       },
     );
     if (name != null && name.isNotEmpty) {
-      widget.services.tags.addTag(
+      await widget.services.addTag(
         noteId: widget.noteId,
         name: name,
         color: _color,
@@ -209,9 +227,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     );
     controller.dispose();
     if (value == null) return;
-    widget.services.repo.setCaption(widget.noteId, value);
-    widget.services.refreshTimeline();
-    _reload();
+    await widget.services.setCaption(widget.noteId, value);
+    await widget.services.refreshTimeline();
+    await _reload();
   }
 
   bool _summaryIsMeaningful(Note note) {
@@ -390,8 +408,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                 for (final tag in note.tags)
                   TagChip(
                     tag: tag,
-                    onRemove: () {
-                      widget.services.tags.removeTag(
+                    onRemove: () async {
+                      await widget.services.removeTag(
                         noteId: note.id,
                         tagId: tag.id,
                       );
@@ -427,8 +445,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                   for (final s in _suggestions)
                     ActionChip(
                       label: Text(s.name),
-                      onPressed: () {
-                        widget.services.tags.addTag(
+                      onPressed: () async {
+                        await widget.services.addTag(
                           noteId: note.id,
                           name: s.name,
                         );
@@ -454,8 +472,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                   title: Text(
-                    widget.services.repo.getById(hit.noteId)?.content ??
-                        hit.noteId,
+                    _relatedTitles[hit.noteId] ?? hit.noteId,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -465,15 +482,16 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
             const SizedBox(height: NexSpacing.md),
             TextButton(
               onPressed: () async {
-                await widget.services.enrichment.summarizeOnDemand(note.id);
-                _reload();
+                await widget.services.summarizeOnDemand(note.id);
+                await _reload();
               },
               child: const Text('Summarize'),
             ),
             TextButton(
-              onPressed: () {
-                widget.services.repo.softDelete(note.id);
-                Navigator.pop(context);
+              onPressed: () async {
+                await widget.services.deleteNote(note.id);
+                if (!context.mounted) return;
+                Navigator.pop(context, DetailResult.deleted);
               },
               child: const Text('Delete'),
             ),

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -18,7 +20,6 @@ class SettingsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final polish = LibraryMaintenance(services.repo);
     return SafeArea(child: SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -136,17 +137,17 @@ class SettingsSheet extends StatelessWidget {
           leading: const Icon(Icons.label_outline),
           title: Text(l10n.tags),
           onTap: () => Navigator.push(context,
-            MaterialPageRoute<void>(builder: (_) => TagManagerScreen(polish: polish))),
+            MaterialPageRoute<void>(builder: (_) => TagManagerScreen(services: services))),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.restore_from_trash_outlined),
           title: Text(l10n.recentlyDeleted),
           onTap: () => Navigator.push(context,
-            MaterialPageRoute<void>(builder: (_) => RecentlyDeletedScreen(polish: polish))),
+            MaterialPageRoute<void>(builder: (_) => RecentlyDeletedScreen(services: services))),
         ),
         FutureBuilder<StorageSnapshot>(
-          future: polish.storage(services.dbPath, services.mediaDir, services.backupDir),
+          future: services.storage(),
           builder: (context, snapshot) => ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.storage_outlined),
@@ -171,11 +172,15 @@ class SettingsSheet extends StatelessWidget {
             onPressed: () async {
               try {
                 await services.syncNow();
-                if (context.mounted) ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(l10n.syncComplete)));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text(l10n.syncComplete)));
+                }
               } catch (_) {
-                if (context.mounted) ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(l10n.operationFailed)));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.operationFailed)));
+                }
               }
             },
             child: Text(l10n.syncNow),
@@ -187,35 +192,55 @@ class SettingsSheet extends StatelessWidget {
           title: Text(l10n.export),
           onTap: () async {
             try {
-              final file = await services.exportNow();
-              if (context.mounted) ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(l10n.exportedTo(file.path))));
+              final path = await services.exportNow();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(l10n.exportedTo(path))));
+              }
             } catch (_) {
-              if (context.mounted) ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(l10n.operationFailed)));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.operationFailed)));
+              }
             }
           },
         ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.restore),
-          title: Text(l10n.restoreBackup),
-          subtitle: Text(l10n.backupCount(services.listBackups().length)),
-          onTap: services.listBackups().isEmpty ? null : () async {
-            final backup = services.listBackups().first;
-            final ok = await showDialog<bool>(context: context,
-              builder: (context) => AlertDialog(
-                title: Text(l10n.restoreBackup),
-                content: Text(l10n.restoreBody),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
-                  TextButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.restore)),
-                ],
-              ));
-            if (ok == true && context.mounted) {
-              services.restoreBackup(backup);
-              NexRestartScope.of(context).restart();
-            }
+        FutureBuilder<List<File>>(
+          future: services.listBackups(),
+          builder: (context, snapshot) {
+            final backups = snapshot.data ?? const <File>[];
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.restore),
+              title: Text(l10n.restoreBackup),
+              subtitle: Text(l10n.backupCount(backups.length)),
+              onTap: backups.isEmpty
+                  ? null
+                  : () async {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text(l10n.restoreBackup),
+                          content: Text(l10n.restoreBody),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text(l10n.cancel)),
+                            TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: Text(l10n.restore)),
+                          ],
+                        ),
+                      );
+                      if (ok != true) return;
+                      // The restore invalidates the whole service graph; the
+                      // returned token is the contract that the caller must
+                      // rebuild it.
+                      final _ = await services.restoreBackup(backups.first);
+                      if (!context.mounted) return;
+                      NexRestartScope.of(context).restart();
+                    },
+            );
           },
         ),
       ]),

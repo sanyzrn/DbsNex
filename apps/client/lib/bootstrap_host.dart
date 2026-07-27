@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'app.dart';
@@ -112,11 +111,13 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
             debugShowCheckedModeBanner: false,
             theme: nexLightTheme(),
             darkTheme: nexDarkTheme(),
-            home: const Scaffold(
+            // Semantics has no const constructor, so the subtree cannot be
+            // const from the Scaffold down — only from the Text.
+            home: Scaffold(
               body: Center(
                 child: Semantics(
                   label: 'Nex is opening',
-                  child: Text(
+                  child: const Text(
                     'Nex',
                     style: TextStyle(fontSize: 34, fontWeight: FontWeight.w600),
                   ),
