@@ -5,7 +5,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_services.dart';
-import '../platform/polish_service.dart';
+import 'package:nex_data/nex_data.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key, required this.services});
@@ -25,7 +25,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool filtersOpen = false;
   int request = 0;
 
-  late final polish = PolishService(widget.services.repo);
+  late final polish = LibraryMaintenance(widget.services.repo);
 
   @override
   void initState() { super.initState(); run(); }

@@ -57,9 +57,17 @@ Nex is deliberately black-and-white first. The surface — backgrounds, cards, c
 | `bg-primary` | `#FFFFFF` | `#0A0A0A` | App background |
 | `bg-elevated` | `#F5F4F2` | `#171717` | Cards, sheets |
 | `text-primary` | `#111113` | `#FAFAFA` | Primary text/content (mockup `--text`) |
-| `text-secondary` | `#8B8B90` | `#A3A3A3` | Timestamps, metadata, captions (mockup `--text-soft`) |
+| `text-secondary` | `#68686D` | `#A3A3A3` | Timestamps, metadata, captions |
 | `border` | `#EBEAE8` | `#262626` | Dividers, card outlines (mockup `--border`) |
 | `accent` | `#111113` (inverted per mode) | `#FAFAFA` | The `+` action, active states — never a "brand color," always the inverse of the background |
+
+>
+> **`text-secondary` (Light) deviates from the mockup deliberately.** `mockup.html`
+> uses `--text-soft:#8B8B90`, which is only **3.39:1** on `#FFFFFF` and therefore
+> fails the 4.5:1 body-text floor this document sets under
+> [Accessibility](#accessibility). `#68686D` is **5.54:1** and passes. Where the
+> mockup and the contrast rule disagree, the rule wins — the mockup is a visual
+> reference, the contrast floor is a requirement.
 
 - **Dark mode is a first-class, symmetric palette**, not an inverted afterthought — capture often happens in low light, at night, or first thing in the morning.
 - Aside from the tag accent dot, the **only** deliberate use of stronger visual weight is the `+` capture action and active/recording states (e.g., a pulsing indicator during voice capture).

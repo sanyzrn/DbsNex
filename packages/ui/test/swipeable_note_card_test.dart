@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 void main() {
-  testWidgets('swipe reveal is per-card and tap executes actions',
+  testWidgets('swipe reveals an action and tapping it fires the callback',
       (tester) async {
     var deleted = false;
     var tagged = false;
@@ -14,8 +14,8 @@ void main() {
           body: SizedBox(
             width: 400,
             child: SwipeableNoteCard(
-              cardId: 'a',
-              openCardId: null,
+              deleteLabel: 'Delete',
+              addTagLabel: 'Add Tag',
               resolveAction: ({required bool isLeading}) =>
                   isLeading ? NexSwipeAction.addTag : NexSwipeAction.delete,
               onDelete: () => deleted = true,
@@ -62,6 +62,8 @@ void main() {
           body: SizedBox(
             width: 400,
             child: SwipeableNoteCard(
+              deleteLabel: 'Delete',
+              addTagLabel: 'Add Tag',
               resolveAction: ({required bool isLeading}) =>
                   NexSwipeAction.delete,
               onDelete: () {},

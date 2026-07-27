@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_fa.dart';
 
 // ignore_for_file: type=lint
 
@@ -62,7 +63,7 @@ import 'app_localizations_en.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -85,14 +86,17 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
-  static const List<Locale> supportedLocales = <Locale>[Locale('en')];
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('fa'),
+  ];
 
   /// No description provided for @appTitle.
   ///
@@ -118,23 +122,41 @@ abstract class AppLocalizations {
   /// **'Search'**
   String get search;
 
+  /// No description provided for @searchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search notes…'**
+  String get searchHint;
+
+  /// No description provided for @searchStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start typing to find a capture.'**
+  String get searchStart;
+
   /// No description provided for @settings.
   ///
   /// In en, this message translates to:
   /// **'Settings'**
   String get settings;
 
-  /// No description provided for @text.
-  ///
-  /// In en, this message translates to:
-  /// **'Text'**
-  String get text;
-
   /// No description provided for @voice.
   ///
   /// In en, this message translates to:
   /// **'Voice'**
   String get voice;
+
+  /// No description provided for @camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get camera;
+
+  /// No description provided for @gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
 
   /// No description provided for @photo.
   ///
@@ -148,53 +170,125 @@ abstract class AppLocalizations {
   /// **'File'**
   String get file;
 
-  /// No description provided for @sync.
+  /// No description provided for @text.
   ///
   /// In en, this message translates to:
-  /// **'Sync'**
-  String get sync;
+  /// **'Text'**
+  String get text;
 
-  /// No description provided for @syncSubtitle.
+  /// No description provided for @filters.
   ///
   /// In en, this message translates to:
-  /// **'Push pending notes and pull remote changes'**
-  String get syncSubtitle;
+  /// **'Filters'**
+  String get filters;
 
-  /// No description provided for @syncNow.
+  /// No description provided for @filtersCount.
   ///
   /// In en, this message translates to:
-  /// **'Sync now'**
-  String get syncNow;
+  /// **'Filters ({count})'**
+  String filtersCount(int count);
 
-  /// No description provided for @syncOk.
+  /// No description provided for @date.
   ///
   /// In en, this message translates to:
-  /// **'Synced — pushed {pushed}, pulled {pulled}'**
-  String syncOk(int pushed, int pulled);
+  /// **'Date'**
+  String get date;
 
-  /// No description provided for @syncFailed.
+  /// No description provided for @clear.
   ///
   /// In en, this message translates to:
-  /// **'Sync failed'**
-  String get syncFailed;
+  /// **'Clear'**
+  String get clear;
 
-  /// No description provided for @emptyTimeline.
+  /// No description provided for @resultCount.
   ///
   /// In en, this message translates to:
-  /// **'Tap + to capture'**
-  String get emptyTimeline;
+  /// **'{count, plural, =0{No results} =1{1 result} other{{count} results}}'**
+  String resultCount(int count);
 
-  /// No description provided for @export.
+  /// No description provided for @nothingMatches.
   ///
   /// In en, this message translates to:
-  /// **'Export'**
-  String get export;
+  /// **'Nothing matches “{query}”.'**
+  String nothingMatches(String query);
 
-  /// No description provided for @exportSubtitle.
+  /// No description provided for @closestThing.
   ///
   /// In en, this message translates to:
-  /// **'JSON + Markdown + media archive'**
-  String get exportSubtitle;
+  /// **'The closest thing you wrote:'**
+  String get closestThing;
+
+  /// No description provided for @nothingClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing close either.'**
+  String get nothingClose;
+
+  /// No description provided for @emptyPromise.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything you put here is kept.'**
+  String get emptyPromise;
+
+  /// No description provided for @emptySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing else is asked.'**
+  String get emptySupport;
+
+  /// No description provided for @emptyType.
+  ///
+  /// In en, this message translates to:
+  /// **'type'**
+  String get emptyType;
+
+  /// No description provided for @emptySpeak.
+  ///
+  /// In en, this message translates to:
+  /// **'speak'**
+  String get emptySpeak;
+
+  /// No description provided for @emptyPhotograph.
+  ///
+  /// In en, this message translates to:
+  /// **'photograph'**
+  String get emptyPhotograph;
+
+  /// No description provided for @emptyNoSave.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no Save button.'**
+  String get emptyNoSave;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @addTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tag'**
+  String get addTag;
+
+  /// No description provided for @noteDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Note deleted'**
+  String get noteDeleted;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
 
   /// No description provided for @restore.
   ///
@@ -202,41 +296,167 @@ abstract class AppLocalizations {
   /// **'Restore'**
   String get restore;
 
-  /// No description provided for @restoreSubtitle.
+  /// No description provided for @rename.
   ///
   /// In en, this message translates to:
-  /// **'Recover from an automatic backup'**
-  String get restoreSubtitle;
+  /// **'Rename'**
+  String get rename;
 
-  /// No description provided for @restoreConfirmTitle.
+  /// No description provided for @merge.
   ///
   /// In en, this message translates to:
-  /// **'Restore backup?'**
-  String get restoreConfirmTitle;
+  /// **'Merge'**
+  String get merge;
 
-  /// No description provided for @restoreConfirmBody.
+  /// No description provided for @tags.
   ///
   /// In en, this message translates to:
-  /// **'This replaces the current local database with the selected automatic backup.'**
-  String get restoreConfirmBody;
+  /// **'Tags'**
+  String get tags;
 
-  /// No description provided for @restoreConfirmBodyNamed.
+  /// No description provided for @tagActions.
   ///
   /// In en, this message translates to:
-  /// **'This replaces the current local database with backup “{label}”. This cannot be undone from the app.'**
-  String restoreConfirmBodyNamed(String label);
+  /// **'Tag actions'**
+  String get tagActions;
 
-  /// No description provided for @chooseBackup.
+  /// No description provided for @noteCount.
   ///
   /// In en, this message translates to:
-  /// **'Choose a backup'**
-  String get chooseBackup;
+  /// **'{count, plural, =0{No notes} =1{1 note} other{{count} notes}}'**
+  String noteCount(int count);
 
-  /// No description provided for @latestBackup.
+  /// No description provided for @renameTag.
   ///
   /// In en, this message translates to:
-  /// **'Latest'**
-  String get latestBackup;
+  /// **'Rename tag'**
+  String get renameTag;
+
+  /// No description provided for @deleteTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete tag?'**
+  String get deleteTag;
+
+  /// No description provided for @deleteTagBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the tag from notes. It never deletes the notes themselves.'**
+  String get deleteTagBody;
+
+  /// No description provided for @recentlyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Deleted'**
+  String get recentlyDeleted;
+
+  /// No description provided for @recentlyDeletedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing recently deleted.'**
+  String get recentlyDeletedEmpty;
+
+  /// No description provided for @appearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get appearance;
+
+  /// No description provided for @language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// No description provided for @accessibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Accessibility'**
+  String get accessibility;
+
+  /// No description provided for @reduceMotion.
+  ///
+  /// In en, this message translates to:
+  /// **'Reduce motion'**
+  String get reduceMotion;
+
+  /// No description provided for @haptics.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture haptics'**
+  String get haptics;
+
+  /// No description provided for @quietAnniversary.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the quiet anniversary line'**
+  String get quietAnniversary;
+
+  /// No description provided for @intelligence.
+  ///
+  /// In en, this message translates to:
+  /// **'Intelligence'**
+  String get intelligence;
+
+  /// No description provided for @intelligenceLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs on this device unless Cloud AI is enabled.'**
+  String get intelligenceLocal;
+
+  /// No description provided for @about.
+  ///
+  /// In en, this message translates to:
+  /// **'About Nex'**
+  String get about;
+
+  /// No description provided for @localFirstTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stored locally'**
+  String get localFirstTitle;
+
+  /// No description provided for @localFirstBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes are stored on this device at {path}'**
+  String localFirstBody(String path);
+
+  /// No description provided for @copyPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy data path'**
+  String get copyPath;
+
+  /// No description provided for @silenceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Silence is a feature'**
+  String get silenceTitle;
+
+  /// No description provided for @silenceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex never sends notifications, badges, reminders, or engagement prompts.'**
+  String get silenceBody;
+
+  /// No description provided for @privacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get privacy;
+
+  /// No description provided for @privacyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Core capture and search do not collect or transmit your notes.'**
+  String get privacyBody;
+
+  /// No description provided for @openSourceLicenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Open-source licences'**
+  String get openSourceLicenses;
 
   /// No description provided for @themeLight.
   ///
@@ -256,60 +476,6 @@ abstract class AppLocalizations {
   /// **'System'**
   String get themeSystem;
 
-  /// No description provided for @cancel.
-  ///
-  /// In en, this message translates to:
-  /// **'Cancel'**
-  String get cancel;
-
-  /// No description provided for @addTag.
-  ///
-  /// In en, this message translates to:
-  /// **'Add Tag'**
-  String get addTag;
-
-  /// No description provided for @delete.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete'**
-  String get delete;
-
-  /// No description provided for @noteDeleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Note deleted'**
-  String get noteDeleted;
-
-  /// No description provided for @undo.
-  ///
-  /// In en, this message translates to:
-  /// **'Undo'**
-  String get undo;
-
-  /// No description provided for @swipeActions.
-  ///
-  /// In en, this message translates to:
-  /// **'Swipe actions'**
-  String get swipeActions;
-
-  /// No description provided for @swipeSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Left: {leading} · Right: {trailing}'**
-  String swipeSummary(String leading, String trailing);
-
-  /// No description provided for @swapSwipeMapping.
-  ///
-  /// In en, this message translates to:
-  /// **'Swap left / right actions'**
-  String get swapSwipeMapping;
-
-  /// No description provided for @appearance.
-  ///
-  /// In en, this message translates to:
-  /// **'Appearance'**
-  String get appearance;
-
   /// No description provided for @comfortMode.
   ///
   /// In en, this message translates to:
@@ -319,14 +485,56 @@ abstract class AppLocalizations {
   /// No description provided for @comfortModeSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Lower contrast, warmer colors — independent of Light/Dark'**
+  /// **'Lower contrast and warmer colors, independent of Light or Dark'**
   String get comfortModeSubtitle;
 
-  /// No description provided for @recording.
+  /// No description provided for @languageSystem.
   ///
   /// In en, this message translates to:
-  /// **'Recording…'**
-  String get recording;
+  /// **'System'**
+  String get languageSystem;
+
+  /// No description provided for @languageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
+  /// No description provided for @languagePersian.
+  ///
+  /// In en, this message translates to:
+  /// **'Persian'**
+  String get languagePersian;
+
+  /// No description provided for @quietAnniversarySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Only inside Nex. Never a notification or badge.'**
+  String get quietAnniversarySubtitle;
+
+  /// No description provided for @storage.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage'**
+  String get storage;
+
+  /// No description provided for @storageUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} used locally'**
+  String storageUsed(String size);
+
+  /// No description provided for @stopRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop recording'**
+  String get stopRecording;
+
+  /// No description provided for @recordingElapsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording, {elapsed}'**
+  String recordingElapsed(String elapsed);
 
   /// No description provided for @discard.
   ///
@@ -334,77 +542,161 @@ abstract class AppLocalizations {
   /// **'Discard'**
   String get discard;
 
-  /// No description provided for @micPermission.
+  /// No description provided for @captureFailed.
   ///
   /// In en, this message translates to:
-  /// **'Microphone permission required'**
-  String get micPermission;
+  /// **'Capture could not be stored. Your existing notes were not changed.'**
+  String get captureFailed;
 
-  /// No description provided for @gallerySwitch.
+  /// No description provided for @oneYearAgo.
   ///
   /// In en, this message translates to:
-  /// **'No photo captured. Switch to gallery?'**
-  String get gallerySwitch;
+  /// **'{count, plural, =1{One year ago · 1 capture} other{One year ago · {count} captures}}'**
+  String oneYearAgo(int count);
 
-  /// No description provided for @gallery.
+  /// No description provided for @noteNotFound.
   ///
   /// In en, this message translates to:
-  /// **'Gallery'**
-  String get gallery;
+  /// **'Note not found'**
+  String get noteNotFound;
 
-  /// No description provided for @searchHint.
+  /// No description provided for @mediaUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Search notes…'**
-  String get searchHint;
+  /// **'This media file is unavailable.'**
+  String get mediaUnavailable;
 
-  /// No description provided for @date.
+  /// No description provided for @copy.
   ///
   /// In en, this message translates to:
-  /// **'Date'**
-  String get date;
+  /// **'Copy'**
+  String get copy;
 
-  /// No description provided for @clear.
+  /// No description provided for @share.
   ///
   /// In en, this message translates to:
-  /// **'Clear'**
-  String get clear;
+  /// **'Share'**
+  String get share;
 
-  /// No description provided for @voiceSearchHint.
+  /// No description provided for @swipeActions.
   ///
   /// In en, this message translates to:
-  /// **'Voice notes: searchable by tag/date only'**
-  String get voiceSearchHint;
+  /// **'Swipe actions'**
+  String get swipeActions;
 
-  /// No description provided for @tag.
+  /// No description provided for @swapSwipeMapping.
   ///
   /// In en, this message translates to:
-  /// **'Tag'**
-  String get tag;
+  /// **'Swap start and end actions'**
+  String get swapSwipeMapping;
 
-  /// No description provided for @add.
+  /// No description provided for @transcription.
   ///
   /// In en, this message translates to:
-  /// **'Add'**
-  String get add;
+  /// **'Transcription'**
+  String get transcription;
 
-  /// No description provided for @searchableByTagDateOnly.
+  /// No description provided for @ocr.
   ///
   /// In en, this message translates to:
-  /// **'Searchable by tag/date only'**
-  String get searchableByTagDateOnly;
+  /// **'OCR'**
+  String get ocr;
 
-  /// No description provided for @widgetLabel.
+  /// No description provided for @tagSuggestions.
   ///
   /// In en, this message translates to:
-  /// **'Quick Capture'**
-  String get widgetLabel;
+  /// **'Tag suggestions'**
+  String get tagSuggestions;
 
-  /// No description provided for @widgetDescription.
+  /// No description provided for @semanticSearch.
   ///
   /// In en, this message translates to:
-  /// **'Open Nex directly into text capture'**
-  String get widgetDescription;
+  /// **'Semantic search'**
+  String get semanticSearch;
+
+  /// No description provided for @summarization.
+  ///
+  /// In en, this message translates to:
+  /// **'Summarization'**
+  String get summarization;
+
+  /// No description provided for @relatedNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Related notes'**
+  String get relatedNotes;
+
+  /// No description provided for @cloudAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud AI (opt-in)'**
+  String get cloudAi;
+
+  /// No description provided for @cloudAiSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Core capture always works without it.'**
+  String get cloudAiSubtitle;
+
+  /// No description provided for @sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get sync;
+
+  /// No description provided for @syncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get syncNow;
+
+  /// No description provided for @syncComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync complete'**
+  String get syncComplete;
+
+  /// No description provided for @export.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get export;
+
+  /// No description provided for @exportedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported to {path}'**
+  String exportedTo(String path);
+
+  /// No description provided for @restoreBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore backup'**
+  String get restoreBackup;
+
+  /// No description provided for @restoreBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the local database with the newest verified backup?'**
+  String get restoreBody;
+
+  /// No description provided for @backupCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No backups} =1{1 backup} other{{count} backups}}'**
+  String backupCount(int count);
+
+  /// No description provided for @operationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The operation failed. Your existing notes were not changed.'**
+  String get operationFailed;
+
+  /// No description provided for @noteType.
+  ///
+  /// In en, this message translates to:
+  /// **'{type, select, text{Text} voice{Voice} photo{Photo} file{File} other{Note}}'**
+  String noteType(String type);
 }
 
 class _AppLocalizationsDelegate
@@ -418,7 +710,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en'].contains(locale.languageCode);
+      <String>['en', 'fa'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -429,11 +721,14 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'fa':
+      return AppLocalizationsFa();
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
 }

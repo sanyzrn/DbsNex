@@ -24,6 +24,7 @@ export 'package:nex_core/nex_core.dart'
         sha256OfBytes,
         sha256OfFile;
 
+export 'repositories/library_maintenance.dart';
 export 'repositories/note_repository.dart';
 export 'schema/database.dart';
 export 'sync_client/sync_client.dart';

@@ -73,9 +73,10 @@ class NoteCard extends StatelessWidget {
   }
 
   String _label() => [
-    note.type.name + ' note',
+    '${note.type.name} note',
     note.searchableDerivedText ?? '',
-    if (note.tags.isNotEmpty) 'Tags: ' + note.tags.map((tag) => tag.name).join(', '),
+    if (note.tags.isNotEmpty)
+      'Tags: ${note.tags.map((tag) => tag.name).join(', ')}',
   ].where((value) => value.isNotEmpty).join('. ');
 }
 

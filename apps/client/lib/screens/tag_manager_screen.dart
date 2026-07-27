@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
-import '../platform/polish_service.dart';
+import 'package:nex_data/nex_data.dart';
 
 class TagManagerScreen extends StatefulWidget {
   const TagManagerScreen({super.key, required this.polish});
-  final PolishService polish;
+  final LibraryMaintenance polish;
   @override
   State<TagManagerScreen> createState() => _TagManagerScreenState();
 }

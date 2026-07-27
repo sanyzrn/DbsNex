@@ -1,10 +1,24 @@
 import 'dart:io';
 import 'dart:math' as math;
+
 import 'package:nex_core/nex_core.dart';
 
-class PolishService {
-  const PolishService(this.repo);
-  final NoteRepository repo;
+import 'note_repository.dart';
+
+/// Library maintenance: the trash view, the tag manager and the storage
+/// breakdown.
+///
+/// This lived in apps/client as `PolishService` and reached straight into
+/// `repo.db` to run raw SQL — on the UI isolate, which is what the database
+/// worker exists to prevent. It is storage code, so it belongs in the storage
+/// layer, and it is constructed inside the worker isolate alongside the
+/// repository it drives.
+///
+/// Typed against [SqliteNoteRepository] rather than the [NoteRepository] port:
+/// it needs the raw handle, which the port deliberately does not expose.
+class LibraryMaintenance {
+  const LibraryMaintenance(this.repo);
+  final SqliteNoteRepository repo;
 
   List<Note> deletedNotes({int limit = 200}) => repo.db
       .select('SELECT * FROM notes WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT ?', [limit])
@@ -44,12 +58,6 @@ class PolishService {
   }
 
   void deleteTag(String id) => repo.db.execute('DELETE FROM tags WHERE id = ?', [id]);
-
-  List<Note> sameMedia(String noteId, String hash) => repo.db
-      .select('''SELECT * FROM notes WHERE deleted_at IS NULL
-                 AND id != ? AND media_hash = ? ORDER BY created_at DESC''', [noteId, hash])
-      .map((row) => Note.fromRow(row, tags: repo.tagsForNote(row['id'] as String)))
-      .toList();
 
   List<Note> anniversary(DateTime now) {
     final start = DateTime.utc(now.year - 1, now.month, now.day);
