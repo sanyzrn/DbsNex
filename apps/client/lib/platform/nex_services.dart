@@ -3,112 +3,147 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
+import 'backup_policy.dart';
+import 'db_worker.dart';
+import 'media_picker_impl.dart';
 import 'nex_preferences.dart';
+
+/// Thrown when sync is invoked before the device has been paired with a server.
+class SyncNotConfigured implements Exception {
+  const SyncNotConfigured();
+
+  @override
+  String toString() =>
+      'Sync is not configured. Pair this device with a Nex server first.';
+}
+
+/// Returned by [NexServices.restoreBackup] so a restore cannot silently leave a
+/// dead service graph in place. The caller must feed it to NexRestartScope.
+@immutable
+class RestartRequired {
+  const RestartRequired();
+}
 
 /// App-wide services. Capture path never awaits AI (09-ai.md).
 ///
-/// Depends only on `nex_core` — never on `packages/ai` — so deleting the AI
-/// package leaves this client compiling (Phase 3 deletability guarantee).
+/// Depends on nex_core contracts plus the nex_data composition — never on
+/// packages/ai — so deleting the AI package leaves this client compiling
+/// (Phase 3 deletability guarantee).
+///
+/// All database work is delegated to [NexDbWorker], a dedicated isolate. The UI
+/// isolate never calls sqlite3 directly.
 class NexServices {
   NexServices._({
-    required this.db,
-    required this.repo,
-    required this.capture,
-    required this.tags,
-    required this.search,
+    required this.worker,
     required this.enrichment,
+    required this.mediaPicker,
+    required this.deviceId,
     required this.dbPath,
     required this.mediaDir,
     required this.backupDir,
-  });
+    required BackupPolicy backupPolicy,
+    required NexPreferences preferences,
+  })  : _backupPolicy = backupPolicy,
+        _preferences = preferences;
 
-  final NexDatabase db;
-  final NoteRepository repo;
-  final CaptureService capture;
-  final TagService tags;
-  final SearchService search;
+  final NexDbWorker worker;
   final EnrichmentService enrichment;
+  final MediaPicker mediaPicker;
+  final String deviceId;
   final String dbPath;
   final String mediaDir;
   final String backupDir;
 
-  final _timelineController = StreamController<List<Note>>.broadcast();
+  final BackupPolicy _backupPolicy;
+  final NexPreferences _preferences;
 
+  final _timelineController = StreamController<List<Note>>.broadcast();
   Stream<List<Note>> get timelineStream => _timelineController.stream;
 
+  bool _closed = false;
+
   /// [aiAdapter] is injected from Core types only. Defaults to
-  /// [AIAdapterBinding.instance] (NullAIAdapter until a composition root
-  /// binds an on-device or cloud adapter).
+  /// [AIAdapterBinding.instance] (NullAIAdapter until a composition root binds
+  /// an on-device or cloud adapter).
   static Future<NexServices> bootstrap({
     String? deviceId,
-    NexPreferences? preferences,
+    required NexPreferences preferences,
     AIAdapter? aiAdapter,
+    MediaPicker? mediaPicker,
   }) async {
-    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isWindows)) {
+    if (!kIsWeb &&
+        (Platform.isAndroid || Platform.isIOS || Platform.isWindows)) {
       await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
     }
+
     final support = await getApplicationSupportDirectory();
     final dbPath = p.join(support.path, 'nex.sqlite');
     final mediaDir = p.join(support.path, 'media');
     final backupDir = p.join(support.path, 'backups');
-    Directory(mediaDir).createSync(recursive: true);
-    Directory(backupDir).createSync(recursive: true);
 
-    final db = NexDatabase.open(dbPath);
-    final id = deviceId ?? Platform.localHostname;
-    final repo = NoteRepository(db, localDeviceId: id);
-    final caps = preferences?.aiCapabilities ?? const AiCapabilities();
+    // Async filesystem APIs — createSync blocked the UI isolate.
+    await Directory(mediaDir).create(recursive: true);
+    await Directory(backupDir).create(recursive: true);
+
+    // Stable, persisted UUID. Never Platform.localHostname, which is
+    // "localhost" on Android and renameable on Windows.
+    final id = deviceId ?? await preferences.stableDeviceId();
+
+    final worker = await NexDbWorker.spawn(dbPath: dbPath, deviceId: id);
+
     final enrichment = EnrichmentService(
-      repo: repo,
+      worker: worker,
       adapter: aiAdapter ?? AIAdapterBinding.instance,
-      capabilities: caps,
+      capabilities: preferences.aiCapabilities,
     );
+
     final services = NexServices._(
-      db: db,
-      repo: repo,
-      capture: CaptureService(repo, deviceId: id),
-      tags: TagService(repo),
-      search: SearchService(repo),
+      worker: worker,
       enrichment: enrichment,
+      mediaPicker: mediaPicker ?? PlatformMediaPicker(),
+      deviceId: id,
       dbPath: dbPath,
       mediaDir: mediaDir,
       backupDir: backupDir,
+      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
+      preferences: preferences,
     );
-    services.refreshTimeline();
-    try {
-      services.repo.backup(backupDir);
-    } catch (_) {
-      // Fail open — never block launch on backup.
-    }
+
+    unawaited(services.refreshTimeline());
+    unawaited(services._maybeBackupInBackground());
+
     return services;
   }
 
+  @visibleForTesting
   static NexServices forTest({
-    required NexDatabase db,
-    required NoteRepository repo,
-    required CaptureService capture,
-    required TagService tags,
-    required SearchService search,
+    required NexDbWorker worker,
+    required String deviceId,
+    required NexPreferences preferences,
+    required BackupPolicy backupPolicy,
     EnrichmentService? enrichment,
+    MediaPicker? mediaPicker,
     required String dbPath,
     required String mediaDir,
     required String backupDir,
   }) {
     return NexServices._(
-      db: db,
-      repo: repo,
-      capture: capture,
-      tags: tags,
-      search: search,
+      worker: worker,
       enrichment: enrichment ??
-          EnrichmentService(repo: repo, adapter: const NullAIAdapter()),
+          EnrichmentService(worker: worker, adapter: const NullAIAdapter()),
+      mediaPicker: mediaPicker ?? PlatformMediaPicker(),
+      deviceId: deviceId,
       dbPath: dbPath,
       mediaDir: mediaDir,
       backupDir: backupDir,
+      backupPolicy: backupPolicy,
+      preferences: preferences,
     );
   }
 
@@ -121,70 +156,110 @@ class NexServices {
     unawaited(enrichment.enrichNote(noteId));
   }
 
-  void refreshTimeline() {
-    _timelineController.add(search.timeline(limit: 200));
+  Future<void> refreshTimeline() async {
+    if (_closed) return;
+    _timelineController.add(await worker.timeline(limit: 200));
   }
 
-  List<Note> loadMore({required int offset, int limit = 50}) {
-    return search.timeline(limit: limit, offset: offset);
+  Future<List<Note>> loadMore({required int offset, int limit = 50}) =>
+      worker.loadMore(offset: offset, limit: limit);
+
+  /// Backup is throttled and runs off the launch path, inside the worker
+  /// isolate. It used to be a synchronous full-file copy on every launch.
+  Future<void> _maybeBackupInBackground() async {
+    await Future<void>.delayed(const Duration(seconds: 5));
+    if (_closed) return;
+
+    try {
+      if (await _backupPolicy.isDue()) {
+        await worker.backup(backupDir);
+        await _backupPolicy.markDone();
+      }
+    } catch (_) {
+      // Fail open — never block or crash the app on backup.
+    }
   }
 
-  Future<File> exportNow() {
+  Future<String> exportNow() {
     final stamp = DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
-    final out = p.join(
-      Directory.systemTemp.path,
-      'nex-export-$stamp.zip',
-    );
-    return repo.exportArchive(outputPath: out, mediaRoot: mediaDir);
+    final out = p.join(Directory.systemTemp.path, 'nex-export-' + stamp + '.zip');
+    return worker.exportArchive(outputPath: out, mediaRoot: mediaDir);
   }
 
-  String get deviceId => capture.deviceId;
+  /// Runs a sync cycle against the user-configured endpoint.
+  ///
+  /// There is no default endpoint: http://127.0.0.1:4000 resolved to the device
+  /// itself and is blocked as cleartext on Android 9+. Release builds refuse a
+  /// non-HTTPS endpoint outright.
+  Future<SyncResult> syncNow({String? baseUrl, String? bearerToken}) async {
+    final url = baseUrl ?? _preferences.syncBaseUrl;
+    if (url == null || url.isEmpty) throw const SyncNotConfigured();
 
-  Future<SyncResult> syncNow({String baseUrl = 'http://127.0.0.1:4000'}) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasAuthority) throw const SyncNotConfigured();
+
+    if (uri.scheme != 'https' && kReleaseMode) {
+      throw StateError('Refusing to sync over cleartext in a release build.');
+    }
+
     final client = SyncClient(
-      baseUrl: baseUrl,
+      baseUrl: url,
       deviceId: deviceId,
-      repo: repo,
+      worker: worker,
+      bearerToken: bearerToken,
     );
+
     try {
       final result = await client.sync();
-      refreshTimeline();
+      await refreshTimeline();
       return result;
     } finally {
       client.close();
     }
   }
 
-  void restoreLatestBackup() {
-    final backups = listBackups();
-    if (backups.isEmpty) {
-      throw StateError('No backups available');
-    }
-    restoreBackup(backups.first);
-  }
-
   /// Newest-first list of local SQLite backup files (FR-7.2).
-  List<File> listBackups() {
+  Future<List<File>> listBackups() async {
     final dir = Directory(backupDir);
-    if (!dir.existsSync()) return const [];
-    return dir
-        .listSync()
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.sqlite'))
-        .toList()
-      ..sort((a, b) => b.path.compareTo(a.path));
+    if (!await dir.exists()) return const [];
+
+    final entries = await dir
+        .list()
+        .where((e) => e is File && e.path.endsWith('.sqlite'))
+        .cast<File>()
+        .toList();
+
+    entries.sort((a, b) => b.path.compareTo(a.path));
+    return entries;
   }
 
-  void restoreBackup(File backup) {
-    db.close();
-    NexDatabase.restoreFromBackup(
-      liveDbPath: dbPath,
-      backupFile: backup.path,
-    );
+  Future<RestartRequired> restoreLatestBackup() async {
+    final backups = await listBackups();
+    if (backups.isEmpty) throw StateError('No backups available');
+    return restoreBackup(backups.first);
   }
 
-  void dispose() {
-    _timelineController.close();
-    db.close();
+  /// Restores from [backup] and invalidates this service graph.
+  ///
+  /// The caller MUST rebuild via NexRestartScope.of(context).restart(). The
+  /// [RestartRequired] return value makes that contract explicit — previously
+  /// restore closed the database and returned void, leaving every field
+  /// dangling, and dispose() then closed the same handle a second time.
+  @useResult
+  Future<RestartRequired> restoreBackup(File backup) async {
+    await _closeOnce();
+    NexDatabase.restoreFromBackup(liveDbPath: dbPath, backupFile: backup.path);
+    return const RestartRequired();
+  }
+
+  Future<void> _closeOnce() async {
+    if (_closed) return;
+    _closed = true;
+    await worker.close();
+  }
+
+  Future<void> dispose() async {
+    await _timelineController.close();
+    await _closeOnce();
   }
 }

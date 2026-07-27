@@ -1,80 +1,121 @@
 import type { Request, Response, Router } from "express";
 import { Router as createRouter } from "express";
+import { z } from "zod";
 
-import { migrate } from "../db/migrate.ts";
+import { getPool } from "../db/index.ts";
+import { env } from "../env.ts";
+import { BadRequest, NotFound } from "../http/errors.ts";
+import { assertOwnDevice, auth } from "../middleware/auth.ts";
 import { pullChanges, pushChanges } from "../services/sync-service.ts";
 
 export const syncRouter: Router = createRouter();
 
-syncRouter.post("/migrate", async (_req: Request, res: Response) => {
-  try {
-    await migrate();
-    res.json({ status: "ok" });
-  } catch (e) {
-    res.status(500).json({
-      error: "MigrateFailed",
-      message: e instanceof Error ? e.message : String(e),
-    });
-  }
+const isoString = z.string().refine((v) => !Number.isNaN(Date.parse(v)), {
+  message: "must be a valid ISO-8601 instant",
+});
+
+const incomingTag = z.object({
+  id: z.string().min(1).max(128),
+  name: z.string().min(1).max(200),
+  color: z.string().max(32).nullish(),
+  created_at: isoString,
+});
+
+const incomingNote = z.object({
+  id: z.string().min(1).max(128),
+  type: z.enum(["text", "voice", "photo", "file"]),
+  content: z.string().nullish(),
+  media_uri: z.string().max(2048).nullish(),
+  media_hash: z.string().max(128).nullish(),
+  duration_ms: z.number().int().nonnegative().nullish(),
+  created_at: isoString,
+  updated_at: isoString,
+  deleted_at: isoString.nullish(),
+  device_id: z.string().min(1).max(128),
+  rev: z.number().int().nonnegative(),
+  tags: z.array(incomingTag).max(200).optional(),
+});
+
+const pushSchema = z.object({
+  device_id: z.string().min(1).max(128),
+  notes: z.array(incomingNote).max(500).default([]),
+  tags: z.array(incomingTag).max(500).default([]),
+});
+
+const pullSchema = z.object({
+  since: z
+    .string()
+    .regex(/^\d+$/, "since must be a non-negative integer cursor")
+    .optional(),
 });
 
 /** Push local outbox changes; server applies field-aware merge (ADR-020). */
 syncRouter.post("/push", async (req: Request, res: Response) => {
-  try {
-    const deviceId = String(req.body?.device_id ?? "");
-    if (!deviceId) {
-      res.status(400).json({ error: "device_id required" });
-      return;
-    }
-    const result = await pushChanges({
-      device_id: deviceId,
-      notes: Array.isArray(req.body?.notes) ? req.body.notes : [],
-      tags: Array.isArray(req.body?.tags) ? req.body.tags : [],
-    });
-    res.json(result);
-  } catch (e) {
-    res.status(500).json({
-      error: "PushFailed",
-      message: e instanceof Error ? e.message : String(e),
-    });
+  const parsed = pushSchema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new BadRequest("invalid push payload", parsed.error.flatten().fieldErrors);
   }
+
+  const { userId, deviceId } = auth(req);
+  assertOwnDevice(req, parsed.data.device_id);
+
+  const result = await pushChanges({
+    user_id: userId,
+    device_id: deviceId,
+    notes: parsed.data.notes,
+    tags: parsed.data.tags,
+  });
+
+  res.json(result);
 });
 
-/** Pull remote deltas since a watermark. */
+/**
+ * Pull remote deltas since an opaque integer cursor.
+ *
+ * The cursor is a sequence value produced by the database, not a timestamp
+ * produced by the Node process, so clock skew can no longer drop rows.
+ */
 syncRouter.get("/pull", async (req: Request, res: Response) => {
-  try {
-    const deviceId = String(req.query.device_id ?? "");
-    if (!deviceId) {
-      res.status(400).json({ error: "device_id required" });
-      return;
-    }
-    const since = req.query.since ? String(req.query.since) : null;
-    const result = await pullChanges({ device_id: deviceId, since });
-    res.json(result);
-  } catch (e) {
-    res.status(500).json({
-      error: "PullFailed",
-      message: e instanceof Error ? e.message : String(e),
-    });
+  const parsed = pullSchema.safeParse(req.query);
+  if (!parsed.success) {
+    throw new BadRequest("invalid pull query", parsed.error.flatten().fieldErrors);
   }
+
+  const { userId, deviceId } = auth(req);
+
+  const result = await pullChanges({
+    user_id: userId,
+    device_id: deviceId,
+    since: parsed.data.since ?? "0",
+  });
+
+  res.json(result);
 });
 
-/** Test-only reset — enabled when NEX_TEST_MODE=1. */
-syncRouter.post("/test/reset", async (_req: Request, res: Response) => {
-  if (process.env.NEX_TEST_MODE !== "1") {
-    res.status(404).json({ error: "NotFound" });
-    return;
-  }
-  try {
-    const { getPool } = await import("../db/index.ts");
-    await getPool().query(`
-TRUNCATE note_tags, notes, tags, media_objects, device_acks CASCADE;
-`);
-    res.json({ status: "ok" });
-  } catch (e) {
-    res.status(500).json({
-      error: "ResetFailed",
-      message: e instanceof Error ? e.message : String(e),
-    });
-  }
+/**
+ * Test-only reset — enabled when NEX_TEST_MODE=1.
+ *
+ * Scoped to the authenticated user so it cannot wipe another tenant even in a
+ * shared test environment. The unauthenticated POST /sync/migrate DDL trigger
+ * that used to live here has been removed; migrations are an explicit deploy
+ * step (`npm run migrate`).
+ */
+syncRouter.post("/test/reset", async (req: Request, res: Response) => {
+  if (!env.isTestMode) throw new NotFound();
+
+  const { userId } = auth(req);
+  await getPool().query(
+    `DELETE FROM note_tags
+       WHERE note_id IN (SELECT id FROM notes WHERE user_id = $1)`,
+    [userId],
+  );
+  await getPool().query("DELETE FROM notes WHERE user_id = $1", [userId]);
+  await getPool().query("DELETE FROM tags WHERE user_id = $1", [userId]);
+  await getPool().query("DELETE FROM media_objects WHERE user_id = $1", [userId]);
+  await getPool().query(
+    "UPDATE device_acks SET last_pull_seq = 0 WHERE user_id = $1",
+    [userId],
+  );
+
+  res.json({ status: "ok" });
 });

@@ -5,22 +5,32 @@
   "description": "Nex minimal sync API — present from v1 as infrastructure, dormant until v2 sync ships.",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.6"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "node --experimental-strip-types src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "start:dev": "tsx src/index.ts",
+    "migrate": "node dist/db/migrate-cli.js",
+    "migrate:dev": "tsx src/db/migrate-cli.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "tsx --test src/services/merge.test.ts"
+    "test": "tsx --test src/services/merge.test.ts src/services/merge.conformance.test.ts"
   },
   "dependencies": {
+    "cors": "2.8.5",
     "dotenv": "16.4.7",
     "express": "4.21.2",
-    "pg": "8.13.1"
+    "express-async-errors": "3.1.1",
+    "express-rate-limit": "7.5.0",
+    "helmet": "8.0.0",
+    "pg": "8.13.1",
+    "zod": "3.24.1"
   },
   "devDependencies": {
     "@eslint/js": "9.18.0",
+    "@types/cors": "2.8.17",
     "@types/express": "4.17.21",
     "@types/node": "22.10.5",
     "@types/pg": "8.11.10",

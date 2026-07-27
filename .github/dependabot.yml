@@ -1,0 +1,36 @@
+version: 2
+
+# Dependency drift used to accumulate silently across three ecosystems until an
+# upgrade became a large, risky batch — just_audio 0.9.x and flutter_lints 4.x
+# were already behind by the time of the audit.
+updates:
+  - package-ecosystem: npm
+    directory: /apps/backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      backend-dev:
+        dependency-type: development
+      backend-prod:
+        dependency-type: production
+        update-types: [minor, patch]
+
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: gradle
+    directory: /apps/client/android
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3

@@ -1,0 +1,21 @@
+# Default owner for anything not matched below.
+*                                   @sanyzrn
+
+# Correctness-critical: the sync protocol and its conformance corpus.
+/apps/backend/src/services/         @sanyzrn
+/apps/backend/src/db/migrations/    @sanyzrn
+/packages/core/lib/sync/            @sanyzrn
+/spec/merge-conformance.json        @sanyzrn
+
+# Security boundary.
+/apps/backend/src/middleware/       @sanyzrn
+/apps/backend/src/routes/auth.ts    @sanyzrn
+
+# Architectural decisions are binding — see docs/10-decisions.md.
+/docs/10-decisions.md               @sanyzrn
+/packages/core/lib/nex_core.dart    @sanyzrn
+/packages/core/lib/ports/           @sanyzrn
+
+# Release and signing.
+/.github/workflows/                 @sanyzrn
+/apps/client/android/app/build.gradle.kts  @sanyzrn

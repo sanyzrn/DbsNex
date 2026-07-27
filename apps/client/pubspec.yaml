@@ -5,34 +5,48 @@ description: >-
 publish_to: "none"
 version: 0.1.1
 
+# Member of the root pub workspace: one shared resolution, one lockfile.
+resolution: workspace
+
 environment:
-  sdk: ^3.5.0
-  flutter: ">=3.24.0"
+  sdk: ^3.9.0
+  flutter: ">=3.35.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  image_picker: ^1.1.2
   file_selector: ^1.0.3
-  intl: any
-  just_audio: ^0.9.40
+  image_picker: ^1.1.2
+  # Pinned to the version flutter_localizations resolves against on 3.35.x.
+  # "any" delegated the constraint entirely to whatever Flutter stable was
+  # installed at build time.
+  intl: ^0.20.2
+  just_audio: ^0.10.0
+  # Endorses the Windows implementation. Without it every playback call throws
+  # MissingPluginException on a first-class v1 target.
+  just_audio_windows: ^0.2.2
+  # Declared explicitly: the app is the composition root and owns the SQLite
+  # database. It used to arrive silently through nex_core's re-export.
   nex_core:
     path: ../../packages/core
+  nex_data:
+    path: ../../packages/data
   nex_ui:
     path: ../../packages/ui
   path: ^1.9.1
   path_provider: ^2.1.5
-  record: ^6.0.0
+  record: ^6.1.1
   shared_preferences: ^2.3.3
   sqlite3: ^2.7.5
   sqlite3_flutter_libs: ^0.5.28
+  uuid: ^4.5.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true

@@ -1,31 +1,30 @@
 name: nex_ui
 description: >-
-  Shared Flutter widget and design-token package for Nex.
+  Shared Flutter widget and design-token package for Nex. Depends on the core
+  domain models only — never on the storage or transport layer.
 publish_to: "none"
-version: 0.0.1
+version: 0.1.0
+
+resolution: workspace
 
 environment:
-  sdk: ^3.5.0
-  flutter: ">=3.24.0"
-
+  sdk: ^3.9.0
+  flutter: ">=3.35.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
+  # After the re-export removal this is pure domain: no sqlite3, no archive,
+  # no http in the design system's dependency closure.
   nex_core:
     path: ../core
-  intl: any
-  path: ^1.9.0
-
-
-
+  intl: ^0.20.2
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
-
-

@@ -1,19 +1,23 @@
 name: nex_core
 description: >-
-  Nex core domain layer. Platform-agnostic, pure Dart, zero Flutter dependency.
-  Dependency rule (06-development.md): apps/* -> packages/core -> packages/data.
+  Nex core domain layer. Platform-agnostic, pure Dart, zero Flutter dependency,
+  zero storage dependency. Dependency rule (06-development.md):
+  apps/* -> packages/core and packages/data -> packages/core. Core is the
+  bottom of the graph and depends on nothing in this repository.
 publish_to: "none"
-version: 0.0.1
+version: 0.1.0
+
+resolution: workspace
 
 environment:
-  sdk: ^3.5.0
+  sdk: ^3.9.0
 
 dependencies:
   crypto: ^3.0.6
-  nex_data:
-    path: ../data
   uuid: ^4.5.1
+  # nex_data removed. Core used to depend on the storage layer AND re-export it
+  # wholesale, which inverted the documented layering.
 
 dev_dependencies:
-  lints: ^4.0.0
+  lints: ^5.0.0
   test: ^1.25.0

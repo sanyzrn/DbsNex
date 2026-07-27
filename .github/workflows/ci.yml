@@ -4,15 +4,24 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Callable from release.yml so a tag cannot ship unverified code.
+  workflow_call:
 
-# Phase 1 pipeline (11-build-prompt.md): Dart analyze/lint, `dart test` for
+# Pushing three commits to a PR used to run three full matrices in parallel,
+# including a 2x-billed Windows runner.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Phase 1 pipeline (11-build-prompt.md): Dart analyze/lint, dart test for
 # packages/* (including SQLite/FTS integration), Flutter analyze/test/build for
-# apps/client, and backend lint/typecheck.
+# apps/client, and backend lint/typecheck/test.
 
 jobs:
   dart-packages:
     name: Pure Dart packages (analyze + test, no Flutter SDK)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -24,18 +33,43 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: "3.9.0"
       # sqlite3 Dart FFI needs the system library (packages/data uses package:sqlite3).
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml') }}
+          restore-keys: pub-${{ runner.os }}-
       # Proves packages/core and packages/data carry zero Flutter dependency:
       # this job never installs Flutter.
       - run: dart pub get
       - run: dart analyze --fatal-infos
       - run: dart test
 
-  flutter-ui-package:
-    name: packages/ui (analyze + test)
+  core-boundary:
+    name: packages/core must not re-export the storage layer
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert nex_core does not re-export nex_data
+        run: |
+          if grep -q "export 'package:nex_data" packages/core/lib/nex_core.dart; then
+            echo "::error::packages/core must not re-export packages/data (06-development.md dependency rule)"
+            exit 1
+          fi
+      - name: Assert nex_core does not depend on nex_data
+        run: |
+          if grep -q "nex_data" packages/core/pubspec.yaml; then
+            echo "::error::packages/core must not depend on nex_data — the arrow is data -> core"
+            exit 1
+          fi
+
+  flutter-ui-package:
+    name: packages/ui (analyze + test + dependency closure)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: packages/ui
@@ -43,14 +77,25 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version-file: .flutter-version
           channel: stable
+          cache: true
       - run: flutter pub get
+      # A design system must not carry native FFI, archive or HTTP transitively.
+      - name: Assert the design system has no storage dependency
+        run: |
+          flutter pub deps --style=compact --no-dev | tee deps.txt
+          if grep -Eq '(^|[[:space:]])(sqlite3|archive|http)[[:space:]]' deps.txt; then
+            echo "::error::packages/ui must not depend on the storage or transport layer"
+            exit 1
+          fi
       - run: flutter analyze --fatal-infos
       - run: flutter test
 
   client-android:
     name: apps/client (analyze + test + Android build)
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: apps/client
@@ -62,15 +107,19 @@ jobs:
           java-version: "17"
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version-file: .flutter-version
           channel: stable
+          cache: true
+      - uses: gradle/actions/setup-gradle@v4
       - run: flutter pub get
       - run: flutter analyze --fatal-infos
       - run: flutter test
       - run: flutter build apk --debug
 
   client-windows:
-    name: apps/client (Windows desktop build)
+    name: apps/client (Windows desktop build + platform tests)
     runs-on: windows-latest
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: apps/client
@@ -78,14 +127,42 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version-file: .flutter-version
           channel: stable
+          cache: true
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
+      # Plugin availability is a runtime concern: building alone hid the fact
+      # that just_audio had no Windows implementation.
+      - run: flutter test test/platform_capability_test.dart
       - run: flutter build windows --debug
 
+  client-ios:
+    name: apps/client (iOS compile check, no signing)
+    runs-on: macos-14
+    timeout-minutes: 45
+    # Only on push — macOS minutes are billed at 10x.
+    if: github.event_name == 'push' || github.event_name == 'workflow_call'
+    defaults:
+      run:
+        working-directory: apps/client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .flutter-version
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      # The ios/ directory is committed but was never built, so its Podfile,
+      # deployment target and plugin registrations drifted silently on every
+      # dependency change.
+      - run: flutter build ios --debug --no-codesign
+
   backend:
-    name: apps/backend (lint + typecheck)
+    name: apps/backend (lint + typecheck + test + build + boot)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: apps/backend
@@ -93,15 +170,66 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-      - run: npm install
+          # --experimental-strip-types requires 22.6+. The engines field and
+          # this runner must agree with the start script.
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/backend/package-lock.json
+      # npm ci fails when package.json and the lockfile disagree; npm install
+      # silently rewrote the lockfile instead.
+      - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+      - run: npm run build
+      # Proves the documented production entry point actually starts.
+      - name: Smoke test the built artifact
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nex
+          PORT: "4100"
+        run: |
+          node dist/index.js > "$RUNNER_TEMP/smoke.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/smoke.pid"
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:4100/health/live | grep -q '"phase":2'; then
+              kill "$(cat "$RUNNER_TEMP/smoke.pid")" || true
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::built backend did not become live"
+          cat "$RUNNER_TEMP/smoke.log"
+          exit 1
+
+  merge-conformance:
+    name: Merge conformance (TypeScript and Dart agree)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/backend/package-lock.json
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.9.0"
+      - name: TypeScript implementation
+        working-directory: apps/backend
+        run: |
+          npm ci
+          npx tsx --test src/services/merge.conformance.test.ts
+      - name: Dart implementation
+        working-directory: packages/core
+        run: |
+          dart pub get
+          dart test test/merge_conformance_test.dart
 
   sync-integration:
     name: Phase 2 sync matrix (live SyncClient + PostgreSQL)
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:16
@@ -121,44 +249,95 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/backend/package-lock.json
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: "3.9.0"
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+
       - name: Install backend deps
         working-directory: apps/backend
-        run: npm install
+        run: npm ci
+
+      - name: Apply migrations
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nex
+        run: npm run migrate:dev
+
+      # Seed one user + one device token so the suite can authenticate. The API
+      # is no longer open, so the matrix must pair like a real client.
+      - name: Seed test tenant
+        env:
+          PGPASSWORD: postgres
+        run: |
+          TOKEN="ci-integration-token"
+          HASH=$(printf '%s' "$TOKEN" | sha256sum | cut -d' ' -f1)
+          psql -h localhost -U postgres -d nex -v ON_ERROR_STOP=1 <<SQL
+          INSERT INTO users (id) VALUES ('00000000-0000-4000-8000-000000000000')
+            ON CONFLICT DO NOTHING;
+          INSERT INTO devices (device_id, user_id, label, token_hash)
+          VALUES ('ci-device-a', '00000000-0000-4000-8000-000000000000', 'ci', '$HASH')
+            ON CONFLICT (device_id) DO UPDATE SET token_hash = EXCLUDED.token_hash;
+          SQL
+          echo "SYNC_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      # setsid detaches the server from this step's shell, which exits as soon
+      # as the step finishes. A bare "&" left it orphaned and its logs lost.
       - name: Start Phase 2 backend
         working-directory: apps/backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nex
           PORT: "4000"
           NEX_TEST_MODE: "1"
-          NEX_AUTO_MIGRATE: "1"
+          NEX_AUTO_MIGRATE: "0"
         run: |
-          npx tsx src/index.ts &
+          setsid npx tsx src/index.ts > "$RUNNER_TEMP/backend.log" 2>&1 < /dev/null &
+          echo $! > "$RUNNER_TEMP/backend.pid"
           for i in $(seq 1 60); do
-            if curl -sf http://127.0.0.1:4000/health | grep -q '"phase":2'; then
-              exit 0
+            if curl -sf http://127.0.0.1:4000/health/ready | grep -q '"database":"up"'; then
+              echo "backend ready"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "::error::backend failed to become ready"
+              cat "$RUNNER_TEMP/backend.log"
+              exit 1
             fi
             sleep 1
           done
-          echo "backend failed to become healthy"
-          exit 1
+
       - name: Run mandatory 6-row sync matrix
         working-directory: packages/data
         env:
           RUN_SYNC_MATRIX: "1"
           SYNC_BASE_URL: http://127.0.0.1:4000
+          SYNC_BEARER_TOKEN: ${{ env.SYNC_TOKEN }}
+          SYNC_DEVICE_ID: ci-device-a
         run: |
           dart pub get
           dart test test/sync_matrix_test.dart
 
+      - name: Backend log
+        if: always()
+        run: cat "$RUNNER_TEMP/backend.log" || true
+
+      - name: Stop backend
+        if: always()
+        run: kill "$(cat "$RUNNER_TEMP/backend.pid")" 2>/dev/null || true
+
   # Permanent Phase 3 proof (09-ai.md / 11-build-prompt.md): packages/ai must be
-  # deletable without breaking core/data/client. Client must not depend on nex_ai.
+  # deletable without breaking core/data/ui/client.
+  #
+  # The old version only checked apps/client and only rebuilt apps/client, which
+  # made it close to a tautology: every AI contract the client consumes lives in
+  # packages/core and cannot be deleted. It now asserts the real invariant and
+  # rebuilds the whole downstream graph.
   ai-deletion-proof:
-    name: packages/ai deletion proof (client still builds)
+    name: packages/ai deletion proof (downstream graph still builds)
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -167,23 +346,31 @@ jobs:
           java-version: "17"
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version-file: .flutter-version
           channel: stable
-      - name: Assert client does not depend on nex_ai
+          cache: true
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+
+      - name: Assert nothing outside packages/ai imports nex_ai
         run: |
+          if grep -Rn --include='*.dart' "package:nex_ai/" apps packages --exclude-dir=ai; then
+            echo "::error::only packages/ai may import package:nex_ai (09-ai.md)"
+            exit 1
+          fi
           if grep -q 'nex_ai' apps/client/pubspec.yaml; then
-            echo "apps/client must not list nex_ai (09-ai.md)"
+            echo "::error::apps/client must not list nex_ai (09-ai.md)"
             exit 1
           fi
-          if grep -R --include='*.dart' -n "package:nex_ai/" apps/client; then
-            echo "apps/client must not import package:nex_ai"
-            exit 1
-          fi
+
       - name: Delete packages/ai
-        run: rm -rf packages/ai
-      - name: Client still resolves and builds
-        working-directory: apps/client
         run: |
-          flutter pub get
-          flutter analyze --fatal-infos
-          flutter test
-          flutter build apk --debug
+          rm -rf packages/ai
+          # Drop the member from the workspace so pub can still resolve.
+          sed -i '/- packages\/ai/d' pubspec.yaml
+
+      - name: Downstream graph still resolves, analyzes, tests and builds
+        run: |
+          cd packages/core && dart pub get && dart analyze --fatal-infos && dart test && cd -
+          cd packages/data && dart pub get && dart analyze --fatal-infos && dart test && cd -
+          cd packages/ui   && flutter pub get && flutter analyze --fatal-infos && flutter test && cd -
+          cd apps/client   && flutter pub get && flutter analyze --fatal-infos && flutter test && flutter build apk --debug

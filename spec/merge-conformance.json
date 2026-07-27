@@ -1,0 +1,302 @@
+[
+  {
+    "name": "later updated_at wins scalar fields",
+    "a": {
+      "id": "n1", "type": "text", "content": "old", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T10:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 1, "tag_ids": []
+    },
+    "b": {
+      "id": "n1", "type": "text", "content": "new", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T11:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 2, "tag_ids": []
+    },
+    "expected": {
+      "id": "n1", "type": "text", "content": "new", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T11:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 2, "tag_ids": []
+    }
+  },
+  {
+    "name": "mixed timestamp precision compares numerically, not lexically",
+    "a": {
+      "id": "n2", "type": "text", "content": "zulu-short", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00Z",
+      "updated_at": "2025-01-01T12:00:00Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 1, "tag_ids": []
+    },
+    "b": {
+      "id": "n2", "type": "text", "content": "millis-later", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.500Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 1, "tag_ids": []
+    },
+    "expected": {
+      "id": "n2", "type": "text", "content": "millis-later", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.500Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 1, "tag_ids": []
+    }
+  },
+  {
+    "name": "equal instants in different notations are a true tie, broken by rev",
+    "a": {
+      "id": "n3", "type": "text", "content": "rev-low", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 3, "tag_ids": []
+    },
+    "b": {
+      "id": "n3", "type": "text", "content": "rev-high", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 7, "tag_ids": []
+    },
+    "expected": {
+      "id": "n3", "type": "text", "content": "rev-high", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 7, "tag_ids": []
+    }
+  },
+  {
+    "name": "full tie breaks by lexically greater device_id",
+    "a": {
+      "id": "n4", "type": "text", "content": "from-a", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 2, "tag_ids": []
+    },
+    "b": {
+      "id": "n4", "type": "text", "content": "from-b", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 2, "tag_ids": []
+    },
+    "expected": {
+      "id": "n4", "type": "text", "content": "from-b", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 2, "tag_ids": []
+    }
+  },
+  {
+    "name": "concurrent multi-device edits union-merge tags",
+    "a": {
+      "id": "n5", "type": "text", "content": "a-side", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 1,
+      "tag_ids": ["t-ideas", "t-work"]
+    },
+    "b": {
+      "id": "n5", "type": "text", "content": "b-side", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T13:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 1,
+      "tag_ids": ["t-home"]
+    },
+    "expected": {
+      "id": "n5", "type": "text", "content": "b-side", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T13:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 1,
+      "tag_ids": ["t-home", "t-ideas", "t-work"]
+    }
+  },
+  {
+    "name": "same-device sequential edits allow tag removal",
+    "a": {
+      "id": "n6", "type": "text", "content": "before", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 1,
+      "tag_ids": ["t-ideas", "t-work"]
+    },
+    "b": {
+      "id": "n6", "type": "text", "content": "after", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T13:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 2,
+      "tag_ids": ["t-work"]
+    },
+    "expected": {
+      "id": "n6", "type": "text", "content": "after", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T13:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 2,
+      "tag_ids": ["t-work"]
+    }
+  },
+  {
+    "name": "tombstone beats a concurrent edit and erases the payload",
+    "a": {
+      "id": "n7", "type": "text", "content": "still editing",
+      "media_uri": "file:///m/a.jpg", "media_hash": "h1", "duration_ms": 1200,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T14:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 4,
+      "tag_ids": ["t-work"]
+    },
+    "b": {
+      "id": "n7", "type": "text", "content": "deleted copy",
+      "media_uri": "file:///m/a.jpg", "media_hash": "h1", "duration_ms": 1200,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T13:00:00.000Z",
+      "deleted_at": "2025-01-01T13:00:00.000Z", "device_id": "dev-b", "rev": 2,
+      "tag_ids": ["t-home"]
+    },
+    "expected": {
+      "id": "n7", "type": "text", "content": null,
+      "media_uri": null, "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T14:00:00.000Z",
+      "deleted_at": "2025-01-01T13:00:00.000Z", "device_id": "dev-b", "rev": 4,
+      "tag_ids": []
+    }
+  },
+  {
+    "name": "two tombstones keep the later deleted_at",
+    "a": {
+      "id": "n8", "type": "voice", "content": null, "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T09:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": "2025-01-01T12:00:00.000Z", "device_id": "dev-a", "rev": 2,
+      "tag_ids": []
+    },
+    "b": {
+      "id": "n8", "type": "voice", "content": null, "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T09:00:00.000Z",
+      "updated_at": "2025-01-01T15:00:00.000Z",
+      "deleted_at": "2025-01-01T15:00:00.000Z", "device_id": "dev-b", "rev": 5,
+      "tag_ids": []
+    },
+    "expected": {
+      "id": "n8", "type": "voice", "content": null, "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T09:00:00.000Z",
+      "updated_at": "2025-01-01T15:00:00.000Z",
+      "deleted_at": "2025-01-01T15:00:00.000Z", "device_id": "dev-b", "rev": 5,
+      "tag_ids": []
+    }
+  },
+  {
+    "name": "earliest created_at always survives",
+    "a": {
+      "id": "n9", "type": "text", "content": "a", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T08:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 1, "tag_ids": []
+    },
+    "b": {
+      "id": "n9", "type": "text", "content": "b", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-02T08:00:00.000Z",
+      "updated_at": "2025-01-01T13:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 1, "tag_ids": []
+    },
+    "expected": {
+      "id": "n9", "type": "text", "content": "b", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T08:00:00.000Z",
+      "updated_at": "2025-01-01T13:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 1, "tag_ids": []
+    }
+  },
+  {
+    "name": "loser media_hash fills a null on the winner",
+    "a": {
+      "id": "n10", "type": "photo", "content": null,
+      "media_uri": "file:///m/x.jpg", "media_hash": "hash-x", "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 1, "tag_ids": []
+    },
+    "b": {
+      "id": "n10", "type": "photo", "content": null,
+      "media_uri": null, "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T13:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 1, "tag_ids": []
+    },
+    "expected": {
+      "id": "n10", "type": "photo", "content": null,
+      "media_uri": null, "media_hash": "hash-x", "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T13:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 1, "tag_ids": []
+    }
+  },
+  {
+    "name": "loser duration_ms fills a null on the winner",
+    "a": {
+      "id": "n11", "type": "voice", "content": null, "media_uri": null,
+      "media_hash": "h-voice", "duration_ms": 45000,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 1, "tag_ids": []
+    },
+    "b": {
+      "id": "n11", "type": "voice", "content": null, "media_uri": null,
+      "media_hash": "h-voice", "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T13:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 1, "tag_ids": []
+    },
+    "expected": {
+      "id": "n11", "type": "voice", "content": null, "media_uri": null,
+      "media_hash": "h-voice", "duration_ms": 45000,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T13:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 1, "tag_ids": []
+    }
+  },
+  {
+    "name": "rev is the maximum of both sides",
+    "a": {
+      "id": "n12", "type": "text", "content": "a", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T14:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 2, "tag_ids": []
+    },
+    "b": {
+      "id": "n12", "type": "text", "content": "b", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T12:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-b", "rev": 9, "tag_ids": []
+    },
+    "expected": {
+      "id": "n12", "type": "text", "content": "a", "media_uri": null,
+      "media_hash": null, "duration_ms": null,
+      "created_at": "2025-01-01T10:00:00.000Z",
+      "updated_at": "2025-01-01T14:00:00.000Z",
+      "deleted_at": null, "device_id": "dev-a", "rev": 9, "tag_ids": []
+    }
+  }
+]

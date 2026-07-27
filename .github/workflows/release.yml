@@ -1,7 +1,8 @@
 name: Release
 
-# Builds a signed Android release APK + Windows Inno Setup installer and
-# attaches them to a GitHub Release. Triggered by version tags or manually.
+# Builds a signed Android App Bundle + split APKs and a Windows Inno Setup
+# installer, and attaches them to a GitHub Release. Triggered by version tags or
+# manually.
 #
 # Required repo secrets (one-time; never commit the keystore):
 #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
@@ -20,14 +21,27 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
-  # Tag push → github.ref_name; manual run → inputs.tag
+  # Tag push -> github.ref_name; manual run -> inputs.tag
   RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
 jobs:
+  # A tag used to ship straight to a public Release without ever running
+  # analyze, tests, or the backend suite: ci.yml triggers on branches, and tags
+  # do not match branches.
+  verify:
+    name: Full verification suite
+    uses: ./.github/workflows/ci.yml
+
   build-android:
-    name: Android release APK
+    name: Android release bundle + APKs
+    needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: apps/client
@@ -41,8 +55,13 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          # No pinned Flutter in repo (pubspec requires >=3.24.0); match CI.
+          # Pinned in .flutter-version so a stable bump cannot silently change
+          # the compiler, AGP defaults or the Android embedding mid-release.
+          flutter-version-file: .flutter-version
           channel: stable
+          cache: true
+
+      - uses: gradle/actions/setup-gradle@v4
 
       - name: Require Android signing secrets
         env:
@@ -87,30 +106,61 @@ jobs:
           TAG="${{ env.RELEASE_TAG }}"
           VERSION="${TAG#v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Building Android release for version=$VERSION (run ${{ github.run_number }})"
+          echo "Building Android release for version=$VERSION"
+
+      - name: Verify the tag matches pubspec.yaml
+        run: |
+          PUBSPEC=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          BASE=$(echo "${{ steps.ver.outputs.version }}" | cut -d'-' -f1)
+          if [ "$PUBSPEC" != "$BASE" ]; then
+            echo "::error::tag version $BASE does not match pubspec.yaml version $PUBSPEC"
+            exit 1
+          fi
+
+      # github.run_number is scoped to the workflow FILE: renaming or recreating
+      # release.yml resets it to 1. Play requires versionCode to increase
+      # strictly and forever, so it must be derived from the semantic version.
+      - name: Compute monotonic versionCode
+        id: vc
+        run: |
+          BASE=$(echo "${{ steps.ver.outputs.version }}" | cut -d'-' -f1)
+          IFS=. read -r MA MI PA <<< "$BASE"
+          CODE=$(( MA * 1000000 + MI * 1000 + PA ))
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "versionCode=$CODE"
 
       - run: flutter pub get
 
-      - name: Build release APK
+      - name: Build App Bundle (Play) and split APKs (direct download)
         run: |
-          flutter build apk --release \
+          flutter build appbundle --release \
             --build-name=${{ steps.ver.outputs.version }} \
-            --build-number=${{ github.run_number }}
+            --build-number=${{ steps.vc.outputs.code }}
+          flutter build apk --release --split-per-abi \
+            --build-name=${{ steps.ver.outputs.version }} \
+            --build-number=${{ steps.vc.outputs.code }}
 
-      - name: Rename APK for release asset
+      - name: Collect release assets
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk \
-            "dist/Nex-${{ steps.ver.outputs.version }}-android.apk"
+          cp build/app/outputs/bundle/release/app-release.aab \
+            "dist/Nex-${{ steps.ver.outputs.version }}.aab"
+          for abi in armeabi-v7a arm64-v8a x86_64; do
+            src="build/app/outputs/flutter-apk/app-$abi-release.apk"
+            [ -f "$src" ] && cp "$src" "dist/Nex-${{ steps.ver.outputs.version }}-$abi.apk"
+          done
+          ls -la dist
 
       - uses: actions/upload-artifact@v4
         with:
-          name: android-apk
-          path: apps/client/dist/Nex-*-android.apk
+          name: android
+          path: apps/client/dist/*
 
   build-windows:
     name: Windows Inno Setup installer
+    needs: verify
     runs-on: windows-latest
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: apps/client
@@ -119,7 +169,9 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version-file: .flutter-version
           channel: stable
+          cache: true
 
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
@@ -131,14 +183,23 @@ jobs:
           $tag = "${{ env.RELEASE_TAG }}"
           $version = $tag -replace '^v',''
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "Building Windows release for version=$version (run ${{ github.run_number }})"
+          Write-Host "Building Windows release for version=$version"
+
+      - name: Compute monotonic versionCode
+        id: vc
+        shell: pwsh
+        run: |
+          $base = ("${{ steps.ver.outputs.version }}" -split '-')[0]
+          $p = $base -split '\.'
+          $code = [int]$p[0] * 1000000 + [int]$p[1] * 1000 + [int]$p[2]
+          "code=$code" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Build Windows release
         shell: pwsh
         run: |
           flutter build windows --release `
             --build-name=${{ steps.ver.outputs.version }} `
-            --build-number=${{ github.run_number }}
+            --build-number=${{ steps.vc.outputs.code }}
 
       - name: Install Inno Setup
         shell: pwsh
@@ -164,6 +225,7 @@ jobs:
     name: Publish GitHub Release
     needs: [build-android, build-windows]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/download-artifact@v4
 
@@ -171,7 +233,10 @@ jobs:
         run: find . -type f -printf '%p %s bytes\n'
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        # Third-party actions are pinned by commit SHA: this job holds
+        # contents: write, so a compromised mutable tag would be able to push
+        # to the repository.
+        uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 # v2.1.0
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: ${{ env.RELEASE_TAG }}
@@ -180,5 +245,6 @@ jobs:
           draft: ${{ github.event_name == 'workflow_dispatch' }}
           generate_release_notes: true
           files: |
-            android-apk/*.apk
+            android/*.aab
+            android/*.apk
             windows-installer/*.exe

@@ -15,6 +15,13 @@ class NexRestartScope extends InheritedWidget {
     return scope!;
   }
 
+  /// Consumes the RestartRequired token returned by a restore and performs the
+  /// rebuild. Pairing the token with this call makes it impossible to restore a
+  /// backup and then forget to rebuild the service graph.
+  static void restartAfter(BuildContext context, Object token) {
+    of(context).restart();
+  }
+
   @override
   bool updateShouldNotify(covariant NexRestartScope oldWidget) => false;
 }

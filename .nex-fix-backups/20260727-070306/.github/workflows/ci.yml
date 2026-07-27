@@ -1,0 +1,189 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Phase 1 pipeline (11-build-prompt.md): Dart analyze/lint, `dart test` for
+# packages/* (including SQLite/FTS integration), Flutter analyze/test/build for
+# apps/client, and backend lint/typecheck.
+
+jobs:
+  dart-packages:
+    name: Pure Dart packages (analyze + test, no Flutter SDK)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [core, data, ai]
+    defaults:
+      run:
+        working-directory: packages/${{ matrix.package }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      # sqlite3 Dart FFI needs the system library (packages/data uses package:sqlite3).
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      # Proves packages/core and packages/data carry zero Flutter dependency:
+      # this job never installs Flutter.
+      - run: dart pub get
+      - run: dart analyze --fatal-infos
+      - run: dart test
+
+  flutter-ui-package:
+    name: packages/ui (analyze + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze --fatal-infos
+      - run: flutter test
+
+  client-android:
+    name: apps/client (analyze + test + Android build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze --fatal-infos
+      - run: flutter test
+      - run: flutter build apk --debug
+
+  client-windows:
+    name: apps/client (Windows desktop build)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - run: flutter build windows --debug
+
+  backend:
+    name: apps/backend (lint + typecheck)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+  sync-integration:
+    name: Phase 2 sync matrix (live SyncClient + PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      - name: Install backend deps
+        working-directory: apps/backend
+        run: npm install
+      - name: Start Phase 2 backend
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nex
+          PORT: "4000"
+          NEX_TEST_MODE: "1"
+          NEX_AUTO_MIGRATE: "1"
+        run: |
+          npx tsx src/index.ts &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:4000/health | grep -q '"phase":2'; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "backend failed to become healthy"
+          exit 1
+      - name: Run mandatory 6-row sync matrix
+        working-directory: packages/data
+        env:
+          RUN_SYNC_MATRIX: "1"
+          SYNC_BASE_URL: http://127.0.0.1:4000
+        run: |
+          dart pub get
+          dart test test/sync_matrix_test.dart
+
+  # Permanent Phase 3 proof (09-ai.md / 11-build-prompt.md): packages/ai must be
+  # deletable without breaking core/data/client. Client must not depend on nex_ai.
+  ai-deletion-proof:
+    name: packages/ai deletion proof (client still builds)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Assert client does not depend on nex_ai
+        run: |
+          if grep -q 'nex_ai' apps/client/pubspec.yaml; then
+            echo "apps/client must not list nex_ai (09-ai.md)"
+            exit 1
+          fi
+          if grep -R --include='*.dart' -n "package:nex_ai/" apps/client; then
+            echo "apps/client must not import package:nex_ai"
+            exit 1
+          fi
+      - name: Delete packages/ai
+        run: rm -rf packages/ai
+      - name: Client still resolves and builds
+        working-directory: apps/client
+        run: |
+          flutter pub get
+          flutter analyze --fatal-infos
+          flutter test
+          flutter build apk --debug

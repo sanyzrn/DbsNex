@@ -1,30 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 enum SwipeAction { delete, addTag }
 
 extension SwipeActionWire on SwipeAction {
   String get wireName => this == SwipeAction.delete ? 'delete' : 'add_tag';
+
   static SwipeAction fromWire(String value) =>
       value == 'add_tag' ? SwipeAction.addTag : SwipeAction.delete;
 }
 
 class NexPreferences extends ChangeNotifier {
   NexPreferences._(this._prefs);
+
   final SharedPreferences _prefs;
+
+  static const _kDeviceId = 'nex.device_id';
+  static const _kSyncBaseUrl = 'sync.base_url';
 
   static Future<NexPreferences> load() async =>
       NexPreferences._(await SharedPreferences.getInstance());
 
+  /// Stable, globally-unique device identity.
+  ///
+  /// Identity used to be derived from Platform.localHostname, which returns the
+  /// constant "localhost" on Android and the renameable, non-unique machine
+  /// name on Windows. The sync protocol treats device_id as the LWW tie-breaker
+  /// and as the discriminator that decides whether tags are union-merged or
+  /// replaced, so a shared identity silently destroyed tags.
+  ///
+  /// Generated once, persisted forever, never derived from the environment.
+  Future<String> stableDeviceId() async {
+    final existing = _prefs.getString(_kDeviceId);
+    if (existing != null && existing.isNotEmpty) return existing;
+
+    final generated = const Uuid().v4();
+    await _prefs.setString(_kDeviceId, generated);
+    return generated;
+  }
+
+  /// User-configured sync endpoint. Null until the device has been paired.
+  ///
+  /// There is deliberately no default: a hardcoded http://127.0.0.1:4000
+  /// resolves to the device itself and is blocked as cleartext on Android 9+.
+  String? get syncBaseUrl {
+    final value = _prefs.getString(_kSyncBaseUrl);
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  Future<void> setSyncBaseUrl(String? value) async {
+    if (value == null || value.isEmpty) {
+      await _prefs.remove(_kSyncBaseUrl);
+    } else {
+      await _prefs.setString(_kSyncBaseUrl, value);
+    }
+    notifyListeners();
+  }
+
   SwipeAction get leadingAction =>
       SwipeActionWire.fromWire(_prefs.getString('swipe.leading') ?? 'add_tag');
+
   SwipeAction get trailingAction =>
       SwipeActionWire.fromWire(_prefs.getString('swipe.trailing') ?? 'delete');
+
   bool get comfortMode => _prefs.getBool('appearance.comfort') ?? false;
+
   bool get reduceMotion => _prefs.getBool('accessibility.reduce_motion') ?? false;
+
   bool get haptics => _prefs.getBool('accessibility.haptics') ?? true;
-  bool get quietAnniversary => _prefs.getBool('timeline.quiet_anniversary') ?? true;
+
+  bool get quietAnniversary =>
+      _prefs.getBool('timeline.quiet_anniversary') ?? true;
+
   bool get cloudAiOptIn => _prefs.getBool('ai.cloud_opt_in') ?? false;
 
   Locale? get locale {
@@ -52,11 +101,19 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setComfortMode(bool value) => _setBool('appearance.comfort', value);
-  Future<void> setReduceMotion(bool value) => _setBool('accessibility.reduce_motion', value);
+  Future<void> setComfortMode(bool value) =>
+      _setBool('appearance.comfort', value);
+
+  Future<void> setReduceMotion(bool value) =>
+      _setBool('accessibility.reduce_motion', value);
+
   Future<void> setHaptics(bool value) => _setBool('accessibility.haptics', value);
-  Future<void> setQuietAnniversary(bool value) => _setBool('timeline.quiet_anniversary', value);
-  Future<void> setCloudAiOptIn(bool value) => _setBool('ai.cloud_opt_in', value);
+
+  Future<void> setQuietAnniversary(bool value) =>
+      _setBool('timeline.quiet_anniversary', value);
+
+  Future<void> setCloudAiOptIn(bool value) =>
+      _setBool('ai.cloud_opt_in', value);
 
   Future<void> setLocale(String value) async {
     await _prefs.setString('appearance.locale', value);

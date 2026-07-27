@@ -1,59 +1,97 @@
-import pg from "pg";
+import { readdir, readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import type pg from "pg";
 
 import { getPool } from "./index.ts";
 
-/** Apply Phase 2 schema (idempotent). */
-export async function migrate(pool: pg.Pool = getPool()): Promise<void> {
+/**
+ * File-based migration runner.
+ *
+ * Replaces the previous inline `CREATE TABLE IF NOT EXISTS` blob, which had no
+ * version table, no ordering, no rollback, and stopped working the moment a
+ * change was not purely additive.
+ *
+ * Guarantees:
+ *  - migrations run in lexical filename order (0001_, 0002_, ...);
+ *  - each file runs inside its own transaction — a failure rolls back cleanly;
+ *  - a session-level advisory lock serialises concurrent replicas;
+ *  - applied versions are recorded in schema_migrations.
+ */
+const MIGRATION_LOCK_ID = 8_274_113_905_461_223n;
+
+const MIGRATIONS_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "migrations",
+);
+
+async function ensureVersionTable(pool: pg.Pool): Promise<void> {
   await pool.query(`
-CREATE TABLE IF NOT EXISTS notes (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL CHECK (type IN ('text', 'voice', 'photo', 'file')),
-  content TEXT,
-  media_uri TEXT,
-  media_hash TEXT,
-  duration_ms INTEGER,
-  created_at TIMESTAMPTZ NOT NULL,
-  updated_at TIMESTAMPTZ NOT NULL,
-  deleted_at TIMESTAMPTZ,
-  device_id TEXT NOT NULL,
-  rev INTEGER NOT NULL,
-  sync_state TEXT NOT NULL DEFAULT 'synced'
-);
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version    TEXT PRIMARY KEY,
+      applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+}
 
-CREATE TABLE IF NOT EXISTS tags (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE,
-  color TEXT,
-  created_at TIMESTAMPTZ NOT NULL
-);
+async function pendingMigrations(pool: pg.Pool): Promise<string[]> {
+  const applied = new Set(
+    (await pool.query<{ version: string }>("SELECT version FROM schema_migrations"))
+      .rows.map((r) => r.version),
+  );
+  const files = (await readdir(MIGRATIONS_DIR))
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
+  return files.filter((f) => !applied.has(f));
+}
 
-CREATE TABLE IF NOT EXISTS note_tags (
-  note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
-  tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
-  PRIMARY KEY (note_id, tag_id)
-);
+function log(level: "info" | "error", message: string, context?: unknown): void {
+  console.log(
+    JSON.stringify({ level, module: "backend.migrate", message, context }),
+  );
+}
 
-CREATE TABLE IF NOT EXISTS media_objects (
-  media_hash TEXT PRIMARY KEY,
-  storage_key TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+/** Applies every pending migration. Idempotent and safe to call concurrently. */
+export async function migrate(pool: pg.Pool = getPool()): Promise<string[]> {
+  await ensureVersionTable(pool);
 
-CREATE TABLE IF NOT EXISTS device_acks (
-  device_id TEXT PRIMARY KEY,
-  last_pull_at TIMESTAMPTZ NOT NULL
-);
-`);
+  const lock = await pool.connect();
+  const applied: string[] = [];
+  try {
+    await lock.query("SELECT pg_advisory_lock($1)", [MIGRATION_LOCK_ID.toString()]);
 
-  // Upgrade path: column may be missing on DBs created earlier in Phase 2.
-  await pool.query(`
-ALTER TABLE notes
-  ADD COLUMN IF NOT EXISTS server_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
-`);
+    for (const file of await pendingMigrations(pool)) {
+      const sql = await readFile(join(MIGRATIONS_DIR, file), "utf8");
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        await client.query(sql);
+        await client.query(
+          "INSERT INTO schema_migrations (version) VALUES ($1)",
+          [file],
+        );
+        await client.query("COMMIT");
+        applied.push(file);
+        log("info", "migration applied", { version: file });
+      } catch (e) {
+        await client.query("ROLLBACK");
+        log("error", "migration failed — rolled back", {
+          version: file,
+          error: e instanceof Error ? e.message : String(e),
+        });
+        throw e;
+      } finally {
+        client.release();
+      }
+    }
+  } finally {
+    await lock.query("SELECT pg_advisory_unlock($1)", [
+      MIGRATION_LOCK_ID.toString(),
+    ]);
+    lock.release();
+  }
 
-  await pool.query(`
-CREATE INDEX IF NOT EXISTS idx_notes_updated_at ON notes (updated_at);
-CREATE INDEX IF NOT EXISTS idx_notes_server_updated_at ON notes (server_updated_at);
-CREATE INDEX IF NOT EXISTS idx_notes_media_hash ON notes (media_hash);
-`);
+  if (applied.length === 0) log("info", "schema already up to date");
+  return applied;
 }

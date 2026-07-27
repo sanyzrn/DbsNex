@@ -5,15 +5,17 @@ description: >-
 publish_to: "none"
 version: 0.1.0
 
+resolution: workspace
+
 environment:
-  sdk: ^3.5.0
+  sdk: ^3.9.0
 
 dependencies:
   nex_core:
     path: ../core
 
 dev_dependencies:
-  lints: ^4.0.0
+  lints: ^5.0.0
   nex_data:
     path: ../data
   test: ^1.25.0
