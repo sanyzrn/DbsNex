@@ -36,6 +36,8 @@ class TimelineScreen extends StatefulWidget {
 class TimelineScreenState extends State<TimelineScreen> {
   List<Note> notes = const [];
   List<Note> anniversary = const [];
+  List<Tag> filterTags = const [];
+  String? selectedTagId;
   StreamSubscription<List<Note>>? subscription;
   String? landedId;
 
@@ -45,7 +47,36 @@ class TimelineScreenState extends State<TimelineScreen> {
     subscription = widget.services.timelineStream.listen((value) {
       if (mounted) setState(() => notes = value);
     });
+    unawaited(_loadTimeline());
     unawaited(_loadAnniversary());
+    unawaited(_loadFilterTags());
+  }
+
+  /// The screen used to seed `notes` synchronously from the repository. The
+  /// stream alone is not a replacement: it is a broadcast stream, so anything
+  /// emitted before initState subscribes is dropped — a refresh that happens
+  /// during startup left the timeline empty.
+  Future<void> _loadTimeline() async {
+    final loaded = await widget.services.timeline(limit: 200);
+    if (!mounted) return;
+    setState(() => notes = loaded);
+  }
+
+  /// FR-4 filter chips. TagFilterRow shipped in packages/ui, complete and
+  /// covered by its own test, but nothing ever imported it — the timeline had
+  /// no way to filter at all.
+  Future<void> _loadFilterTags() async {
+    final loaded = await widget.services.listTags();
+    if (!mounted) return;
+    setState(() => filterTags = loaded);
+  }
+
+  Future<void> _selectTag(String? tagId) async {
+    setState(() => selectedTagId = tagId);
+    final filtered =
+        await widget.services.timeline(limit: 200, tagId: tagId);
+    if (!mounted) return;
+    setState(() => notes = filtered);
   }
 
   /// "A year ago today", opt-in and quiet by default. Loaded once rather than
@@ -173,7 +204,15 @@ class TimelineScreenState extends State<TimelineScreen> {
               builder: (_) => SettingsSheet(services: widget.services, preferences: widget.preferences))),
         ],
       ),
-      body: notes.isEmpty ? const EmptyTimeline() : Center(
+      body: notes.isEmpty && selectedTagId == null
+          ? const EmptyTimeline()
+          : Column(children: [
+              TagFilterRow(
+                tags: filterTags,
+                selectedTagId: selectedTagId,
+                onSelected: (value) => unawaited(_selectTag(value)),
+              ),
+              Expanded(child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
           child: ListView.builder(
@@ -208,7 +247,8 @@ class TimelineScreenState extends State<TimelineScreen> {
             },
           ),
         ),
-      ),
+              )),
+            ]),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: openCapture, tooltip: l10n.capture, child: const Icon(Icons.add, size: 32)),

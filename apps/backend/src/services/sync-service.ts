@@ -94,15 +94,24 @@ async function loadNote(
   id: string,
 ): Promise<NoteRow | null> {
   const { rows } = await client.query(
+    // PostgreSQL rejects FOR UPDATE alongside GROUP BY outright:
+    //   ERROR: FOR UPDATE is not allowed with GROUP BY clause
+    // so this statement could never have run. It went unnoticed because the
+    // only caller is the sync path, and the sync suite never got past the auth
+    // middleware to reach it.
+    //
+    // Collecting the tags in a scalar subquery keeps the aggregate one query
+    // level down, where it does not conflict with the row lock, and locks
+    // exactly the notes row the merge is about to rewrite.
     `SELECT n.*, COALESCE(
-              array_agg(nt.tag_id) FILTER (WHERE nt.tag_id IS NOT NULL),
+              (SELECT array_agg(nt.tag_id)
+                 FROM note_tags nt
+                WHERE nt.note_id = n.id),
               '{}'
             ) AS tag_ids
        FROM notes n
-       LEFT JOIN note_tags nt ON nt.note_id = n.id
       WHERE n.id = $1 AND n.user_id = $2
-      GROUP BY n.id
-      FOR UPDATE OF n`,
+      FOR UPDATE`,
     [id, userId],
   );
 
