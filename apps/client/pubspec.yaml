@@ -37,7 +37,7 @@ dependencies:
     path: ../../packages/ui
   path: ^1.9.1
   path_provider: ^2.1.5
-  record: ^6.1.1
+  record: ^7.1.1
   shared_preferences: ^2.3.3
   sqlite3: ^2.7.5
   sqlite3_flutter_libs: ^0.5.28
