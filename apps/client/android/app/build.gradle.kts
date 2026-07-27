@@ -29,7 +29,11 @@ val isCi = System.getenv("CI") != null
 android {
     namespace = "com.sanyzrn.nex"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Pinned above flutter.ndkVersion: shared_preferences_android and
+    // sqlite3_flutter_libs both require 28.2.13676358, and the Flutter default
+    // (27.0.12077973) fails the manifest merge. NDK releases are backward
+    // compatible, so the highest requirement wins.
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

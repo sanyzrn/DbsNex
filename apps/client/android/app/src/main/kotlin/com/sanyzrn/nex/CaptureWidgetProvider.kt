@@ -19,7 +19,7 @@ class CaptureWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
             val views = RemoteViews(context.packageName, R.layout.capture_widget)
-            views.setOnClickPendingIntent(R.id.capture_widget_root, pending)
+            views.setOnClickPendingIntent(R.id.widget_root, pending)
             manager.updateAppWidget(id, views)
         }
     }
