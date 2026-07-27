@@ -9,24 +9,30 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
+import 'package:nex_client/platform/backup_policy.dart';
+import 'package:nex_client/platform/db_worker.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/os_capture_bridge.dart';
 
-NexServices _testServices(Directory tmp) {
+/// Builds the real service graph, worker isolate included.
+///
+/// The harness used to hand NexServices a database handle and pre-built
+/// services, which is a shape that no longer exists: the repository and the
+/// domain services live inside the worker isolate, so the only way to reach
+/// them from a test is the same way the app does.
+Future<NexServices> _testServices(Directory tmp) async {
   final dbPath = p.join(tmp.path, 'nex.sqlite');
   final mediaDir = p.join(tmp.path, 'media');
   final backupDir = p.join(tmp.path, 'backups');
   Directory(mediaDir).createSync(recursive: true);
   Directory(backupDir).createSync(recursive: true);
-  final db = NexDatabase.open(dbPath);
-  final repo = SqliteNoteRepository(db);
+  final worker = await NexDbWorker.spawn(dbPath: dbPath, deviceId: 'test');
   return NexServices.forTest(
-    db: db,
-    repo: repo,
-    capture: CaptureService(repo, deviceId: 'test'),
-    tags: TagService(repo),
-    search: SearchService(repo),
+    worker: worker,
+    deviceId: 'test',
+    preferences: await NexPreferences.load(),
+    backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
     dbPath: dbPath,
     mediaDir: mediaDir,
     backupDir: backupDir,
@@ -41,19 +47,19 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     tmp = Directory.systemTemp.createTempSync('nex_client_');
-    services = _testServices(tmp);
+    services = await _testServices(tmp);
     preferences = await NexPreferences.load();
   });
 
-  tearDown(() {
-    services.dispose();
+  tearDown(() async {
+    await services.dispose();
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
   testWidgets('Timeline shows tag filter chip row with All', (tester) async {
-    final note = services.capture.submitTextCapture('tagged')!;
-    services.tags.addTag(noteId: note.id, name: 'Work', color: '#F0A93B');
-    services.refreshTimeline();
+    final note = (await services.captureText('tagged'))!;
+    await services.addTag(noteId: note.id, name: 'Work', color: '#F0A93B');
+    await services.refreshTimeline();
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -117,7 +123,7 @@ void main() {
       'type': 'shared_text',
       'text': 'shared from another app',
     });
-    expect(services.search.timeline().first.content, 'shared from another app');
+    expect((await services.timeline()).first.content, 'shared from another app');
   });
 
   test('OS share-intent photo auto-saves with media_hash', () async {
@@ -125,7 +131,7 @@ void main() {
       ..writeAsBytesSync([1, 2, 3, 4, 5]);
     final bridge = OsCaptureBridge(services);
     await bridge.handle({'type': 'shared_photo', 'path': src.path});
-    final note = services.search.timeline().first;
+    final note = (await services.timeline()).first;
     expect(note.type, NoteType.photo);
     expect(note.mediaHash, isNotNull);
   });
@@ -140,33 +146,33 @@ void main() {
       'filename': 'Quarterly-Report.pdf',
       'mimeType': 'application/pdf',
     });
-    final note = services.search.timeline().first;
+    final note = (await services.timeline()).first;
     expect(note.type, NoteType.file);
     expect(note.content, 'Quarterly-Report.pdf');
     expect(note.mimeType, 'application/pdf');
     expect(note.content, isNot(contains('.bin')));
   });
 
-  test('Optional caption on media notes is distinct from OCR/transcript', () {
+  test('Optional caption on media notes is distinct from OCR/transcript', () async {
     final bytes = Uint8List.fromList([1, 2, 3]);
-    final photo = services.capture.submitPhotoCapture(
+    final photo = await services.capturePhoto(
       mediaUri: p.join(services.mediaDir, 'p.jpg'),
       mediaBytes: bytes,
     );
     expect(photo.caption, isNull);
-    services.repo.setCaption(photo.id, 'whiteboard from sync');
-    final updated = services.repo.getById(photo.id)!;
+    await services.setCaption(photo.id, 'whiteboard from sync');
+    final updated = (await services.getById(photo.id))!;
     expect(updated.caption, 'whiteboard from sync');
     expect(updated.ocrText, isNull);
   });
 
-  test('Timeline tag filter returns only matching notes', () {
-    final a = services.capture.submitTextCapture('alpha')!;
-    final b = services.capture.submitTextCapture('beta')!;
-    services.tags.addTag(noteId: a.id, name: 'Work');
-    services.tags.addTag(noteId: b.id, name: 'Idea');
-    final work = services.tags.listTags().firstWhere((t) => t.name == 'Work');
-    final filtered = services.search.timeline(tagId: work.id);
+  test('Timeline tag filter returns only matching notes', () async {
+    final a = (await services.captureText('alpha'))!;
+    final b = (await services.captureText('beta'))!;
+    await services.addTag(noteId: a.id, name: 'Work');
+    await services.addTag(noteId: b.id, name: 'Idea');
+    final work = (await services.listTags()).firstWhere((t) => t.name == 'Work');
+    final filtered = await services.timeline(tagId: work.id);
     expect(filtered.map((n) => n.id), [a.id]);
   });
 
@@ -192,9 +198,9 @@ void main() {
     expect(preferences.themeMode, ThemeMode.light);
   });
 
-  test('File capture stores original filename for display', () {
+  test('File capture stores original filename for display', () async {
     final bytes = Uint8List.fromList([1, 2, 3, 4, 5, 6]);
-    final note = services.capture.submitFileCapture(
+    final note = await services.captureFile(
       mediaUri: p.join(services.mediaDir, 'doc.pdf'),
       mediaBytes: bytes,
       originalFilename: 'Quarterly-Report.pdf',
@@ -210,7 +216,7 @@ void main() {
     final newer = File(p.join(services.backupDir, 'nex-2021.sqlite'))
       ..writeAsBytesSync([1, 2, 3, 4]);
     // Touch mtimes via path sort (listBackups sorts by path desc).
-    final listed = services.listBackups();
+    final listed = await services.listBackups();
     expect(listed.map((f) => p.basename(f.path)), containsAll([
       'nex-2020.sqlite',
       'nex-2021.sqlite',
@@ -219,7 +225,7 @@ void main() {
     expect(older.existsSync(), isTrue);
   });
 
-  test('Comfort Mode tokens keep WCAG AA contrast', () {
+  test('Comfort Mode tokens keep WCAG AA contrast', () async {
     // Light comfort: #2E2A22 on #F7F1E6
     expect(
       nexContrastRatio(
@@ -247,73 +253,73 @@ void main() {
     );
   });
 
-  test('Soft-delete undo restores note', () {
-    final note = services.capture.submitTextCapture('undo me')!;
-    services.repo.softDelete(note.id);
-    expect(services.search.timeline(), isEmpty);
-    services.repo.undelete(note.id);
-    expect(services.search.timeline().single.content, 'undo me');
+  test('Soft-delete undo restores note', () async {
+    final note = (await services.captureText('undo me'))!;
+    await services.deleteNote(note.id);
+    expect(await services.timeline(), isEmpty);
+    await services.undelete(note.id);
+    expect((await services.timeline()).single.content, 'undo me');
   });
 
-  test('Offline: capture/search/tag use local SQLite only', () {
-    final note = services.capture.submitTextCapture('offline')!;
-    services.tags.addTag(noteId: note.id, name: 'Work');
-    final hits = services.search.search(const SearchFilters(query: 'offline'));
+  test('Offline: capture/search/tag use local SQLite only', () async {
+    final note = (await services.captureText('offline'))!;
+    await services.addTag(noteId: note.id, name: 'Work');
+    final hits = await services.search(const SearchFilters(query: 'offline'));
     expect(hits, hasLength(1));
     expect(hits.first.tags.first.name, 'Work');
   });
 
-  test('Search budget: FTS under 200ms for 1000 notes (1.x.2 hardening)', () {
+  test('Search budget: FTS under 200ms for 1000 notes (1.x.2 hardening)', () async {
     for (var i = 0; i < 1000; i++) {
-      services.capture.submitTextCapture('note number $i with keywords alpha');
+      await services.captureText('note number $i with keywords alpha');
     }
     final sw = Stopwatch()..start();
-    final hits = services.search.search(const SearchFilters(query: 'alpha'));
+    final hits = await services.search(const SearchFilters(query: 'alpha'));
     sw.stop();
     expect(hits.length, greaterThan(0));
     expect(sw.elapsedMilliseconds, lessThan(200));
   });
 
-  test('Durable write budget: text capture under 300ms', () {
+  test('Durable write budget: text capture under 300ms', () async {
     final sw = Stopwatch()..start();
-    services.capture.submitTextCapture('budget');
+    await services.captureText('budget');
     sw.stop();
     expect(sw.elapsedMilliseconds, lessThan(300));
   });
 
-  test('Timeline page load under budget for large set', () {
+  test('Timeline page load under budget for large set', () async {
     for (var i = 0; i < 2000; i++) {
-      services.capture.submitTextCapture('bulk $i');
+      await services.captureText('bulk $i');
     }
     final sw = Stopwatch()..start();
-    final page = services.search.timeline(limit: 50);
+    final page = await services.timeline(limit: 50);
     sw.stop();
     expect(page, hasLength(50));
     expect(sw.elapsedMilliseconds, lessThan(200));
   });
 
-  test('Voice capture stores hash; keyword search excludes it', () {
+  test('Voice capture stores hash; keyword search excludes it', () async {
     final bytes = Uint8List.fromList([1, 2, 3, 4]);
-    final voice = services.capture.submitVoiceCapture(
+    final voice = await services.captureVoice(
       mediaUri: p.join(services.mediaDir, 'v.m4a'),
       mediaBytes: bytes,
       durationMs: 900,
     );
     expect(voice.mediaHash, isNotNull);
     expect(
-      services.search.search(const SearchFilters(query: 'anything')),
+      await services.search(const SearchFilters(query: 'anything')),
       isEmpty,
     );
   });
 
-  test('AI preferences default on; cloud opt-in defaults off', () {
+  test('AI preferences default on; cloud opt-in defaults off', () async {
     expect(preferences.aiCapabilities.transcription, isTrue);
     expect(preferences.cloudAiOptIn, isFalse);
   });
 
-  test('scheduleEnrichment does not block capture budget', () {
+  test('scheduleEnrichment does not block capture budget', () async {
     final sw = Stopwatch()..start();
-    final note = services.capture.submitTextCapture('enrich later')!;
+    final note = (await services.captureText('enrich later'))!;
     services.scheduleEnrichment(note.id);
     sw.stop();
     expect(sw.elapsedMilliseconds, lessThan(300));
@@ -362,7 +368,7 @@ void main() {
     expect(find.text('System'), findsOneWidget);
   });
 
-  test('No Pin/Archive swipe actions exist', () {
+  test('No Pin/Archive swipe actions exist', () async {
     expect(SwipeAction.values.map((e) => e.name).toList(), ['delete', 'addTag']);
     expect(NexSwipeAction.values.map((e) => e.name).toList(),
         ['delete', 'addTag']);

@@ -34,23 +34,31 @@ class _CaptureSheetState extends State<CaptureSheet> {
   void changed(String value) {
     setState(() {});
     if (noteId == null && value.isNotEmpty) {
-      noteId = widget.services.capture.submitTextCapture(value)?.id;
-      persisted = value;
-      if (noteId != null) widget.onCommitted?.call(noteId!);
+      unawaited(_createFirstDraft(value));
       return;
     }
     debounce?.cancel();
     debounce = Timer(const Duration(milliseconds: 300), flush);
   }
 
+  /// The first keystroke persists the note (ADR-002: no Save button). The write
+  /// crosses the isolate boundary, so it cannot be awaited on the keystroke
+  /// path without dropping frames.
+  Future<void> _createFirstDraft(String value) async {
+    final note = await widget.services.captureText(value);
+    noteId = note?.id;
+    persisted = value;
+    if (noteId != null) widget.onCommitted?.call(noteId!);
+  }
+
   void flush() {
     final id = noteId;
     if (id == null) return;
     if (controller.text.isEmpty) {
-      widget.services.repo.softDelete(id);
+      unawaited(widget.services.deleteNote(id));
       noteId = null;
     } else if (controller.text != persisted) {
-      widget.services.repo.updateContent(id, controller.text);
+      unawaited(widget.services.updateNote(id, controller.text));
       persisted = controller.text;
     }
   }

@@ -19,13 +19,27 @@ class SyncClient implements SyncPort {
     required this.baseUrl,
     required this.deviceId,
     required this.repo,
+    this.bearerToken,
     http.Client? httpClient,
   }) : _http = httpClient ?? http.Client();
 
   final String baseUrl;
   final String deviceId;
   final SqliteNoteRepository repo;
+
+  /// Device token issued by `POST /auth/pair`.
+  ///
+  /// The sync API stopped being open when tenancy landed, but this client was
+  /// never taught to authenticate — it sent no Authorization header at all, so
+  /// every push and pull came back 401 against a real server.
+  final String? bearerToken;
+
   final http.Client _http;
+
+  Map<String, String> get _headers => {
+        'content-type': 'application/json',
+        if (bearerToken != null) 'authorization': 'Bearer $bearerToken',
+      };
 
   String? _lastPullWatermark;
 
@@ -43,7 +57,7 @@ class SyncClient implements SyncPort {
 
     final pushRes = await _http.post(
       Uri.parse('$baseUrl/sync/push'),
-      headers: {'content-type': 'application/json'},
+      headers: _headers,
       body: jsonEncode(pushBody),
     );
     if (pushRes.statusCode >= 300) {
@@ -62,7 +76,7 @@ class SyncClient implements SyncPort {
         if (_lastPullWatermark != null) 'since': _lastPullWatermark!,
       },
     );
-    final pullRes = await _http.get(pullUri);
+    final pullRes = await _http.get(pullUri, headers: _headers);
     if (pullRes.statusCode >= 300) {
       throw StateError('sync pull failed: ${pullRes.statusCode} ${pullRes.body}');
     }

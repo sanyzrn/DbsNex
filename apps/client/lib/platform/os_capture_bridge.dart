@@ -42,8 +42,8 @@ class OsCaptureBridge {
       case 'shared_text':
         final text = (payload['text'] as String?)?.trim() ?? '';
         if (text.isEmpty) return;
-        services.capture.submitTextCapture(text);
-        services.refreshTimeline();
+        await services.captureText(text);
+        await services.refreshTimeline();
       case 'shared_photo':
         final path = payload['path'] as String?;
         if (path == null) return;
@@ -55,11 +55,11 @@ class OsCaptureBridge {
           bytes,
           preferredName: payload['filename'] as String?,
         );
-        services.capture.submitPhotoCapture(
+        await services.capturePhoto(
           mediaUri: dest,
           mediaBytes: Uint8List.fromList(bytes),
         );
-        services.refreshTimeline();
+        await services.refreshTimeline();
       case 'shared_file':
         final path = payload['path'] as String?;
         if (path == null) return;
@@ -75,13 +75,13 @@ class OsCaptureBridge {
           bytes,
           preferredName: originalName,
         );
-        services.capture.submitFileCapture(
+        await services.captureFile(
           mediaUri: dest,
           mediaBytes: Uint8List.fromList(bytes),
           originalFilename: originalName,
           mimeType: payload['mimeType'] as String?,
         );
-        services.refreshTimeline();
+        await services.refreshTimeline();
     }
   }
 

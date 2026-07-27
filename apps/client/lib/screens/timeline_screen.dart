@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -35,8 +34,8 @@ class TimelineScreen extends StatefulWidget {
 }
 
 class TimelineScreenState extends State<TimelineScreen> {
-  late List<Note> notes = widget.services.search.timeline(limit: 50);
-  late final LibraryMaintenance polish = LibraryMaintenance(widget.services.repo);
+  List<Note> notes = const [];
+  List<Note> anniversary = const [];
   StreamSubscription<List<Note>>? subscription;
   String? landedId;
 
@@ -46,6 +45,16 @@ class TimelineScreenState extends State<TimelineScreen> {
     subscription = widget.services.timelineStream.listen((value) {
       if (mounted) setState(() => notes = value);
     });
+    unawaited(_loadAnniversary());
+  }
+
+  /// "A year ago today", opt-in and quiet by default. Loaded once rather than
+  /// on every build: it is a database query, and build runs on every frame.
+  Future<void> _loadAnniversary() async {
+    if (!widget.preferences.quietAnniversary) return;
+    final found = await widget.services.anniversary(DateTime.now());
+    if (!mounted) return;
+    setState(() => anniversary = found);
   }
 
   @override
@@ -73,21 +82,25 @@ class TimelineScreenState extends State<TimelineScreen> {
     if (picked == null) return;
     try {
       final bytes = await picked.readAsBytes();
-      final dest = p.join(widget.services.mediaDir,
-        'photo-' + DateTime.now().millisecondsSinceEpoch.toString() + p.extension(picked.path));
+      final dest = p.join(
+        widget.services.mediaDir,
+        'photo-${DateTime.now().millisecondsSinceEpoch}${p.extension(picked.path)}',
+      );
       await File(dest).writeAsBytes(bytes, flush: true);
-      final note = widget.services.capture.submitPhotoCapture(
+      final note = await widget.services.capturePhoto(
         mediaUri: dest,
         mediaBytes: Uint8List.fromList(bytes),
       );
       landedId = note.id;
       widget.services.scheduleEnrichment(note.id);
       if (widget.preferences.haptics) HapticFeedback.lightImpact();
-      widget.services.refreshTimeline();
+      await widget.services.refreshTimeline();
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).captureFailed)),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).captureFailed)),
+        );
+      }
     }
   }
 
@@ -95,8 +108,10 @@ class TimelineScreenState extends State<TimelineScreen> {
     final recorder = AudioRecorder();
     if (!await recorder.hasPermission()) return recorder.dispose();
     final elapsed = Stopwatch()..start();
-    final path = p.join(widget.services.mediaDir,
-      'voice-' + DateTime.now().millisecondsSinceEpoch.toString() + '.m4a');
+    final path = p.join(
+      widget.services.mediaDir,
+      'voice-${DateTime.now().millisecondsSinceEpoch}.m4a',
+    );
     await recorder.start(const RecordConfig(), path: path);
     if (!mounted) return;
     final keep = await showModalBottomSheet<bool>(
@@ -109,7 +124,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     await recorder.dispose();
     if (keep != true || recorded == null) { final file = File(path); if (file.existsSync()) file.deleteSync(); return; }
     final bytes = await File(recorded).readAsBytes();
-    final note = widget.services.capture.submitVoiceCapture(
+    final note = await widget.services.captureVoice(
       mediaUri: recorded,
       mediaBytes: Uint8List.fromList(bytes),
       durationMs: elapsed.elapsedMilliseconds,
@@ -129,14 +144,16 @@ class TimelineScreenState extends State<TimelineScreen> {
     });
   }
 
-  void deleteWithUndo(Note note) {
+  Future<void> deleteWithUndo(Note note) async {
     final l10n = AppLocalizations.of(context);
-    widget.services.repo.softDelete(note.id);
-    widget.services.refreshTimeline();
+    await widget.services.deleteNote(note.id);
+    await widget.services.refreshTimeline();
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(l10n.noteDeleted),
-      action: SnackBarAction(label: l10n.undo, onPressed: () {
-        widget.services.repo.undelete(note.id); widget.services.refreshTimeline();
+      action: SnackBarAction(label: l10n.undo, onPressed: () async {
+        await widget.services.undelete(note.id);
+        await widget.services.refreshTimeline();
       }),
     ));
   }
@@ -144,7 +161,6 @@ class TimelineScreenState extends State<TimelineScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final anniversary = widget.preferences.quietAnniversary ? polish.anniversary(DateTime.now()) : <Note>[];
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.appTitle),
@@ -182,8 +198,10 @@ class TimelineScreenState extends State<TimelineScreen> {
                       context: context, isScrollControlled: true, useSafeArea: true,
                       builder: (_) => NoteDetailSheet(services: widget.services, noteId: note.id),
                     );
-                    if (result == DetailResult.deleted) deleteWithUndo(note);
-                    widget.services.refreshTimeline();
+                    if (result == DetailResult.deleted) {
+                      await deleteWithUndo(note);
+                    }
+                    await widget.services.refreshTimeline();
                   },
                 ),
               );

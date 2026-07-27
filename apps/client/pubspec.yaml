@@ -20,6 +20,7 @@ dependencies:
   # "any" delegated the constraint entirely to whatever Flutter stable was
   # installed at build time.
   intl: ^0.20.2
+  meta: ^1.16.0
   just_audio: ^0.10.0
   # Endorses the Windows implementation. Without it every playback call throws
   # MissingPluginException on a first-class v1 target.

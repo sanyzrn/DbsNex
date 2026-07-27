@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_services.dart';
@@ -24,20 +23,29 @@ class _SearchScreenState extends State<SearchScreen> {
   Note? nearest;
   bool filtersOpen = false;
   int request = 0;
-
-  late final polish = LibraryMaintenance(widget.services.repo);
+  List<Tag> allTags = const [];
 
   @override
-  void initState() { super.initState(); run(); }
+  void initState() {
+    super.initState();
+    unawaited(run());
+    unawaited(_loadTags());
+  }
+
+  Future<void> _loadTags() async {
+    final loaded = await widget.services.listTags();
+    if (!mounted) return;
+    setState(() => allTags = loaded);
+  }
 
   void schedule() {
     debounce?.cancel();
     debounce = Timer(const Duration(milliseconds: 150), run);
   }
 
-  void run() {
+  Future<void> run() async {
     final current = ++request;
-    final found = widget.services.search.search(SearchFilters(
+    final found = await widget.services.search(SearchFilters(
       query: query.text,
       tagIds: tags.toList(),
       types: types.toList(),
@@ -45,8 +53,9 @@ class _SearchScreenState extends State<SearchScreen> {
       createdTo: range?.end.add(const Duration(days: 1)),
     ));
     final close = found.isEmpty && query.text.trim().isNotEmpty
-        ? polish.nearestMiss(query.text)
+        ? await widget.services.nearestMiss(query.text)
         : null;
+    // `request` guards against an older query resolving after a newer one.
     if (!mounted || current != request) return;
     setState(() { results = found; nearest = close; });
   }
@@ -57,7 +66,6 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final allTags = widget.services.tags.listTags();
     final active = tags.length + types.length + (range == null ? 0 : 1);
     return Scaffold(
       appBar: AppBar(
@@ -91,7 +99,8 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
               ActionChip(
                 label: Text(range == null ? l10n.date :
-                  DateFormat.yMMMd().format(range!.start) + ' – ' + DateFormat.yMMMd().format(range!.end)),
+                  '${DateFormat.yMMMd().format(range!.start)} – '
+                      '${DateFormat.yMMMd().format(range!.end)}'),
                 onPressed: () async {
                   final value = await showDateRangePicker(
                     context: context,

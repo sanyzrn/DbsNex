@@ -16,6 +16,14 @@ void main() {
       Platform.environment['SYNC_BASE_URL'] ?? 'http://127.0.0.1:4000';
   final runMatrix = Platform.environment['RUN_SYNC_MATRIX'] == '1';
 
+  // The sync API stopped being open when tenancy landed. Each device pairs with
+  // its own token, and the server rejects a push whose device_id is not the
+  // caller's, so the matrix needs one token per simulated device.
+  final tokens = <String, String?>{
+    'device-a': Platform.environment['SYNC_TOKEN_DEVICE_A'],
+    'device-b': Platform.environment['SYNC_TOKEN_DEVICE_B'],
+  };
+
   group(
     'Phase 2 sync matrix (live backend)',
     () {
@@ -40,8 +48,8 @@ void main() {
 
       test('1) concurrent content edit: later updated_at wins; no duplicate',
           () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl);
+        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -67,8 +75,8 @@ void main() {
       });
 
       test('2) tag add on A + content edit on B: BOTH survive', () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl);
+        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -107,8 +115,8 @@ void main() {
       });
 
       test('3) tag add on A + different tag remove on B: union-merge', () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl);
+        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -156,8 +164,8 @@ void main() {
       });
 
       test('4) delete on A vs edit on B: tombstone wins', () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl);
+        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -189,8 +197,8 @@ void main() {
       });
 
       test('5) identical media_hash deduped — not stored twice', () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl);
+        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -238,8 +246,8 @@ void main() {
 
       test('6) long offline then reconnect: outbox flushes, no loss/dupes',
           () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl);
+        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -269,14 +277,20 @@ void main() {
 }
 
 class _Device {
-  _Device({required this.id, required this.baseUrl})
+  _Device({required this.id, required this.baseUrl, this.bearerToken})
       : db = NexDatabase.openInMemory() {
     repo = SqliteNoteRepository(db, localDeviceId: id);
-    client = SyncClient(baseUrl: baseUrl, deviceId: id, repo: repo);
+    client = SyncClient(
+      baseUrl: baseUrl,
+      deviceId: id,
+      repo: repo,
+      bearerToken: bearerToken,
+    );
   }
 
   final String id;
   final String baseUrl;
+  final String? bearerToken;
   final NexDatabase db;
   late final SqliteNoteRepository repo;
   late final SyncClient client;

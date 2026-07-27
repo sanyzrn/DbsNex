@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+// foundation exports its own Summary (a diagnostics type); the one this file
+// returns is nex_core's AI summary.
+import 'package:flutter/foundation.dart' hide Summary;
+import 'package:meta/meta.dart' show useResult;
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
@@ -41,7 +44,6 @@ class RestartRequired {
 class NexServices {
   NexServices._({
     required this.worker,
-    required this.enrichment,
     required this.mediaPicker,
     required this.deviceId,
     required this.dbPath,
@@ -53,7 +55,6 @@ class NexServices {
         _preferences = preferences;
 
   final NexDbWorker worker;
-  final EnrichmentService enrichment;
   final MediaPicker mediaPicker;
   final String deviceId;
   final String dbPath;
@@ -95,17 +96,18 @@ class NexServices {
     // "localhost" on Android and renameable on Windows.
     final id = deviceId ?? await preferences.stableDeviceId();
 
-    final worker = await NexDbWorker.spawn(dbPath: dbPath, deviceId: id);
-
-    final enrichment = EnrichmentService(
-      worker: worker,
+    // EnrichmentService takes the synchronous NoteRepository port, so it is
+    // constructed inside the isolate, not here. The adapter has to survive the
+    // hop: core's adapters are const and pure Dart, a plugin-backed one is not.
+    final worker = await NexDbWorker.spawn(
+      dbPath: dbPath,
+      deviceId: id,
       adapter: aiAdapter ?? AIAdapterBinding.instance,
       capabilities: preferences.aiCapabilities,
     );
 
     final services = NexServices._(
       worker: worker,
-      enrichment: enrichment,
       mediaPicker: mediaPicker ?? PlatformMediaPicker(),
       deviceId: id,
       dbPath: dbPath,
@@ -127,7 +129,6 @@ class NexServices {
     required String deviceId,
     required NexPreferences preferences,
     required BackupPolicy backupPolicy,
-    EnrichmentService? enrichment,
     MediaPicker? mediaPicker,
     required String dbPath,
     required String mediaDir,
@@ -135,8 +136,6 @@ class NexServices {
   }) {
     return NexServices._(
       worker: worker,
-      enrichment: enrichment ??
-          EnrichmentService(worker: worker, adapter: const NullAIAdapter()),
       mediaPicker: mediaPicker ?? PlatformMediaPicker(),
       deviceId: deviceId,
       dbPath: dbPath,
@@ -148,13 +147,124 @@ class NexServices {
   }
 
   void applyAiPreferences(NexPreferences preferences) {
-    enrichment.updateCapabilities(preferences.aiCapabilities);
+    unawaited(worker.setAiCapabilities(preferences.aiCapabilities));
   }
 
   /// Fire-and-forget post-capture enrichment — never awaited by capture UI.
   void scheduleEnrichment(String noteId) {
-    unawaited(enrichment.enrichNote(noteId));
+    unawaited(worker.enrichNote(noteId));
   }
+
+  /* --------------------------------------------------------------- notes */
+
+  Future<Note?> getById(String id) => worker.getById(id);
+
+  Future<Note?> captureText(String content) => worker.captureText(content);
+
+  Future<Note> captureVoice({
+    required String mediaUri,
+    required Uint8List mediaBytes,
+    required int durationMs,
+  }) =>
+      worker.captureVoice(
+        mediaUri: mediaUri,
+        mediaBytes: mediaBytes,
+        durationMs: durationMs,
+      );
+
+  Future<Note> capturePhoto({
+    required String mediaUri,
+    required Uint8List mediaBytes,
+  }) =>
+      worker.capturePhoto(mediaUri: mediaUri, mediaBytes: mediaBytes);
+
+  Future<Note> captureFile({
+    required String mediaUri,
+    required Uint8List mediaBytes,
+    String? originalFilename,
+    String? mimeType,
+  }) =>
+      worker.captureFile(
+        mediaUri: mediaUri,
+        mediaBytes: mediaBytes,
+        originalFilename: originalFilename,
+        mimeType: mimeType,
+      );
+
+  Future<void> updateNote(String id, String content) =>
+      worker.updateNote(id, content);
+
+  Future<void> deleteNote(String id) => worker.deleteNote(id);
+
+  Future<void> undelete(String id) => worker.undelete(id);
+
+  Future<void> setCaption(String id, String caption) =>
+      worker.setCaption(id, caption);
+
+  /* ---------------------------------------------------------------- tags */
+
+  Future<Tag> addTag({
+    required String noteId,
+    required String name,
+    String? color,
+  }) =>
+      worker.addTag(noteId: noteId, name: name, color: color);
+
+  Future<void> removeTag({required String noteId, required String tagId}) =>
+      worker.removeTag(noteId: noteId, tagId: tagId);
+
+  Future<List<Tag>> listTags() => worker.listTags();
+
+  Future<void> setTagColor({required String tagId, String? color}) =>
+      worker.setTagColor(tagId: tagId, color: color);
+
+  /* -------------------------------------------------------------- search */
+
+  Future<List<Note>> timeline({int limit = 50, int offset = 0, String? tagId}) =>
+      worker.timeline(limit: limit, offset: offset, tagId: tagId);
+
+  Future<List<Note>> search(SearchFilters filters) => worker.search(filters);
+
+  /* ------------------------------------------------- library maintenance */
+
+  Future<List<Note>> deletedNotes({int limit = 200}) =>
+      worker.deletedNotes(limit: limit);
+
+  Future<void> purgeDeletedBefore(DateTime cutoff) =>
+      worker.purgeDeletedBefore(cutoff);
+
+  Future<List<TagUsage>> tagUsage() => worker.tagUsage();
+
+  Future<void> renameTag(String id, String name) => worker.renameTag(id, name);
+
+  Future<void> mergeTag({
+    required String sourceId,
+    required String targetId,
+  }) =>
+      worker.mergeTag(sourceId: sourceId, targetId: targetId);
+
+  Future<void> deleteTag(String id) => worker.deleteTag(id);
+
+  Future<List<Note>> anniversary(DateTime now) => worker.anniversary(now);
+
+  Future<Note?> nearestMiss(String query) => worker.nearestMiss(query);
+
+  Future<StorageSnapshot> storage() => worker.storage(
+        dbPath: dbPath,
+        mediaDir: mediaDir,
+        backupDir: backupDir,
+      );
+
+  /* ---------------------------------------------------------- enrichment */
+
+  Future<List<TagSuggestion>> suggestTags(String noteId) =>
+      worker.suggestTags(noteId);
+
+  Future<Summary?> summarizeOnDemand(String noteId) =>
+      worker.summarizeOnDemand(noteId);
+
+  Future<List<SemanticHit>> relatedNotes(String noteId, {int limit = 5}) =>
+      worker.relatedNotes(noteId, limit: limit);
 
   Future<void> refreshTimeline() async {
     if (_closed) return;
@@ -182,7 +292,7 @@ class NexServices {
 
   Future<String> exportNow() {
     final stamp = DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
-    final out = p.join(Directory.systemTemp.path, 'nex-export-' + stamp + '.zip');
+    final out = p.join(Directory.systemTemp.path, 'nex-export-$stamp.zip');
     return worker.exportArchive(outputPath: out, mediaRoot: mediaDir);
   }
 
@@ -202,20 +312,12 @@ class NexServices {
       throw StateError('Refusing to sync over cleartext in a release build.');
     }
 
-    final client = SyncClient(
+    final result = await worker.sync(
       baseUrl: url,
-      deviceId: deviceId,
-      worker: worker,
-      bearerToken: bearerToken,
+      bearerToken: bearerToken ?? _preferences.syncBearerToken,
     );
-
-    try {
-      final result = await client.sync();
-      await refreshTimeline();
-      return result;
-    } finally {
-      client.close();
-    }
+    await refreshTimeline();
+    return result;
   }
 
   /// Newest-first list of local SQLite backup files (FR-7.2).

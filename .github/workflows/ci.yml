@@ -281,22 +281,29 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nex
         run: npm run migrate:dev
 
-      # Seed one user + one device token so the suite can authenticate. The API
-      # is no longer open, so the matrix must pair like a real client.
+      # The matrix simulates two paired devices, so seed both. It used to seed
+      # one, under an id the suite never uses, and the suite never sent the
+      # token anyway — so every request hit the auth middleware as anonymous.
       - name: Seed test tenant
         env:
           PGPASSWORD: postgres
         run: |
-          TOKEN="ci-integration-token"
-          HASH=$(printf '%s' "$TOKEN" | sha256sum | cut -d' ' -f1)
+          TOKEN_A="ci-token-device-a"
+          TOKEN_B="ci-token-device-b"
+          HASH_A=$(printf '%s' "$TOKEN_A" | sha256sum | cut -d' ' -f1)
+          HASH_B=$(printf '%s' "$TOKEN_B" | sha256sum | cut -d' ' -f1)
           psql -h localhost -U postgres -d nex -v ON_ERROR_STOP=1 <<SQL
           INSERT INTO users (id) VALUES ('00000000-0000-4000-8000-000000000000')
             ON CONFLICT DO NOTHING;
           INSERT INTO devices (device_id, user_id, label, token_hash)
-          VALUES ('ci-device-a', '00000000-0000-4000-8000-000000000000', 'ci', '$HASH')
+          VALUES ('device-a', '00000000-0000-4000-8000-000000000000', 'ci-a', '$HASH_A')
+            ON CONFLICT (device_id) DO UPDATE SET token_hash = EXCLUDED.token_hash;
+          INSERT INTO devices (device_id, user_id, label, token_hash)
+          VALUES ('device-b', '00000000-0000-4000-8000-000000000000', 'ci-b', '$HASH_B')
             ON CONFLICT (device_id) DO UPDATE SET token_hash = EXCLUDED.token_hash;
           SQL
-          echo "SYNC_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          echo "SYNC_TOKEN_DEVICE_A=$TOKEN_A" >> "$GITHUB_ENV"
+          echo "SYNC_TOKEN_DEVICE_B=$TOKEN_B" >> "$GITHUB_ENV"
 
       # setsid detaches the server from this step's shell, which exits as soon
       # as the step finishes. A bare "&" left it orphaned and its logs lost.
@@ -328,8 +335,8 @@ jobs:
         env:
           RUN_SYNC_MATRIX: "1"
           SYNC_BASE_URL: http://127.0.0.1:4000
-          SYNC_BEARER_TOKEN: ${{ env.SYNC_TOKEN }}
-          SYNC_DEVICE_ID: ci-device-a
+          SYNC_TOKEN_DEVICE_A: ${{ env.SYNC_TOKEN_DEVICE_A }}
+          SYNC_TOKEN_DEVICE_B: ${{ env.SYNC_TOKEN_DEVICE_B }}
         run: |
           dart pub get
           dart test test/sync_matrix_test.dart

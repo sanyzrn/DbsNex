@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' show FontFeature;
+
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:record/record.dart';
@@ -39,7 +39,7 @@ class _RecordingSheetState extends State<RecordingSheet> {
   String get elapsed {
     final minutes = watch.elapsed.inMinutes.toString().padLeft(2, '0');
     final seconds = watch.elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return minutes + ':' + seconds;
+    return '$minutes:$seconds';
   }
 
   @override
@@ -53,8 +53,8 @@ class _RecordingSheetState extends State<RecordingSheet> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           AnimatedContainer(
             duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : NexMotion.fast,
-            width: size,
-            height: size,
+            width: size.toDouble(),
+            height: size.toDouble(),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Theme.of(context).colorScheme.onSurface,
