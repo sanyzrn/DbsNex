@@ -2,35 +2,79 @@ version: 2
 
 # Dependency drift used to accumulate silently across three ecosystems until an
 # upgrade became a large, risky batch — just_audio 0.9.x and flutter_lints 4.x
-# were already behind by the time of the audit.
+# were already behind by the time of the audit. So the bots stay.
+#
+# What changed is the shape of the noise. The previous config opened one pull
+# request per dependency on a weekly cadence across four ecosystems, which
+# produced thirteen simultaneous PRs — each one running the full CI matrix,
+# including a 2x-billed Windows runner and a 10x-billed macOS runner, and each
+# one emailing on every red job.
+#
+# Two rules now keep that bounded:
+#
+#   1. Everything is grouped. Each ecosystem opens at most two PRs: one for
+#      minor+patch (usually safe to merge on sight) and one for majors (needs
+#      reading). Majors are deliberately still surfaced — silently pinning them
+#      is the drift this file exists to prevent — they just arrive together.
+#   2. Monthly, not weekly.
+#
+# Security advisories are NOT governed by any of this. Dependabot raises those
+# from the advisory database regardless of schedule, grouping or limits, and
+# they should be merged promptly.
 updates:
   - package-ecosystem: npm
     directory: /apps/backend
     schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
     groups:
-      backend-dev:
-        dependency-type: development
-      backend-prod:
-        dependency-type: production
+      backend-minor-patch:
+        patterns: ["*"]
         update-types: [minor, patch]
+      backend-major:
+        patterns: ["*"]
+        update-types: [major]
 
+  # Was `directory: /`, which pointed at the pub workspace root. That
+  # pubspec.yaml was removed when the workspace was reverted, so pub updates
+  # silently stopped resolving — the open sqlite3, sqlite3_flutter_libs and
+  # record PRs disappeared with it. Each package is listed explicitly.
   - package-ecosystem: pub
-    directory: /
+    directories:
+      - /apps/client
+      - /packages/ai
+      - /packages/core
+      - /packages/data
+      - /packages/ui
     schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      dart-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      dart-major:
+        patterns: ["*"]
+        update-types: [major]
 
   - package-ecosystem: gradle
     directory: /apps/client/android
     schedule:
       interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      android-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      android-major:
+        patterns: ["*"]
+        update-types: [major]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 3
+      interval: monthly
+    open-pull-requests-limit: 1
+    groups:
+      actions:
+        patterns: ["*"]
