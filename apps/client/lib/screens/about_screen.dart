@@ -4,6 +4,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_services.dart';
+import 'update_sheet.dart';
 
 const _websiteUrl = 'https://SaeedZarrini.ir';
 const _repositoryUrl = 'https://github.com/sanyzrn/DbsNex';
@@ -51,6 +52,15 @@ class AboutScreen extends StatelessWidget {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+            child: OutlinedButton.icon(
+              onPressed: () => UpdateSheet.show(context),
+              icon: const Icon(Icons.system_update_outlined),
+              label: Text(l10n.checkForUpdate),
+            ),
+          ),
+          const SizedBox(height: NexSpacing.md),
           const Divider(),
           _Heading(l10n.capabilities),
           _Bullet(icon: Icons.bolt_outlined, text: l10n.capabilityCapture),

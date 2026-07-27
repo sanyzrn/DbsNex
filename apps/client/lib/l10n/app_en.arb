@@ -415,5 +415,63 @@
         "type": "int"
       }
     }
+  },
+  "checkForUpdate": "Check for update",
+  "@checkForUpdate": {
+    "description": "Settings row and update sheet title"
+  },
+  "checkingForUpdate": "Looking for a newer release…",
+  "@checkingForUpdate": {
+    "description": "Update sheet, while the check runs"
+  },
+  "upToDate": "You have the latest version.",
+  "@upToDate": {
+    "description": "Update sheet, nothing newer exists"
+  },
+  "downloadAndInstall": "Download and install",
+  "@downloadAndInstall": {
+    "description": "Starts the update download"
+  },
+  "downloading": "Downloading…",
+  "@downloading": {
+    "description": "Update sheet, during the download"
+  },
+  "readyToInstall": "Downloaded. Ready to install.",
+  "@readyToInstall": {
+    "description": "Update sheet, download finished"
+  },
+  "install": "Install",
+  "@install": {
+    "description": "Hands the downloaded package to the system installer"
+  },
+  "updateInstallNotice": "Android will ask you to confirm the install. Your notes are not touched.",
+  "@updateInstallNotice": {
+    "description": "Sets expectations before the system installer appears"
+  },
+  "updateCheckFailed": "Could not reach the update server. Check your connection and try again.",
+  "@updateCheckFailed": {
+    "description": "Update sheet, the check did not complete"
+  },
+  "installBlocked": "The installer did not open. Allow Nex to install unknown apps in your device settings, then try again.",
+  "@installBlocked": {
+    "description": "Shown when handing the package to the installer fails"
+  },
+  "installedVersion": "Installed version {version}",
+  "@installedVersion": {
+    "description": "Update sheet subtitle",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateAvailable": "Version {version} is available",
+  "@updateAvailable": {
+    "description": "Update sheet headline when a newer release exists",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
   }
 }

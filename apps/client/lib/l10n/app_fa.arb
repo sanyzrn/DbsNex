@@ -296,5 +296,33 @@
         "type": "int"
       }
     }
+  },
+  "checkForUpdate": "بررسی بروزرسانی",
+  "checkingForUpdate": "در حال گشتن دنبال نسخهٔ تازه‌تر…",
+  "upToDate": "شما آخرین نسخه را دارید.",
+  "downloadAndInstall": "دانلود و نصب",
+  "downloading": "در حال دانلود…",
+  "readyToInstall": "دانلود شد. آمادهٔ نصب است.",
+  "install": "نصب",
+  "updateInstallNotice": "اندروید برای نصب از شما تأیید می‌گیرد. یادداشت‌های شما دست‌نخورده می‌مانند.",
+  "updateCheckFailed": "دسترسی به سرور بروزرسانی ممکن نشد. اتصال را بررسی کنید و دوباره تلاش کنید.",
+  "installBlocked": "نصب‌کننده باز نشد. در تنظیمات گوشی به Nex اجازهٔ نصب برنامهٔ ناشناس بدهید و دوباره امتحان کنید.",
+  "installedVersion": "نسخهٔ نصب‌شده {version}",
+  "@installedVersion": {
+    "description": "Update sheet subtitle",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateAvailable": "نسخهٔ {version} منتشر شده",
+  "@updateAvailable": {
+    "description": "Update sheet headline when a newer release exists",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
   }
 }
