@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
-import '../platform/polish_service.dart';
+import 'package:nex_data/nex_data.dart';
 
 class RecentlyDeletedScreen extends StatefulWidget {
   const RecentlyDeletedScreen({super.key, required this.polish});
-  final PolishService polish;
+  final LibraryMaintenance polish;
   @override
   State<RecentlyDeletedScreen> createState() => _RecentlyDeletedScreenState();
 }

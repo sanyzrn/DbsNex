@@ -12,7 +12,7 @@ import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/os_capture_bridge.dart';
-import '../platform/polish_service.dart';
+import 'package:nex_data/nex_data.dart';
 import '../widgets/capture_sheet.dart';
 import '../widgets/empty_timeline.dart';
 import '../widgets/recording_sheet.dart';
@@ -36,7 +36,7 @@ class TimelineScreen extends StatefulWidget {
 
 class TimelineScreenState extends State<TimelineScreen> {
   late List<Note> notes = widget.services.search.timeline(limit: 50);
-  late final PolishService polish = PolishService(widget.services.repo);
+  late final LibraryMaintenance polish = LibraryMaintenance(widget.services.repo);
   StreamSubscription<List<Note>>? subscription;
   String? landedId;
 

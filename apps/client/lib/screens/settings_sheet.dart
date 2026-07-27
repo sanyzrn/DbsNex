@@ -4,7 +4,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
-import '../platform/polish_service.dart';
+import 'package:nex_data/nex_data.dart';
 import '../restart_scope.dart';
 import 'about_screen.dart';
 import 'recently_deleted_screen.dart';
@@ -18,7 +18,7 @@ class SettingsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final polish = PolishService(services.repo);
+    final polish = LibraryMaintenance(services.repo);
     return SafeArea(child: SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
