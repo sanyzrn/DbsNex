@@ -137,6 +137,32 @@ moves AI work off the UI thread, which is what 09-ai.md wants anyway.
   never declared.
 - Rewrite `test/app_smoke_test.dart` (48 issues) against the new façade.
 
+### Still open: app_smoke_test hangs
+
+`apps/client` analyzes clean and `platform_capability_test`, `nex_tokens_test`
+and `empty_timeline_test` all pass. **`app_smoke_test.dart` does not run** — all
+27 tests report "did not complete", including the plain `test()` ones, so it is
+hanging in shared setup rather than in any one case.
+
+The cause is structural, not a typo. The rewritten harness spawns a real
+`NexDbWorker`, and `flutter_test` runs test bodies inside a fake-async zone
+where real isolate port traffic never resolves; awaiting a worker reply there
+waits forever. `tester.runAsync()` is the escape hatch for a test body, but the
+harness builds the worker in `setUp`, before any tester exists.
+
+Spawning an isolate per test was the wrong shape anyway. The fix is to let the
+service graph be constructed against something other than the isolate:
+
+1. Extract the async surface of `NexDbWorker` into an interface (`NexDb`).
+2. `NexDbWorker implements NexDb` stays the production, isolate-backed path.
+3. Add an in-process implementation that holds `SqliteNoteRepository` and the
+   domain services directly and returns already-completed Futures.
+4. Type `NexServices.worker` as the interface and have the harness inject the
+   in-process one.
+
+Until this lands, the `client-android` CI job will hang on `flutter test` and
+burn its 35-minute timeout rather than failing fast.
+
 6. **NEX-020 — route all SQLite I/O through the worker.** Grep
    `apps/client/lib` for `services.repo.` — every hit must become a worker call.
    Three commands are missing from `_DbCommand`: `undelete`, `setCaption`,
