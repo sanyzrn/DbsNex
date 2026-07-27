@@ -481,6 +481,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createTag => 'New tag';
 
   @override
+  String get libraryTitle => 'Library';
+
+  @override
+  String get dataAndBackup => 'Data & backup';
+
+  @override
   String get libraryOpenFailed =>
       'Nex could not open your local library. Your files were not changed.';
 

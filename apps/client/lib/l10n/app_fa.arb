@@ -246,6 +246,14 @@
   "@createTag": {
     "description": "Title of the create-tag dialog in the tag manager"
   },
+  "libraryTitle": "کتابخانه",
+  "@libraryTitle": {
+    "description": "Settings group: tags, recently deleted, storage"
+  },
+  "dataAndBackup": "داده و پشتیبان",
+  "@dataAndBackup": {
+    "description": "Settings group: sync, export, restore"
+  },
   "libraryOpenFailed": "Nex نتوانست کتابخانهٔ روی دستگاه شما را باز کند. فایل‌های شما دست‌نخورده ماندند.",
   "@libraryOpenFailed": {
     "description": "Shown when the database fails to open at startup"

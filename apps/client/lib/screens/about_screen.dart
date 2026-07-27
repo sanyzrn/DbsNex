@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_services.dart';
 
@@ -12,7 +13,7 @@ class AboutScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.about)),
       body: ListView(children: [
-        const ListTile(title: Text('Nex'), subtitle: Text('0.1.1')),
+        const ListTile(title: Text('Nex'), subtitle: Text(nexAppVersion)),
         ListTile(
           leading: const Icon(Icons.business_outlined),
           title: Text(l10n.madeBy),
@@ -49,7 +50,7 @@ class AboutScreen extends StatelessWidget {
           onTap: () => showLicensePage(
             context: context,
             applicationName: 'Nex',
-            applicationVersion: '0.1.1',
+            applicationVersion: nexAppVersion,
           ),
         ),
       ]),

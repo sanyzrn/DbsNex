@@ -902,6 +902,18 @@ abstract class AppLocalizations {
   /// **'New tag'**
   String get createTag;
 
+  /// Settings group: tags, recently deleted, storage
+  ///
+  /// In en, this message translates to:
+  /// **'Library'**
+  String get libraryTitle;
+
+  /// Settings group: sync, export, restore
+  ///
+  /// In en, this message translates to:
+  /// **'Data & backup'**
+  String get dataAndBackup;
+
   /// Shown when the database fails to open at startup
   ///
   /// In en, this message translates to:

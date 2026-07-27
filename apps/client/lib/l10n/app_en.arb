@@ -323,6 +323,14 @@
   "@createTag": {
     "description": "Title of the create-tag dialog in the tag manager"
   },
+  "libraryTitle": "Library",
+  "@libraryTitle": {
+    "description": "Settings group: tags, recently deleted, storage"
+  },
+  "dataAndBackup": "Data & backup",
+  "@dataAndBackup": {
+    "description": "Settings group: sync, export, restore"
+  },
   "libraryOpenFailed": "Nex could not open your local library. Your files were not changed.",
   "@libraryOpenFailed": {
     "description": "Shown when the database fails to open at startup"
