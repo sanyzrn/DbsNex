@@ -19,6 +19,7 @@ class NexPreferences extends ChangeNotifier {
 
   static const _kDeviceId = 'nex.device_id';
   static const _kSyncBaseUrl = 'sync.base_url';
+  static const _kSyncBearerToken = 'sync.bearer_token';
 
   static Future<NexPreferences> load() async =>
       NexPreferences._(await SharedPreferences.getInstance());
@@ -55,6 +56,24 @@ class NexPreferences extends ChangeNotifier {
       await _prefs.remove(_kSyncBaseUrl);
     } else {
       await _prefs.setString(_kSyncBaseUrl, value);
+    }
+    notifyListeners();
+  }
+
+  /// Device token from `POST /auth/pair`. Null until the device is paired.
+  ///
+  /// Stored beside the endpoint because the sync API is no longer open: without
+  /// it every push and pull is anonymous and comes back 401.
+  String? get syncBearerToken {
+    final value = _prefs.getString(_kSyncBearerToken);
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  Future<void> setSyncBearerToken(String? value) async {
+    if (value == null || value.isEmpty) {
+      await _prefs.remove(_kSyncBearerToken);
+    } else {
+      await _prefs.setString(_kSyncBearerToken, value);
     }
     notifyListeners();
   }
