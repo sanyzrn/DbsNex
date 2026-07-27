@@ -21,13 +21,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get search => 'Search';
 
   @override
+  String get searchHint => 'Search notes…';
+
+  @override
+  String get searchStart => 'Start typing to find a capture.';
+
+  @override
   String get settings => 'Settings';
 
   @override
-  String get text => 'Text';
+  String get voice => 'Voice';
 
   @override
-  String get voice => 'Voice';
+  String get camera => 'Camera';
+
+  @override
+  String get gallery => 'Gallery';
 
   @override
   String get photo => 'Photo';
@@ -36,54 +45,176 @@ class AppLocalizationsEn extends AppLocalizations {
   String get file => 'File';
 
   @override
-  String get sync => 'Sync';
+  String get text => 'Text';
 
   @override
-  String get syncSubtitle => 'Push pending notes and pull remote changes';
+  String get filters => 'Filters';
 
   @override
-  String get syncNow => 'Sync now';
-
-  @override
-  String syncOk(int pushed, int pulled) {
-    return 'Synced — pushed $pushed, pulled $pulled';
+  String filtersCount(int count) {
+    return 'Filters ($count)';
   }
 
   @override
-  String get syncFailed => 'Sync failed';
+  String get date => 'Date';
 
   @override
-  String get emptyTimeline => 'Tap + to capture';
+  String get clear => 'Clear';
 
   @override
-  String get export => 'Export';
+  String resultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count results',
+      one: '1 result',
+      zero: 'No results',
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get exportSubtitle => 'JSON + Markdown + media archive';
+  String nothingMatches(String query) {
+    return 'Nothing matches “$query”.';
+  }
+
+  @override
+  String get closestThing => 'The closest thing you wrote:';
+
+  @override
+  String get nothingClose => 'Nothing close either.';
+
+  @override
+  String get emptyPromise => 'Anything you put here is kept.';
+
+  @override
+  String get emptySupport => 'Nothing else is asked.';
+
+  @override
+  String get emptyType => 'type';
+
+  @override
+  String get emptySpeak => 'speak';
+
+  @override
+  String get emptyPhotograph => 'photograph';
+
+  @override
+  String get emptyNoSave => 'There is no Save button.';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get addTag => 'Add tag';
+
+  @override
+  String get noteDeleted => 'Note deleted';
+
+  @override
+  String get undo => 'Undo';
+
+  @override
+  String get cancel => 'Cancel';
 
   @override
   String get restore => 'Restore';
 
   @override
-  String get restoreSubtitle => 'Recover from an automatic backup';
+  String get rename => 'Rename';
 
   @override
-  String get restoreConfirmTitle => 'Restore backup?';
+  String get merge => 'Merge';
 
   @override
-  String get restoreConfirmBody =>
-      'This replaces the current local database with the selected automatic backup.';
+  String get tags => 'Tags';
 
   @override
-  String restoreConfirmBodyNamed(String label) {
-    return 'This replaces the current local database with backup “$label”. This cannot be undone from the app.';
+  String get tagActions => 'Tag actions';
+
+  @override
+  String noteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes',
+      one: '1 note',
+      zero: 'No notes',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get chooseBackup => 'Choose a backup';
+  String get renameTag => 'Rename tag';
 
   @override
-  String get latestBackup => 'Latest';
+  String get deleteTag => 'Delete tag?';
+
+  @override
+  String get deleteTagBody =>
+      'This removes the tag from notes. It never deletes the notes themselves.';
+
+  @override
+  String get recentlyDeleted => 'Recently Deleted';
+
+  @override
+  String get recentlyDeletedEmpty => 'Nothing recently deleted.';
+
+  @override
+  String get appearance => 'Appearance';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get accessibility => 'Accessibility';
+
+  @override
+  String get reduceMotion => 'Reduce motion';
+
+  @override
+  String get haptics => 'Capture haptics';
+
+  @override
+  String get quietAnniversary => 'Show the quiet anniversary line';
+
+  @override
+  String get intelligence => 'Intelligence';
+
+  @override
+  String get intelligenceLocal =>
+      'Runs on this device unless Cloud AI is enabled.';
+
+  @override
+  String get about => 'About Nex';
+
+  @override
+  String get localFirstTitle => 'Stored locally';
+
+  @override
+  String localFirstBody(String path) {
+    return 'Your notes are stored on this device at $path';
+  }
+
+  @override
+  String get copyPath => 'Copy data path';
+
+  @override
+  String get silenceTitle => 'Silence is a feature';
+
+  @override
+  String get silenceBody =>
+      'Nex never sends notifications, badges, reminders, or engagement prompts.';
+
+  @override
+  String get privacy => 'Privacy';
+
+  @override
+  String get privacyBody =>
+      'Core capture and search do not collect or transmit your notes.';
+
+  @override
+  String get openSourceLicenses => 'Open-source licences';
 
   @override
   String get themeLight => 'Light';
@@ -95,80 +226,151 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeSystem => 'System';
 
   @override
-  String get cancel => 'Cancel';
-
-  @override
-  String get addTag => 'Add Tag';
-
-  @override
-  String get delete => 'Delete';
-
-  @override
-  String get noteDeleted => 'Note deleted';
-
-  @override
-  String get undo => 'Undo';
-
-  @override
-  String get swipeActions => 'Swipe actions';
-
-  @override
-  String swipeSummary(String leading, String trailing) {
-    return 'Left: $leading · Right: $trailing';
-  }
-
-  @override
-  String get swapSwipeMapping => 'Swap left / right actions';
-
-  @override
-  String get appearance => 'Appearance';
-
-  @override
   String get comfortMode => 'Comfort Mode';
 
   @override
   String get comfortModeSubtitle =>
-      'Lower contrast, warmer colors — independent of Light/Dark';
+      'Lower contrast and warmer colors, independent of Light or Dark';
 
   @override
-  String get recording => 'Recording…';
+  String get languageSystem => 'System';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get languagePersian => 'Persian';
+
+  @override
+  String get quietAnniversarySubtitle =>
+      'Only inside Nex. Never a notification or badge.';
+
+  @override
+  String get storage => 'Storage';
+
+  @override
+  String storageUsed(String size) {
+    return '$size used locally';
+  }
+
+  @override
+  String get stopRecording => 'Stop recording';
+
+  @override
+  String recordingElapsed(String elapsed) {
+    return 'Recording, $elapsed';
+  }
 
   @override
   String get discard => 'Discard';
 
   @override
-  String get micPermission => 'Microphone permission required';
+  String get captureFailed =>
+      'Capture could not be stored. Your existing notes were not changed.';
 
   @override
-  String get gallerySwitch => 'No photo captured. Switch to gallery?';
+  String oneYearAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'One year ago · $count captures',
+      one: 'One year ago · 1 capture',
+    );
+    return '$_temp0';
+  }
 
   @override
-  String get gallery => 'Gallery';
+  String get noteNotFound => 'Note not found';
 
   @override
-  String get searchHint => 'Search notes…';
+  String get mediaUnavailable => 'This media file is unavailable.';
 
   @override
-  String get date => 'Date';
+  String get copy => 'Copy';
 
   @override
-  String get clear => 'Clear';
+  String get share => 'Share';
 
   @override
-  String get voiceSearchHint => 'Voice notes: searchable by tag/date only';
+  String get swipeActions => 'Swipe actions';
 
   @override
-  String get tag => 'Tag';
+  String get swapSwipeMapping => 'Swap start and end actions';
 
   @override
-  String get add => 'Add';
+  String get transcription => 'Transcription';
 
   @override
-  String get searchableByTagDateOnly => 'Searchable by tag/date only';
+  String get ocr => 'OCR';
 
   @override
-  String get widgetLabel => 'Quick Capture';
+  String get tagSuggestions => 'Tag suggestions';
 
   @override
-  String get widgetDescription => 'Open Nex directly into text capture';
+  String get semanticSearch => 'Semantic search';
+
+  @override
+  String get summarization => 'Summarization';
+
+  @override
+  String get relatedNotes => 'Related notes';
+
+  @override
+  String get cloudAi => 'Cloud AI (opt-in)';
+
+  @override
+  String get cloudAiSubtitle =>
+      'Off by default. Core capture always works without it.';
+
+  @override
+  String get sync => 'Sync';
+
+  @override
+  String get syncNow => 'Sync now';
+
+  @override
+  String get syncComplete => 'Sync complete';
+
+  @override
+  String get export => 'Export';
+
+  @override
+  String exportedTo(String path) {
+    return 'Exported to $path';
+  }
+
+  @override
+  String get restoreBackup => 'Restore backup';
+
+  @override
+  String get restoreBody =>
+      'Replace the local database with the newest verified backup?';
+
+  @override
+  String backupCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count backups',
+      one: '1 backup',
+      zero: 'No backups',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get operationFailed =>
+      'The operation failed. Your existing notes were not changed.';
+
+  @override
+  String noteType(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'text': 'Text',
+      'voice': 'Voice',
+      'photo': 'Photo',
+      'file': 'File',
+      'other': 'Note',
+    });
+    return '$_temp0';
+  }
 }
