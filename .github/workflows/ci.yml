@@ -133,7 +133,16 @@ jobs:
 
   client-windows:
     name: apps/client (Windows desktop build + platform tests)
-    runs-on: windows-latest
+    # Not windows-latest. That label moved to Visual Studio 2026 in June 2026,
+    # and Flutter 3.35.5 — which .fvmrc pins — predates it: its Visual Studio
+    # detection does not recognise VS 2026, so it falls back to its oldest known
+    # generator and the build dies with
+    #
+    #   Generator "Visual Studio 16 2019" could not find any instance of Visual Studio
+    #
+    # windows-2022 is the label GitHub documents for staying on VS 2022, which
+    # this Flutter does recognise. Revisit when the Flutter pin moves forward.
+    runs-on: windows-2022
     timeout-minutes: 40
     defaults:
       run:

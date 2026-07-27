@@ -159,7 +159,10 @@ jobs:
   build-windows:
     name: Windows Inno Setup installer
     needs: verify
-    runs-on: windows-latest
+    # Same pin as CI: windows-latest is Visual Studio 2026 since June 2026, and
+    # Flutter 3.35.5 does not recognise it. A release must not build on an image
+    # the verification pipeline never used.
+    runs-on: windows-2022
     timeout-minutes: 45
     defaults:
       run:
