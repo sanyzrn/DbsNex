@@ -1,6 +1,10 @@
 import 'dart:typed_data';
 
-import 'package:nex_data/nex_data.dart';
+import '../ids.dart';
+import '../models/note.dart';
+import '../models/search_filters.dart';
+import '../models/tag.dart';
+import '../ports/note_repository.dart';
 
 /// Pure domain use cases — no storage or UI (Phase 1.2).
 class CaptureService {

@@ -8,12 +8,12 @@ import 'package:test/test.dart';
 void main() {
   late Directory tmp;
   late NexDatabase db;
-  late NoteRepository repo;
+  late SqliteNoteRepository repo;
 
   setUp(() {
     tmp = Directory.systemTemp.createTempSync('nex_data_');
     db = NexDatabase.open(p.join(tmp.path, 'nex.sqlite'));
-    repo = NoteRepository(db);
+    repo = SqliteNoteRepository(db);
   });
 
   tearDown(() {
@@ -154,7 +154,7 @@ void main() {
         outputPath: archivePath,
         mediaRoot: mediaDir.path,
       );
-      final payload = NoteRepository.readExportJson(archive);
+      final payload = SqliteNoteRepository.readExportJson(archive);
       final exportedNotes =
           (payload['notes'] as List).cast<Map<String, dynamic>>();
       expect(exportedNotes, hasLength(2));
@@ -184,7 +184,7 @@ void main() {
         backupFile: backup.path,
       );
       db = NexDatabase.open(p.join(tmp.path, 'nex.sqlite'));
-      repo = NoteRepository(db);
+      repo = SqliteNoteRepository(db);
       expect(repo.listTimeline().single.content, 'precious');
     });
 
@@ -213,7 +213,7 @@ void main() {
       expect(File('$livePath.restoring').existsSync(), isFalse);
 
       db = NexDatabase.open(livePath);
-      repo = NoteRepository(db);
+      repo = SqliteNoteRepository(db);
       expect(repo.listTimeline().single.content, 'must-survive');
     });
   });

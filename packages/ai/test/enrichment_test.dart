@@ -6,12 +6,12 @@ import 'package:test/test.dart';
 
 void main() {
   late NexDatabase db;
-  late NoteRepository repo;
+  late SqliteNoteRepository repo;
   late EnrichmentService enrichment;
 
   setUp(() {
     db = NexDatabase.openInMemory();
-    repo = NoteRepository(db, localDeviceId: 'test');
+    repo = SqliteNoteRepository(db, localDeviceId: 'test');
     enrichment = EnrichmentService(
       repo: repo,
       adapter: const OnDeviceAIAdapter(),

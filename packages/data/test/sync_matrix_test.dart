@@ -271,14 +271,14 @@ void main() {
 class _Device {
   _Device({required this.id, required this.baseUrl})
       : db = NexDatabase.openInMemory() {
-    repo = NoteRepository(db, localDeviceId: id);
+    repo = SqliteNoteRepository(db, localDeviceId: id);
     client = SyncClient(baseUrl: baseUrl, deviceId: id, repo: repo);
   }
 
   final String id;
   final String baseUrl;
   final NexDatabase db;
-  late final NoteRepository repo;
+  late final SqliteNoteRepository repo;
   late final SyncClient client;
 
   Note captureText(String content) {

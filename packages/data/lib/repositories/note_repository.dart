@@ -1,17 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:crypto/crypto.dart';
+import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
-import 'package:uuid/uuid.dart';
 
 import '../schema/database.dart';
-import '../schema/models.dart';
-
-const _uuid = Uuid();
 
 /// Suggested starter tags (FR-3.3) — offered, never enforced.
 const List<String> suggestedStarterTags = [
@@ -31,19 +26,18 @@ const List<String> tagAccentPalette = [
   '#B49AE0',
 ];
 
-String newUuidV7() => _uuid.v7();
+// newUuidV7, sha256OfBytes and sha256OfFile moved to packages/core (ids.dart):
+// they depend only on uuid and crypto, and keeping them here forced core's
+// capture service to import the storage layer just to mint an id.
 
-String sha256OfBytes(Uint8List bytes) => sha256.convert(bytes).toString();
-
-String? sha256OfFile(String? path) {
-  if (path == null) return null;
-  final file = File(path);
-  if (!file.existsSync()) return null;
-  return sha256OfBytes(file.readAsBytesSync());
-}
-
-class NoteRepository {
-  NoteRepository(this._db, {this.localDeviceId});
+/// SQLite-backed implementation of the [NoteRepository] port.
+///
+/// Named for its storage engine because the port it implements owns the plain
+/// name. Every method is synchronous — package:sqlite3 is a synchronous FFI
+/// binding — so this class is only ever constructed **inside** the database
+/// isolate. `NexDbWorker` is what the UI isolate talks to.
+class SqliteNoteRepository implements NoteRepository {
+  SqliteNoteRepository(this._db, {this.localDeviceId});
 
   final NexDatabase _db;
 
@@ -52,6 +46,7 @@ class NoteRepository {
 
   Database get db => _db.db;
 
+  @override
   Note insert(Note note) {
     db.execute(
       '''
@@ -148,6 +143,7 @@ WHERE id = ?
     }
   }
 
+  @override
   Note? getById(String id, {bool includeDeleted = false}) {
     final rows = db.select(
       '''
@@ -165,6 +161,7 @@ WHERE id = ?
   ///
   /// When [tagId] is set, only notes with that tag are returned (Timeline
   /// filter chips / FR-4).
+  @override
   List<Note> listTimeline({
     int limit = 50,
     int offset = 0,
@@ -208,6 +205,7 @@ ORDER BY t.name COLLATE NOCASE
     return rows.map(Tag.fromRow).toList();
   }
 
+  @override
   Tag upsertTag({required String name, String? color}) {
     final trimmed = name.trim();
     if (trimmed.isEmpty) {
@@ -249,6 +247,7 @@ ORDER BY t.name COLLATE NOCASE
     return tag;
   }
 
+  @override
   void attachTag({required String noteId, required String tagId}) {
     db.execute(
       'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
@@ -257,6 +256,7 @@ ORDER BY t.name COLLATE NOCASE
     _bumpNote(noteId);
   }
 
+  @override
   void detachTag({required String noteId, required String tagId}) {
     db.execute(
       'DELETE FROM note_tags WHERE note_id = ? AND tag_id = ?',
@@ -265,6 +265,7 @@ ORDER BY t.name COLLATE NOCASE
     _bumpNote(noteId);
   }
 
+  @override
   List<Tag> listTags() {
     final rows = db.select('SELECT * FROM tags ORDER BY name COLLATE NOCASE');
     return rows.map(Tag.fromRow).toList();
@@ -434,6 +435,7 @@ WHERE id = ?
     }
   }
 
+  @override
   void setTagColor({required String tagId, String? color}) {
     if (color != null && !tagAccentPalette.contains(color)) {
       throw ArgumentError.value(color, 'color', 'not in tagAccentPalette');
@@ -442,6 +444,7 @@ WHERE id = ?
   }
 
   /// Persist AI transcript alongside the voice note (09-ai.md — non-destructive).
+  @override
   void setTranscriptText(String noteId, String text) {
     db.execute(
       'UPDATE notes SET transcript_text = ? WHERE id = ?',
@@ -451,6 +454,7 @@ WHERE id = ?
   }
 
   /// Persist AI OCR text alongside the photo note.
+  @override
   void setOcrText(String noteId, String text) {
     db.execute(
       'UPDATE notes SET ocr_text = ? WHERE id = ?',
@@ -459,6 +463,7 @@ WHERE id = ?
     if (text.isNotEmpty) _upsertFts(noteId, text);
   }
 
+  @override
   void setSummaryText(String noteId, String text) {
     db.execute(
       'UPDATE notes SET summary_text = ? WHERE id = ?',
@@ -494,6 +499,7 @@ WHERE id = ? AND deleted_at IS NULL
     }
   }
 
+  @override
   void setEmbedding(String noteId, List<double> values) {
     final json = '[${values.join(',')}]';
     final now = DateTime.now().toUtc().toIso8601String();
@@ -510,6 +516,7 @@ ON CONFLICT(note_id) DO UPDATE SET
     );
   }
 
+  @override
   List<double>? getEmbedding(String noteId) {
     final rows = db.select(
       'SELECT values_json FROM note_embeddings WHERE note_id = ?',
@@ -519,6 +526,7 @@ ON CONFLICT(note_id) DO UPDATE SET
     return _parseVector(rows.first['values_json']! as String);
   }
 
+  @override
   List<NoteEmbedding> listEmbeddings() {
     final rows = db.select(
       'SELECT note_id, values_json FROM note_embeddings',
@@ -541,6 +549,7 @@ ON CONFLICT(note_id) DO UPDATE SET
   }
 
   /// FR-4 search: FTS on text content + AI-derived transcript/OCR when present.
+  @override
   List<Note> search(SearchFilters filters) {
     final where = <String>['n.deleted_at IS NULL'];
     final args = <Object?>[];
@@ -736,11 +745,4 @@ WHERE id = ?
     }
     return buffer.toString();
   }
-}
-
-class NoteEmbedding {
-  const NoteEmbedding({required this.noteId, required this.values});
-
-  final String noteId;
-  final List<double> values;
 }

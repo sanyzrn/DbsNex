@@ -20,7 +20,7 @@ NexServices _testServices(Directory tmp) {
   Directory(mediaDir).createSync(recursive: true);
   Directory(backupDir).createSync(recursive: true);
   final db = NexDatabase.open(dbPath);
-  final repo = NoteRepository(db);
+  final repo = SqliteNoteRepository(db);
   return NexServices.forTest(
     db: db,
     repo: repo,

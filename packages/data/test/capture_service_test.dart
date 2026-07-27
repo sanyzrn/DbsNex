@@ -1,18 +1,19 @@
 import 'dart:typed_data';
 
 import 'package:nex_core/nex_core.dart';
+import 'package:nex_data/nex_data.dart';
 import 'package:test/test.dart';
 
 void main() {
   late NexDatabase db;
-  late NoteRepository repo;
+  late SqliteNoteRepository repo;
   late CaptureService capture;
   late TagService tags;
   late SearchService search;
 
   setUp(() {
     db = NexDatabase.openInMemory();
-    repo = NoteRepository(db);
+    repo = SqliteNoteRepository(db);
     capture = CaptureService(repo, deviceId: 'core-test');
     tags = TagService(repo);
     search = SearchService(repo);

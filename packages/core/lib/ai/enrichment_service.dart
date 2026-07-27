@@ -2,7 +2,8 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:nex_data/nex_data.dart';
+import '../models/note.dart';
+import '../ports/note_repository.dart';
 
 import 'ai_adapter.dart';
 import 'ai_capabilities.dart';

@@ -1,3 +1,5 @@
+import 'tag.dart';
+
 /// Note types. Generic `file` ships in Phase 2 (ADR-008 deferred out of v1).
 enum NoteType {
   text,
@@ -193,59 +195,4 @@ class Note {
       tags: tags,
     );
   }
-}
-
-/// A freeform tag (FR-3). `color` is optional accent (ADR-021).
-class Tag {
-  const Tag({
-    required this.id,
-    required this.name,
-    this.color,
-    required this.createdAt,
-  });
-
-  final String id;
-  final String name;
-  final String? color;
-  final DateTime createdAt;
-
-  Map<String, Object?> toJson() => {
-        'id': id,
-        'name': name,
-        'color': color,
-        'created_at': createdAt.toUtc().toIso8601String(),
-      };
-
-  factory Tag.fromRow(Map<String, Object?> row) {
-    return Tag(
-      id: row['id']! as String,
-      name: row['name']! as String,
-      color: row['color'] as String?,
-      createdAt: DateTime.parse(row['created_at']! as String).toUtc(),
-    );
-  }
-}
-
-/// Search filters layered on one surface (ADR-011 / FR-4).
-class SearchFilters {
-  const SearchFilters({
-    this.query = '',
-    this.tagIds = const [],
-    this.createdFrom,
-    this.createdTo,
-    this.types = const [],
-  });
-
-  final String query;
-  final List<String> tagIds;
-  final DateTime? createdFrom;
-  final DateTime? createdTo;
-  final List<NoteType> types;
-
-  bool get isEmpty =>
-      query.trim().isEmpty &&
-      tagIds.isEmpty &&
-      createdFrom == null &&
-      createdTo == null &&
-      types.isEmpty;
 }
