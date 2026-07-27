@@ -273,5 +273,28 @@
   "revealInFolder": "نمایش مسیر فایل",
   "@revealInFolder": {
     "description": "Copies a media note's file path to the clipboard"
+  },
+  "trash": "سطل زباله",
+  "trashRetention": "موارد اینجا بعد از ۳۰ روز برای همیشه پاک می‌شوند.",
+  "deleteForever": "حذف همیشگی",
+  "deleteForeverBody": "این یادداشت برای همیشه از بین می‌رود و برگشتی ندارد.",
+  "emptyTrash": "خالی کردن سطل",
+  "open": "باز کردن",
+  "cannotOpen": "روی این دستگاه برنامه‌ای برای باز کردن این فایل نیست.",
+  "sourceCode": "کد منبع",
+  "capabilities": "Nex چه می‌کند",
+  "capabilityCapture": "ثبت متن، صدا، عکس و فایل، بدون دکمهٔ ذخیره",
+  "capabilitySearch": "جست‌وجوی متن، برچسب، تاریخ و نوع، همه روی همین دستگاه",
+  "capabilityOffline": "همهٔ کارهای اصلی بدون هیچ اینترنتی کار می‌کنند",
+  "capabilityExport": "خروجی کامل به شکل JSON، Markdown و فایل‌های اصلی",
+  "version": "نسخه",
+  "emptyTrashBody": "{count, plural, =1{یک یادداشت برای همیشه از بین می‌رود و برگشتی ندارد.} other{{count} یادداشت برای همیشه از بین می‌روند و برگشتی ندارند.}}",
+  "@emptyTrashBody": {
+    "description": "Confirmation body for emptying the trash",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

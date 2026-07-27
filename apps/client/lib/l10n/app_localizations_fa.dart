@@ -502,4 +502,63 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get revealInFolder => 'نمایش مسیر فایل';
+
+  @override
+  String get trash => 'سطل زباله';
+
+  @override
+  String get trashRetention =>
+      'موارد اینجا بعد از ۳۰ روز برای همیشه پاک می‌شوند.';
+
+  @override
+  String get deleteForever => 'حذف همیشگی';
+
+  @override
+  String get deleteForeverBody =>
+      'این یادداشت برای همیشه از بین می‌رود و برگشتی ندارد.';
+
+  @override
+  String get emptyTrash => 'خالی کردن سطل';
+
+  @override
+  String get open => 'باز کردن';
+
+  @override
+  String get cannotOpen =>
+      'روی این دستگاه برنامه‌ای برای باز کردن این فایل نیست.';
+
+  @override
+  String get sourceCode => 'کد منبع';
+
+  @override
+  String get capabilities => 'Nex چه می‌کند';
+
+  @override
+  String get capabilityCapture => 'ثبت متن، صدا، عکس و فایل، بدون دکمهٔ ذخیره';
+
+  @override
+  String get capabilitySearch =>
+      'جست‌وجوی متن، برچسب، تاریخ و نوع، همه روی همین دستگاه';
+
+  @override
+  String get capabilityOffline =>
+      'همهٔ کارهای اصلی بدون هیچ اینترنتی کار می‌کنند';
+
+  @override
+  String get capabilityExport =>
+      'خروجی کامل به شکل JSON، Markdown و فایل‌های اصلی';
+
+  @override
+  String get version => 'نسخه';
+
+  @override
+  String emptyTrashBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count یادداشت برای همیشه از بین می‌روند و برگشتی ندارند.',
+      one: 'یک یادداشت برای همیشه از بین می‌رود و برگشتی ندارد.',
+    );
+    return '$_temp0';
+  }
 }

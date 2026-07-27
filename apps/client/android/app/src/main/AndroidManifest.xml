@@ -3,6 +3,24 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!--
+      Android 11 package visibility. Opening a note's file with the device's
+      default handler resolves the receiving activity first, and without this
+      declaration that lookup comes back empty on API 30+ — so every "Open"
+      would report "no app can open this file" even with a viewer installed.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="*/*" />
+        </intent>
+    </queries>
+
     <application
         android:label="Nex"
         android:name="${applicationName}"

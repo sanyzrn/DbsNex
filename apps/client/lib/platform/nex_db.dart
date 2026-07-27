@@ -77,6 +77,12 @@ abstract interface class NexDb {
 
   Future<void> purgeDeletedBefore(DateTime cutoff);
 
+  /// Permanently removes one trashed note.
+  Future<void> purgeNote(String id);
+
+  /// Empties the trash.
+  Future<void> purgeAllDeleted();
+
   Future<List<TagUsage>> tagUsage();
 
   Future<void> renameTag(String id, String name);

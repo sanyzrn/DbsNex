@@ -93,13 +93,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('a written thought'), findsOneWidget);
 
-    // The type chips live outside TagFilterRow, so scope to FilterChip.
-    await tester.tap(
-      find.descendant(
-        of: find.byType(FilterChip),
-        matching: find.text('Voice'),
-      ),
-    );
+    // The content-type filter lives behind the filter row's leading icon
+    // button, as in the mockup, so it takes a tap to reach.
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Voice'));
     await tester.pumpAndSettle();
     expect(find.text('a written thought'), findsNothing);
   });
@@ -364,7 +362,7 @@ void main() {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
-    await tester.tap(find.byIcon(Icons.tune));
+    await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     expect(find.text('Intelligence'), findsOneWidget);
     expect(find.text('Transcription'), findsOneWidget);
@@ -393,7 +391,7 @@ void main() {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
-    await tester.tap(find.byIcon(Icons.tune));
+    await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     expect(find.text('Swipe actions'), findsOneWidget);
     expect(find.text('Comfort Mode'), findsOneWidget);

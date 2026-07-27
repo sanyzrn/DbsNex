@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 0.1.2
+version: 0.2.0
 
 environment:
   sdk: ^3.9.0
@@ -33,9 +33,14 @@ dependencies:
     path: ../../packages/data
   nex_ui:
     path: ../../packages/ui
+  # Hands a note's media to the OS the way a file manager does: the default
+  # handler opens it, or the system asks which app should.
+  open_filex: ^4.7.0
   path: ^1.9.1
   path_provider: ^2.1.5
   record: ^6.1.1
+  # The platform share sheet for file, photo and voice notes.
+  share_plus: ^12.0.2
   shared_preferences: ^2.3.3
   sqlite3: ^2.7.5
   sqlite3_flutter_libs: ^0.5.28

@@ -4,4 +4,4 @@
 /// so a release bump silently left the version the user could actually read
 /// pointing at the previous release. `version_test.dart` fails the build if
 /// this and `pubspec.yaml` ever drift apart again.
-const nexAppVersion = '0.1.2';
+const nexAppVersion = '0.2.0';

@@ -4,10 +4,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
+import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/nex_services.dart';
@@ -21,7 +23,17 @@ enum DetailResult { deleted }
 
 /// The entries of the sheet's overflow menu, so the switch over the chosen
 /// entry is exhaustive rather than a string comparison.
-enum _NoteMenuAction { edit, copy, copyPath, addTag, caption, summarize, details }
+enum _NoteMenuAction {
+  open,
+  share,
+  edit,
+  copy,
+  copyPath,
+  addTag,
+  caption,
+  summarize,
+  details,
+}
 
 class NoteDetailSheet extends StatefulWidget {
   const NoteDetailSheet({
@@ -163,6 +175,47 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     _toast(l10n.copied);
   }
 
+  /// Hands the note's media to the OS, exactly as a file manager would: the
+  /// default handler opens it, or the system asks which app should.
+  Future<void> _openExternally() async {
+    final note = _note;
+    final uri = note?.mediaUri;
+    if (uri == null) return;
+    final l10n = AppLocalizations.of(context);
+    if (!File(uri).existsSync()) {
+      _toast(l10n.mediaUnavailable);
+      return;
+    }
+    final result = await OpenFilex.open(uri, type: note?.mimeType);
+    if (!mounted) return;
+    if (result.type != ResultType.done) _toast(l10n.cannotOpen);
+  }
+
+  /// Shares the media itself for a file, photo or voice note, and the body for
+  /// a text note — sharing a text note as a zero-byte attachment would be
+  /// useless to whatever receives it.
+  Future<void> _share() async {
+    final note = _note;
+    if (note == null) return;
+    final l10n = AppLocalizations.of(context);
+    final uri = note.mediaUri;
+    final text = _copyableText(note);
+    if (uri != null && File(uri).existsSync()) {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(uri, mimeType: note.mimeType)],
+          text: note.caption?.trim().isNotEmpty == true ? note.caption : null,
+        ),
+      );
+      return;
+    }
+    if (text == null) {
+      _toast(l10n.nothingToCopy);
+      return;
+    }
+    await SharePlus.instance.share(ShareParams(text: text));
+  }
+
   /// Editing a text note in place. `updateNote` existed on every layer down to
   /// the repository, but no screen ever called it — a captured note could not
   /// be corrected after the fact.
@@ -269,6 +322,17 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (hasMedia)
+              ListTile(
+                leading: const Icon(Icons.open_in_new),
+                title: Text(l10n.open),
+                onTap: () => Navigator.pop(ctx, _NoteMenuAction.open),
+              ),
+            ListTile(
+              leading: const Icon(Icons.ios_share),
+              title: Text(l10n.share),
+              onTap: () => Navigator.pop(ctx, _NoteMenuAction.share),
+            ),
             if (isText)
               ListTile(
                 leading: const Icon(Icons.edit_outlined),
@@ -317,6 +381,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     );
     if (!mounted || choice == null) return;
     switch (choice) {
+      case _NoteMenuAction.open:
+        await _openExternally();
+      case _NoteMenuAction.share:
+        await _share();
       case _NoteMenuAction.edit:
         await _editContent();
       case _NoteMenuAction.copy:
@@ -572,39 +640,66 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                 Text(note.ocrText!),
               ],
             ] else ...[
-              // File — same sheet, ADR-008 display fields.
-              Row(
-                children: [
-                  Icon(
-                    Icons.insert_drive_file_outlined,
-                    color: Theme.of(context).colorScheme.secondary,
+              // File — same sheet, ADR-008 display fields. Tapping the row
+              // hands it to the OS, so the note behaves like the same file
+              // does in a file manager.
+              InkWell(
+                onTap: _openExternally,
+                borderRadius: BorderRadius.circular(NexColors.cardRadius),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: NexSpacing.sm,
+                    horizontal: NexSpacing.xs,
                   ),
-                  const SizedBox(width: NexSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      note.content?.trim().isNotEmpty == true
-                          ? note.content!
-                          : (note.mediaUri != null
-                              ? p.basename(note.mediaUri!)
-                              : l10n.file),
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ),
-                ],
-              ),
-              if (note.mediaUri != null && File(note.mediaUri!).existsSync()) ...[
-                const SizedBox(height: NexSpacing.xs),
-                Text(
-                  [
-                    nexFormatBytes(File(note.mediaUri!).lengthSync()),
-                    if (note.mimeType != null) note.mimeType!,
-                  ].join(' · '),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.insert_drive_file_outlined,
                         color: Theme.of(context).colorScheme.secondary,
-                        fontWeight: FontWeight.w400,
                       ),
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              note.content?.trim().isNotEmpty == true
+                                  ? note.content!
+                                  : (note.mediaUri != null
+                                      ? p.basename(note.mediaUri!)
+                                      : l10n.file),
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                            if (note.mediaUri != null &&
+                                File(note.mediaUri!).existsSync())
+                              Text(
+                                [
+                                  nexFormatBytes(
+                                      File(note.mediaUri!).lengthSync()),
+                                  if (note.mimeType != null) note.mimeType!,
+                                ].join(' · '),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .secondary,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.open_in_new,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ],
             if (note.type != NoteType.text) ...[
               const SizedBox(height: NexSpacing.md),

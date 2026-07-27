@@ -502,4 +502,63 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get revealInFolder => 'Copy file path';
+
+  @override
+  String get trash => 'Trash';
+
+  @override
+  String get trashRetention =>
+      'Items here are removed permanently after 30 days.';
+
+  @override
+  String get deleteForever => 'Delete permanently';
+
+  @override
+  String get deleteForeverBody =>
+      'This note will be gone for good. It cannot be undone.';
+
+  @override
+  String get emptyTrash => 'Empty trash';
+
+  @override
+  String get open => 'Open';
+
+  @override
+  String get cannotOpen => 'No app on this device can open this file.';
+
+  @override
+  String get sourceCode => 'Source code';
+
+  @override
+  String get capabilities => 'What Nex does';
+
+  @override
+  String get capabilityCapture =>
+      'Text, voice, photo and file capture with no save button';
+
+  @override
+  String get capabilitySearch =>
+      'Full-text, tag, date and type search that runs on this device';
+
+  @override
+  String get capabilityOffline =>
+      'Every core flow works with no network at all';
+
+  @override
+  String get capabilityExport =>
+      'Export everything as JSON, Markdown and the original media';
+
+  @override
+  String get version => 'Version';
+
+  @override
+  String emptyTrashBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes will be gone for good. It cannot be undone.',
+      one: '1 note will be gone for good. It cannot be undone.',
+    );
+    return '$_temp0';
+  }
 }

@@ -73,13 +73,57 @@ class TimelineScreenState extends State<TimelineScreen> {
   }
 
   Future<void> _selectTag(String? tagId) async {
+    _tick();
     setState(() => selectedTagId = tagId);
     await _applyFilters();
   }
 
   Future<void> _selectType(NoteType? type) async {
+    _tick();
     setState(() => selectedType = type);
     await _applyFilters();
+  }
+
+  /// The content-type filter, behind the mockup's icon button.
+  Future<void> _pickType() async {
+    final l10n = AppLocalizations.of(context);
+    final chosen = await showModalBottomSheet<_TypeChoice>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final type in <NoteType?>[null, ...NoteType.values])
+              ListTile(
+                leading: Icon(_typeIcon(type)),
+                title: Text(
+                  type == null ? l10n.all : l10n.noteType(type.wireName),
+                ),
+                trailing: selectedType == type ? const Icon(Icons.check) : null,
+                selected: selectedType == type,
+                // Wrapped, because popping a bare null cannot be told apart
+                // from the user dismissing the sheet.
+                onTap: () => Navigator.pop(ctx, _TypeChoice(type)),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (chosen == null) return;
+    await _selectType(chosen.type);
+  }
+
+  static IconData _typeIcon(NoteType? type) => switch (type) {
+        null => Icons.all_inclusive,
+        NoteType.text => Icons.short_text,
+        NoteType.voice => Icons.graphic_eq,
+        NoteType.photo => Icons.photo_outlined,
+        NoteType.file => Icons.insert_drive_file_outlined,
+      };
+
+  void _tick() {
+    if (widget.preferences.haptics) HapticFeedback.selectionClick();
   }
 
   /// FR-4.5: the content-type filter layers on top of the tag filter — it is
@@ -219,6 +263,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     );
     controller.dispose();
     if (name == null || name.isEmpty) return;
+    if (widget.preferences.haptics) HapticFeedback.lightImpact();
     await widget.services.addTag(noteId: note.id, name: name);
     await widget.services.refreshTimeline();
     await _loadFilterTags();
@@ -226,6 +271,7 @@ class TimelineScreenState extends State<TimelineScreen> {
 
   Future<void> deleteWithUndo(Note note) async {
     final l10n = AppLocalizations.of(context);
+    if (widget.preferences.haptics) HapticFeedback.mediumImpact();
     await widget.services.deleteNote(note.id);
     await widget.services.refreshTimeline();
     if (!mounted) return;
@@ -259,6 +305,7 @@ class TimelineScreenState extends State<TimelineScreen> {
           label: l10n.undo,
           textColor: theme.colorScheme.inversePrimary,
           onPressed: () async {
+            _tick();
             await widget.services.undelete(note.id);
             await widget.services.refreshTimeline();
           },
@@ -276,7 +323,7 @@ class TimelineScreenState extends State<TimelineScreen> {
           IconButton(tooltip: l10n.search, icon: const Icon(Icons.search),
             onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
               builder: (_) => SearchScreen(services: widget.services)))),
-          IconButton(tooltip: l10n.settings, icon: const Icon(Icons.tune),
+          IconButton(tooltip: l10n.settings, icon: const Icon(Icons.settings_outlined),
             // useSafeArea keeps the sheet clear of the status bar; without it
             // the title sat flush against the top of the screen.
             onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true,
@@ -287,28 +334,18 @@ class TimelineScreenState extends State<TimelineScreen> {
       body: notes.isEmpty && selectedTagId == null
           ? const EmptyTimeline()
           : Column(children: [
+              // One filter row, as in the mockup: the icon button leads it and
+              // holds the content-type filter, so the timeline keeps a single
+              // row of pills rather than stacking a second one under it.
               TagFilterRow(
                 tags: filterTags,
                 selectedTagId: selectedTagId,
                 allLabel: l10n.all,
+                leading: _TypeFilterButton(
+                  selected: selectedType,
+                  onPressed: () => unawaited(_pickType()),
+                ),
                 onSelected: (value) => unawaited(_selectTag(value)),
-              ),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Row(children: [
-                  for (final type in [null, ...NoteType.values])
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(type == null
-                            ? l10n.all
-                            : l10n.noteType(type.name)),
-                        selected: selectedType == type,
-                        onSelected: (_) => unawaited(_selectType(type)),
-                      ),
-                    ),
-                ]),
               ),
               Expanded(child: Center(
         child: ConstrainedBox(
@@ -335,6 +372,7 @@ class TimelineScreenState extends State<TimelineScreen> {
                 child: SwipeableNoteCard(
                   deleteLabel: l10n.delete,
                   addTagLabel: l10n.addTag,
+                  haptics: widget.preferences.haptics,
                   resolveAction: ({required bool isLeading}) {
                     final action = isLeading
                         ? widget.preferences.leadingAction
@@ -368,6 +406,49 @@ class TimelineScreenState extends State<TimelineScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: openCapture, tooltip: l10n.capture, child: const Icon(Icons.add, size: 32)),
+    );
+  }
+}
+/// Wraps the picker's answer so "All" survives the trip back through
+/// `Navigator.pop`, which cannot distinguish a null result from a dismissal.
+class _TypeChoice {
+  const _TypeChoice(this.type);
+  final NoteType? type;
+}
+
+/// The mockup's leading icon button on the filter row.
+///
+/// Carries a dot when a content type is filtering, so an active filter is
+/// visible without opening the sheet.
+class _TypeFilterButton extends StatelessWidget {
+  const _TypeFilterButton({required this.selected, required this.onPressed});
+
+  final NoteType? selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final active = selected != null;
+    return Material(
+      color: active ? theme.colorScheme.onSurface : theme.colorScheme.surface,
+      shape: StadiumBorder(
+        side: BorderSide(
+          color: active ? theme.colorScheme.onSurface : theme.colorScheme.outline,
+        ),
+      ),
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const StadiumBorder(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Icon(
+            Icons.tune,
+            size: 16,
+            color: active ? theme.colorScheme.surface : theme.colorScheme.onSurface,
+          ),
+        ),
+      ),
     );
   }
 }

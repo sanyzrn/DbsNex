@@ -150,6 +150,12 @@ class InProcessDb implements NexDb {
       _maintenance.purgeDeletedBefore(cutoff);
 
   @override
+  Future<void> purgeNote(String id) async => _maintenance.purgeNote(id);
+
+  @override
+  Future<void> purgeAllDeleted() async => _maintenance.purgeAllDeleted();
+
+  @override
   Future<List<TagUsage>> tagUsage() async => _maintenance.tagUsage();
 
   @override
