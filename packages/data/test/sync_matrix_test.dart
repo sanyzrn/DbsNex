@@ -38,7 +38,16 @@ void main() {
       });
 
       setUp(() async {
-        final reset = await http.post(Uri.parse('$baseUrl/sync/test/reset'));
+        // /sync/test/reset sits behind the same auth middleware as the rest of
+        // the API. SyncClient authenticates now, but this raw call did not, so
+        // every case still died in setUp with a 401.
+        final reset = await http.post(
+          Uri.parse('$baseUrl/sync/test/reset'),
+          headers: {
+            if (tokens['device-a'] != null)
+              'authorization': 'Bearer ${tokens['device-a']}',
+          },
+        );
         expect(
           reset.statusCode,
           200,

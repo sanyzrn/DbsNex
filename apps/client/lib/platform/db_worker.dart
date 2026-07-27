@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
 
+import 'nex_db.dart';
+
 /// Commands the worker isolate understands.
 ///
 /// package:sqlite3 is a synchronous FFI binding: every call blocks the calling
@@ -96,7 +98,7 @@ class _WorkerBoot {
 ///
 /// The UI isolate never touches sqlite3 directly; it sends a command and awaits
 /// a reply, so no query can block a frame.
-class NexDbWorker {
+class NexDbWorker implements NexDb {
   NexDbWorker._(
     this._isolate,
     this._toWorker,
@@ -180,6 +182,7 @@ class NexDbWorker {
 
   /* ------------------------------------------------------------- reading */
 
+  @override
   Future<List<Note>> timeline({int limit = 200, int offset = 0, String? tagId}) =>
       _send<List<Note>>(_DbCommand.timeline, {
         'limit': limit,
@@ -187,20 +190,25 @@ class NexDbWorker {
         'tagId': tagId,
       });
 
+  @override
   Future<List<Note>> loadMore({required int offset, int limit = 50}) =>
       _send<List<Note>>(_DbCommand.loadMore, {'limit': limit, 'offset': offset});
 
+  @override
   Future<List<Note>> search(SearchFilters filters) =>
       _send<List<Note>>(_DbCommand.search, {'filters': filters});
 
+  @override
   Future<Note?> getById(String id) =>
       _send<Note?>(_DbCommand.getById, {'id': id});
 
   /* ------------------------------------------------------------ capturing */
 
+  @override
   Future<Note?> captureText(String content) =>
       _send<Note?>(_DbCommand.captureText, {'content': content});
 
+  @override
   Future<Note> captureVoice({
     required String mediaUri,
     required Uint8List mediaBytes,
@@ -212,6 +220,7 @@ class NexDbWorker {
         'durationMs': durationMs,
       });
 
+  @override
   Future<Note> capturePhoto({
     required String mediaUri,
     required Uint8List mediaBytes,
@@ -221,6 +230,7 @@ class NexDbWorker {
         'mediaBytes': mediaBytes,
       });
 
+  @override
   Future<Note> captureFile({
     required String mediaUri,
     required Uint8List mediaBytes,
@@ -236,20 +246,25 @@ class NexDbWorker {
 
   /* ------------------------------------------------------------- mutating */
 
+  @override
   Future<void> updateNote(String id, String content) =>
       _send<void>(_DbCommand.updateNote, {'id': id, 'content': content});
 
+  @override
   Future<void> deleteNote(String id) =>
       _send<void>(_DbCommand.deleteNote, {'id': id});
 
+  @override
   Future<void> undelete(String id) =>
       _send<void>(_DbCommand.undelete, {'id': id});
 
+  @override
   Future<void> setCaption(String id, String caption) =>
       _send<void>(_DbCommand.setCaption, {'id': id, 'caption': caption});
 
   /* ----------------------------------------------------------------- tags */
 
+  @override
   Future<Tag> addTag({
     required String noteId,
     required String name,
@@ -261,19 +276,24 @@ class NexDbWorker {
         'color': color,
       });
 
+  @override
   Future<void> removeTag({required String noteId, required String tagId}) =>
       _send<void>(_DbCommand.removeTag, {'noteId': noteId, 'tagId': tagId});
 
+  @override
   Future<List<Tag>> listTags() => _send<List<Tag>>(_DbCommand.listTags);
 
+  @override
   Future<void> setTagColor({required String tagId, String? color}) =>
       _send<void>(_DbCommand.setTagColor, {'tagId': tagId, 'color': color});
 
   /* ------------------------------------------------------ backup / export */
 
+  @override
   Future<void> backup(String backupDir) =>
       _send<void>(_DbCommand.backup, {'dir': backupDir});
 
+  @override
   Future<String> exportArchive({
     required String outputPath,
     required String mediaRoot,
@@ -285,18 +305,23 @@ class NexDbWorker {
 
   /* --------------------------------------------------- library maintenance */
 
+  @override
   Future<List<Note>> deletedNotes({int limit = 200}) =>
       _send<List<Note>>(_DbCommand.deletedNotes, {'limit': limit});
 
+  @override
   Future<void> purgeDeletedBefore(DateTime cutoff) =>
       _send<void>(_DbCommand.purgeDeletedBefore, {'cutoff': cutoff});
 
+  @override
   Future<List<TagUsage>> tagUsage() =>
       _send<List<TagUsage>>(_DbCommand.tagUsage);
 
+  @override
   Future<void> renameTag(String id, String name) =>
       _send<void>(_DbCommand.renameTag, {'id': id, 'name': name});
 
+  @override
   Future<void> mergeTag({
     required String sourceId,
     required String targetId,
@@ -306,15 +331,19 @@ class NexDbWorker {
         'targetId': targetId,
       });
 
+  @override
   Future<void> deleteTag(String id) =>
       _send<void>(_DbCommand.deleteTag, {'id': id});
 
+  @override
   Future<List<Note>> anniversary(DateTime now) =>
       _send<List<Note>>(_DbCommand.anniversary, {'now': now});
 
+  @override
   Future<Note?> nearestMiss(String query) =>
       _send<Note?>(_DbCommand.nearestMiss, {'query': query});
 
+  @override
   Future<StorageSnapshot> storage({
     required String dbPath,
     required String mediaDir,
@@ -328,21 +357,26 @@ class NexDbWorker {
 
   /* ----------------------------------------------------------- enrichment */
 
+  @override
   Future<void> enrichNote(String noteId) =>
       _send<void>(_DbCommand.enrichNote, {'noteId': noteId});
 
+  @override
   Future<List<TagSuggestion>> suggestTags(String noteId) =>
       _send<List<TagSuggestion>>(_DbCommand.suggestTags, {'noteId': noteId});
 
+  @override
   Future<Summary?> summarizeOnDemand(String noteId) =>
       _send<Summary?>(_DbCommand.summarize, {'noteId': noteId});
 
+  @override
   Future<List<SemanticHit>> relatedNotes(String noteId, {int limit = 5}) =>
       _send<List<SemanticHit>>(_DbCommand.relatedNotes, {
         'noteId': noteId,
         'limit': limit,
       });
 
+  @override
   Future<void> setAiCapabilities(AiCapabilities capabilities) =>
       _send<void>(_DbCommand.setAiCapabilities, {'capabilities': capabilities});
 
@@ -351,6 +385,7 @@ class NexDbWorker {
   /// SyncClient needs the concrete repository — the outbox surface the port
   /// deliberately withholds — so it is built here, inside the isolate that owns
   /// it, rather than on the UI isolate where it has nothing to talk to.
+  @override
   Future<SyncResult> sync({
     required String baseUrl,
     String? bearerToken,
@@ -360,6 +395,7 @@ class NexDbWorker {
         'bearerToken': bearerToken,
       });
 
+  @override
   Future<void> close() async {
     if (_closed) return;
     _closed = true;
