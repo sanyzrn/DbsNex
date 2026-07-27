@@ -61,7 +61,7 @@ jobs:
           channel: stable
           cache: true
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Require Android signing secrets
         env:

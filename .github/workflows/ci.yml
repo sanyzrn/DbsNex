@@ -125,7 +125,7 @@ jobs:
           flutter-version-file: .fvmrc
           channel: stable
           cache: true
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - run: flutter pub get
       - run: flutter analyze --fatal-infos
       - run: flutter test
