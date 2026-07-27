@@ -8,7 +8,10 @@ void main() {
     // Mockup --text:#111113 (authoritative visual reference).
     expect(NexColors.textPrimaryLight.toARGB32(), 0xFF111113);
     expect(NexColors.textPrimaryDark.toARGB32(), 0xFFFAFAFA);
-    expect(NexColors.textSecondaryLight.toARGB32(), 0xFF8B8B90);
+    // Deliberately not the mockup's --text-soft (#8B8B90): that is 3.39:1 on
+    // white and fails the 4.5:1 body-text floor 05-design.md sets for itself.
+    // #68686D is 5.54:1. See the note under the token table.
+    expect(NexColors.textSecondaryLight.toARGB32(), 0xFF68686D);
     expect(NexColors.borderLight.toARGB32(), 0xFFEBEAE8);
     expect(NexColors.cardRadius, 22);
     expect(nexCaptureFabSize, 64);

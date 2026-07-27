@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+// CustomSemanticsAction lives in the semantics library; material re-exports
+// neither it nor SemanticsAction, so the swipe actions had no accessible
+// equivalent and the file did not compile.
+import 'package:flutter/semantics.dart';
 import '../tokens/nex_tokens.dart';
 
 enum NexSwipeAction { delete, addTag }
@@ -37,6 +41,9 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard> {
     final open = constraints.maxWidth * 0.45;
     final leading = widget.resolveAction(isLeading: true);
     final trailing = widget.resolveAction(isLeading: false);
+    // Which action the current offset has uncovered, if any. Null while closed.
+    final revealed =
+        dx == 0 ? null : ((rtl ? dx < 0 : dx > 0) ? leading : trailing);
     return Semantics(
       customSemanticsActions: {
         CustomSemanticsAction(label: widget.deleteLabel): widget.onDelete,
@@ -64,7 +71,36 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard> {
               ? (rtl ? -open : open)
               : (rtl ? open : -open));
         },
-        child: Transform.translate(offset: Offset(dx, 0), child: widget.child),
+        // The card used to be translated over nothing: swiping moved it aside
+        // and revealed blank space, so the gesture had no discoverable action
+        // and the only way to reach delete/add-tag was the long-press menu.
+        child: Stack(
+          children: [
+            // Built only while open, so a closed card cannot leak its action
+            // labels into the widget tree, the semantics tree, or a hit test.
+            if (revealed != null)
+              Positioned.fill(
+                child: Align(
+                  // Physical, not directional: whichever way the card actually
+                  // moved is the side the space opened on, in either script
+                  // direction.
+                  alignment:
+                      dx > 0 ? Alignment.centerLeft : Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextButton(
+                      onPressed: () {
+                        run(revealed);
+                        setState(() => dx = 0);
+                      },
+                      child: Text(label(revealed)),
+                    ),
+                  ),
+                ),
+              ),
+            Transform.translate(offset: Offset(dx, 0), child: widget.child),
+          ],
+        ),
       ),
     );
   });
