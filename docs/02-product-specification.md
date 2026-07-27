@@ -88,6 +88,9 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-2.6 Each Timeline card supports two swipe gestures — one revealing a **leading-edge** action, one revealing a **trailing-edge** action. The default mapping is: trailing swipe → **Delete** (soft-delete, undoable); leading swipe → **Add Tag** (opens inline tag input). No confirmation dialog interrupts either action; Delete surfaces a brief, dismissible "Undo" toast instead.
 - FR-2.7 The action bound to each swipe direction is **user-configurable** from Settings — the two directions can be swapped (e.g., a left-handed user moves Delete to the leading edge) — but the action set itself stays fixed at exactly these two (Delete, Add Tag). This is a deliberately closed set, not an open action framework — see [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set).
 - FR-2.8 Swipe actions never introduce a decision at capture time — they operate only on already-captured notes in the Timeline, consistent with [ADR-001](./10-decisions.md#adr-001--capture-has-zero-mandatory-fields).
+- FR-2.9 Tapping a card opens the Note Detail Sheet, which offers the actions that are not worth a gesture: edit, copy, copy file path, add tag, caption, summarize, details, delete. These are secondary by construction — they live behind one tap in an overflow menu so the sheet itself stays a lightweight overlay, per [`05-design.md`](./05-design.md#components).
+- FR-2.10 The body of a **text** note is editable after capture. This is correcting a capture, not authoring: it is plain text with no formatting, no title and no versioning, and it never appears during capture (FR-1.6). Media notes are not editable — their caption is the equivalent affordance (FR-2.11). Rich text, nested documents and revision history stay out of scope.
+- FR-2.11 A voice, photo or file note may carry an optional user-written **caption**. It is always optional, never requested at capture time, and is distinct from a machine-derived transcript, OCR text or summary — those are produced by the intelligence layer (see [AI Roadmap](#ai-roadmap)) and never overwrite what the user typed. Caption text is not full-text indexed in v1, matching FR-4.2.
 
 ### FR-3 — Tags
 - FR-3.1 Tags are entirely optional on every note type.
@@ -175,7 +178,21 @@ flowchart LR
     C -->|tap a result| D
 ```
 
-**Settings** is intentionally not a nested screen or a "maze" — it is a single lightweight sheet reachable by tapping the avatar, holding only the handful of preferences that exist in v1 (currently: the swipe-action mapping from FR-2.7, light/dark theme, and Comfort Mode — see [`05-design.md`](./05-design.md#comfort-mode)). This preserves the "no settings-heavy home screen" navigation principle while still giving these few preferences somewhere to live.
+**Settings** is intentionally not a nested settings app or a "maze" — it is a single sheet reachable in one tap from the Timeline. It grew past the three preferences this section originally listed, because features that shipped after it (localization, the intelligence toggles, sync, export, backup/restore, tag management, Recently Deleted) each need somewhere to live and none of them belongs on the home screen. So the rule is about *shape*, not count: one sheet, no sub-settings-screens, and every control reachable by scrolling rather than by navigating.
+
+To keep that scannable, the sheet is organized into labelled groups rather than one flat run of tiles:
+
+| Group | Holds |
+| --- | --- |
+| Appearance | Light / Dark / System, Comfort Mode ([`05-design.md`](./05-design.md#comfort-mode)), language |
+| Accessibility | Reduce motion, capture haptics, the quiet anniversary line |
+| Swipe actions | The FR-2.7 edge mapping |
+| Intelligence | The per-capability toggles and the Cloud AI opt-in (see [AI Roadmap](#ai-roadmap)) |
+| Library | Tags, Recently Deleted, storage usage |
+| Data & backup | Sync, Export (FR-6), Restore (FR-7) |
+| About | Version, attribution, storage location, privacy, licences |
+
+Tags, Recently Deleted and About open as full screens rather than nested sheets — they are destinations with their own content, not preferences, so pushing a route is the honest interaction. Everything that is genuinely a *preference* stays on the one sheet.
 
 No hamburger menu, no settings-heavy home screen, no navigation deeper than two levels from the Timeline.
 

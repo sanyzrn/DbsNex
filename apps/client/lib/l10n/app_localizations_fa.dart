@@ -481,6 +481,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get createTag => 'برچسب تازه';
 
   @override
+  String get libraryTitle => 'کتابخانه';
+
+  @override
+  String get dataAndBackup => 'داده و پشتیبان';
+
+  @override
   String get libraryOpenFailed =>
       'Nex نتوانست کتابخانهٔ روی دستگاه شما را باز کند. فایل‌های شما دست‌نخورده ماندند.';
 

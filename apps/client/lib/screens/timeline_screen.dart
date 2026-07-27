@@ -277,7 +277,10 @@ class TimelineScreenState extends State<TimelineScreen> {
             onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
               builder: (_) => SearchScreen(services: widget.services)))),
           IconButton(tooltip: l10n.settings, icon: const Icon(Icons.tune),
+            // useSafeArea keeps the sheet clear of the status bar; without it
+            // the title sat flush against the top of the screen.
             onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true,
+              useSafeArea: true, showDragHandle: true,
               builder: (_) => SettingsSheet(services: widget.services, preferences: widget.preferences))),
         ],
       ),
