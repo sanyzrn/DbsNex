@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:nex_data/nex_data.dart';
+import '../models/note.dart';
 
 import 'ai_adapter.dart';
 

@@ -187,7 +187,7 @@ class NexDbWorker {
     boot.sendPort.send(requests.sendPort);
 
     final db = NexDatabase.open(boot.dbPath);
-    final repo = NoteRepository(db, localDeviceId: boot.deviceId);
+    final repo = SqliteNoteRepository(db, localDeviceId: boot.deviceId);
     final capture = CaptureService(repo, deviceId: boot.deviceId);
     final tags = TagService(repo);
     final search = SearchService(repo);

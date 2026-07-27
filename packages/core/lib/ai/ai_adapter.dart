@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:nex_data/nex_data.dart';
+import '../models/note.dart';
 
 /// Provider-agnostic AI adapter (06-development.md / 09-ai.md).
 ///

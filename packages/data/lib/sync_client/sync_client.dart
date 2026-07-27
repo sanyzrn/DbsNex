@@ -1,15 +1,20 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:nex_core/nex_core.dart';
 
 import '../repositories/note_repository.dart';
-import '../schema/models.dart';
 
 /// HTTP sync client — push outbox, pull deltas (04-architecture.md).
 ///
 /// Conflict resolution is performed on the server (field-aware). The client
 /// applies the pull set as the remote truth for synced rows.
-class SyncClient {
+///
+/// Typed against the concrete [SqliteNoteRepository] rather than the
+/// [NoteRepository] port: syncing needs the outbox surface (listPending,
+/// markSynced, applyRemoteNote, upsertTagFromSync) that the port deliberately
+/// does not expose to the domain layer.
+class SyncClient implements SyncPort {
   SyncClient({
     required this.baseUrl,
     required this.deviceId,
@@ -19,12 +24,13 @@ class SyncClient {
 
   final String baseUrl;
   final String deviceId;
-  final NoteRepository repo;
+  final SqliteNoteRepository repo;
   final http.Client _http;
 
   String? _lastPullWatermark;
 
   /// Flush pending local notes/tags, then pull remote deltas.
+  @override
   Future<SyncResult> sync() async {
     final pendingNotes = repo.listPending(includeDeleted: true);
     final tags = repo.listTags();
@@ -120,19 +126,6 @@ class SyncClient {
         'tags': note.tags.map((t) => t.toJson()).toList(),
       };
 
+  @override
   void close() => _http.close();
-}
-
-class SyncResult {
-  const SyncResult({
-    required this.pushed,
-    required this.pulled,
-    required this.mergedIds,
-    required this.mediaDeduped,
-  });
-
-  final int pushed;
-  final int pulled;
-  final List<String> mergedIds;
-  final List<String> mediaDeduped;
 }

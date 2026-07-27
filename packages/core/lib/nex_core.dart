@@ -6,19 +6,22 @@
 /// packages/data -> packages/core. Core sits at the bottom and depends on
 /// nothing in this repository.
 ///
-/// This library used to contain:
-///
-///   export 'package:nex_data/nex_data.dart';
-///
-/// which handed every caller the whole persistence layer — NexDatabase,
-/// NoteRepository, SyncClient and the raw SQLite types — and made the
+/// This library used to re-export packages/data wholesale, which handed every
+/// caller the whole persistence layer — the database handle, the SQLite
+/// repository, the sync client and the raw sqlite3 types — and made the
 /// documented layering decorative. It also dragged sqlite3 FFI, archive and
-/// http into packages/ui, a package that renders widgets.
-library nex_core;
+/// http into packages/ui, a package that renders widgets. The domain models now
+/// live here, where the contracts describing them already lived.
+library;
 
 // Domain models.
 export 'models/note.dart';
+export 'models/note_embedding.dart';
+export 'models/search_filters.dart';
 export 'models/tag.dart';
+
+// Identity and content hashing.
+export 'ids.dart';
 
 // Ports: the contracts the app and the data layer agree on.
 export 'ports/media_picker.dart';

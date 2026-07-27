@@ -6,7 +6,7 @@
 /// Adapter contracts and the default on-device stub live in `nex_core` so
 /// `apps/client` never needs a direct `nex_ai` dependency. This package
 /// re-exports them and is the home for future vendor/cloud adapters.
-library nex_ai;
+library;
 
 export 'package:nex_core/nex_core.dart'
     show

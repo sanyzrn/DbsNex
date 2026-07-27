@@ -1,4 +1,5 @@
 import 'package:nex_core/nex_core.dart';
+import 'package:nex_data/nex_data.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -92,12 +93,12 @@ void main() {
 
   group('EnrichmentService tag suggestions never persist', () {
     late NexDatabase db;
-    late NoteRepository repo;
+    late SqliteNoteRepository repo;
     late EnrichmentService enrichment;
 
     setUp(() {
       db = NexDatabase.openInMemory();
-      repo = NoteRepository(db, localDeviceId: 'test');
+      repo = SqliteNoteRepository(db, localDeviceId: 'test');
       enrichment = EnrichmentService(
         repo: repo,
         adapter: const OnDeviceAIAdapter(),

@@ -28,38 +28,50 @@ This file is the surviving record of that remaining work. It replaces the
 
 ---
 
-## Phase 1 — Complete NEX-010 in `packages/core` (blocking everything else)
+## Phase 1 — Complete NEX-010 in `packages/core` (done)
 
-`packages/core` does not compile. This is the root blocker: until it is fixed,
-the analyzer output for `apps/client` is not trustworthy, because most of it is
-an echo of core's failure.
+`packages/core`, `packages/data` and `packages/ai` now analyze clean under
+`dart analyze --fatal-infos` and their suites pass (9, 23 + 6 skipped, and 10
+tests respectively), verified against Dart 3.9.0 — the SDK CI pins.
 
-1. **Create `packages/core/lib/models/`.** `nex_core.dart` exports
-   `models/note.dart` and `models/tag.dart`; neither file exists. `Note`, `Tag`,
-   `NoteType`, `SyncState` and `SearchFilters` still live in
-   `packages/data/lib/schema/models.dart`. Move them to core and have
-   `nex_data.dart` re-export them for compatibility.
-2. **Remove `import 'package:nex_data/nex_data.dart'` from core.** Five files
-   still import it while `core/pubspec.yaml` no longer declares the dependency:
-   `capture/capture_service.dart`, `ai/enrichment_service.dart`,
-   `ai/ai_adapter.dart`, `ai/on_device_ai_adapter.dart`,
-   `sync/field_aware_merger.dart`. The `core-boundary` CI job now enforces this.
-3. **Resolve the duplicate type names.** `NoteRepository` and `SyncResult` are
-   each declared twice — once in core, once in data — and `apps/client` imports
-   both, producing `ambiguous_import`.
-4. **Reconcile the `NoteRepository` port with reality.** The port declares 7
-   async methods. Core's own services call 15 methods on it, synchronously
-   (`getById`, `listTimeline`, `attachTag`, `upsertTag`, `setEmbedding`,
-   `listEmbeddings`, `setOcrText`, `setSummaryText`, `setTranscriptText`,
-   `setTagColor`, `detachTag`, `listTags`, …). The port is currently fiction.
+1. **Domain models moved to `packages/core/lib/models/`.** `Note`, `NoteType`,
+   `SyncState`, `Tag`, `SearchFilters` and `NoteEmbedding` now live in core, and
+   `nex_data.dart` re-exports them so storage-layer callers keep one import.
+   That direction is legal — data depends on core.
+2. **`newUuidV7`, `sha256OfBytes`, `sha256OfFile` moved to `core/lib/ids.dart`.**
+   They only ever needed `uuid` and `crypto`, both already core dependencies;
+   living in the repository file was what forced core's capture service to
+   import the storage layer just to mint an id.
+3. **All five `import 'package:nex_data/…'` lines removed from core.** The
+   `core-boundary` CI job enforces this now.
+4. **Duplicate type names resolved.** The concrete repository is
+   `SqliteNoteRepository implements NoteRepository`; `SyncResult` has a single
+   definition in core.
+5. **The `NoteRepository` port now describes what the code actually does.** It
+   declared seven `Future`-returning methods on the grounds that the
+   implementation "runs on a worker isolate". The real topology is the reverse:
+   `package:sqlite3` is a synchronous FFI binding, so the repository is
+   synchronous and runs *inside* the isolate next to the domain services. The
+   port is synchronous, carries the 15 methods core actually calls, and
+   `NexDbWorker` is a client of it rather than an implementation.
+6. **`SyncClient implements SyncPort`.**
 
-   Suggested shape, matching the intent already visible in `_DbCommand`:
-   rename the concrete synchronous class in `packages/data` to something like
-   `SqliteNoteStore` (it runs *inside* the isolate), and let `NexDbWorker`
-   be the async implementation of the `NoteRepository` port.
+### Two defects this surfaced
 
-5. Add `implements SyncPort` to `SyncClient`, then run `dart analyze` in
-   `packages/data` to find the remaining references.
+- **The Dart merge conformance test had never compiled.** It was written
+  against an API that does not exist (`MergeableNote`, a static
+  `FieldAwareMerger.merge`, `MergedNote.toJson`). Repairing it immediately
+  found a **real cross-language divergence**: on a tombstone the server erases
+  the payload and empties the tag set (NEX-035), while the Dart merger kept the
+  tombstone's `content`/`mediaUri` and *unioned* the tags. Dart also emitted
+  `tag_ids` in `Set` insertion order, so the same pair merged in opposite
+  argument order serialised differently and broke the commutativity ADR-020
+  requires. Both are fixed; all 12 corpus cases now pass in both languages and
+  both argument orders.
+- **Two "core" tests were storage integration tests.** `capture_service_test`
+  and `ai_suggestions_test` construct a real `NexDatabase`, which core is not
+  allowed to depend on. They moved to `packages/data/test/`, where that
+  dependency is legal, and they still exercise the same behaviour.
 
 ---
 
@@ -74,6 +86,10 @@ architecture side by side:
 They disagree even on constructor signatures: core declares
 `EnrichmentService({required repo})`, the client calls
 `EnrichmentService(worker: worker)`.
+
+Phase 1 removed the cause of most of the client's 101 analyzer errors, so the
+real remaining count will be lower — re-measure with `flutter analyze` before
+planning against the old number.
 
 6. **NEX-020 — route all SQLite I/O through the worker.** Grep
    `apps/client/lib` for `services.repo.` — every hit must become a worker call.

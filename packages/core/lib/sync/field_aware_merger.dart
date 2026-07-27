@@ -1,4 +1,4 @@
-import 'package:nex_data/nex_data.dart';
+import '../models/note.dart';
 
 /// Snapshot of a note used for field-aware merge (ADR-020).
 class NoteRevision {
@@ -31,6 +31,27 @@ class NoteRevision {
   final Set<String> tagIds;
 
   bool get isDeleted => deletedAt != null;
+
+  /// Builds a revision from the server's `NoteRow` wire form — the same shape
+  /// `spec/merge-conformance.json` stores, so both languages read one corpus.
+  factory NoteRevision.fromJson(Map<String, Object?> json) => NoteRevision(
+        id: json['id']! as String,
+        type: NoteType.fromWire(json['type']! as String),
+        content: json['content'] as String?,
+        mediaUri: json['media_uri'] as String?,
+        mediaHash: json['media_hash'] as String?,
+        durationMs: json['duration_ms'] as int?,
+        createdAt: DateTime.parse(json['created_at']! as String).toUtc(),
+        updatedAt: DateTime.parse(json['updated_at']! as String).toUtc(),
+        deletedAt: json['deleted_at'] == null
+            ? null
+            : DateTime.parse(json['deleted_at']! as String).toUtc(),
+        deviceId: json['device_id']! as String,
+        rev: json['rev']! as int,
+        tagIds: ((json['tag_ids'] as List?) ?? const [])
+            .cast<String>()
+            .toSet(),
+      );
 
   factory NoteRevision.fromNote(Note note) => NoteRevision(
         id: note.id,
@@ -76,7 +97,27 @@ class MergedNote {
   final DateTime? deletedAt;
   final String deviceId;
   final int rev;
-  final Set<String> tagIds;
+
+  /// Sorted. Unlike [NoteRevision.tagIds] this is a list, because it is the
+  /// wire form and its order has to be deterministic across devices.
+  final List<String> tagIds;
+
+  /// Wire form. Keys and value shapes match the server's `NoteRow`, which is
+  /// what makes `spec/merge-conformance.json` readable by both languages.
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'type': type.wireName,
+        'content': content,
+        'media_uri': mediaUri,
+        'media_hash': mediaHash,
+        'duration_ms': durationMs,
+        'created_at': createdAt.toUtc().toIso8601String(),
+        'updated_at': updatedAt.toUtc().toIso8601String(),
+        'deleted_at': deletedAt?.toUtc().toIso8601String(),
+        'device_id': deviceId,
+        'rev': rev,
+        'tag_ids': tagIds,
+      };
 }
 
 /// Field-aware conflict resolution (ADR-020 / 04-architecture.md):
@@ -95,21 +136,24 @@ class FieldAwareMerger {
       final tombstone = a.isDeleted && b.isDeleted
           ? _later(a, b)
           : (a.isDeleted ? a : b);
-      final other = identical(tombstone, a) ? b : a;
       return MergedNote(
         id: a.id,
         type: tombstone.type,
-        content: tombstone.content,
-        mediaUri: tombstone.mediaUri,
-        mediaHash: tombstone.mediaHash,
-        durationMs: tombstone.durationMs,
+        // Deletion means deletion: the payload is erased at merge time rather
+        // than retained forever behind a deleted_at flag. This branch used to
+        // keep the tombstone's content and union the tag sets, disagreeing with
+        // the server on every delete — the conformance suite that exists to
+        // catch exactly this had never compiled, so nothing reported it.
+        content: null,
+        mediaUri: null,
+        mediaHash: null,
+        durationMs: null,
         createdAt: _earlierCreated(a, b),
         updatedAt: _maxTime(a.updatedAt, b.updatedAt),
         deletedAt: tombstone.deletedAt,
         deviceId: tombstone.deviceId,
         rev: a.rev > b.rev ? a.rev : b.rev,
-        // Union tags even under tombstone so a revive+history path keeps them.
-        tagIds: {...a.tagIds, ...b.tagIds, ...other.tagIds},
+        tagIds: const [],
       );
     }
 
@@ -119,9 +163,13 @@ class FieldAwareMerger {
     // Same-device sequential edits: later tag set wins (allows removals).
     // Concurrent multi-device: ADR-020 union-merge — never drop a tag that
     // only one side still holds.
+    //
+    // Sorted so the wire form is order-independent: a Set preserves insertion
+    // order, which made {a,b} and {b,a} serialise differently and broke
+    // commutativity against the shared corpus.
     final tagIds = a.deviceId == b.deviceId
-        ? {...winner.tagIds}
-        : {...a.tagIds, ...b.tagIds};
+        ? (winner.tagIds.toList()..sort())
+        : ({...a.tagIds, ...b.tagIds}.toList()..sort());
 
     return MergedNote(
       id: a.id,
