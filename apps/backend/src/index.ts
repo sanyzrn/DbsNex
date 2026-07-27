@@ -8,6 +8,7 @@ import express, {
 } from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import { pathToFileURL } from "node:url";
 
 import { closePool, pingDatabase } from "./db/index.ts";
 import { migrate } from "./db/migrate.ts";
@@ -139,10 +140,28 @@ app.use((_req: Request, res: Response) => {
 // Terminal error middleware. Replaces the per-handler try/catch blocks that
 // returned raw `e.message` — pg messages contain SQL fragments, constraint
 // names and column names.
+/// Body-parser rejects (malformed JSON, oversized payload) carry their own 4xx
+/// status. Without this they fell through to the 500 branch, so a client
+/// sending bad JSON was told the server had failed — and a real fault looked
+/// identical to a typo in a request body.
+function clientErrorStatus(err: unknown): number | null {
+  if (typeof err !== "object" || err === null) return null;
+  const status = (err as { status?: unknown; statusCode?: unknown }).status ??
+    (err as { statusCode?: unknown }).statusCode;
+  return typeof status === "number" && status >= 400 && status < 500
+    ? status
+    : null;
+}
+
 app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   const isApp = err instanceof AppError;
-  const status = isApp ? err.status : 500;
-  const code = isApp ? err.code : "InternalError";
+  const parseStatus = isApp ? null : clientErrorStatus(err);
+  const status = isApp ? err.status : (parseStatus ?? 500);
+  const code = isApp
+    ? err.code
+    : parseStatus === null
+      ? "InternalError"
+      : "BadRequest";
 
   console.log(
     JSON.stringify({
@@ -232,6 +251,11 @@ async function main(): Promise<void> {
   process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
-void main();
+// Only bootstrap when this module is the entry point. Importing it — which is
+// what the route tests do — must not bind a port, open a pool or install
+// signal handlers.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  void main();
+}
 
 export { app };
