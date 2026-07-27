@@ -21,6 +21,13 @@ abstract final class NexColors {
   static const textPrimaryLightComfort = Color(0xFF2E2A22);
   static const textPrimaryDarkComfort = Color(0xFFD9CFC0);
   static const swipeDelete = Color(0xFFC0392B);
+
+  /// The non-destructive half of the ADR-022 pair. Deliberately not a second
+  /// red and not a saturated brand colour: a desaturated slate reads as
+  /// "organize", stays quiet next to the delete panel, and clears 4.5:1
+  /// against the white label it carries.
+  static const swipeAddTag = Color(0xFF4A5568);
+
   static const cardRadius = 22.0;
 }
 
@@ -95,6 +102,23 @@ ThemeData _theme({
       sizeConstraints: const BoxConstraints.tightFor(width: nexCaptureFabSize, height: nexCaptureFabSize),
     ),
     dividerColor: border,
+    // Android's default zoom transition scales and clips the whole page, which
+    // reads as heavy next to the rest of the app. The Cupertino slide is the
+    // motion this design language already implies: short, horizontal, and
+    // interruptible by an edge swipe back.
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
+        TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
+      },
+    ),
+    // The default ripple races out from the touch point and lands after the
+    // gesture is over. A ripple that fades in place keeps taps feeling
+    // immediate, which is the whole promise of the capture path.
+    splashFactory: InkSparkle.splashFactory,
     textTheme: TextTheme(
       displaySmall: TextStyle(fontSize: 30, fontWeight: FontWeight.w600, color: primary, height: 1.18),
       titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: primary, height: 1.4),

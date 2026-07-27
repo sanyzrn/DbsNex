@@ -14,6 +14,7 @@ class TagFilterRow extends StatelessWidget {
     required this.onSelected,
     this.showAll = true,
     this.allLabel = 'All',
+    this.leading,
     this.trailing,
     this.padding = const EdgeInsets.fromLTRB(
       NexSpacing.md,
@@ -33,6 +34,10 @@ class TagFilterRow extends StatelessWidget {
   /// otherwise this pill stayed English in a Persian UI.
   final String allLabel;
 
+  /// Sits before the "All" pill — the mockup's icon button, which opens the
+  /// filters that are not tags.
+  final Widget? leading;
+
   final Widget? trailing;
   final EdgeInsetsGeometry padding;
 
@@ -44,6 +49,11 @@ class TagFilterRow extends StatelessWidget {
       padding: padding,
       child: Row(
         children: [
+          if (leading != null)
+            Padding(
+              padding: const EdgeInsets.only(right: NexSpacing.sm),
+              child: leading,
+            ),
           if (showAll)
             Padding(
               padding: const EdgeInsets.only(right: NexSpacing.sm),

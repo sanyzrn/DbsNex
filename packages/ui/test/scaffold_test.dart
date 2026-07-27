@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -40,5 +41,18 @@ void main() {
       ),
       greaterThanOrEqualTo(4.5),
     );
+  });
+
+  test('swipe action panels carry legible white labels', () {
+    // Both panels label themselves in white, in either theme, so each colour
+    // has to clear the body-text floor on its own — the theme cannot rescue it.
+    for (final background in [NexColors.swipeDelete, NexColors.swipeAddTag]) {
+      expect(
+        nexContrastRatio(const Color(0xFFFFFFFF), background),
+        greaterThanOrEqualTo(4.5),
+      );
+    }
+    // The non-destructive action must not read as a second delete.
+    expect(NexColors.swipeAddTag, isNot(NexColors.swipeDelete));
   });
 }

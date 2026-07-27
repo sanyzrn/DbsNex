@@ -237,6 +237,10 @@ class NexServices {
   Future<void> purgeDeletedBefore(DateTime cutoff) =>
       worker.purgeDeletedBefore(cutoff);
 
+  Future<void> purgeNote(String id) => worker.purgeNote(id);
+
+  Future<void> purgeAllDeleted() => worker.purgeAllDeleted();
+
   Future<List<TagUsage>> tagUsage() => worker.tagUsage();
 
   Future<void> renameTag(String id, String name) => worker.renameTag(id, name);

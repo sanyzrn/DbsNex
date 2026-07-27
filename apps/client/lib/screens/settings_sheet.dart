@@ -273,13 +273,15 @@ class SettingsSheet extends StatelessWidget {
                         ListTile(
                           contentPadding: _rowPadding,
                           leading: const Icon(Icons.restore_from_trash_outlined),
-                          title: Text(l10n.recentlyDeleted),
+                          title: Text(l10n.trash),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  RecentlyDeletedScreen(services: services),
+                              builder: (_) => RecentlyDeletedScreen(
+                                services: services,
+                                preferences: preferences,
+                              ),
                             ),
                           ),
                         ),

@@ -943,6 +943,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy file path'**
   String get revealInFolder;
+
+  /// Screen title for soft-deleted notes
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get trash;
+
+  /// Retention notice at the top of the trash
+  ///
+  /// In en, this message translates to:
+  /// **'Items here are removed permanently after 30 days.'**
+  String get trashRetention;
+
+  /// Hard-deletes one trashed note
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently'**
+  String get deleteForever;
+
+  /// Confirmation body for a permanent delete
+  ///
+  /// In en, this message translates to:
+  /// **'This note will be gone for good. It cannot be undone.'**
+  String get deleteForeverBody;
+
+  /// Hard-deletes every trashed note
+  ///
+  /// In en, this message translates to:
+  /// **'Empty trash'**
+  String get emptyTrash;
+
+  /// Opens a media note with the system's default app
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get open;
+
+  /// Shown when the OS has no handler for the file
+  ///
+  /// In en, this message translates to:
+  /// **'No app on this device can open this file.'**
+  String get cannotOpen;
+
+  /// About screen row linking to the repository
+  ///
+  /// In en, this message translates to:
+  /// **'Source code'**
+  String get sourceCode;
+
+  /// About screen section heading
+  ///
+  /// In en, this message translates to:
+  /// **'What Nex does'**
+  String get capabilities;
+
+  /// About screen bullet
+  ///
+  /// In en, this message translates to:
+  /// **'Text, voice, photo and file capture with no save button'**
+  String get capabilityCapture;
+
+  /// About screen bullet
+  ///
+  /// In en, this message translates to:
+  /// **'Full-text, tag, date and type search that runs on this device'**
+  String get capabilitySearch;
+
+  /// About screen bullet
+  ///
+  /// In en, this message translates to:
+  /// **'Every core flow works with no network at all'**
+  String get capabilityOffline;
+
+  /// About screen bullet
+  ///
+  /// In en, this message translates to:
+  /// **'Export everything as JSON, Markdown and the original media'**
+  String get capabilityExport;
+
+  /// About screen row label
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get version;
+
+  /// Confirmation body for emptying the trash
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note will be gone for good. It cannot be undone.} other{{count} notes will be gone for good. It cannot be undone.}}'**
+  String emptyTrashBody(int count);
 }
 
 class _AppLocalizationsDelegate

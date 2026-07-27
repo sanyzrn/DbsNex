@@ -350,5 +350,70 @@
   "revealInFolder": "Copy file path",
   "@revealInFolder": {
     "description": "Copies a media note's file path to the clipboard"
+  },
+  "trash": "Trash",
+  "@trash": {
+    "description": "Screen title for soft-deleted notes"
+  },
+  "trashRetention": "Items here are removed permanently after 30 days.",
+  "@trashRetention": {
+    "description": "Retention notice at the top of the trash"
+  },
+  "deleteForever": "Delete permanently",
+  "@deleteForever": {
+    "description": "Hard-deletes one trashed note"
+  },
+  "deleteForeverBody": "This note will be gone for good. It cannot be undone.",
+  "@deleteForeverBody": {
+    "description": "Confirmation body for a permanent delete"
+  },
+  "emptyTrash": "Empty trash",
+  "@emptyTrash": {
+    "description": "Hard-deletes every trashed note"
+  },
+  "open": "Open",
+  "@open": {
+    "description": "Opens a media note with the system's default app"
+  },
+  "cannotOpen": "No app on this device can open this file.",
+  "@cannotOpen": {
+    "description": "Shown when the OS has no handler for the file"
+  },
+  "sourceCode": "Source code",
+  "@sourceCode": {
+    "description": "About screen row linking to the repository"
+  },
+  "capabilities": "What Nex does",
+  "@capabilities": {
+    "description": "About screen section heading"
+  },
+  "capabilityCapture": "Text, voice, photo and file capture with no save button",
+  "@capabilityCapture": {
+    "description": "About screen bullet"
+  },
+  "capabilitySearch": "Full-text, tag, date and type search that runs on this device",
+  "@capabilitySearch": {
+    "description": "About screen bullet"
+  },
+  "capabilityOffline": "Every core flow works with no network at all",
+  "@capabilityOffline": {
+    "description": "About screen bullet"
+  },
+  "capabilityExport": "Export everything as JSON, Markdown and the original media",
+  "@capabilityExport": {
+    "description": "About screen bullet"
+  },
+  "version": "Version",
+  "@version": {
+    "description": "About screen row label"
+  },
+  "emptyTrashBody": "{count, plural, =1{1 note will be gone for good. It cannot be undone.} other{{count} notes will be gone for good. It cannot be undone.}}",
+  "@emptyTrashBody": {
+    "description": "Confirmation body for emptying the trash",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

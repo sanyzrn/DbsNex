@@ -41,6 +41,8 @@ enum _DbCommand {
   // Library maintenance (trash, tag manager, storage breakdown).
   deletedNotes,
   purgeDeletedBefore,
+  purgeNote,
+  purgeAllDeleted,
   tagUsage,
   renameTag,
   mergeTag,
@@ -319,6 +321,13 @@ class NexDbWorker implements NexDb {
       _send<void>(_DbCommand.purgeDeletedBefore, {'cutoff': cutoff});
 
   @override
+  Future<void> purgeNote(String id) =>
+      _send<void>(_DbCommand.purgeNote, {'id': id});
+
+  @override
+  Future<void> purgeAllDeleted() => _send<void>(_DbCommand.purgeAllDeleted);
+
+  @override
   Future<List<TagUsage>> tagUsage() =>
       _send<List<TagUsage>>(_DbCommand.tagUsage);
 
@@ -516,6 +525,10 @@ class NexDbWorker implements NexDb {
             maintenance.deletedNotes(limit: arg('limit')! as int),
           _DbCommand.purgeDeletedBefore => _voided(
               () => maintenance.purgeDeletedBefore(arg('cutoff')! as DateTime)),
+          _DbCommand.purgeNote =>
+            _voided(() => maintenance.purgeNote(arg('id')! as String)),
+          _DbCommand.purgeAllDeleted =>
+            _voided(maintenance.purgeAllDeleted),
           _DbCommand.tagUsage => maintenance.tagUsage(),
           _DbCommand.renameTag => _voided(() => maintenance.renameTag(
                 arg('id')! as String,

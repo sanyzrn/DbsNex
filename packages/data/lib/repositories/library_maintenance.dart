@@ -30,6 +30,20 @@ class LibraryMaintenance {
         [cutoff.toUtc().toIso8601String()],
       );
 
+  /// Permanently removes one note from the trash.
+  ///
+  /// Guarded on `deleted_at IS NOT NULL` so this can never reach a live note:
+  /// the only path to it is the trash screen, and a note that was restored
+  /// between the tap and the call must survive.
+  void purgeNote(String id) => repo.db.execute(
+        'DELETE FROM notes WHERE id = ? AND deleted_at IS NOT NULL',
+        [id],
+      );
+
+  /// Empties the trash.
+  void purgeAllDeleted() =>
+      repo.db.execute('DELETE FROM notes WHERE deleted_at IS NOT NULL');
+
   List<TagUsage> tagUsage() => repo.db.select('''
     SELECT t.*, COUNT(nt.note_id) AS usage_count
     FROM tags t LEFT JOIN note_tags nt ON nt.tag_id = t.id
