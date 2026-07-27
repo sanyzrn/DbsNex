@@ -20,7 +20,7 @@ dependencies:
   nex_core:
     path: ../core
   path: ^1.9.1
-  sqlite3: ^2.7.5
+  sqlite3: ^3.5.0
   uuid: ^4.5.1
 
 dev_dependencies:
