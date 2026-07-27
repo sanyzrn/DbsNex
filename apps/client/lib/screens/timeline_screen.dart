@@ -47,8 +47,19 @@ class TimelineScreenState extends State<TimelineScreen> {
     subscription = widget.services.timelineStream.listen((value) {
       if (mounted) setState(() => notes = value);
     });
+    unawaited(_loadTimeline());
     unawaited(_loadAnniversary());
     unawaited(_loadFilterTags());
+  }
+
+  /// The screen used to seed `notes` synchronously from the repository. The
+  /// stream alone is not a replacement: it is a broadcast stream, so anything
+  /// emitted before initState subscribes is dropped — a refresh that happens
+  /// during startup left the timeline empty.
+  Future<void> _loadTimeline() async {
+    final loaded = await widget.services.timeline(limit: 200);
+    if (!mounted) return;
+    setState(() => notes = loaded);
   }
 
   /// FR-4 filter chips. TagFilterRow shipped in packages/ui, complete and
