@@ -1424,6 +1424,12 @@ abstract class AppLocalizations {
   /// **'Test connection'**
   String get testConnection;
 
+  /// Second line on the "no provider" row of the provider list
+  ///
+  /// In en, this message translates to:
+  /// **'Runs on this device. No key needed.'**
+  String get aiProviderNoneSubtitle;
+
   /// Confirmation shown after the AI provider settings are stored
   ///
   /// In en, this message translates to:

@@ -31,7 +31,18 @@ void main() {
         ),
       );
 
+  // The action bar is pinned, so the button is on screen whatever the list
+  // above it is scrolled to.
   Finder saveButton() => find.widgetWithText(OutlinedButton, 'Save');
+
+  /// The key field sits below six provider rows, so it has to be scrolled to
+  /// — exactly as a person would. The action bar is what must *not* need
+  /// scrolling, and it does not.
+  Future<Finder> keyField(WidgetTester tester) async {
+    final finder = find.widgetWithText(TextField, 'API key');
+    await tester.scrollUntilVisible(finder, 120, scrollable: find.byType(Scrollable).first);
+    return finder;
+  }
 
   bool saveEnabled(WidgetTester tester) =>
       tester.widget<OutlinedButton>(saveButton()).onPressed != null;
@@ -44,7 +55,7 @@ void main() {
       reason: 'nothing on screen differs from what is stored',
     );
 
-    await tester.enterText(find.byType(TextField).first, 'second');
+    await tester.enterText(await keyField(tester), 'second');
     await tester.pump();
     expect(saveEnabled(tester), isTrue);
   });
@@ -52,7 +63,7 @@ void main() {
   testWidgets('saving confirms, stores, and disables itself again',
       (tester) async {
     await pump(tester);
-    await tester.enterText(find.byType(TextField).first, 'second');
+    await tester.enterText(await keyField(tester), 'second');
     await tester.pump();
 
     await tester.tap(saveButton());
@@ -71,9 +82,7 @@ void main() {
     // The save button used to live inside the block that only renders when a
     // provider is chosen, so picking "none" was a choice with nowhere to go.
     await pump(tester);
-    await tester.tap(find.byType(DropdownButtonFormField<AiProvider>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(AiProvider.none.label).last);
+    await tester.tap(find.text(AiProvider.none.label));
     await tester.pumpAndSettle();
 
     expect(saveEnabled(tester), isTrue);

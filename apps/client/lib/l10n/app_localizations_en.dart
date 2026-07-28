@@ -816,6 +816,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get testConnection => 'Test connection';
 
   @override
+  String get aiProviderNoneSubtitle => 'Runs on this device. No key needed.';
+
+  @override
   String get aiProviderSaved => 'Provider saved.';
 
   @override

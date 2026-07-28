@@ -77,11 +77,14 @@ class NoteCard extends StatelessWidget {
             // colour, which left a 1.2:1 hairline as the only thing marking the
             // boundary of the app's main tap target.
             color: theme.colorScheme.surfaceContainerLowest,
-            elevation: 1,
-            shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.10),
+            // No outline: the boundary is carried by the tonal step between the
+            // card's fill and the page's, plus the shadow. The shadow is a
+            // little deeper than it was because it is now doing the outline's
+            // share of the work as well as its own.
+            elevation: 2,
+            shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(NexRadius.lg),
-              side: BorderSide(color: theme.colorScheme.outline),
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(

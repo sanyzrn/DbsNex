@@ -353,7 +353,6 @@ class _Section extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(NexColors.cardRadius),
-              border: Border.all(color: theme.colorScheme.outline),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(NexColors.cardRadius),
@@ -362,11 +361,15 @@ class _Section extends StatelessWidget {
                 children: [
                   for (var i = 0; i < children.length; i++) ...[
                     if (i > 0)
+                      // The quiet token, now that the section has no outline
+                      // around it: `outline` is for a boundary you can act on,
+                      // and at full strength with nothing enclosing it these
+                      // read as the loudest thing in Settings.
                       Divider(
                         height: 1,
                         indent: NexSpacing.md,
                         endIndent: NexSpacing.md,
-                        color: theme.colorScheme.outline,
+                        color: theme.colorScheme.outlineVariant,
                       ),
                     children[i],
                   ],
