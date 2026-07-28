@@ -109,7 +109,7 @@ Both combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode red
 |---|---|---|
 | **Capture Button (`+`)** | Universal entry point to text/voice/photo capture | Always visible on the Timeline, fixed position, largest single interactive element on screen |
 | **Capture Sheet** | Presents the three capture types | Appears instantly (no loading state), dismissible by outside tap |
-| **Timeline Card** | Represents one note in the stream | Adapts preview to content type (text snippet / waveform + duration / photo thumbnail); shows relative timestamp and tag chips if present |
+| **Timeline Card** | Represents one note in the stream | Adapts preview to content type (text snippet / waveform + duration / photo thumbnail); shows relative timestamp and tag chips if present. **Every card is the same height** — two lines of preview and one line of metadata, filled or not. A card's height carried no meaning, so letting it vary only made the list ragged; a tag that does not fit the one line runs off the edge rather than wrapping onto a second |
 | **Tag Chip** | Represents a single tag | Neutral chip shape and text; an optional small accent dot (user-chosen, see [Tag Accent Color](#tag-accent-color)) may render beside the label. Rounded, removable via inline "×" in edit contexts |
 | **Search Bar** | Entry point + live query field | Paired with filter affordances (tag / date / type) that expand without navigating away |
 | **Filter Control** | Tag / date / content-type filters | Simple toggles/pills, combinable, always reversible with a single "clear" action |
@@ -130,6 +130,9 @@ Each Timeline card supports a horizontal swipe to reveal one quick action per ed
 - **Add Tag stays neutral.** Its reveal panel uses a plain surface tone, not a color, since it isn't destructive and doesn't need to compete visually with Delete.
 - **Threshold, not a hair-trigger.** A short drag re-settles the card closed; only a deliberate drag past a clear threshold snaps the action panel fully open. This keeps ordinary vertical scrolling from ever misfiring a swipe.
 - **One open card at a time.** Starting a swipe on any card closes whichever other card was previously revealed.
+- **The panel is a capsule, and it belongs to the card.** It is laid out inside the same gutter the card keeps, so it starts where the card starts instead of running to the physical screen edge past it, and it is fully rounded at every width — a narrow vertical pill at the beginning of a swipe, widening into a lozenge. One shape throughout, never a rectangle bleeding off the side.
+- **The glyph waits for room.** Below roughly 54px of travel the panel is a bare capsule; past that the icon and its label fade in together, centred in the panel rather than in the space the swipe opened.
+- **The icon reacts at the commit point.** Crossing the point where letting go performs the action is the one moment in the gesture with a consequence, and it now gets a beat of motion — the glyph swells, tips and springs back. A static scale step is a state change the eye has to notice; motion is one the hand feels it caused.
 - **Each edge is configured on its own.** Settings binds the leading and the trailing edge independently, from the actions that exist — Delete, Add Tag, or None — so the gesture can match a person's swiping habit, and someone who wants only one swipe can have only one. An edge set to None does not move at all. See [ADR-022](./10-decisions.md#adr-022--swipe-actions-are-configurable-per-edge-from-an-open-set).
 
 ---

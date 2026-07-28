@@ -24,49 +24,57 @@ class NoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md, vertical: 5),
-      child: Semantics(
-        button: onTap != null,
-        label: _label(),
-        excludeSemantics: true,
-        child: Material(
-          color: theme.colorScheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(NexColors.cardRadius),
-            side: BorderSide(color: theme.colorScheme.outline),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.all(NexSpacing.cardInset),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Leading(note: note),
-                  const SizedBox(width: NexSpacing.contentGap),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        previewOverride ?? _Preview(note: note),
-                        if (footnote != null) ...[
-                          const SizedBox(height: NexSpacing.xs),
-                          Text(footnote!, style: theme.textTheme.bodySmall),
+      padding: nexCardInsets,
+      child: SizedBox(
+        // Every card, the same height. See [nexCardHeight].
+        height: nexCardHeight,
+        child: Semantics(
+          button: onTap != null,
+          label: _label(),
+          excludeSemantics: true,
+          child: Material(
+            color: theme.colorScheme.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(NexColors.cardRadius),
+              side: BorderSide(color: theme.colorScheme.outline),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.all(NexSpacing.cardInset),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _Leading(note: note),
+                    const SizedBox(width: NexSpacing.contentGap),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // The text takes whatever the metadata row leaves,
+                          // and sits at the top of it — so a one-line note and
+                          // a two-line note both start on the same baseline
+                          // instead of floating in a differently sized card.
+                          Expanded(
+                            child: Align(
+                              alignment: AlignmentDirectional.topStart,
+                              child: previewOverride ?? _Preview(note: note),
+                            ),
+                          ),
+                          if (footnote != null)
+                            Text(
+                              footnote!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          _Meta(note: note),
                         ],
-                        const SizedBox(height: NexSpacing.sm),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 5,
-                          children: [
-                            Text(DateFormat.MMMd().format(note.createdAt.toLocal()), style: theme.textTheme.bodySmall),
-                            for (final tag in note.tags) TagChip(tag: tag, compact: true),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -81,6 +89,47 @@ class NoteCard extends StatelessWidget {
     if (note.tags.isNotEmpty)
       'Tags: ${note.tags.map((tag) => tag.name).join(', ')}',
   ].where((value) => value.isNotEmpty).join('. ');
+}
+
+/// The date and the tags, on exactly one line.
+///
+/// A [Wrap] here was what made cards different heights: a note with three tags
+/// pushed them onto a second run and grew the card by 30px. This keeps the row
+/// to its one line and lets a tag that does not fit run off the edge, which
+/// reads as "there are more" — the card is a preview, and the note's own sheet
+/// is where every tag is listed.
+class _Meta extends StatelessWidget {
+  const _Meta({required this.note});
+
+  final Note note;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      height: nexCardMetaHeight,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        // Not scrollable: this is a clip, not a control. NeverScrollable also
+        // keeps it out of the gesture arena, so it cannot compete with the
+        // card's own swipe.
+        physics: const NeverScrollableScrollPhysics(),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              DateFormat.MMMd().format(note.createdAt.toLocal()),
+              style: theme.textTheme.bodySmall,
+            ),
+            for (final tag in note.tags) ...[
+              const SizedBox(width: 6),
+              TagChip(tag: tag, compact: true),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// The note's own words, laid out in the note's own direction.
@@ -170,6 +219,11 @@ class TagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InputChip(
     visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
+    // A chip's default tap target is 48px tall — half again the chip itself,
+    // and on a card it is decoration rather than a control, so that padding
+    // was pure card height.
+    materialTapTargetSize:
+        compact ? MaterialTapTargetSize.shrinkWrap : null,
     label: Text(tag.name),
     avatar: tag.color == null ? null : Semantics(
       label: 'Accent color',
