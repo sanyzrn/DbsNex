@@ -4,11 +4,27 @@
 .PHONY: check check-dart check-ui check-client check-backend \
         fmt clean bootstrap backend-dev migrate
 
-# Each Dart package resolves independently. A root pub workspace was tried and
-# reverted: it forces one resolution across every member, so `dart pub get` in
-# packages/core pulled in apps/client and failed with "nex_ui requires the
-# Flutter SDK" — which destroys the guarantee the dart-packages CI job exists to
-# prove. This target is the orchestration layer instead.
+# Each Dart package resolves independently, and every lockfile is committed.
+#
+# A root pub workspace was tried and reverted once, and tried again when an
+# audit recommended it (NEX-24). It is not available to this repo. A workspace
+# forces one resolution across every member, and two of the five members
+# declare `flutter: sdk: flutter`, which a standalone Dart SDK cannot satisfy —
+# so `dart pub get` fails, and that command is precisely how the dart-packages
+# CI job proves core and data carry zero Flutter dependency. The job never
+# installs Flutter; that *is* the assertion.
+#
+# Splitting it — one workspace for the pure-Dart trio, one for the Flutter pair
+# — does not work either. Workspaces cannot nest:
+#
+#     The file `./packages/pubspec.yaml` is located in a directory between the
+#     workspace root at `.` and a workspace package at `./packages/ui`. But is
+#     not a member of the workspace.
+#
+# So the choice is one workspace or none, and one workspace costs a guarantee
+# worth more than unified resolution. What the audit was actually reaching for —
+# reproducibility — is solved by committing all five lockfiles, which costs
+# nothing and is done. This target is the orchestration layer.
 bootstrap:
 	cd packages/core && dart pub get
 	cd packages/data && dart pub get
