@@ -61,6 +61,15 @@ extension AiProviderWire on AiProvider {
         AiProvider.custom => '',
       };
 
+  /// Whether the endpoint has to be typed in.
+  ///
+  /// Only Custom does. Every other provider has exactly one host, and offering
+  /// an editable Base URL for them was an invitation to fill in a field that
+  /// could only ever make things worse — OpenRouter in particular, where the
+  /// obvious guess (`https://openrouter.ai`) is missing the `/api` the real
+  /// endpoint needs.
+  bool get needsBaseUrl => this == AiProvider.custom;
+
   /// Whether the provider can read an image, so photo notes can be OCR'd.
   bool get readsImages => this != AiProvider.none;
 
@@ -166,23 +175,44 @@ class CloudAIAdapter implements AIAdapter {
             'x-api-key': config.apiKey.trim(),
             'anthropic-version': '2023-06-01',
           },
-        AiWireFormat.gemini => {
-            'content-type': 'application/json',
-            // Gemini authenticates with its own header, not a bearer token.
-            'x-goog-api-key': config.apiKey.trim(),
-          },
+        // Gemini takes its key as a query parameter (see [_withKey]), so the
+        // request carries no auth header at all. It also accepts
+        // `x-goog-api-key`, but sending the key in the URL is the form Google's
+        // own quickstarts use and the one verified to work against this
+        // account — and a request that authenticates two ways is a request
+        // with two ways to be wrong.
+        AiWireFormat.gemini => {'content-type': 'application/json'},
         AiWireFormat.openai => {
             'content-type': 'application/json',
             'authorization': 'Bearer ${config.apiKey.trim()}',
           },
       };
 
-  Uri get _chatUri => Uri.parse(switch (config.provider.format) {
-        AiWireFormat.anthropic => '${config.resolvedBaseUrl}/v1/messages',
-        AiWireFormat.gemini =>
-          '${config.resolvedBaseUrl}/v1beta/models/${config.resolvedModel}:generateContent',
-        AiWireFormat.openai => '${config.resolvedBaseUrl}/v1/chat/completions',
-      });
+  Uri get _chatUri => switch (config.provider.format) {
+        AiWireFormat.anthropic =>
+          Uri.parse('${config.resolvedBaseUrl}/v1/messages'),
+        AiWireFormat.gemini => _withKey(
+            '${config.resolvedBaseUrl}/v1beta/models/'
+            '${config.resolvedModel}:generateContent',
+          ),
+        AiWireFormat.openai =>
+          Uri.parse('${config.resolvedBaseUrl}/v1/chat/completions'),
+      };
+
+  /// Gemini's `?key=` form.
+  Uri _withKey(String url) => Uri.parse(url).replace(
+        queryParameters: {'key': config.apiKey.trim()},
+      );
+
+  /// What the provider said the last time it refused, or null.
+  ///
+  /// Every AI path treats a non-200 as "no answer" and carries on, which is
+  /// right for enrichment — a failed summary must not break capture. But it
+  /// meant [test] could only ever report "the provider rejected the request"
+  /// no matter what happened, so a wrong key, a retired model and a rate limit
+  /// were indistinguishable from each other and from a typo in the model name.
+  /// The adapter is constructed fresh for each test, so one field is enough.
+  ({int status, String? message})? _lastFailure;
 
   /// One turn, with optional inline media, normalised across all three shapes.
   Future<String?> _complete(
@@ -268,8 +298,44 @@ class CloudAIAdapter implements AIAdapter {
     final response = await _client
         .post(_chatUri, headers: _headers, body: jsonEncode(body))
         .timeout(media == null ? _textTimeout : _mediaTimeout);
-    if (response.statusCode != 200) return null;
+    if (response.statusCode != 200) {
+      _lastFailure = (
+        status: response.statusCode,
+        message: _extractError(response.body),
+      );
+      return null;
+    }
+    _lastFailure = null;
     return _extractText(response.body);
+  }
+
+  /// The provider's own explanation, whichever shape it arrived in.
+  ///
+  /// All three wrap it differently — Gemini and OpenAI in `error.message`,
+  /// Anthropic in `error.message` too but under a different envelope — and the
+  /// message is the only part worth showing: "API key not valid" and "model
+  /// not found for API version v1beta" are the two answers a person actually
+  /// needs, and both were being thrown away.
+  @visibleForTesting
+  static String? extractErrorForTest(String body) => _extractError(body);
+
+  static String? _extractError(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map) {
+        final error = decoded['error'];
+        if (error is Map && error['message'] is String) {
+          return error['message'] as String;
+        }
+        if (error is String) return error;
+        if (decoded['message'] is String) return decoded['message'] as String;
+      }
+    } catch (_) {
+      // Not JSON — an HTML error page from a proxy, most likely.
+    }
+    final trimmed = body.trim();
+    if (trimmed.isEmpty) return null;
+    return trimmed.length > 200 ? '${trimmed.substring(0, 200)}…' : trimmed;
   }
 
   @visibleForTesting
@@ -332,17 +398,45 @@ class CloudAIAdapter implements AIAdapter {
       return const AiTestResult.failed('Model is empty');
     }
     try {
-      final reply =
-          await _complete('Reply with the single word: ok', 'ping', maxTokens: 8);
-      if (reply == null) {
+      // Not 8. A reasoning model spends its output budget on thinking tokens
+      // before it writes a word, so a tiny ceiling comes back as a 200 with
+      // `finishReason: MAX_TOKENS` and no text at all — which read here as
+      // "the provider rejected the request" on a provider that was working
+      // perfectly. The budget has to be large enough for the model to think
+      // and still answer.
+      final reply = await _complete(
+        'Reply with the single word: ok',
+        'ping',
+        maxTokens: 256,
+      );
+      if (reply != null) return AiTestResult.ok(config.resolvedModel);
+
+      final failure = _lastFailure;
+      if (failure == null) {
         return const AiTestResult.failed(
-          'The provider rejected the request. Check the key and the model name.',
+          'The provider answered, but with no text. The model may have '
+          'stopped on a content filter.',
         );
       }
-      return AiTestResult.ok(config.resolvedModel);
+      return AiTestResult.failed(_describe(failure.status, failure.message));
     } catch (error) {
       return AiTestResult.failed('$error');
     }
+  }
+
+  /// An HTTP status, said in the terms of the thing the person has to fix.
+  static String _describe(int status, String? message) {
+    final detail = message == null ? '' : ' — $message';
+    return switch (status) {
+      401 || 403 =>
+        'The key was rejected ($status). Check that it is correct and still '
+            'active.$detail',
+      404 =>
+        'Not found (404). The model name is probably wrong or retired.$detail',
+      429 => 'Rate limited (429). Wait a moment and try again.$detail',
+      >= 500 => 'The provider had a server error ($status).$detail',
+      _ => 'The provider returned $status.$detail',
+    };
   }
 
   @override
@@ -459,8 +553,12 @@ class CloudAIAdapter implements AIAdapter {
     if (config.provider.format == AiWireFormat.gemini) {
       final response = await _client
           .post(
-            Uri.parse(
-              '${config.resolvedBaseUrl}/v1beta/models/text-embedding-004:embedContent',
+            // Same `?key=` form as the chat endpoint — the Gemini headers no
+            // longer carry the key, so parsing this URL plainly would send an
+            // unauthenticated request.
+            _withKey(
+              '${config.resolvedBaseUrl}'
+              '/v1beta/models/text-embedding-004:embedContent',
             ),
             headers: _headers,
             body: jsonEncode({

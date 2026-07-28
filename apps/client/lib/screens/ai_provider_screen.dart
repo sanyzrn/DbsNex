@@ -50,7 +50,10 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
 
   AiProviderConfig get _current => _config.copyWith(
         apiKey: _key.text,
-        baseUrl: _baseUrl.text,
+        // A hidden field must not still be speaking. Typing an endpoint for
+        // Custom and then switching to Gemini used to leave that endpoint in
+        // effect against a provider that has only one host.
+        baseUrl: _config.provider.needsBaseUrl ? _baseUrl.text : '',
         model: _model.text,
       );
 
@@ -106,42 +109,54 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final provider = _config.provider;
-    final needsEndpoint = provider == AiProvider.custom;
+    final needsEndpoint = provider.needsBaseUrl;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.aiProvider)),
+      // Test and Save live in a bar of their own. Six provider rows plus three
+      // fields is more than one screenful, so inline actions sat below the fold
+      // — the two buttons the screen exists for were the two you had to go
+      // looking for.
+      bottomNavigationBar: _ActionBar(
+        testing: _testing,
+        canSave: _dirty && !_testing,
+        showTest: provider != AiProvider.none,
+        onTest: () => unawaited(_test()),
+        onSave: () => unawaited(_save()),
+      ),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(
+        padding: const EdgeInsets.fromLTRB(
           NexSpacing.lg,
           NexSpacing.md,
           NexSpacing.lg,
-          NexSpacing.xl + nexBottomInset(context),
+          NexSpacing.lg,
         ),
         children: [
           Text(l10n.aiProviderIntro, style: theme.textTheme.bodyMedium),
           const SizedBox(height: NexSpacing.lg),
-          DropdownButtonFormField<AiProvider>(
-            initialValue: provider,
-            decoration: InputDecoration(
-              labelText: l10n.aiProvider,
-              border: const OutlineInputBorder(),
+          // A list, not a dropdown. Six providers behind a popup menu meant the
+          // one thing this screen is for was hidden behind a tap, and the menu
+          // itself was the last Material default left in the app — a different
+          // shape, a different shadow and a different motion from everything
+          // around it.
+          for (final candidate in AiProvider.values) ...[
+            _ProviderTile(
+              provider: candidate,
+              selected: candidate == provider,
+              subtitle: candidate == AiProvider.none
+                  ? l10n.aiProviderNoneSubtitle
+                  : candidate.defaultModel,
+              onTap: () {
+                if (candidate == provider) return;
+                setState(() {
+                  _config = _config.copyWith(provider: candidate);
+                  _result = null;
+                });
+              },
             ),
-            items: [
-              for (final candidate in AiProvider.values)
-                DropdownMenuItem(
-                  value: candidate,
-                  child: Text(candidate.label),
-                ),
-            ],
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() {
-                _config = _config.copyWith(provider: value);
-                _result = null;
-              });
-            },
-          ),
+            const SizedBox(height: NexSpacing.sm),
+          ],
           if (provider != AiProvider.none) ...[
-            const SizedBox(height: NexSpacing.md),
+            const SizedBox(height: NexSpacing.sm),
             TextField(
               controller: _key,
               obscureText: _obscure,
@@ -158,20 +173,22 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               ),
               onChanged: (_) => setState(() => _result = null),
             ),
-            const SizedBox(height: NexSpacing.md),
-            TextField(
-              controller: _baseUrl,
-              autocorrect: false,
-              keyboardType: TextInputType.url,
-              decoration: InputDecoration(
-                labelText: l10n.baseUrl,
-                hintText: needsEndpoint
-                    ? 'https://…'
-                    : provider.defaultBaseUrl,
-                border: const OutlineInputBorder(),
+            // Only Custom needs one. For the rest the host is fixed and the
+            // field could only ever be filled in wrongly.
+            if (needsEndpoint) ...[
+              const SizedBox(height: NexSpacing.md),
+              TextField(
+                controller: _baseUrl,
+                autocorrect: false,
+                keyboardType: TextInputType.url,
+                decoration: InputDecoration(
+                  labelText: l10n.baseUrl,
+                  hintText: 'https://…',
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() => _result = null),
               ),
-              onChanged: (_) => setState(() => _result = null),
-            ),
+            ],
             const SizedBox(height: NexSpacing.md),
             TextField(
               controller: _model,
@@ -184,37 +201,8 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               onChanged: (_) => setState(() => _result = null),
             ),
           ],
-          const SizedBox(height: NexSpacing.lg),
-          // The save row stays out of the conditional: choosing "none" is a
-          // choice like any other, and it used to be impossible to store
-          // because the only button that could store it was hidden with the
-          // fields.
-          Row(
-            children: [
-              if (provider != AiProvider.none) ...[
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: _testing ? null : () => unawaited(_test()),
-                    icon: _testing
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.wifi_tethering),
-                    label: Text(l10n.testConnection),
-                  ),
-                ),
-                const SizedBox(width: NexSpacing.md),
-              ],
-              OutlinedButton(
-                onPressed: _dirty && !_testing ? () => unawaited(_save()) : null,
-                child: Text(l10n.save),
-              ),
-            ],
-          ),
           if (_result != null) ...[
-            const SizedBox(height: NexSpacing.md),
+            const SizedBox(height: NexSpacing.lg),
             _ResultBanner(result: _result!),
           ],
           if (provider != AiProvider.none) ...[
@@ -226,6 +214,146 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
             Text(l10n.aiCapabilityNote, style: theme.textTheme.bodySmall),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// The two actions, always reachable, whatever the list is doing above them.
+class _ActionBar extends StatelessWidget {
+  const _ActionBar({
+    required this.testing,
+    required this.canSave,
+    required this.showTest,
+    required this.onTest,
+    required this.onSave,
+  });
+
+  final bool testing;
+  final bool canSave;
+  final bool showTest;
+  final VoidCallback onTest;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Container(
+      color: theme.colorScheme.surface,
+      padding: EdgeInsets.fromLTRB(
+        NexSpacing.lg,
+        NexSpacing.md,
+        NexSpacing.lg,
+        NexSpacing.md + nexBottomInset(context),
+      ),
+      child: Row(
+        children: [
+          if (showTest) ...[
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: testing ? null : onTest,
+                icon: testing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.wifi_tethering),
+                label: Text(l10n.testConnection),
+              ),
+            ),
+            const SizedBox(width: NexSpacing.md),
+          ],
+          // Save is always here, including for "no provider": that is a choice
+          // like any other, and it used to be unstorable because the only
+          // button that could store it was hidden along with the key fields.
+          OutlinedButton(
+            onPressed: canSave ? onSave : null,
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One provider, shown as a row you can see without opening anything.
+class _ProviderTile extends StatelessWidget {
+  const _ProviderTile({
+    required this.provider,
+    required this.selected,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final AiProvider provider;
+  final bool selected;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = theme.colorScheme.primary;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: provider.label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(NexRadius.md),
+        child: AnimatedContainer(
+          duration: NexMotion.standard,
+          curve: NexMotion.curve,
+          constraints: const BoxConstraints(minHeight: nexMinTapTarget),
+          padding: const EdgeInsets.symmetric(
+            horizontal: NexSpacing.md,
+            vertical: NexSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(NexRadius.md),
+            color: selected
+                ? accent.withValues(alpha: 0.08)
+                : theme.colorScheme.surfaceContainerHighest,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                provider == AiProvider.none
+                    ? Icons.phone_android_outlined
+                    : Icons.cloud_outlined,
+                size: 20,
+                color: selected ? accent : theme.colorScheme.secondary,
+              ),
+              const SizedBox(width: NexSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      provider.label,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: selected ? accent : theme.colorScheme.onSurface,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                    if (subtitle.isNotEmpty)
+                      Text(subtitle, style: theme.textTheme.bodySmall),
+                  ],
+                ),
+              ),
+              // A check that occupies its slot either way, so the rows do not
+              // shift sideways as the selection moves down the list.
+              Opacity(
+                opacity: selected ? 1 : 0,
+                child: Icon(Icons.check_circle, size: 20, color: accent),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

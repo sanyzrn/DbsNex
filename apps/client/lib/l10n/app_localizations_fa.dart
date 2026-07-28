@@ -816,6 +816,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get testConnection => 'تست اتصال';
 
   @override
+  String get aiProviderNoneSubtitle =>
+      'روی همین دستگاه اجرا می‌شود. کلید لازم ندارد.';
+
+  @override
   String get aiProviderSaved => 'سرویس ذخیره شد.';
 
   @override

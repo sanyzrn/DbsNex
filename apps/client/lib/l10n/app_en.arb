@@ -701,6 +701,10 @@
   "@testConnection": {
     "description": "Button that verifies the configuration"
   },
+  "aiProviderNoneSubtitle": "Runs on this device. No key needed.",
+  "@aiProviderNoneSubtitle": {
+    "description": "Second line on the \"no provider\" row of the provider list"
+  },
   "aiProviderSaved": "Provider saved.",
   "@aiProviderSaved": {
     "description": "Confirmation shown after the AI provider settings are stored"

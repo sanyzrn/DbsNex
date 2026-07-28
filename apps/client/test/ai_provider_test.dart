@@ -240,10 +240,14 @@ void main() {
       // the path, the auth header, and the request body.
       expect(
         seen.url.toString(),
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+        'https://generativelanguage.googleapis.com/v1beta/models/'
+        'gemini-2.0-flash:generateContent?key=google-key',
       );
-      expect(seen.headers['x-goog-api-key'], 'google-key');
+      // The key rides in the query string, the way Google's own quickstarts
+      // send it. No auth header of any kind: a request that authenticates two
+      // ways is a request with two ways to be wrong.
       expect(seen.headers.containsKey('authorization'), isFalse);
+      expect(seen.headers.containsKey('x-goog-api-key'), isFalse);
       final body = jsonDecode(seen.body) as Map<String, dynamic>;
       expect(body['systemInstruction'], isNotNull);
       expect(body['contents'], isA<List<dynamic>>());
@@ -288,6 +292,72 @@ void main() {
         isNull,
       );
       expect(adapter.extractTextForTest('{}'), isNull);
+    });
+  });
+
+  group('a failed test says what actually went wrong', () {
+    Future<AiTestResult> testWith(int status, String body) {
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.gemini,
+          apiKey: 'k',
+          model: 'gemini-9-nonexistent',
+        ),
+        client: MockClient((_) async => http.Response(body, status)),
+      );
+      return adapter.test();
+    }
+
+    test('a rejected key is reported as a rejected key', () async {
+      // Every one of these used to come back as the same sentence — "the
+      // provider rejected the request" — so a wrong key, a retired model and a
+      // rate limit were indistinguishable from a typo in the model name.
+      final result = await testWith(
+        400,
+        jsonEncode({
+          'error': {'message': 'API key not valid. Please pass a valid API key.'},
+        }),
+      );
+      expect(result.success, isFalse);
+      expect(result.detail, contains('API key not valid'));
+    });
+
+    test('a missing model is reported as a missing model', () async {
+      final result = await testWith(
+        404,
+        jsonEncode({
+          'error': {'message': 'models/gemini-9-nonexistent is not found'},
+        }),
+      );
+      expect(result.detail, contains('404'));
+      expect(result.detail, contains('is not found'));
+    });
+
+    test('a rate limit is not dressed up as a bad key', () async {
+      final result = await testWith(429, '{}');
+      expect(result.detail, contains('429'));
+    });
+
+    test('a non-JSON error page is passed through, bounded', () async {
+      final result = await testWith(502, '<html>Bad Gateway</html>');
+      expect(result.detail, contains('502'));
+      expect(result.detail, contains('Bad Gateway'));
+    });
+
+    test('a 200 carrying no text is not blamed on the provider', () async {
+      // A reasoning model that spends its whole budget thinking answers 200
+      // with no parts. That is a different problem from a refusal and has to
+      // read as one.
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.gemini,
+          apiKey: 'k',
+        ),
+        client: MockClient((_) async => http.Response('{"candidates":[]}', 200)),
+      );
+      final result = await adapter.test();
+      expect(result.success, isFalse);
+      expect(result.detail, contains('no text'));
     });
   });
 
