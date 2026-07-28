@@ -254,6 +254,41 @@ export async function registerMedia(
   return { deduped: false, storage_key: storageKey };
 }
 
+/* ----------------------------------------------------------- comparison */
+
+/**
+ * The fields a merge can change. Compared explicitly, field by field.
+ *
+ * This used to be `JSON.stringify(resolved) !== JSON.stringify(local)`, which
+ * worked only because `mergeNotes` and the `local` literal in `pushChanges`
+ * happened to declare their twelve fields in the same order. Nothing enforced
+ * that. Reordering a field in merge.ts — a formatting-level change no reviewer
+ * would flag — would silently flip `merged_by_server` to true for every merge,
+ * and that flag is what the pull query uses to decide whether to echo a row
+ * back to its author. The failure mode is every device re-downloading its own
+ * writes, forever, from a diff that looks like whitespace.
+ */
+const MERGE_FIELDS = [
+  "type",
+  "content",
+  "media_uri",
+  "media_hash",
+  "duration_ms",
+  "created_at",
+  "updated_at",
+  "deleted_at",
+  "device_id",
+] as const satisfies readonly (keyof NoteRow)[];
+
+function differs(a: NoteRow, b: NoteRow): boolean {
+  for (const field of MERGE_FIELDS) {
+    if (a[field] !== b[field]) return true;
+  }
+  // tag_ids is the one array field; both sides are sorted by construction.
+  if (a.tag_ids.length !== b.tag_ids.length) return true;
+  return a.tag_ids.some((id, i) => id !== b.tag_ids[i]);
+}
+
 /* ------------------------------------------------------------------ push */
 
 export async function pushChanges(input: {
@@ -324,9 +359,7 @@ export async function pushChanges(input: {
         resolved.media_uri = existing.media_uri;
       }
 
-      const mergedByServer =
-        existing !== null &&
-        JSON.stringify(resolved) !== JSON.stringify(local);
+      const mergedByServer = existing !== null && differs(resolved, local);
 
       const written = await writeNote(
         client,

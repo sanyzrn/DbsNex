@@ -27,7 +27,21 @@ const schema = z.object({
   PAIRING_CODE_TTL_SECONDS: z.coerce.number().int().positive().default(600),
   TOMBSTONE_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
   PURGE_INTERVAL_MINUTES: z.coerce.number().int().positive().default(60),
-});
+})
+  // Each variable used to be validated in isolation, so nothing stopped a
+  // destructive test affordance and a production deployment from being
+  // configured together — and NEX_TEST_MODE is a plain string in a .env file,
+  // exactly the kind of value that gets copied between environments.
+  .refine(
+    (v) => !(v.NODE_ENV === "production" && v.NEX_TEST_MODE === "1"),
+    {
+      path: ["NEX_TEST_MODE"],
+      message:
+        "NEX_TEST_MODE=1 exposes POST /sync/test/reset, which permanently " +
+        "deletes the caller's entire library. It must never be set in " +
+        "production.",
+    },
+  );
 
 const parsed = schema.safeParse(process.env);
 

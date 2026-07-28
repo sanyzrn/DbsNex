@@ -1076,6 +1076,18 @@ abstract class AppLocalizations {
   /// **'Android will ask you to confirm the install. Your notes are not touched.'**
   String get updateInstallNotice;
 
+  /// Shown when the installer download fails for any reason
+  ///
+  /// In en, this message translates to:
+  /// **'The download did not finish. Check your connection and try again.'**
+  String get updateDownloadFailed;
+
+  /// Shown when the device runs out of storage mid-download
+  ///
+  /// In en, this message translates to:
+  /// **'There is not enough free space to download the update.'**
+  String get updateNoSpace;
+
   /// Update sheet, the check did not complete
   ///
   /// In en, this message translates to:

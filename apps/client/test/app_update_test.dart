@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:nex_client/platform/app_update.dart';
 
 void main() {
@@ -170,6 +173,43 @@ void main() {
       expect(run('not json').status, UpdateStatus.unavailable);
       expect(run('[]').status, UpdateStatus.unavailable);
       expect(run(release(tag: 'garbage')).status, UpdateStatus.unavailable);
+    });
+  });
+
+  group('UpdateDownloader', () {
+    late Directory tmp;
+
+    setUp(() => tmp = Directory.systemTemp.createTempSync('nex_dl_'));
+    tearDown(() {
+      if (tmp.existsSync()) tmp.deleteSync(recursive: true);
+    });
+
+    test('old installers are swept before the new one lands', () async {
+      // Cleanup used to be scoped to the in-flight download's own filename, so
+      // every previous version — tens of megabytes each — stayed in the cache
+      // directory forever.
+      File('${tmp.path}/Nex-0.1.0.apk').writeAsBytesSync([1, 2, 3]);
+      File('${tmp.path}/Nex-0.1.9.exe').writeAsBytesSync([1, 2, 3]);
+      File('${tmp.path}/Nex-0.2.0.apk.part').writeAsBytesSync([1]);
+      // Not ours, and not touched.
+      File('${tmp.path}/holiday-photo.jpg').writeAsBytesSync([9]);
+
+      final downloader = UpdateDownloader(
+        client: MockClient((_) async => http.Response.bytes([4, 5, 6, 7], 200)),
+      );
+      addTearDown(downloader.close);
+
+      await downloader.download(
+        url: 'https://example.invalid/Nex-0.3.0.apk',
+        into: tmp,
+        filename: 'Nex-0.3.0.apk',
+      );
+
+      final left = tmp
+          .listSync()
+          .map((e) => e.uri.pathSegments.last)
+          .toSet();
+      expect(left, {'Nex-0.3.0.apk', 'holiday-photo.jpg'});
     });
   });
 }

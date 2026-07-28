@@ -68,10 +68,22 @@ export async function requireDevice(
   req.auth = { deviceId: row.device_id, userId: row.user_id };
 
   // Best-effort liveness bookkeeping; never blocks the request.
+  //
+  // Only when the stored value is actually stale. It used to fire on every
+  // authenticated request, which doubled the query count on every endpoint and
+  // turned a read-only pull into a write transaction against a hot, narrow
+  // table — up to 180 row updates per minute per device, all writing a value
+  // nothing reads in real time. One statement, no read-modify-write, and the
+  // vast majority of requests now match zero rows.
   void getPool()
-    .query("UPDATE devices SET last_seen_at = NOW() WHERE device_id = $1", [
-      row.device_id,
-    ])
+    .query(
+      `UPDATE devices
+          SET last_seen_at = NOW()
+        WHERE device_id = $1
+          AND (last_seen_at IS NULL
+               OR last_seen_at < NOW() - INTERVAL '5 minutes')`,
+      [row.device_id],
+    )
     .catch(() => undefined);
 
   next();

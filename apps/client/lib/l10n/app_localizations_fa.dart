@@ -585,6 +585,13 @@ class AppLocalizationsFa extends AppLocalizations {
       'اندروید برای نصب از شما تأیید می‌گیرد. یادداشت‌های شما دست‌نخورده می‌مانند.';
 
   @override
+  String get updateDownloadFailed =>
+      'دانلود کامل نشد. اتصال را بررسی کنید و دوباره تلاش کنید.';
+
+  @override
+  String get updateNoSpace => 'فضای خالی برای دانلود به‌روزرسانی کافی نیست.';
+
+  @override
   String get updateCheckFailed =>
       'دسترسی به سرور بروزرسانی ممکن نشد. اتصال را بررسی کنید و دوباره تلاش کنید.';
 

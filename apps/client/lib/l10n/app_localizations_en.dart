@@ -585,6 +585,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Android will ask you to confirm the install. Your notes are not touched.';
 
   @override
+  String get updateDownloadFailed =>
+      'The download did not finish. Check your connection and try again.';
+
+  @override
+  String get updateNoSpace =>
+      'There is not enough free space to download the update.';
+
+  @override
   String get updateCheckFailed =>
       'Could not reach the update server. Check your connection and try again.';
 
