@@ -11,6 +11,7 @@ import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/os_capture_bridge.dart';
+import '../platform/update_service.dart';
 import 'package:nex_data/nex_data.dart';
 import '../widgets/capture_sheet.dart';
 import '../widgets/empty_timeline.dart';
@@ -26,10 +27,14 @@ class TimelineScreen extends StatefulWidget {
     required this.services,
     required this.preferences,
     this.osCapture,
+    this.updates,
   });
   final NexServices services;
   final NexPreferences preferences;
   final OsCaptureBridge? osCapture;
+
+  /// Null in tests that do not care about updates.
+  final UpdateService? updates;
   @override
   State<TimelineScreen> createState() => TimelineScreenState();
 }
@@ -347,12 +352,19 @@ class TimelineScreenState extends State<TimelineScreen> {
           IconButton(tooltip: l10n.search, icon: const Icon(Icons.search),
             onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
               builder: (_) => SearchScreen(services: widget.services)))),
-          IconButton(tooltip: l10n.settings, icon: const Icon(Icons.settings_outlined),
+          _SettingsButton(
+            updates: widget.updates,
+            tooltip: l10n.settings,
             // useSafeArea keeps the sheet clear of the status bar; without it
             // the title sat flush against the top of the screen.
             onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true,
               useSafeArea: true, showDragHandle: true,
-              builder: (_) => SettingsSheet(services: widget.services, preferences: widget.preferences))),
+              builder: (_) => SettingsSheet(
+                services: widget.services,
+                preferences: widget.preferences,
+                updates: widget.updates,
+              )),
+          ),
         ],
       ),
       // The empty state belongs to an empty *library*, not an empty result.
@@ -528,6 +540,49 @@ class _FilteredEmpty extends StatelessWidget {
           Text(l10n.noteCount(0), style: theme.textTheme.bodyMedium),
           const SizedBox(height: 4),
           TextButton(onPressed: onClear, child: Text(l10n.clear)),
+        ],
+      ),
+    );
+  }
+}
+
+/// The settings icon, with a dot when an update is waiting.
+///
+/// A dot rather than a notification or a dialog: the release is not urgent and
+/// nothing about it should interrupt a capture. Settings is where a person
+/// goes to look, so that is where the app says there is something to see.
+class _SettingsButton extends StatelessWidget {
+  const _SettingsButton({
+    required this.updates,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final UpdateService? updates;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final service = updates;
+    final button = IconButton(
+      tooltip: tooltip,
+      icon: const Icon(Icons.settings_outlined),
+      onPressed: onPressed,
+    );
+    if (service == null) return button;
+    return AnimatedBuilder(
+      animation: service,
+      builder: (context, _) => Stack(
+        alignment: Alignment.center,
+        children: [
+          button,
+          if (service.hasUpdate)
+            const PositionedDirectional(
+              top: 12,
+              end: 10,
+              child: IgnorePointer(child: NexBadgeDot()),
+            ),
         ],
       ),
     );

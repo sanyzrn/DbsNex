@@ -204,6 +204,30 @@ class NexPreferences extends ChangeNotifier {
   SwipeAction actionFor({required bool isLeading}) =>
       isLeading ? leadingAction : trailingAction;
 
+  /* ----------------------------------------------------------------- update */
+
+  /// Whether the app looks for a new release on its own.
+  ///
+  /// On by default. Nex ships outside any store, so without this a user only
+  /// learns about a release by going to look for one.
+  bool get autoUpdateCheck => _prefs.getBool('update.auto') ?? true;
+
+  Future<void> setAutoUpdateCheck(bool value) async {
+    await _prefs.setBool('update.auto', value);
+    notifyListeners();
+  }
+
+  DateTime? get lastUpdateCheck {
+    final millis = _prefs.getInt('update.lastCheck');
+    return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  Future<void> setLastUpdateCheck(DateTime value) async {
+    await _prefs.setInt('update.lastCheck', value.millisecondsSinceEpoch);
+    // Deliberately silent: the timestamp is bookkeeping, and rebuilding the
+    // whole settings tree because a background check finished is noise.
+  }
+
   /* ------------------------------------------------------------ AI provider */
 
   /// The master switch for everything in the intelligence layer.

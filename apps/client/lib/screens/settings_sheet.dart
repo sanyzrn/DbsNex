@@ -8,6 +8,7 @@ import '../widgets/nex_dialog.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/update_service.dart';
 import 'package:nex_data/nex_data.dart';
 import '../restart_scope.dart';
 import 'about_screen.dart';
@@ -33,10 +34,14 @@ class SettingsSheet extends StatelessWidget {
     super.key,
     required this.services,
     required this.preferences,
+    this.updates,
   });
 
   final NexServices services;
   final NexPreferences preferences;
+
+  /// Null in tests that do not care about updates.
+  final UpdateService? updates;
 
   @override
   Widget build(BuildContext context) {
@@ -335,16 +340,17 @@ class SettingsSheet extends StatelessWidget {
                       icon: Icons.info_outline,
                       title: l10n.about,
                       children: [
-                        ListTile(
+                        _UpdateRow(
+                          updates: updates,
+                          preferences: preferences,
+                        ),
+                        SwitchListTile(
                           contentPadding: _rowPadding,
-                          leading: const Icon(Icons.system_update_outlined),
-                          title: Text(l10n.checkForUpdate),
-                          subtitle: Text(l10n.installedVersion(nexAppVersion)),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => UpdateSheet.show(
-                            context,
-                            haptics: preferences.haptics,
-                          ),
+                          secondary: const Icon(Icons.update_outlined),
+                          title: Text(l10n.autoUpdateCheck),
+                          subtitle: Text(l10n.autoUpdateCheckHint),
+                          value: preferences.autoUpdateCheck,
+                          onChanged: preferences.setAutoUpdateCheck,
                         ),
                         ListTile(
                           contentPadding: _rowPadding,
@@ -646,3 +652,63 @@ class _SwipeRow extends StatelessWidget {
   }
 }
 
+
+/// The update row, with the same dot the settings icon carries.
+///
+/// Two dots for one fact, deliberately: the icon says "there is something in
+/// settings", and this says which thing. Without the second one the user opens
+/// settings and has to hunt.
+class _UpdateRow extends StatelessWidget {
+  const _UpdateRow({required this.updates, required this.preferences});
+
+  final UpdateService? updates;
+  final NexPreferences preferences;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final service = updates;
+    Widget row({required bool waiting, String? version, bool ready = false}) =>
+        ListTile(
+          contentPadding: _rowPadding,
+          leading: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.system_update_outlined),
+              if (waiting)
+                const PositionedDirectional(
+                  top: -2,
+                  end: -2,
+                  child: NexBadgeDot(),
+                ),
+            ],
+          ),
+          title: Text(l10n.checkForUpdate),
+          subtitle: Text(
+            switch ((waiting, version)) {
+              // Saying it is already downloaded is the point of downloading it
+              // early: the next tap is an install, not a wait.
+              (true, final v?) when ready => '${l10n.updateAvailable(v)} · ${l10n.updateReady}',
+              (true, final v?) => l10n.updateAvailable(v),
+              _ => l10n.installedVersion(nexAppVersion),
+            },
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => UpdateSheet.show(
+            context,
+            haptics: preferences.haptics,
+            service: service,
+          ),
+        );
+
+    if (service == null) return row(waiting: false);
+    return AnimatedBuilder(
+      animation: service,
+      builder: (context, _) => row(
+        waiting: service.hasUpdate,
+        version: service.available?.version.toString(),
+        ready: service.downloaded != null,
+      ),
+    );
+  }
+}

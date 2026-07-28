@@ -474,6 +474,18 @@
       }
     }
   },
+  "autoUpdateCheck": "Check automatically",
+  "@autoUpdateCheck": {
+    "description": "Settings toggle for the daily background update check"
+  },
+  "autoUpdateCheckHint": "Once a day, quietly. A new release shows up as a dot here — never a notification.",
+  "@autoUpdateCheckHint": {
+    "description": "Explains what the automatic update check does"
+  },
+  "updateReady": "Downloaded and ready to install",
+  "@updateReady": {
+    "description": "Settings subtitle when the installer is already on disk"
+  },
   "tagColor": "Tag color",
   "@tagColor": {
     "description": "Title of the tag color picker"

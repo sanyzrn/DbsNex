@@ -1106,6 +1106,24 @@ abstract class AppLocalizations {
   /// **'Version {version} is available'**
   String updateAvailable(String version);
 
+  /// Settings toggle for the daily background update check
+  ///
+  /// In en, this message translates to:
+  /// **'Check automatically'**
+  String get autoUpdateCheck;
+
+  /// Explains what the automatic update check does
+  ///
+  /// In en, this message translates to:
+  /// **'Once a day, quietly. A new release shows up as a dot here — never a notification.'**
+  String get autoUpdateCheckHint;
+
+  /// Settings subtitle when the installer is already on disk
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded and ready to install'**
+  String get updateReady;
+
   /// Title of the tag color picker
   ///
   /// In en, this message translates to:

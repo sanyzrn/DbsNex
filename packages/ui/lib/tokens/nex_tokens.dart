@@ -157,3 +157,27 @@ String nexFormatBytes(int bytes) {
   }
   return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
 }
+/// The small dot that marks something waiting for attention.
+///
+/// Nex has no notifications and no badges on its launcher icon; this is the
+/// whole of its "there is something here" vocabulary, and it only ever appears
+/// inside the app, on the control that leads to the thing.
+class NexBadgeDot extends StatelessWidget {
+  const NexBadgeDot({super.key, this.size = 8});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: NexColors.swipeDelete,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.surface,
+            width: 1.5,
+          ),
+        ),
+      );
+}

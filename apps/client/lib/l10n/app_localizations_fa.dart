@@ -606,6 +606,16 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get autoUpdateCheck => 'بررسی خودکار';
+
+  @override
+  String get autoUpdateCheckHint =>
+      'روزی یک بار، بی‌سروصدا. نسخهٔ جدید فقط با یک نقطه اینجا خبر داده می‌شود — هیچ‌وقت اعلان نمی‌آید.';
+
+  @override
+  String get updateReady => 'دانلود شد و آمادهٔ نصب است';
+
+  @override
   String get tagColor => 'رنگ برچسب';
 
   @override

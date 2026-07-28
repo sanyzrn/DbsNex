@@ -606,6 +606,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get autoUpdateCheck => 'Check automatically';
+
+  @override
+  String get autoUpdateCheckHint =>
+      'Once a day, quietly. A new release shows up as a dot here — never a notification.';
+
+  @override
+  String get updateReady => 'Downloaded and ready to install';
+
+  @override
   String get tagColor => 'Tag color';
 
   @override

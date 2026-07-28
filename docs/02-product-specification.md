@@ -137,7 +137,10 @@ Nex is a cross-platform capture application built around a single timeline of no
 ### FR-8a — In-App Update
 
 - FR-8a.1 Settings offers a **Check for update** action showing the installed version. Nex is distributed outside any app store, so without it a user has no way to learn a new build exists.
-- FR-8a.2 The check runs **only when the user asks**. Nex never polls for updates in the background, and never notifies about one — consistent with the silence rule in [`05-design.md`](./05-design.md).
+- FR-8a.2 The check runs **automatically, at most once every 24 hours**, on app launch and on resume, and never while the app is closed — there is no background job, no push, and no wake-up. It can be turned off in Settings, and the Settings row remains a manual check that ignores the interval.
+- FR-8a.2.1 A completed check that fails does **not** count as a check. Recording it would suppress a day of attempts over one moment offline.
+- FR-8a.2.2 The only thing an available update produces is a **red dot** on the settings icon in the timeline app bar and on the update row inside Settings. No notification, no badge on the launcher icon, no dialog, no interruption of a capture — consistent with "silence is a feature" in [`01-product-vision.md`](./01-product-vision.md). The dot is the whole of the app's "there is something here" vocabulary.
+- FR-8a.2.3 Once an update is found, its installer is **downloaded in the background** so that opening the update row leads straight to Install. A pre-downloaded file is reused only when its size matches the release asset; a partial file from an interrupted run is refetched, never handed to the installer. A failed pre-download is silent — the sheet simply downloads on demand.
 - FR-8a.3 The check reads the repository's latest published release and compares versions **semantically**, not as strings. Drafts and pre-releases are never offered.
 - FR-8a.4 The request carries no note content, no device identifier and no telemetry. This is the one outbound call outside sync, and it is a plain read.
 - FR-8a.5 A failed check reports that it failed. It never reports "up to date" for a check that did not complete.

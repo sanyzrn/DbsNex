@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/app_update.dart';
+import '../platform/update_service.dart';
 
 /// Check, download, install — the whole update flow in one sheet.
 ///
@@ -17,18 +18,31 @@ import '../platform/app_update.dart';
 /// silently. Nex downloads the APK and opens it, and the system installer asks
 /// the user to confirm. That prompt is the platform's, and it is not
 /// skippable — the app can only get the user to it.
+///
+/// When the app-wide [UpdateService] has already found and fetched a release,
+/// this sheet opens straight on Install: the waiting happened quietly in the
+/// background, which is the entire point of the dot on the settings icon.
 class UpdateSheet extends StatefulWidget {
-  const UpdateSheet({super.key, this.haptics = true});
+  const UpdateSheet({super.key, this.haptics = true, this.service});
 
   final bool haptics;
 
-  static Future<void> show(BuildContext context, {bool haptics = true}) =>
+  /// The shared service, when there is one. Its result and its pre-downloaded
+  /// installer are reused rather than repeated; without it the sheet still
+  /// works on its own, which is what the tests and the desktop path use.
+  final UpdateService? service;
+
+  static Future<void> show(
+    BuildContext context, {
+    bool haptics = true,
+    UpdateService? service,
+  }) =>
       showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
         showDragHandle: true,
-        builder: (_) => UpdateSheet(haptics: haptics),
+        builder: (_) => UpdateSheet(haptics: haptics, service: service),
       );
 
   @override
@@ -38,8 +52,11 @@ class UpdateSheet extends StatefulWidget {
 enum _Phase { checking, upToDate, available, downloading, ready, failed }
 
 class _UpdateSheetState extends State<UpdateSheet> {
-  final _checker = UpdateChecker(currentVersion: nexAppVersion);
-  final _downloader = UpdateDownloader();
+  // Only built when the sheet has to do the work itself. With a service in
+  // hand, opening a second HTTP client to ask the same question would be waste.
+  late final UpdateChecker? _checker =
+      widget.service == null ? UpdateChecker(currentVersion: nexAppVersion) : null;
+  late final _downloader = UpdateDownloader();
 
   _Phase _phase = _Phase.checking;
   UpdateCheck? _result;
@@ -50,12 +67,21 @@ class _UpdateSheetState extends State<UpdateSheet> {
   @override
   void initState() {
     super.initState();
+    final service = widget.service;
+    final ready = service?.available;
+    if (ready != null) {
+      // Already found, and usually already on disk: open on the last step.
+      _result = ready;
+      _downloaded = service!.downloaded;
+      _phase = _downloaded != null ? _Phase.ready : _Phase.available;
+      return;
+    }
     _check();
   }
 
   @override
   void dispose() {
-    _checker.close();
+    _checker?.close();
     _downloader.close();
     super.dispose();
   }
@@ -65,10 +91,21 @@ class _UpdateSheetState extends State<UpdateSheet> {
       _phase = _Phase.checking;
       _error = null;
     });
-    final result = await _checker.check();
+    final service = widget.service;
+    final UpdateCheck result;
+    if (service != null) {
+      // A tap on this row is an explicit ask, so it bypasses the daily
+      // interval — but it still runs through the service, so the dot and the
+      // pre-download stay in step with what the sheet shows.
+      await service.maybeCheck(force: true);
+      result = service.last ?? const UpdateCheck.unavailable();
+    } else {
+      result = await _checker!.check();
+    }
     if (!mounted) return;
     setState(() {
       _result = result;
+      _downloaded = service?.downloaded;
       _phase = switch (result.status) {
         UpdateStatus.available => _Phase.available,
         UpdateStatus.upToDate => _Phase.upToDate,
@@ -85,6 +122,30 @@ class _UpdateSheetState extends State<UpdateSheet> {
     final url = result?.downloadUrl;
     final version = result?.version;
     if (url == null || version == null) return;
+
+    // The background fetch may already be done, or still running. Either way
+    // there is no reason to pull the same bytes down a second time.
+    final service = widget.service;
+    if (service != null) {
+      setState(() {
+        _phase = _Phase.downloading;
+        _progress = null;
+        _error = null;
+      });
+      await service.prefetching;
+      final prefetched = service.downloaded;
+      if (!mounted) return;
+      if (prefetched != null) {
+        setState(() {
+          _downloaded = prefetched;
+          _phase = _Phase.ready;
+        });
+        if (widget.haptics) HapticFeedback.mediumImpact();
+        await _install();
+        return;
+      }
+    }
+
     setState(() {
       _phase = _Phase.downloading;
       _progress = 0;
@@ -126,6 +187,12 @@ class _UpdateSheetState extends State<UpdateSheet> {
       file.path,
       type: Platform.isAndroid ? 'application/vnd.android.package-archive' : null,
     );
+    if (result.type == ResultType.done) {
+      // The system installer has it now. Clearing the dot here is a small lie
+      // if the user backs out of that prompt, but the next daily check puts it
+      // straight back — and a dot that survives a successful install is worse.
+      widget.service?.acknowledge();
+    }
     if (!mounted || result.type == ResultType.done) return;
     setState(() {
       _phase = _Phase.failed;
