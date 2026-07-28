@@ -161,7 +161,9 @@ CI gates on: unit + integration test suites, capture/search performance budgets,
 
 - **Trunk-based development** on `main`, with short-lived feature branches (`type/short-description`).
 - **Pull requests required** for all changes; at least one review approval before merge.
-- **CI must pass** (typecheck, lint, unit/integration tests, performance budget checks) before merge.
+- **CI must pass** (typecheck, lint, unit/integration tests, performance budget checks) before merge. Branch protection requires exactly one check, `CI green`, which aggregates every job.
+- **CI runs only what a change can break.** A `changes` job diffs the pull request against its base and gates the rest: a Flutter-only change skips the backend suite, the PostgreSQL sync matrix and the Windows runner; a documentation-only change skips essentially everything. A push to `main`, and the release workflow, always run the full matrix — there is no base to compare against, and a release must verify everything. Touching `.github/` also runs everything, since the pipeline is what would otherwise ship untested.
+- **Skipped is not failed.** `CI green` treats a skipped job as success, which is what makes the gating safe; it treats an absent or errored job as failure, which is what makes it a real gate.
 - **Squash-merge** to keep `main` history linear, with a Conventional Commits-formatted message.
 - **Releases are tagged** (`vMAJOR.MINOR.PATCH`); sync-contract changes are `MAJOR`.
 - **No direct commits to `main`**, including for documentation.
