@@ -622,4 +622,36 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get color => 'رنگ';
+
+  @override
+  String get aiProvider => 'سرویس هوش مصنوعی';
+
+  @override
+  String get aiProviderIntro =>
+      'انتخاب کنید درخواست‌های هوش مصنوعی کجا فرستاده شوند. بدون سرویس، همه‌چیز فقط روی همین دستگاه اجرا می‌شود که برای پیشنهاد برچسب کافی است ولی برای خلاصه‌سازی نه.';
+
+  @override
+  String get apiKey => 'کلید API';
+
+  @override
+  String get baseUrl => 'آدرس سرویس';
+
+  @override
+  String get model => 'مدل';
+
+  @override
+  String get testConnection => 'تست اتصال';
+
+  @override
+  String get aiKeyStorage =>
+      'کلید روی همین دستگاه و در تنظیمات خصوصی برنامه ذخیره می‌شود. رمزگذاری‌شده نیست، و جز به همان سرویسی که انتخاب کرده‌اید جایی فرستاده نمی‌شود.';
+
+  @override
+  String get aiCapabilityNote =>
+      'پیشنهاد برچسب و خلاصه‌سازی با همهٔ سرویس‌ها کار می‌کنند. جست‌وجوی معنایی به سرویس سازگار با OpenAI نیاز دارد. تبدیل گفتار به متن و تشخیص متن تصویر فعلاً روی خود دستگاه می‌مانند.';
+
+  @override
+  String connectionOk(String model) {
+    return 'وصل شد. مدل $model جواب داد.';
+  }
 }

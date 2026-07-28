@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
 
+import 'ai_provider.dart';
 import 'nex_db.dart';
 
 /// Commands the worker isolate understands.
@@ -56,6 +57,7 @@ enum _DbCommand {
   summarize,
   relatedNotes,
   setAiCapabilities,
+  setAiProvider,
   sync,
   close,
 }
@@ -391,6 +393,10 @@ class NexDbWorker implements NexDb {
       });
 
   @override
+  Future<void> setAiProvider(Map<String, String> config) =>
+      _send<void>(_DbCommand.setAiProvider, {'config': config});
+
+  @override
   Future<void> setAiCapabilities(AiCapabilities capabilities) =>
       _send<void>(_DbCommand.setAiCapabilities, {'capabilities': capabilities});
 
@@ -562,6 +568,22 @@ class NexDbWorker implements NexDb {
             ),
           _DbCommand.setAiCapabilities => _voided(() => enrichment
               .updateCapabilities(arg('capabilities')! as AiCapabilities)),
+          _DbCommand.setAiProvider => _voided(() {
+              final raw = (arg('config')! as Map).cast<String, String>();
+              final config = AiProviderConfig(
+                provider: AiProviderWire.fromWire(raw['provider']),
+                apiKey: raw['apiKey'] ?? '',
+                baseUrl: raw['baseUrl'] ?? '',
+                model: raw['model'] ?? '',
+              );
+              // No provider, or an incomplete one, falls back to the local
+              // heuristics rather than to nothing: tag hints keep working.
+              enrichment.updateAdapter(
+                config.isUsable
+                    ? CloudAIAdapter(config: config)
+                    : const OnDeviceAIAdapter(),
+              );
+            }),
           _DbCommand.sync => await () async {
               final client = SyncClient(
                 baseUrl: arg('baseUrl')! as String,

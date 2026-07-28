@@ -1141,6 +1141,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Color'**
   String get color;
+
+  /// Screen title and dropdown label
+  ///
+  /// In en, this message translates to:
+  /// **'AI provider'**
+  String get aiProvider;
+
+  /// Explains what the screen is for
+  ///
+  /// In en, this message translates to:
+  /// **'Choose where the intelligence features send their requests. Without a provider they run on this device only, which covers tag hints but not summaries.'**
+  String get aiProviderIntro;
+
+  /// Field label
+  ///
+  /// In en, this message translates to:
+  /// **'API key'**
+  String get apiKey;
+
+  /// Field label
+  ///
+  /// In en, this message translates to:
+  /// **'Base URL'**
+  String get baseUrl;
+
+  /// Field label
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get model;
+
+  /// Button that verifies the configuration
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get testConnection;
+
+  /// Honest note about how the key is kept
+  ///
+  /// In en, this message translates to:
+  /// **'The key is stored on this device in the app\'s private settings. It is not encrypted, and it is never sent anywhere except to the provider you chose.'**
+  String get aiKeyStorage;
+
+  /// What each capability can actually reach
+  ///
+  /// In en, this message translates to:
+  /// **'Tag suggestions and summaries work with every provider. Semantic search needs an OpenAI-compatible one. Speech-to-text and image text stay on-device for now.'**
+  String get aiCapabilityNote;
+
+  /// Successful connection test
+  ///
+  /// In en, this message translates to:
+  /// **'Connected. Model {model} answered.'**
+  String connectionOk(String model);
 }
 
 class _AppLocalizationsDelegate

@@ -125,6 +125,15 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-7.2 A one-tap **Restore** action is available from Settings, recovering the most recent (or a selected) backup.
 - FR-7.3 Backup/restore correctness is verified in testing against a simulated database-corruption scenario, per [ADR-026](./10-decisions.md#adr-026--automatic-local-backup--restore-ships-in-v1).
 
+### FR-8b — AI Provider
+
+- FR-8b.1 The intelligence features run on-device by default. On-device means local heuristics, not a local model: they can suggest tags from a note's own words, and nothing more.
+- FR-8b.2 A user may point Nex at **Anthropic, OpenAI, OpenRouter, or a custom OpenAI-compatible endpoint**, supplying an API key, an optional base URL and an optional model. Three of the four share one request shape; Anthropic's Messages API is handled separately.
+- FR-8b.3 Settings offers a **connection test** that reports whether the key, endpoint and model actually answer — before the user discovers otherwise through a feature quietly doing nothing.
+- FR-8b.4 Capabilities a provider cannot serve report *unavailable*, never a wrong answer. Speech-to-text and OCR stay on-device: they need audio and vision endpoints that differ per provider and that not every provider offers.
+- FR-8b.5 The key is stored in the app's private preferences on the device. It is **not encrypted**, and this is stated plainly in the UI rather than implied otherwise. It is sent to the chosen provider and nowhere else.
+- FR-8b.6 Note content leaves the device only for the capabilities the user has switched on, and only to the provider they chose. With no provider configured, nothing is sent at all — FR-5.1 still holds.
+
 ### FR-8a — In-App Update
 
 - FR-8a.1 Settings offers a **Check for update** action showing the installed version. Nex is distributed outside any app store, so without it a user has no way to learn a new build exists.

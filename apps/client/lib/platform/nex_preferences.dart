@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'ai_provider.dart';
 import 'package:uuid/uuid.dart';
 
 enum SwipeAction { delete, addTag }
@@ -185,4 +187,26 @@ class NexPreferences extends ChangeNotifier {
 
   SwipeAction actionFor({required bool isLeading}) =>
       isLeading ? leadingAction : trailingAction;
+
+  /* ------------------------------------------------------------ AI provider */
+
+  // Stored in shared_preferences, which is not encrypted. On Android the file
+  // lives in the app's private data directory, so it is out of reach of other
+  // apps but readable on a rooted or backed-up device. Documented rather than
+  // hidden — the alternative is a secure-storage plugin, and pretending a
+  // plaintext preference is a secret would be worse than saying so.
+  AiProviderConfig get aiProvider => AiProviderConfig(
+        provider: AiProviderWire.fromWire(_prefs.getString('ai.provider')),
+        apiKey: _prefs.getString('ai.key') ?? '',
+        baseUrl: _prefs.getString('ai.baseUrl') ?? '',
+        model: _prefs.getString('ai.model') ?? '',
+      );
+
+  Future<void> setAiProvider(AiProviderConfig config) async {
+    await _prefs.setString('ai.provider', config.provider.wireName);
+    await _prefs.setString('ai.key', config.apiKey);
+    await _prefs.setString('ai.baseUrl', config.baseUrl);
+    await _prefs.setString('ai.model', config.model);
+    notifyListeners();
+  }
 }

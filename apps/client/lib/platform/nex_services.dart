@@ -14,6 +14,7 @@ import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'backup_policy.dart';
 import 'db_worker.dart';
+import 'ai_provider.dart';
 import 'nex_db.dart';
 import 'media_picker_impl.dart';
 import 'nex_preferences.dart';
@@ -149,6 +150,13 @@ class NexServices {
 
   void applyAiPreferences(NexPreferences preferences) {
     unawaited(worker.setAiCapabilities(preferences.aiCapabilities));
+    final ai = preferences.aiProvider;
+    unawaited(worker.setAiProvider({
+      'provider': ai.provider.wireName,
+      'apiKey': ai.apiKey,
+      'baseUrl': ai.baseUrl,
+      'model': ai.model,
+    }));
   }
 
   /// Fire-and-forget post-capture enrichment — never awaited by capture UI.
