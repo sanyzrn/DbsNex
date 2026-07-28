@@ -45,7 +45,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.libraryTitle)),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
+        padding: EdgeInsets.only(
+          top: NexSpacing.sm,
+          bottom: NexSpacing.sm + nexBottomInset(context),
+        ),
         children: [
           ListTile(
             contentPadding: const EdgeInsets.symmetric(

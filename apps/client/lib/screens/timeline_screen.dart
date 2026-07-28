@@ -581,8 +581,14 @@ class TimelineScreenState extends State<TimelineScreen> {
                       ),
                     ),
                     ..._bodySlivers(l10n),
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: nexFabClearance),
+                    // The capture button floats over the list, and on a
+                    // device with a three-button navigation bar the system's
+                    // own bar sits under that — the last card has to clear
+                    // both, or it cannot be read or tapped.
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: nexFabClearance + nexBottomInset(context),
+                      ),
                     ),
                   ],
                 ),

@@ -24,6 +24,11 @@ class AiProviderScreen extends StatefulWidget {
 
 class _AiProviderScreenState extends State<AiProviderScreen> {
   late AiProviderConfig _config = widget.preferences.aiProvider;
+
+  /// What is actually in preferences, so the screen can tell whether the thing
+  /// on display is the thing in effect.
+  late AiProviderConfig _saved = widget.preferences.aiProvider;
+
   late final TextEditingController _key =
       TextEditingController(text: _config.apiKey);
   late final TextEditingController _baseUrl =
@@ -49,10 +54,33 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
         model: _model.text,
       );
 
+  /// Whether anything on screen differs from what is stored.
+  ///
+  /// Saving used to be available at every moment, including the moment right
+  /// after a save, which makes the button meaningless: there is no way to tell
+  /// from it whether the thing on screen is the thing that is in effect.
+  /// `AiProviderConfig` carries no equality, so the fields are compared here.
+  bool get _dirty =>
+      _saved.provider != _current.provider ||
+      _saved.apiKey != _current.apiKey ||
+      _saved.baseUrl != _current.baseUrl ||
+      _saved.model != _current.model;
+
   Future<void> _save() async {
-    await widget.preferences.setAiProvider(_current);
+    final saving = _current;
+    await widget.preferences.setAiProvider(saving);
     if (!mounted) return;
-    setState(() => _config = _current);
+    setState(() {
+      _config = saving;
+      _saved = saving;
+    });
+    // It said nothing at all before — no confirmation, no error, no change in
+    // the button. There was no way to know whether the key had been kept.
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).aiProviderSaved)),
+      );
   }
 
   Future<void> _test() async {
@@ -82,11 +110,11 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.aiProvider)),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           NexSpacing.lg,
           NexSpacing.md,
           NexSpacing.lg,
-          NexSpacing.xl,
+          NexSpacing.xl + nexBottomInset(context),
         ),
         children: [
           Text(l10n.aiProviderIntro, style: theme.textTheme.bodyMedium),
@@ -155,9 +183,15 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               ),
               onChanged: (_) => setState(() => _result = null),
             ),
-            const SizedBox(height: NexSpacing.lg),
-            Row(
-              children: [
+          ],
+          const SizedBox(height: NexSpacing.lg),
+          // The save row stays out of the conditional: choosing "none" is a
+          // choice like any other, and it used to be impossible to store
+          // because the only button that could store it was hidden with the
+          // fields.
+          Row(
+            children: [
+              if (provider != AiProvider.none) ...[
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: _testing ? null : () => unawaited(_test()),
@@ -172,16 +206,18 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
                   ),
                 ),
                 const SizedBox(width: NexSpacing.md),
-                OutlinedButton(
-                  onPressed: () => unawaited(_save()),
-                  child: Text(l10n.save),
-                ),
               ],
-            ),
-            if (_result != null) ...[
-              const SizedBox(height: NexSpacing.md),
-              _ResultBanner(result: _result!),
+              OutlinedButton(
+                onPressed: _dirty && !_testing ? () => unawaited(_save()) : null,
+                child: Text(l10n.save),
+              ),
             ],
+          ),
+          if (_result != null) ...[
+            const SizedBox(height: NexSpacing.md),
+            _ResultBanner(result: _result!),
+          ],
+          if (provider != AiProvider.none) ...[
             const SizedBox(height: NexSpacing.lg),
             const Divider(),
             const SizedBox(height: NexSpacing.sm),

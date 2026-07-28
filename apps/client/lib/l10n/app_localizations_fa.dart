@@ -816,6 +816,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get testConnection => 'تست اتصال';
 
   @override
+  String get aiProviderSaved => 'سرویس ذخیره شد.';
+
+  @override
   String get aiKeyStorage =>
       'کلید روی همین دستگاه و در تنظیمات خصوصی برنامه ذخیره می‌شود. رمزگذاری‌شده نیست، و جز به همان سرویسی که انتخاب کرده‌اید جایی فرستاده نمی‌شود.';
 

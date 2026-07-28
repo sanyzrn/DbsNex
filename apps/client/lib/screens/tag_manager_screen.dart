@@ -73,6 +73,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
               ),
             )
           : ListView.separated(
+        padding: EdgeInsets.only(bottom: nexBottomInset(context)),
         itemCount: tags.length,
         separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (context, index) {

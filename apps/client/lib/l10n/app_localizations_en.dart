@@ -816,6 +816,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get testConnection => 'Test connection';
 
   @override
+  String get aiProviderSaved => 'Provider saved.';
+
+  @override
   String get aiKeyStorage =>
       'The key is stored on this device in the app\'s private settings. It is not encrypted, and it is never sent anywhere except to the provider you chose.';
 

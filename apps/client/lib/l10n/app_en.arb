@@ -701,6 +701,10 @@
   "@testConnection": {
     "description": "Button that verifies the configuration"
   },
+  "aiProviderSaved": "Provider saved.",
+  "@aiProviderSaved": {
+    "description": "Confirmation shown after the AI provider settings are stored"
+  },
   "aiKeyStorage": "The key is stored on this device in the app's private settings. It is not encrypted, and it is never sent anywhere except to the provider you chose.",
   "@aiKeyStorage": {
     "description": "Honest note about how the key is kept"

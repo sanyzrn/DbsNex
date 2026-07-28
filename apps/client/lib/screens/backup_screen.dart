@@ -145,7 +145,9 @@ class _BackupScreenState extends State<BackupScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.dataAndBackup)),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: NexSpacing.xl),
+        padding: EdgeInsets.only(
+          bottom: NexSpacing.xl + nexBottomInset(context),
+        ),
         children: [
           if (_busy) const LinearProgressIndicator(minHeight: 2),
           _Heading(l10n.exportTitle),
