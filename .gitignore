@@ -2,11 +2,19 @@
 **/.dart_tool/
 **/.packages
 **/build/
-# Library packages stay unpinned (Dart convention); the application does not.
-# apps/client/pubspec.lock is committed so release builds are reproducible —
-# it must be generated with the SDK pinned in .fvmrc.
-**/pubspec.lock
-!apps/client/pubspec.lock
+# Every lockfile is committed, and all of them must be generated with the SDK
+# pinned in .fvmrc.
+#
+# "Library packages stay unpinned" is a convention for *published* libraries,
+# where the lockfile is meaningless to whoever depends on you. These five are
+# `publish_to: none` members of one monorepo that is only ever built as a
+# whole, so the convention does not apply — and leaving four of them unpinned
+# meant they resolved fresh on every clone and every CI run. A dependency
+# publishing a bad patch release turned the build red with no commit in the
+# repository that caused it, and nothing to bisect.
+#
+# A pub workspace would additionally unify the five resolutions, and is not an
+# option here — see the note in the Makefile.
 apps/client/android/.gradle/
 apps/client/windows/flutter/ephemeral/
 apps/client/.flutter-plugins
