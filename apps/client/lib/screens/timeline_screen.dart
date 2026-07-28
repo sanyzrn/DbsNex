@@ -463,9 +463,10 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// of this screen rather than re-rolled on every build: the greeting is a
   /// title, and a title that changes while you are reading it is a bug, not a
   /// flourish. Opening the app again is what gets you a different one.
-  String _title(AppLocalizations l10n) {
+  /// The greeting, and the mark that goes after it — or null for neither.
+  (String, String)? _greeting(AppLocalizations l10n) {
     final name = widget.preferences.displayName;
-    if (name == null) return l10n.appTitle;
+    if (name == null) return null;
     final v = _greetingVariant;
     final (glyphs, text) = switch (DateTime.now().hour) {
       >= 5 && < 12 => (
@@ -489,9 +490,11 @@ class TimelineScreenState extends State<TimelineScreen> {
           [l10n.greetingNight, l10n.greetingNightB, l10n.greetingNightC],
         ),
     };
-    // The glyph leads in both directions: in Persian "leading" is the right
-    // edge, and putting it first in the string is what puts it there.
-    return '${glyphs[v]} ${text[v](name)}';
+    // Returned apart rather than joined into one string: the mark is animated,
+    // so it has to be its own widget. Kept out of the text also puts it at the
+    // trailing end in both directions for free — a Row is directional, where a
+    // string is not.
+    return (text[v](name), glyphs[v]);
   }
 
   @override
@@ -499,7 +502,17 @@ class TimelineScreenState extends State<TimelineScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_title(l10n)),
+        title: switch (_greeting(l10n)) {
+          null => Text(l10n.appTitle),
+          (final text, final glyph) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(child: Text(text, overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: NexSpacing.sm),
+                _GreetingGlyph(glyph),
+              ],
+            ),
+        },
         actions: [
           // The same reveal the pull-down performs. Search is one interaction
           // and one surface now: it used to be a route push behind an
@@ -763,6 +776,72 @@ class TimelineScreenState extends State<TimelineScreen> {
 }
 
 /// Keeps the filter row under the app bar while the cards scroll past it.
+/// The greeting's mark, which arrives rather than appearing.
+///
+/// It plays once, when the screen opens and whenever the glyph itself changes
+/// — not on a loop. A permanently moving element on the main screen of an app
+/// whose whole promise is not demanding your attention would be the wrong
+/// thing, and a repeating controller is also what makes `pumpAndSettle` never
+/// return, so the tests could not pump past it either.
+///
+/// Reduce motion skips it entirely: the glyph is simply there.
+class _GreetingGlyph extends StatefulWidget {
+  const _GreetingGlyph(this.glyph);
+
+  final String glyph;
+
+  @override
+  State<_GreetingGlyph> createState() => _GreetingGlyphState();
+}
+
+class _GreetingGlyphState extends State<_GreetingGlyph>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: NexMotion.slow,
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.value = 1;
+    } else if (_controller.status == AnimationStatus.dismissed) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(_GreetingGlyph old) {
+    super.didUpdateWidget(old);
+    if (old.glyph != widget.glyph &&
+        !MediaQuery.disableAnimationsOf(context)) {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final t = Curves.easeOutBack.transform(_controller.value);
+          return Transform.rotate(
+            // A small wave that unwinds as it settles, rather than a pulse:
+            // the glyph reads as greeting you, which is what the line says.
+            angle: (1 - _controller.value) * 0.5,
+            child: Transform.scale(scale: 0.4 + 0.6 * t, child: child),
+          );
+        },
+        child: Text(widget.glyph),
+      );
+}
+
 class _FilterRowHeader extends SliverPersistentHeaderDelegate {
   const _FilterRowHeader({required this.child, required this.visible});
 
