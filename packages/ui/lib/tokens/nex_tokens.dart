@@ -51,6 +51,30 @@ const nexMinTapTarget = 44.0;
 const nexCaptureFabSize = 64.0;
 const nexSwipeThreshold = 0.35;
 
+/// The gutter every timeline card sits in.
+///
+/// Shared rather than repeated so the swipe panel behind a card can line up
+/// with the card exactly. The panel used to run to the physical screen edge
+/// while the card stopped 16px short of it, so the two never read as parts of
+/// the same object.
+const nexCardInsets = EdgeInsets.symmetric(
+  horizontal: NexSpacing.md,
+  vertical: 5,
+);
+
+/// One height for every card in the timeline.
+///
+/// Cards used to size to their content, so a note carrying tags stood taller
+/// than one without and a note with two lines of text taller than one with a
+/// single line — the list came out ragged, with no relationship between a
+/// card's height and anything the reader cares about. The budget is fixed
+/// here: room for two lines of preview, a row of metadata, and the same card
+/// whether or not either of them is full.
+const nexCardHeight = 124.0;
+
+/// The height reserved for a card's date-and-tags row.
+const nexCardMetaHeight = 34.0;
+
 ThemeData nexLightTheme({bool comfortMode = false}) => _theme(
   brightness: Brightness.light,
   background: comfortMode ? NexColors.bgPrimaryLightComfort : NexColors.bgPrimaryLight,

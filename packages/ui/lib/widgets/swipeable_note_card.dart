@@ -107,9 +107,17 @@ class SwipeableNoteCard extends StatefulWidget {
     required this.addTagLabel,
     this.haptics = true,
     this.controller,
+    this.insets = nexCardInsets,
   });
 
   final Widget child;
+
+  /// The margin [child] keeps around itself.
+  ///
+  /// The action panel is laid out inside the same margin, so it lines up with
+  /// the card exactly instead of running past it to the physical screen edge.
+  /// Defaults to the timeline card's own gutter.
+  final EdgeInsets insets;
   final NexSwipeActionResolver resolveAction;
   final VoidCallback onDelete;
   final VoidCallback onAddTag;
@@ -342,23 +350,27 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
                     // or a hit test.
                     if (revealed != null)
                       Positioned.fill(
-                        child: Align(
-                          // Physical, not directional: whichever way the card
-                          // actually moved is the side the space opened on.
-                          alignment: dx > 0
-                              ? Alignment.centerLeft
-                              : Alignment.centerRight,
-                          child: _ActionPanel(
-                            width: dx.abs(),
-                            action: revealed,
-                            label: _label(revealed),
-                            progress: (dx.abs() / (_open == 0 ? 1 : _open))
-                                .clamp(0.0, 1.0),
-                            // Past the commit point the panel says so, so the
-                            // user knows letting go will act rather than open.
-                            committed: dx.abs() >= _width * _commitFraction,
-                            theme: theme,
-                            onPressed: () => _run(revealed),
+                        // The same gutter the card keeps, so the panel starts
+                        // where the card starts and the two look like one
+                        // object rather than a card floating over a bar.
+                        child: Padding(
+                          padding: widget.insets,
+                          child: Align(
+                            // Physical, not directional: whichever way the card
+                            // actually moved is the side the space opened on.
+                            alignment: dx > 0
+                                ? Alignment.centerLeft
+                                : Alignment.centerRight,
+                            child: _ActionPanel(
+                              width: dx.abs(),
+                              action: revealed,
+                              label: _label(revealed),
+                              // Past the commit point the panel says so, so the
+                              // user knows letting go will act rather than open.
+                              committed: dx.abs() >= _width * _commitFraction,
+                              theme: theme,
+                              onPressed: () => _run(revealed),
+                            ),
                           ),
                         ),
                       ),
@@ -377,13 +389,20 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
   }
 }
 
+/// Below this width the panel is a bare capsule: there is no room for a glyph,
+/// and a squeezed one reads as a rendering fault rather than as a control.
+const _glyphRevealWidth = 54.0;
+
 /// The coloured surface behind a swiped card.
+///
+/// A capsule, at every width. It starts as a narrow vertical pill against the
+/// card's own edge and widens into a lozenge as the finger travels — the same
+/// shape throughout, never a rectangle bleeding off the side of the screen.
 class _ActionPanel extends StatelessWidget {
   const _ActionPanel({
     required this.width,
     required this.action,
     required this.label,
-    required this.progress,
     required this.committed,
     required this.theme,
     required this.onPressed,
@@ -392,7 +411,6 @@ class _ActionPanel extends StatelessWidget {
   final double width;
   final NexSwipeAction action;
   final String label;
-  final double progress;
   final bool committed;
   final ThemeData theme;
   final VoidCallback onPressed;
@@ -402,29 +420,34 @@ class _ActionPanel extends StatelessWidget {
     final destructive = action == NexSwipeAction.delete;
     final background =
         destructive ? NexColors.swipeDelete : NexColors.swipeAddTag;
+    final showGlyph = width >= _glyphRevealWidth;
     return SizedBox(
       width: width,
       child: Material(
         color: background,
+        // Maximum rounding at any size: StadiumBorder takes half the shorter
+        // side, so a narrow panel is a vertical pill and a wide one a lozenge.
+        shape: const StadiumBorder(),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onPressed,
           child: Center(
-            child: Opacity(
-              // The label only becomes readable once there is room for it.
-              opacity: ((progress - 0.25) / 0.45).clamp(0.0, 1.0),
-              child: AnimatedScale(
-                // A small kick at the commit point: the panel confirms that
-                // letting go now performs the action.
-                scale: committed ? 1.12 : 0.85 + 0.15 * progress,
-                duration: NexMotion.fast,
+            child: AnimatedScale(
+              scale: showGlyph ? 1 : 0.4,
+              duration: NexMotion.standard,
+              curve: NexMotion.curve,
+              child: AnimatedOpacity(
+                opacity: showGlyph ? 1 : 0,
+                duration: NexMotion.standard,
                 curve: NexMotion.curve,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      destructive ? Icons.delete_outline : Icons.label_outline,
-                      color: Colors.white,
-                      size: 22,
+                    _ActionGlyph(
+                      icon: destructive
+                          ? Icons.delete_outline
+                          : Icons.label_outline,
+                      committed: committed,
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -446,4 +469,94 @@ class _ActionPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The panel's icon, which reacts when the swipe locks in.
+///
+/// Crossing the commit point is the one moment in the gesture with a real
+/// consequence — let go here and the action runs — and until now the only sign
+/// of it was a static 12% scale step. The icon now takes a beat: it swells,
+/// tips, and springs back, so the change of state is something the hand feels
+/// it caused rather than something the eye has to notice.
+class _ActionGlyph extends StatefulWidget {
+  const _ActionGlyph({required this.icon, required this.committed});
+
+  final IconData icon;
+  final bool committed;
+
+  @override
+  State<_ActionGlyph> createState() => _ActionGlyphState();
+}
+
+class _ActionGlyphState extends State<_ActionGlyph>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pop = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
+
+  late final Animation<double> _scale = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween(begin: 1.0, end: 1.35)
+          .chain(CurveTween(curve: Curves.easeOutCubic)),
+      weight: 30,
+    ),
+    TweenSequenceItem(
+      tween: Tween(begin: 1.35, end: 1.12)
+          .chain(CurveTween(curve: Curves.elasticOut)),
+      weight: 70,
+    ),
+  ]).animate(_pop);
+
+  /// A quick tip and back. Small on purpose: a full spin would be a mascot.
+  late final Animation<double> _tilt = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween(begin: 0.0, end: -0.26)
+          .chain(CurveTween(curve: Curves.easeOut)),
+      weight: 30,
+    ),
+    TweenSequenceItem(
+      tween: Tween(begin: -0.26, end: 0.12)
+          .chain(CurveTween(curve: Curves.easeInOut)),
+      weight: 30,
+    ),
+    TweenSequenceItem(
+      tween: Tween(begin: 0.12, end: 0.0)
+          .chain(CurveTween(curve: Curves.easeOutBack)),
+      weight: 40,
+    ),
+  ]).animate(_pop);
+
+  @override
+  void didUpdateWidget(_ActionGlyph oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.committed == oldWidget.committed) return;
+    if (!widget.committed) {
+      // Dragged back below the line: settle, rather than play the pop in
+      // reverse, which would read as a second event.
+      _pop.animateTo(0, duration: NexMotion.fast, curve: NexMotion.curve);
+      return;
+    }
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pop.value = 1;
+      return;
+    }
+    _pop.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _pop.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _pop,
+        child: Icon(widget.icon, color: Colors.white, size: 22),
+        builder: (context, child) => Transform.rotate(
+          angle: _tilt.value,
+          child: Transform.scale(scale: _scale.value, child: child),
+        ),
+      );
 }
