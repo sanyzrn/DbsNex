@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:nex_core/nex_core.dart';
+import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
 
 class NoteCard extends StatelessWidget {
@@ -37,7 +38,12 @@ class NoteCard extends StatelessWidget {
             onTap: onTap,
             child: Padding(
               padding: const EdgeInsets.all(NexSpacing.cardInset),
-              child: Row(
+              // The card lays itself out in the direction of the note's own
+              // text, so a Persian note reads right-to-left even while the
+              // interface is in English — icon, body, date and tags together.
+              child: NexTextDirection(
+                text: note.searchableDerivedText,
+                child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _Leading(note: note),
@@ -64,6 +70,7 @@ class NoteCard extends StatelessWidget {
                     ),
                   ),
                 ],
+                ),
               ),
             ),
           ),
@@ -151,7 +158,7 @@ class TagChip extends StatelessWidget {
         height: 8,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Color(int.parse(tag.color!.substring(1), radix: 16) + 0xFF000000),
+          color: nexParseTagColor(tag.color),
         ),
       ),
     ),

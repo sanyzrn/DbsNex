@@ -5,17 +5,23 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/nex_dialog.dart';
+import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import 'package:nex_data/nex_data.dart';
 import '../restart_scope.dart';
 import 'about_screen.dart';
+import 'ai_provider_screen.dart';
 import 'recently_deleted_screen.dart';
 import 'tag_manager_screen.dart';
 import 'update_sheet.dart';
 
-String _swipeLabel(AppLocalizations l10n, SwipeAction action) =>
-    action == SwipeAction.delete ? l10n.delete : l10n.addTag;
+String _swipeLabel(AppLocalizations l10n, SwipeAction action) => switch (action) {
+      SwipeAction.none => l10n.swipeNone,
+      SwipeAction.delete => l10n.delete,
+      SwipeAction.addTag => l10n.addTag,
+    };
 
 /// The v1 preference surface.
 ///
@@ -253,6 +259,20 @@ class SettingsSheet extends StatelessWidget {
                           value: preferences.cloudAiOptIn,
                           onChanged: preferences.setCloudAiOptIn,
                         ),
+                        ListTile(
+                          contentPadding: _rowPadding,
+                          leading: const Icon(Icons.key_outlined),
+                          title: Text(l10n.aiProvider),
+                          subtitle: Text(preferences.aiProvider.provider.label),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  AiProviderScreen(preferences: preferences),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     _Section(
@@ -325,7 +345,7 @@ class SettingsSheet extends StatelessWidget {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text(l10n.operationFailed),
+                                      content: NexDialogBody(child: Text(l10n.operationFailed)),
                                     ),
                                   );
                                 }
@@ -422,7 +442,7 @@ class SettingsSheet extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.restoreBackup),
-        content: Text(l10n.restoreBody),
+        content: NexDialogBody(child: Text(l10n.restoreBody)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -570,6 +590,14 @@ class _SwipeMappingState extends State<_SwipeMapping> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _select({
+    required bool isLeading,
+    required SwipeAction action,
+  }) async {
+    await widget.preferences.setSwipeAction(isLeading: isLeading, action: action);
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -583,13 +611,13 @@ class _SwipeMappingState extends State<_SwipeMapping> {
           icon: rtl ? Icons.arrow_back : Icons.arrow_forward,
           title: l10n.swipeLeading,
           action: widget.preferences.leadingAction,
-          onTap: _swap,
+          onSelected: (action) => _select(isLeading: true, action: action),
         ),
         _SwipeRow(
           icon: rtl ? Icons.arrow_forward : Icons.arrow_back,
           title: l10n.swipeTrailing,
           action: widget.preferences.trailingAction,
-          onTap: _swap,
+          onSelected: (action) => _select(isLeading: false, action: action),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -612,44 +640,78 @@ class _SwipeMappingState extends State<_SwipeMapping> {
   }
 }
 
+IconData _swipeIcon(SwipeAction action) => switch (action) {
+      SwipeAction.none => Icons.block,
+      SwipeAction.delete => Icons.delete_outline,
+      SwipeAction.addTag => Icons.label_outline,
+    };
+
+Color _swipeColor(ThemeData theme, SwipeAction action) => switch (action) {
+      SwipeAction.none => theme.colorScheme.outline,
+      SwipeAction.delete => theme.colorScheme.error,
+      SwipeAction.addTag => theme.colorScheme.secondary,
+    };
+
+/// One edge of the mapping, with its action chosen from a menu.
+///
+/// A menu rather than a swap button: the control has to say what the choices
+/// *are*. It also survives a third action being added — that becomes one more
+/// entry here, not another rewrite of this widget.
 class _SwipeRow extends StatelessWidget {
   const _SwipeRow({
     required this.icon,
     required this.title,
     required this.action,
-    required this.onTap,
+    required this.onSelected,
   });
 
   final IconData icon;
   final String title;
   final SwipeAction action;
-  final VoidCallback onTap;
+  final ValueChanged<SwipeAction> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final destructive = action == SwipeAction.delete;
-    final accent =
-        destructive ? theme.colorScheme.error : theme.colorScheme.secondary;
-    return ListTile(
-      contentPadding: _rowPadding,
-      onTap: onTap,
-      leading: Icon(icon),
-      title: Text(title),
-      subtitle: Row(
-        children: [
-          Icon(
-            destructive ? Icons.delete_outline : Icons.label_outline,
-            size: 16,
-            color: accent,
+    final accent = _swipeColor(theme, action);
+    return PopupMenuButton<SwipeAction>(
+      tooltip: title,
+      onSelected: onSelected,
+      itemBuilder: (context) => [
+        for (final candidate in SwipeAction.values)
+          PopupMenuItem(
+            value: candidate,
+            child: Row(
+              children: [
+                Icon(
+                  _swipeIcon(candidate),
+                  size: 18,
+                  color: _swipeColor(theme, candidate),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(_swipeLabel(l10n, candidate))),
+                if (candidate == action)
+                  const Icon(Icons.check, size: 18),
+              ],
+            ),
           ),
-          const SizedBox(width: 6),
-          Text(
-            _swipeLabel(l10n, action),
-            style: theme.textTheme.bodyMedium?.copyWith(color: accent),
-          ),
-        ],
+      ],
+      child: ListTile(
+        contentPadding: _rowPadding,
+        leading: Icon(icon),
+        title: Text(title),
+        subtitle: Row(
+          children: [
+            Icon(_swipeIcon(action), size: 16, color: accent),
+            const SizedBox(width: 6),
+            Text(
+              _swipeLabel(l10n, action),
+              style: theme.textTheme.bodyMedium?.copyWith(color: accent),
+            ),
+          ],
+        ),
+        trailing: const Icon(Icons.expand_more),
       ),
     );
   }

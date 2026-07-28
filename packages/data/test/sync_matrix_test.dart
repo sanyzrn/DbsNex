@@ -115,9 +115,16 @@ void main() {
         final bNote = b.repo.getById(note.id)!;
         expect(aNote.content, 'edited on B');
         expect(bNote.content, 'edited on B');
-        expect(aNote.tags.map((t) => t.name), contains('work'));
+        // Case-insensitive: tag names dedupe with COLLATE NOCASE, so adding
+        // "work" resolves to the existing seeded "Work" rather than making a
+        // second tag. What this test is about is that the tag survives the
+        // merge, not how it is capitalised.
         expect(
-          bNote.tags.map((t) => t.name),
+          aNote.tags.map((t) => t.name.toLowerCase()),
+          contains('work'),
+        );
+        expect(
+          bNote.tags.map((t) => t.name.toLowerCase()),
           contains('work'),
           reason: 'ADR-020: tag must not be lost to whole-record LWW',
         );

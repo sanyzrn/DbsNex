@@ -86,7 +86,7 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-2.4 No default folders, sections, or pre-existing categories.
 - FR-2.5 Smooth infinite scroll/pagination for large note counts.
 - FR-2.6 Each Timeline card supports two swipe gestures — one revealing a **leading-edge** action, one revealing a **trailing-edge** action. The default mapping is: trailing swipe → **Delete** (soft-delete, undoable); leading swipe → **Add Tag** (opens inline tag input). No confirmation dialog interrupts either action; Delete surfaces a brief, dismissible "Undo" toast instead.
-- FR-2.7 The action bound to each swipe direction is **user-configurable** from Settings — the two directions can be swapped (e.g., a left-handed user moves Delete to the leading edge) — but the action set itself stays fixed at exactly these two (Delete, Add Tag). This is a deliberately closed set, not an open action framework — see [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set).
+- FR-2.7 Each edge is bound **independently** to an action, chosen in Settings from the actions that exist — currently **Delete**, **Add Tag** and **None**. The edges are not coupled: both may carry the same action, and an edge set to None does not respond to a swipe at all. The set is open, so a new action is an addition rather than a redesign — see [ADR-022](./10-decisions.md#adr-022--swipe-actions-are-configurable-per-edge-from-an-open-set).
 - FR-2.8 Swipe actions never introduce a decision at capture time — they operate only on already-captured notes in the Timeline, consistent with [ADR-001](./10-decisions.md#adr-001--capture-has-zero-mandatory-fields).
 - FR-2.9 Tapping a card opens the Note Detail Sheet, which offers the actions that are not worth a gesture: edit, copy, copy file path, add tag, caption, summarize, details, delete. These are secondary by construction — they live behind one tap in an overflow menu so the sheet itself stays a lightweight overlay, per [`05-design.md`](./05-design.md#components).
 - FR-2.10 The body of a **text** note is editable after capture. This is correcting a capture, not authoring: it is plain text with no formatting, no title and no versioning, and it never appears during capture (FR-1.6). Media notes are not editable — their caption is the equivalent affordance (FR-2.11). Rich text, nested documents and revision history stay out of scope.
@@ -124,6 +124,15 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-7.1 The app automatically maintains a small, fixed number of rotating local backups of the SQLite database, on-device, with no user action required to create them.
 - FR-7.2 A one-tap **Restore** action is available from Settings, recovering the most recent (or a selected) backup.
 - FR-7.3 Backup/restore correctness is verified in testing against a simulated database-corruption scenario, per [ADR-026](./10-decisions.md#adr-026--automatic-local-backup--restore-ships-in-v1).
+
+### FR-8b — AI Provider
+
+- FR-8b.1 The intelligence features run on-device by default. On-device means local heuristics, not a local model: they can suggest tags from a note's own words, and nothing more.
+- FR-8b.2 A user may point Nex at **Anthropic, OpenAI, OpenRouter, or a custom OpenAI-compatible endpoint**, supplying an API key, an optional base URL and an optional model. Three of the four share one request shape; Anthropic's Messages API is handled separately.
+- FR-8b.3 Settings offers a **connection test** that reports whether the key, endpoint and model actually answer — before the user discovers otherwise through a feature quietly doing nothing.
+- FR-8b.4 Capabilities a provider cannot serve report *unavailable*, never a wrong answer. Speech-to-text and OCR stay on-device: they need audio and vision endpoints that differ per provider and that not every provider offers.
+- FR-8b.5 The key is stored in the app's private preferences on the device. It is **not encrypted**, and this is stated plainly in the UI rather than implied otherwise. It is sent to the chosen provider and nowhere else.
+- FR-8b.6 Note content leaves the device only for the capabilities the user has switched on, and only to the provider they chose. With no provider configured, nothing is sent at all — FR-5.1 still holds.
 
 ### FR-8a — In-App Update
 
@@ -260,7 +269,7 @@ erDiagram
 - **`media_hash`** enables content-addressed deduplication: if the same photo or voice file already exists locally or on another synced device, it is not stored or transferred twice.
 - **`rev` and `device_id`** are present from v1, even though sync is inactive, so v2 sync requires no schema migration or data rewrite.
 - Full-text indexing (FTS5) applies to `content` for text notes only, matching v1 search scope. The tokenizer is `unicode61` with explicit diacritic-removal and separator tuning for Persian script (Persian is space-delimited, so word-based tokenization applies, but needs explicit handling of ZWNJ and diacritics) — see [ADR-028](./10-decisions.md#adr-028--explicit-fts5-tokenization-strategy-for-multilingual-persian-first-search). A dedicated Persian search-correctness test suite is part of the Phase 1 test plan, not an afterthought.
-- **Swipe-action mapping** (FR-2.7) is stored as a simple local key-value preference (e.g., `swipe.leading = add_tag`, `swipe.trailing = delete`), not a note or schema field — it's a device-level UI preference, not user content. It is not synced in v1; whether it should sync in v2 (so the mapping is consistent across a user's devices) is an open question, not yet decided — see [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set).
+- **Swipe-action mapping** (FR-2.7) is stored as a simple local key-value preference (e.g., `swipe.leading = add_tag`, `swipe.trailing = delete`), not a note or schema field — it's a device-level UI preference, not user content. It is not synced in v1; whether it should sync in v2 (so the mapping is consistent across a user's devices) is an open question, not yet decided — see [ADR-022](./10-decisions.md#adr-022--swipe-actions-are-configurable-per-edge-from-an-open-set).
 
 ---
 

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:nex_client/platform/ai_provider.dart';
 import 'package:nex_client/platform/nex_db.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
@@ -206,6 +207,21 @@ class InProcessDb implements NexDb {
   @override
   Future<void> setAiCapabilities(AiCapabilities capabilities) async =>
       _enrichment.updateCapabilities(capabilities);
+
+  @override
+  Future<void> setAiProvider(Map<String, String> config) async {
+    final resolved = AiProviderConfig(
+      provider: AiProviderWire.fromWire(config['provider']),
+      apiKey: config['apiKey'] ?? '',
+      baseUrl: config['baseUrl'] ?? '',
+      model: config['model'] ?? '',
+    );
+    _enrichment.updateAdapter(
+      resolved.isUsable
+          ? CloudAIAdapter(config: resolved)
+          : const OnDeviceAIAdapter(),
+    );
+  }
 
   @override
   Future<SyncResult> sync({required String baseUrl, String? bearerToken}) async {

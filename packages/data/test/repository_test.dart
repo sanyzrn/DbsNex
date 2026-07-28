@@ -93,6 +93,73 @@ void main() {
       expect(repo.search(const SearchFilters(query: 'week plan')), isEmpty);
     });
 
+    // Re-tagging a second note used to repaint every note already carrying
+    // that tag, because upsertTag wrote whatever colour the caller passed.
+    test('re-adding an existing tag never repaints it', () {
+      final first = repo.insert(makeText('first'));
+      final second = repo.insert(makeText('second'));
+      final red = repo.upsertTag(name: 'Groceries', color: '#C0392B');
+      repo.attachTag(noteId: first.id, tagId: red.id);
+
+      final again = repo.upsertTag(name: 'Groceries', color: '#5B9BF0');
+
+      expect(again.id, red.id, reason: 'still the same tag');
+      expect(again.color, '#C0392B', reason: 'colour is the tag owner\'s call');
+      repo.attachTag(noteId: second.id, tagId: again.id);
+      expect(repo.getById(first.id)!.tags.single.color, '#C0392B');
+      expect(repo.getById(second.id)!.tags.single.color, '#C0392B');
+    });
+
+    test('a tag with no colour yet takes its first one', () {
+      // The starter tags ship colourless; tagging a note is a reasonable place
+      // to give one its first colour, which is not the same as overwriting.
+      final seeded = repo.listTags().firstWhere((t) => t.name == 'Shopping');
+      expect(seeded.color, isNull);
+
+      final coloured = repo.upsertTag(name: 'Shopping', color: '#2FBF8F');
+      expect(coloured.id, seeded.id);
+      expect(coloured.color, '#2FBF8F');
+
+      // ...and from then on it is settled.
+      expect(repo.upsertTag(name: 'Shopping', color: '#F17FA0').color, '#2FBF8F');
+    });
+
+    test('setTagColor accepts any #RRGGBB and rejects anything else', () {
+      final tag = repo.upsertTag(name: 'Work');
+      repo.setTagColor(tagId: tag.id, color: '#123ABC');
+      expect(
+        repo.listTags().firstWhere((t) => t.id == tag.id).color,
+        '#123ABC',
+      );
+
+      for (final bad in ['red', '#FFF', '#12345G', '123ABC']) {
+        expect(
+          () => repo.setTagColor(tagId: tag.id, color: bad),
+          throwsArgumentError,
+          reason: bad,
+        );
+      }
+    });
+
+    test('starter tags carry the same id on every device (sync safety)', () {
+      // Each device seeds its own copy, so a random id would give two devices
+      // two different "Work" tags and syncing them would produce a duplicate
+      // the user never made.
+      final second = Directory.systemTemp.createTempSync('nex_second_device_');
+      final otherDb = NexDatabase.open(p.join(second.path, 'nex.sqlite'));
+      addTearDown(() {
+        otherDb.close();
+        second.deleteSync(recursive: true);
+      });
+      final other = SqliteNoteRepository(otherDb);
+
+      final here = {for (final tag in repo.listTags()) tag.name: tag.id};
+      final there = {for (final tag in other.listTags()) tag.name: tag.id};
+
+      expect(here.keys, unorderedEquals(suggestedStarterTags));
+      expect(here, there);
+    });
+
     test('Persian FTS correctness (ADR-028)', () {
       // Includes ZWNJ (U+200C) between می and رود — common Persian orthography.
       const zwnj = '\u200C';

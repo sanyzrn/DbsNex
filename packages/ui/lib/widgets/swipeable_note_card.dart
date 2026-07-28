@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 // CustomSemanticsAction lives in the semantics library; material re-exports
@@ -9,15 +10,92 @@ import '../tokens/nex_tokens.dart';
 
 enum NexSwipeAction { delete, addTag }
 
-typedef NexSwipeActionResolver = NexSwipeAction Function({required bool isLeading});
-
-/// A timeline card that reveals one of the two ADR-022 actions on a swipe.
+/// What an edge does, where null means "nothing".
 ///
-/// The offset is driven by an [AnimationController] rather than by `setState`
-/// on the raw pointer delta. The old version snapped between 0 and open with
-/// no interpolation at all and had no rubber-band past the stop, which is what
-/// made the gesture feel stiff. Releasing now settles on a spring, and a fling
-/// carries its velocity into that spring instead of being discarded.
+/// An edge with no action does not move at all, so a user who only wants one
+/// gesture is not given a second one they will trigger by accident.
+
+typedef NexSwipeActionResolver = NexSwipeAction? Function({required bool isLeading});
+
+/// Keeps at most one card open across a list.
+///
+/// Without it every card that had been swiped stayed open behind the one the
+/// user was looking at, and nothing closed them — not scrolling, not tapping
+/// elsewhere. The timeline creates one and closes it on scroll and on a tap
+/// outside any card.
+class NexSwipeController extends ChangeNotifier {
+  Object? _open;
+
+  Object? get openCard => _open;
+
+  void opened(Object card) {
+    if (identical(_open, card)) return;
+    _open = card;
+    notifyListeners();
+  }
+
+  void closed(Object card) {
+    if (!identical(_open, card)) return;
+    _open = null;
+    notifyListeners();
+  }
+
+  /// Closes whatever is open. Safe to call when nothing is.
+  void closeAll() {
+    if (_open == null) return;
+    _open = null;
+    notifyListeners();
+  }
+}
+
+/// A horizontal drag that yields to a vertical scroll.
+///
+/// The plain recognizer claims the gesture as soon as horizontal travel passes
+/// the touch slop, which a not-quite-vertical flick through a list does all the
+/// time — the list would swipe a card open instead of scrolling. This one
+/// refuses to enter the arena until the movement is clearly sideways.
+class _SidewaysDragRecognizer extends HorizontalDragGestureRecognizer {
+  _SidewaysDragRecognizer({super.debugOwner});
+
+  Offset _travel = Offset.zero;
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event is PointerMoveEvent) _travel += event.delta;
+    super.handleEvent(event);
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {
+    _travel = Offset.zero;
+    super.didStopTrackingLastPointer(pointer);
+  }
+
+  @override
+  bool hasSufficientGlobalDistanceToAccept(
+    PointerDeviceKind pointerDeviceKind,
+    double? deviceTouchSlop,
+  ) {
+    if (_travel.dx.abs() < _travel.dy.abs() * 1.6) return false;
+    return super.hasSufficientGlobalDistanceToAccept(
+      pointerDeviceKind,
+      deviceTouchSlop,
+    );
+  }
+}
+
+/// A timeline card that reveals one of its two actions on a swipe.
+///
+/// Behaviour, in the order the problems appeared:
+///
+/// * The offset is animated by a spring rather than assigned from the raw
+///   pointer delta, so releasing settles instead of snapping.
+/// * A gesture cannot cross the middle. Once a direction is picked, dragging
+///   back closes the card and stops at zero — it used to sail through and open
+///   the *opposite* action, so swiping back from Delete landed on Add Tag.
+/// * Dragging most of the way across commits the action on release, the way
+///   Mail on iOS does, instead of requiring a second tap on the panel.
+/// * Only one card in a list is open at a time, and a scroll closes it.
 class SwipeableNoteCard extends StatefulWidget {
   const SwipeableNoteCard({
     super.key,
@@ -28,6 +106,7 @@ class SwipeableNoteCard extends StatefulWidget {
     required this.deleteLabel,
     required this.addTagLabel,
     this.haptics = true,
+    this.controller,
   });
 
   final Widget child;
@@ -40,25 +119,57 @@ class SwipeableNoteCard extends StatefulWidget {
   /// Off when the user has turned capture haptics off.
   final bool haptics;
 
+  /// Shared across a list so only one card stays open.
+  final NexSwipeController? controller;
+
   @override
   State<SwipeableNoteCard> createState() => _SwipeableNoteCardState();
 }
 
+/// Past this fraction of the card's width, releasing runs the action outright.
+const _commitFraction = 0.62;
+
 class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     with SingleTickerProviderStateMixin {
   /// Unbounded: the drag is allowed to overshoot the stop so it can rubber-band.
-  late final AnimationController _offset = AnimationController.unbounded(
-    vsync: this,
-    value: 0,
-  );
+  late final AnimationController _offset =
+      AnimationController.unbounded(vsync: this, value: 0);
 
-  double _open = 0;
-  bool _passedThreshold = false;
+  double _width = 0;
+  double get _open => _width * 0.45;
+
+  /// The sign the current gesture is allowed to move in. Locked on drag start
+  /// so one drag can never travel from one action to the other.
+  int _allowedSign = 0;
+  bool _passedCommit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?.addListener(_onControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(SwipeableNoteCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?.removeListener(_onControllerChanged);
+      widget.controller?.addListener(_onControllerChanged);
+    }
+  }
 
   @override
   void dispose() {
+    widget.controller?.removeListener(_onControllerChanged);
     _offset.dispose();
     super.dispose();
+  }
+
+  void _onControllerChanged() {
+    final controller = widget.controller;
+    if (controller == null) return;
+    // Something else opened, or the list asked everyone to close.
+    if (!identical(controller.openCard, this) && _offset.value != 0) _close();
   }
 
   bool get _rtl => Directionality.of(context) == TextDirection.rtl;
@@ -66,30 +177,63 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
   String _label(NexSwipeAction action) =>
       action == NexSwipeAction.delete ? widget.deleteLabel : widget.addTagLabel;
 
+  void _tick() {
+    if (widget.haptics) HapticFeedback.selectionClick();
+  }
+
   void _run(NexSwipeAction action) {
     if (widget.haptics) HapticFeedback.mediumImpact();
     _close();
     action == NexSwipeAction.delete ? widget.onDelete() : widget.onAddTag();
   }
 
-  /// Past the stop the card keeps moving, but at a fraction of the finger —
-  /// the same resistance iOS uses to say "this is as far as it goes".
+  /// Resistance past the point where releasing would run the action.
+  ///
+  /// It deliberately does *not* start at the resting position: the card has to
+  /// travel freely all the way to the commit point, or the rubber band fights
+  /// the full swipe and the gesture becomes practically unreachable. Mail
+  /// behaves the same way — free until it has committed, firm after.
   double _rubberBand(double value) {
-    if (value.abs() <= _open) return value;
-    final overshoot = value.abs() - _open;
-    return (value.isNegative ? -1 : 1) * (_open + overshoot * 0.28);
+    final limit = _width * _commitFraction;
+    if (value.abs() <= limit) return value;
+    final overshoot = value.abs() - limit;
+    return (value.isNegative ? -1 : 1) * (limit + overshoot * 0.35);
+  }
+
+  /// Treated as closed within half a pixel.
+  ///
+  /// The spring settles *near* zero, not on it, so an exact comparison left a
+  /// card that had just closed still claiming a direction — and the wall at
+  /// zero then blocked the next swipe the other way entirely.
+  bool get _isClosed => _offset.value.abs() < 0.5;
+
+  void _onDragStart(DragStartDetails details) {
+    // An open card may only be dragged back toward zero; a closed one takes
+    // whichever way the finger goes first.
+    _allowedSign = _isClosed ? 0 : (_offset.value.isNegative ? -1 : 1);
+    _passedCommit = false;
+    _offset.stop();
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
-    final next = _rubberBand(_offset.value + details.delta.dx);
-    _offset.value = next;
+    var next = _offset.value + details.delta.dx;
 
-    // One tick when the card crosses the point where releasing would open it,
-    // so the threshold is felt rather than guessed at.
-    final past = next.abs() >= _open * 0.6;
-    if (past != _passedThreshold) {
-      _passedThreshold = past;
-      if (past && widget.haptics) HapticFeedback.selectionClick();
+    if (_allowedSign == 0) {
+      // An edge bound to no action simply does not open.
+      if (next != 0 && !_edgeIsLive(next)) return;
+      if (next != 0) _allowedSign = next.isNegative ? -1 : 1;
+    } else {
+      // The wall at zero. Dragging back from an open card closes it and stops
+      // there rather than continuing into the other action.
+      next = _allowedSign > 0 ? next.clamp(0.0, double.infinity) : next.clamp(double.negativeInfinity, 0.0);
+    }
+
+    _offset.value = _rubberBand(next);
+
+    final committed = _offset.value.abs() >= _width * _commitFraction;
+    if (committed != _passedCommit) {
+      _passedCommit = committed;
+      if (committed) _tick();
     }
   }
 
@@ -97,19 +241,36 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     final velocity = details.velocity.pixelsPerSecond.dx;
     final current = _offset.value;
 
-    // A deliberate fling opens even from a short drag; otherwise the distance
-    // decides. `nexSwipeThreshold` stays the resting contract (ADR-022).
-    final flung = velocity.abs() > 420;
-    final direction = flung ? (velocity.isNegative ? -1 : 1) : (current.isNegative ? -1 : 1);
-    final shouldOpen =
-        flung || current.abs() >= _open * (nexSwipeThreshold / 0.45);
+    // Dragged most of the way across: run it, the way Mail does.
+    if (current != 0 && current.abs() >= _width * _commitFraction) {
+      final revealed = _actionFor(current);
+      if (revealed != null) {
+        _run(revealed);
+        return;
+      }
+    }
 
-    _settle(shouldOpen ? direction * _open : 0, velocity);
+    final flung = velocity.abs() > 420 &&
+        (velocity.isNegative == current.isNegative) &&
+        current != 0;
+    final shouldOpen =
+        _edgeIsLive(current) && (flung || current.abs() >= _open * 0.55);
+    final sign = current.isNegative ? -1 : 1;
+    _settle(shouldOpen ? sign * _open : 0, velocity);
   }
 
   void _settle(double target, double velocity) {
-    _passedThreshold = false;
-    if (!mounted) return;
+    _passedCommit = false;
+    _allowedSign = 0;
+    if (!mounted) {
+      _offset.value = target;
+      return;
+    }
+    if (target == 0) {
+      widget.controller?.closed(this);
+    } else {
+      widget.controller?.opened(this);
+    }
     if (MediaQuery.disableAnimationsOf(context)) {
       _offset.value = target;
       return;
@@ -128,47 +289,52 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
 
   void _close() => _settle(0, 0);
 
+  /// Which action a given offset has uncovered, in either script direction.
+  NexSwipeAction? _actionFor(double dx) {
+    if (dx.abs() < 0.5) return null;
+    final leading = _rtl ? dx < 0 : dx > 0;
+    return widget.resolveAction(isLeading: leading);
+  }
+
+  /// Whether the edge the finger is heading for does anything at all.
+  bool _edgeIsLive(double dx) {
+    if (dx == 0) return true;
+    final leading = _rtl ? dx < 0 : dx > 0;
+    return widget.resolveAction(isLeading: leading) != null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        _open = constraints.maxWidth * 0.45;
-        final leading = widget.resolveAction(isLeading: true);
-        final trailing = widget.resolveAction(isLeading: false);
+        _width = constraints.maxWidth;
         return Semantics(
           customSemanticsActions: {
             CustomSemanticsAction(label: widget.deleteLabel): widget.onDelete,
             CustomSemanticsAction(label: widget.addTagLabel): widget.onAddTag,
           },
-          child: GestureDetector(
+          child: RawGestureDetector(
             behavior: HitTestBehavior.opaque,
-            onLongPress: () async {
-              if (widget.haptics) HapticFeedback.mediumImpact();
-              final selected = await showMenu<NexSwipeAction>(
-                context: context,
-                position: const RelativeRect.fromLTRB(24, 160, 24, 0),
-                items: [
-                  PopupMenuItem(value: leading, child: Text(_label(leading))),
-                  PopupMenuItem(value: trailing, child: Text(_label(trailing))),
-                ],
-              );
-              if (selected != null) _run(selected);
+            gestures: {
+              _SidewaysDragRecognizer:
+                  GestureRecognizerFactoryWithHandlers<_SidewaysDragRecognizer>(
+                () => _SidewaysDragRecognizer(debugOwner: this),
+                (instance) => instance
+                  ..onStart = _onDragStart
+                  ..onUpdate = _onDragUpdate
+                  ..onEnd = _onDragEnd
+                  ..onCancel = _close,
+              ),
             },
-            onHorizontalDragUpdate: _onDragUpdate,
-            onHorizontalDragEnd: _onDragEnd,
-            onHorizontalDragCancel: _close,
             child: AnimatedBuilder(
               animation: _offset,
               builder: (context, child) {
                 final dx = _offset.value;
-                // Which action the current offset has uncovered, if any. The
-                // spring settles to within a tolerance of zero rather than
+                // The spring settles to within a tolerance of zero rather than
                 // exactly zero, so an equality test here would leave a
                 // sub-pixel panel — and its label — alive in the tree forever.
-                final revealed = dx.abs() < 0.5
-                    ? null
-                    : ((_rtl ? dx < 0 : dx > 0) ? leading : trailing);
+                final revealed = _actionFor(dx);
                 return Stack(
                   children: [
                     // Built only while open, so a closed card cannot leak its
@@ -178,8 +344,7 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
                       Positioned.fill(
                         child: Align(
                           // Physical, not directional: whichever way the card
-                          // actually moved is the side the space opened on, in
-                          // either script direction.
+                          // actually moved is the side the space opened on.
                           alignment: dx > 0
                               ? Alignment.centerLeft
                               : Alignment.centerRight,
@@ -187,11 +352,11 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
                             width: dx.abs(),
                             action: revealed,
                             label: _label(revealed),
-                            // Fades and scales in as the card moves, so the
-                            // action arrives with the gesture rather than
-                            // popping into place.
-                            progress:
-                                (dx.abs() / (_open == 0 ? 1 : _open)).clamp(0.0, 1.0),
+                            progress: (dx.abs() / (_open == 0 ? 1 : _open))
+                                .clamp(0.0, 1.0),
+                            // Past the commit point the panel says so, so the
+                            // user knows letting go will act rather than open.
+                            committed: dx.abs() >= _width * _commitFraction,
                             theme: theme,
                             onPressed: () => _run(revealed),
                           ),
@@ -219,6 +384,7 @@ class _ActionPanel extends StatelessWidget {
     required this.action,
     required this.label,
     required this.progress,
+    required this.committed,
     required this.theme,
     required this.onPressed,
   });
@@ -227,6 +393,7 @@ class _ActionPanel extends StatelessWidget {
   final NexSwipeAction action;
   final String label;
   final double progress;
+  final bool committed;
   final ThemeData theme;
   final VoidCallback onPressed;
 
@@ -245,8 +412,12 @@ class _ActionPanel extends StatelessWidget {
             child: Opacity(
               // The label only becomes readable once there is room for it.
               opacity: ((progress - 0.25) / 0.45).clamp(0.0, 1.0),
-              child: Transform.scale(
-                scale: 0.85 + 0.15 * progress,
+              child: AnimatedScale(
+                // A small kick at the commit point: the panel confirms that
+                // letting go now performs the action.
+                scale: committed ? 1.12 : 0.85 + 0.15 * progress,
+                duration: NexMotion.fast,
+                curve: NexMotion.curve,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

@@ -15,6 +15,7 @@ import 'package:nex_data/nex_data.dart';
 import '../widgets/capture_sheet.dart';
 import '../widgets/empty_timeline.dart';
 import '../widgets/recording_sheet.dart';
+import '../widgets/tag_picker.dart';
 import 'note_detail_sheet.dart';
 import 'search_screen.dart';
 import 'settings_sheet.dart';
@@ -34,7 +35,16 @@ class TimelineScreen extends StatefulWidget {
 }
 
 class TimelineScreenState extends State<TimelineScreen> {
+  /// Everything the timeline stream last delivered, before filters.
+  ///
+  /// The screen used to hold only the filtered list, so the next stream event —
+  /// which a capture triggers — replaced it with the unfiltered one while the
+  /// filter chips still claimed to be active.
+  List<Note> _all = const [];
   List<Note> notes = const [];
+
+  /// Keeps one card open at a time and lets a scroll close it.
+  final NexSwipeController _swipe = NexSwipeController();
   List<Note> anniversary = const [];
   List<Tag> filterTags = const [];
   String? selectedTagId;
@@ -46,7 +56,7 @@ class TimelineScreenState extends State<TimelineScreen> {
   void initState() {
     super.initState();
     subscription = widget.services.timelineStream.listen((value) {
-      if (mounted) setState(() => notes = value);
+      if (mounted) setState(() { _all = value; notes = _visible(value); });
     });
     unawaited(_loadTimeline());
     unawaited(_loadAnniversary());
@@ -60,7 +70,7 @@ class TimelineScreenState extends State<TimelineScreen> {
   Future<void> _loadTimeline() async {
     final loaded = await widget.services.timeline(limit: 200);
     if (!mounted) return;
-    setState(() => notes = loaded);
+    setState(() { _all = loaded; notes = _visible(loaded); });
   }
 
   /// FR-4 filter chips. TagFilterRow shipped in packages/ui, complete and
@@ -126,18 +136,33 @@ class TimelineScreenState extends State<TimelineScreen> {
     if (widget.preferences.haptics) HapticFeedback.selectionClick();
   }
 
+  Future<void> _clearFilters() async {
+    _tick();
+    setState(() {
+      selectedTagId = null;
+      selectedType = null;
+    });
+    await _applyFilters();
+  }
+
+  bool get _filtering => selectedTagId != null || selectedType != null;
+
   /// FR-4.5: the content-type filter layers on top of the tag filter — it is
-  /// not a separate mode, so both selections resolve into one query.
-  Future<void> _applyFilters() async {
-    final filtered = await widget.services.timeline(
-      limit: 200,
-      tagId: selectedTagId,
-    );
+  /// not a separate mode, so both selections resolve into one view.
+  List<Note> _visible(List<Note> source) {
+    final tagId = selectedTagId;
     final type = selectedType;
+    return source.where((note) {
+      if (type != null && note.type != type) return false;
+      if (tagId != null && !note.tags.any((t) => t.id == tagId)) return false;
+      return true;
+    }).toList();
+  }
+
+  Future<void> _applyFilters() async {
+    final loaded = await widget.services.timeline(limit: 200);
     if (!mounted) return;
-    setState(() => notes = type == null
-        ? filtered
-        : filtered.where((n) => n.type == type).toList());
+    setState(() { _all = loaded; notes = _visible(loaded); });
   }
 
   /// "A year ago today", opt-in and quiet by default. Loaded once rather than
@@ -150,7 +175,11 @@ class TimelineScreenState extends State<TimelineScreen> {
   }
 
   @override
-  void dispose() { subscription?.cancel(); super.dispose(); }
+  void dispose() {
+    subscription?.cancel();
+    _swipe.dispose();
+    super.dispose();
+  }
 
   Future<void> openCapture() async {
     await showModalBottomSheet<void>(
@@ -209,6 +238,10 @@ class TimelineScreenState extends State<TimelineScreen> {
     final keep = await showModalBottomSheet<bool>(
       context: context,
       isDismissible: false,
+      // The waveform needs the full sheet width and its own height, not the
+      // half-screen default a content-sized sheet collapses to.
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (_) => RecordingSheet(recorder: recorder),
     );
     final recorded = await recorder.stop();
@@ -237,35 +270,26 @@ class TimelineScreenState extends State<TimelineScreen> {
   }
 
   /// The non-destructive half of ADR-022's fixed action pair.
+  /// Swipe-to-tag (FR-2.6).
+  ///
+  /// Offers the tags that exist rather than a bare text field, so tagging is
+  /// picking from what you already use — the common case by a wide margin.
   Future<void> _addTagTo(Note note) async {
-    final l10n = AppLocalizations.of(context);
-    final controller = TextEditingController();
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.addTag),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(hintText: l10n.tagName),
-          textInputAction: TextInputAction.done,
-          onSubmitted: (value) => Navigator.pop(ctx, value.trim()),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text(l10n.addAction),
-          ),
-        ],
-      ),
+    final choice = await TagPickerSheet.show(
+      context,
+      tags: filterTags,
+      alreadyOn: note.tags.map((t) => t.id).toSet(),
     );
-    controller.dispose();
-    if (name == null || name.isEmpty) return;
+    if (choice == null || !mounted) return;
     if (widget.preferences.haptics) HapticFeedback.lightImpact();
-    await widget.services.addTag(noteId: note.id, name: name);
+    await widget.services.addTag(
+      noteId: note.id,
+      name: choice.tag?.name ?? choice.name!,
+      color: choice.color,
+    );
     await widget.services.refreshTimeline();
+    // A tag created here is new to the filter row too; without this it only
+    // appeared after a restart.
     await _loadFilterTags();
   }
 
@@ -331,9 +355,17 @@ class TimelineScreenState extends State<TimelineScreen> {
               builder: (_) => SettingsSheet(services: widget.services, preferences: widget.preferences))),
         ],
       ),
-      body: notes.isEmpty && selectedTagId == null
+      // The empty state belongs to an empty *library*, not an empty result.
+      // It used to replace the whole body whenever a filter matched nothing,
+      // taking the filter row with it — so the filter that caused it could not
+      // be cleared without restarting the app.
+      body: _all.isEmpty && !_filtering
           ? const EmptyTimeline()
-          : Column(children: [
+          : GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              // A tap anywhere that is not a card closes an open swipe.
+              onTap: _swipe.closeAll,
+              child: Column(children: [
               // One filter row, as in the mockup: the icon button leads it and
               // holds the content-type filter, so the timeline keeps a single
               // row of pills rather than stacking a second one under it.
@@ -347,7 +379,16 @@ class TimelineScreenState extends State<TimelineScreen> {
                 ),
                 onSelected: (value) => unawaited(_selectTag(value)),
               ),
-              Expanded(child: Center(
+              Expanded(child: notes.isEmpty
+                  ? _FilteredEmpty(onClear: () => unawaited(_clearFilters()))
+                  : NotificationListener<ScrollStartNotification>(
+                      // Scrolling dismisses an open card, the way every list
+                      // with swipe actions behaves.
+                      onNotification: (_) {
+                        _swipe.closeAll();
+                        return false;
+                      },
+                      child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
           child: ListView.builder(
@@ -373,13 +414,16 @@ class TimelineScreenState extends State<TimelineScreen> {
                   deleteLabel: l10n.delete,
                   addTagLabel: l10n.addTag,
                   haptics: widget.preferences.haptics,
+                  controller: _swipe,
                   resolveAction: ({required bool isLeading}) {
                     final action = isLeading
                         ? widget.preferences.leadingAction
                         : widget.preferences.trailingAction;
-                    return action == SwipeAction.delete
-                        ? NexSwipeAction.delete
-                        : NexSwipeAction.addTag;
+                    return switch (action) {
+                      SwipeAction.none => null,
+                      SwipeAction.delete => NexSwipeAction.delete,
+                      SwipeAction.addTag => NexSwipeAction.addTag,
+                    };
                   },
                   onDelete: () => unawaited(deleteWithUndo(note)),
                   onAddTag: () => unawaited(_addTagTo(note)),
@@ -394,6 +438,9 @@ class TimelineScreenState extends State<TimelineScreen> {
                         await deleteWithUndo(note);
                       }
                       await widget.services.refreshTimeline();
+                      // The sheet can create a tag; the filter row has to
+                      // learn about it without an app restart.
+                      await _loadFilterTags();
                     },
                   ),
                 ),
@@ -401,8 +448,9 @@ class TimelineScreenState extends State<TimelineScreen> {
             },
           ),
         ),
-              )),
+              ))),
             ]),
+            ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: openCapture, tooltip: l10n.capture, child: const Icon(Icons.add, size: 32)),
@@ -448,6 +496,39 @@ class _TypeFilterButton extends StatelessWidget {
             color: active ? theme.colorScheme.surface : theme.colorScheme.onSurface,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Shown when a filter matches nothing.
+///
+/// Distinct from [EmptyTimeline], which promises the library keeps whatever you
+/// put in it — a promise that would read as a lie next to notes the filter is
+/// merely hiding.
+class _FilteredEmpty extends StatelessWidget {
+  const _FilteredEmpty({required this.onClear});
+
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.filter_list_off,
+            size: 36,
+            color: theme.colorScheme.outline,
+          ),
+          const SizedBox(height: 12),
+          Text(l10n.noteCount(0), style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 4),
+          TextButton(onPressed: onClear, child: Text(l10n.clear)),
+        ],
       ),
     );
   }

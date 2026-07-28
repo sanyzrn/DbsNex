@@ -130,7 +130,7 @@ Each Timeline card supports a horizontal swipe to reveal one quick action per ed
 - **Add Tag stays neutral.** Its reveal panel uses a plain surface tone, not a color, since it isn't destructive and doesn't need to compete visually with Delete.
 - **Threshold, not a hair-trigger.** A short drag re-settles the card closed; only a deliberate drag past a clear threshold snaps the action panel fully open. This keeps ordinary vertical scrolling from ever misfiring a swipe.
 - **One open card at a time.** Starting a swipe on any card closes whichever other card was previously revealed.
-- **The mapping is configurable, the action set is not.** Which edge triggers Delete vs. Add Tag is a Settings preference (so the gesture can match a person's left- or right-hand swiping habit); which two actions exist is fixed, deliberately, per [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set).
+- **Each edge is configured on its own.** Settings binds the leading and the trailing edge independently, from the actions that exist — Delete, Add Tag, or None — so the gesture can match a person's swiping habit, and someone who wants only one swipe can have only one. An edge set to None does not move at all. See [ADR-022](./10-decisions.md#adr-022--swipe-actions-are-configurable-per-edge-from-an-open-set).
 
 ---
 

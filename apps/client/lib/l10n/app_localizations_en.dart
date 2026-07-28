@@ -604,4 +604,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String updateAvailable(String version) {
     return 'Version $version is available';
   }
+
+  @override
+  String get tagColor => 'Tag color';
+
+  @override
+  String get customColor => 'Custom';
+
+  @override
+  String get saturation => 'Saturation';
+
+  @override
+  String get brightness => 'Brightness';
+
+  @override
+  String get noColor => 'No color';
+
+  @override
+  String get color => 'Color';
+
+  @override
+  String get aiProvider => 'AI provider';
+
+  @override
+  String get aiProviderIntro =>
+      'Choose where the intelligence features send their requests. Without a provider they run on this device only, which covers tag hints but not summaries.';
+
+  @override
+  String get apiKey => 'API key';
+
+  @override
+  String get baseUrl => 'Base URL';
+
+  @override
+  String get model => 'Model';
+
+  @override
+  String get testConnection => 'Test connection';
+
+  @override
+  String get aiKeyStorage =>
+      'The key is stored on this device in the app\'s private settings. It is not encrypted, and it is never sent anywhere except to the provider you chose.';
+
+  @override
+  String get aiCapabilityNote =>
+      'Tag suggestions and summaries work with every provider. Semantic search needs an OpenAI-compatible one. Speech-to-text and image text stay on-device for now.';
+
+  @override
+  String connectionOk(String model) {
+    return 'Connected. Model $model answered.';
+  }
+
+  @override
+  String get swipeNone => 'Nothing';
 }

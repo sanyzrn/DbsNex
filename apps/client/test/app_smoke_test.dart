@@ -410,8 +410,35 @@ void main() {
   });
 
   test('No Pin/Archive swipe actions exist', () async {
-    expect(SwipeAction.values.map((e) => e.name).toList(), ['delete', 'addTag']);
+    // The set is open now (ADR-022 revised), but it opens by deliberate
+    // addition — Pin and Archive are still not in it.
+    expect(
+      SwipeAction.values.map((e) => e.name).toList(),
+      ['none', 'delete', 'addTag'],
+    );
     expect(NexSwipeAction.values.map((e) => e.name).toList(),
         ['delete', 'addTag']);
+  });
+
+  test('each swipe edge is set on its own (ADR-022 revised)', () async {
+    expect(preferences.leadingAction, SwipeAction.addTag);
+    expect(preferences.trailingAction, SwipeAction.delete);
+
+    // Setting one edge must leave the other exactly where it was. Coupling
+    // them made the control a swap button wearing a menu's clothes.
+    await preferences.setSwipeAction(
+      isLeading: true,
+      action: SwipeAction.delete,
+    );
+    expect(preferences.leadingAction, SwipeAction.delete);
+    expect(preferences.trailingAction, SwipeAction.delete);
+
+    // And an edge can carry nothing at all.
+    await preferences.setSwipeAction(
+      isLeading: false,
+      action: SwipeAction.none,
+    );
+    expect(preferences.trailingAction, SwipeAction.none);
+    expect(preferences.leadingAction, SwipeAction.delete);
   });
 }

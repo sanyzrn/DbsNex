@@ -111,6 +111,13 @@ abstract interface class NexDb {
 
   Future<void> setAiCapabilities(AiCapabilities capabilities);
 
+  /// Points the enrichment service at a provider.
+  ///
+  /// Takes the configuration rather than a built adapter: the adapter owns an
+  /// HTTP client, which cannot be sent across the isolate boundary, so the
+  /// worker constructs it on its own side.
+  Future<void> setAiProvider(Map<String, String> config);
+
   Future<SyncResult> sync({required String baseUrl, String? bearerToken});
 
   Future<void> close();

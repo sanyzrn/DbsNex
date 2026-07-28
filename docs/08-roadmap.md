@@ -53,7 +53,7 @@ Ranked by leverage against the core "capture in under 3 seconds" promise — OS-
 - WCAG 2.1 AA accessibility audit and fixes.
 - Expanded automated performance budget tests in CI.
 - Localization groundwork (externalized strings; Persian as the first additional language); Persian FTS5 tokenization verified per [ADR-028](./10-decisions.md#adr-028--explicit-fts5-tokenization-strategy-for-multilingual-persian-first-search).
-- Swipe actions on Timeline cards (Delete, Add Tag), with a user-configurable direction mapping and a new lightweight Settings sheet — see [ADR-022](./10-decisions.md#adr-022--configurable-swipe-actions-limited-to-a-fixed-two-action-set).
+- Swipe actions on Timeline cards (Delete, Add Tag), with a user-configurable direction mapping and a new lightweight Settings sheet — see [ADR-022](./10-decisions.md#adr-022--swipe-actions-are-configurable-per-edge-from-an-open-set).
 - Comfort Mode — a lower-contrast, warmer-color-temperature toggle independent of Light/Dark theme, for late-night and light-sensitive use — see [ADR-023](./10-decisions.md#adr-023--comfort-mode-as-an-independent-axis-from-lightdark-theme).
 
 ---

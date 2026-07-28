@@ -109,7 +109,7 @@ class _Pill extends StatelessWidget {
         : theme.colorScheme.onSurface;
     Color? dot;
     if (accent != null) {
-      dot = Color(int.parse(accent!.substring(1), radix: 16) + 0xFF000000);
+      dot = nexParseTagColor(accent);
       if (selected) dot = fg.withValues(alpha: 0.9);
     }
     return Material(

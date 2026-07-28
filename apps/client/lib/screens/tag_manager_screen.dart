@@ -3,8 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nex_data/nex_data.dart';
 
+import 'package:nex_ui/nex_ui.dart';
+
 import '../l10n/app_localizations.dart';
+import '../widgets/nex_dialog.dart';
 import '../platform/nex_services.dart';
+import '../widgets/tag_color_picker.dart';
 
 class TagManagerScreen extends StatefulWidget {
   const TagManagerScreen({super.key, required this.services});
@@ -75,12 +79,14 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
           final value = tags[index];
           return ListTile(
             minTileHeight: 56,
+            leading: _ColorDot(color: value.tag.color),
             title: Text(value.tag.name),
             subtitle: Text(l10n.noteCount(value.count)),
             trailing: PopupMenuButton<String>(
               tooltip: l10n.tagActions,
               onSelected: (action) => act(action, value),
               itemBuilder: (_) => [
+                PopupMenuItem(value: 'color', child: Text(l10n.color)),
                 PopupMenuItem(value: 'rename', child: Text(l10n.rename)),
                 PopupMenuItem(value: 'merge', child: Text(l10n.merge)),
                 PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
@@ -99,13 +105,13 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.createTag),
-        content: TextField(
+        content: NexDialogBody(child: TextField(
           controller: controller,
           autofocus: true,
           textInputAction: TextInputAction.done,
           decoration: InputDecoration(hintText: l10n.tagName),
           onSubmitted: (value) => Navigator.pop(ctx, value.trim()),
-        ),
+        )),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
@@ -126,13 +132,22 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
 
   Future<void> act(String action, TagUsage value) async {
     final l10n = AppLocalizations.of(context);
-    if (action == 'rename') {
+    if (action == 'color') {
+      final chosen = await TagColorPicker.show(context, initial: value.tag.color);
+      // A dismissal is not a choice; only an explicit Save clears a colour.
+      if (chosen != null) {
+        await widget.services.setTagColor(
+          tagId: value.tag.id,
+          color: chosen.color,
+        );
+      }
+    } else if (action == 'rename') {
       final controller = TextEditingController(text: value.tag.name);
       final name = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
           title: Text(l10n.renameTag),
-          content: TextField(controller: controller, autofocus: true),
+          content: NexDialogBody(child: TextField(controller: controller, autofocus: true)),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
             TextButton(onPressed: () => Navigator.pop(context, controller.text), child: Text(l10n.rename)),
@@ -159,7 +174,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: Text(l10n.deleteTag),
-          content: Text(l10n.deleteTagBody),
+          content: NexDialogBody(child: Text(l10n.deleteTagBody)),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
             TextButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete)),
@@ -169,5 +184,34 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       if (ok == true) await widget.services.deleteTag(value.tag.id);
     }
     await reload();
+  }
+}
+/// The tag's accent, or an empty ring when it has none.
+class _ColorDot extends StatelessWidget {
+  const _ColorDot({required this.color});
+
+  final String? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final resolved = nexParseTagColor(color);
+    return SizedBox(
+      width: 24,
+      height: 24,
+      child: Center(
+        child: Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: resolved ?? Colors.transparent,
+            border: resolved == null
+                ? Border.all(color: theme.colorScheme.outline)
+                : null,
+          ),
+        ),
+      ),
+    );
   }
 }

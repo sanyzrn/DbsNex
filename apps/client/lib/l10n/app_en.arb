@@ -473,5 +473,74 @@
         "type": "String"
       }
     }
+  },
+  "tagColor": "Tag color",
+  "@tagColor": {
+    "description": "Title of the tag color picker"
+  },
+  "customColor": "Custom",
+  "@customColor": {
+    "description": "Heading above the free color sliders"
+  },
+  "saturation": "Saturation",
+  "@saturation": {
+    "description": "Color picker slider label"
+  },
+  "brightness": "Brightness",
+  "@brightness": {
+    "description": "Color picker slider label"
+  },
+  "noColor": "No color",
+  "@noColor": {
+    "description": "The tag carries no accent"
+  },
+  "color": "Color",
+  "@color": {
+    "description": "Tag manager menu entry that opens the color picker"
+  },
+  "aiProvider": "AI provider",
+  "@aiProvider": {
+    "description": "Screen title and dropdown label"
+  },
+  "aiProviderIntro": "Choose where the intelligence features send their requests. Without a provider they run on this device only, which covers tag hints but not summaries.",
+  "@aiProviderIntro": {
+    "description": "Explains what the screen is for"
+  },
+  "apiKey": "API key",
+  "@apiKey": {
+    "description": "Field label"
+  },
+  "baseUrl": "Base URL",
+  "@baseUrl": {
+    "description": "Field label"
+  },
+  "model": "Model",
+  "@model": {
+    "description": "Field label"
+  },
+  "testConnection": "Test connection",
+  "@testConnection": {
+    "description": "Button that verifies the configuration"
+  },
+  "aiKeyStorage": "The key is stored on this device in the app's private settings. It is not encrypted, and it is never sent anywhere except to the provider you chose.",
+  "@aiKeyStorage": {
+    "description": "Honest note about how the key is kept"
+  },
+  "aiCapabilityNote": "Tag suggestions and summaries work with every provider. Semantic search needs an OpenAI-compatible one. Speech-to-text and image text stay on-device for now.",
+  "@aiCapabilityNote": {
+    "description": "What each capability can actually reach"
+  },
+  "connectionOk": "Connected. Model {model} answered.",
+  "@connectionOk": {
+    "description": "Successful connection test",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "swipeNone": "Nothing",
+  "@swipeNone": {
+    "description": "Swipe edge bound to no action at all"
   }
 }
