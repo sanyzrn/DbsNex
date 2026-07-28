@@ -1201,6 +1201,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nothing'**
   String get swipeNone;
+
+  /// Settings row subtitle when the AI master switch is off
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get intelligenceOff;
+
+  /// The master switch's own explanation
+  ///
+  /// In en, this message translates to:
+  /// **'Let a provider read your notes to transcribe, summarise and suggest tags.'**
+  String get intelligenceMasterSubtitle;
+
+  /// Shown while the master switch is off
+  ///
+  /// In en, this message translates to:
+  /// **'Everything stays on this device. Nothing is sent anywhere, and no note leaves the app.'**
+  String get intelligenceOffBody;
+
+  /// Consent dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on intelligence?'**
+  String get intelligenceConsentTitle;
+
+  /// Consent dialog body
+  ///
+  /// In en, this message translates to:
+  /// **'Nex works fully offline. Turning this on is the one exception: the notes covered by the capabilities you enable are sent to the provider you choose, so it can answer.\n\nNothing is sent until you also choose a provider and enter its key. You can turn this off again at any time, and nothing already saved is affected.'**
+  String get intelligenceConsentBody;
+
+  /// Consent dialog confirm
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on'**
+  String get intelligenceConsentAccept;
+
+  /// Explains the quiet, on-demand behaviour
+  ///
+  /// In en, this message translates to:
+  /// **'Results are worked out quietly in the background and kept with the note. Nothing interrupts you — a summary or a suggested tag appears only when you open the note and ask for it.'**
+  String get intelligenceQuietNote;
+
+  /// Heading above the capability switches
+  ///
+  /// In en, this message translates to:
+  /// **'Worked out automatically'**
+  String get automatic;
+
+  /// Capability unavailable for the selected provider
+  ///
+  /// In en, this message translates to:
+  /// **'The provider you chose cannot do this'**
+  String get notSupportedByProvider;
+
+  /// Capability explanation
+  ///
+  /// In en, this message translates to:
+  /// **'Turn a voice note into searchable text'**
+  String get transcriptionSubtitle;
+
+  /// Capability explanation
+  ///
+  /// In en, this message translates to:
+  /// **'Read the words in a photo'**
+  String get ocrSubtitle;
+
+  /// Capability explanation
+  ///
+  /// In en, this message translates to:
+  /// **'Condense a long note into one line'**
+  String get summarizationSubtitle;
+
+  /// Capability explanation
+  ///
+  /// In en, this message translates to:
+  /// **'Propose tags — never applies them for you'**
+  String get tagSuggestionsSubtitle;
+
+  /// Capability explanation
+  ///
+  /// In en, this message translates to:
+  /// **'Find notes by meaning, not just words'**
+  String get semanticSearchSubtitle;
+
+  /// Capability explanation
+  ///
+  /// In en, this message translates to:
+  /// **'Show other notes that touch on the same thing'**
+  String get relatedNotesSubtitle;
+
+  /// Settings row that opens the intelligence screen
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription, summaries, tags'**
+  String get intelligenceOpen;
 }
 
 class _AppLocalizationsDelegate

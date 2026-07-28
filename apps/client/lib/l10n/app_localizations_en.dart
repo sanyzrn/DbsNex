@@ -657,4 +657,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get swipeNone => 'Nothing';
+
+  @override
+  String get intelligenceOff => 'Off';
+
+  @override
+  String get intelligenceMasterSubtitle =>
+      'Let a provider read your notes to transcribe, summarise and suggest tags.';
+
+  @override
+  String get intelligenceOffBody =>
+      'Everything stays on this device. Nothing is sent anywhere, and no note leaves the app.';
+
+  @override
+  String get intelligenceConsentTitle => 'Turn on intelligence?';
+
+  @override
+  String get intelligenceConsentBody =>
+      'Nex works fully offline. Turning this on is the one exception: the notes covered by the capabilities you enable are sent to the provider you choose, so it can answer.\n\nNothing is sent until you also choose a provider and enter its key. You can turn this off again at any time, and nothing already saved is affected.';
+
+  @override
+  String get intelligenceConsentAccept => 'Turn on';
+
+  @override
+  String get intelligenceQuietNote =>
+      'Results are worked out quietly in the background and kept with the note. Nothing interrupts you — a summary or a suggested tag appears only when you open the note and ask for it.';
+
+  @override
+  String get automatic => 'Worked out automatically';
+
+  @override
+  String get notSupportedByProvider => 'The provider you chose cannot do this';
+
+  @override
+  String get transcriptionSubtitle => 'Turn a voice note into searchable text';
+
+  @override
+  String get ocrSubtitle => 'Read the words in a photo';
+
+  @override
+  String get summarizationSubtitle => 'Condense a long note into one line';
+
+  @override
+  String get tagSuggestionsSubtitle =>
+      'Propose tags — never applies them for you';
+
+  @override
+  String get semanticSearchSubtitle => 'Find notes by meaning, not just words';
+
+  @override
+  String get relatedNotesSubtitle =>
+      'Show other notes that touch on the same thing';
+
+  @override
+  String get intelligenceOpen => 'Transcription, summaries, tags';
 }

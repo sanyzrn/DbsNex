@@ -13,6 +13,7 @@ import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/os_capture_bridge.dart';
+import 'package:nex_client/screens/intelligence_screen.dart';
 
 import 'support/in_process_db.dart';
 
@@ -358,15 +359,52 @@ void main() {
     expect(sw.elapsedMilliseconds, lessThan(300));
   });
 
-  testWidgets('Settings sheet exposes Intelligence toggles', (tester) async {
+  testWidgets('Intelligence is off by default and lives on its own screen',
+      (tester) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    expect(find.text('Intelligence'), findsOneWidget);
-    expect(find.text('Transcription'), findsOneWidget);
-    expect(find.text('Cloud AI (opt-in)'), findsOneWidget);
+
+    // The sheet offers a way in, not a row of switches that quietly did
+    // nothing because no provider stood behind them.
+    expect(find.text('Transcription'), findsNothing);
+    expect(find.text('Off'), findsOneWidget);
+
+    // The sheet scrolls; tapping a row below the fold lands on whatever is
+    // actually at those coordinates.
+    await tester.ensureVisible(find.text('Transcription, summaries, tags'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Transcription, summaries, tags'));
+    await tester.pumpAndSettle();
+
+    // Off until asked: the offline promise holds until the user says otherwise.
+    expect(preferences.aiEnabled, isFalse);
+    expect(preferences.effectiveAiCapabilities.transcription, isFalse);
+    // ...and the capability switches are not even shown while it is off.
+    // Scoped to the screen: the settings sheet underneath it on the navigator
+    // stack has switches of its own.
+    expect(find.text('Transcription'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(IntelligenceScreen),
+        matching: find.byType(SwitchListTile),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  test('the master switch overrides every capability', () async {
+    // The individual switches default on, so with AI off they would otherwise
+    // report as enabled and the worker would act on them.
+    expect(preferences.aiCapabilities.transcription, isTrue);
+    expect(preferences.aiEnabled, isFalse);
+    expect(preferences.effectiveAiCapabilities.transcription, isFalse);
+    expect(preferences.effectiveAiCapabilities.summarization, isFalse);
+
+    await preferences.setAiEnabled(true);
+    expect(preferences.effectiveAiCapabilities.transcription, isTrue);
   });
 
   testWidgets('UI tokens apply bg-primary; Comfort swaps tokens',

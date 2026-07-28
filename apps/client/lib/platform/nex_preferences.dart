@@ -206,6 +206,24 @@ class NexPreferences extends ChangeNotifier {
 
   /* ------------------------------------------------------------ AI provider */
 
+  /// The master switch for everything in the intelligence layer.
+  ///
+  /// Off until the user turns it on and accepts what that means. The product
+  /// promise is that Nex works fully offline; the intelligence layer is the one
+  /// part that can send a note somewhere else, so it does not start enabled and
+  /// the individual capability switches do nothing while this is off.
+  bool get aiEnabled => _prefs.getBool('ai.enabled') ?? false;
+
+  Future<void> setAiEnabled(bool value) async {
+    await _prefs.setBool('ai.enabled', value);
+    notifyListeners();
+  }
+
+  /// The capabilities actually in force: all off while the master switch is.
+  AiCapabilities get effectiveAiCapabilities =>
+      aiEnabled ? aiCapabilities : AiCapabilities.allOff;
+
+
   // Stored in shared_preferences, which is not encrypted. On Android the file
   // lives in the app's private data directory, so it is out of reach of other
   // apps but readable on a rooted or backed-up device. Documented rather than

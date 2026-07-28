@@ -56,7 +56,7 @@ void main() {
       for (final provider in AiProvider.values) {
         expect(AiProviderWire.fromWire(provider.wireName), provider);
       }
-      expect(AiProviderWire.fromWire('gemini'), AiProvider.none);
+      expect(AiProviderWire.fromWire('some-future-vendor'), AiProvider.none);
       expect(AiProviderWire.fromWire(null), AiProvider.none);
     });
   });
@@ -154,23 +154,29 @@ void main() {
       expect(adapter.embed('x'), isNull);
     });
 
-    test('transcription and OCR report unavailable on every provider', () {
+    test('a capability a provider lacks is unavailable, not guessed at', () {
+      // Only Gemini and OpenAI can hear audio. Claiming otherwise would send a
+      // recording somewhere that cannot read it and store whatever came back.
       for (final provider in AiProvider.values) {
         final adapter = CloudAIAdapter(
           config: AiProviderConfig(provider: provider, apiKey: 'k'),
           client: MockClient((_) async => http.Response('{}', 200)),
         );
-        expect(
-          adapter.transcribe(const AudioRef(mediaUri: '/tmp/a.m4a')),
-          isNull,
-          reason: provider.wireName,
+        final call = adapter.transcribe(
+          const AudioRef(mediaUri: '/tmp/does-not-exist.m4a'),
         );
-        expect(
-          adapter.ocr(const ImageRef(mediaUri: '/tmp/a.jpg')),
-          isNull,
-          reason: provider.wireName,
-        );
+        if (provider.hearsAudio) {
+          // Available in principle; null here only because the file is absent.
+          expect(call, isNull, reason: '${provider.wireName}: no such file');
+        } else {
+          expect(call, isNull, reason: provider.wireName);
+        }
       }
+      expect(AiProvider.gemini.hearsAudio, isTrue);
+      expect(AiProvider.openai.hearsAudio, isTrue);
+      expect(AiProvider.anthropic.hearsAudio, isFalse);
+      expect(AiProvider.openrouter.hearsAudio, isFalse);
+      expect(AiProvider.none.hearsAudio, isFalse);
     });
 
     test('a media note with no derived text is not sent anywhere', () {
@@ -198,6 +204,90 @@ void main() {
       );
       expect(adapter.suggestTags(photo), isNull);
       expect(called, isFalse);
+    });
+  });
+
+  group('Gemini', () {
+    test('uses its own endpoint, header and body — not OpenAI\'s', () async {
+      late http.Request seen;
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.gemini,
+          apiKey: 'google-key',
+        ),
+        client: MockClient((request) async {
+          seen = request;
+          return http.Response(
+            jsonEncode({
+              'candidates': [
+                {
+                  'content': {
+                    'parts': [
+                      {'text': 'Work, Ideas'},
+                    ],
+                  },
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      final tags = await adapter.suggestTags(textNote('a note'))!;
+
+      // The exact three things that made a Google key fail under "Custom":
+      // the path, the auth header, and the request body.
+      expect(
+        seen.url.toString(),
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+      );
+      expect(seen.headers['x-goog-api-key'], 'google-key');
+      expect(seen.headers.containsKey('authorization'), isFalse);
+      final body = jsonDecode(seen.body) as Map<String, dynamic>;
+      expect(body['systemInstruction'], isNotNull);
+      expect(body['contents'], isA<List<dynamic>>());
+      expect(tags.map((t) => t.name), ['Work', 'Ideas']);
+    });
+
+    test('a reply split across parts is joined, not truncated', () {
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.gemini,
+          apiKey: 'k',
+        ),
+        client: MockClient((_) async => http.Response('{}', 200)),
+      );
+      final text = adapter.extractTextForTest(
+        jsonEncode({
+          'candidates': [
+            {
+              'content': {
+                'parts': [
+                  {'text': 'first half '},
+                  {'text': 'second half'},
+                ],
+              },
+            },
+          ],
+        }),
+      );
+      expect(text, 'first half second half');
+    });
+
+    test('a blocked or empty candidate list is null, not an empty answer', () {
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.gemini,
+          apiKey: 'k',
+        ),
+        client: MockClient((_) async => http.Response('{}', 200)),
+      );
+      expect(
+        adapter.extractTextForTest(jsonEncode({'candidates': <Object>[]})),
+        isNull,
+      );
+      expect(adapter.extractTextForTest('{}'), isNull);
     });
   });
 
