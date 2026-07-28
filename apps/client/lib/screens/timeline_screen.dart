@@ -11,16 +11,19 @@ import '../l10n/app_localizations.dart';
 import '../platform/capture_failure.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/note_search.dart';
 import '../platform/os_capture_bridge.dart';
 import '../platform/update_service.dart';
 import 'package:nex_data/nex_data.dart';
 import '../widgets/capture_sheet.dart';
 import '../widgets/card_strings.dart';
+import '../widgets/commit_receipt.dart';
 import '../widgets/empty_timeline.dart';
 import '../widgets/recording_sheet.dart';
+import '../widgets/search_field_header.dart';
+import '../widgets/search_results.dart';
 import '../widgets/tag_picker.dart';
 import 'note_detail_sheet.dart';
-import 'search_screen.dart';
 import 'settings_sheet.dart';
 
 class TimelineScreen extends StatefulWidget {
@@ -44,10 +47,16 @@ class TimelineScreen extends StatefulWidget {
 class TimelineScreenState extends State<TimelineScreen> {
   /// Everything the timeline stream last delivered, before filters.
   ///
-  /// The screen used to hold only the filtered list, so the next stream event —
+  /// **Null means "not known yet"**, which is a different thing from "empty".
+  /// This was `const []` at field initialisation while `build` ran immediately
+  /// and `_loadTimeline` resolved later, so the first frame of *every* cold
+  /// launch satisfied the empty condition and flashed the full-screen
+  /// onboarding copy — marketing text, in front of a user with a library.
+  ///
+  /// It also used to hold only the filtered list, so the next stream event —
   /// which a capture triggers — replaced it with the unfiltered one while the
   /// filter chips still claimed to be active.
-  List<Note> _all = const [];
+  List<Note>? _all;
   List<Note> notes = const [];
 
   /// Keeps one card open at a time and lets a scroll close it.
@@ -59,15 +68,98 @@ class TimelineScreenState extends State<TimelineScreen> {
   StreamSubscription<List<Note>>? subscription;
   String? landedId;
 
+  /// Starts past the search field so it sits just out of sight. Revealing it is
+  /// then ordinary scrolling, which behaves the same under Android's clamping
+  /// physics and iOS's bouncing ones — an overscroll effect would not.
+  final ScrollController _scroll =
+      ScrollController(initialScrollOffset: nexSearchHeaderExtent);
+
+  late final NoteSearchController _search =
+      NoteSearchController(services: widget.services);
+  final FocusNode _searchFocus = FocusNode();
+  bool _searching = false;
+
   @override
   void initState() {
     super.initState();
     subscription = widget.services.timelineStream.listen((value) {
       if (mounted) setState(() { _all = value; notes = _visible(value); });
     });
+    _search.addListener(_onSearchChanged);
     unawaited(_loadTimeline());
     unawaited(_loadAnniversary());
     unawaited(_loadFilterTags());
+  }
+
+  void _onSearchChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Marks a note as the one just captured, the way the capture paths do.
+  ///
+  /// Exposed so a test can exercise the receipt without driving the camera or
+  /// the recorder; the production callers set [landedId] directly.
+  @visibleForTesting
+  void markLanded(String id) => setState(() => landedId = id);
+
+  /// Brings the field in and puts the cursor in it.
+  ///
+  /// The AppBar icon and Ctrl+F both call this, so the gesture is a shortcut
+  /// rather than the only way in — a hidden gesture as the sole route to a core
+  /// feature is worse than the icon it replaced.
+  Future<void> revealSearch() async {
+    if (_scroll.hasClients && _scroll.offset > 0) {
+      await _scroll.animateTo(
+        0,
+        duration: NexMotion.standard,
+        curve: NexMotion.curve,
+      );
+    }
+    if (!mounted) return;
+    setState(() => _searching = true);
+    _searchFocus.requestFocus();
+    unawaited(_search.run());
+  }
+
+  void _exitSearch() {
+    _searchFocus.unfocus();
+    _search.clear();
+    setState(() => _searching = false);
+    if (_scroll.hasClients) {
+      unawaited(
+        _scroll.animateTo(
+          nexSearchHeaderExtent.clamp(0, _scroll.position.maxScrollExtent),
+          duration: NexMotion.standard,
+          curve: NexMotion.curve,
+        ),
+      );
+    }
+  }
+
+  /// Snaps the half-revealed field open or shut when the finger lifts.
+  ///
+  /// `animateTo` takes a duration and a curve rather than a simulation; getting
+  /// a spring in here would mean a custom [ScrollActivity] for a 60px travel
+  /// nobody could tell apart.
+  bool _snapSearchHeader(ScrollEndNotification notification) {
+    if (_searching || !_scroll.hasClients) return false;
+    final offset = _scroll.offset;
+    if (offset <= 0 || offset >= nexSearchHeaderExtent) return false;
+    final target =
+        offset < nexSearchHeaderExtent / 2 ? 0.0 : nexSearchHeaderExtent;
+    // Scheduled, because a scroll cannot be started from inside the
+    // notification that ended the last one.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      unawaited(
+        _scroll.animateTo(
+          target,
+          duration: NexMotion.fast,
+          curve: NexMotion.curve,
+        ),
+      );
+    });
+    return false;
   }
 
   /// The screen used to seed `notes` synchronously from the repository. The
@@ -177,6 +269,10 @@ class TimelineScreenState extends State<TimelineScreen> {
   void dispose() {
     subscription?.cancel();
     _swipe.dispose();
+    _search.removeListener(_onSearchChanged);
+    _search.dispose();
+    _searchFocus.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -381,9 +477,15 @@ class TimelineScreenState extends State<TimelineScreen> {
       appBar: AppBar(
         title: Text(_title(l10n)),
         actions: [
-          IconButton(tooltip: l10n.search, icon: const Icon(Icons.search),
-            onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
-              builder: (_) => SearchScreen(services: widget.services)))),
+          // The same reveal the pull-down performs. Search is one interaction
+          // and one surface now: it used to be a route push behind an
+          // unlabelled icon, which put half the product's tagline a transition
+          // away from the timeline it searches.
+          IconButton(
+            tooltip: l10n.search,
+            icon: const Icon(Icons.search),
+            onPressed: () => unawaited(revealSearch()),
+          ),
           _SettingsButton(
             updates: widget.updates,
             tooltip: l10n.settings,
@@ -399,110 +501,292 @@ class TimelineScreenState extends State<TimelineScreen> {
           ),
         ],
       ),
-      // The empty state belongs to an empty *library*, not an empty result.
-      // It used to replace the whole body whenever a filter matched nothing,
-      // taking the filter row with it — so the filter that caused it could not
-      // be cleared without restarting the app.
-      body: _all.isEmpty && !_filtering
-          ? const EmptyTimeline()
-          : GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              // A tap anywhere that is not a card closes an open swipe.
-              onTap: _swipe.closeAll,
-              child: Column(children: [
-              // One filter row, as in the mockup: the icon button leads it and
-              // holds the content-type filter, so the timeline keeps a single
-              // row of pills rather than stacking a second one under it.
-              TagFilterRow(
-                tags: filterTags,
-                selectedTagId: selectedTagId,
-                allLabel: l10n.all,
-                leading: _TypeFilterButton(
-                  selected: selectedType,
-                  onPressed: () => unawaited(_pickType()),
-                ),
-                onSelected: (value) => unawaited(_selectTag(value)),
-              ),
-              Expanded(child: notes.isEmpty
-                  ? _FilteredEmpty(onClear: () => unawaited(_clearFilters()))
-                  : NotificationListener<ScrollStartNotification>(
-                      // Scrolling dismisses an open card, the way every list
-                      // with swipe actions behaves.
-                      onNotification: (_) {
-                        _swipe.closeAll();
-                        return false;
-                      },
-                      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
-          child: ListView.builder(
-            padding: const EdgeInsets.only(bottom: nexFabClearance),
-            itemCount: notes.length + (anniversary.isEmpty ? 0 : 1),
-            itemBuilder: (context, index) {
-              if (anniversary.isNotEmpty && index == 0) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: NexSpacing.md,
-                    vertical: NexSpacing.md,
-                  ),
-                  child: Text(l10n.oneYearAgo(anniversary.length), style: Theme.of(context).textTheme.bodySmall),
-                );
+      // Android's back gesture leaves search before it leaves the screen.
+      body: PopScope(
+        canPop: !_searching,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _exitSearch();
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          // A tap anywhere that is not a card closes an open swipe.
+          onTap: _swipe.closeAll,
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              // Scrolling dismisses an open card, the way every list with
+              // swipe actions behaves.
+              if (notification is ScrollStartNotification) _swipe.closeAll();
+              if (notification is ScrollEndNotification) {
+                return _snapSearchHeader(notification);
               }
-              final note = notes[index - (anniversary.isEmpty ? 0 : 1)];
-              return AnimatedSlide(
-                offset: landedId == note.id && !MediaQuery.disableAnimationsOf(context)
-                    ? const Offset(0, -0.02) : Offset.zero,
-                duration: NexMotion.standard,
-                // ADR-022: exactly two actions, and only which edge triggers
-                // which is configurable. SwipeableNoteCard shipped in
-                // packages/ui but nothing ever wrapped a card in it, so the
-                // gesture did not exist in the app at all.
-                child: SwipeableNoteCard(
-                  deleteLabel: l10n.delete,
-                  addTagLabel: l10n.addTag,
-                  haptics: widget.preferences.haptics,
-                  controller: _swipe,
-                  resolveAction: ({required bool isLeading}) {
-                    final action = isLeading
-                        ? widget.preferences.leadingAction
-                        : widget.preferences.trailingAction;
-                    return switch (action) {
-                      SwipeAction.none => null,
-                      SwipeAction.delete => NexSwipeAction.delete,
-                      SwipeAction.addTag => NexSwipeAction.addTag,
-                    };
-                  },
-                  onDelete: () => unawaited(deleteWithUndo(note)),
-                  onAddTag: () => unawaited(_addTagTo(note)),
-                  child: NoteCard(
-                    note: note,
-                    strings: nexCardStrings(context),
-                    onTap: () async {
-                      final result = await showModalBottomSheet<DetailResult>(
-                        context: context, isScrollControlled: true, useSafeArea: true,
-                        showDragHandle: true,
-                        builder: (_) => NoteDetailSheet(services: widget.services, noteId: note.id),
-                      );
-                      if (result == DetailResult.deleted) {
-                        await deleteWithUndo(note);
-                      }
-                      await widget.services.refreshTimeline();
-                      // The sheet can create a tag; the filter row has to
-                      // learn about it without an app restart.
-                      await _loadFilterTags();
-                    },
-                  ),
-                ),
-              );
+              return false;
             },
+            child: Center(
+              // One column, and the filter row is inside it. It used to be a
+              // sibling *above* this, so on a wide window the pills started at
+              // the window edge while the cards sat in a 760px column — two
+              // things that belong to each other, visibly unaligned.
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: CustomScrollView(
+                  controller: _scroll,
+                  slivers: [
+                    // Both headers are always in the list, keyed, and collapse
+                    // to zero extent rather than leaving it. A sliver list that
+                    // changes length while another sliver changes its pinning
+                    // leaves the viewport painting a child it never laid out.
+                    SliverPersistentHeader(
+                      key: const ValueKey('search-header'),
+                      delegate: SearchFieldHeader(
+                        controller: _search.query,
+                        focusNode: _searchFocus,
+                        searching: _searching,
+                        onTap: () => unawaited(revealSearch()),
+                        onChanged: (_) => _search.schedule(),
+                        onClear: _exitSearch,
+                      ),
+                    ),
+                    SliverPersistentHeader(
+                      key: const ValueKey('filter-header'),
+                      pinned: true,
+                      delegate: _FilterRowHeader(
+                        visible: !_searching,
+                        child: TagFilterRow(
+                          tags: filterTags,
+                          selectedTagId: selectedTagId,
+                          allLabel: l10n.all,
+                          leading: _TypeFilterButton(
+                            selected: selectedType,
+                            onPressed: () => unawaited(_pickType()),
+                          ),
+                          onSelected: (value) => unawaited(_selectTag(value)),
+                        ),
+                      ),
+                    ),
+                    ..._bodySlivers(l10n),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: nexFabClearance),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
-              ))),
-            ]),
-            ),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: openCapture, tooltip: l10n.capture, child: const Icon(Icons.add, size: 32)),
+    );
+  }
+
+  /// Whatever belongs under the chrome: results, skeletons, an empty state, or
+  /// the timeline itself.
+  List<Widget> _bodySlivers(AppLocalizations l10n) {
+    if (_searching) {
+      return searchResultSlivers(
+        context: context,
+        search: _search,
+        onOpen: (note) => unawaited(_openNote(note)),
+      );
+    }
+
+    // Three states, not two. "Not loaded yet" was indistinguishable from
+    // "empty", which is why the onboarding screen flashed on every launch.
+    final all = _all;
+    if (all == null) {
+      return [
+        SliverList.builder(
+          itemCount: 4,
+          itemBuilder: (_, __) => const NexCardSkeleton(),
+        ),
+      ];
+    }
+
+    // The empty state belongs to an empty *library*, not an empty result. It
+    // used to replace the whole body whenever a filter matched nothing, taking
+    // the filter row with it — so the filter that caused it could not be
+    // cleared without restarting the app.
+    if (all.isEmpty && !_filtering) {
+      return const [
+        SliverFillRemaining(hasScrollBody: false, child: EmptyTimeline()),
+      ];
+    }
+    if (notes.isEmpty) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: _FilteredEmpty(onClear: () => unawaited(_clearFilters())),
+        ),
+      ];
+    }
+
+    return [
+      if (anniversary.isNotEmpty)
+        SliverToBoxAdapter(
+          child: _AnniversaryRow(
+            count: anniversary.length,
+            onTap: () => unawaited(_showAnniversary()),
+          ),
+        ),
+      SliverList.builder(
+        itemCount: notes.length,
+        itemBuilder: (context, index) {
+          final note = notes[index];
+          return CommitReceipt(
+            active: landedId == note.id,
+            // Cleared when it finishes, so the receipt is a moment rather than
+            // a permanent mark on whichever note was captured last.
+            onDone: () {
+              if (mounted && landedId == note.id) {
+                setState(() => landedId = null);
+              }
+            },
+            // ADR-022: the action set is open, and each edge is bound
+            // independently.
+            child: SwipeableNoteCard(
+              deleteLabel: l10n.delete,
+              addTagLabel: l10n.addTag,
+              haptics: widget.preferences.haptics,
+              controller: _swipe,
+              resolveAction: ({required bool isLeading}) {
+                final action = isLeading
+                    ? widget.preferences.leadingAction
+                    : widget.preferences.trailingAction;
+                return switch (action) {
+                  SwipeAction.none => null,
+                  SwipeAction.delete => NexSwipeAction.delete,
+                  SwipeAction.addTag => NexSwipeAction.addTag,
+                };
+              },
+              onDelete: () => unawaited(deleteWithUndo(note)),
+              onAddTag: () => unawaited(_addTagTo(note)),
+              child: NoteCard(
+                note: note,
+                strings: nexCardStrings(context),
+                onTap: () => unawaited(_openNote(note)),
+              ),
+            ),
+          );
+        },
+      ),
+    ];
+  }
+
+  Future<void> _openNote(Note note) async {
+    final result = await showModalBottomSheet<DetailResult>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (_) =>
+          NoteDetailSheet(services: widget.services, noteId: note.id),
+    );
+    if (result == DetailResult.deleted) await deleteWithUndo(note);
+    await widget.services.refreshTimeline();
+    // The sheet can create a tag; the filter row has to learn about it without
+    // an app restart.
+    await _loadFilterTags();
+    if (_searching) await _search.run();
+  }
+
+  /// Shows only what was captured a year ago today.
+  ///
+  /// The line used to be inert text: the app's one resurfacing feature, with no
+  /// way to act on what it announced.
+  Future<void> _showAnniversary() async {
+    _tick();
+    setState(() {
+      selectedTagId = null;
+      selectedType = null;
+      final ids = anniversary.map((n) => n.id).toSet();
+      notes = (_all ?? const []).where((n) => ids.contains(n.id)).toList();
+    });
+  }
+}
+
+/// Keeps the filter row under the app bar while the cards scroll past it.
+class _FilterRowHeader extends SliverPersistentHeaderDelegate {
+  const _FilterRowHeader({required this.child, required this.visible});
+
+  final Widget child;
+
+  /// Searching hides it, by collapsing rather than by leaving the sliver list.
+  final bool visible;
+
+  // The row's own height: a 48px target plus the padding TagFilterRow carries.
+  static const _extent = nexMinTapTarget + NexSpacing.md + NexSpacing.sm;
+
+  @override
+  double get minExtent => visible ? _extent : 0;
+
+  @override
+  double get maxExtent => visible ? _extent : 0;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
+      ColoredBox(color: Theme.of(context).colorScheme.surface, child: child);
+
+  @override
+  bool shouldRebuild(_FilterRowHeader old) =>
+      old.child != child || old.visible != visible;
+}
+
+/// "One year ago", as something you can act on.
+///
+/// It was a 12.5px grey sentence with no container, no icon and no gesture
+/// detector — the single most valuable thing a capture app can show you,
+/// rendered as the least prominent thing on the screen.
+class _AnniversaryRow extends StatelessWidget {
+  const _AnniversaryRow({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Padding(
+      padding: nexCardInsets,
+      child: Material(
+        color: theme.colorScheme.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(NexRadius.md),
+          side: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: NexSpacing.md,
+              vertical: NexSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.history_toggle_off,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: NexSpacing.sm),
+                Expanded(
+                  child: Text(
+                    l10n.oneYearAgo(count),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

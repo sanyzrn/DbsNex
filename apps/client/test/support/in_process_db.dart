@@ -18,7 +18,7 @@ import 'package:nex_data/nex_data.dart';
 /// deliberately does not cover is the hop itself — the isolate's own behaviour
 /// is the worker's concern, and that is what the integration suites exercise.
 class InProcessDb implements NexDb {
-  InProcessDb({required this.dbPath, required this.deviceId})
+  InProcessDb({required this.dbPath, required this.deviceId, this.readDelay})
       : _db = NexDatabase.open(dbPath) {
     _repo = SqliteNoteRepository(_db, localDeviceId: deviceId);
     _capture = CaptureService(_repo, deviceId: deviceId);
@@ -31,6 +31,14 @@ class InProcessDb implements NexDb {
   final String dbPath;
   final String deviceId;
 
+  /// Makes the timeline read take measurable time.
+  ///
+  /// The real worker crosses an isolate; this one answers within a microtask,
+  /// which makes the "not loaded yet" state impossible to observe from a test.
+  /// That state is the whole point of the timeline's tri-state, since treating
+  /// it as "empty" is what flashed the onboarding screen on every cold launch.
+  final Duration? readDelay;
+
   final NexDatabase _db;
   late final SqliteNoteRepository _repo;
   late final CaptureService _capture;
@@ -42,8 +50,10 @@ class InProcessDb implements NexDb {
   bool _closed = false;
 
   @override
-  Future<List<Note>> timeline({int limit = 200, int offset = 0, String? tagId}) async =>
-      _search.timeline(limit: limit, offset: offset, tagId: tagId);
+  Future<List<Note>> timeline({int limit = 200, int offset = 0, String? tagId}) async {
+    if (readDelay != null) await Future<void>.delayed(readDelay!);
+    return _search.timeline(limit: limit, offset: offset, tagId: tagId);
+  }
 
   @override
   Future<List<Note>> loadMore({required int offset, int limit = 50}) async =>
@@ -268,3 +278,4 @@ class InProcessDb implements NexDb {
     _db.close();
   }
 }
+

@@ -32,10 +32,21 @@ class NexSkeleton extends StatefulWidget {
 
 class _NexSkeletonState extends State<NexSkeleton>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _shimmer = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1400),
-  );
+  // Created in initState, not lazily. A `late final` here is only initialised
+  // on first touch, and a skeleton that is built and removed inside one frame —
+  // which is exactly what a fast timeline load does to it — reaches `dispose`
+  // first, so the ticker was being created against an element that had already
+  // been deactivated.
+  late final AnimationController _shimmer;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmer = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+  }
 
   @override
   void didChangeDependencies() {
