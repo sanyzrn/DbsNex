@@ -121,6 +121,49 @@ Both combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode red
 
 ---
 
+## Typography and Colour
+
+The interface is set in **one typeface on every platform** — Inter, with Vazirmatn for
+Persian, both shipped as assets. Leaving it to the OS meant Roboto on Android, Segoe UI
+Variable on Windows and SF Pro on iOS: three faces with three x-heights and three sets of
+line-break points, so the same screen had a different density depending on where it was
+opened.
+
+All fifteen Material text slots are defined. Six were, which left every button, chip and
+list-tile label typeset by Material's defaults — a face and a letter-spacing chosen for
+Roboto, applied to whatever the platform happened to load.
+
+Colour is **declared, not seeded**. Every surface is drawn from one warm neutral ramp, and
+three rules hold:
+
+- A card's fill is not the page's fill. They were both `#FFFFFF`, which left a 1px hairline at
+  1.20:1 as the only thing separating the app's primary tap target from the page behind it.
+- A boundary and a divider are different tokens. `outline` marks something you can act on and
+  clears 3:1; `outlineVariant` separates rows and is deliberately quiet.
+- **One accent, and it means "Nex is doing something"** — the caret, recording, focus rings,
+  the active filter, the commit receipt. Rationing it is what makes it information rather than
+  decoration. It is an ink blue rather than a warm one because the destructive red and the
+  amber in the tag palette already sit in that part of the wheel, and "delete" and "recording"
+  are the two moments that must never be confusable.
+
+Contrast is asserted in tests rather than stated here, so a value that misses its floor fails
+the build instead of aging quietly in a table.
+
+---
+
+## Search
+
+Search is not a place you go. The query field is part of the Timeline's own list, above the
+first card, with the list resting scrolled just past it — so **pulling down brings it in**, and
+because that is ordinary scrolling rather than an overscroll effect it behaves the same under
+Android's clamping physics and iOS's bouncing ones. The header icon and the desktop shortcut
+perform the same reveal; a gesture is a shortcut, never the only door.
+
+Results replace the cards in place. "Find in seconds" cannot be true if finding starts with a
+route push and a transition.
+
+---
+
 ## Swipe Actions
 
 Each Timeline card supports a horizontal swipe to reveal one quick action per edge, per [FR-2.6–2.8](./02-product-specification.md#fr-2--timeline).

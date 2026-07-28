@@ -1328,6 +1328,30 @@ abstract class AppLocalizations {
   /// **'Accent color'**
   String get accentColorLabel;
 
+  /// Capture failed because the OS refused access
+  ///
+  /// In en, this message translates to:
+  /// **'Nex was not allowed to use the camera or your photos. You can grant it in your device settings.'**
+  String get captureFailedPermission;
+
+  /// Capture failed because the device is out of space
+  ///
+  /// In en, this message translates to:
+  /// **'There is no room left on this device for the file. Your existing notes were not changed.'**
+  String get captureFailedStorage;
+
+  /// Capture failed because the picked file could not be read
+  ///
+  /// In en, this message translates to:
+  /// **'That file could not be read. If it lives in a cloud folder, open it once so the device has a copy.'**
+  String get captureFailedUnreadable;
+
+  /// Action on a failure message that repeats what failed
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get retry;
+
   /// Title of the tag color picker
   ///
   /// In en, this message translates to:

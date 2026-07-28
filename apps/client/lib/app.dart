@@ -9,7 +9,6 @@ import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/os_capture_bridge.dart';
 import 'platform/update_service.dart';
-import 'screens/search_screen.dart';
 import 'screens/timeline_screen.dart';
 
 class NexApp extends StatefulWidget {
@@ -110,12 +109,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
                 _CaptureIntent: CallbackAction<_CaptureIntent>(
                   onInvoke: (_) => timelineKey.currentState?.openCapture(),
                 ),
+                // Reveals the field on the timeline rather than pushing a
+                // screen: search is one surface now, and Ctrl+F should land on
+                // the same one the pull-down does.
                 _SearchIntent: CallbackAction<_SearchIntent>(
-                  onInvoke: (_) => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => SearchScreen(services: widget.services),
-                    ),
-                  ),
+                  onInvoke: (_) => timelineKey.currentState?.revealSearch(),
                 ),
               },
               child: FocusTraversalGroup(child: child!),

@@ -32,17 +32,29 @@ class UpdateSheet extends StatefulWidget {
   /// works on its own, which is what the tests and the desktop path use.
   final UpdateService? service;
 
+  /// Opens the update flow as a route, not as a sheet.
+  ///
+  /// It is reached from inside the settings sheet, and a sheet opened from a
+  /// sheet is two modal layers deep with no breadcrumb and an Android back
+  /// gesture that has to guess which one it is dismissing. A route has a back
+  /// arrow and a real stack. The name stays `show` because that is what every
+  /// caller means.
   static Future<void> show(
     BuildContext context, {
     bool haptics = true,
     UpdateService? service,
   }) =>
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        showDragHandle: true,
-        builder: (_) => UpdateSheet(haptics: haptics, service: service),
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => Scaffold(
+            appBar: AppBar(
+              title: Text(AppLocalizations.of(context).checkForUpdate),
+            ),
+            body: SingleChildScrollView(
+              child: UpdateSheet(haptics: haptics, service: service),
+            ),
+          ),
+        ),
       );
 
   @override
