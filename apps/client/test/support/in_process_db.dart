@@ -204,6 +204,18 @@ class InProcessDb implements NexDb {
   Future<void> enrichNote(String noteId) => _enrichment.enrichNote(noteId);
 
   @override
+  Future<int> backfillEnrichment({int limit = 25}) =>
+      _enrichment.backfill(limit: limit);
+
+  /// Writes a derived field the way a finished enrichment pass would.
+  ///
+  /// Test-only, and not on [NexDb]: the app has no reason to set a transcript
+  /// by hand, but a test does — it is how "the background pass already ran"
+  /// is expressed without standing up a fake provider.
+  void seedTranscript(String noteId, String text) =>
+      _repo.setTranscriptText(noteId, text);
+
+  @override
   Future<List<TagSuggestion>> suggestTags(String noteId) =>
       _enrichment.suggestTags(noteId);
 

@@ -55,6 +55,7 @@ enum _DbCommand {
   storage,
   // Enrichment.
   enrichNote,
+  backfillEnrichment,
   suggestTags,
   summarize,
   relatedNotes,
@@ -390,6 +391,10 @@ class NexDbWorker implements NexDb {
       _send<void>(_DbCommand.enrichNote, {'noteId': noteId});
 
   @override
+  Future<int> backfillEnrichment({int limit = 25}) =>
+      _send<int>(_DbCommand.backfillEnrichment, {'limit': limit});
+
+  @override
   Future<List<TagSuggestion>> suggestTags(String noteId) =>
       _send<List<TagSuggestion>>(_DbCommand.suggestTags, {'noteId': noteId});
 
@@ -574,6 +579,8 @@ class NexDbWorker implements NexDb {
           _DbCommand.enrichNote => await enrichment
               .enrichNote(arg('noteId')! as String)
               .then<Object?>((_) => null),
+          _DbCommand.backfillEnrichment =>
+            await enrichment.backfill(limit: arg('limit')! as int),
           _DbCommand.suggestTags =>
             await enrichment.suggestTags(arg('noteId')! as String),
           _DbCommand.summarize =>

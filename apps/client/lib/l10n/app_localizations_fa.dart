@@ -711,6 +711,46 @@ class AppLocalizationsFa extends AppLocalizations {
   String get syncToken => 'توکن دستگاه';
 
   @override
+  String get aiShow => 'ببین Nex از این چه فهمیده';
+
+  @override
+  String aiReady(String what) {
+    return '$what آماده است';
+  }
+
+  @override
+  String get aiSection => 'چیزی که Nex خوانده';
+
+  @override
+  String get aiNothingYet =>
+      'هنوز چیزی نیست. Nex بعد از ثبت، یادداشت را در پس‌زمینه می‌خواند.';
+
+  @override
+  String get hide => 'پنهان کردن';
+
+  @override
+  String get catchUpTitle => 'یادداشت‌هایی که از قبل دارید';
+
+  @override
+  String get catchUpBody =>
+      'Nex هر یادداشت را درست بعد از ثبت، در پس‌زمینه می‌خواند؛ یعنی هرچه پیش از روشن کردن این بخش ثبت شده هیچ‌وقت خوانده نشده. این گزینه آن عقب‌ماندگی را دسته‌دسته جبران می‌کند.';
+
+  @override
+  String get catchUpAction => 'جبران عقب‌ماندگی';
+
+  @override
+  String catchUpDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count یادداشت خوانده شد',
+      one: 'یک یادداشت خوانده شد',
+      zero: 'چیزی برای خواندن نمانده',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get tagColor => 'رنگ برچسب';
 
   @override

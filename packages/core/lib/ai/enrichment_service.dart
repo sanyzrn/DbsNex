@@ -57,6 +57,41 @@ class EnrichmentService {
     }
   }
 
+  /// Enriches notes that were captured before there was anything to read them.
+  ///
+  /// Enrichment is a capture-time step, so turning the intelligence layer on
+  /// used to change nothing about the library that already existed: every
+  /// recording made before that moment stayed untranscribed forever, and the
+  /// app never said so. This walks the backlog instead.
+  ///
+  /// Sequential on purpose. A provider that has just been configured is
+  /// usually a free tier, and firing fifty requests at once is the reliable
+  /// way to be rate-limited into failing all of them. It stops at the first
+  /// note that produces nothing at all, which is what a dead key or an
+  /// exhausted quota looks like from here — continuing would spend the rest of
+  /// the backlog learning the same thing.
+  ///
+  /// Returns how many notes it managed to enrich.
+  Future<int> backfill({int limit = 25}) async {
+    if (!_capabilities.transcription && !_capabilities.ocr) return 0;
+    final pending = _repo.listNeedingEnrichment(limit: limit);
+    var done = 0;
+    for (final note in pending) {
+      try {
+        await enrichNote(note.id);
+      } catch (_) {
+        break;
+      }
+      final after = _repo.getById(note.id);
+      final gained = note.type == NoteType.voice
+          ? after?.transcriptText != null
+          : after?.ocrText != null;
+      if (!gained) break;
+      done++;
+    }
+    return done;
+  }
+
   Future<List<TagSuggestion>> suggestTags(String noteId) async {
     if (!_capabilities.tagSuggestions) return const [];
     final note = _repo.getById(noteId);

@@ -52,4 +52,16 @@ abstract interface class NoteRepository {
   List<double>? getEmbedding(String noteId);
 
   List<NoteEmbedding> listEmbeddings();
+
+  /// Notes the intelligence layer has never been able to read.
+  ///
+  /// Enrichment runs once, at capture. That leaves every note captured before
+  /// a provider was configured — which, since the whole layer is off by
+  /// default, is normally the entire library — permanently untranscribed and
+  /// unread, with nothing in the app admitting it. This is what a backfill
+  /// pass walks.
+  ///
+  /// Newest first: the note a person is most likely to go looking for is the
+  /// one they just captured, not the one from last year.
+  List<Note> listNeedingEnrichment({int limit});
 }

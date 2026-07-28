@@ -585,6 +585,44 @@
   "@syncToken": {
     "description": "Row that holds the sync bearer token"
   },
+  "aiShow": "See what Nex made of this",
+  "@aiShow": {
+    "description": "Reveals the intelligence panel when nothing is derived yet"
+  },
+  "aiReady": "{what} ready",
+  "@aiReady": {
+    "description": "Reveals the intelligence panel, naming what it holds",
+    "placeholders": { "what": { "type": "String" } }
+  },
+  "aiSection": "What Nex read",
+  "@aiSection": {
+    "description": "Heading of the revealed intelligence panel"
+  },
+  "aiNothingYet": "Nothing yet. Nex reads a note in the background after it is captured.",
+  "@aiNothingYet": {
+    "description": "Shown when the intelligence panel has nothing to show"
+  },
+  "hide": "Hide",
+  "@hide": {
+    "description": "Collapses the intelligence panel"
+  },
+  "catchUpTitle": "The notes you already have",
+  "@catchUpTitle": {
+    "description": "Heading above the backfill control"
+  },
+  "catchUpBody": "Nex reads a note in the background right after it is captured — which means everything captured before this was switched on has never been read. This works through that backlog, oldest requests first, a batch at a time.",
+  "@catchUpBody": {
+    "description": "Explains what the backfill does and why it is needed"
+  },
+  "catchUpAction": "Catch up",
+  "@catchUpAction": {
+    "description": "Starts a backfill pass"
+  },
+  "catchUpDone": "{count, plural, =0{Nothing left to read} =1{1 note read} other{{count} notes read}}",
+  "@catchUpDone": {
+    "description": "Result of a backfill pass",
+    "placeholders": { "count": { "type": "int" } }
+  },
   "tagColor": "Tag color",
   "@tagColor": {
     "description": "Title of the tag color picker"

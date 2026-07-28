@@ -711,6 +711,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncToken => 'Device token';
 
   @override
+  String get aiShow => 'See what Nex made of this';
+
+  @override
+  String aiReady(String what) {
+    return '$what ready';
+  }
+
+  @override
+  String get aiSection => 'What Nex read';
+
+  @override
+  String get aiNothingYet =>
+      'Nothing yet. Nex reads a note in the background after it is captured.';
+
+  @override
+  String get hide => 'Hide';
+
+  @override
+  String get catchUpTitle => 'The notes you already have';
+
+  @override
+  String get catchUpBody =>
+      'Nex reads a note in the background right after it is captured — which means everything captured before this was switched on has never been read. This works through that backlog, oldest requests first, a batch at a time.';
+
+  @override
+  String get catchUpAction => 'Catch up';
+
+  @override
+  String catchUpDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes read',
+      one: '1 note read',
+      zero: 'Nothing left to read',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get tagColor => 'Tag color';
 
   @override

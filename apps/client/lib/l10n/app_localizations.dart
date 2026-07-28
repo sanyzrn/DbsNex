@@ -1256,6 +1256,60 @@ abstract class AppLocalizations {
   /// **'Device token'**
   String get syncToken;
 
+  /// Reveals the intelligence panel when nothing is derived yet
+  ///
+  /// In en, this message translates to:
+  /// **'See what Nex made of this'**
+  String get aiShow;
+
+  /// Reveals the intelligence panel, naming what it holds
+  ///
+  /// In en, this message translates to:
+  /// **'{what} ready'**
+  String aiReady(String what);
+
+  /// Heading of the revealed intelligence panel
+  ///
+  /// In en, this message translates to:
+  /// **'What Nex read'**
+  String get aiSection;
+
+  /// Shown when the intelligence panel has nothing to show
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing yet. Nex reads a note in the background after it is captured.'**
+  String get aiNothingYet;
+
+  /// Collapses the intelligence panel
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get hide;
+
+  /// Heading above the backfill control
+  ///
+  /// In en, this message translates to:
+  /// **'The notes you already have'**
+  String get catchUpTitle;
+
+  /// Explains what the backfill does and why it is needed
+  ///
+  /// In en, this message translates to:
+  /// **'Nex reads a note in the background right after it is captured — which means everything captured before this was switched on has never been read. This works through that backlog, oldest requests first, a batch at a time.'**
+  String get catchUpBody;
+
+  /// Starts a backfill pass
+  ///
+  /// In en, this message translates to:
+  /// **'Catch up'**
+  String get catchUpAction;
+
+  /// Result of a backfill pass
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Nothing left to read} =1{1 note read} other{{count} notes read}}'**
+  String catchUpDone(int count);
+
   /// Title of the tag color picker
   ///
   /// In en, this message translates to:

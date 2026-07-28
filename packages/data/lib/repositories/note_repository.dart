@@ -631,6 +631,30 @@ ORDER BY n.created_at DESC
         .toList();
   }
 
+  @override
+  List<Note> listNeedingEnrichment({int limit = 50}) {
+    // Only media whose text was never derived. A text note is already its own
+    // text, and a summary that came back empty is a legitimate answer — asking
+    // again on every pass would spend a request to learn the same thing.
+    final rows = db.select(
+      '''
+SELECT * FROM notes
+WHERE deleted_at IS NULL
+  AND media_uri IS NOT NULL
+  AND (
+    (type = 'voice' AND transcript_text IS NULL)
+    OR (type = 'photo' AND ocr_text IS NULL)
+  )
+ORDER BY created_at DESC
+LIMIT ?
+''',
+      [limit],
+    );
+    return rows
+        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
+        .toList();
+  }
+
   /// Export archive: JSON + Markdown + media (FR-6 / ADR-025).
   Future<File> exportArchive({
     required String outputPath,

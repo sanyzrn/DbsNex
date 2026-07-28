@@ -31,6 +31,7 @@ Future<NexServices> _testServices(Directory tmp) async {
   Directory(mediaDir).createSync(recursive: true);
   Directory(backupDir).createSync(recursive: true);
   final worker = InProcessDb(dbPath: dbPath, deviceId: 'test');
+  testWorker = worker;
   return NexServices.forTest(
     worker: worker,
     deviceId: 'test',
@@ -41,6 +42,10 @@ Future<NexServices> _testServices(Directory tmp) async {
     backupDir: backupDir,
   );
 }
+
+/// The in-process database behind [_testServices], for the few tests that have
+/// to reach past the service layer.
+late InProcessDb testWorker;
 
 void main() {
   late Directory tmp;
@@ -508,6 +513,42 @@ void main() {
     // not bury them: they are on screen without scrolling anywhere.
     expect(find.text('Delete').hitTestable(), findsOneWidget);
     expect(find.text('Copy').hitTestable(), findsOneWidget);
+  });
+
+  testWidgets('what the AI read is behind a tap, not on top of the note',
+      (tester) async {
+    final note = await services.captureVoice(
+      mediaUri: p.join(tmp.path, 'media', 'said.m4a'),
+      mediaBytes: Uint8List.fromList([1, 2, 3]),
+      durationMs: 4000,
+    );
+    // As if the background pass had already transcribed it.
+    testWorker.seedTranscript(note.id, 'the machine heard this');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(NoteCard).first);
+    await tester.pumpAndSettle();
+
+    // Scoped to the sheet: the timeline card behind it previews a voice note
+    // by its transcript, which is the card's job and not what this is about.
+    Finder inSheet(Finder matching) => find.descendant(
+          of: find.byType(NoteDetailSheet),
+          matching: matching,
+        );
+
+    // The work happened on its own, but it does not open on top of the note.
+    expect(inSheet(find.text('the machine heard this')), findsNothing);
+    expect(inSheet(find.textContaining('Transcript')), findsOneWidget);
+
+    await tester.ensureVisible(inSheet(find.textContaining('Transcript')));
+    await tester.pumpAndSettle();
+    await tester.tap(inSheet(find.textContaining('Transcript')));
+    await tester.pumpAndSettle();
+
+    expect(inSheet(find.text('the machine heard this')), findsOneWidget);
   });
 
   testWidgets('a short note is still only as tall as it needs to be',

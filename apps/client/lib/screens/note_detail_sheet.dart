@@ -42,6 +42,14 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   Note? _note;
   List<TagSuggestion> _suggestions = const [];
   List<SemanticHit> _related = const [];
+
+  /// Whether the user has asked to see what the intelligence layer produced.
+  ///
+  /// The layer works on its own, in the background — that is the point of it —
+  /// but a note is the user's writing, and a machine's reading of it does not
+  /// get to sit on top of that uninvited.
+  bool _showAi = false;
+  bool _loadingAi = false;
   Map<String, String> _relatedTitles = const {};
   AudioPlayer? _player;
   Duration _position = Duration.zero;
@@ -56,7 +64,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     if (widget.focusAddTag) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _addTag());
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAi());
+    // Deliberately not loading the intelligence layer's output here. It does
+    // its work on its own, in the background; showing it is the user's call,
+    // and opening a note should not fire two network requests nobody asked
+    // for. See [_revealAi].
   }
 
   @override
@@ -95,6 +106,16 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     } catch (_) {
       await player.dispose();
     }
+  }
+
+  /// Opens the intelligence panel, fetching what it needs the first time.
+  Future<void> _revealAi() async {
+    setState(() {
+      _showAi = true;
+      _loadingAi = true;
+    });
+    await _loadAi();
+    if (mounted) setState(() => _loadingAi = false);
   }
 
   Future<void> _loadAi() async {
@@ -357,6 +378,121 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     await _reload();
   }
 
+  /// Everything the intelligence layer produced about this note, behind a tap.
+  ///
+  /// The layer runs on its own — a recording is transcribed and a long note is
+  /// summarised in the background, without being asked — but its output does
+  /// not open on top of the user's own writing. One quiet row says what is
+  /// there; the tap is what puts it on screen. That also means opening a note
+  /// no longer fires two network calls nobody requested.
+  Widget _aiPanel(Note note, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final derived = <(String, String)>[
+      if (note.transcriptText?.trim().isNotEmpty ?? false)
+        (l10n.transcript, note.transcriptText!.trim()),
+      if (note.ocrText?.trim().isNotEmpty ?? false)
+        (l10n.ocr, note.ocrText!.trim()),
+      if (_summaryIsMeaningful(note))
+        (l10n.summary, note.summaryText!.trim()),
+    ];
+    // With nothing derived and no provider behind it, the row would promise
+    // something the app cannot deliver.
+    if (derived.isEmpty && !widget.services.aiIsUsable) {
+      return const SizedBox.shrink();
+    }
+
+    if (!_showAi) {
+      return Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: TextButton.icon(
+          onPressed: () => unawaited(_revealAi()),
+          icon: const Icon(Icons.auto_awesome_outlined, size: 18),
+          label: Text(
+            derived.isEmpty
+                ? l10n.aiShow
+                : l10n.aiReady(derived.map((d) => d.$1).join(' · ')),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: NexSpacing.sm),
+        Row(
+          children: [
+            Expanded(
+              child: Text(l10n.aiSection, style: theme.textTheme.bodySmall),
+            ),
+            TextButton(
+              onPressed: () => setState(() => _showAi = false),
+              child: Text(l10n.hide),
+            ),
+          ],
+        ),
+        for (final (label, body) in derived) ...[
+          Text(label, style: theme.textTheme.bodySmall),
+          NexBodyText(body),
+          const SizedBox(height: NexSpacing.sm),
+        ],
+        if (_loadingAi)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: NexSpacing.sm),
+            child: LinearProgressIndicator(minHeight: 2),
+          ),
+        if (_suggestions.isNotEmpty) ...[
+          Text(l10n.suggestedTags, style: theme.textTheme.bodySmall),
+          Wrap(
+            spacing: NexSpacing.xs,
+            children: [
+              for (final s in _suggestions)
+                ActionChip(
+                  label: Text(s.name),
+                  onPressed: () async {
+                    await widget.services.addTag(
+                      noteId: note.id,
+                      name: s.name,
+                    );
+                    setState(() {
+                      _suggestions =
+                          _suggestions.where((x) => x.name != s.name).toList();
+                    });
+                    _reload();
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: NexSpacing.sm),
+        ],
+        if (_related.isNotEmpty) ...[
+          Text(l10n.relatedNotes, style: theme.textTheme.bodySmall),
+          for (final hit in _related)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(
+                _relatedTitles[hit.noteId] ?? hit.noteId,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(l10n.similarity(hit.score.toStringAsFixed(2))),
+            ),
+        ],
+        if (!_loadingAi &&
+            derived.isEmpty &&
+            _suggestions.isEmpty &&
+            _related.isEmpty)
+          Text(
+            l10n.aiNothingYet,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.secondary,
+            ),
+          ),
+      ],
+    );
+  }
+
   bool _summaryIsMeaningful(Note note) {
     final summary = note.summaryText?.trim();
     if (summary == null || summary.isEmpty) return false;
@@ -442,14 +578,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         duration: _duration,
                       ),
                     ],
-                    if (note.transcriptText != null) ...[
-                      const SizedBox(height: NexSpacing.sm),
-                      Text(
-                        l10n.transcript,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      NexBodyText(note.transcriptText!),
-                    ] else
+                    if (note.transcriptText == null)
                       Text(
                         l10n.voiceSearchHint,
                         style: Theme.of(context).textTheme.bodySmall,
@@ -486,14 +615,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         l10n.mediaUnavailable,
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
-                    if (note.ocrText != null) ...[
-                      const SizedBox(height: NexSpacing.sm),
-                      Text(
-                        l10n.ocr,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      NexBodyText(note.ocrText!),
-                    ],
                   ] else ...[
                     // File — same sheet, ADR-008 display fields. Tapping the row
                     // hands it to the OS, so the note behaves like the same file
@@ -597,14 +718,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       ),
                     ),
                   ],
-                  if (_summaryIsMeaningful(note)) ...[
-                    const SizedBox(height: NexSpacing.md),
-                    Text(
-                      l10n.summary,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    NexBodyText(note.summaryText!),
-                  ],
                   const SizedBox(height: NexSpacing.md),
                   Wrap(
                     spacing: NexSpacing.xs,
@@ -627,65 +740,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       ),
                     ],
                   ),
-                  if (_suggestions.isNotEmpty) ...[
-                    const SizedBox(height: NexSpacing.md),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.suggestedTags,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () =>
-                              setState(() => _suggestions = const []),
-                          child: Text(l10n.dismiss),
-                        ),
-                      ],
-                    ),
-                    Wrap(
-                      spacing: NexSpacing.xs,
-                      children: [
-                        for (final s in _suggestions)
-                          ActionChip(
-                            label: Text(s.name),
-                            onPressed: () async {
-                              await widget.services.addTag(
-                                noteId: note.id,
-                                name: s.name,
-                              );
-                              setState(() {
-                                _suggestions = _suggestions
-                                    .where((x) => x.name != s.name)
-                                    .toList();
-                              });
-                              _reload();
-                            },
-                          ),
-                      ],
-                    ),
-                  ],
-                  if (_related.isNotEmpty) ...[
-                    const SizedBox(height: NexSpacing.md),
-                    Text(
-                      l10n.relatedNotes,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    for (final hit in _related)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        title: Text(
-                          _relatedTitles[hit.noteId] ?? hit.noteId,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text(
-                          l10n.similarity(hit.score.toStringAsFixed(2)),
-                        ),
-                      ),
-                  ],
+                  _aiPanel(note, l10n),
                 ],
               ),
             ),

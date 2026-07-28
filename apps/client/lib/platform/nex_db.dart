@@ -108,6 +108,9 @@ abstract interface class NexDb {
 
   Future<void> enrichNote(String noteId);
 
+  /// Enriches notes captured before the intelligence layer could read them.
+  Future<int> backfillEnrichment({int limit});
+
   Future<List<TagSuggestion>> suggestTags(String noteId);
 
   Future<Summary?> summarizeOnDemand(String noteId);
