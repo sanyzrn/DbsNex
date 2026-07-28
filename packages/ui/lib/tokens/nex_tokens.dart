@@ -233,6 +233,9 @@ ThemeData nexLightTheme({bool comfortMode = false, String? fontFamily}) =>
       accent: NexColors.accentLight,
       accentStrong: NexColors.accentStrongLight,
       onAccent: const Color(0xFFFFFFFF),
+      // The light theme's toast is a near-black capsule, so its action needs
+      // the accent drawn for dark grounds.
+      accentOnInverse: NexColors.accentDark,
       fontFamily: fontFamily ?? nexLatinFont,
     );
 
@@ -259,6 +262,7 @@ ThemeData nexDarkTheme({bool comfortMode = false, String? fontFamily}) =>
       accent: NexColors.accentDark,
       accentStrong: NexColors.accentStrongDark,
       onAccent: const Color(0xFF0B0A09),
+      accentOnInverse: NexColors.accentStrongLight,
       fontFamily: fontFamily ?? nexLatinFont,
     );
 
@@ -274,6 +278,7 @@ ThemeData _theme({
   required Color accent,
   required Color accentStrong,
   required Color onAccent,
+  required Color accentOnInverse,
   required String fontFamily,
 }) {
   // Declared, not seeded. `ColorScheme.fromSeed` derives a tonal palette from
@@ -340,6 +345,34 @@ ThemeData _theme({
       ),
     ),
     dividerColor: borderSoft,
+    // A capsule that floats, not a slab pinned to the bottom edge.
+    //
+    // The default SnackBar is full-bleed with square top corners, which is the
+    // one shape in Material that cannot belong to a design language built on
+    // rounded, inset cards — it reads as something the framework did rather
+    // than something the app said. Floating and stadium-shaped also means it
+    // sits *above* the capture button instead of across it.
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: const StadiumBorder(),
+      backgroundColor: primary,
+      contentTextStyle: _style(
+        size: 15,
+        lineHeight: 22,
+        weight: FontWeight.w500,
+        color: background,
+      ),
+      // Not `accent`: the capsule is an inverse surface, so the accent chosen
+      // for the page sits on the wrong ground and lands under 4.5:1 on the one
+      // word in the toast that is a button — usually "Undo".
+      actionTextColor: accentOnInverse,
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: NexSpacing.md,
+        vertical: NexSpacing.sm,
+      ),
+      elevation: 6,
+      showCloseIcon: false,
+    ),
     // Android's default zoom transition scales and clips the whole page, which
     // reads as heavy next to the rest of the app. The Cupertino slide is the
     // motion this design language already implies: short, horizontal, and

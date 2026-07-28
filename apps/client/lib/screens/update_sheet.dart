@@ -80,6 +80,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
   void initState() {
     super.initState();
     final service = widget.service;
+    service?.addListener(_followService);
     final ready = service?.available;
     if (ready != null) {
       // Already found, and usually already on disk: open on the last step.
@@ -91,8 +92,20 @@ class _UpdateSheetState extends State<UpdateSheet> {
     _check();
   }
 
+  /// Mirrors the service's progress while this screen happens to be open.
+  ///
+  /// The bar is a view of the transfer, not the transfer itself, so it can
+  /// appear and disappear without the download noticing.
+  void _followService() {
+    final service = widget.service;
+    if (service == null || !mounted) return;
+    if (_phase != _Phase.downloading) return;
+    setState(() => _progress = service.downloadProgress);
+  }
+
   @override
   void dispose() {
+    widget.service?.removeListener(_followService);
     _checker?.close();
     _downloader.close();
     super.dispose();
@@ -135,19 +148,24 @@ class _UpdateSheetState extends State<UpdateSheet> {
     final version = result?.version;
     if (url == null || version == null) return;
 
-    // The background fetch may already be done, or still running. Either way
-    // there is no reason to pull the same bytes down a second time.
+    // With a service in hand the transfer is *its* job, not this screen's.
+    // The downloader used to belong to this State, so `dispose` closed the
+    // client mid-stream: a back gesture during a download killed the download.
+    // Now the screen only watches something that outlives it.
     final service = widget.service;
     if (service != null) {
       setState(() {
         _phase = _Phase.downloading;
-        _progress = null;
+        _progress = service.downloadProgress;
         _error = null;
       });
-      await service.prefetching;
+      await service.ensureDownloaded();
       final prefetched = service.downloaded;
       if (!mounted) return;
       if (prefetched != null) {
+        // The app has already raised the toast if the user walked away; from
+        // in here the arrival is visible, so it does not need saying twice.
+        service.markAnnounced();
         setState(() {
           _downloaded = prefetched;
           _phase = _Phase.ready;

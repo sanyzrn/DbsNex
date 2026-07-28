@@ -517,6 +517,50 @@
     "description": "Timeline title late at night",
     "placeholders": { "name": { "type": "String" } }
   },
+  "updateDownloadedToast": "Update downloaded — ready to install",
+  "@updateDownloadedToast": {
+    "description": "Toast raised when a background update download completes"
+  },
+  "greetingMorningB": "Fresh page, {name}",
+  "@greetingMorningB": {
+    "description": "Second morning greeting variant",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "greetingMorningC": "The day is new, {name}",
+  "@greetingMorningC": {
+    "description": "Third morning greeting variant",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "greetingAfternoonB": "Halfway there, {name}",
+  "@greetingAfternoonB": {
+    "description": "Second afternoon greeting variant",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "greetingAfternoonC": "What have you got, {name}?",
+  "@greetingAfternoonC": {
+    "description": "Third afternoon greeting variant",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "greetingEveningB": "Winding down, {name}",
+  "@greetingEveningB": {
+    "description": "Second evening greeting variant",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "greetingEveningC": "The quiet hours, {name}",
+  "@greetingEveningC": {
+    "description": "Third evening greeting variant",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "greetingNightB": "Hello, night owl {name}",
+  "@greetingNightB": {
+    "description": "Second late-night greeting variant",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "greetingNightC": "The world's asleep, {name}",
+  "@greetingNightC": {
+    "description": "Third late-night greeting variant",
+    "placeholders": { "name": { "type": "String" } }
+  },
   "exportTitle": "Taking it with you",
   "@exportTitle": {
     "description": "Heading above export and import"

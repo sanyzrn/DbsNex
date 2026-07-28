@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -78,6 +79,9 @@ class TimelineScreenState extends State<TimelineScreen> {
   late final NoteSearchController _search =
       NoteSearchController(services: widget.services);
   final FocusNode _searchFocus = FocusNode();
+
+  /// Which of the three greetings this run of the app gets.
+  final int _greetingVariant = math.Random().nextInt(3);
   bool _searching = false;
 
   @override
@@ -421,31 +425,18 @@ class TimelineScreenState extends State<TimelineScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
-        // Floating, rounded and inset so it reads as part of the surface
-        // rather than a system banner pinned to the bottom edge.
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        elevation: 6,
+        // Shape, colour, inset and elevation all come from `snackBarTheme` now,
+        // so this and the other nine toasts in the app are one capsule rather
+        // than one hand-styled banner and nine framework defaults.
         duration: const Duration(seconds: 5),
-        backgroundColor: theme.colorScheme.inverseSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(NexColors.cardRadius),
-        ),
         content: Row(children: [
           Icon(Icons.delete_outline,
               size: 20, color: theme.colorScheme.onInverseSurface),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              l10n.noteDeleted,
-              style: TextStyle(color: theme.colorScheme.onInverseSurface),
-            ),
-          ),
+          const SizedBox(width: NexSpacing.md),
+          Expanded(child: Text(l10n.noteDeleted)),
         ]),
         action: SnackBarAction(
           label: l10n.undo,
-          textColor: theme.colorScheme.inversePrimary,
           onPressed: () async {
             _tick();
             await widget.services.undelete(note.id);
@@ -460,15 +451,40 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// Decoration, deliberately kept to the one place the app already had a
   /// title. It says nothing, asks nothing and never appears outside the app —
   /// a greeting is not an engagement loop as long as it never leaves here.
+  ///
+  /// Three phrasings per time of day, with a mark in front. Fixed for the life
+  /// of this screen rather than re-rolled on every build: the greeting is a
+  /// title, and a title that changes while you are reading it is a bug, not a
+  /// flourish. Opening the app again is what gets you a different one.
   String _title(AppLocalizations l10n) {
     final name = widget.preferences.displayName;
     if (name == null) return l10n.appTitle;
-    return switch (DateTime.now().hour) {
-      >= 5 && < 12 => l10n.greetingMorning(name),
-      >= 12 && < 17 => l10n.greetingAfternoon(name),
-      >= 17 && < 23 => l10n.greetingEvening(name),
-      _ => l10n.greetingNight(name),
+    final v = _greetingVariant;
+    final (glyphs, text) = switch (DateTime.now().hour) {
+      >= 5 && < 12 => (
+          const ['☀️', '🌱', '☕'],
+          [l10n.greetingMorning, l10n.greetingMorningB, l10n.greetingMorningC],
+        ),
+      >= 12 && < 17 => (
+          const ['🌤️', '🍵', '📌'],
+          [
+            l10n.greetingAfternoon,
+            l10n.greetingAfternoonB,
+            l10n.greetingAfternoonC,
+          ],
+        ),
+      >= 17 && < 23 => (
+          const ['🌆', '🌙', '🕯️'],
+          [l10n.greetingEvening, l10n.greetingEveningB, l10n.greetingEveningC],
+        ),
+      _ => (
+          const ['🦉', '🌚', '✨'],
+          [l10n.greetingNight, l10n.greetingNightB, l10n.greetingNightC],
+        ),
     };
+    // The glyph leads in both directions: in Persian "leading" is the right
+    // edge, and putting it first in the string is what puts it there.
+    return '${glyphs[v]} ${text[v](name)}';
   }
 
   @override

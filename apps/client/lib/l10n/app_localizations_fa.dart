@@ -642,6 +642,49 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get updateDownloadedToast => 'به‌روزرسانی دانلود شد — آمادهٔ نصب';
+
+  @override
+  String greetingMorningB(String name) {
+    return 'صفحهٔ نو، $name';
+  }
+
+  @override
+  String greetingMorningC(String name) {
+    return 'روز از نو، $name';
+  }
+
+  @override
+  String greetingAfternoonB(String name) {
+    return 'نصف راه رفته، $name';
+  }
+
+  @override
+  String greetingAfternoonC(String name) {
+    return 'چی داری برام، $name؟';
+  }
+
+  @override
+  String greetingEveningB(String name) {
+    return 'آرام‌آرام، $name';
+  }
+
+  @override
+  String greetingEveningC(String name) {
+    return 'ساعت‌های ساکت، $name';
+  }
+
+  @override
+  String greetingNightB(String name) {
+    return 'سلام جغد شب، $name';
+  }
+
+  @override
+  String greetingNightC(String name) {
+    return 'دنیا خوابه، $name';
+  }
+
+  @override
   String get exportTitle => 'بردنش با خودتان';
 
   @override

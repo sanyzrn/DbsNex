@@ -27,6 +27,10 @@ class NexApp extends StatefulWidget {
 
 class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   final timelineKey = GlobalKey<TimelineScreenState>();
+
+  /// So a toast can be raised from a listener, above any screen's own context.
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+
   late final UpdateService _updates =
       UpdateService(preferences: widget.preferences);
 
@@ -34,6 +38,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     widget.preferences.addListener(_refresh);
+    _updates.addListener(_announceDownload);
     // Quietly, on launch and whenever the app comes back — at most once a day.
     // Nothing interrupts: the only outcome a user ever sees is a dot on the
     // settings icon.
@@ -50,11 +55,48 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.preferences.removeListener(_refresh);
+    _updates.removeListener(_announceDownload);
     _updates.dispose();
     super.dispose();
   }
 
   void _refresh() => setState(() {});
+
+  /// Says so, once, when an installer finishes arriving.
+  ///
+  /// The download survives leaving the update screen now, which means it
+  /// usually finishes while the user is somewhere else — and something that
+  /// completes invisibly may as well not have happened. This is the one place
+  /// the update flow is allowed to speak unprompted, and it is a toast that
+  /// fades on its own rather than anything that has to be dismissed.
+  void _announceDownload() {
+    if (!_updates.hasUnannouncedDownload) return;
+    final messenger = _messengerKey.currentState;
+    final context = _messengerKey.currentContext;
+    if (messenger == null || context == null) return;
+    _updates.markAnnounced();
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 4),
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.download_done,
+                size: 20,
+                color: scheme.onInverseSurface,
+              ),
+              const SizedBox(width: NexSpacing.md),
+              Flexible(child: Text(l10n.updateDownloadedToast)),
+            ],
+          ),
+        ),
+      );
+  }
 
   /// What the device would pick when the user has not chosen a language.
   ///
@@ -79,6 +121,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // direction (see NexBodyText) without dragging the whole chrome with it.
     final font = nexFontFor(prefs.locale ?? _systemLocale(context));
     return MaterialApp(
+      scaffoldMessengerKey: _messengerKey,
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
       locale: prefs.locale,
