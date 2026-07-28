@@ -642,6 +642,49 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get updateDownloadedToast => 'Update downloaded — ready to install';
+
+  @override
+  String greetingMorningB(String name) {
+    return 'Fresh page, $name';
+  }
+
+  @override
+  String greetingMorningC(String name) {
+    return 'The day is new, $name';
+  }
+
+  @override
+  String greetingAfternoonB(String name) {
+    return 'Halfway there, $name';
+  }
+
+  @override
+  String greetingAfternoonC(String name) {
+    return 'What have you got, $name?';
+  }
+
+  @override
+  String greetingEveningB(String name) {
+    return 'Winding down, $name';
+  }
+
+  @override
+  String greetingEveningC(String name) {
+    return 'The quiet hours, $name';
+  }
+
+  @override
+  String greetingNightB(String name) {
+    return 'Hello, night owl $name';
+  }
+
+  @override
+  String greetingNightC(String name) {
+    return 'The world\'s asleep, $name';
+  }
+
+  @override
   String get exportTitle => 'Taking it with you';
 
   @override

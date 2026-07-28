@@ -220,4 +220,60 @@ void main() {
     // A completed check still counts, so it will not run again immediately.
     expect(preferences.lastUpdateCheck, isNotNull);
   });
+
+  test('a finished download is announced exactly once', () async {
+    // The transfer belongs to the service, so it now usually completes while
+    // the user is on some other screen — which is only useful if something
+    // says so, and only bearable if it says so once.
+    final service = build(client: serving(newerRelease()));
+    addTearDown(service.dispose);
+
+    await service.check();
+    await service.prefetching;
+
+    expect(service.downloaded, isNotNull);
+    expect(service.hasUnannouncedDownload, isTrue);
+    service.markAnnounced();
+    expect(service.hasUnannouncedDownload, isFalse);
+  });
+
+  test('an installer found on disk at launch is not announced', () async {
+    // It did not arrive during this session; a toast for it would be a
+    // notification about the past.
+    final current = NexVersion.tryParse(nexAppVersion)!;
+    final next = '${current.major}.${current.minor}.${current.patch + 1}';
+    File(p.join(tmp.path, 'Nex-$next.apk')).writeAsBytesSync([1, 2, 3, 4]);
+
+    final service = build(client: serving(newerRelease()));
+    addTearDown(service.dispose);
+
+    await service.check();
+    await service.prefetching;
+
+    expect(service.downloaded, isNotNull);
+    expect(service.hasUnannouncedDownload, isFalse);
+  });
+
+  test('ensureDownloaded joins the running fetch rather than starting another',
+      () async {
+    var downloads = 0;
+    final client = MockClient((request) async {
+      if (request.url.host == 'api.github.com') {
+        return http.Response(newerRelease(), 200);
+      }
+      downloads++;
+      return http.Response.bytes([1, 2, 3, 4], 200);
+    });
+    final service = build(client: client);
+    addTearDown(service.dispose);
+
+    await service.check();
+    // Two callers, one transfer: this is what stops the update screen pulling
+    // the same bytes down a second time when it opens mid-prefetch.
+    await Future.wait([service.ensureDownloaded(), service.ensureDownloaded()]);
+
+    expect(downloads, 1);
+    expect(service.isDownloading, isFalse);
+    expect(service.downloadProgress, isNull);
+  });
 }

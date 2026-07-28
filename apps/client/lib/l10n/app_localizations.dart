@@ -1160,6 +1160,60 @@ abstract class AppLocalizations {
   /// **'Still up, {name}?'**
   String greetingNight(String name);
 
+  /// Toast raised when a background update download completes
+  ///
+  /// In en, this message translates to:
+  /// **'Update downloaded — ready to install'**
+  String get updateDownloadedToast;
+
+  /// Second morning greeting variant
+  ///
+  /// In en, this message translates to:
+  /// **'Fresh page, {name}'**
+  String greetingMorningB(String name);
+
+  /// Third morning greeting variant
+  ///
+  /// In en, this message translates to:
+  /// **'The day is new, {name}'**
+  String greetingMorningC(String name);
+
+  /// Second afternoon greeting variant
+  ///
+  /// In en, this message translates to:
+  /// **'Halfway there, {name}'**
+  String greetingAfternoonB(String name);
+
+  /// Third afternoon greeting variant
+  ///
+  /// In en, this message translates to:
+  /// **'What have you got, {name}?'**
+  String greetingAfternoonC(String name);
+
+  /// Second evening greeting variant
+  ///
+  /// In en, this message translates to:
+  /// **'Winding down, {name}'**
+  String greetingEveningB(String name);
+
+  /// Third evening greeting variant
+  ///
+  /// In en, this message translates to:
+  /// **'The quiet hours, {name}'**
+  String greetingEveningC(String name);
+
+  /// Second late-night greeting variant
+  ///
+  /// In en, this message translates to:
+  /// **'Hello, night owl {name}'**
+  String greetingNightB(String name);
+
+  /// Third late-night greeting variant
+  ///
+  /// In en, this message translates to:
+  /// **'The world\'s asleep, {name}'**
+  String greetingNightC(String name);
+
   /// Heading above export and import
   ///
   /// In en, this message translates to:

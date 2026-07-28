@@ -45,13 +45,63 @@ class UpdateService extends ChangeNotifier {
   UpdateCheck? _found;
   File? _downloaded;
   bool _busy = false;
+  bool _disposed = false;
+
+  /// Notifies unless this service is gone.
+  ///
+  /// The download now outlives the screen that started it, and on app teardown
+  /// it can outlive the service too — a transfer in flight finishes into a
+  /// disposed ChangeNotifier, which throws. Nothing is listening by then, so
+  /// the right answer is to fall silent rather than to cancel the fetch.
+  void _notify() {
+    if (_disposed) return;
+    notifyListeners();
+  }
+
   Future<void>? _prefetching;
+  double? _progress;
+  bool _announced = true;
 
   /// The background download, while it is running.
   ///
   /// Awaiting it is how the update sheet joins a fetch that is already in
   /// flight instead of starting a second one.
   Future<void>? get prefetching => _prefetching;
+
+  /// How far along the download is, or null for a download with no known size.
+  double? get downloadProgress => _progress;
+
+  bool get isDownloading => _prefetching != null;
+
+  /// Whether a download finished that nobody has been told about yet.
+  ///
+  /// The app watches this so it can raise a toast when the installer lands
+  /// while the user is somewhere else entirely — which is now the normal case,
+  /// because leaving the update screen no longer cancels the fetch.
+  bool get hasUnannouncedDownload => !_announced && _downloaded != null;
+
+  /// Marks the finished download as reported, so the toast shows once.
+  void markAnnounced() {
+    if (_announced) return;
+    _announced = true;
+    _notify();
+  }
+
+  /// Starts the download, or hands back the one already running.
+  ///
+  /// This is the whole of the fix for a download that died on a back gesture:
+  /// the transfer belongs to the service, which lives as long as the app, and
+  /// not to a screen, which does not. The screen only watches.
+  Future<void> ensureDownloaded() {
+    final running = _prefetching;
+    if (running != null) return running;
+    if (_downloaded != null) return Future<void>.value();
+    final update = available;
+    if (update == null) return Future<void>.value();
+    final started = _prefetch(update);
+    _prefetching = started;
+    return started;
+  }
 
   /// The last completed check, whatever it said — including a failure.
   ///
@@ -88,7 +138,7 @@ class UpdateService extends ChangeNotifier {
 
   Future<UpdateCheck> check() async {
     _busy = true;
-    notifyListeners();
+    _notify();
     try {
       final result = await _checker.check();
       _found = result;
@@ -105,14 +155,14 @@ class UpdateService extends ChangeNotifier {
       return result;
     } finally {
       _busy = false;
-      notifyListeners();
+      _notify();
     }
   }
 
   /// Fetches the installer in the background, ignoring failure.
   ///
-  /// A download that does not finish is not worth reporting: the user did not
-  /// ask for it yet, and the sheet will simply download it when they do.
+  /// A download that does not finish is not worth interrupting anyone over:
+  /// the sheet will simply offer it again when they next look.
   Future<void> _prefetch(UpdateCheck update) async {
     final url = update.downloadUrl;
     final version = update.version;
@@ -124,30 +174,42 @@ class UpdateService extends ChangeNotifier {
       if (existing.existsSync() &&
           (update.sizeBytes == null ||
               existing.lengthSync() == update.sizeBytes)) {
-        // Already fetched on an earlier run — no reason to fetch it twice.
+        // Already fetched on an earlier run — no reason to fetch it twice, and
+        // no reason to announce something that was there before this launch.
         _downloaded = existing;
-        notifyListeners();
+        _notify();
         return;
       }
+      _announced = false;
       _downloaded = await _downloader.download(
         url: url,
         into: dir,
         filename: name,
+        onProgress: (value) {
+          _progress = value;
+          _notify();
+        },
       );
-      notifyListeners();
+      _notify();
     } catch (_) {
       _downloaded = null;
+      _announced = true;
+    } finally {
+      _prefetching = null;
+      _progress = null;
+      _notify();
     }
   }
 
   /// Called by the update sheet once the user has installed, so the dot clears.
   void acknowledge() {
     _found = null;
-    notifyListeners();
+    _notify();
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _checker.close();
     _downloader.close();
     super.dispose();
