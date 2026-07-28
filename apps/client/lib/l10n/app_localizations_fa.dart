@@ -657,4 +657,59 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get swipeNone => 'هیچ کاری';
+
+  @override
+  String get intelligenceOff => 'خاموش';
+
+  @override
+  String get intelligenceMasterSubtitle =>
+      'به یک سرویس اجازه بدهید یادداشت‌ها را بخواند تا رونویسی، خلاصه و پیشنهاد برچسب بدهد.';
+
+  @override
+  String get intelligenceOffBody =>
+      'همه‌چیز روی همین دستگاه می‌ماند. چیزی جایی فرستاده نمی‌شود و هیچ یادداشتی از برنامه بیرون نمی‌رود.';
+
+  @override
+  String get intelligenceConsentTitle => 'هوش مصنوعی روشن شود؟';
+
+  @override
+  String get intelligenceConsentBody =>
+      'Nex کامل آفلاین کار می‌کند. روشن کردن این گزینه تنها استثناست: یادداشت‌هایی که به قابلیت‌های فعال‌شده مربوط می‌شوند، برای سرویسی که انتخاب می‌کنید فرستاده می‌شوند تا بتواند پاسخ بدهد.\n\nتا وقتی سرویس و کلیدش را وارد نکنید هیچ چیزی فرستاده نمی‌شود. هر وقت خواستید می‌توانید دوباره خاموشش کنید و چیزی از آنچه ذخیره شده از بین نمی‌رود.';
+
+  @override
+  String get intelligenceConsentAccept => 'روشن کن';
+
+  @override
+  String get intelligenceQuietNote =>
+      'نتیجه‌ها بی‌سروصدا در پس‌زمینه آماده و کنار یادداشت نگه داشته می‌شوند. چیزی مزاحمتان نمی‌شود — خلاصه یا برچسب پیشنهادی فقط وقتی یادداشت را باز کنید و بخواهید دیده می‌شود.';
+
+  @override
+  String get automatic => 'خودکار انجام می‌شود';
+
+  @override
+  String get notSupportedByProvider => 'سرویسی که انتخاب کرده‌اید این را ندارد';
+
+  @override
+  String get transcriptionSubtitle => 'تبدیل یادداشت صوتی به متنِ قابل جست‌وجو';
+
+  @override
+  String get ocrSubtitle => 'خواندن نوشته‌های داخل عکس';
+
+  @override
+  String get summarizationSubtitle => 'فشرده کردن یادداشت بلند در یک خط';
+
+  @override
+  String get tagSuggestionsSubtitle =>
+      'پیشنهاد برچسب — هیچ‌وقت خودش اعمال نمی‌کند';
+
+  @override
+  String get semanticSearchSubtitle =>
+      'پیدا کردن یادداشت بر اساس معنا، نه فقط کلمه';
+
+  @override
+  String get relatedNotesSubtitle =>
+      'نمایش یادداشت‌های دیگری که به همین موضوع مربوط‌اند';
+
+  @override
+  String get intelligenceOpen => 'رونویسی، خلاصه، برچسب';
 }

@@ -542,5 +542,69 @@
   "swipeNone": "Nothing",
   "@swipeNone": {
     "description": "Swipe edge bound to no action at all"
+  },
+  "intelligenceOff": "Off",
+  "@intelligenceOff": {
+    "description": "Settings row subtitle when the AI master switch is off"
+  },
+  "intelligenceMasterSubtitle": "Let a provider read your notes to transcribe, summarise and suggest tags.",
+  "@intelligenceMasterSubtitle": {
+    "description": "The master switch's own explanation"
+  },
+  "intelligenceOffBody": "Everything stays on this device. Nothing is sent anywhere, and no note leaves the app.",
+  "@intelligenceOffBody": {
+    "description": "Shown while the master switch is off"
+  },
+  "intelligenceConsentTitle": "Turn on intelligence?",
+  "@intelligenceConsentTitle": {
+    "description": "Consent dialog title"
+  },
+  "intelligenceConsentBody": "Nex works fully offline. Turning this on is the one exception: the notes covered by the capabilities you enable are sent to the provider you choose, so it can answer.\n\nNothing is sent until you also choose a provider and enter its key. You can turn this off again at any time, and nothing already saved is affected.",
+  "@intelligenceConsentBody": {
+    "description": "Consent dialog body"
+  },
+  "intelligenceConsentAccept": "Turn on",
+  "@intelligenceConsentAccept": {
+    "description": "Consent dialog confirm"
+  },
+  "intelligenceQuietNote": "Results are worked out quietly in the background and kept with the note. Nothing interrupts you — a summary or a suggested tag appears only when you open the note and ask for it.",
+  "@intelligenceQuietNote": {
+    "description": "Explains the quiet, on-demand behaviour"
+  },
+  "automatic": "Worked out automatically",
+  "@automatic": {
+    "description": "Heading above the capability switches"
+  },
+  "notSupportedByProvider": "The provider you chose cannot do this",
+  "@notSupportedByProvider": {
+    "description": "Capability unavailable for the selected provider"
+  },
+  "transcriptionSubtitle": "Turn a voice note into searchable text",
+  "@transcriptionSubtitle": {
+    "description": "Capability explanation"
+  },
+  "ocrSubtitle": "Read the words in a photo",
+  "@ocrSubtitle": {
+    "description": "Capability explanation"
+  },
+  "summarizationSubtitle": "Condense a long note into one line",
+  "@summarizationSubtitle": {
+    "description": "Capability explanation"
+  },
+  "tagSuggestionsSubtitle": "Propose tags — never applies them for you",
+  "@tagSuggestionsSubtitle": {
+    "description": "Capability explanation"
+  },
+  "semanticSearchSubtitle": "Find notes by meaning, not just words",
+  "@semanticSearchSubtitle": {
+    "description": "Capability explanation"
+  },
+  "relatedNotesSubtitle": "Show other notes that touch on the same thing",
+  "@relatedNotesSubtitle": {
+    "description": "Capability explanation"
+  },
+  "intelligenceOpen": "Transcription, summaries, tags",
+  "@intelligenceOpen": {
+    "description": "Settings row that opens the intelligence screen"
   }
 }

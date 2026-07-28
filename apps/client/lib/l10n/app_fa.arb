@@ -351,5 +351,24 @@
   "swipeNone": "هیچ کاری",
   "@swipeNone": {
     "description": "Swipe edge bound to no action at all"
+  },
+  "intelligenceOff": "خاموش",
+  "intelligenceMasterSubtitle": "به یک سرویس اجازه بدهید یادداشت‌ها را بخواند تا رونویسی، خلاصه و پیشنهاد برچسب بدهد.",
+  "intelligenceOffBody": "همه‌چیز روی همین دستگاه می‌ماند. چیزی جایی فرستاده نمی‌شود و هیچ یادداشتی از برنامه بیرون نمی‌رود.",
+  "intelligenceConsentTitle": "هوش مصنوعی روشن شود؟",
+  "intelligenceConsentBody": "Nex کامل آفلاین کار می‌کند. روشن کردن این گزینه تنها استثناست: یادداشت‌هایی که به قابلیت‌های فعال‌شده مربوط می‌شوند، برای سرویسی که انتخاب می‌کنید فرستاده می‌شوند تا بتواند پاسخ بدهد.\n\nتا وقتی سرویس و کلیدش را وارد نکنید هیچ چیزی فرستاده نمی‌شود. هر وقت خواستید می‌توانید دوباره خاموشش کنید و چیزی از آنچه ذخیره شده از بین نمی‌رود.",
+  "intelligenceConsentAccept": "روشن کن",
+  "intelligenceQuietNote": "نتیجه‌ها بی‌سروصدا در پس‌زمینه آماده و کنار یادداشت نگه داشته می‌شوند. چیزی مزاحمتان نمی‌شود — خلاصه یا برچسب پیشنهادی فقط وقتی یادداشت را باز کنید و بخواهید دیده می‌شود.",
+  "automatic": "خودکار انجام می‌شود",
+  "notSupportedByProvider": "سرویسی که انتخاب کرده‌اید این را ندارد",
+  "transcriptionSubtitle": "تبدیل یادداشت صوتی به متنِ قابل جست‌وجو",
+  "ocrSubtitle": "خواندن نوشته‌های داخل عکس",
+  "summarizationSubtitle": "فشرده کردن یادداشت بلند در یک خط",
+  "tagSuggestionsSubtitle": "پیشنهاد برچسب — هیچ‌وقت خودش اعمال نمی‌کند",
+  "semanticSearchSubtitle": "پیدا کردن یادداشت بر اساس معنا، نه فقط کلمه",
+  "relatedNotesSubtitle": "نمایش یادداشت‌های دیگری که به همین موضوع مربوط‌اند",
+  "intelligenceOpen": "رونویسی، خلاصه، برچسب",
+  "@intelligenceOpen": {
+    "description": "Settings row that opens the intelligence screen"
   }
 }

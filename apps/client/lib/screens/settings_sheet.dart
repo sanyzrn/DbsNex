@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
@@ -12,7 +11,7 @@ import '../platform/nex_services.dart';
 import 'package:nex_data/nex_data.dart';
 import '../restart_scope.dart';
 import 'about_screen.dart';
-import 'ai_provider_screen.dart';
+import 'intelligence_screen.dart';
 import 'recently_deleted_screen.dart';
 import 'tag_manager_screen.dart';
 import 'update_sheet.dart';
@@ -190,86 +189,24 @@ class SettingsSheet extends StatelessWidget {
                     _Section(
                       icon: Icons.auto_awesome_outlined,
                       title: l10n.intelligence,
-                      footnote: l10n.intelligenceLocal,
                       children: [
-                        _AiSwitch(
-                          title: l10n.transcription,
-                          value: preferences.aiCapabilities.transcription,
-                          onChanged: (value) => _setAi(
-                            preferences,
-                            preferences.aiCapabilities
-                                .copyWith(transcription: value),
-                            services,
-                          ),
-                        ),
-                        _AiSwitch(
-                          title: l10n.ocr,
-                          value: preferences.aiCapabilities.ocr,
-                          onChanged: (value) => _setAi(
-                            preferences,
-                            preferences.aiCapabilities.copyWith(ocr: value),
-                            services,
-                          ),
-                        ),
-                        _AiSwitch(
-                          title: l10n.tagSuggestions,
-                          value: preferences.aiCapabilities.tagSuggestions,
-                          onChanged: (value) => _setAi(
-                            preferences,
-                            preferences.aiCapabilities
-                                .copyWith(tagSuggestions: value),
-                            services,
-                          ),
-                        ),
-                        _AiSwitch(
-                          title: l10n.semanticSearch,
-                          value: preferences.aiCapabilities.semanticSearch,
-                          onChanged: (value) => _setAi(
-                            preferences,
-                            preferences.aiCapabilities
-                                .copyWith(semanticSearch: value),
-                            services,
-                          ),
-                        ),
-                        _AiSwitch(
-                          title: l10n.summarization,
-                          value: preferences.aiCapabilities.summarization,
-                          onChanged: (value) => _setAi(
-                            preferences,
-                            preferences.aiCapabilities
-                                .copyWith(summarization: value),
-                            services,
-                          ),
-                        ),
-                        _AiSwitch(
-                          title: l10n.relatedNotes,
-                          value: preferences.aiCapabilities.relatedNotes,
-                          onChanged: (value) => _setAi(
-                            preferences,
-                            preferences.aiCapabilities
-                                .copyWith(relatedNotes: value),
-                            services,
-                          ),
-                        ),
-                        SwitchListTile(
-                          contentPadding: _rowPadding,
-                          secondary: const Icon(Icons.cloud_outlined),
-                          title: Text(l10n.cloudAi),
-                          subtitle: Text(l10n.cloudAiSubtitle),
-                          value: preferences.cloudAiOptIn,
-                          onChanged: preferences.setCloudAiOptIn,
-                        ),
                         ListTile(
                           contentPadding: _rowPadding,
-                          leading: const Icon(Icons.key_outlined),
-                          title: Text(l10n.aiProvider),
-                          subtitle: Text(preferences.aiProvider.provider.label),
+                          leading: const Icon(Icons.auto_awesome_outlined),
+                          title: Text(l10n.intelligenceOpen),
+                          subtitle: Text(
+                            preferences.aiEnabled
+                                ? preferences.aiProvider.provider.label
+                                : l10n.intelligenceOff,
+                          ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  AiProviderScreen(preferences: preferences),
+                              builder: (_) => IntelligenceScreen(
+                                services: services,
+                                preferences: preferences,
+                              ),
                             ),
                           ),
                         ),
@@ -463,14 +400,6 @@ class SettingsSheet extends StatelessWidget {
     NexRestartScope.of(context).restart();
   }
 
-  static Future<void> _setAi(
-    NexPreferences preferences,
-    AiCapabilities capabilities,
-    NexServices services,
-  ) async {
-    await preferences.setAiCapabilities(capabilities);
-    services.applyAiPreferences(preferences);
-  }
 }
 
 const _rowPadding = EdgeInsetsDirectional.only(
@@ -717,22 +646,3 @@ class _SwipeRow extends StatelessWidget {
   }
 }
 
-class _AiSwitch extends StatelessWidget {
-  const _AiSwitch({
-    required this.title,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String title;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) => SwitchListTile(
-        contentPadding: _rowPadding,
-        title: Text(title),
-        value: value,
-        onChanged: onChanged,
-      );
-}

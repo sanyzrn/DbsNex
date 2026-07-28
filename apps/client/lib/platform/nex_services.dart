@@ -149,8 +149,12 @@ class NexServices {
   }
 
   void applyAiPreferences(NexPreferences preferences) {
-    unawaited(worker.setAiCapabilities(preferences.aiCapabilities));
-    final ai = preferences.aiProvider;
+    // The master switch wins: with AI off, every capability is off regardless
+    // of what the individual switches were last left at.
+    unawaited(worker.setAiCapabilities(preferences.effectiveAiCapabilities));
+    final ai = preferences.aiEnabled
+        ? preferences.aiProvider
+        : const AiProviderConfig();
     unawaited(worker.setAiProvider({
       'provider': ai.provider.wireName,
       'apiKey': ai.apiKey,
