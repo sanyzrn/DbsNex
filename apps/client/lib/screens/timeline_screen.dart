@@ -864,8 +864,14 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
       ColoredBox(color: Theme.of(context).colorScheme.surface, child: child);
 
   @override
-  bool shouldRebuild(_FilterRowHeader old) =>
-      old.child != child || old.visible != visible;
+  /// Always, and for the same reason as [SearchFieldHeader].
+  ///
+  /// This one happened to rebuild anyway, because `child` is a fresh
+  /// `TagFilterRow` on every build and the comparison is by identity — so it
+  /// escaped the stale-theme bug by accident rather than by design. Relying on
+  /// that is relying on a widget never gaining an `operator ==`.
+  @override
+  bool shouldRebuild(_FilterRowHeader old) => true;
 }
 
 /// "One year ago", as something you can act on.

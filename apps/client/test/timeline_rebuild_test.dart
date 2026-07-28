@@ -228,6 +228,45 @@ void main() {
     );
   });
 
+  testWidgets('the search header follows a theme change', (tester) async {
+    // Reported from a device: switch to light and the strip around the search
+    // field stayed black; on another phone, switching to dark left it white.
+    // `SliverPersistentHeaderDelegate.shouldRebuild` decides whether the
+    // cached subtree is thrown away, and it was comparing the delegate's own
+    // fields — none of which a theme change touches. So the header kept the
+    // colours of whichever theme the app launched in.
+    await services.captureText('a note');
+    await services.refreshTimeline();
+    await preferences.setThemeMode(ThemeMode.light);
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    // The header's own background: the ColoredBox wrapping the search field.
+    Color headerColor() => tester
+        .widgetList<ColoredBox>(
+          find.ancestor(
+            of: find.byType(TextField),
+            matching: find.byType(ColoredBox),
+          ),
+        )
+        .first
+        .color;
+
+    final light = headerColor();
+    expect(light, nexLightTheme().colorScheme.surface);
+
+    await preferences.setThemeMode(ThemeMode.dark);
+    await tester.pumpAndSettle();
+
+    expect(
+      headerColor(),
+      nexDarkTheme().colorScheme.surface,
+      reason: 'the header repainted in the theme the rest of the app is in',
+    );
+  });
+
   testWidgets('the filter row and the cards share one edge on a wide window',
       (tester) async {
     tester.view.physicalSize = const Size(1600, 1200);

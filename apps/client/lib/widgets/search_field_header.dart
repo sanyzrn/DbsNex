@@ -135,9 +135,20 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
     );
   }
 
+  /// Always.
+  ///
+  /// This used to compare the delegate's own three fields, which is what the
+  /// API invites — and it is wrong for any header that reads its colours from
+  /// the theme. `shouldRebuild` gates whether the cached subtree is thrown
+  /// away, and a theme change does not touch `searching`, `controller` or
+  /// `focusNode`, so switching between light and dark left this header painted
+  /// in the colours of the theme the app happened to launch in: a black strip
+  /// across a light timeline, or a white one across a dark timeline, depending
+  /// on which way you switched.
+  ///
+  /// A field and a row of icons is cheap to rebuild, and the state that must
+  /// survive — the query and the focus — lives in the controller and the focus
+  /// node, both owned outside this delegate.
   @override
-  bool shouldRebuild(SearchFieldHeader old) =>
-      old.searching != searching ||
-      old.controller != controller ||
-      old.focusNode != focusNode;
+  bool shouldRebuild(SearchFieldHeader old) => true;
 }
