@@ -179,18 +179,22 @@ const nexCardInsets = EdgeInsets.symmetric(
   vertical: NexSpacing.xs,
 );
 
+/// The type glyph's container on a card, and the photo thumbnail's size.
+const nexCardLeadingSize = 56.0;
+
 /// One height for every card in the timeline.
 ///
 /// Cards used to size to their content, so a note carrying tags stood taller
 /// than one without and a note with two lines of text taller than one with a
 /// single line — the list came out ragged, with no relationship between a
-/// card's height and anything the reader cares about. The budget is fixed
-/// here: 32 of inset, two lines of preview at 24, a little slack, and the
-/// metadata row.
-const nexCardHeight = 120.0;
-
-/// The height reserved for a card's date-and-tags row.
-const nexCardMetaHeight = 34.0;
+/// card's height and anything the reader cares about.
+///
+/// Derived rather than chosen: the leading glyph sits in equal insets above and
+/// below, and everything else fits inside that. It used to be 120, which left
+/// the glyph with 16 above it and 48 below — the card looked top-weighted
+/// because it was. The date and the tag *names* have moved off the card since,
+/// which is what freed the room.
+const nexCardHeight = nexCardLeadingSize + NexSpacing.cardInset * 2;
 
 /// The typeface used everywhere except in Persian.
 ///

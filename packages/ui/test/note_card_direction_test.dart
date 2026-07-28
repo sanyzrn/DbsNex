@@ -36,14 +36,12 @@ void main() {
     expect(body.textDirection, TextDirection.rtl);
     expect(body.textAlign, TextAlign.right);
 
-    // ...and nothing else moved. The type icon and the date stay on the left,
-    // exactly where they sit on an English card: wrapping the whole card in a
-    // Directionality mirrored the icon, the date and the tags too.
+    // ...and nothing else moved. The type glyph stays on the left, exactly
+    // where it sits on an English card: wrapping the whole card in a
+    // Directionality mirrored the glyph and the tag marks too.
     final card = tester.getRect(find.byType(NoteCard));
     final icon = tester.getCenter(find.byIcon(nexNoteTypeIcon('text')));
-    final date = tester.getCenter(find.text('Jul 28'));
-    expect(icon.dx, lessThan(card.center.dx), reason: 'icon stays leading');
-    expect(date.dx, lessThan(card.center.dx), reason: 'date stays leading');
+    expect(icon.dx, lessThan(card.center.dx), reason: 'glyph stays leading');
   });
 
   testWidgets('a left-to-right note is laid out identically', (tester) async {
@@ -55,7 +53,6 @@ void main() {
     final card = tester.getRect(find.byType(NoteCard));
     expect(tester.getCenter(find.byIcon(nexNoteTypeIcon('text'))).dx,
         lessThan(card.center.dx));
-    expect(tester.getCenter(find.text('Jul 28')).dx, lessThan(card.center.dx));
   });
 
   testWidgets('the icon sits in the same place either way', (tester) async {

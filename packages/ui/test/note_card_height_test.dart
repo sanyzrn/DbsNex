@@ -68,41 +68,57 @@ void main() {
     expect(short, nexCardHeight + nexCardInsets.vertical);
   });
 
-  testWidgets('a tag that does not fit runs off the edge rather than wrapping',
-      (tester) async {
-    // Wrapping to a second run of chips is what made a tagged card taller.
+  testWidgets('tags are colours on the card, never names', (tester) async {
+    // The name is already in the note's own words and in its detail sheet; on
+    // the card it competed with the first line for the same glance, and three
+    // of them filled the row.
     await heightOf(
       tester,
-      note(
-        'short',
-        tags: [
-          for (final name in ['Work', 'Idea', 'Flutter', 'Learning', 'Later'])
-            tag(name),
-        ],
-      ),
+      note('short', tags: [tag('Work'), tag('Idea')]),
     );
 
-    final dates = tester.getRect(find.text('Jul 28'));
-    for (final name in ['Work', 'Idea']) {
-      // Same line as the date: one row, however many tags there are.
-      expect(
-        tester.getRect(find.text(name)).center.dy,
-        closeTo(dates.center.dy, 1),
-      );
-    }
+    expect(find.text('Work'), findsNothing);
+    expect(find.text('Idea'), findsNothing);
+    expect(find.text('Jul 28'), findsNothing, reason: 'the date moved too');
   });
 
-  testWidgets('the preview starts at the top, so one- and two-line notes align',
+  testWidgets('a tag with no colour still leaves a mark', (tester) async {
+    // Otherwise "this note is tagged" would depend on the user having chosen
+    // a colour, and an untagged note and an uncoloured-tag note would read
+    // identically.
+    await heightOf(tester, note('untagged'));
+    final bare = tester.widgetList(find.byType(Container)).length;
+
+    await heightOf(tester, note('tagged', tags: [tag('Work')]));
+    expect(
+      tester.widgetList(find.byType(Container)).length,
+      greaterThan(bare),
+    );
+  });
+
+  testWidgets('the glyph sits in equal insets, top and bottom',
       (tester) async {
+    // It used to have 16 above it and 48 below, which is why the card read as
+    // top-weighted: it was.
     await heightOf(tester, note('one line'));
-    final short = tester.getRect(find.text('one line')).top;
+    final card = tester.getRect(find.byType(NoteCard));
+    final glyph = tester.getRect(find.byIcon(nexNoteTypeIcon('text')).first);
+
+    // The icon is centred in its box, so measure the box's edges from it.
+    final above = glyph.center.dy - (card.top + nexCardInsets.top);
+    final below = (card.bottom - nexCardInsets.bottom) - glyph.center.dy;
+    expect(above, closeTo(below, 0.5));
+  });
+
+  testWidgets('one- and two-line previews are both centred', (tester) async {
+    await heightOf(tester, note('one line'));
+    final short = tester.getRect(find.text('one line'));
 
     await heightOf(tester, note('a note that is long enough to take two lines '
         'in the card preview and therefore wraps'));
     final long = tester
-        .getRect(find.textContaining('a note that is long enough'))
-        .top;
+        .getRect(find.textContaining('a note that is long enough'));
 
-    expect(long, closeTo(short, 0.5));
+    expect(long.center.dy, closeTo(short.center.dy, 0.5));
   });
 }

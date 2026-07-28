@@ -3,9 +3,9 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 
-/// How tall the search field is, and therefore how far the list starts scrolled
-/// down so the field sits just out of sight.
-const nexSearchHeaderExtent = 60.0;
+/// How tall the search field's sliver is: the field itself plus its padding.
+const nexSearchHeaderExtent =
+    nexMinTapTarget + NexSpacing.xs + NexSpacing.sm;
 
 /// The query field, living above the first card rather than on a screen of its
 /// own.
@@ -82,7 +82,15 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                   start: NexSpacing.md,
                   end: NexSpacing.sm,
                 ),
-                child: Row(
+                child: ConstrainedBox(
+                  // One height, focused or not. The clear button only exists
+                  // while searching, and it is the tallest thing in the row —
+                  // so the field grew by several pixels the moment it was
+                  // tapped, which read as the control jumping under the finger.
+                  // This is also the tap-target floor, which the resting state
+                  // was under.
+                  constraints: const BoxConstraints(minHeight: nexMinTapTarget),
+                  child: Row(
                   children: [
                     Icon(
                       Icons.search,
@@ -117,6 +125,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                         icon: const Icon(Icons.close),
                       ),
                   ],
+                  ),
                 ),
               ),
             ),

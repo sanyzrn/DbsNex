@@ -1,8 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-// intl exports a TextDirection that is not dart:ui's, which makes every
-// TextDirection here ambiguous. Only DateFormat is wanted from it.
-import 'package:intl/intl.dart' hide TextDirection;
 import 'package:nex_core/nex_core.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
@@ -92,35 +89,37 @@ class NoteCard extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(NexSpacing.cardInset),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _Leading(note: note),
                     const SizedBox(width: NexSpacing.contentGap),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // The text takes whatever the metadata row leaves,
-                          // and sits at the top of it — so a one-line note and
-                          // a two-line note both start on the same baseline
-                          // instead of floating in a differently sized card.
-                          Expanded(
-                            child: Align(
-                              alignment: AlignmentDirectional.topStart,
-                              child: previewOverride ?? _Preview(note: note),
-                            ),
-                          ),
-                          if (footnote != null)
+                          previewOverride ?? _Preview(note: note),
+                          if (footnote != null) ...[
+                            const SizedBox(height: NexSpacing.xs),
                             Text(
                               footnote!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall,
                             ),
-                          _Meta(note: note),
+                          ],
                         ],
                       ),
                     ),
+                    // Colours, not names. A tag's name is already in its own
+                    // words inside the note; on the card it was competing with
+                    // the note's first line for the same glance, and three of
+                    // them filled the row. The dot is the whole of what a
+                    // timeline needs: which tags, at a glance, without reading.
+                    if (note.tags.isNotEmpty) ...[
+                      const SizedBox(width: NexSpacing.sm),
+                      _TagDots(tags: note.tags, strings: strings),
+                    ],
                   ],
                 ),
               ),
@@ -131,50 +130,64 @@ class NoteCard extends StatelessWidget {
     );
   }
 
+  /// The card's own announcement: what kind of note, and what it says.
+  ///
+  /// The tags are deliberately not here. They are announced by the dots, which
+  /// is the node a screen-reader user can actually navigate to — repeating them
+  /// on the parent would read the tag list twice on the way past.
   String _label() => [
     strings.noteOfType(note.type.name),
     note.searchableDerivedText ?? '',
-    if (note.tags.isNotEmpty)
-      strings.tagList(note.tags.map((tag) => tag.name).join(', ')),
   ].where((value) => value.isNotEmpty).join('. ');
 }
 
-/// The date and the tags, on exactly one line.
+/// A tag's colour, stacked down the card's trailing edge.
 ///
-/// A [Wrap] here was what made cards different heights: a note with three tags
-/// pushed them onto a second run and grew the card by 30px. This keeps the row
-/// to its one line and lets a tag that does not fit run off the edge, which
-/// reads as "there are more" — the card is a preview, and the note's own sheet
-/// is where every tag is listed.
-class _Meta extends StatelessWidget {
-  const _Meta({required this.note});
+/// Vertical rather than a row under the text: it costs the card no height at
+/// all, which is the point — the date and the tag chips were most of why a card
+/// was 120px tall. Capped at four, because past that they stop being
+/// distinguishable and start being a texture.
+///
+/// A tag with no colour still gets a mark, drawn as an outline, so "this note
+/// is tagged" never depends on the user having picked a colour.
+class _TagDots extends StatelessWidget {
+  const _TagDots({required this.tags, required this.strings});
 
-  final Note note;
+  static const _max = 4;
+  static const _size = 8.0;
+
+  final List<Tag> tags;
+  final NexCardStrings strings;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SizedBox(
-      height: nexCardMetaHeight,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        // Not scrollable: this is a clip, not a control. NeverScrollable also
-        // keeps it out of the gesture arena, so it cannot compete with the
-        // card's own swipe.
-        physics: const NeverScrollableScrollPhysics(),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              DateFormat.MMMd().format(note.createdAt.toLocal()),
-              style: theme.textTheme.bodySmall,
+    final scheme = Theme.of(context).colorScheme;
+    final shown = tags.take(_max).toList();
+    return Semantics(
+      // A node of its own: the card sets `explicitChildNodes`, so a label
+      // without a container of its own merges into the parent and stops being
+      // something a screen reader can navigate to.
+      container: true,
+      label: strings.tagList(tags.map((tag) => tag.name).join(', ')),
+      excludeSemantics: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < shown.length; i++) ...[
+            if (i > 0) const SizedBox(height: NexSpacing.xs + 2),
+            Container(
+              width: _size,
+              height: _size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: nexParseTagColor(shown[i].color),
+                border: shown[i].color == null
+                    ? Border.all(color: scheme.outline, width: 1.5)
+                    : null,
+              ),
             ),
-            for (final tag in note.tags) ...[
-              const SizedBox(width: NexSpacing.sm),
-              TagChip(tag: tag, compact: true),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
@@ -230,10 +243,10 @@ class _Leading extends StatelessWidget {
         ),
         child: Image.file(
           File(uri),
-          width: 56,
-          height: 56,
-          cacheWidth: (56 * ratio).round(),
-          cacheHeight: (56 * ratio).round(),
+          width: nexCardLeadingSize,
+          height: nexCardLeadingSize,
+          cacheWidth: (nexCardLeadingSize * ratio).round(),
+          cacheHeight: (nexCardLeadingSize * ratio).round(),
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => const _IconBox(Icons.image_not_supported_outlined),
         ),
@@ -250,8 +263,8 @@ class _IconBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      width: 56,
-      height: 56,
+      width: nexCardLeadingSize,
+      height: nexCardLeadingSize,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(

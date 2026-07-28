@@ -546,9 +546,25 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    l10n.noteType(note.type.wireName),
-                    style: Theme.of(context).textTheme.bodySmall,
+                  // The type and when it was captured, on one line.
+                  //
+                  // The date used to be on the timeline card and the time was
+                  // nowhere except behind the Details button — so the card
+                  // carried the half nobody needed at a glance and hid the
+                  // half you go looking for. It is the other way round now:
+                  // the card is clean, and this is where you find out when.
+                  Row(
+                    children: [
+                      Text(
+                        l10n.noteType(note.type.wireName),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const Spacer(),
+                      Text(
+                        _formatTimestamp(note.createdAt),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: NexSpacing.sm),
                   if (note.type == NoteType.text)
