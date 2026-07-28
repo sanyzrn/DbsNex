@@ -17,8 +17,11 @@ import 'recently_deleted_screen.dart';
 import 'tag_manager_screen.dart';
 import 'update_sheet.dart';
 
-String _swipeLabel(AppLocalizations l10n, SwipeAction action) =>
-    action == SwipeAction.delete ? l10n.delete : l10n.addTag;
+String _swipeLabel(AppLocalizations l10n, SwipeAction action) => switch (action) {
+      SwipeAction.none => l10n.swipeNone,
+      SwipeAction.delete => l10n.delete,
+      SwipeAction.addTag => l10n.addTag,
+    };
 
 /// The v1 preference surface.
 ///
@@ -637,8 +640,17 @@ class _SwipeMappingState extends State<_SwipeMapping> {
   }
 }
 
-IconData _swipeIcon(SwipeAction action) =>
-    action == SwipeAction.delete ? Icons.delete_outline : Icons.label_outline;
+IconData _swipeIcon(SwipeAction action) => switch (action) {
+      SwipeAction.none => Icons.block,
+      SwipeAction.delete => Icons.delete_outline,
+      SwipeAction.addTag => Icons.label_outline,
+    };
+
+Color _swipeColor(ThemeData theme, SwipeAction action) => switch (action) {
+      SwipeAction.none => theme.colorScheme.outline,
+      SwipeAction.delete => theme.colorScheme.error,
+      SwipeAction.addTag => theme.colorScheme.secondary,
+    };
 
 /// One edge of the mapping, with its action chosen from a menu.
 ///
@@ -662,9 +674,7 @@ class _SwipeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final destructive = action == SwipeAction.delete;
-    final accent =
-        destructive ? theme.colorScheme.error : theme.colorScheme.secondary;
+    final accent = _swipeColor(theme, action);
     return PopupMenuButton<SwipeAction>(
       tooltip: title,
       onSelected: onSelected,
@@ -677,9 +687,7 @@ class _SwipeRow extends StatelessWidget {
                 Icon(
                   _swipeIcon(candidate),
                   size: 18,
-                  color: candidate == SwipeAction.delete
-                      ? theme.colorScheme.error
-                      : theme.colorScheme.secondary,
+                  color: _swipeColor(theme, candidate),
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Text(_swipeLabel(l10n, candidate))),

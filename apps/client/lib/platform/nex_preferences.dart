@@ -5,13 +5,28 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'ai_provider.dart';
 import 'package:uuid/uuid.dart';
 
-enum SwipeAction { delete, addTag }
+/// The actions a swipe edge can be bound to.
+///
+/// `none` is a real choice, not an absence: a user who wants one gesture and
+/// not two needs a way to say so. ADR-022 originally fixed this at exactly two
+/// and called the set deliberately closed; the set is open now, and adding to
+/// it means adding an entry here and a case in the resolver — nothing else.
+enum SwipeAction { none, delete, addTag }
 
 extension SwipeActionWire on SwipeAction {
-  String get wireName => this == SwipeAction.delete ? 'delete' : 'add_tag';
+  String get wireName => switch (this) {
+        SwipeAction.none => 'none',
+        SwipeAction.delete => 'delete',
+        SwipeAction.addTag => 'add_tag',
+      };
 
-  static SwipeAction fromWire(String value) =>
-      value == 'add_tag' ? SwipeAction.addTag : SwipeAction.delete;
+  static SwipeAction fromWire(String? value) => switch (value) {
+        'none' => SwipeAction.none,
+        'add_tag' => SwipeAction.addTag,
+        'delete' => SwipeAction.delete,
+        // An unknown stored value is not a reason to lose the gesture.
+        _ => SwipeAction.delete,
+      };
 }
 
 class NexPreferences extends ChangeNotifier {
@@ -170,18 +185,19 @@ class NexPreferences extends ChangeNotifier {
   /// is indistinguishable from a swap; the point is that the *control* is a
   /// choice per edge, which is what a third action would need — and adding one
   /// then means extending [SwipeAction] and this method, not rewriting the UI.
+  /// Assigns one edge, and only that edge.
+  ///
+  /// The edges are independent: setting one no longer displaces the other, so
+  /// both may hold the same action, or none at all. Coupling them made the
+  /// control a swap button wearing a menu's clothes.
   Future<void> setSwipeAction({
     required bool isLeading,
     required SwipeAction action,
   }) async {
-    final other = SwipeAction.values.firstWhere(
-      (candidate) => candidate != action,
-      orElse: () => action,
+    await _prefs.setString(
+      isLeading ? 'swipe.leading' : 'swipe.trailing',
+      action.wireName,
     );
-    final leading = isLeading ? action : other;
-    final trailing = isLeading ? other : action;
-    await _prefs.setString('swipe.leading', leading.wireName);
-    await _prefs.setString('swipe.trailing', trailing.wireName);
     notifyListeners();
   }
 

@@ -10,7 +10,12 @@ import '../tokens/nex_tokens.dart';
 
 enum NexSwipeAction { delete, addTag }
 
-typedef NexSwipeActionResolver = NexSwipeAction Function({required bool isLeading});
+/// What an edge does, where null means "nothing".
+///
+/// An edge with no action does not move at all, so a user who only wants one
+/// gesture is not given a second one they will trigger by accident.
+
+typedef NexSwipeActionResolver = NexSwipeAction? Function({required bool isLeading});
 
 /// Keeps at most one card open across a list.
 ///
@@ -214,6 +219,8 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     var next = _offset.value + details.delta.dx;
 
     if (_allowedSign == 0) {
+      // An edge bound to no action simply does not open.
+      if (next != 0 && !_edgeIsLive(next)) return;
       if (next != 0) _allowedSign = next.isNegative ? -1 : 1;
     } else {
       // The wall at zero. Dragging back from an open card closes it and stops
@@ -235,7 +242,7 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     final current = _offset.value;
 
     // Dragged most of the way across: run it, the way Mail does.
-    if (current.abs() >= _width * _commitFraction) {
+    if (current != 0 && current.abs() >= _width * _commitFraction) {
       final revealed = _actionFor(current);
       if (revealed != null) {
         _run(revealed);
@@ -246,7 +253,8 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     final flung = velocity.abs() > 420 &&
         (velocity.isNegative == current.isNegative) &&
         current != 0;
-    final shouldOpen = flung || current.abs() >= _open * 0.55;
+    final shouldOpen =
+        _edgeIsLive(current) && (flung || current.abs() >= _open * 0.55);
     final sign = current.isNegative ? -1 : 1;
     _settle(shouldOpen ? sign * _open : 0, velocity);
   }
@@ -286,6 +294,13 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     if (dx.abs() < 0.5) return null;
     final leading = _rtl ? dx < 0 : dx > 0;
     return widget.resolveAction(isLeading: leading);
+  }
+
+  /// Whether the edge the finger is heading for does anything at all.
+  bool _edgeIsLive(double dx) {
+    if (dx == 0) return true;
+    final leading = _rtl ? dx < 0 : dx > 0;
+    return widget.resolveAction(isLeading: leading) != null;
   }
 
   @override

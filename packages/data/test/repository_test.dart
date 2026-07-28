@@ -141,6 +141,25 @@ void main() {
       }
     });
 
+    test('starter tags carry the same id on every device (sync safety)', () {
+      // Each device seeds its own copy, so a random id would give two devices
+      // two different "Work" tags and syncing them would produce a duplicate
+      // the user never made.
+      final second = Directory.systemTemp.createTempSync('nex_second_device_');
+      final otherDb = NexDatabase.open(p.join(second.path, 'nex.sqlite'));
+      addTearDown(() {
+        otherDb.close();
+        second.deleteSync(recursive: true);
+      });
+      final other = SqliteNoteRepository(otherDb);
+
+      final here = {for (final tag in repo.listTags()) tag.name: tag.id};
+      final there = {for (final tag in other.listTags()) tag.name: tag.id};
+
+      expect(here.keys, unorderedEquals(suggestedStarterTags));
+      expect(here, there);
+    });
+
     test('Persian FTS correctness (ADR-028)', () {
       // Includes ZWNJ (U+200C) between می and رود — common Persian orthography.
       const zwnj = '\u200C';

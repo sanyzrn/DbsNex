@@ -654,4 +654,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String connectionOk(String model) {
     return 'Connected. Model $model answered.';
   }
+
+  @override
+  String get swipeNone => 'Nothing';
 }

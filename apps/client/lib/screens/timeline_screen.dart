@@ -419,9 +419,11 @@ class TimelineScreenState extends State<TimelineScreen> {
                     final action = isLeading
                         ? widget.preferences.leadingAction
                         : widget.preferences.trailingAction;
-                    return action == SwipeAction.delete
-                        ? NexSwipeAction.delete
-                        : NexSwipeAction.addTag;
+                    return switch (action) {
+                      SwipeAction.none => null,
+                      SwipeAction.delete => NexSwipeAction.delete,
+                      SwipeAction.addTag => NexSwipeAction.addTag,
+                    };
                   },
                   onDelete: () => unawaited(deleteWithUndo(note)),
                   onAddTag: () => unawaited(_addTagTo(note)),

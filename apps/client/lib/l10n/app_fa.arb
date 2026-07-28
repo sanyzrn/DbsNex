@@ -347,5 +347,9 @@
         "type": "String"
       }
     }
+  },
+  "swipeNone": "هیچ کاری",
+  "@swipeNone": {
+    "description": "Swipe edge bound to no action at all"
   }
 }

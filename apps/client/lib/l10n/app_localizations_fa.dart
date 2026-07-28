@@ -654,4 +654,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String connectionOk(String model) {
     return 'وصل شد. مدل $model جواب داد.';
   }
+
+  @override
+  String get swipeNone => 'هیچ کاری';
 }

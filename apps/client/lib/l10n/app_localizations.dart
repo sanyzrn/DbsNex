@@ -1195,6 +1195,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Connected. Model {model} answered.'**
   String connectionOk(String model);
+
+  /// Swipe edge bound to no action at all
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing'**
+  String get swipeNone;
 }
 
 class _AppLocalizationsDelegate

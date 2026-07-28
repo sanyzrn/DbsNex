@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:nex_core/nex_core.dart' show newUuidV7;
+import 'package:nex_core/nex_core.dart' show stableUuidV5;
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
@@ -131,7 +131,9 @@ CREATE TABLE IF NOT EXISTS nex_meta (
       db.execute(
         'INSERT OR IGNORE INTO tags (id, name, color, created_at) '
         'VALUES (?, ?, NULL, ?)',
-        [newUuidV7(), name, now],
+        // A name-derived id, so two devices seeding the same starters agree on
+        // one row rather than syncing into a duplicate.
+        [stableUuidV5(name), name, now],
       );
     }
     db.execute(
