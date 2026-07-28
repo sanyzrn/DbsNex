@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+// intl exports a TextDirection that is not dart:ui's, which makes every
+// TextDirection here ambiguous. Only DateFormat is wanted from it.
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:nex_core/nex_core.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
@@ -38,12 +40,7 @@ class NoteCard extends StatelessWidget {
             onTap: onTap,
             child: Padding(
               padding: const EdgeInsets.all(NexSpacing.cardInset),
-              // The card lays itself out in the direction of the note's own
-              // text, so a Persian note reads right-to-left even while the
-              // interface is in English — icon, body, date and tags together.
-              child: NexTextDirection(
-                text: note.searchableDerivedText,
-                child: Row(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _Leading(note: note),
@@ -70,7 +67,6 @@ class NoteCard extends StatelessWidget {
                     ),
                   ),
                 ],
-                ),
               ),
             ),
           ),
@@ -87,13 +83,37 @@ class NoteCard extends StatelessWidget {
   ].where((value) => value.isNotEmpty).join('. ');
 }
 
+/// The note's own words, laid out in the note's own direction.
+///
+/// Only the text turns. Wrapping the whole card in a [Directionality] also
+/// moved the type icon, the date and the tag chips to the other side, so a
+/// Persian note came out mirrored against every card around it — the text was
+/// right but the card was wrong. Direction here belongs to the paragraph, and
+/// the card keeps the layout the interface language gives it.
 class _Preview extends StatelessWidget {
   const _Preview({required this.note});
+
   final Note note;
+
   @override
   Widget build(BuildContext context) {
     final text = note.searchableDerivedText ?? note.type.name;
-    return Text(text, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyLarge);
+    final direction = nexDirectionOf(text);
+    return SizedBox(
+      // Full width, so a short right-to-left line reaches the right edge
+      // instead of hugging the left one it happens to start at.
+      width: double.infinity,
+      child: Text(
+        text,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textDirection: direction,
+        textAlign: direction == TextDirection.rtl
+            ? TextAlign.right
+            : TextAlign.start,
+        style: Theme.of(context).textTheme.bodyLarge,
+      ),
+    );
   }
 }
 

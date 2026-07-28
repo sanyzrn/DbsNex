@@ -394,7 +394,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
             ),
             const SizedBox(height: NexSpacing.sm),
             if (note.type == NoteType.text)
-              Text(
+              // Only the body turns. The "Text" label, the action row and the
+              // rest of the sheet keep the interface's direction.
+              NexBodyText(
                 note.content ?? '',
                 style: Theme.of(context).textTheme.bodyLarge,
               )
@@ -417,7 +419,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                   l10n.transcript,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                Text(note.transcriptText!),
+                NexBodyText(note.transcriptText!),
               ] else
                 Text(
                   l10n.voiceSearchHint,
@@ -456,7 +458,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               if (note.ocrText != null) ...[
                 const SizedBox(height: NexSpacing.sm),
                 Text(l10n.ocr, style: Theme.of(context).textTheme.bodySmall),
-                Text(note.ocrText!),
+                NexBodyText(note.ocrText!),
               ],
             ] else ...[
               // File — same sheet, ADR-008 display fields. Tapping the row
@@ -531,7 +533,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               Text(l10n.caption, style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: NexSpacing.xs),
               if (note.caption != null && note.caption!.trim().isNotEmpty)
-                Text(
+                NexBodyText(
                   note.caption!,
                   style: Theme.of(context).textTheme.bodyLarge,
                 )
@@ -557,7 +559,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
             if (_summaryIsMeaningful(note)) ...[
               const SizedBox(height: NexSpacing.md),
               Text(l10n.summary, style: Theme.of(context).textTheme.bodySmall),
-              Text(note.summaryText!),
+              NexBodyText(note.summaryText!),
             ],
             const SizedBox(height: NexSpacing.md),
             Wrap(
