@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/nex_dialog.dart';
 import '../platform/nex_services.dart';
 import '../widgets/tag_picker.dart';
 
@@ -20,20 +21,6 @@ import '../widgets/tag_picker.dart';
 /// type was never declared and the sheet popped without a value, so the undo
 /// path was unreachable.
 enum DetailResult { deleted }
-
-/// The entries of the sheet's overflow menu, so the switch over the chosen
-/// entry is exhaustive rather than a string comparison.
-enum _NoteMenuAction {
-  open,
-  share,
-  edit,
-  copy,
-  copyPath,
-  addTag,
-  caption,
-  summarize,
-  details,
-}
 
 class NoteDetailSheet extends StatefulWidget {
   const NoteDetailSheet({
@@ -227,13 +214,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.editNote),
-        content: TextField(
+        content: NexDialogBody(child: TextField(
           controller: controller,
           autofocus: true,
           maxLines: null,
           minLines: 3,
           keyboardType: TextInputType.multiline,
-        ),
+        )),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -264,7 +251,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.details),
-        content: Column(
+        content: NexDialogBody(child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -288,7 +275,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                 value: nexFormatBytes(file.lengthSync()),
               ),
           ],
-        ),
+        )),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -304,102 +291,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     String two(int n) => n.toString().padLeft(2, '0');
     return '${local.year}-${two(local.month)}-${two(local.day)} '
         '${two(local.hour)}:${two(local.minute)}';
-  }
-
-  /// FR-2 "more options": everything the sheet can do that is not already a
-  /// primary control, in one menu instead of two loose text buttons.
-  Future<void> _openMenu() async {
-    final note = _note;
-    if (note == null) return;
-    final l10n = AppLocalizations.of(context);
-    final isText = note.type == NoteType.text;
-    final hasMedia = note.mediaUri != null;
-    final choice = await showModalBottomSheet<_NoteMenuAction>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (hasMedia)
-              ListTile(
-                leading: const Icon(Icons.open_in_new),
-                title: Text(l10n.open),
-                onTap: () => Navigator.pop(ctx, _NoteMenuAction.open),
-              ),
-            ListTile(
-              leading: const Icon(Icons.ios_share),
-              title: Text(l10n.share),
-              onTap: () => Navigator.pop(ctx, _NoteMenuAction.share),
-            ),
-            if (isText)
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: Text(l10n.edit),
-                onTap: () => Navigator.pop(ctx, _NoteMenuAction.edit),
-              ),
-            ListTile(
-              leading: const Icon(Icons.copy_outlined),
-              title: Text(l10n.copy),
-              onTap: () => Navigator.pop(ctx, _NoteMenuAction.copy),
-            ),
-            if (hasMedia)
-              ListTile(
-                leading: const Icon(Icons.folder_outlined),
-                title: Text(l10n.revealInFolder),
-                onTap: () => Navigator.pop(ctx, _NoteMenuAction.copyPath),
-              ),
-            ListTile(
-              leading: const Icon(Icons.label_outline),
-              title: Text(l10n.addTag),
-              onTap: () => Navigator.pop(ctx, _NoteMenuAction.addTag),
-            ),
-            if (!isText)
-              ListTile(
-                leading: const Icon(Icons.notes_outlined),
-                title: Text(
-                  note.caption == null || note.caption!.trim().isEmpty
-                      ? l10n.addCaption
-                      : l10n.editCaption,
-                ),
-                onTap: () => Navigator.pop(ctx, _NoteMenuAction.caption),
-              ),
-            ListTile(
-              leading: const Icon(Icons.auto_awesome_outlined),
-              title: Text(l10n.summarize),
-              onTap: () => Navigator.pop(ctx, _NoteMenuAction.summarize),
-            ),
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: Text(l10n.details),
-              onTap: () => Navigator.pop(ctx, _NoteMenuAction.details),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (!mounted || choice == null) return;
-    switch (choice) {
-      case _NoteMenuAction.open:
-        await _openExternally();
-      case _NoteMenuAction.share:
-        await _share();
-      case _NoteMenuAction.edit:
-        await _editContent();
-      case _NoteMenuAction.copy:
-        await _copyText();
-      case _NoteMenuAction.copyPath:
-        await _copyPath();
-      case _NoteMenuAction.addTag:
-        await _addTag();
-      case _NoteMenuAction.caption:
-        await _editCaption();
-      case _NoteMenuAction.summarize:
-        await widget.services.summarizeOnDemand(note.id);
-        await _reload();
-      case _NoteMenuAction.details:
-        await _showDetails();
-    }
   }
 
   /// Tagging a note.
@@ -435,12 +326,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.caption),
-        content: TextField(
+        content: NexDialogBody(child: TextField(
           controller: controller,
           autofocus: true,
           maxLines: 3,
           decoration: InputDecoration(hintText: l10n.captionHint),
-        ),
+        )),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -484,6 +375,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         child: Text(l10n.noteNotFound),
       );
     }
+    final isText = note.type == NoteType.text;
+    final hasMedia = note.mediaUri != null;
     return Padding(
       padding: EdgeInsets.only(
         left: NexSpacing.md,
@@ -495,20 +388,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.noteType(note.type.wireName),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-                IconButton(
-                  tooltip: l10n.moreOptions,
-                  icon: const Icon(Icons.more_horiz),
-                  onPressed: _openMenu,
-                ),
-              ],
+            Text(
+              l10n.noteType(note.type.wireName),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: NexSpacing.sm),
             if (note.type == NoteType.text)
@@ -627,6 +509,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                               ),
                           ],
                         ),
+                      ),
+                      IconButton(
+                        tooltip: l10n.revealInFolder,
+                        onPressed: _copyPath,
+                        icon: const Icon(Icons.folder_outlined, size: 18),
+                        color: Theme.of(context).colorScheme.secondary,
                       ),
                       Icon(
                         Icons.open_in_new,
@@ -749,10 +637,64 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                   subtitle: Text(l10n.similarity(hit.score.toStringAsFixed(2))),
                 ),
             ],
-            const SizedBox(height: NexSpacing.md),
-            // Delete stays outside the overflow menu: it is the one destructive
-            // action, and the timeline owns the actual soft-delete so the undo
-            // toast is offered exactly once.
+            const SizedBox(height: NexSpacing.lg),
+            // The actions sit in the open, as labelled icons. They were behind
+            // a single overflow button in the corner, which is the hardest
+            // place on a phone to reach and told you nothing about what was
+            // inside. Delete keeps its own row: it is the one action that
+            // cannot be undone by repeating it, and the timeline owns the
+            // actual soft-delete so the undo toast is offered exactly once.
+            _ActionRow(
+              actions: [
+                if (hasMedia)
+                  _DetailAction(
+                    icon: Icons.open_in_new,
+                    label: l10n.open,
+                    onPressed: _openExternally,
+                  ),
+                _DetailAction(
+                  icon: Icons.ios_share,
+                  label: l10n.share,
+                  onPressed: _share,
+                ),
+                _DetailAction(
+                  icon: Icons.copy_outlined,
+                  label: l10n.copy,
+                  onPressed: _copyText,
+                ),
+                if (isText)
+                  _DetailAction(
+                    icon: Icons.edit_outlined,
+                    label: l10n.edit,
+                    onPressed: _editContent,
+                  ),
+                if (!isText)
+                  _DetailAction(
+                    icon: Icons.notes_outlined,
+                    label: l10n.caption,
+                    onPressed: _editCaption,
+                  ),
+                _DetailAction(
+                  icon: Icons.label_outline,
+                  label: l10n.tag,
+                  onPressed: _addTag,
+                ),
+                _DetailAction(
+                  icon: Icons.auto_awesome_outlined,
+                  label: l10n.summarize,
+                  onPressed: () async {
+                    await widget.services.summarizeOnDemand(note.id);
+                    await _reload();
+                  },
+                ),
+                _DetailAction(
+                  icon: Icons.info_outline,
+                  label: l10n.details,
+                  onPressed: _showDetails,
+                ),
+              ],
+            ),
+            const SizedBox(height: NexSpacing.sm),
             TextButton.icon(
               onPressed: () => Navigator.pop(context, DetailResult.deleted),
               icon: const Icon(Icons.delete_outline),
@@ -874,6 +816,70 @@ class _FullScreenPhoto extends StatelessWidget {
       body: Center(
         child: InteractiveViewer(
           child: Image.file(File(path), fit: BoxFit.contain),
+        ),
+      ),
+    );
+  }
+}
+
+/// A horizontally scrolling strip of labelled icon actions.
+///
+/// Scrolling rather than wrapping: the number of actions depends on the note's
+/// type, and a strip that silently grows a second row shifts everything below
+/// it as you move between notes.
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({required this.actions});
+
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: actions),
+      );
+}
+
+class _DetailAction extends StatelessWidget {
+  const _DetailAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(NexColors.cardRadius),
+        child: Container(
+          width: 76,
+          padding: const EdgeInsets.symmetric(vertical: NexSpacing.contentGap),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(NexColors.cardRadius),
+            border: Border.all(color: theme.colorScheme.outline),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
         ),
       ),
     );

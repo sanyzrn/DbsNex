@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:nex_data/nex_data.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/nex_dialog.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 
@@ -96,7 +97,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
-        content: Text(body),
+        content: NexDialogBody(child: Text(body)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),

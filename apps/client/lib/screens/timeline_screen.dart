@@ -238,6 +238,10 @@ class TimelineScreenState extends State<TimelineScreen> {
     final keep = await showModalBottomSheet<bool>(
       context: context,
       isDismissible: false,
+      // The waveform needs the full sheet width and its own height, not the
+      // half-screen default a content-sized sheet collapses to.
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (_) => RecordingSheet(recorder: recorder),
     );
     final recorded = await recorder.stop();

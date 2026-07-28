@@ -5,6 +5,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/nex_dialog.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import 'package:nex_data/nex_data.dart';
@@ -325,7 +326,7 @@ class SettingsSheet extends StatelessWidget {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text(l10n.operationFailed),
+                                      content: NexDialogBody(child: Text(l10n.operationFailed)),
                                     ),
                                   );
                                 }
@@ -422,7 +423,7 @@ class SettingsSheet extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.restoreBackup),
-        content: Text(l10n.restoreBody),
+        content: NexDialogBody(child: Text(l10n.restoreBody)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
