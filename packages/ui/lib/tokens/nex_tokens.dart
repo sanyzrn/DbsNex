@@ -409,6 +409,18 @@ TextTheme _textTheme({required Color primary, required Color secondary}) =>
       labelSmall: _style(size: 12, lineHeight: 16, weight: FontWeight.w600, color: secondary),
     );
 
+/// How much room the system's own bars need at the bottom of a scrolling list.
+///
+/// The app targets an Android that draws edge to edge unconditionally, so a
+/// three-button navigation bar overlaps the window rather than shrinking it.
+/// A list has to end above that bar or its last row cannot be read or tapped.
+///
+/// Padding rather than a `SafeArea`: content should still *scroll* under the
+/// bar, which looks right and is what the platform intends — it simply must not
+/// *stop* under it.
+double nexBottomInset(BuildContext context) =>
+    MediaQuery.paddingOf(context).bottom;
+
 /// The glyph for a note type, and the only place one is chosen.
 ///
 /// A photo note used to be `Icons.image_outlined` on its card and

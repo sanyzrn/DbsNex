@@ -21,7 +21,9 @@ class AboutScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.about)),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: NexSpacing.xl),
+        padding: EdgeInsets.only(
+          bottom: NexSpacing.xl + nexBottomInset(context),
+        ),
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(

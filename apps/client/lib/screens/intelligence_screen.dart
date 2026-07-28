@@ -106,7 +106,9 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.intelligence)),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: NexSpacing.xl),
+        padding: EdgeInsets.only(
+          bottom: NexSpacing.xl + nexBottomInset(context),
+        ),
         children: [
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(

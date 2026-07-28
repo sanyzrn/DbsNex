@@ -1424,6 +1424,12 @@ abstract class AppLocalizations {
   /// **'Test connection'**
   String get testConnection;
 
+  /// Confirmation shown after the AI provider settings are stored
+  ///
+  /// In en, this message translates to:
+  /// **'Provider saved.'**
+  String get aiProviderSaved;
+
   /// Honest note about how the key is kept
   ///
   /// In en, this message translates to:

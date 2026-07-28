@@ -290,7 +290,15 @@ class _GradientSlider extends StatelessWidget {
             height: 12,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(6),
-              gradient: LinearGradient(colors: colors),
+              // Directional, not physical. `Slider` runs start-to-end, so in a
+              // right-to-left layout its zero is on the right — while a plain
+              // `LinearGradient` always paints left-to-right. The two ran
+              // opposite ways in Persian, so dragging toward red gave blue.
+              gradient: LinearGradient(
+                begin: AlignmentDirectional.centerStart,
+                end: AlignmentDirectional.centerEnd,
+                colors: colors,
+              ),
               border: Border.all(color: theme.colorScheme.outline),
             ),
           ),

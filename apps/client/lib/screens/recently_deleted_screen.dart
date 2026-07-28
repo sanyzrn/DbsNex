@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_data/nex_data.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../widgets/nex_dialog.dart';
@@ -163,6 +164,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                 ),
                 Expanded(
                   child: ListView.separated(
+                    padding: EdgeInsets.only(bottom: nexBottomInset(context)),
                     itemCount: notes.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
