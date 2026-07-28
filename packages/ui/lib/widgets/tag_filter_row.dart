@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 
 import '../tokens/nex_tokens.dart';
+import 'nex_tappable.dart';
 
 /// Horizontally scrolling tag filter pills (mockup `.filter-row` / FR-4).
 ///
@@ -101,29 +102,35 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = theme.colorScheme;
+    // Selection is the accent's job now. It used to invert to near-black,
+    // which reads as "disabled" or "inverted" rather than "this is the filter
+    // you are looking through" — and left the app with no way at all to say
+    // that something is active.
     final bg = selected
-        ? theme.colorScheme.onSurface
-        : theme.colorScheme.surface;
-    final fg = selected
-        ? theme.colorScheme.surface
-        : theme.colorScheme.onSurface;
-    Color? dot;
-    if (accent != null) {
-      dot = nexParseTagColor(accent);
-      if (selected) dot = fg.withValues(alpha: 0.9);
-    }
-    return Material(
-      color: bg,
-      shape: StadiumBorder(
-        side: BorderSide(
-          color: selected ? bg : theme.colorScheme.outline,
+        ? scheme.primary.withValues(alpha: 0.12)
+        : scheme.surfaceContainerLowest;
+    final fg = selected ? scheme.primary : scheme.onSurface;
+    // A tag with no colour used to get a grey dot, which reads as a broken
+    // swatch rather than as an absence.
+    final dot = accent == null ? null : nexParseTagColor(accent);
+    return NexTappable(
+      onTap: onTap,
+      selected: selected,
+      semanticLabel: label,
+      shape: const StadiumBorder(),
+      child: Material(
+        color: bg,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: selected ? scheme.primary : scheme.outline,
+          ),
         ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const StadiumBorder(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: NexSpacing.md,
+            vertical: NexSpacing.sm,
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -133,25 +140,14 @@ class _Pill extends StatelessWidget {
                   height: 8,
                   decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
                 ),
-                const SizedBox(width: 6),
-              ] else if (!selected) ...[
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.outline,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 6),
+                const SizedBox(width: NexSpacing.sm),
               ],
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: fg,
-                ),
+                // Through the theme, so the most-used control on the timeline
+                // is not the one thing typeset outside the design system — and
+                // so it follows the app's face rather than the platform's.
+                style: theme.textTheme.labelLarge?.copyWith(color: fg),
               ),
             ],
           ),

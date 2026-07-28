@@ -751,6 +751,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String noteOfType(String type) {
+    return '$type note';
+  }
+
+  @override
+  String tagListLabel(String tags) {
+    return 'Tags: $tags';
+  }
+
+  @override
+  String get accentColorLabel => 'Accent color';
+
+  @override
   String get tagColor => 'Tag color';
 
   @override

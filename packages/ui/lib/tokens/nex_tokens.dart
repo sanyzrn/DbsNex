@@ -409,6 +409,23 @@ TextTheme _textTheme({required Color primary, required Color secondary}) =>
       labelSmall: _style(size: 12, lineHeight: 16, weight: FontWeight.w600, color: secondary),
     );
 
+/// The glyph for a note type, and the only place one is chosen.
+///
+/// A photo note used to be `Icons.image_outlined` on its card and
+/// `Icons.photo_outlined` in the type picker — the same concept with two
+/// different marks, so the filter and the thing it filters did not correspond.
+/// The set is also all one weight: three filled and two outlined in a single
+/// five-row list reads as unpolished before anyone can say why.
+///
+/// [wireName] is the note type's own wire name; null means "every type".
+IconData nexNoteTypeIcon(String? wireName) => switch (wireName) {
+      'text' => Icons.notes_outlined,
+      'voice' => Icons.graphic_eq_outlined,
+      'photo' => Icons.image_outlined,
+      'file' => Icons.insert_drive_file_outlined,
+      _ => Icons.all_inclusive_outlined,
+    };
+
 double nexContrastRatio(Color a, Color b) {
   final high = math.max(a.computeLuminance(), b.computeLuminance());
   final low = math.min(a.computeLuminance(), b.computeLuminance());

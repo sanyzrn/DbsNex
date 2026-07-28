@@ -7,6 +7,40 @@ import 'package:nex_core/nex_core.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
 
+/// The words a screen reader needs, in the language the user chose.
+///
+/// This package deliberately carries no localisations of its own — the same
+/// reason [TagFilterRow.allLabel] is passed in — but the semantic strings were
+/// built into the card in English regardless. A Persian user running TalkBack
+/// heard "text note. Tags: کار": the structure in one language, the content in
+/// another.
+class NexCardStrings {
+  const NexCardStrings({
+    required this.noteOfType,
+    required this.tagList,
+    required this.accentColor,
+  });
+
+  /// English default, for tests and for anything that has not been localised
+  /// yet. The app passes the real thing.
+  static const fallback = NexCardStrings(
+    noteOfType: _defaultNoteOfType,
+    tagList: _defaultTagList,
+    accentColor: 'Accent color',
+  );
+
+  static String _defaultNoteOfType(String type) => '$type note';
+  static String _defaultTagList(String tags) => 'Tags: $tags';
+
+  /// "Voice note", given the note's type name.
+  final String Function(String type) noteOfType;
+
+  /// "Tags: work, ideas", given the joined names.
+  final String Function(String tags) tagList;
+
+  final String accentColor;
+}
+
 class NoteCard extends StatelessWidget {
   const NoteCard({
     super.key,
@@ -14,11 +48,13 @@ class NoteCard extends StatelessWidget {
     this.onTap,
     this.previewOverride,
     this.footnote,
+    this.strings = NexCardStrings.fallback,
   });
   final Note note;
   final VoidCallback? onTap;
   final Widget? previewOverride;
   final String? footnote;
+  final NexCardStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +67,11 @@ class NoteCard extends StatelessWidget {
         child: Semantics(
           button: onTap != null,
           label: _label(),
-          excludeSemantics: true,
+          // Not `excludeSemantics`. That collapsed the whole card into one
+          // string, so a screen-reader user could not reach the date, an
+          // individual tag, or the preview separately — a long undifferentiated
+          // announcement with nothing inside it to navigate to.
+          explicitChildNodes: true,
           child: Material(
             // The card's own fill, not the page's. They used to be the same
             // colour, which left a 1.2:1 hairline as the only thing marking the
@@ -89,10 +129,10 @@ class NoteCard extends StatelessWidget {
   }
 
   String _label() => [
-    '${note.type.name} note',
+    strings.noteOfType(note.type.name),
     note.searchableDerivedText ?? '',
     if (note.tags.isNotEmpty)
-      'Tags: ${note.tags.map((tag) => tag.name).join(', ')}',
+      strings.tagList(note.tags.map((tag) => tag.name).join(', ')),
   ].where((value) => value.isNotEmpty).join('. ');
 }
 
@@ -196,12 +236,7 @@ class _Leading extends StatelessWidget {
         ),
       );
     }
-    return _IconBox(switch (note.type) {
-      NoteType.text => Icons.short_text,
-      NoteType.voice => Icons.graphic_eq,
-      NoteType.photo => Icons.image_outlined,
-      NoteType.file => Icons.insert_drive_file_outlined,
-    });
+    return _IconBox(nexNoteTypeIcon(note.type.wireName));
   }
 }
 
@@ -230,21 +265,28 @@ class _IconBox extends StatelessWidget {
 }
 
 class TagChip extends StatelessWidget {
-  const TagChip({super.key, required this.tag, this.compact = false, this.onRemove});
+  const TagChip({
+    super.key,
+    required this.tag,
+    this.compact = false,
+    this.onRemove,
+    this.strings = NexCardStrings.fallback,
+  });
   final Tag tag;
   final bool compact;
   final VoidCallback? onRemove;
+  final NexCardStrings strings;
   @override
   Widget build(BuildContext context) => InputChip(
     visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
     // A chip's default tap target is 48px tall — half again the chip itself,
     // and on a card it is decoration rather than a control, so that padding
-    // was pure card height.
+    // was pure card height. A removable chip *is* a control and keeps it.
     materialTapTargetSize:
-        compact ? MaterialTapTargetSize.shrinkWrap : null,
+        compact && onRemove == null ? MaterialTapTargetSize.shrinkWrap : null,
     label: Text(tag.name),
     avatar: tag.color == null ? null : Semantics(
-      label: 'Accent color',
+      label: strings.accentColor,
       child: Container(
         width: 8,
         height: 8,

@@ -1310,6 +1310,24 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Nothing left to read} =1{1 note read} other{{count} notes read}}'**
   String catchUpDone(int count);
 
+  /// Screen-reader label naming a note's type
+  ///
+  /// In en, this message translates to:
+  /// **'{type} note'**
+  String noteOfType(String type);
+
+  /// Screen-reader label listing a note's tags
+  ///
+  /// In en, this message translates to:
+  /// **'Tags: {tags}'**
+  String tagListLabel(String tags);
+
+  /// Screen-reader label for a tag's colour swatch
+  ///
+  /// In en, this message translates to:
+  /// **'Accent color'**
+  String get accentColorLabel;
+
   /// Title of the tag color picker
   ///
   /// In en, this message translates to:

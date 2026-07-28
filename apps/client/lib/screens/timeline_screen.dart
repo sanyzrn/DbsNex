@@ -14,6 +14,7 @@ import '../platform/os_capture_bridge.dart';
 import '../platform/update_service.dart';
 import 'package:nex_data/nex_data.dart';
 import '../widgets/capture_sheet.dart';
+import '../widgets/card_strings.dart';
 import '../widgets/empty_timeline.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/tag_picker.dart';
@@ -111,7 +112,7 @@ class TimelineScreenState extends State<TimelineScreen> {
           children: [
             for (final type in <NoteType?>[null, ...NoteType.values])
               ListTile(
-                leading: Icon(_typeIcon(type)),
+                leading: Icon(nexNoteTypeIcon(type?.wireName)),
                 title: Text(
                   type == null ? l10n.all : l10n.noteType(type.wireName),
                 ),
@@ -128,14 +129,6 @@ class TimelineScreenState extends State<TimelineScreen> {
     if (chosen == null) return;
     await _selectType(chosen.type);
   }
-
-  static IconData _typeIcon(NoteType? type) => switch (type) {
-        null => Icons.all_inclusive,
-        NoteType.text => Icons.short_text,
-        NoteType.voice => Icons.graphic_eq,
-        NoteType.photo => Icons.photo_outlined,
-        NoteType.file => Icons.insert_drive_file_outlined,
-      };
 
   void _tick() {
     if (widget.preferences.haptics) HapticFeedback.selectionClick();
@@ -460,6 +453,7 @@ class TimelineScreenState extends State<TimelineScreen> {
                   onAddTag: () => unawaited(_addTagTo(note)),
                   child: NoteCard(
                     note: note,
+                    strings: nexCardStrings(context),
                     onTap: () async {
                       final result = await showModalBottomSheet<DetailResult>(
                         context: context, isScrollControlled: true, useSafeArea: true,
@@ -508,24 +502,29 @@ class _TypeFilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final active = selected != null;
-    return Material(
-      color: active ? theme.colorScheme.onSurface : theme.colorScheme.surface,
-      shape: StadiumBorder(
-        side: BorderSide(
-          color: active ? theme.colorScheme.onSurface : theme.colorScheme.outline,
+    return NexTappable(
+      onTap: onPressed,
+      selected: active,
+      semanticLabel: AppLocalizations.of(context).filters,
+      shape: const StadiumBorder(),
+      child: Material(
+        color: active
+            ? scheme.primary.withValues(alpha: 0.12)
+            : scheme.surfaceContainerLowest,
+        shape: StadiumBorder(
+          side: BorderSide(color: active ? scheme.primary : scheme.outline),
         ),
-      ),
-      child: InkWell(
-        onTap: onPressed,
-        customBorder: const StadiumBorder(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: NexSpacing.contentGap - NexSpacing.xs,
+            vertical: NexSpacing.sm,
+          ),
           child: Icon(
             Icons.tune,
-            size: 16,
-            color: active ? theme.colorScheme.surface : theme.colorScheme.onSurface,
+            size: 18,
+            color: active ? scheme.primary : scheme.onSurface,
           ),
         ),
       ),

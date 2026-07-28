@@ -751,6 +751,19 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String noteOfType(String type) {
+    return 'یادداشت $type';
+  }
+
+  @override
+  String tagListLabel(String tags) {
+    return 'برچسب‌ها: $tags';
+  }
+
+  @override
+  String get accentColorLabel => 'رنگ برچسب';
+
+  @override
   String get tagColor => 'رنگ برچسب';
 
   @override
