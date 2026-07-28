@@ -764,6 +764,21 @@ class AppLocalizationsFa extends AppLocalizations {
   String get accentColorLabel => 'رنگ برچسب';
 
   @override
+  String get captureFailedPermission =>
+      'به Nex اجازهٔ استفاده از دوربین یا عکس‌ها داده نشده. می‌توانید از تنظیمات دستگاه اجازه بدهید.';
+
+  @override
+  String get captureFailedStorage =>
+      'روی این دستگاه جایی برای این فایل نمانده. یادداشت‌های قبلی شما تغییری نکردند.';
+
+  @override
+  String get captureFailedUnreadable =>
+      'این فایل خوانده نشد. اگر در پوشهٔ ابری است، یک بار بازش کنید تا نسخه‌اش روی دستگاه بیاید.';
+
+  @override
+  String get retry => 'دوباره تلاش کن';
+
+  @override
   String get tagColor => 'رنگ برچسب';
 
   @override

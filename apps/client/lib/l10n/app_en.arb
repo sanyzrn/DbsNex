@@ -637,6 +637,22 @@
   "@accentColorLabel": {
     "description": "Screen-reader label for a tag's colour swatch"
   },
+  "captureFailedPermission": "Nex was not allowed to use the camera or your photos. You can grant it in your device settings.",
+  "@captureFailedPermission": {
+    "description": "Capture failed because the OS refused access"
+  },
+  "captureFailedStorage": "There is no room left on this device for the file. Your existing notes were not changed.",
+  "@captureFailedStorage": {
+    "description": "Capture failed because the device is out of space"
+  },
+  "captureFailedUnreadable": "That file could not be read. If it lives in a cloud folder, open it once so the device has a copy.",
+  "@captureFailedUnreadable": {
+    "description": "Capture failed because the picked file could not be read"
+  },
+  "retry": "Try again",
+  "@retry": {
+    "description": "Action on a failure message that repeats what failed"
+  },
   "tagColor": "Tag color",
   "@tagColor": {
     "description": "Title of the tag color picker"

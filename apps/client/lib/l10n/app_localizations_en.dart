@@ -764,6 +764,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accentColorLabel => 'Accent color';
 
   @override
+  String get captureFailedPermission =>
+      'Nex was not allowed to use the camera or your photos. You can grant it in your device settings.';
+
+  @override
+  String get captureFailedStorage =>
+      'There is no room left on this device for the file. Your existing notes were not changed.';
+
+  @override
+  String get captureFailedUnreadable =>
+      'That file could not be read. If it lives in a cloud folder, open it once so the device has a copy.';
+
+  @override
+  String get retry => 'Try again';
+
+  @override
   String get tagColor => 'Tag color';
 
   @override

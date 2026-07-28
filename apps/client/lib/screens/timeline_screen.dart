@@ -8,6 +8,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
 import '../l10n/app_localizations.dart';
+import '../platform/capture_failure.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/os_capture_bridge.dart';
@@ -197,9 +198,12 @@ class TimelineScreenState extends State<TimelineScreen> {
   }
 
   Future<void> capturePhoto(ImageSource source) async {
-    final picked = await ImagePicker().pickImage(source: source);
-    if (picked == null) return;
     try {
+      // Inside the try: this is the call that throws when the OS refuses the
+      // camera or the photo library, which is the single most likely failure
+      // and the one the old handler could not have caught.
+      final picked = await ImagePicker().pickImage(source: source);
+      if (picked == null) return;
       final bytes = await picked.readAsBytes();
       final dest = p.join(
         widget.services.mediaDir,
@@ -214,13 +218,32 @@ class TimelineScreenState extends State<TimelineScreen> {
       widget.services.scheduleEnrichment(note.id);
       if (widget.preferences.haptics) HapticFeedback.lightImpact();
       await widget.services.refreshTimeline();
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).captureFailed)),
-        );
-      }
+    } catch (error) {
+      // Not `catch (_)` with one sentence. Photo capture fails for at least
+      // four unrelated reasons and three of them are things the user can do
+      // something about — but only if the app says which one happened.
+      if (mounted) _reportCaptureFailure(CaptureFailure.of(error), source);
     }
+  }
+
+  void _reportCaptureFailure(CaptureFailure failure, ImageSource source) {
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(switch (failure) {
+            CaptureFailure.permission => l10n.captureFailedPermission,
+            CaptureFailure.storage => l10n.captureFailedStorage,
+            CaptureFailure.unreadable => l10n.captureFailedUnreadable,
+            CaptureFailure.unknown => l10n.captureFailed,
+          }),
+          action: SnackBarAction(
+            label: l10n.retry,
+            onPressed: () => unawaited(capturePhoto(source)),
+          ),
+        ),
+      );
   }
 
   Future<void> captureVoice() async {
