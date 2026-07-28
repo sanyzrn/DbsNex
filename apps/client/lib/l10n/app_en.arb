@@ -623,6 +623,20 @@
     "description": "Result of a backfill pass",
     "placeholders": { "count": { "type": "int" } }
   },
+  "noteOfType": "{type} note",
+  "@noteOfType": {
+    "description": "Screen-reader label naming a note's type",
+    "placeholders": { "type": { "type": "String" } }
+  },
+  "tagListLabel": "Tags: {tags}",
+  "@tagListLabel": {
+    "description": "Screen-reader label listing a note's tags",
+    "placeholders": { "tags": { "type": "String" } }
+  },
+  "accentColorLabel": "Accent color",
+  "@accentColorLabel": {
+    "description": "Screen-reader label for a tag's colour swatch"
+  },
   "tagColor": "Tag color",
   "@tagColor": {
     "description": "Title of the tag color picker"

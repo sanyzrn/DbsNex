@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_services.dart';
+import '../widgets/card_strings.dart';
 import 'package:nex_data/nex_data.dart';
 import 'note_detail_sheet.dart';
 
@@ -142,6 +143,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   )
                 : NoteCard(
                     note: results[index - 1],
+                    strings: nexCardStrings(context),
                     // Results used to be inert: the only way to open a note was
                     // to leave search and find it again on the timeline.
                     onTap: () => unawaited(_open(results[index - 1])),
@@ -170,7 +172,7 @@ class _Zero extends StatelessWidget {
           if (nearest != null) ...[
             Text(l10n.closestThing, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 8),
-            NoteCard(note: nearest!),
+            NoteCard(note: nearest!, strings: nexCardStrings(context)),
           ] else Text(l10n.nothingClose),
         ]),
       ),

@@ -40,7 +40,7 @@ void main() {
     // exactly where they sit on an English card: wrapping the whole card in a
     // Directionality mirrored the icon, the date and the tags too.
     final card = tester.getRect(find.byType(NoteCard));
-    final icon = tester.getCenter(find.byIcon(Icons.short_text));
+    final icon = tester.getCenter(find.byIcon(nexNoteTypeIcon('text')));
     final date = tester.getCenter(find.text('Jul 28'));
     expect(icon.dx, lessThan(card.center.dx), reason: 'icon stays leading');
     expect(date.dx, lessThan(card.center.dx), reason: 'date stays leading');
@@ -53,17 +53,17 @@ void main() {
     expect(body.textAlign, TextAlign.start);
 
     final card = tester.getRect(find.byType(NoteCard));
-    expect(tester.getCenter(find.byIcon(Icons.short_text)).dx,
+    expect(tester.getCenter(find.byIcon(nexNoteTypeIcon('text'))).dx,
         lessThan(card.center.dx));
     expect(tester.getCenter(find.text('Jul 28')).dx, lessThan(card.center.dx));
   });
 
   testWidgets('the icon sits in the same place either way', (tester) async {
     await tester.pumpWidget(host(textNote(english)));
-    final ltrIcon = tester.getCenter(find.byIcon(Icons.short_text));
+    final ltrIcon = tester.getCenter(find.byIcon(nexNoteTypeIcon('text')));
 
     await tester.pumpWidget(host(textNote(persian)));
-    final rtlIcon = tester.getCenter(find.byIcon(Icons.short_text));
+    final rtlIcon = tester.getCenter(find.byIcon(nexNoteTypeIcon('text')));
 
     expect(rtlIcon.dx, closeTo(ltrIcon.dx, 0.5));
   });

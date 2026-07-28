@@ -191,11 +191,16 @@ void main() {
       addTearDown(gesture.up);
 
       final rect = tester.getRect(panel);
-      // 400 wide, 16 of gutter on each side, 5 above and below.
-      expect(rect.right, closeTo(384, 0.5));
-      expect(rect.left, closeTo(264, 0.5), reason: '120 of travel');
-      expect(rect.top, closeTo(5, 0.5));
-      expect(rect.height, closeTo(70, 0.5));
+      // 400 wide, and the card's own gutter on every side — read from the
+      // token rather than restated, so the two cannot drift apart.
+      expect(rect.right, closeTo(400 - nexCardInsets.right, 0.5));
+      expect(
+        rect.left,
+        closeTo(400 - nexCardInsets.right - 120, 0.5),
+        reason: '120 of travel',
+      );
+      expect(rect.top, closeTo(nexCardInsets.top, 0.5));
+      expect(rect.height, closeTo(80 - nexCardInsets.vertical, 0.5));
       // The old panel ran to x = 0 and the full height, past the card on every
       // side.
       expect(rect.left, greaterThan(0));
