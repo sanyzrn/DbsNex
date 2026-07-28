@@ -460,6 +460,7 @@ class TimelineScreenState extends State<TimelineScreen> {
                     onTap: () async {
                       final result = await showModalBottomSheet<DetailResult>(
                         context: context, isScrollControlled: true, useSafeArea: true,
+                        showDragHandle: true,
                         builder: (_) => NoteDetailSheet(services: widget.services, noteId: note.id),
                       );
                       if (result == DetailResult.deleted) {

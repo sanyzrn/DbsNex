@@ -214,13 +214,15 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.editNote),
-        content: NexDialogBody(child: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: null,
-          minLines: 3,
-          keyboardType: TextInputType.multiline,
-        )),
+        content: NexDialogBody(
+          child: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLines: null,
+            minLines: 3,
+            keyboardType: TextInputType.multiline,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -251,31 +253,33 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.details),
-        content: NexDialogBody(child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _DetailRow(label: l10n.noteType(note.type.wireName), value: ''),
-            _DetailRow(
-              label: l10n.created,
-              value: _formatTimestamp(note.createdAt),
-            ),
-            _DetailRow(
-              label: l10n.updated,
-              value: _formatTimestamp(note.updatedAt),
-            ),
-            if (note.tags.isNotEmpty)
+        content: NexDialogBody(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _DetailRow(label: l10n.noteType(note.type.wireName), value: ''),
               _DetailRow(
-                label: l10n.tags,
-                value: note.tags.map((t) => t.name).join('، '),
+                label: l10n.created,
+                value: _formatTimestamp(note.createdAt),
               ),
-            if (file != null && file.existsSync())
               _DetailRow(
-                label: l10n.size,
-                value: nexFormatBytes(file.lengthSync()),
+                label: l10n.updated,
+                value: _formatTimestamp(note.updatedAt),
               ),
-          ],
-        )),
+              if (note.tags.isNotEmpty)
+                _DetailRow(
+                  label: l10n.tags,
+                  value: note.tags.map((t) => t.name).join('، '),
+                ),
+              if (file != null && file.existsSync())
+                _DetailRow(
+                  label: l10n.size,
+                  value: nexFormatBytes(file.lengthSync()),
+                ),
+            ],
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -326,12 +330,14 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.caption),
-        content: NexDialogBody(child: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: 3,
-          decoration: InputDecoration(hintText: l10n.captionHint),
-        )),
+        content: NexDialogBody(
+          child: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLines: 3,
+            decoration: InputDecoration(hintText: l10n.captionHint),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -354,10 +360,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   bool _summaryIsMeaningful(Note note) {
     final summary = note.summaryText?.trim();
     if (summary == null || summary.isEmpty) return false;
-    final source = (note.content ??
-            note.transcriptText ??
-            note.ocrText ??
-            '')
+    final source = (note.content ?? note.transcriptText ?? note.ocrText ?? '')
         .trim();
     if (source.isEmpty) return summary.isNotEmpty;
     if (summary == source) return false;
@@ -377,336 +380,400 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     }
     final isText = note.type == NoteType.text;
     final hasMedia = note.mediaUri != null;
-    return Padding(
-      padding: EdgeInsets.only(
-        left: NexSpacing.md,
-        right: NexSpacing.md,
-        top: NexSpacing.sm,
-        bottom: MediaQuery.viewInsetsOf(context).bottom + NexSpacing.lg,
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    // A long note is the reason this sheet exists, so it opens at reading
+    // height instead of a strip at the bottom the user has to drag upward.
+    // Short notes still hug their content — a two-line thought does not need
+    // two thirds of the screen.
+    final long =
+        (note.content ?? note.transcriptText ?? note.ocrText ?? '')
+            .trim()
+            .length >
+        220;
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: screenHeight * 0.92,
+        minHeight: long ? screenHeight * 0.7 : 0,
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l10n.noteType(note.type.wireName),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: NexSpacing.sm),
-            if (note.type == NoteType.text)
-              // Only the body turns. The "Text" label, the action row and the
-              // rest of the sheet keep the interface's direction.
-              NexBodyText(
-                note.content ?? '',
-                style: Theme.of(context).textTheme.bodyLarge,
-              )
-            else if (note.type == NoteType.voice) ...[
-              Text(
-                l10n.voiceDuration(((note.durationMs ?? 0) / 1000).ceil()),
-                style: Theme.of(context).textTheme.bodyLarge,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                NexSpacing.md,
+                NexSpacing.sm,
+                NexSpacing.md,
+                NexSpacing.md,
               ),
-              if (_player != null) ...[
-                const SizedBox(height: NexSpacing.sm),
-                _VoicePlayerControls(
-                  player: _player!,
-                  position: _position,
-                  duration: _duration,
-                ),
-              ],
-              if (note.transcriptText != null) ...[
-                const SizedBox(height: NexSpacing.sm),
-                Text(
-                  l10n.transcript,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                NexBodyText(note.transcriptText!),
-              ] else
-                Text(
-                  l10n.voiceSearchHint,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-            ] else if (note.type == NoteType.photo) ...[
-              if (note.mediaUri != null && File(note.mediaUri!).existsSync()) ...[
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => _FullScreenPhoto(path: note.mediaUri!),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.noteType(note.type.wireName),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: NexSpacing.sm),
+                  if (note.type == NoteType.text)
+                    // Only the body turns. The "Text" label, the action row and the
+                    // rest of the sheet keep the interface's direction.
+                    NexBodyText(
+                      note.content ?? '',
+                      // Looser leading than the timeline card: this is the surface a
+                      // person actually reads a long note on, and 1.5 at 16px runs
+                      // the lines together over a screenful of text.
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.copyWith(height: 1.62),
+                    )
+                  else if (note.type == NoteType.voice) ...[
+                    Text(
+                      l10n.voiceDuration(
+                        ((note.durationMs ?? 0) / 1000).ceil(),
                       ),
-                    );
-                  },
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
-                      File(note.mediaUri!),
-                      fit: BoxFit.cover,
-                      height: 220,
-                      width: double.infinity,
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
-                  ),
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                Text(
-                  l10n.tapToExpand,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ] else
-                Text(
-                  l10n.mediaUnavailable,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              if (note.ocrText != null) ...[
-                const SizedBox(height: NexSpacing.sm),
-                Text(l10n.ocr, style: Theme.of(context).textTheme.bodySmall),
-                NexBodyText(note.ocrText!),
-              ],
-            ] else ...[
-              // File — same sheet, ADR-008 display fields. Tapping the row
-              // hands it to the OS, so the note behaves like the same file
-              // does in a file manager.
-              InkWell(
-                onTap: _openExternally,
-                borderRadius: BorderRadius.circular(NexColors.cardRadius),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: NexSpacing.sm,
-                    horizontal: NexSpacing.xs,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.insert_drive_file_outlined,
-                        color: Theme.of(context).colorScheme.secondary,
+                    if (_player != null) ...[
+                      const SizedBox(height: NexSpacing.sm),
+                      _VoicePlayerControls(
+                        player: _player!,
+                        position: _position,
+                        duration: _duration,
                       ),
-                      const SizedBox(width: NexSpacing.sm),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              note.content?.trim().isNotEmpty == true
-                                  ? note.content!
-                                  : (note.mediaUri != null
-                                      ? p.basename(note.mediaUri!)
-                                      : l10n.file),
-                              style: Theme.of(context).textTheme.bodyLarge,
+                    ],
+                    if (note.transcriptText != null) ...[
+                      const SizedBox(height: NexSpacing.sm),
+                      Text(
+                        l10n.transcript,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      NexBodyText(note.transcriptText!),
+                    ] else
+                      Text(
+                        l10n.voiceSearchHint,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                  ] else if (note.type == NoteType.photo) ...[
+                    if (note.mediaUri != null &&
+                        File(note.mediaUri!).existsSync()) ...[
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  _FullScreenPhoto(path: note.mediaUri!),
                             ),
-                            if (note.mediaUri != null &&
-                                File(note.mediaUri!).existsSync())
-                              Text(
-                                [
-                                  nexFormatBytes(
-                                      File(note.mediaUri!).lengthSync()),
-                                  if (note.mimeType != null) note.mimeType!,
-                                ].join(' · '),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .secondary,
-                                      fontWeight: FontWeight.w400,
+                          );
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            File(note.mediaUri!),
+                            fit: BoxFit.cover,
+                            height: 220,
+                            width: double.infinity,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: NexSpacing.sm),
+                      Text(
+                        l10n.tapToExpand,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ] else
+                      Text(
+                        l10n.mediaUnavailable,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    if (note.ocrText != null) ...[
+                      const SizedBox(height: NexSpacing.sm),
+                      Text(
+                        l10n.ocr,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      NexBodyText(note.ocrText!),
+                    ],
+                  ] else ...[
+                    // File — same sheet, ADR-008 display fields. Tapping the row
+                    // hands it to the OS, so the note behaves like the same file
+                    // does in a file manager.
+                    InkWell(
+                      onTap: _openExternally,
+                      borderRadius: BorderRadius.circular(NexColors.cardRadius),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: NexSpacing.sm,
+                          horizontal: NexSpacing.xs,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.insert_drive_file_outlined,
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                            const SizedBox(width: NexSpacing.sm),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    note.content?.trim().isNotEmpty == true
+                                        ? note.content!
+                                        : (note.mediaUri != null
+                                              ? p.basename(note.mediaUri!)
+                                              : l10n.file),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge,
+                                  ),
+                                  if (note.mediaUri != null &&
+                                      File(note.mediaUri!).existsSync())
+                                    Text(
+                                      [
+                                        nexFormatBytes(
+                                          File(note.mediaUri!).lengthSync(),
+                                        ),
+                                        if (note.mimeType != null)
+                                          note.mimeType!,
+                                      ].join(' · '),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.secondary,
+                                            fontWeight: FontWeight.w400,
+                                          ),
                                     ),
+                                ],
                               ),
+                            ),
+                            IconButton(
+                              tooltip: l10n.revealInFolder,
+                              onPressed: _copyPath,
+                              icon: const Icon(Icons.folder_outlined, size: 18),
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
+                            Icon(
+                              Icons.open_in_new,
+                              size: 18,
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
                           ],
                         ),
                       ),
-                      IconButton(
-                        tooltip: l10n.revealInFolder,
-                        onPressed: _copyPath,
-                        icon: const Icon(Icons.folder_outlined, size: 18),
-                        color: Theme.of(context).colorScheme.secondary,
+                    ),
+                  ],
+                  if (note.type != NoteType.text) ...[
+                    const SizedBox(height: NexSpacing.md),
+                    Text(
+                      l10n.caption,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: NexSpacing.xs),
+                    if (note.caption != null && note.caption!.trim().isNotEmpty)
+                      NexBodyText(
+                        note.caption!,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      )
+                    else
+                      Text(
+                        l10n.noCaption,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
                       ),
-                      Icon(
-                        Icons.open_in_new,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.secondary,
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: TextButton(
+                        onPressed: _editCaption,
+                        child: Text(
+                          note.caption == null || note.caption!.trim().isEmpty
+                              ? l10n.addCaption
+                              : l10n.editCaption,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (_summaryIsMeaningful(note)) ...[
+                    const SizedBox(height: NexSpacing.md),
+                    Text(
+                      l10n.summary,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    NexBodyText(note.summaryText!),
+                  ],
+                  const SizedBox(height: NexSpacing.md),
+                  Wrap(
+                    spacing: NexSpacing.xs,
+                    children: [
+                      for (final tag in note.tags)
+                        TagChip(
+                          tag: tag,
+                          onRemove: () async {
+                            await widget.services.removeTag(
+                              noteId: note.id,
+                              tagId: tag.id,
+                            );
+                            _reload();
+                          },
+                        ),
+                      ActionChip(
+                        avatar: const Icon(Icons.add, size: 16),
+                        label: Text(l10n.tag),
+                        onPressed: _addTag,
                       ),
                     ],
                   ),
-                ),
-              ),
-            ],
-            if (note.type != NoteType.text) ...[
-              const SizedBox(height: NexSpacing.md),
-              Text(l10n.caption, style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: NexSpacing.xs),
-              if (note.caption != null && note.caption!.trim().isNotEmpty)
-                NexBodyText(
-                  note.caption!,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                )
-              else
-                Text(
-                  l10n.noCaption,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.secondary,
-                      ),
-                ),
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: TextButton(
-                  onPressed: _editCaption,
-                  child: Text(
-                    note.caption == null || note.caption!.trim().isEmpty
-                        ? l10n.addCaption
-                        : l10n.editCaption,
-                  ),
-                ),
-              ),
-            ],
-            if (_summaryIsMeaningful(note)) ...[
-              const SizedBox(height: NexSpacing.md),
-              Text(l10n.summary, style: Theme.of(context).textTheme.bodySmall),
-              NexBodyText(note.summaryText!),
-            ],
-            const SizedBox(height: NexSpacing.md),
-            Wrap(
-              spacing: NexSpacing.xs,
-              children: [
-                for (final tag in note.tags)
-                  TagChip(
-                    tag: tag,
-                    onRemove: () async {
-                      await widget.services.removeTag(
-                        noteId: note.id,
-                        tagId: tag.id,
-                      );
-                      _reload();
-                    },
-                  ),
-                ActionChip(
-                  avatar: const Icon(Icons.add, size: 16),
-                  label: Text(l10n.tag),
-                  onPressed: _addTag,
-                ),
-              ],
-            ),
-            if (_suggestions.isNotEmpty) ...[
-              const SizedBox(height: NexSpacing.md),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.suggestedTags,
+                  if (_suggestions.isNotEmpty) ...[
+                    const SizedBox(height: NexSpacing.md),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.suggestedTags,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () =>
+                              setState(() => _suggestions = const []),
+                          child: Text(l10n.dismiss),
+                        ),
+                      ],
+                    ),
+                    Wrap(
+                      spacing: NexSpacing.xs,
+                      children: [
+                        for (final s in _suggestions)
+                          ActionChip(
+                            label: Text(s.name),
+                            onPressed: () async {
+                              await widget.services.addTag(
+                                noteId: note.id,
+                                name: s.name,
+                              );
+                              setState(() {
+                                _suggestions = _suggestions
+                                    .where((x) => x.name != s.name)
+                                    .toList();
+                              });
+                              _reload();
+                            },
+                          ),
+                      ],
+                    ),
+                  ],
+                  if (_related.isNotEmpty) ...[
+                    const SizedBox(height: NexSpacing.md),
+                    Text(
+                      l10n.relatedNotes,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                  ),
-                  TextButton(
-                    onPressed: () => setState(() => _suggestions = const []),
-                    child: Text(l10n.dismiss),
-                  ),
+                    for (final hit in _related)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: Text(
+                          _relatedTitles[hit.noteId] ?? hit.noteId,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          l10n.similarity(hit.score.toStringAsFixed(2)),
+                        ),
+                      ),
+                  ],
                 ],
               ),
-              Wrap(
-                spacing: NexSpacing.xs,
-                children: [
-                  for (final s in _suggestions)
-                    ActionChip(
-                      label: Text(s.name),
+            ),
+          ),
+          // The actions are pinned below the scroll rather than sitting at the
+          // end of it: a long note would otherwise bury them under a screenful
+          // of text, and they belong to the note, not to its ending.
+          //
+          // They sit in the open, as labelled icons. They were behind a single
+          // overflow button in the corner, which is the hardest place on a
+          // phone to reach and told you nothing about what was inside. Delete
+          // keeps its own row: it is the one action that cannot be undone by
+          // repeating it, and the timeline owns the actual soft-delete so the
+          // undo toast is offered exactly once.
+          Divider(height: 1, color: Theme.of(context).colorScheme.outline),
+          Padding(
+            padding: EdgeInsets.only(
+              left: NexSpacing.md,
+              right: NexSpacing.md,
+              top: NexSpacing.sm,
+              bottom: MediaQuery.viewInsetsOf(context).bottom + NexSpacing.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _ActionRow(
+                  actions: [
+                    if (hasMedia)
+                      _DetailAction(
+                        icon: Icons.open_in_new,
+                        label: l10n.open,
+                        onPressed: _openExternally,
+                      ),
+                    _DetailAction(
+                      icon: Icons.ios_share,
+                      label: l10n.share,
+                      onPressed: _share,
+                    ),
+                    _DetailAction(
+                      icon: Icons.copy_outlined,
+                      label: l10n.copy,
+                      onPressed: _copyText,
+                    ),
+                    if (isText)
+                      _DetailAction(
+                        icon: Icons.edit_outlined,
+                        label: l10n.edit,
+                        onPressed: _editContent,
+                      ),
+                    if (!isText)
+                      _DetailAction(
+                        icon: Icons.notes_outlined,
+                        label: l10n.caption,
+                        onPressed: _editCaption,
+                      ),
+                    _DetailAction(
+                      icon: Icons.label_outline,
+                      label: l10n.tag,
+                      onPressed: _addTag,
+                    ),
+                    _DetailAction(
+                      icon: Icons.auto_awesome_outlined,
+                      label: l10n.summarize,
                       onPressed: () async {
-                        await widget.services.addTag(
-                          noteId: note.id,
-                          name: s.name,
-                        );
-                        setState(() {
-                          _suggestions = _suggestions
-                              .where((x) => x.name != s.name)
-                              .toList();
-                        });
-                        _reload();
+                        await widget.services.summarizeOnDemand(note.id);
+                        await _reload();
                       },
                     ),
-                ],
-              ),
-            ],
-            if (_related.isNotEmpty) ...[
-              const SizedBox(height: NexSpacing.md),
-              Text(
-                l10n.relatedNotes,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              for (final hit in _related)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: Text(
-                    _relatedTitles[hit.noteId] ?? hit.noteId,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    _DetailAction(
+                      icon: Icons.info_outline,
+                      label: l10n.details,
+                      onPressed: _showDetails,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: NexSpacing.sm),
+                TextButton.icon(
+                  onPressed: () => Navigator.pop(context, DetailResult.deleted),
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(l10n.delete),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
                   ),
-                  subtitle: Text(l10n.similarity(hit.score.toStringAsFixed(2))),
-                ),
-            ],
-            const SizedBox(height: NexSpacing.lg),
-            // The actions sit in the open, as labelled icons. They were behind
-            // a single overflow button in the corner, which is the hardest
-            // place on a phone to reach and told you nothing about what was
-            // inside. Delete keeps its own row: it is the one action that
-            // cannot be undone by repeating it, and the timeline owns the
-            // actual soft-delete so the undo toast is offered exactly once.
-            _ActionRow(
-              actions: [
-                if (hasMedia)
-                  _DetailAction(
-                    icon: Icons.open_in_new,
-                    label: l10n.open,
-                    onPressed: _openExternally,
-                  ),
-                _DetailAction(
-                  icon: Icons.ios_share,
-                  label: l10n.share,
-                  onPressed: _share,
-                ),
-                _DetailAction(
-                  icon: Icons.copy_outlined,
-                  label: l10n.copy,
-                  onPressed: _copyText,
-                ),
-                if (isText)
-                  _DetailAction(
-                    icon: Icons.edit_outlined,
-                    label: l10n.edit,
-                    onPressed: _editContent,
-                  ),
-                if (!isText)
-                  _DetailAction(
-                    icon: Icons.notes_outlined,
-                    label: l10n.caption,
-                    onPressed: _editCaption,
-                  ),
-                _DetailAction(
-                  icon: Icons.label_outline,
-                  label: l10n.tag,
-                  onPressed: _addTag,
-                ),
-                _DetailAction(
-                  icon: Icons.auto_awesome_outlined,
-                  label: l10n.summarize,
-                  onPressed: () async {
-                    await widget.services.summarizeOnDemand(note.id);
-                    await _reload();
-                  },
-                ),
-                _DetailAction(
-                  icon: Icons.info_outline,
-                  label: l10n.details,
-                  onPressed: _showDetails,
                 ),
               ],
             ),
-            const SizedBox(height: NexSpacing.sm),
-            TextButton.icon(
-              onPressed: () => Navigator.pop(context, DetailResult.deleted),
-              icon: const Icon(Icons.delete_outline),
-              label: Text(l10n.delete),
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -836,9 +903,9 @@ class _ActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: actions),
-      );
+    scrollDirection: Axis.horizontal,
+    child: Row(children: actions),
+  );
 }
 
 class _DetailAction extends StatelessWidget {

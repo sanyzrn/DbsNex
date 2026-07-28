@@ -14,6 +14,7 @@ import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/os_capture_bridge.dart';
 import 'package:nex_client/screens/intelligence_screen.dart';
+import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/widgets/choice_cards.dart';
 
 import 'support/in_process_db.dart';
@@ -483,6 +484,46 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(preferences.locale?.languageCode, 'fa');
+  });
+
+  testWidgets('a long note opens at reading height with its actions in reach',
+      (tester) async {
+    final long = List.filled(60, 'a sentence that keeps going.').join(' ');
+    await services.captureText(long);
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(NoteCard).first);
+    await tester.pumpAndSettle();
+
+    final screen = tester.getSize(find.byType(MaterialApp)).height;
+    final sheet = tester.getSize(find.byType(NoteDetailSheet)).height;
+    // It used to open as a strip at the bottom that had to be dragged up
+    // before a word of a long note was readable.
+    expect(sheet, greaterThan(screen * 0.6));
+
+    // And the actions are pinned below the scroll, so a screenful of text does
+    // not bury them: they are on screen without scrolling anywhere.
+    expect(find.text('Delete').hitTestable(), findsOneWidget);
+    expect(find.text('Copy').hitTestable(), findsOneWidget);
+  });
+
+  testWidgets('a short note is still only as tall as it needs to be',
+      (tester) async {
+    await services.captureText('short');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(NoteCard).first);
+    await tester.pumpAndSettle();
+
+    final screen = tester.getSize(find.byType(MaterialApp)).height;
+    final sheet = tester.getSize(find.byType(NoteDetailSheet)).height;
+    expect(sheet, lessThan(screen * 0.7));
   });
 
   testWidgets('a name turns the timeline title into a greeting', (tester) async {
