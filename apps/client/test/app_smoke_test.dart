@@ -14,6 +14,7 @@ import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/os_capture_bridge.dart';
 import 'package:nex_client/screens/intelligence_screen.dart';
+import 'package:nex_client/widgets/choice_cards.dart';
 
 import 'support/in_process_db.dart';
 
@@ -210,12 +211,24 @@ void main() {
     expect(filtered.map((n) => n.id), [a.id]);
   });
 
-  test('Swipe mapping defaults and swap (ADR-022)', () async {
+  test('Swipe mapping defaults, and each edge moves alone (ADR-022 revised)',
+      () async {
     expect(preferences.leadingAction, SwipeAction.addTag);
     expect(preferences.trailingAction, SwipeAction.delete);
-    await preferences.swapSwipeMapping();
+    // Setting one edge must leave the other exactly where it was: the old
+    // swap coupled them, which is the behaviour this replaced.
+    await preferences.setSwipeAction(
+      isLeading: true,
+      action: SwipeAction.delete,
+    );
     expect(preferences.leadingAction, SwipeAction.delete);
-    expect(preferences.trailingAction, SwipeAction.addTag);
+    expect(preferences.trailingAction, SwipeAction.delete);
+    await preferences.setSwipeAction(
+      isLeading: false,
+      action: SwipeAction.none,
+    );
+    expect(preferences.leadingAction, SwipeAction.delete);
+    expect(preferences.trailingAction, SwipeAction.none);
   });
 
   test('Comfort Mode defaults off and toggles (ADR-023)', () async {
@@ -436,15 +449,60 @@ void main() {
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Light'), findsOneWidget);
     expect(find.text('Dark'), findsOneWidget);
-    // Scoped to the theme control: the language dropdown also offers a
-    // "System" option, so an unscoped finder matches both.
+    // Scoped to the theme control: the language picker also offers a "System"
+    // option, so an unscoped finder matches both.
     expect(
       find.descendant(
-        of: find.byType(SegmentedButton<ThemeMode>),
+        of: find.byType(NexChoiceCards<ThemeMode>),
         matching: find.text('System'),
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('the language picker shows every language in its own script',
+      (tester) async {
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+
+    // Not a dropdown: all three are on screen, and each is labelled the way a
+    // speaker of that language would recognise it.
+    final picker = find.byType(NexChoiceCards<String>);
+    expect(picker, findsOneWidget);
+    expect(
+      find.descendant(of: picker, matching: find.text('فارسی')),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(find.text('فارسی'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('فارسی'));
+    await tester.pumpAndSettle();
+
+    expect(preferences.locale?.languageCode, 'fa');
+  });
+
+  testWidgets('a name turns the timeline title into a greeting', (tester) async {
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    expect(find.text('Nex'), findsOneWidget);
+
+    await preferences.setDisplayName('  Sany  ');
+    await tester.pumpAndSettle();
+
+    // Trimmed, and only ever shown here — never sent anywhere.
+    expect(preferences.displayName, 'Sany');
+    expect(find.textContaining('Sany'), findsOneWidget);
+    expect(find.text('Nex'), findsNothing);
+
+    await preferences.setDisplayName('');
+    await tester.pumpAndSettle();
+    expect(preferences.displayName, isNull);
+    expect(find.text('Nex'), findsOneWidget);
   });
 
   test('No Pin/Archive swipe actions exist', () async {

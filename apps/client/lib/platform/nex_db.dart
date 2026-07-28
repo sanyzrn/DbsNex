@@ -73,6 +73,11 @@ abstract interface class NexDb {
     required String mediaRoot,
   });
 
+  Future<ImportResult> importArchive({
+    required String archivePath,
+    required String mediaRoot,
+  });
+
   Future<List<Note>> deletedNotes({int limit});
 
   Future<void> purgeDeletedBefore(DateTime cutoff);

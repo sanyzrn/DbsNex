@@ -20,8 +20,9 @@ void main() {
   final en = load('lib/l10n/app_en.arb');
   final fa = load('lib/l10n/app_fa.arb');
 
-  // The product name is deliberately identical in both locales.
-  const untranslatable = {'appTitle'};
+  // Identical in both locales on purpose: the product name, and a URL scheme,
+  // which is not a word in any language.
+  const untranslatable = {'appTitle', 'syncServerHint'};
 
   test('every English message has a Persian one', () {
     expect(en.keys.toSet().difference(fa.keys.toSet()), isEmpty);

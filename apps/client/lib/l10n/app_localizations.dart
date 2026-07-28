@@ -389,7 +389,7 @@ abstract class AppLocalizations {
   /// No description provided for @quietAnniversary.
   ///
   /// In en, this message translates to:
-  /// **'Show the quiet anniversary line'**
+  /// **'One year ago'**
   String get quietAnniversary;
 
   /// No description provided for @intelligence.
@@ -509,7 +509,7 @@ abstract class AppLocalizations {
   /// No description provided for @quietAnniversarySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Only inside Nex. Never a notification or badge.'**
+  /// **'When you captured something on this day last year, one small line says so at the top of the timeline. Inside Nex only — never a notification.'**
   String get quietAnniversarySubtitle;
 
   /// No description provided for @storage.
@@ -583,12 +583,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Swipe actions'**
   String get swipeActions;
-
-  /// No description provided for @swapSwipeMapping.
-  ///
-  /// In en, this message translates to:
-  /// **'Swap start and end actions'**
-  String get swapSwipeMapping;
 
   /// No description provided for @transcription.
   ///
@@ -932,10 +926,10 @@ abstract class AppLocalizations {
   /// **'Nex is opening'**
   String get opening;
 
-  /// Explains that ADR-022 fixes the action set and only the edge mapping is configurable
+  /// Explains that each swipe edge is configured independently
   ///
   /// In en, this message translates to:
-  /// **'These two actions are the whole set. Tap a row to swap which edge does which.'**
+  /// **'Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.'**
   String get swipeActionsHint;
 
   /// Copies a media note's file path to the clipboard
@@ -1123,6 +1117,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Downloaded and ready to install'**
   String get updateReady;
+
+  /// Settings row that stores the name the app greets you by
+  ///
+  /// In en, this message translates to:
+  /// **'Your name'**
+  String get yourName;
+
+  /// Reassurance under the name row
+  ///
+  /// In en, this message translates to:
+  /// **'Only used to greet you, only on this device.'**
+  String get yourNameHint;
+
+  /// Placeholder in the name field
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty for no greeting'**
+  String get yourNamePlaceholder;
+
+  /// Timeline title before noon
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning, {name}'**
+  String greetingMorning(String name);
+
+  /// Timeline title in the afternoon
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon, {name}'**
+  String greetingAfternoon(String name);
+
+  /// Timeline title in the evening
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening, {name}'**
+  String greetingEvening(String name);
+
+  /// Timeline title late at night
+  ///
+  /// In en, this message translates to:
+  /// **'Still up, {name}?'**
+  String greetingNight(String name);
+
+  /// Heading above export and import
+  ///
+  /// In en, this message translates to:
+  /// **'Taking it with you'**
+  String get exportTitle;
+
+  /// Says what an export actually contains
+  ///
+  /// In en, this message translates to:
+  /// **'Writes every note into one zip: the full data as JSON, a readable Markdown file per note, and every photo, recording and attachment. Nothing is left behind and nothing is uploaded — the file is handed to you.'**
+  String get exportExplained;
+
+  /// Button that builds the archive and opens the share sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Export and share'**
+  String get exportAndShare;
+
+  /// Reads an export archive back in
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get importTitle;
+
+  /// Says that import is additive and safe to repeat
+  ///
+  /// In en, this message translates to:
+  /// **'Reads a Nex export back into this library. Notes already here are left untouched, so importing the same file twice changes nothing.'**
+  String get importExplained;
+
+  /// Opens the file picker for import
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a file'**
+  String get chooseFile;
+
+  /// Result of an import
+  ///
+  /// In en, this message translates to:
+  /// **'{added, plural, =0{Nothing new to add} =1{1 note added} other{{added} notes added}} · {skipped, plural, =0{} =1{1 already here} other{{skipped} already here}}'**
+  String importDone(int added, int skipped);
+
+  /// Import error
+  ///
+  /// In en, this message translates to:
+  /// **'That file could not be read as a Nex export. Your notes were not changed.'**
+  String get importFailed;
+
+  /// Heading above the local backup list
+  ///
+  /// In en, this message translates to:
+  /// **'Backups on this device'**
+  String get localBackupsTitle;
+
+  /// Says what local backups are and are not for
+  ///
+  /// In en, this message translates to:
+  /// **'Once a day, Nex copies its database into its own folder. It is protection against a bad restore or a corrupted file — not against a lost phone. For that, export.'**
+  String get localBackupsExplained;
+
+  /// Takes a backup outside the daily schedule
+  ///
+  /// In en, this message translates to:
+  /// **'Back up now'**
+  String get backupNow;
+
+  /// Confirmation after a manual backup
+  ///
+  /// In en, this message translates to:
+  /// **'Backed up'**
+  String get backupDone;
+
+  /// Explains why Sync now does nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No server is set up. Sync is optional — Nex works entirely offline without it.'**
+  String get syncNotConfigured;
+
+  /// Row that holds the sync endpoint
+  ///
+  /// In en, this message translates to:
+  /// **'Sync server'**
+  String get syncServer;
+
+  /// Placeholder in the sync endpoint field
+  ///
+  /// In en, this message translates to:
+  /// **'https://…'**
+  String get syncServerHint;
+
+  /// Row that holds the sync bearer token
+  ///
+  /// In en, this message translates to:
+  /// **'Device token'**
+  String get syncToken;
 
   /// Title of the tag color picker
   ///

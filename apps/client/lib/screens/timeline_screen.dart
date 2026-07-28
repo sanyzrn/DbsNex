@@ -342,12 +342,28 @@ class TimelineScreenState extends State<TimelineScreen> {
       ));
   }
 
+  /// "Nex", or a greeting if the user told the app their name.
+  ///
+  /// Decoration, deliberately kept to the one place the app already had a
+  /// title. It says nothing, asks nothing and never appears outside the app —
+  /// a greeting is not an engagement loop as long as it never leaves here.
+  String _title(AppLocalizations l10n) {
+    final name = widget.preferences.displayName;
+    if (name == null) return l10n.appTitle;
+    return switch (DateTime.now().hour) {
+      >= 5 && < 12 => l10n.greetingMorning(name),
+      >= 12 && < 17 => l10n.greetingAfternoon(name),
+      >= 17 && < 23 => l10n.greetingEvening(name),
+      _ => l10n.greetingNight(name),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.appTitle),
+        title: Text(_title(l10n)),
         actions: [
           IconButton(tooltip: l10n.search, icon: const Icon(Icons.search),
             onPressed: () => Navigator.push(context, MaterialPageRoute<void>(

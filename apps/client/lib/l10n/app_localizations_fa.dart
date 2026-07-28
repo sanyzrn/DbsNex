@@ -176,7 +176,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get haptics => 'لرزش هنگام ثبت';
 
   @override
-  String get quietAnniversary => 'نمایش یادآوری آرامِ سالگرد';
+  String get quietAnniversary => 'یک سال پیش';
 
   @override
   String get intelligence => 'هوش مصنوعی';
@@ -243,7 +243,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get quietAnniversarySubtitle =>
-      'فقط داخل خودِ Nex؛ هیچ‌وقت به شکل اعلان یا نشان نیست.';
+      'اگر همین روز در سال گذشته چیزی ثبت کرده باشید، یک خط کوچک بالای فهرست یادآوری می‌کند. فقط داخل Nex — هیچ‌وقت اعلان نمی‌آید.';
 
   @override
   String get storage => 'فضای ذخیره‌سازی';
@@ -293,9 +293,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get swipeActions => 'کشیدن انگشت';
-
-  @override
-  String get swapSwipeMapping => 'جابه‌جا کردن دو طرف';
 
   @override
   String get transcription => 'تبدیل گفتار به متن';
@@ -498,7 +495,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get swipeActionsHint =>
-      'همین دو کار وجود دارد. برای جابه‌جا کردنشان روی یکی از ردیف‌ها بزنید.';
+      'هر طرف جداگانه تنظیم می‌شود. روی هر ردیف بزنید تا کارِ آن کشیدن را انتخاب کنید یا خاموشش کنید.';
 
   @override
   String get revealInFolder => 'نمایش مسیر فایل';
@@ -614,6 +611,104 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get updateReady => 'دانلود شد و آمادهٔ نصب است';
+
+  @override
+  String get yourName => 'نام شما';
+
+  @override
+  String get yourNameHint => 'فقط برای سلام گفتن، و فقط روی همین دستگاه.';
+
+  @override
+  String get yourNamePlaceholder => 'خالی بگذارید تا سلامی در کار نباشد';
+
+  @override
+  String greetingMorning(String name) {
+    return 'صبح بخیر، $name';
+  }
+
+  @override
+  String greetingAfternoon(String name) {
+    return 'ظهر بخیر، $name';
+  }
+
+  @override
+  String greetingEvening(String name) {
+    return 'عصر بخیر، $name';
+  }
+
+  @override
+  String greetingNight(String name) {
+    return 'هنوز بیداری، $name؟';
+  }
+
+  @override
+  String get exportTitle => 'بردنش با خودتان';
+
+  @override
+  String get exportExplained =>
+      'همهٔ یادداشت‌ها را در یک فایل zip می‌نویسد: دادهٔ کامل به شکل JSON، یک فایل Markdown خوانا برای هر یادداشت، و همهٔ عکس‌ها، صداها و پیوست‌ها. چیزی جا نمی‌ماند و چیزی هم جایی آپلود نمی‌شود؛ فایل به خودتان داده می‌شود.';
+
+  @override
+  String get exportAndShare => 'خروجی گرفتن و هم‌رسانی';
+
+  @override
+  String get importTitle => 'وارد کردن';
+
+  @override
+  String get importExplained =>
+      'یک خروجی Nex را دوباره به همین کتابخانه می‌خواند. یادداشت‌هایی که از قبل اینجا هستند دست‌نخورده می‌مانند، پس وارد کردن دوبارهٔ یک فایل هیچ تغییری نمی‌دهد.';
+
+  @override
+  String get chooseFile => 'انتخاب فایل';
+
+  @override
+  String importDone(int added, int skipped) {
+    String _temp0 = intl.Intl.pluralLogic(
+      added,
+      locale: localeName,
+      other: '$added یادداشت اضافه شد',
+      one: 'یک یادداشت اضافه شد',
+      zero: 'چیز تازه‌ای نبود',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other: '$skipped تا از قبل بودند',
+      one: 'یکی از قبل بود',
+      zero: '',
+    );
+    return '$_temp0 · $_temp1';
+  }
+
+  @override
+  String get importFailed =>
+      'این فایل به‌عنوان خروجی Nex خوانده نشد. یادداشت‌های شما تغییری نکردند.';
+
+  @override
+  String get localBackupsTitle => 'پشتیبان‌های روی این دستگاه';
+
+  @override
+  String get localBackupsExplained =>
+      'Nex روزی یک بار از پایگاه دادهٔ خودش یک نسخه در پوشهٔ خودش می‌گیرد. این محافظت در برابر بازیابی اشتباه یا فایل خراب است، نه در برابر گم شدن گوشی؛ برای آن باید خروجی بگیرید.';
+
+  @override
+  String get backupNow => 'همین حالا پشتیبان بگیر';
+
+  @override
+  String get backupDone => 'پشتیبان گرفته شد';
+
+  @override
+  String get syncNotConfigured =>
+      'هیچ سروری تنظیم نشده. همگام‌سازی اختیاری است — Nex بدون آن کاملاً آفلاین کار می‌کند.';
+
+  @override
+  String get syncServer => 'سرور همگام‌سازی';
+
+  @override
+  String get syncServerHint => 'https://…';
+
+  @override
+  String get syncToken => 'توکن دستگاه';
 
   @override
   String get tagColor => 'رنگ برچسب';

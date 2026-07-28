@@ -76,7 +76,7 @@
   "accessibility": "Accessibility",
   "reduceMotion": "Reduce motion",
   "haptics": "Capture haptics",
-  "quietAnniversary": "Show the quiet anniversary line",
+  "quietAnniversary": "One year ago",
   "intelligence": "Intelligence",
   "intelligenceLocal": "Runs on this device unless Cloud AI is enabled.",
   "about": "About Nex",
@@ -103,7 +103,7 @@
   "languageSystem": "System",
   "languageEnglish": "English",
   "languagePersian": "Persian",
-  "quietAnniversarySubtitle": "Only inside Nex. Never a notification or badge.",
+  "quietAnniversarySubtitle": "When you captured something on this day last year, one small line says so at the top of the timeline. Inside Nex only — never a notification.",
   "storage": "Storage",
   "storageUsed": "{size} used locally",
   "@storageUsed": {
@@ -137,7 +137,6 @@
   "copy": "Copy",
   "share": "Share",
   "swipeActions": "Swipe actions",
-  "swapSwipeMapping": "Swap start and end actions",
   "transcription": "Transcription",
   "ocr": "OCR",
   "tagSuggestions": "Tag suggestions",
@@ -343,9 +342,9 @@
   "@opening": {
     "description": "Screen-reader label for the startup splash"
   },
-  "swipeActionsHint": "These two actions are the whole set. Tap a row to swap which edge does which.",
+  "swipeActionsHint": "Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.",
   "@swipeActionsHint": {
-    "description": "Explains that ADR-022 fixes the action set and only the edge mapping is configurable"
+    "description": "Explains that each swipe edge is configured independently"
   },
   "revealInFolder": "Copy file path",
   "@revealInFolder": {
@@ -485,6 +484,106 @@
   "updateReady": "Downloaded and ready to install",
   "@updateReady": {
     "description": "Settings subtitle when the installer is already on disk"
+  },
+  "yourName": "Your name",
+  "@yourName": {
+    "description": "Settings row that stores the name the app greets you by"
+  },
+  "yourNameHint": "Only used to greet you, only on this device.",
+  "@yourNameHint": {
+    "description": "Reassurance under the name row"
+  },
+  "yourNamePlaceholder": "Leave empty for no greeting",
+  "@yourNamePlaceholder": {
+    "description": "Placeholder in the name field"
+  },
+  "greetingMorning": "Good morning, {name}",
+  "@greetingMorning": {
+    "description": "Timeline title before noon",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "greetingAfternoon": "Good afternoon, {name}",
+  "@greetingAfternoon": {
+    "description": "Timeline title in the afternoon",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "greetingEvening": "Good evening, {name}",
+  "@greetingEvening": {
+    "description": "Timeline title in the evening",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "greetingNight": "Still up, {name}?",
+  "@greetingNight": {
+    "description": "Timeline title late at night",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "exportTitle": "Taking it with you",
+  "@exportTitle": {
+    "description": "Heading above export and import"
+  },
+  "exportExplained": "Writes every note into one zip: the full data as JSON, a readable Markdown file per note, and every photo, recording and attachment. Nothing is left behind and nothing is uploaded — the file is handed to you.",
+  "@exportExplained": {
+    "description": "Says what an export actually contains"
+  },
+  "exportAndShare": "Export and share",
+  "@exportAndShare": {
+    "description": "Button that builds the archive and opens the share sheet"
+  },
+  "importTitle": "Import",
+  "@importTitle": {
+    "description": "Reads an export archive back in"
+  },
+  "importExplained": "Reads a Nex export back into this library. Notes already here are left untouched, so importing the same file twice changes nothing.",
+  "@importExplained": {
+    "description": "Says that import is additive and safe to repeat"
+  },
+  "chooseFile": "Choose a file",
+  "@chooseFile": {
+    "description": "Opens the file picker for import"
+  },
+  "importDone": "{added, plural, =0{Nothing new to add} =1{1 note added} other{{added} notes added}} · {skipped, plural, =0{} =1{1 already here} other{{skipped} already here}}",
+  "@importDone": {
+    "description": "Result of an import",
+    "placeholders": {
+      "added": { "type": "int" },
+      "skipped": { "type": "int" }
+    }
+  },
+  "importFailed": "That file could not be read as a Nex export. Your notes were not changed.",
+  "@importFailed": {
+    "description": "Import error"
+  },
+  "localBackupsTitle": "Backups on this device",
+  "@localBackupsTitle": {
+    "description": "Heading above the local backup list"
+  },
+  "localBackupsExplained": "Once a day, Nex copies its database into its own folder. It is protection against a bad restore or a corrupted file — not against a lost phone. For that, export.",
+  "@localBackupsExplained": {
+    "description": "Says what local backups are and are not for"
+  },
+  "backupNow": "Back up now",
+  "@backupNow": {
+    "description": "Takes a backup outside the daily schedule"
+  },
+  "backupDone": "Backed up",
+  "@backupDone": {
+    "description": "Confirmation after a manual backup"
+  },
+  "syncNotConfigured": "No server is set up. Sync is optional — Nex works entirely offline without it.",
+  "@syncNotConfigured": {
+    "description": "Explains why Sync now does nothing"
+  },
+  "syncServer": "Sync server",
+  "@syncServer": {
+    "description": "Row that holds the sync endpoint"
+  },
+  "syncServerHint": "https://…",
+  "@syncServerHint": {
+    "description": "Placeholder in the sync endpoint field"
+  },
+  "syncToken": "Device token",
+  "@syncToken": {
+    "description": "Row that holds the sync bearer token"
   },
   "tagColor": "Tag color",
   "@tagColor": {

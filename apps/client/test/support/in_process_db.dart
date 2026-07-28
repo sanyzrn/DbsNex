@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:nex_client/platform/ai_provider.dart';
@@ -141,6 +142,16 @@ class InProcessDb implements NexDb {
   }) async =>
       (await _repo.exportArchive(outputPath: outputPath, mediaRoot: mediaRoot))
           .path;
+
+  @override
+  Future<ImportResult> importArchive({
+    required String archivePath,
+    required String mediaRoot,
+  }) =>
+      _repo.importArchive(
+        archiveFile: File(archivePath),
+        mediaRoot: mediaRoot,
+      );
 
   @override
   Future<List<Note>> deletedNotes({int limit = 200}) async =>

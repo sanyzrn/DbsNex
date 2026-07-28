@@ -310,10 +310,38 @@ class NexServices {
     }
   }
 
-  Future<String> exportNow() {
-    final stamp = DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
-    final out = p.join(Directory.systemTemp.path, 'nex-export-$stamp.zip');
+  /// Writes the whole library to a zip and returns its path.
+  ///
+  /// The file lands in the cache directory rather than the system temp root:
+  /// on Android the share provider is configured for app storage, and a file
+  /// under `/tmp` could not be handed to another app at all.
+  Future<String> exportNow() async {
+    final stamp = DateTime.now()
+        .toIso8601String()
+        .substring(0, 16)
+        .replaceAll(':', '-');
+    final dir = await getTemporaryDirectory();
+    final out = p.join(dir.path, 'Nex-$stamp.zip');
     return worker.exportArchive(outputPath: out, mediaRoot: mediaDir);
+  }
+
+  /// Reads an exported archive back into this library.
+  ///
+  /// Additive: notes already here are left alone, so importing the same file
+  /// twice changes nothing. Media is copied into this device's media folder.
+  Future<ImportResult> importArchive(String archivePath) async {
+    final result = await worker.importArchive(
+      archivePath: archivePath,
+      mediaRoot: mediaDir,
+    );
+    await refreshTimeline();
+    return result;
+  }
+
+  /// Takes a backup right now, outside the once-a-day policy.
+  Future<void> backupNow() async {
+    await worker.backup(backupDir);
+    await _backupPolicy.markDone();
   }
 
   /// Runs a sync cycle against the user-configured endpoint.

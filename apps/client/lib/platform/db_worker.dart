@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
@@ -39,6 +40,7 @@ enum _DbCommand {
   setTagColor,
   backup,
   exportArchive,
+  importArchive,
   // Library maintenance (trash, tag manager, storage breakdown).
   deletedNotes,
   purgeDeletedBefore,
@@ -312,6 +314,16 @@ class NexDbWorker implements NexDb {
         'mediaRoot': mediaRoot,
       });
 
+  @override
+  Future<ImportResult> importArchive({
+    required String archivePath,
+    required String mediaRoot,
+  }) =>
+      _send<ImportResult>(_DbCommand.importArchive, {
+        'archivePath': archivePath,
+        'mediaRoot': mediaRoot,
+      });
+
   /* --------------------------------------------------- library maintenance */
 
   @override
@@ -527,6 +539,10 @@ class NexDbWorker implements NexDb {
               mediaRoot: arg('mediaRoot')! as String,
             ))
                 .path,
+          _DbCommand.importArchive => await repo.importArchive(
+              archiveFile: File(arg('archivePath')! as String),
+              mediaRoot: arg('mediaRoot')! as String,
+            ),
           _DbCommand.deletedNotes =>
             maintenance.deletedNotes(limit: arg('limit')! as int),
           _DbCommand.purgeDeletedBefore => _voided(

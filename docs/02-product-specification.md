@@ -116,13 +116,16 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-5.5 No user action should ever produce data loss under normal operation (app kill, restart, low storage excluded).
 
 ### FR-6 — Export
-- FR-6.1 A **Settings → Export** action produces, in one tap, a JSON dump of all notes and tags (full fidelity, machine-readable) and a Markdown export (one file per note, human-readable), plus the referenced media files, bundled into a single archive the user saves wherever they choose.
+- FR-6.1 A **Settings → Data & backup → Export** action produces, in one tap, a JSON dump of all notes and tags (full fidelity, machine-readable) and a Markdown export (one file per note, human-readable), plus the referenced media files, bundled into a single archive.
+- FR-6.1.1 The archive is handed to the platform share sheet, so the user chooses where it goes — another app, a cloud drive, a cable. It is never left at a path the user cannot reach: on a phone, a file written to a private temp directory is not an export at all.
+- FR-6.1.2 An **Import** action reads an export archive back into the library, with its media. Import is *additive*: a note whose id is already present is left untouched rather than overwritten, so importing the same archive twice is a no-op and an old archive can never roll a newer note back. Notes whose media is missing from the archive are still imported. A file that is not a Nex export is refused without writing anything.
 - FR-6.2 Export never requires network access — it is a fully local, offline operation.
 - FR-6.3 A round-trip check (export, then verify the archive's content matches the source data) is part of the v1.0 release exit criteria — see [ADR-025](./10-decisions.md#adr-025--data-export-ships-in-v1-not-after-v3).
 
 ### FR-7 — Backup & Restore
 - FR-7.1 The app automatically maintains a small, fixed number of rotating local backups of the SQLite database, on-device, with no user action required to create them.
-- FR-7.2 A one-tap **Restore** action is available from Settings, recovering the most recent (or a selected) backup.
+- FR-7.2 Every backup on the device is listed with its date and size, and any one of them can be restored — not only the newest, which is also the one most likely to contain a mistake just made. A **Back up now** action takes one outside the daily schedule.
+- FR-7.4 Local backups protect against a bad restore or a corrupted database. They do **not** protect against a lost device, because they live on it; the UI says so, and points at export for that.
 - FR-7.3 Backup/restore correctness is verified in testing against a simulated database-corruption scenario, per [ADR-026](./10-decisions.md#adr-026--automatic-local-backup--restore-ships-in-v1).
 
 ### FR-8b — AI Provider
@@ -146,6 +149,11 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-8a.5 A failed check reports that it failed. It never reports "up to date" for a check that did not complete.
 - FR-8a.6 On Android the update downloads the **universal APK** and hands it to the system installer; the platform, not Nex, asks the user to confirm. Silent self-installation is neither possible nor attempted outside an app store. A release therefore always publishes a universal APK alongside the per-ABI splits — the app cannot know the device's ABI before downloading.
 - FR-8a.7 Updating never touches the local library. Releases are signed with one key, so an update installs over the existing app and its notes, media and preferences survive.
+
+### FR-9 — Your Name
+
+- FR-9.1 Settings accepts an optional name. When set, the Timeline's title becomes a greeting that follows the time of day; when empty, the title is the app's name and nothing else changes.
+- FR-9.2 It is decoration and only decoration. It is stored on the device, never sent with a sync or an AI request, never used to address the user anywhere outside the app, and never turned into a notification, a streak or a prompt to come back — that would be exactly the engagement loop [`01-product-vision.md`](./01-product-vision.md) rules out.
 
 ### FR-8 — OS-Level Capture Surfaces
 - FR-8.1 A home-screen widget (Android) opens directly into text capture, bypassing the need to open the app first.
@@ -200,19 +208,22 @@ flowchart LR
     C -->|tap a result| D
 ```
 
-**Settings** is intentionally not a nested settings app or a "maze" — it is a single sheet reachable in one tap from the Timeline. It grew past the three preferences this section originally listed, because features that shipped after it (localization, the intelligence toggles, sync, export, backup/restore, tag management, Recently Deleted) each need somewhere to live and none of them belongs on the home screen. So the rule is about *shape*, not count: one sheet, no sub-settings-screens, and every control reachable by scrolling rather than by navigating.
+**Settings** is intentionally not a nested settings app or a "maze" — it is a single sheet reachable in one tap from the Timeline, and every *preference* lives on it. The rule is about shape, not count: one sheet, one level of scrolling, no menu leading to another menu leading to a control.
+
+What that rule does not cover is a subject that needs explaining rather than toggling. Intelligence (FR-8b) and Data & backup (FR-6/FR-7) each open as their own screen, for the same reason Tags and Trash do: they are destinations with content — a consent decision, a provider's credentials, a list of backups, a sentence saying what an export actually contains — and flattening them back into the sheet is what made those rows unreadable in the first place. The test is whether the row is a switch or a subject.
 
 To keep that scannable, the sheet is organized into labelled groups rather than one flat run of tiles:
 
 | Group | Holds |
 | --- | --- |
-| Appearance | Light / Dark / System, Comfort Mode ([`05-design.md`](./05-design.md#comfort-mode)), language |
-| Accessibility | Reduce motion, capture haptics, the quiet anniversary line |
-| Swipe actions | The FR-2.7 edge mapping |
-| Intelligence | The per-capability toggles and the Cloud AI opt-in (see [AI Roadmap](#ai-roadmap)) |
-| Library | Tags, Recently Deleted, storage usage |
-| Data & backup | Sync, Export (FR-6), Restore (FR-7) |
-| About | Version, attribution, storage location, privacy, licences |
+| Appearance | Light / Dark / System, Comfort Mode ([`05-design.md`](./05-design.md#comfort-mode)), language. Both pickers are rows of cards that show the choice itself — a theme by a miniature of its own colours, a language in its own script — not dropdowns. |
+| Your name | Optional. Only decoration: it turns the Timeline title into a greeting and never leaves the device (FR-9). |
+| Accessibility | Reduce motion, capture haptics, the "one year ago" line |
+| Swipe actions | The FR-2.7 per-edge mapping |
+| Intelligence | One row into the intelligence screen (FR-8b) |
+| Library | Tags, Trash, storage usage |
+| Data & backup | Export / import / local backups (FR-6, FR-7), and the optional sync server |
+| About | Update (FR-8a), version, attribution, storage location, privacy, licences |
 
 Tags, Recently Deleted and About open as full screens rather than nested sheets — they are destinations with their own content, not preferences, so pushing a route is the honest interaction. Everything that is genuinely a *preference* stays on the one sheet.
 

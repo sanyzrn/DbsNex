@@ -1,17 +1,19 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/choice_cards.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/update_service.dart';
 import 'package:nex_data/nex_data.dart';
-import '../restart_scope.dart';
 import 'about_screen.dart';
+import 'backup_screen.dart';
 import 'intelligence_screen.dart';
 import 'recently_deleted_screen.dart';
 import 'tag_manager_screen.dart';
@@ -95,67 +97,84 @@ class SettingsSheet extends StatelessWidget {
                       title: l10n.appearance,
                       children: [
                         _Inset(
-                          child: SegmentedButton<ThemeMode>(
-                            segments: [
-                              ButtonSegment(
+                          child: NexChoiceCards<ThemeMode>(
+                            haptics: preferences.haptics,
+                            selected: preferences.themeMode,
+                            onSelected: preferences.setThemeMode,
+                            choices: [
+                              NexChoice(
                                 value: ThemeMode.light,
-                                icon: const Icon(Icons.light_mode_outlined),
-                                label: Text(l10n.themeLight),
+                                label: l10n.themeLight,
+                                preview: NexThemeSwatch(
+                                  mode: ThemeMode.light,
+                                  comfort: preferences.comfortMode,
+                                ),
                               ),
-                              ButtonSegment(
+                              NexChoice(
                                 value: ThemeMode.dark,
-                                icon: const Icon(Icons.dark_mode_outlined),
-                                label: Text(l10n.themeDark),
+                                label: l10n.themeDark,
+                                preview: NexThemeSwatch(
+                                  mode: ThemeMode.dark,
+                                  comfort: preferences.comfortMode,
+                                ),
                               ),
-                              ButtonSegment(
+                              NexChoice(
                                 value: ThemeMode.system,
-                                icon: const Icon(Icons.brightness_auto_outlined),
-                                label: Text(l10n.themeSystem),
+                                label: l10n.themeSystem,
+                                preview: NexThemeSwatch(
+                                  mode: ThemeMode.system,
+                                  comfort: preferences.comfortMode,
+                                ),
                               ),
                             ],
-                            showSelectedIcon: false,
-                            selected: {preferences.themeMode},
-                            onSelectionChanged: (value) =>
-                                preferences.setThemeMode(value.first),
                           ),
                         ),
                         SwitchListTile(
                           contentPadding: _rowPadding,
+                          secondary: const Icon(Icons.wb_twilight_outlined),
                           title: Text(l10n.comfortMode),
                           subtitle: Text(l10n.comfortModeSubtitle),
                           value: preferences.comfortMode,
                           onChanged: preferences.setComfortMode,
                         ),
-                        ListTile(
-                          contentPadding: _rowPadding,
-                          leading: const Icon(Icons.translate),
-                          title: Text(l10n.language),
-                          trailing: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value:
-                                  preferences.locale?.languageCode ?? 'system',
-                              borderRadius: BorderRadius.circular(16),
-                              items: [
-                                DropdownMenuItem(
-                                  value: 'system',
-                                  child: Text(l10n.languageSystem),
+                        _SubHeading(icon: Icons.translate, label: l10n.language),
+                        _Inset(
+                          child: NexChoiceCards<String>(
+                            haptics: preferences.haptics,
+                            selected:
+                                preferences.locale?.languageCode ?? 'system',
+                            onSelected: preferences.setLocale,
+                            choices: [
+                              NexChoice(
+                                value: 'system',
+                                label: l10n.languageSystem,
+                                preview: const NexScriptSample(
+                                  icon: Icons.phone_iphone_outlined,
                                 ),
-                                DropdownMenuItem(
-                                  value: 'en',
-                                  child: Text(l10n.languageEnglish),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'fa',
-                                  child: Text(l10n.languagePersian),
-                                ),
-                              ],
-                              onChanged: (value) {
-                                if (value != null) preferences.setLocale(value);
-                              },
-                            ),
+                              ),
+                              // Each language in its own script: recognising
+                              // your own alphabet does not require reading the
+                              // language the app is currently in.
+                              const NexChoice(
+                                value: 'en',
+                                label: 'English',
+                                preview: NexScriptSample(sample: 'Aa'),
+                              ),
+                              const NexChoice(
+                                value: 'fa',
+                                label: 'فارسی',
+                                preview: NexScriptSample(sample: 'اَ'),
+                              ),
+                            ],
                           ),
                         ),
                       ],
+                    ),
+                    _Section(
+                      icon: Icons.person_outline,
+                      title: l10n.yourName,
+                      footnote: l10n.yourNameHint,
+                      children: [_NameRow(preferences: preferences)],
                     ),
                     _Section(
                       icon: Icons.accessibility_new_outlined,
@@ -270,69 +289,30 @@ class SettingsSheet extends StatelessWidget {
                       icon: Icons.backup_outlined,
                       title: l10n.dataAndBackup,
                       children: [
-                        ListTile(
-                          contentPadding: _rowPadding,
-                          leading: const Icon(Icons.sync),
-                          title: Text(l10n.sync),
-                          trailing: TextButton(
-                            onPressed: () async {
-                              try {
-                                await services.syncNow();
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(l10n.syncComplete)),
-                                  );
-                                }
-                              } catch (_) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: NexDialogBody(child: Text(l10n.operationFailed)),
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            child: Text(l10n.syncNow),
-                          ),
-                        ),
-                        ListTile(
-                          contentPadding: _rowPadding,
-                          leading: const Icon(Icons.ios_share_outlined),
-                          title: Text(l10n.export),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () async {
-                            try {
-                              final path = await services.exportNow();
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(l10n.exportedTo(path))),
-                                );
-                              }
-                            } catch (_) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(l10n.operationFailed)),
-                                );
-                              }
-                            }
-                          },
-                        ),
                         FutureBuilder<List<File>>(
                           future: services.listBackups(),
-                          builder: (context, snapshot) {
-                            final backups = snapshot.data ?? const <File>[];
-                            return ListTile(
-                              contentPadding: _rowPadding,
-                              leading: const Icon(Icons.restore),
-                              title: Text(l10n.restoreBackup),
-                              subtitle: Text(l10n.backupCount(backups.length)),
-                              enabled: backups.isNotEmpty,
-                              onTap: backups.isEmpty
-                                  ? null
-                                  : () => _restore(context, backups.first, l10n),
-                            );
-                          },
+                          builder: (context, snapshot) => ListTile(
+                            contentPadding: _rowPadding,
+                            leading: const Icon(Icons.import_export),
+                            title: Text(l10n.exportTitle),
+                            subtitle: Text(
+                              l10n.backupCount(snapshot.data?.length ?? 0),
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => BackupScreen(
+                                  services: services,
+                                  preferences: preferences,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        _SyncRow(
+                          services: services,
+                          preferences: preferences,
                         ),
                       ],
                     ),
@@ -374,36 +354,6 @@ class SettingsSheet extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _restore(
-    BuildContext context,
-    File backup,
-    AppLocalizations l10n,
-  ) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.restoreBackup),
-        content: NexDialogBody(child: Text(l10n.restoreBody)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.restore),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    // The restore invalidates the whole service graph; the returned token is
-    // the contract that the caller must rebuild it.
-    final _ = await services.restoreBackup(backup);
-    if (!context.mounted) return;
-    NexRestartScope.of(context).restart();
   }
 
 }
@@ -490,6 +440,211 @@ class _Section extends StatelessWidget {
   }
 }
 
+/// Sync, and whether it is set up at all.
+///
+/// It used to be a bare "Sync now" button that reported "the operation failed"
+/// on every tap, because there is no default server and nowhere in the app to
+/// name one. Sync is optional, so the honest row says that, and offers the
+/// field that makes it work rather than hiding the reason.
+class _SyncRow extends StatefulWidget {
+  const _SyncRow({required this.services, required this.preferences});
+
+  final NexServices services;
+  final NexPreferences preferences;
+
+  @override
+  State<_SyncRow> createState() => _SyncRowState();
+}
+
+class _SyncRowState extends State<_SyncRow> {
+  bool _busy = false;
+
+  Future<void> _configure() async {
+    final l10n = AppLocalizations.of(context);
+    final url = TextEditingController(
+      text: widget.preferences.syncBaseUrl ?? '',
+    );
+    final token = TextEditingController(
+      text: widget.preferences.syncBearerToken ?? '',
+    );
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.syncServer),
+        content: NexDialogBody(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: url,
+                autofocus: true,
+                keyboardType: TextInputType.url,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  labelText: l10n.syncServer,
+                  hintText: l10n.syncServerHint,
+                ),
+              ),
+              const SizedBox(height: NexSpacing.md),
+              TextField(
+                controller: token,
+                autocorrect: false,
+                decoration: InputDecoration(labelText: l10n.syncToken),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await widget.preferences.setSyncBaseUrl(url.text.trim());
+      await widget.preferences.setSyncBearerToken(token.text.trim());
+      if (mounted) setState(() {});
+    }
+    url.dispose();
+    token.dispose();
+  }
+
+  Future<void> _syncNow() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      final result = await widget.services.syncNow();
+      messenger.showSnackBar(
+        SnackBar(content: Text('${l10n.syncComplete} · ${result.pushed}↑ ${result.pulled}↓')),
+      );
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.operationFailed)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final server = widget.preferences.syncBaseUrl;
+    return ListTile(
+      contentPadding: _rowPadding,
+      leading: const Icon(Icons.sync),
+      title: Text(l10n.sync),
+      subtitle: Text(server ?? l10n.syncNotConfigured),
+      onTap: _configure,
+      trailing: server == null
+          ? const Icon(Icons.chevron_right)
+          : TextButton(
+              onPressed: _busy ? null : () => unawaited(_syncNow()),
+              child: Text(l10n.syncNow),
+            ),
+    );
+  }
+}
+
+/// A label inside a section card, for a control that is not a list tile.
+///
+/// The theme and language pickers are both card rows, and without this the
+/// second one would sit under the first with nothing saying what it chooses.
+class _SubHeading extends StatelessWidget {
+  const _SubHeading({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(
+        start: NexSpacing.md,
+        end: NexSpacing.md,
+        top: NexSpacing.contentGap,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: theme.colorScheme.secondary),
+          const SizedBox(width: NexSpacing.sm),
+          Text(label, style: theme.textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+}
+
+/// The name the app greets you by.
+///
+/// Stateful because the settings sheet is not: without this the row would
+/// still show the old name until the sheet was closed and reopened.
+class _NameRow extends StatefulWidget {
+  const _NameRow({required this.preferences});
+
+  final NexPreferences preferences;
+
+  @override
+  State<_NameRow> createState() => _NameRowState();
+}
+
+class _NameRowState extends State<_NameRow> {
+  Future<void> _edit() async {
+    final l10n = AppLocalizations.of(context);
+    final controller =
+        TextEditingController(text: widget.preferences.displayName ?? '');
+    final saved = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.yourName),
+        content: NexDialogBody(
+          child: TextField(
+            controller: controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(hintText: l10n.yourNamePlaceholder),
+            onSubmitted: (value) => Navigator.pop(context, value),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (saved == null) return;
+    await widget.preferences.setDisplayName(saved);
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = widget.preferences.displayName;
+    final l10n = AppLocalizations.of(context);
+    return ListTile(
+      contentPadding: _rowPadding,
+      leading: const Icon(Icons.waving_hand_outlined),
+      title: Text(name ?? l10n.yourName),
+      subtitle: Text(name == null ? l10n.yourNamePlaceholder : l10n.edit),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: _edit,
+    );
+  }
+}
+
 /// Padding for controls that are not list tiles, so they line up with them.
 class _Inset extends StatelessWidget {
   const _Inset({required this.child});
@@ -520,11 +675,6 @@ class _SwipeMapping extends StatefulWidget {
 }
 
 class _SwipeMappingState extends State<_SwipeMapping> {
-  Future<void> _swap() async {
-    await widget.preferences.swapSwipeMapping();
-    if (mounted) setState(() {});
-  }
-
   Future<void> _select({
     required bool isLeading,
     required SwipeAction action,
@@ -553,22 +703,6 @@ class _SwipeMappingState extends State<_SwipeMapping> {
           title: l10n.swipeTrailing,
           action: widget.preferences.trailingAction,
           onSelected: (action) => _select(isLeading: false, action: action),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            NexSpacing.sm,
-            0,
-            NexSpacing.md,
-            NexSpacing.sm,
-          ),
-          child: Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton.icon(
-              onPressed: _swap,
-              icon: const Icon(Icons.swap_horiz),
-              label: Text(l10n.swapSwipeMapping),
-            ),
-          ),
         ),
       ],
     );
