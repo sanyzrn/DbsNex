@@ -91,6 +91,8 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-2.9 Tapping a card opens the Note Detail Sheet, which offers the actions that are not worth a gesture: open, share, copy, edit, caption, add tag, summarize, details, delete.
 - FR-2.9.1 The sheet's height follows the note. A long note opens at reading height — roughly two thirds of the screen — and scrolls for as long as it runs; a two-line thought stays a two-line sheet. Reading a captured note must not begin with dragging the sheet upward.
 - FR-2.9.2 The actions are pinned below the body rather than placed at the end of it, so a screenful of text never buries them. Text is laid out for reading at length: looser leading than a timeline card, and the paragraph's own direction (RTL or LTR) rather than the interface's.
+- FR-2.9.3 The Timeline distinguishes **three** states, not two: not yet loaded, empty, and populated. "Not loaded" renders placeholders shaped like the cards that will replace them. Treating it as "empty" is what put the onboarding screen in front of every user on every cold launch, for as long as the first read took.
+- FR-2.9.4 A capture is confirmed by a **receipt**: a mark in the accent on the new card's leading edge that fades over about 600ms and then is gone. This is what stands in for the Save button the product does not have, so it has to be perceivable — and it has to end, or it is not a confirmation but a permanent mark on the last thing captured.
 - FR-2.10 The body of a **text** note is editable after capture. This is correcting a capture, not authoring: it is plain text with no formatting, no title and no versioning, and it never appears during capture (FR-1.6). Media notes are not editable — their caption is the equivalent affordance (FR-2.11). Rich text, nested documents and revision history stay out of scope.
 - FR-2.11 A voice, photo or file note may carry an optional user-written **caption**. It is always optional, never requested at capture time, and is distinct from a machine-derived transcript, OCR text or summary — those are produced by the intelligence layer (see [AI Roadmap](#ai-roadmap)) and never overwrite what the user typed. Caption text is not full-text indexed in v1, matching FR-4.2.
 
@@ -102,6 +104,7 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-3.5 A tag may optionally carry one accent color, chosen by the user from a small fixed palette when creating or editing the tag; unset tags render with no color (neutral). Color is never requested or required during capture — see [`05-design.md`](./05-design.md#tag-accent-color) and [ADR-021](./10-decisions.md#adr-021--optional-user-chosen-tag-accent-color).
 
 ### FR-4 — Search
+- FR-4.0 Search is reached **without leaving the Timeline**. The query field is part of the Timeline's own list, above the first card, and the list rests scrolled just past it — so pulling down brings it in, the same gesture on either platform because it is ordinary scrolling rather than an overscroll effect. The header icon and the desktop shortcut perform the same reveal, since a gesture must never be the only route to a core feature. Results replace the cards in place; there is no route push and no transition between wanting to find something and finding it.
 - FR-4.1 A persistent search entry point is reachable from the Timeline in one tap.
 - FR-4.2 Full-text search runs against text-note content.
 - FR-4.3 Search supports filtering by one or more tags.
@@ -226,8 +229,9 @@ To keep that scannable, the sheet is organized into labelled groups rather than 
 | Accessibility | Reduce motion, capture haptics, the "one year ago" line |
 | Swipe actions | The FR-2.7 per-edge mapping |
 | Intelligence | One row into the intelligence screen (FR-8b) |
-| Library | Tags, Trash, storage usage |
 | Data & backup | Export / import / local backups (FR-6, FR-7), and the optional sync server |
+
+**Library** is not in that list any more. Tags, Trash and storage were reachable only through the gear icon, and none of them is a preference — Trash is a *content location* holding the user's own notes. They have their own surface now, one tap from the Timeline, because recovering a note deleted by an accidental swipe should not begin by reasoning your way to Settings.
 | About | Update (FR-8a), version, attribution, storage location, privacy, licences |
 
 Tags, Recently Deleted and About open as full screens rather than nested sheets — they are destinations with their own content, not preferences, so pushing a route is the honest interaction. Everything that is genuinely a *preference* stays on the one sheet.

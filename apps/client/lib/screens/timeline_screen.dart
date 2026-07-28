@@ -23,6 +23,7 @@ import '../widgets/recording_sheet.dart';
 import '../widgets/search_field_header.dart';
 import '../widgets/search_results.dart';
 import '../widgets/tag_picker.dart';
+import 'library_screen.dart';
 import 'note_detail_sheet.dart';
 import 'settings_sheet.dart';
 
@@ -485,6 +486,22 @@ class TimelineScreenState extends State<TimelineScreen> {
             tooltip: l10n.search,
             icon: const Icon(Icons.search),
             onPressed: () => unawaited(revealSearch()),
+          ),
+          // Content lives here, preferences live behind the gear. Trash and
+          // Tags were reachable only through Settings, and neither is a
+          // preference — one of them holds the user's own deleted notes.
+          IconButton(
+            tooltip: l10n.libraryTitle,
+            icon: const Icon(Icons.inventory_2_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => LibraryScreen(
+                  services: widget.services,
+                  preferences: widget.preferences,
+                ),
+              ),
+            ),
           ),
           _SettingsButton(
             updates: widget.updates,

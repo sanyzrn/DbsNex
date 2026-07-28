@@ -11,12 +11,9 @@ import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/update_service.dart';
-import 'package:nex_data/nex_data.dart';
 import 'about_screen.dart';
 import 'backup_screen.dart';
 import 'intelligence_screen.dart';
-import 'recently_deleted_screen.dart';
-import 'tag_manager_screen.dart';
 import 'update_sheet.dart';
 
 String _swipeLabel(AppLocalizations l10n, SwipeAction action) => switch (action) {
@@ -232,55 +229,6 @@ class SettingsSheet extends StatelessWidget {
                                 preferences: preferences,
                               ),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    _Section(
-                      icon: Icons.inventory_2_outlined,
-                      title: l10n.libraryTitle,
-                      children: [
-                        ListTile(
-                          contentPadding: _rowPadding,
-                          leading: const Icon(Icons.label_outline),
-                          title: Text(l10n.tags),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  TagManagerScreen(services: services),
-                            ),
-                          ),
-                        ),
-                        ListTile(
-                          contentPadding: _rowPadding,
-                          leading: const Icon(Icons.restore_from_trash_outlined),
-                          title: Text(l10n.trash),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute<void>(
-                              builder: (_) => RecentlyDeletedScreen(
-                                services: services,
-                                preferences: preferences,
-                              ),
-                            ),
-                          ),
-                        ),
-                        FutureBuilder<StorageSnapshot>(
-                          future: services.storage(),
-                          builder: (context, snapshot) => ListTile(
-                            contentPadding: _rowPadding,
-                            leading: const Icon(Icons.storage_outlined),
-                            title: Text(l10n.storage),
-                            subtitle: snapshot.hasData
-                                ? Text(
-                                    l10n.storageUsed(
-                                      nexFormatBytes(snapshot.requireData.total),
-                                    ),
-                                  )
-                                : null,
                           ),
                         ),
                       ],
