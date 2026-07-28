@@ -65,3 +65,37 @@ class NexTextDirection extends StatelessWidget {
     return Directionality(textDirection: direction, child: child);
   }
 }
+
+/// A block of the user's own writing, laid out in the direction it is written.
+///
+/// Only the paragraph turns. Wrapping a whole card or sheet in a
+/// [Directionality] also moves its icons, dates and buttons, so a Persian note
+/// came out mirrored against everything around it — the text was right and the
+/// layout was wrong. Direction belongs to the text; the surface keeps the
+/// direction the interface language gives it.
+class NexBodyText extends StatelessWidget {
+  const NexBodyText(this.text, {super.key, this.style, this.maxLines});
+
+  final String text;
+  final TextStyle? style;
+  final int? maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final direction = nexDirectionOf(text);
+    return SizedBox(
+      // Full width, so a short right-to-left line reaches the right edge rather
+      // than hugging the left one it happens to start at.
+      width: double.infinity,
+      child: Text(
+        text,
+        style: style,
+        maxLines: maxLines,
+        overflow: maxLines == null ? null : TextOverflow.ellipsis,
+        textDirection: direction,
+        textAlign:
+            direction == TextDirection.rtl ? TextAlign.right : TextAlign.start,
+      ),
+    );
+  }
+}
