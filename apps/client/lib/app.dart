@@ -57,16 +57,35 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
 
   void _refresh() => setState(() {});
 
+  /// What the device would pick when the user has not chosen a language.
+  ///
+  /// `Localizations.localeOf` is not available above the [MaterialApp], so the
+  /// platform's own preference is resolved against the locales this app
+  /// actually ships.
+  Locale? _systemLocale(BuildContext context) {
+    for (final locale in View.of(context).platformDispatcher.locales) {
+      for (final supported in AppLocalizations.supportedLocales) {
+        if (supported.languageCode == locale.languageCode) return supported;
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final prefs = widget.preferences;
+    // Persian is set in Vazirmatn, everything else in Inter. Following the
+    // chosen locale rather than the note's own script is deliberate: this is
+    // the interface's face, and a Persian note inside an English UI keeps its
+    // direction (see NexBodyText) without dragging the whole chrome with it.
+    final font = nexFontFor(prefs.locale ?? _systemLocale(context));
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
       locale: prefs.locale,
       themeMode: prefs.themeMode,
-      theme: nexLightTheme(comfortMode: prefs.comfortMode),
-      darkTheme: nexDarkTheme(comfortMode: prefs.comfortMode),
+      theme: nexLightTheme(comfortMode: prefs.comfortMode, fontFamily: font),
+      darkTheme: nexDarkTheme(comfortMode: prefs.comfortMode, fontFamily: font),
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

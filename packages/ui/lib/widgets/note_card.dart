@@ -33,9 +33,14 @@ class NoteCard extends StatelessWidget {
           label: _label(),
           excludeSemantics: true,
           child: Material(
-            color: theme.colorScheme.surface,
+            // The card's own fill, not the page's. They used to be the same
+            // colour, which left a 1.2:1 hairline as the only thing marking the
+            // boundary of the app's main tap target.
+            color: theme.colorScheme.surfaceContainerLowest,
+            elevation: 1,
+            shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.10),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(NexColors.cardRadius),
+              borderRadius: BorderRadius.circular(NexRadius.lg),
               side: BorderSide(color: theme.colorScheme.outline),
             ),
             clipBehavior: Clip.antiAlias,
@@ -122,7 +127,7 @@ class _Meta extends StatelessWidget {
               style: theme.textTheme.bodySmall,
             ),
             for (final tag in note.tags) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: NexSpacing.sm),
               TagChip(tag: tag, compact: true),
             ],
           ],
@@ -175,7 +180,11 @@ class _Leading extends StatelessWidget {
     final ratio = MediaQuery.devicePixelRatioOf(context);
     if (note.type == NoteType.photo && uri != null) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        // Concentric with the card: the outer radius less the inset that
+        // separates them, rather than an unrelated number.
+        borderRadius: BorderRadius.circular(
+          NexRadius.inside(NexRadius.lg, NexSpacing.cardInset),
+        ),
         child: Image.file(
           File(uri),
           width: 56,
@@ -200,15 +209,24 @@ class _IconBox extends StatelessWidget {
   const _IconBox(this.icon);
   final IconData icon;
   @override
-  Widget build(BuildContext context) => Container(
-    width: 56,
-    height: 56,
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Icon(icon),
-  );
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(
+          NexRadius.inside(NexRadius.lg, NexSpacing.cardInset),
+        ),
+        // A deliberate 56px element used to sit at 1.10:1 against the card,
+        // which rendered it as nothing but a floating glyph. The fill carries a
+        // real tonal step now, and the ring carries the boundary.
+        border: Border.all(color: scheme.outline),
+      ),
+      child: Icon(icon, color: scheme.onSurfaceVariant),
+    );
+  }
 }
 
 class TagChip extends StatelessWidget {

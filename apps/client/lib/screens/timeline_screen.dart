@@ -420,12 +420,15 @@ class TimelineScreenState extends State<TimelineScreen> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
           child: ListView.builder(
-            padding: const EdgeInsets.only(bottom: 118),
+            padding: const EdgeInsets.only(bottom: nexFabClearance),
             itemCount: notes.length + (anniversary.isEmpty ? 0 : 1),
             itemBuilder: (context, index) {
               if (anniversary.isNotEmpty && index == 0) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.md,
+                    vertical: NexSpacing.md,
+                  ),
                   child: Text(l10n.oneYearAgo(anniversary.length), style: Theme.of(context).textTheme.bodySmall),
                 );
               }

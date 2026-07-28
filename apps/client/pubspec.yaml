@@ -57,3 +57,28 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  fonts:
+    # Shipped as assets rather than left to the platform: without them Android
+    # renders Roboto, Windows Segoe UI Variable and iOS SF Pro, so the same
+    # screen has three different densities and three sets of line breaks.
+    #
+    # Both are variable fonts, so one file covers every weight — the repeated
+    # `weight:` entries only tell Flutter which weights the family can serve.
+    # Inter is subset to Latin + punctuation (880 KB → 361 KB); Persian is
+    # Vazirmatn's job, and it carries the Arabic script in full.
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-subset.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-subset.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-subset.ttf
+          weight: 600
+    - family: Vazirmatn
+      fonts:
+        - asset: assets/fonts/VazirmatnVariable.ttf
+          weight: 400
+        - asset: assets/fonts/VazirmatnVariable.ttf
+          weight: 500
+        - asset: assets/fonts/VazirmatnVariable.ttf
+          weight: 600
