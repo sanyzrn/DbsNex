@@ -128,12 +128,22 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Genuinely gone at rest, not merely clipped: the header collapses to zero
-    // extent, so its subtree is not built at all.
+    // The field sits at the top of the list from the start. It used to begin
+    // scrolled out of sight, revealed by pulling down — which never actually
+    // worked on a device, and that gesture is a refresh now.
     final field = find.byType(TextField);
-    expect(field, findsNothing);
+    expect(field, findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.search));
+    // The AppBar's icon, not the one inside the field: there are two now that
+    // the field is permanently on screen. The icon still earns its place —
+    // scrolled down a long list, it is what brings the field back and focuses
+    // it in one tap.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byIcon(Icons.search),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // Same route. Search used to be a full-screen push behind this icon, which
@@ -165,8 +175,7 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
   });
 
-  testWidgets('pulling the timeline down brings the search field in',
-      (tester) async {
+  testWidgets('pulling the timeline down refreshes it', (tester) async {
     for (var i = 0; i < 12; i++) {
       await services.captureText('note $i');
     }
@@ -176,24 +185,47 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final field = find.byType(TextField);
     final list = find.byType(CustomScrollView);
-    expect(field, findsNothing, reason: 'out of sight at rest');
+    // The field is simply there, at the top, whatever the scroll is doing.
+    expect(find.byType(TextField), findsOneWidget);
 
-    // Pull down: the field is part of the list, above the first card, so this
-    // is ordinary scrolling — which is why it behaves the same under Android's
-    // clamping physics and iOS's bouncing ones.
-    await tester.drag(list, const Offset(0, 120));
+    // A note created behind the screen's back — the situation the gesture is
+    // for. Nothing has told the timeline about it.
+    await services.captureText('arrived while you were away');
     await tester.pumpAndSettle();
-    expect(field, findsOneWidget);
 
-    // And scrolling on takes it away again, the way iOS Mail's does.
-    await tester.drag(list, const Offset(0, -200));
+    await tester.fling(list, const Offset(0, 300), 1000);
     await tester.pumpAndSettle();
-    expect(field, findsNothing);
 
-    // How the half-open snap *feels* is a device check, not a widget test —
-    // the offsets are assertable, the spring is not.
+    expect(find.byType(RefreshIndicator), findsOneWidget);
+    expect(find.text('arrived while you were away'), findsOneWidget);
+  });
+
+  testWidgets('a tag created elsewhere reaches the filter row without a restart',
+      (tester) async {
+    // The reported symptom: delete the tags, make a new one, and the filter row
+    // kept showing the old set until the app was closed and reopened. The row
+    // is fed by its own query, which only ever ran once — in initState.
+    await services.captureText('a note');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rockets'), findsNothing);
+
+    // Created the way the tag manager and the note sheet both create one, then
+    // the refresh every mutation path already performs.
+    await services.createTag('Rockets');
+    await services.refreshTimeline();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Rockets'),
+      findsWidgets,
+      reason: 'the filter row has to notice, without a cold launch',
+    );
   });
 
   testWidgets('the filter row and the cards share one edge on a wide window',

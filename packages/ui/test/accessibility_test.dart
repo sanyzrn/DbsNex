@@ -160,9 +160,10 @@ void main() {
     );
 
     // `excludeSemantics` collapsed the whole card into one announcement, so a
-    // screen-reader user could not reach the date or an individual tag.
-    expect(find.bySemanticsLabel('Jul 28'), findsOneWidget);
-    expect(find.bySemanticsLabel('Work'), findsOneWidget);
+    // screen-reader user could not reach the body or the tags separately. The
+    // date is no longer on the card at all — it lives in the note's own sheet.
+    expect(find.bySemanticsLabel(RegExp('the note body')), findsWidgets);
+    expect(find.bySemanticsLabel('Tags: Work'), findsOneWidget);
     handle.dispose();
   });
 

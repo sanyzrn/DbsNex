@@ -70,11 +70,13 @@ class TimelineScreenState extends State<TimelineScreen> {
   StreamSubscription<List<Note>>? subscription;
   String? landedId;
 
-  /// Starts past the search field so it sits just out of sight. Revealing it is
-  /// then ordinary scrolling, which behaves the same under Android's clamping
-  /// physics and iOS's bouncing ones — an overscroll effect would not.
-  final ScrollController _scroll =
-      ScrollController(initialScrollOffset: nexSearchHeaderExtent);
+  /// Starts at the top, with the search field in view.
+  ///
+  /// It used to start scrolled past the field, so that pulling down revealed
+  /// it. That never worked in practice and the gesture is now a refresh, which
+  /// needs the list to begin at offset zero — otherwise the first pull spends
+  /// itself scrolling back up.
+  final ScrollController _scroll = ScrollController();
 
   late final NoteSearchController _search =
       NoteSearchController(services: widget.services);
@@ -88,7 +90,14 @@ class TimelineScreenState extends State<TimelineScreen> {
   void initState() {
     super.initState();
     subscription = widget.services.timelineStream.listen((value) {
-      if (mounted) setState(() { _all = value; notes = _visible(value); });
+      if (!mounted) return;
+      setState(() { _all = value; notes = _visible(value); });
+      // The filter row is fed by a separate query that only ran once, at
+      // startup. Creating or deleting a tag anywhere in the app left the row
+      // showing the old set until the next cold launch — which is exactly the
+      // "I had to restart it" report. Every mutation path already refreshes
+      // the timeline, so this is the one place that has to notice.
+      unawaited(_loadFilterTags());
     });
     _search.addListener(_onSearchChanged);
     unawaited(_loadTimeline());
@@ -130,41 +139,9 @@ class TimelineScreenState extends State<TimelineScreen> {
     _searchFocus.unfocus();
     _search.clear();
     setState(() => _searching = false);
-    if (_scroll.hasClients) {
-      unawaited(
-        _scroll.animateTo(
-          nexSearchHeaderExtent.clamp(0, _scroll.position.maxScrollExtent),
-          duration: NexMotion.standard,
-          curve: NexMotion.curve,
-        ),
-      );
-    }
-  }
-
-  /// Snaps the half-revealed field open or shut when the finger lifts.
-  ///
-  /// `animateTo` takes a duration and a curve rather than a simulation; getting
-  /// a spring in here would mean a custom [ScrollActivity] for a 60px travel
-  /// nobody could tell apart.
-  bool _snapSearchHeader(ScrollEndNotification notification) {
-    if (_searching || !_scroll.hasClients) return false;
-    final offset = _scroll.offset;
-    if (offset <= 0 || offset >= nexSearchHeaderExtent) return false;
-    final target =
-        offset < nexSearchHeaderExtent / 2 ? 0.0 : nexSearchHeaderExtent;
-    // Scheduled, because a scroll cannot be started from inside the
-    // notification that ended the last one.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scroll.hasClients) return;
-      unawaited(
-        _scroll.animateTo(
-          target,
-          duration: NexMotion.fast,
-          curve: NexMotion.curve,
-        ),
-      );
-    });
-    return false;
+    // No scroll on the way out. Leaving search used to push the list back down
+    // past the field to re-hide it; the field lives at the top now, so that
+    // would just be the timeline jumping for no reason a user could name.
   }
 
   /// The screen used to seed `notes` synchronously from the repository. The
@@ -184,6 +161,36 @@ class TimelineScreenState extends State<TimelineScreen> {
     final loaded = await widget.services.listTags();
     if (!mounted) return;
     setState(() => filterTags = loaded);
+  }
+
+  /// Everything this screen shows, read again.
+  ///
+  /// The pull-down was meant to reveal the search field. It never did — the
+  /// field turned out to sit at the top permanently, so there was nothing to
+  /// pull in — and a gesture that does nothing is worse than no gesture. This
+  /// is what a downward pull on a list means everywhere else, and it is also
+  /// the manual escape hatch for anything that fails to refresh on its own.
+  ///
+  /// Syncing is part of it only when a server is configured, and its failure
+  /// is reported without taking the local reload down with it: the notes on
+  /// this device are the point, and they reloaded either way.
+  Future<void> _refresh() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    await Future.wait([
+      widget.services.refreshTimeline(),
+      _loadFilterTags(),
+      _loadAnniversary(),
+    ]);
+    if (widget.preferences.syncBaseUrl == null) return;
+    try {
+      await widget.services.syncNow();
+    } catch (_) {
+      if (!mounted) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.operationFailed)));
+    }
   }
 
   Future<void> _selectTag(String? tagId) async {
@@ -509,15 +516,21 @@ class TimelineScreenState extends State<TimelineScreen> {
           IconButton(
             tooltip: l10n.libraryTitle,
             icon: const Icon(Icons.inventory_2_outlined),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (_) => LibraryScreen(
-                  services: widget.services,
-                  preferences: widget.preferences,
+            // Awaited, and the timeline reloads on the way back. Tags and
+            // Trash both live behind here and both change what this screen
+            // shows, and neither of them refreshes it on its own.
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => LibraryScreen(
+                    services: widget.services,
+                    preferences: widget.preferences,
+                  ),
                 ),
-              ),
-            ),
+              );
+              await _refresh();
+            },
           ),
           _SettingsButton(
             updates: widget.updates,
@@ -549,9 +562,6 @@ class TimelineScreenState extends State<TimelineScreen> {
               // Scrolling dismisses an open card, the way every list with
               // swipe actions behaves.
               if (notification is ScrollStartNotification) _swipe.closeAll();
-              if (notification is ScrollEndNotification) {
-                return _snapSearchHeader(notification);
-              }
               return false;
             },
             child: Center(
@@ -561,8 +571,15 @@ class TimelineScreenState extends State<TimelineScreen> {
               // things that belong to each other, visibly unaligned.
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 760),
-                child: CustomScrollView(
+                child: RefreshIndicator(
+                  onRefresh: _refresh,
+                  edgeOffset: nexSearchHeaderExtent,
+                  child: CustomScrollView(
                   controller: _scroll,
+                  // Always scrollable, so the pull works on a short list too —
+                  // a refresh gesture that only exists once you have enough
+                  // notes to scroll is a refresh gesture nobody finds.
+                  physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
                     // Both headers are always in the list, keyed, and collapse
                     // to zero extent rather than leaving it. A sliver list that
@@ -607,6 +624,7 @@ class TimelineScreenState extends State<TimelineScreen> {
                       ),
                     ),
                   ],
+                  ),
                 ),
               ),
             ),

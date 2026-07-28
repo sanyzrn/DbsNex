@@ -254,12 +254,11 @@ void main() {
     });
   });
 
-  testWidgets('a real card still swipes, scroll view in its meta row and all',
-      (tester) async {
-    // The date-and-tags row is a horizontal scroll view now, so that a tag too
-    // many is clipped instead of wrapping and making the card taller. A
-    // scrollable that accepted drags would enter the gesture arena and take
-    // the swipe away from the card.
+  testWidgets('a real card still swipes, tag marks and all', (tester) async {
+    // The tags are dots down the trailing edge now. They sit exactly where a
+    // horizontal swipe starts and ends, so if they ever claimed the gesture —
+    // by becoming a scrollable, a button, or anything else in the arena — the
+    // card would stop swiping on precisely the notes that have tags.
     final now = DateTime.utc(2026, 7, 28);
     var deleted = false;
     await tester.pumpWidget(
@@ -296,9 +295,11 @@ void main() {
       ),
     );
 
-    // Started on the tags themselves — the one place a stray scrollable would
-    // have claimed the gesture.
-    await tester.drag(find.text('Work'), const Offset(-150, 0));
+    // Started on the note's own text, and dragged across the marks.
+    await tester.drag(
+      find.text('a note with several tags on it'),
+      const Offset(-150, 0),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsOneWidget);
 
