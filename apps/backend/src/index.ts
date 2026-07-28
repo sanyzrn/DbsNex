@@ -20,6 +20,7 @@ import { authRouter } from "./routes/auth.ts";
 import { notesRouter } from "./routes/notes.ts";
 import { syncRouter } from "./routes/sync.ts";
 import { tagsRouter } from "./routes/tags.ts";
+import { testRouter } from "./routes/test.ts";
 import { startPurgeSchedule } from "./services/purge.ts";
 
 /**
@@ -80,14 +81,14 @@ app.get("/health", async (_req: Request, res: Response) => {
 
 const authLimiter = rateLimit({
   windowMs: 60_000,
-  limit: 10,
+  limit: env.AUTH_RATE_LIMIT,
   standardHeaders: "draft-7",
   legacyHeaders: false,
 });
 
 const syncLimiter = rateLimit({
   windowMs: 60_000,
-  limit: 60,
+  limit: env.SYNC_RATE_LIMIT,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   keyGenerator: (req: Request) => req.auth?.deviceId ?? req.ip ?? "unknown",
@@ -95,7 +96,7 @@ const syncLimiter = rateLimit({
 
 const readLimiter = rateLimit({
   windowMs: 60_000,
-  limit: 120,
+  limit: env.READ_RATE_LIMIT,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   keyGenerator: (req: Request) => req.auth?.deviceId ?? req.ip ?? "unknown",
@@ -107,6 +108,18 @@ const readLimiter = rateLimit({
 // than one unauthenticated 10 MB limit applied to everything.
 app.use("/auth", authLimiter, express.json({ limit: "16kb" }), authRouter);
 
+// Not mounted at all outside test mode. The corpus-wipe endpoint used to be a
+// route inside syncRouter guarded by a 404 throw, which is a runtime check on
+// something that is always there; this is absence.
+if (env.isTestMode) {
+  app.use(
+    "/sync/test",
+    express.json({ limit: "4kb" }),
+    requireDevice,
+    testRouter,
+  );
+}
+
 app.use(
   "/sync",
   express.json({ limit: "2mb" }),
@@ -114,6 +127,7 @@ app.use(
   syncLimiter,
   syncRouter,
 );
+
 
 app.use(
   "/notes",

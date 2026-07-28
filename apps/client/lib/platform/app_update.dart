@@ -256,6 +256,12 @@ class UpdateDownloader {
   }) async {
     final partial = File('${into.path}${Platform.pathSeparator}$filename.part');
     final target = File('${into.path}${Platform.pathSeparator}$filename');
+    // Every installer, not only this one's name. Cleanup used to be scoped to
+    // the in-flight download, so each previous version — 40 to 70 MB of
+    // universal APK — sat in the cache directory forever under a filename that
+    // never matched the delete. A user who updates monthly quietly accrues
+    // hundreds of megabytes, in an app whose Settings screen reports storage.
+    await _sweepInstallers(into, keep: filename);
     if (partial.existsSync()) partial.deleteSync();
     if (target.existsSync()) target.deleteSync();
 
@@ -287,6 +293,30 @@ class UpdateDownloader {
     }
     partial.renameSync(target.path);
     return target;
+  }
+
+  /// Deletes stale `Nex-*.apk` / `.exe` files, leaving [keep] alone.
+  static Future<void> _sweepInstallers(
+    Directory dir, {
+    required String keep,
+  }) async {
+    final pattern = RegExp(r'^Nex-.*\.(apk|exe)(\.part)?$');
+    try {
+      await for (final entity in dir.list()) {
+        if (entity is! File) continue;
+        final name = entity.uri.pathSegments.last;
+        if (name == keep || name == '$keep.part') continue;
+        if (!pattern.hasMatch(name)) continue;
+        try {
+          await entity.delete();
+        } catch (_) {
+          // A file the system installer still holds open is not worth failing
+          // the download over.
+        }
+      }
+    } catch (_) {
+      // An unreadable cache directory is not a reason to refuse an update.
+    }
   }
 
   void close() {

@@ -250,7 +250,10 @@ ORDER BY t.name COLLATE NOCASE
       // existing colour is `setTagColor`, and it is explicit.
       final id = existing.first['id'];
       if (color != null && existing.first['color'] == null) {
-        db.execute('UPDATE tags SET color = ? WHERE id = ?', [color, id]);
+        db.execute(
+          "UPDATE tags SET color = ?, sync_state = 'pending' WHERE id = ?",
+          [color, id],
+        );
       }
       return Tag.fromRow(
         db.select('SELECT * FROM tags WHERE id = ?', [id]).first,
@@ -313,10 +316,138 @@ ORDER BY updated_at ASC
         .toList();
   }
 
-  void markSynced(String noteId) {
+  /// Clears a note from the outbox, adopting the server's revision.
+  ///
+  /// [serverRev] is not optional decoration: `rev` is server-authoritative, and
+  /// a client that keeps its own number after an accepted write will push a
+  /// stale revision next time and have it rejected. Only ever called for ids
+  /// the server actually acknowledged — see [SyncClient].
+  void markSynced(String noteId, {int? serverRev}) {
+    if (serverRev == null) {
+      db.execute(
+        "UPDATE notes SET sync_state = 'synced' WHERE id = ?",
+        [noteId],
+      );
+      return;
+    }
     db.execute(
-      "UPDATE notes SET sync_state = 'synced' WHERE id = ?",
-      [noteId],
+      "UPDATE notes SET sync_state = 'synced', rev = ? WHERE id = ?",
+      [serverRev, noteId],
+    );
+  }
+
+  /// Outbox: tags still pending sync.
+  List<Tag> listPendingTags() {
+    final rows = db.select(
+      "SELECT * FROM tags WHERE sync_state = 'pending' ORDER BY name COLLATE NOCASE",
+    );
+    return rows.map(Tag.fromRow).toList();
+  }
+
+  void markTagsSynced(Iterable<String> tagIds) {
+    for (final id in tagIds) {
+      db.execute("UPDATE tags SET sync_state = 'synced' WHERE id = ?", [id]);
+    }
+  }
+
+  /// Folds this device's tag ids into the ones the server made canonical.
+  ///
+  /// Tag identity on the server is `(user_id, lower(name))`, because two
+  /// devices offline both mint a UUID for `#ideas` and only one can win. The
+  /// server reports the outcome as a remap and the client used to throw it
+  /// away, so the loser kept its local id forever: every push re-sent it, the
+  /// server re-remapped it, and the response was discarded again — a loop that
+  /// never converged, with two `#ideas` tags on screen and pulled note↔tag
+  /// joins pointing at ids that did not exist locally.
+  ///
+  /// One transaction, and the losing row goes before the canonical one is
+  /// written: `tags.name` is UNIQUE, so the two cannot coexist.
+  void applyTagRemap(List<({String clientId, String canonicalId})> pairs) {
+    final real = [
+      for (final pair in pairs)
+        if (pair.clientId != pair.canonicalId) pair,
+    ];
+    if (real.isEmpty) return;
+    db.execute('BEGIN');
+    try {
+      for (final pair in real) {
+        final losing = db.select(
+          'SELECT * FROM tags WHERE id = ?',
+          [pair.clientId],
+        );
+        if (losing.isEmpty) continue;
+        final row = losing.first;
+
+        // Read the joins before touching the tag row. `note_tags.tag_id` is
+        // ON DELETE CASCADE, so deleting the losing tag takes its joins with
+        // it — repointing them afterwards finds nothing and the notes come out
+        // untagged. They have to be carried across by hand.
+        final noteIds = [
+          for (final join in db.select(
+            'SELECT note_id FROM note_tags WHERE tag_id = ?',
+            [pair.clientId],
+          ))
+            join['note_id']! as String,
+        ];
+
+        // The losing row goes first: `tags.name` is UNIQUE, so the canonical
+        // row cannot take the name while the loser still holds it.
+        db.execute('DELETE FROM tags WHERE id = ?', [pair.clientId]);
+        final existing = db.select(
+          'SELECT id FROM tags WHERE id = ?',
+          [pair.canonicalId],
+        );
+        if (existing.isEmpty) {
+          db.execute(
+            '''
+INSERT INTO tags (id, name, color, created_at, sync_state)
+VALUES (?, ?, ?, ?, 'synced')
+''',
+            [
+              pair.canonicalId,
+              row['name'],
+              row['color'],
+              row['created_at'],
+            ],
+          );
+        }
+        for (final noteId in noteIds) {
+          // OR IGNORE: a note already carrying the canonical tag would
+          // otherwise violate the composite primary key.
+          db.execute(
+            'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
+            [noteId, pair.canonicalId],
+          );
+        }
+      }
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    }
+  }
+
+  /// The pull watermark, surviving process restarts.
+  ///
+  /// It used to live only in a field on the sync client, so even once the
+  /// field name was right every cold launch restarted the pull from sequence
+  /// zero and re-downloaded the whole corpus.
+  String? get syncCursor {
+    final rows = db.select(
+      "SELECT value FROM nex_meta WHERE key = 'sync_cursor'",
+    );
+    return rows.isEmpty ? null : rows.first['value'] as String;
+  }
+
+  set syncCursor(String? value) {
+    if (value == null) {
+      db.execute("DELETE FROM nex_meta WHERE key = 'sync_cursor'");
+      return;
+    }
+    db.execute(
+      "INSERT INTO nex_meta (key, value) VALUES ('sync_cursor', ?) "
+      'ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      [value],
     );
   }
 
@@ -348,7 +479,8 @@ WHERE id = ? AND deleted_at IS NULL
     final existing = db.select('SELECT * FROM tags WHERE id = ?', [id]);
     if (existing.isNotEmpty) {
       db.execute(
-        'UPDATE tags SET name = ?, color = COALESCE(?, color) WHERE id = ?',
+        "UPDATE tags SET name = ?, color = COALESCE(?, color), "
+        "sync_state = 'synced' WHERE id = ?",
         [name, color, id],
       );
       return Tag.fromRow(
@@ -369,7 +501,10 @@ WHERE id = ? AND deleted_at IS NULL
         ]);
         db.execute('DELETE FROM tags WHERE id = ?', [localId]);
         db.execute(
-          'INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)',
+          '''
+INSERT INTO tags (id, name, color, created_at, sync_state)
+VALUES (?, ?, ?, ?, 'synced')
+''',
           [
             id,
             name,
@@ -380,8 +515,13 @@ WHERE id = ? AND deleted_at IS NULL
       }
       return Tag.fromRow(db.select('SELECT * FROM tags WHERE id = ?', [id]).first);
     }
+    // Straight from the server, so it is already in step with it — pushing it
+    // back would mint a new sequence and re-broadcast it to every peer.
     db.execute(
-      'INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)',
+      '''
+INSERT INTO tags (id, name, color, created_at, sync_state)
+VALUES (?, ?, ?, ?, 'synced')
+''',
       [id, name, color, createdAt.toUtc().toIso8601String()],
     );
     return Tag.fromRow(db.select('SELECT * FROM tags WHERE id = ?', [id]).first);
@@ -467,7 +607,10 @@ WHERE id = ?
     if (color != null && !isTagAccent(color)) {
       throw ArgumentError.value(color, 'color', 'not a #RRGGBB colour');
     }
-    db.execute('UPDATE tags SET color = ? WHERE id = ?', [color, tagId]);
+    db.execute(
+      "UPDATE tags SET color = ?, sync_state = 'pending' WHERE id = ?",
+      [color, tagId],
+    );
   }
 
   /// Persist AI transcript alongside the voice note (09-ai.md — non-destructive).

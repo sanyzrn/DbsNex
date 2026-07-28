@@ -287,26 +287,259 @@ void main() {
         expect(aIds, containsAll([online.id, online2.id]));
         expect(aIds.length, offlineNotes.length + 2);
       });
+
+      /* ------------------------------------------------- transport, not merge */
+      //
+      // Everything above asserts that two devices agree. None of it can fail on
+      // a broken cursor, a discarded push response, an ignored `has_more` or a
+      // dropped tag remap, because a full re-download converges just as well as
+      // an incremental pull and the suite never looked at the wire. These do.
+
+      test('7) pull is incremental: the second cycle sends a cursor', () async {
+        final recorder = _Recording(http.Client());
+        final a = _Device(
+          id: 'device-a',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-a'],
+          recorder: recorder,
+        );
+        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        addTearDown(a.close);
+        addTearDown(b.close);
+
+        // Something from another device, so A's pull has a row to advance on.
+        b.captureText('from b');
+        await b.sync();
+        await a.sync();
+
+        recorder.requests.clear();
+        await a.sync();
+
+        final pulls = recorder.requests.where((u) => u.path.endsWith('/sync/pull'));
+        expect(pulls, isNotEmpty, reason: 'the cycle must pull');
+        final since = pulls.last.queryParameters['since'];
+        expect(since, isNotNull, reason: 'no cursor means a full re-download');
+        expect(int.parse(since!), greaterThan(0));
+      });
+
+      test('8) the cursor survives a cold start', () async {
+        // The watermark used to live in a field on the client, so even with the
+        // right field name every launch restarted the pull from zero.
+        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        addTearDown(b.close);
+        b.captureText('seed');
+        await b.sync();
+
+        final first = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        await first.sync();
+        final carried = first.repo.syncCursor;
+        first.close();
+
+        expect(carried, isNotNull);
+        expect(int.parse(carried!), greaterThan(0));
+      });
+
+      test('9) a change set larger than one page drains completely', () async {
+        final pageSize = int.parse(
+          Platform.environment['SYNC_PAGE_SIZE'] ?? '500',
+        );
+        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        addTearDown(a.close);
+        addTearDown(b.close);
+
+        // Two full pages and a bit, so `has_more` is true more than once.
+        final total = pageSize * 2 + 3;
+        for (var i = 0; i < total; i++) {
+          b.captureText('bulk-$i');
+        }
+        await b.sync();
+        await a.sync();
+
+        expect(
+          a.repo.listTimeline(limit: total + 10).length,
+          total,
+          reason: 'a client that reads one page leaves the rest behind forever',
+        );
+      });
+
+      test('10) the same tag name minted on both devices converges to one id',
+          () async {
+        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        addTearDown(a.close);
+        addTearDown(b.close);
+
+        // Independently created, so the two devices mint different UUIDs for
+        // one name — the case tag_remap exists for, and the one the matrix
+        // could never reach because both sides took their tags from A.
+        final onA = a.repo.upsertTag(name: 'zzz-ideas');
+        final onB = b.repo.upsertTag(name: 'zzz-ideas');
+        expect(onA.id, isNot(onB.id), reason: 'the premise of this test');
+
+        final noteA = a.captureText('a note');
+        a.repo.attachTag(noteId: noteA.id, tagId: onA.id);
+        final noteB = b.captureText('b note');
+        b.repo.attachTag(noteId: noteB.id, tagId: onB.id);
+
+        await a.sync();
+        await b.sync();
+        await a.sync();
+
+        final aTags = a.repo.listTags().where((t) => t.name == 'zzz-ideas');
+        final bTags = b.repo.listTags().where((t) => t.name == 'zzz-ideas');
+        expect(aTags, hasLength(1), reason: 'a remap that is ignored duplicates');
+        expect(bTags, hasLength(1));
+        expect(
+          aTags.first.id,
+          bTags.first.id,
+          reason: 'both devices must land on the server canonical id',
+        );
+        // And the join must still point at a row that exists.
+        expect(b.repo.tagsForNote(noteB.id).map((t) => t.id), [bTags.first.id]);
+      });
+
+      test('11) a write the server refuses stays in the outbox', () async {
+        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        addTearDown(a.close);
+        addTearDown(b.close);
+
+        final note = a.captureText('v0');
+        await a.sync();
+        await b.sync();
+
+        // B advances the revision twice while A is offline, so A's next push
+        // carries a revision the server has already passed.
+        b.repo.updateContentAt(
+          note.id,
+          'b1',
+          DateTime.now().toUtc().add(const Duration(seconds: 1)),
+        );
+        await b.sync();
+        b.repo.updateContentAt(
+          note.id,
+          'b2',
+          DateTime.now().toUtc().add(const Duration(seconds: 2)),
+        );
+        await b.sync();
+
+        // A edits from its stale revision. The server must refuse it.
+        a.repo.updateContentAt(
+          note.id,
+          'a1',
+          DateTime.now().toUtc().subtract(const Duration(seconds: 10)),
+        );
+        final pendingBefore = a.repo.listPending().map((n) => n.id).toSet();
+        expect(pendingBefore, contains(note.id));
+
+        final result = await a.sync();
+
+        // Either the server took it (and said so) or it refused it (and the
+        // note is still in the outbox to be retried). What must never happen is
+        // the third thing: refused, and cleared from the outbox anyway.
+        final stillPending = a.repo.listPending().map((n) => n.id).toSet();
+        if (!result.mergedIds.contains(note.id)) {
+          expect(
+            stillPending,
+            contains(note.id),
+            reason: 'a refused write that leaves the outbox is a lost edit',
+          );
+        } else {
+          expect(stillPending, isNot(contains(note.id)));
+        }
+      });
+
+      test('12) the push response is read at all', () async {
+        // `mergedIds` was decoded from a key the server stopped sending, so it
+        // was always empty and nothing noticed.
+        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        addTearDown(a.close);
+
+        final note = a.captureText('acknowledge me');
+        final result = await a.sync();
+
+        expect(result.mergedIds, contains(note.id));
+        expect(result.pushed, greaterThan(0));
+      });
+
+      test('13) an unchanged tag is not re-broadcast on every sync', () async {
+        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final recorder = _Recording(http.Client());
+        final b = _Device(
+          id: 'device-b',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-b'],
+          recorder: recorder,
+        );
+        addTearDown(a.close);
+        addTearDown(b.close);
+
+        a.repo.upsertTag(name: 'zzz-stable');
+        await a.sync();
+        await b.sync();
+
+        // Nothing has changed. A sync from A must not move any tag's sequence,
+        // so B's next pull must bring back no tags at all. Before, every sync
+        // re-sequenced the entire tag table and every peer re-downloaded it.
+        await a.sync();
+        final before = b.repo.syncCursor;
+        await b.sync();
+
+        expect(
+          b.repo.syncCursor,
+          before,
+          reason: 'an idle sync moved the watermark, so something was rewritten',
+        );
+      });
     },
     skip: runMatrix ? false : 'set RUN_SYNC_MATRIX=1 with live Phase 2 backend',
   );
 }
 
+/// An http.Client that remembers every URI it was asked for.
+///
+/// Convergence between two devices is satisfied just as well by a full
+/// re-download as by a correct incremental pull, so the outcome cannot tell
+/// them apart — only the request can. This is what makes the incrementality
+/// test able to fail.
+class _Recording extends http.BaseClient {
+  _Recording(this._inner);
+
+  final http.Client _inner;
+  final List<Uri> requests = [];
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    requests.add(request.url);
+    return _inner.send(request);
+  }
+
+  @override
+  void close() => _inner.close();
+}
+
 class _Device {
-  _Device({required this.id, required this.baseUrl, this.bearerToken})
-      : db = NexDatabase.openInMemory() {
+  _Device({
+    required this.id,
+    required this.baseUrl,
+    this.bearerToken,
+    this.recorder,
+  }) : db = NexDatabase.openInMemory() {
     repo = SqliteNoteRepository(db, localDeviceId: id);
     client = SyncClient(
       baseUrl: baseUrl,
       deviceId: id,
       repo: repo,
       bearerToken: bearerToken,
+      httpClient: recorder,
     );
   }
 
   final String id;
   final String baseUrl;
   final String? bearerToken;
+  final _Recording? recorder;
   final NexDatabase db;
   late final SqliteNoteRepository repo;
   late final SyncClient client;

@@ -2,9 +2,7 @@ import type { Request, Response, Router } from "express";
 import { Router as createRouter } from "express";
 import { z } from "zod";
 
-import { getPool } from "../db/index.ts";
-import { env } from "../env.ts";
-import { BadRequest, NotFound } from "../http/errors.ts";
+import { BadRequest } from "../http/errors.ts";
 import { assertOwnDevice, auth } from "../middleware/auth.ts";
 import { pullChanges, pushChanges } from "../services/sync-service.ts";
 
@@ -42,10 +40,22 @@ const pushSchema = z.object({
   tags: z.array(incomingTag).max(500).default([]),
 });
 
-const pullSchema = z.object({
+/** The largest value a PostgreSQL bigint can hold. */
+const MAX_CURSOR = 9223372036854775807n;
+
+export const pullSchema = z.object({
+  // Bounded, not just digit-shaped. The regex checked the character class and
+  // not the magnitude, so a value above 2^63-1 passed validation, reached
+  // PostgreSQL as a bigint comparison and raised `22003 numeric field
+  // overflow` — reported to the client as a 500. A corrupt cursor is the
+  // client's problem to fix, and a 400 tells it to reset; a 500 tells it to
+  // retry forever, and puts a client-side typo on the server's error budget.
   since: z
     .string()
-    .regex(/^\d+$/, "since must be a non-negative integer cursor")
+    .regex(/^\d{1,19}$/, "since must be a non-negative integer cursor")
+    .refine((v) => BigInt(v) <= MAX_CURSOR, {
+      message: "since exceeds the maximum cursor value",
+    })
     .optional(),
 });
 
@@ -90,32 +100,4 @@ syncRouter.get("/pull", async (req: Request, res: Response) => {
   });
 
   res.json(result);
-});
-
-/**
- * Test-only reset — enabled when NEX_TEST_MODE=1.
- *
- * Scoped to the authenticated user so it cannot wipe another tenant even in a
- * shared test environment. The unauthenticated POST /sync/migrate DDL trigger
- * that used to live here has been removed; migrations are an explicit deploy
- * step (`npm run migrate`).
- */
-syncRouter.post("/test/reset", async (req: Request, res: Response) => {
-  if (!env.isTestMode) throw new NotFound();
-
-  const { userId } = auth(req);
-  await getPool().query(
-    `DELETE FROM note_tags
-       WHERE note_id IN (SELECT id FROM notes WHERE user_id = $1)`,
-    [userId],
-  );
-  await getPool().query("DELETE FROM notes WHERE user_id = $1", [userId]);
-  await getPool().query("DELETE FROM tags WHERE user_id = $1", [userId]);
-  await getPool().query("DELETE FROM media_objects WHERE user_id = $1", [userId]);
-  await getPool().query(
-    "UPDATE device_acks SET last_pull_seq = 0 WHERE user_id = $1",
-    [userId],
-  );
-
-  res.json({ status: "ok" });
 });

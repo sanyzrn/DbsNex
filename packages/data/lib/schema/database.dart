@@ -95,6 +95,16 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     _addColumnIfMissing('notes', 'caption', 'TEXT');
     _addColumnIfMissing('notes', 'mime_type', 'TEXT');
 
+    // Tags get the outbox notes have always had.
+    //
+    // Without it the client cannot tell which tags are dirty, so it pushed the
+    // whole tag table on every sync — and every one of those upserts minted a
+    // new server sequence, which put all of them above every other device's
+    // cursor and made each sync broadcast the entire tag table to every peer.
+    // Existing rows default to 'pending' so the first sync after this upgrade
+    // reconciles them once, and then stops.
+    _addColumnIfMissing('tags', 'sync_state', "TEXT NOT NULL DEFAULT 'pending'");
+
     db.execute('''
 CREATE TABLE IF NOT EXISTS note_embeddings (
   note_id TEXT PRIMARY KEY NOT NULL REFERENCES notes(id) ON DELETE CASCADE,

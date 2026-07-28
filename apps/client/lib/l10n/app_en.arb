@@ -447,6 +447,14 @@
   "@updateInstallNotice": {
     "description": "Sets expectations before the system installer appears"
   },
+  "updateDownloadFailed": "The download did not finish. Check your connection and try again.",
+  "@updateDownloadFailed": {
+    "description": "Shown when the installer download fails for any reason"
+  },
+  "updateNoSpace": "There is not enough free space to download the update.",
+  "@updateNoSpace": {
+    "description": "Shown when the device runs out of storage mid-download"
+  },
   "updateCheckFailed": "Could not reach the update server. Check your connection and try again.",
   "@updateCheckFailed": {
     "description": "Update sheet, the check did not complete"

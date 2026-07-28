@@ -9,14 +9,15 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && npm run build:migrations",
+    "build:migrations": "node -e \"require('node:fs').cpSync('src/db/migrations','dist/db/migrations',{recursive:true})\"",
     "start": "node dist/index.js",
     "start:dev": "tsx src/index.ts",
     "migrate": "node dist/db/migrate-cli.js",
     "migrate:dev": "tsx src/db/migrate-cli.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "tsx --test src/services/merge.test.ts src/services/merge.conformance.test.ts src/routes/routes.test.ts"
+    "test": "tsx --test src/services/merge.test.ts src/services/merge.conformance.test.ts src/routes/routes.test.ts src/env.test.ts"
   },
   "dependencies": {
     "cors": "2.8.6",

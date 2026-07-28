@@ -147,6 +147,8 @@ class _UpdateSheetState extends State<UpdateSheet> {
     final url = result?.downloadUrl;
     final version = result?.version;
     if (url == null || version == null) return;
+    // Read before the first await: `context` is not safe to touch afterwards.
+    final l10n = AppLocalizations.of(context);
 
     // With a service in hand the transfer is *its* job, not this screen's.
     // The downloader used to belong to this State, so `dispose` closed the
@@ -200,13 +202,35 @@ class _UpdateSheetState extends State<UpdateSheet> {
       });
       if (widget.haptics) HapticFeedback.mediumImpact();
       await _install();
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _phase = _Phase.failed;
-        _error = '$error';
-      });
+    } on SocketException {
+      _fail(l10n.updateCheckFailed);
+    } on FileSystemException catch (error) {
+      // ENOSPC. "Not enough space" is something a person can act on; the
+      // errno is not.
+      _fail(
+        error.osError?.errorCode == 28
+            ? l10n.updateNoSpace
+            : l10n.updateDownloadFailed,
+      );
+    } catch (error, stack) {
+      // Everywhere else in this app user-facing copy goes through
+      // AppLocalizations; this path used to render `'$error'` straight into
+      // the sheet. A Persian user saw `HttpException: Download failed (403),
+      // uri = https://objects.githubusercontent.com/...` — untranslated,
+      // unreadable, leaking internal URLs, and a bidirectional layout hazard
+      // as a Latin-script URL inside an RTL sheet. The detail belongs in a
+      // log.
+      debugPrint('update download failed: $error\n$stack');
+      _fail(l10n.updateDownloadFailed);
     }
+  }
+
+  void _fail(String message) {
+    if (!mounted) return;
+    setState(() {
+      _phase = _Phase.failed;
+      _error = message;
+    });
   }
 
   Future<void> _install() async {
