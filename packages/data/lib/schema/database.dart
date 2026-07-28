@@ -1,7 +1,10 @@
 import 'dart:io';
 
+import 'package:nex_core/nex_core.dart' show newUuidV7;
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
+
+import '../repositories/note_repository.dart' show suggestedStarterTags;
 
 /// Opens (or creates) the Nex SQLite database and applies the Phase 1 schema.
 ///
@@ -100,6 +103,41 @@ CREATE TABLE IF NOT EXISTS note_embeddings (
   updated_at TEXT NOT NULL
 );
 ''');
+
+    // Records one-off data migrations, so a seed that the user has since
+    // edited or deleted is never quietly put back.
+    db.execute('''
+CREATE TABLE IF NOT EXISTS nex_meta (
+  key TEXT PRIMARY KEY NOT NULL,
+  value TEXT NOT NULL
+);
+''');
+    _seedStarterTags();
+  }
+
+  /// Puts the starter tags in the tag table, once.
+  ///
+  /// They used to be a hardcoded list the add-tag dialog offered and nothing
+  /// else knew about: they could not be renamed, recoloured or deleted, and
+  /// they were not the user's own tags. As real rows they are ordinary tags
+  /// from the first launch onwards.
+  void _seedStarterTags() {
+    final done = db.select(
+      "SELECT value FROM nex_meta WHERE key = 'starter_tags_seeded'",
+    );
+    if (done.isNotEmpty) return;
+    final now = DateTime.now().toUtc().toIso8601String();
+    for (final name in suggestedStarterTags) {
+      db.execute(
+        'INSERT OR IGNORE INTO tags (id, name, color, created_at) '
+        'VALUES (?, ?, NULL, ?)',
+        [newUuidV7(), name, now],
+      );
+    }
+    db.execute(
+      "INSERT OR REPLACE INTO nex_meta (key, value) VALUES ('starter_tags_seeded', ?)",
+      [now],
+    );
   }
 
   void _addColumnIfMissing(String table, String column, String type) {

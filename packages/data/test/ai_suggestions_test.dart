@@ -125,12 +125,22 @@ void main() {
       final suggestions = await enrichment.suggestTags(note.id);
       expect(suggestions, isNotEmpty);
       expect(repo.getById(note.id)!.tags, isEmpty);
-      expect(repo.listTags(), isEmpty);
+      // The starter tags are seeded rows now, so the invariant is that
+      // suggesting never *adds* one — not that the table is empty.
+      expect(
+        repo.listTags().map((t) => t.name),
+        unorderedEquals(suggestedStarterTags),
+      );
 
       // Enrichment path also must not auto-apply.
       await enrichment.enrichNote(note.id);
       expect(repo.getById(note.id)!.tags, isEmpty);
-      expect(repo.listTags(), isEmpty);
+      // The starter tags are seeded rows now, so the invariant is that
+      // suggesting never *adds* one — not that the table is empty.
+      expect(
+        repo.listTags().map((t) => t.name),
+        unorderedEquals(suggestedStarterTags),
+      );
     });
 
     test('OCR stub suggestions exclude hash fragments and are not persisted',
@@ -160,7 +170,12 @@ void main() {
           isFalse,
         );
       }
-      expect(repo.listTags(), isEmpty);
+      // The starter tags are seeded rows now, so the invariant is that
+      // suggesting never *adds* one — not that the table is empty.
+      expect(
+        repo.listTags().map((t) => t.name),
+        unorderedEquals(suggestedStarterTags),
+      );
       expect(updated.tags, isEmpty);
     });
 

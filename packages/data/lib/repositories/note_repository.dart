@@ -17,7 +17,12 @@ const List<String> suggestedStarterTags = [
   'Inspiration',
 ];
 
-/// Constrained tag accent palette (ADR-021 / design mockup accents).
+/// The suggested tag accent swatches (ADR-021 / design mockup accents).
+///
+/// Offered first in the colour picker, not enforced: the palette used to be the
+/// only colours a tag could take, which meant a user could not encode their own
+/// meaning — the very thing ADR-021 says the colour exists for. Any valid
+/// `#RRGGBB` is accepted now; these are simply the ones that ship.
 const List<String> tagAccentPalette = [
   '#F0A93B',
   '#5B9BF0',
@@ -25,6 +30,10 @@ const List<String> tagAccentPalette = [
   '#2FBF8F',
   '#B49AE0',
 ];
+
+/// Whether a string is a colour a tag may carry: `#RRGGBB`, case-insensitive.
+bool isTagAccent(String value) =>
+    RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(value);
 
 // newUuidV7, sha256OfBytes and sha256OfFile moved to packages/core (ids.dart):
 // they depend only on uuid and crypto, and keeping them here forced core's
@@ -211,22 +220,28 @@ ORDER BY t.name COLLATE NOCASE
     if (trimmed.isEmpty) {
       throw ArgumentError('tag name must not be empty');
     }
-    if (color != null && !tagAccentPalette.contains(color)) {
-      throw ArgumentError.value(color, 'color', 'not in tagAccentPalette');
+    if (color != null && !isTagAccent(color)) {
+      throw ArgumentError.value(color, 'color', 'not a #RRGGBB colour');
     }
     final existing = db.select(
       'SELECT * FROM tags WHERE name = ? COLLATE NOCASE',
       [trimmed],
     );
     if (existing.isNotEmpty) {
-      if (color != null) {
-        db.execute('UPDATE tags SET color = ? WHERE id = ?', [
-          color,
-          existing.first['id'],
-        ]);
+      // A colour already chosen is never overwritten. It belongs to the tag,
+      // decided in the tag manager — not to whichever note was most recently
+      // tagged with it. Re-adding "Shopping" in blue to a second note used to
+      // repaint every note already carrying the red one.
+      //
+      // A tag that has no colour yet may still take its first one here, so a
+      // seeded starter tag is not stuck colourless forever. Changing an
+      // existing colour is `setTagColor`, and it is explicit.
+      final id = existing.first['id'];
+      if (color != null && existing.first['color'] == null) {
+        db.execute('UPDATE tags SET color = ? WHERE id = ?', [color, id]);
       }
       return Tag.fromRow(
-        db.select('SELECT * FROM tags WHERE id = ?', [existing.first['id']]).first,
+        db.select('SELECT * FROM tags WHERE id = ?', [id]).first,
       );
     }
     final tag = Tag(
@@ -437,8 +452,8 @@ WHERE id = ?
 
   @override
   void setTagColor({required String tagId, String? color}) {
-    if (color != null && !tagAccentPalette.contains(color)) {
-      throw ArgumentError.value(color, 'color', 'not in tagAccentPalette');
+    if (color != null && !isTagAccent(color)) {
+      throw ArgumentError.value(color, 'color', 'not a #RRGGBB colour');
     }
     db.execute('UPDATE tags SET color = ? WHERE id = ?', [color, tagId]);
   }
