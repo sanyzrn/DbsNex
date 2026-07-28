@@ -136,6 +136,19 @@ double nexContrastRatio(Color a, Color b) {
   return (high + 0.05) / (low + 0.05);
 }
 
+/// Parses a `#RRGGBB` tag accent into a colour.
+///
+/// Returns null for a tag with no colour and for anything malformed, so a bad
+/// value stored by an older build renders as "no colour" instead of crashing
+/// the timeline. Tag colours are free-form now, not a fixed palette, so this
+/// can no longer assume the string came from a list it controls.
+Color? nexParseTagColor(String? hex) {
+  if (hex == null || hex.length != 7 || !hex.startsWith('#')) return null;
+  final value = int.tryParse(hex.substring(1), radix: 16);
+  if (value == null) return null;
+  return Color(value + 0xFF000000);
+}
+
 String nexFormatBytes(int bytes) {
   if (bytes < 1024) return '$bytes B';
   if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';

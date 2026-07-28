@@ -473,5 +473,29 @@
         "type": "String"
       }
     }
+  },
+  "tagColor": "Tag color",
+  "@tagColor": {
+    "description": "Title of the tag color picker"
+  },
+  "customColor": "Custom",
+  "@customColor": {
+    "description": "Heading above the free color sliders"
+  },
+  "saturation": "Saturation",
+  "@saturation": {
+    "description": "Color picker slider label"
+  },
+  "brightness": "Brightness",
+  "@brightness": {
+    "description": "Color picker slider label"
+  },
+  "noColor": "No color",
+  "@noColor": {
+    "description": "The tag carries no accent"
+  },
+  "color": "Color",
+  "@color": {
+    "description": "Tag manager menu entry that opens the color picker"
   }
 }

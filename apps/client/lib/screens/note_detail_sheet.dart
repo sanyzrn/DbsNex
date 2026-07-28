@@ -6,13 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:nex_core/nex_core.dart';
-import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/nex_services.dart';
+import '../widgets/tag_picker.dart';
 
 /// What the sheet reports back when it closes.
 ///
@@ -56,7 +56,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   List<TagSuggestion> _suggestions = const [];
   List<SemanticHit> _related = const [];
   Map<String, String> _relatedTitles = const {};
-  String? _color;
   AudioPlayer? _player;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -403,90 +402,28 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     }
   }
 
+  /// Tagging a note.
+  ///
+  /// The dialog used to offer five hardcoded starter names and a colour grid,
+  /// and no way to reach the tags the user had actually made — so the one list
+  /// it needed to show was the one list it did not have.
   Future<void> _addTag() async {
-    final l10n = AppLocalizations.of(context);
-    final controller = TextEditingController();
-    _color = null;
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setLocal) {
-            return AlertDialog(
-              title: Text(l10n.addTag),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: controller,
-                    autofocus: true,
-                    decoration: InputDecoration(hintText: l10n.tagName),
-                  ),
-                  const SizedBox(height: NexSpacing.sm),
-                  Wrap(
-                    spacing: NexSpacing.xs,
-                    children: [
-                      for (final suggestion in suggestedStarterTags)
-                        ActionChip(
-                          label: Text(suggestion),
-                          onPressed: () => Navigator.pop(ctx, suggestion),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: NexSpacing.sm),
-                  Wrap(
-                    spacing: NexSpacing.xs,
-                    children: [
-                      for (final hex in tagAccentPalette)
-                        GestureDetector(
-                          onTap: () => setLocal(() => _color = hex),
-                          child: Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: Color(
-                                int.parse(hex.substring(1), radix: 16) +
-                                    0xFF000000,
-                              ),
-                              shape: BoxShape.circle,
-                              border: _color == hex
-                                  ? Border.all(
-                                      color: Theme.of(ctx).colorScheme.primary,
-                                      width: 2,
-                                    )
-                                  : null,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(l10n.cancel),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-                  child: Text(l10n.addAction),
-                ),
-              ],
-            );
-          },
-        );
-      },
+    final note = _note;
+    final all = await widget.services.listTags();
+    if (!mounted) return;
+    final choice = await TagPickerSheet.show(
+      context,
+      tags: all,
+      alreadyOn: note?.tags.map((t) => t.id).toSet() ?? const {},
     );
-    if (name != null && name.isNotEmpty) {
-      await widget.services.addTag(
-        noteId: widget.noteId,
-        name: name,
-        color: _color,
-      );
-      _reload();
-    }
-    controller.dispose();
+    if (choice == null || !mounted) return;
+    await widget.services.addTag(
+      noteId: widget.noteId,
+      name: choice.tag?.name ?? choice.name!,
+      color: choice.color,
+    );
+    await widget.services.refreshTimeline();
+    await _reload();
   }
 
   Future<void> _editCaption() async {

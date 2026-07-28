@@ -15,6 +15,7 @@ import 'package:nex_data/nex_data.dart';
 import '../widgets/capture_sheet.dart';
 import '../widgets/empty_timeline.dart';
 import '../widgets/recording_sheet.dart';
+import '../widgets/tag_picker.dart';
 import 'note_detail_sheet.dart';
 import 'search_screen.dart';
 import 'settings_sheet.dart';
@@ -265,35 +266,26 @@ class TimelineScreenState extends State<TimelineScreen> {
   }
 
   /// The non-destructive half of ADR-022's fixed action pair.
+  /// Swipe-to-tag (FR-2.6).
+  ///
+  /// Offers the tags that exist rather than a bare text field, so tagging is
+  /// picking from what you already use — the common case by a wide margin.
   Future<void> _addTagTo(Note note) async {
-    final l10n = AppLocalizations.of(context);
-    final controller = TextEditingController();
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.addTag),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(hintText: l10n.tagName),
-          textInputAction: TextInputAction.done,
-          onSubmitted: (value) => Navigator.pop(ctx, value.trim()),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text(l10n.addAction),
-          ),
-        ],
-      ),
+    final choice = await TagPickerSheet.show(
+      context,
+      tags: filterTags,
+      alreadyOn: note.tags.map((t) => t.id).toSet(),
     );
-    controller.dispose();
-    if (name == null || name.isEmpty) return;
+    if (choice == null || !mounted) return;
     if (widget.preferences.haptics) HapticFeedback.lightImpact();
-    await widget.services.addTag(noteId: note.id, name: name);
+    await widget.services.addTag(
+      noteId: note.id,
+      name: choice.tag?.name ?? choice.name!,
+      color: choice.color,
+    );
     await widget.services.refreshTimeline();
+    // A tag created here is new to the filter row too; without this it only
+    // appeared after a restart.
     await _loadFilterTags();
   }
 
@@ -440,6 +432,9 @@ class TimelineScreenState extends State<TimelineScreen> {
                         await deleteWithUndo(note);
                       }
                       await widget.services.refreshTimeline();
+                      // The sheet can create a tag; the filter row has to
+                      // learn about it without an app restart.
+                      await _loadFilterTags();
                     },
                   ),
                 ),

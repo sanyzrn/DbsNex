@@ -604,4 +604,22 @@ class AppLocalizationsFa extends AppLocalizations {
   String updateAvailable(String version) {
     return 'نسخهٔ $version منتشر شده';
   }
+
+  @override
+  String get tagColor => 'رنگ برچسب';
+
+  @override
+  String get customColor => 'دلخواه';
+
+  @override
+  String get saturation => 'غلظت';
+
+  @override
+  String get brightness => 'روشنایی';
+
+  @override
+  String get noColor => 'بدون رنگ';
+
+  @override
+  String get color => 'رنگ';
 }

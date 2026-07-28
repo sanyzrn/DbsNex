@@ -570,6 +570,14 @@ class _SwipeMappingState extends State<_SwipeMapping> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _select({
+    required bool isLeading,
+    required SwipeAction action,
+  }) async {
+    await widget.preferences.setSwipeAction(isLeading: isLeading, action: action);
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -583,13 +591,13 @@ class _SwipeMappingState extends State<_SwipeMapping> {
           icon: rtl ? Icons.arrow_back : Icons.arrow_forward,
           title: l10n.swipeLeading,
           action: widget.preferences.leadingAction,
-          onTap: _swap,
+          onSelected: (action) => _select(isLeading: true, action: action),
         ),
         _SwipeRow(
           icon: rtl ? Icons.arrow_forward : Icons.arrow_back,
           title: l10n.swipeTrailing,
           action: widget.preferences.trailingAction,
-          onTap: _swap,
+          onSelected: (action) => _select(isLeading: false, action: action),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -612,18 +620,26 @@ class _SwipeMappingState extends State<_SwipeMapping> {
   }
 }
 
+IconData _swipeIcon(SwipeAction action) =>
+    action == SwipeAction.delete ? Icons.delete_outline : Icons.label_outline;
+
+/// One edge of the mapping, with its action chosen from a menu.
+///
+/// A menu rather than a swap button: the control has to say what the choices
+/// *are*. It also survives a third action being added — that becomes one more
+/// entry here, not another rewrite of this widget.
 class _SwipeRow extends StatelessWidget {
   const _SwipeRow({
     required this.icon,
     required this.title,
     required this.action,
-    required this.onTap,
+    required this.onSelected,
   });
 
   final IconData icon;
   final String title;
   final SwipeAction action;
-  final VoidCallback onTap;
+  final ValueChanged<SwipeAction> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -632,24 +648,45 @@ class _SwipeRow extends StatelessWidget {
     final destructive = action == SwipeAction.delete;
     final accent =
         destructive ? theme.colorScheme.error : theme.colorScheme.secondary;
-    return ListTile(
-      contentPadding: _rowPadding,
-      onTap: onTap,
-      leading: Icon(icon),
-      title: Text(title),
-      subtitle: Row(
-        children: [
-          Icon(
-            destructive ? Icons.delete_outline : Icons.label_outline,
-            size: 16,
-            color: accent,
+    return PopupMenuButton<SwipeAction>(
+      tooltip: title,
+      onSelected: onSelected,
+      itemBuilder: (context) => [
+        for (final candidate in SwipeAction.values)
+          PopupMenuItem(
+            value: candidate,
+            child: Row(
+              children: [
+                Icon(
+                  _swipeIcon(candidate),
+                  size: 18,
+                  color: candidate == SwipeAction.delete
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.secondary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(_swipeLabel(l10n, candidate))),
+                if (candidate == action)
+                  const Icon(Icons.check, size: 18),
+              ],
+            ),
           ),
-          const SizedBox(width: 6),
-          Text(
-            _swipeLabel(l10n, action),
-            style: theme.textTheme.bodyMedium?.copyWith(color: accent),
-          ),
-        ],
+      ],
+      child: ListTile(
+        contentPadding: _rowPadding,
+        leading: Icon(icon),
+        title: Text(title),
+        subtitle: Row(
+          children: [
+            Icon(_swipeIcon(action), size: 16, color: accent),
+            const SizedBox(width: 6),
+            Text(
+              _swipeLabel(l10n, action),
+              style: theme.textTheme.bodyMedium?.copyWith(color: accent),
+            ),
+          ],
+        ),
+        trailing: const Icon(Icons.expand_more),
       ),
     );
   }

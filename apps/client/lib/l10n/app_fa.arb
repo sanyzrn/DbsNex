@@ -324,5 +324,11 @@
         "type": "String"
       }
     }
-  }
+  },
+  "tagColor": "رنگ برچسب",
+  "customColor": "دلخواه",
+  "saturation": "غلظت",
+  "brightness": "روشنایی",
+  "noColor": "بدون رنگ",
+  "color": "رنگ"
 }

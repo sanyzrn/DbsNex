@@ -161,6 +161,28 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Assigns one edge directly.
+  ///
+  /// The two edges must always differ, so choosing an action for one edge
+  /// hands the other edge whatever it displaced. With exactly two actions that
+  /// is indistinguishable from a swap; the point is that the *control* is a
+  /// choice per edge, which is what a third action would need — and adding one
+  /// then means extending [SwipeAction] and this method, not rewriting the UI.
+  Future<void> setSwipeAction({
+    required bool isLeading,
+    required SwipeAction action,
+  }) async {
+    final other = SwipeAction.values.firstWhere(
+      (candidate) => candidate != action,
+      orElse: () => action,
+    );
+    final leading = isLeading ? action : other;
+    final trailing = isLeading ? other : action;
+    await _prefs.setString('swipe.leading', leading.wireName);
+    await _prefs.setString('swipe.trailing', trailing.wireName);
+    notifyListeners();
+  }
+
   SwipeAction actionFor({required bool isLeading}) =>
       isLeading ? leadingAction : trailingAction;
 }

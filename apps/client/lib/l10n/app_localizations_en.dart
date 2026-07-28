@@ -604,4 +604,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String updateAvailable(String version) {
     return 'Version $version is available';
   }
+
+  @override
+  String get tagColor => 'Tag color';
+
+  @override
+  String get customColor => 'Custom';
+
+  @override
+  String get saturation => 'Saturation';
+
+  @override
+  String get brightness => 'Brightness';
+
+  @override
+  String get noColor => 'No color';
+
+  @override
+  String get color => 'Color';
 }

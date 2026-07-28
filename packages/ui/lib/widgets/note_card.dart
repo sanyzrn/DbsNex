@@ -158,7 +158,7 @@ class TagChip extends StatelessWidget {
         height: 8,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Color(int.parse(tag.color!.substring(1), radix: 16) + 0xFF000000),
+          color: nexParseTagColor(tag.color),
         ),
       ),
     ),

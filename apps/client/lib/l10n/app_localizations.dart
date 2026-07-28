@@ -1105,6 +1105,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Version {version} is available'**
   String updateAvailable(String version);
+
+  /// Title of the tag color picker
+  ///
+  /// In en, this message translates to:
+  /// **'Tag color'**
+  String get tagColor;
+
+  /// Heading above the free color sliders
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get customColor;
+
+  /// Color picker slider label
+  ///
+  /// In en, this message translates to:
+  /// **'Saturation'**
+  String get saturation;
+
+  /// Color picker slider label
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get brightness;
+
+  /// The tag carries no accent
+  ///
+  /// In en, this message translates to:
+  /// **'No color'**
+  String get noColor;
+
+  /// Tag manager menu entry that opens the color picker
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get color;
 }
 
 class _AppLocalizationsDelegate

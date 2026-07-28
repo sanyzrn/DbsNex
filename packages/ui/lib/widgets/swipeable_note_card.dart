@@ -182,19 +182,30 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     action == NexSwipeAction.delete ? widget.onDelete() : widget.onAddTag();
   }
 
-  /// Past the stop the card keeps moving, but at a fraction of the finger —
-  /// the same resistance iOS uses to say "this is as far as it goes".
+  /// Resistance past the point where releasing would run the action.
+  ///
+  /// It deliberately does *not* start at the resting position: the card has to
+  /// travel freely all the way to the commit point, or the rubber band fights
+  /// the full swipe and the gesture becomes practically unreachable. Mail
+  /// behaves the same way — free until it has committed, firm after.
   double _rubberBand(double value) {
-    final limit = _open;
+    final limit = _width * _commitFraction;
     if (value.abs() <= limit) return value;
     final overshoot = value.abs() - limit;
-    return (value.isNegative ? -1 : 1) * (limit + overshoot * 0.4);
+    return (value.isNegative ? -1 : 1) * (limit + overshoot * 0.35);
   }
+
+  /// Treated as closed within half a pixel.
+  ///
+  /// The spring settles *near* zero, not on it, so an exact comparison left a
+  /// card that had just closed still claiming a direction — and the wall at
+  /// zero then blocked the next swipe the other way entirely.
+  bool get _isClosed => _offset.value.abs() < 0.5;
 
   void _onDragStart(DragStartDetails details) {
     // An open card may only be dragged back toward zero; a closed one takes
     // whichever way the finger goes first.
-    _allowedSign = _offset.value == 0 ? 0 : (_offset.value.isNegative ? -1 : 1);
+    _allowedSign = _isClosed ? 0 : (_offset.value.isNegative ? -1 : 1);
     _passedCommit = false;
     _offset.stop();
   }
