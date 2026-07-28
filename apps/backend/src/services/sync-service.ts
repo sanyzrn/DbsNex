@@ -71,12 +71,26 @@ async function upsertTag(
   tag: IncomingTag,
 ): Promise<string> {
   const { rows } = await client.query<{ id: string }>(
+    // The sequence only moves when something material moved with it.
+    //
+    // It used to be `nextval` unconditionally, so an upsert that changed
+    // nothing still put the row above every other device's cursor — and since
+    // the client pushed its whole tag table on every sync, *every* tag was
+    // re-broadcast to *every* device on *every* sync from anyone. Both halves
+    // of that had to go; this is the server's.
     `INSERT INTO tags (id, user_id, name, color, created_at, seq)
-     VALUES ($1, $2, $3, $4, $5, nextval('tags_seq_seq'))
+     VALUES ($1, $2, $3, $4, $5, nextval('sync_seq'))
      ON CONFLICT (user_id, lower(name)) DO UPDATE
         SET color      = COALESCE(EXCLUDED.color, tags.color),
             created_at = LEAST(tags.created_at, EXCLUDED.created_at),
-            seq        = nextval('tags_seq_seq')
+            seq        = CASE
+                           WHEN tags.color IS DISTINCT FROM
+                                COALESCE(EXCLUDED.color, tags.color)
+                             OR tags.created_at IS DISTINCT FROM
+                                LEAST(tags.created_at, EXCLUDED.created_at)
+                           THEN nextval('sync_seq')
+                           ELSE tags.seq
+                         END
      RETURNING id`,
     [tag.id, userId, tag.name, tag.color ?? null, normaliseIso(tag.created_at)],
   );
@@ -159,7 +173,7 @@ async function writeNote(
        sync_state, server_updated_at, seq, merged_by_server
      )
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
-             'synced', NOW(), nextval('notes_seq_seq'), $13)
+             'synced', NOW(), nextval('sync_seq'), $13)
      ON CONFLICT (id) DO UPDATE
         SET type              = EXCLUDED.type,
             content           = EXCLUDED.content,
@@ -173,7 +187,7 @@ async function writeNote(
             rev               = notes.rev + 1,
             sync_state        = 'synced',
             server_updated_at = NOW(),
-            seq               = nextval('notes_seq_seq'),
+            seq               = nextval('sync_seq'),
             merged_by_server  = EXCLUDED.merged_by_server
       WHERE notes.user_id = EXCLUDED.user_id
         AND notes.rev <= EXCLUDED.rev
@@ -371,6 +385,8 @@ export async function pullChanges(input: {
       [input.user_id, sinceSeq, input.device_id, limit],
     );
 
+    // Paged, like the notes query. It used to have no LIMIT at all, which is
+    // what let the cursor outrun the notes page below.
     const tagsRes = await client.query<{
       id: string;
       name: string;
@@ -381,19 +397,44 @@ export async function pullChanges(input: {
       `SELECT id, name, color, created_at, seq
          FROM tags
         WHERE user_id = $1 AND seq > $2
-        ORDER BY seq ASC`,
-      [input.user_id, sinceSeq],
+        ORDER BY seq ASC
+        LIMIT $3`,
+      [input.user_id, sinceSeq, limit],
     );
 
     const notes = notesRes.rows.map(rowToNote);
 
-    // Cursor is derived from the data, never from a process clock.
-    let cursor = sinceSeq;
-    for (const row of notesRes.rows) {
-      if (BigInt(row.seq as string) > BigInt(cursor)) cursor = String(row.seq);
-    }
-    for (const row of tagsRes.rows) {
-      if (BigInt(row.seq) > BigInt(cursor)) cursor = String(row.seq);
+    const notesTruncated = notesRes.rowCount === limit;
+    const tagsTruncated = tagsRes.rowCount === limit;
+
+    const lastSeq = (rows: { seq: unknown }[]): bigint | null =>
+      rows.length ? BigInt(String(rows[rows.length - 1]!.seq)) : null;
+
+    const noteFrontier = lastSeq(notesRes.rows);
+    const tagFrontier = lastSeq(tagsRes.rows);
+
+    // Cursor is derived from the data, never from a process clock — and never
+    // from a stream that was cut short.
+    //
+    // It used to be the maximum sequence across both result sets while only
+    // the notes query was bounded. One touched tag with a sequence above a
+    // truncated notes page moved the watermark past notes that were never
+    // sent, and the next pull asked for rows beyond them: permanent, silent
+    // loss, unrecoverable without a manual cursor reset. A truncated stream
+    // now caps the cursor; an exhausted one imposes no cap.
+    const caps = [
+      notesTruncated ? noteFrontier : null,
+      tagsTruncated ? tagFrontier : null,
+    ].filter((v): v is bigint => v !== null);
+
+    const reached = [noteFrontier, tagFrontier].filter(
+      (v): v is bigint => v !== null,
+    );
+
+    let cursor = BigInt(sinceSeq);
+    if (reached.length) cursor = reached.reduce((a, b) => (a > b ? a : b));
+    if (caps.length) {
+      cursor = caps.reduce((a, b) => (a < b ? a : b), cursor);
     }
 
     return {
@@ -405,8 +446,8 @@ export async function pullChanges(input: {
         created_at: new Date(r.created_at).toISOString(),
         seq: String(r.seq),
       })),
-      cursor,
-      has_more: notesRes.rowCount === limit,
+      cursor: cursor.toString(),
+      has_more: notesTruncated || tagsTruncated,
     };
   }, "REPEATABLE READ");
 

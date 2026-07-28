@@ -28,3 +28,4 @@ export 'repositories/library_maintenance.dart';
 export 'repositories/note_repository.dart';
 export 'schema/database.dart';
 export 'sync_client/sync_client.dart';
+export 'sync_client/sync_wire.dart';

@@ -406,6 +406,12 @@ jobs:
           PORT: "4000"
           NEX_TEST_MODE: "1"
           NEX_AUTO_MIGRATE: "0"
+          # A page small enough that the pagination case can force three pages
+          # without pushing 1,500 notes over HTTP, and limits high enough that
+          # the suite is not throttled by the thing it is not testing.
+          SYNC_PAGE_SIZE: "50"
+          SYNC_RATE_LIMIT: "100000"
+          READ_RATE_LIMIT: "100000"
         run: |
           setsid npx tsx src/index.ts > "$RUNNER_TEMP/backend.log" 2>&1 < /dev/null &
           echo $! > "$RUNNER_TEMP/backend.pid"
@@ -422,11 +428,14 @@ jobs:
             sleep 1
           done
 
-      - name: Run mandatory 6-row sync matrix
+      - name: Run mandatory sync matrix
         working-directory: packages/data
         env:
           RUN_SYNC_MATRIX: "1"
           SYNC_BASE_URL: http://127.0.0.1:4000
+          # Must match the server's, so the pagination case knows how many
+          # notes it takes to force a second page.
+          SYNC_PAGE_SIZE: "50"
           SYNC_TOKEN_DEVICE_A: ${{ env.SYNC_TOKEN_DEVICE_A }}
           SYNC_TOKEN_DEVICE_B: ${{ env.SYNC_TOKEN_DEVICE_B }}
         run: |

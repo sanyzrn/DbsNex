@@ -18,6 +18,12 @@ const schema = z.object({
   NEX_TEST_MODE: z.enum(["0", "1"]).default("0"),
   NEX_AUTO_MIGRATE: z.enum(["0", "1"]).default("0"),
   SYNC_PAGE_SIZE: z.coerce.number().int().min(50).max(2000).default(500),
+  // The three rate limits, tunable rather than baked in. They were literals in
+  // index.ts, which meant an integration suite could not run more than sixty
+  // requests without being throttled by the thing it was not testing.
+  AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(10),
+  SYNC_RATE_LIMIT: z.coerce.number().int().positive().default(60),
+  READ_RATE_LIMIT: z.coerce.number().int().positive().default(120),
   PAIRING_CODE_TTL_SECONDS: z.coerce.number().int().positive().default(600),
   TOMBSTONE_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
   PURGE_INTERVAL_MINUTES: z.coerce.number().int().positive().default(60),

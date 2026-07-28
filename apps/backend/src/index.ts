@@ -80,14 +80,14 @@ app.get("/health", async (_req: Request, res: Response) => {
 
 const authLimiter = rateLimit({
   windowMs: 60_000,
-  limit: 10,
+  limit: env.AUTH_RATE_LIMIT,
   standardHeaders: "draft-7",
   legacyHeaders: false,
 });
 
 const syncLimiter = rateLimit({
   windowMs: 60_000,
-  limit: 60,
+  limit: env.SYNC_RATE_LIMIT,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   keyGenerator: (req: Request) => req.auth?.deviceId ?? req.ip ?? "unknown",
@@ -95,7 +95,7 @@ const syncLimiter = rateLimit({
 
 const readLimiter = rateLimit({
   windowMs: 60_000,
-  limit: 120,
+  limit: env.READ_RATE_LIMIT,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   keyGenerator: (req: Request) => req.auth?.deviceId ?? req.ip ?? "unknown",
