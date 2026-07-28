@@ -587,6 +587,39 @@ void main() {
     expect(find.text('Nex'), findsOneWidget);
   });
 
+  testWidgets('the greeting mark trails the words, in either direction',
+      (tester) async {
+    // It used to be baked into the front of the string, which put it at the
+    // start — the right edge in Persian, the left in English. Separating it
+    // out lets the Row place it at the trailing end in both.
+    for (final locale in ['en', 'fa']) {
+      await preferences.setLocale(locale);
+      await preferences.setDisplayName('Sany');
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      final words = tester.getRect(find.textContaining('Sany'));
+      // The mark is the one Text in the title that is not the greeting.
+      final mark = tester.getRect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byWidgetPredicate(
+            (w) => w is Text && w.data != null && !w.data!.contains('Sany'),
+          ),
+        ).first,
+      );
+
+      if (locale == 'fa') {
+        expect(mark.center.dx, lessThan(words.center.dx),
+            reason: 'trailing is the left edge in Persian');
+      } else {
+        expect(mark.center.dx, greaterThan(words.center.dx));
+      }
+    }
+  });
+
   test('No Pin/Archive swipe actions exist', () async {
     // The set is open now (ADR-022 revised), but it opens by deliberate
     // addition — Pin and Archive are still not in it.
