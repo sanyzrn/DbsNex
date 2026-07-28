@@ -33,6 +33,8 @@ class IntelligenceScreen extends StatefulWidget {
 class _IntelligenceScreenState extends State<IntelligenceScreen> {
   NexPreferences get _prefs => widget.preferences;
 
+  bool _backfilling = false;
+
   Future<void> _setEnabled(bool value) async {
     if (!value) {
       await _prefs.setAiEnabled(false);
@@ -71,6 +73,21 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
         ],
       ),
     );
+  }
+
+  /// Works through the notes captured before the layer could read them.
+  ///
+  /// This runs on its own when the layer is switched on; the button is here
+  /// because one pass is bounded, and because a backlog that stalled on a bad
+  /// key should be retryable without toggling the whole thing off and on.
+  Future<void> _catchUp() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _backfilling = true);
+    final done = await widget.services.backfillEnrichment();
+    if (!mounted) return;
+    setState(() => _backfilling = false);
+    messenger.showSnackBar(SnackBar(content: Text(l10n.catchUpDone(done))));
   }
 
   Future<void> _setCapabilities(AiCapabilities capabilities) async {
@@ -195,6 +212,37 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
               ),
             ),
             const Divider(),
+            _Heading(l10n.catchUpTitle),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                NexSpacing.lg,
+                0,
+                NexSpacing.lg,
+                NexSpacing.sm,
+              ),
+              child: Text(
+                l10n.catchUpBody,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: OutlinedButton.icon(
+                  onPressed: _backfilling ? null : () => unawaited(_catchUp()),
+                  icon: _backfilling
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.history_toggle_off),
+                  label: Text(l10n.catchUpAction),
+                ),
+              ),
+            ),
+            const Divider(height: NexSpacing.xl),
             Padding(
               padding: const EdgeInsets.all(NexSpacing.lg),
               child: Text(

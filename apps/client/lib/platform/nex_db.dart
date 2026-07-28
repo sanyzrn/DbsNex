@@ -73,6 +73,11 @@ abstract interface class NexDb {
     required String mediaRoot,
   });
 
+  Future<ImportResult> importArchive({
+    required String archivePath,
+    required String mediaRoot,
+  });
+
   Future<List<Note>> deletedNotes({int limit});
 
   Future<void> purgeDeletedBefore(DateTime cutoff);
@@ -102,6 +107,9 @@ abstract interface class NexDb {
   });
 
   Future<void> enrichNote(String noteId);
+
+  /// Enriches notes captured before the intelligence layer could read them.
+  Future<int> backfillEnrichment({int limit});
 
   Future<List<TagSuggestion>> suggestTags(String noteId);
 

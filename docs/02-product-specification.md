@@ -88,7 +88,9 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-2.6 Each Timeline card supports two swipe gestures — one revealing a **leading-edge** action, one revealing a **trailing-edge** action. The default mapping is: trailing swipe → **Delete** (soft-delete, undoable); leading swipe → **Add Tag** (opens inline tag input). No confirmation dialog interrupts either action; Delete surfaces a brief, dismissible "Undo" toast instead.
 - FR-2.7 Each edge is bound **independently** to an action, chosen in Settings from the actions that exist — currently **Delete**, **Add Tag** and **None**. The edges are not coupled: both may carry the same action, and an edge set to None does not respond to a swipe at all. The set is open, so a new action is an addition rather than a redesign — see [ADR-022](./10-decisions.md#adr-022--swipe-actions-are-configurable-per-edge-from-an-open-set).
 - FR-2.8 Swipe actions never introduce a decision at capture time — they operate only on already-captured notes in the Timeline, consistent with [ADR-001](./10-decisions.md#adr-001--capture-has-zero-mandatory-fields).
-- FR-2.9 Tapping a card opens the Note Detail Sheet, which offers the actions that are not worth a gesture: edit, copy, copy file path, add tag, caption, summarize, details, delete. These are secondary by construction — they live behind one tap in an overflow menu so the sheet itself stays a lightweight overlay, per [`05-design.md`](./05-design.md#components).
+- FR-2.9 Tapping a card opens the Note Detail Sheet, which offers the actions that are not worth a gesture: open, share, copy, edit, caption, add tag, summarize, details, delete.
+- FR-2.9.1 The sheet's height follows the note. A long note opens at reading height — roughly two thirds of the screen — and scrolls for as long as it runs; a two-line thought stays a two-line sheet. Reading a captured note must not begin with dragging the sheet upward.
+- FR-2.9.2 The actions are pinned below the body rather than placed at the end of it, so a screenful of text never buries them. Text is laid out for reading at length: looser leading than a timeline card, and the paragraph's own direction (RTL or LTR) rather than the interface's.
 - FR-2.10 The body of a **text** note is editable after capture. This is correcting a capture, not authoring: it is plain text with no formatting, no title and no versioning, and it never appears during capture (FR-1.6). Media notes are not editable — their caption is the equivalent affordance (FR-2.11). Rich text, nested documents and revision history stay out of scope.
 - FR-2.11 A voice, photo or file note may carry an optional user-written **caption**. It is always optional, never requested at capture time, and is distinct from a machine-derived transcript, OCR text or summary — those are produced by the intelligence layer (see [AI Roadmap](#ai-roadmap)) and never overwrite what the user typed. Caption text is not full-text indexed in v1, matching FR-4.2.
 
@@ -116,33 +118,47 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-5.5 No user action should ever produce data loss under normal operation (app kill, restart, low storage excluded).
 
 ### FR-6 — Export
-- FR-6.1 A **Settings → Export** action produces, in one tap, a JSON dump of all notes and tags (full fidelity, machine-readable) and a Markdown export (one file per note, human-readable), plus the referenced media files, bundled into a single archive the user saves wherever they choose.
+- FR-6.1 A **Settings → Data & backup → Export** action produces, in one tap, a JSON dump of all notes and tags (full fidelity, machine-readable) and a Markdown export (one file per note, human-readable), plus the referenced media files, bundled into a single archive.
+- FR-6.1.1 The archive is handed to the platform share sheet, so the user chooses where it goes — another app, a cloud drive, a cable. It is never left at a path the user cannot reach: on a phone, a file written to a private temp directory is not an export at all.
+- FR-6.1.2 An **Import** action reads an export archive back into the library, with its media. Import is *additive*: a note whose id is already present is left untouched rather than overwritten, so importing the same archive twice is a no-op and an old archive can never roll a newer note back. Notes whose media is missing from the archive are still imported. A file that is not a Nex export is refused without writing anything.
 - FR-6.2 Export never requires network access — it is a fully local, offline operation.
 - FR-6.3 A round-trip check (export, then verify the archive's content matches the source data) is part of the v1.0 release exit criteria — see [ADR-025](./10-decisions.md#adr-025--data-export-ships-in-v1-not-after-v3).
 
 ### FR-7 — Backup & Restore
 - FR-7.1 The app automatically maintains a small, fixed number of rotating local backups of the SQLite database, on-device, with no user action required to create them.
-- FR-7.2 A one-tap **Restore** action is available from Settings, recovering the most recent (or a selected) backup.
+- FR-7.2 Every backup on the device is listed with its date and size, and any one of them can be restored — not only the newest, which is also the one most likely to contain a mistake just made. A **Back up now** action takes one outside the daily schedule.
+- FR-7.4 Local backups protect against a bad restore or a corrupted database. They do **not** protect against a lost device, because they live on it; the UI says so, and points at export for that.
 - FR-7.3 Backup/restore correctness is verified in testing against a simulated database-corruption scenario, per [ADR-026](./10-decisions.md#adr-026--automatic-local-backup--restore-ships-in-v1).
 
 ### FR-8b — AI Provider
 
 - FR-8b.1 The intelligence features run on-device by default. On-device means local heuristics, not a local model: they can suggest tags from a note's own words, and nothing more.
-- FR-8b.2 A user may point Nex at **Anthropic, OpenAI, OpenRouter, or a custom OpenAI-compatible endpoint**, supplying an API key, an optional base URL and an optional model. Three of the four share one request shape; Anthropic's Messages API is handled separately.
+- FR-8b.2 A user may point Nex at **Google Gemini, Anthropic, OpenAI, OpenRouter, or a custom OpenAI-compatible endpoint**, supplying an API key, an optional base URL and an optional model. Three wire formats are spoken, not one: OpenAI chat-completions, Anthropic Messages, and Gemini `generateContent`. Gemini shares none of OpenAI's path, header or body shape, so configuring a Gemini key under "Custom" cannot work and is not the user's mistake — it is its own provider.
 - FR-8b.3 Settings offers a **connection test** that reports whether the key, endpoint and model actually answer — before the user discovers otherwise through a feature quietly doing nothing.
-- FR-8b.4 Capabilities a provider cannot serve report *unavailable*, never a wrong answer. Speech-to-text and OCR stay on-device: they need audio and vision endpoints that differ per provider and that not every provider offers.
+- FR-8b.4 Capabilities a provider cannot serve report *unavailable*, never a wrong answer, and the switch says which provider would serve it. Speech-to-text and OCR are provider capabilities: Gemini and OpenAI accept audio and images inline, Anthropic accepts images only, and a provider that accepts neither reports so rather than silently doing nothing.
+- FR-8b.4.1 Media requests get a longer timeout than text ones. A free tier answering a minute of audio is slow, not broken, and cutting it off at a text-sized deadline produces a failure that looks like a bad key.
+- FR-8b.7 The layer works **automatically and invisibly**. A recording is transcribed, an image is read and a long note is summarised in the background, without being asked — but none of that opens on top of the note. The detail sheet shows the user's own capture; one quiet row says what else is there, and a tap is what puts it on screen. Opening a note never fires a network request on its own.
+- FR-8b.8 Enrichment is a capture-time step, so switching the layer on has to mean something for the notes that already exist. A **backfill** walks the notes the layer has never read — media whose text was never derived, newest first — and it runs when the layer is configured, with a manual "catch up" for a backlog that stalled. It is bounded per pass, sequential, and stops at the first note that produces nothing: a dead key or an exhausted quota looks identical from here, and spending the rest of the backlog to learn the same thing is the failure mode being avoided.
 - FR-8b.5 The key is stored in the app's private preferences on the device. It is **not encrypted**, and this is stated plainly in the UI rather than implied otherwise. It is sent to the chosen provider and nowhere else.
 - FR-8b.6 Note content leaves the device only for the capabilities the user has switched on, and only to the provider they chose. With no provider configured, nothing is sent at all — FR-5.1 still holds.
 
 ### FR-8a — In-App Update
 
 - FR-8a.1 Settings offers a **Check for update** action showing the installed version. Nex is distributed outside any app store, so without it a user has no way to learn a new build exists.
-- FR-8a.2 The check runs **only when the user asks**. Nex never polls for updates in the background, and never notifies about one — consistent with the silence rule in [`05-design.md`](./05-design.md).
+- FR-8a.2 The check runs **automatically, at most once every 24 hours**, on app launch and on resume, and never while the app is closed — there is no background job, no push, and no wake-up. It can be turned off in Settings, and the Settings row remains a manual check that ignores the interval.
+- FR-8a.2.1 A completed check that fails does **not** count as a check. Recording it would suppress a day of attempts over one moment offline.
+- FR-8a.2.2 The only thing an available update produces is a **red dot** on the settings icon in the timeline app bar and on the update row inside Settings. No notification, no badge on the launcher icon, no dialog, no interruption of a capture — consistent with "silence is a feature" in [`01-product-vision.md`](./01-product-vision.md). The dot is the whole of the app's "there is something here" vocabulary.
+- FR-8a.2.3 Once an update is found, its installer is **downloaded in the background** so that opening the update row leads straight to Install. A pre-downloaded file is reused only when its size matches the release asset; a partial file from an interrupted run is refetched, never handed to the installer. A failed pre-download is silent — the sheet simply downloads on demand.
 - FR-8a.3 The check reads the repository's latest published release and compares versions **semantically**, not as strings. Drafts and pre-releases are never offered.
 - FR-8a.4 The request carries no note content, no device identifier and no telemetry. This is the one outbound call outside sync, and it is a plain read.
 - FR-8a.5 A failed check reports that it failed. It never reports "up to date" for a check that did not complete.
 - FR-8a.6 On Android the update downloads the **universal APK** and hands it to the system installer; the platform, not Nex, asks the user to confirm. Silent self-installation is neither possible nor attempted outside an app store. A release therefore always publishes a universal APK alongside the per-ABI splits — the app cannot know the device's ABI before downloading.
 - FR-8a.7 Updating never touches the local library. Releases are signed with one key, so an update installs over the existing app and its notes, media and preferences survive.
+
+### FR-9 — Your Name
+
+- FR-9.1 Settings accepts an optional name. When set, the Timeline's title becomes a greeting that follows the time of day; when empty, the title is the app's name and nothing else changes.
+- FR-9.2 It is decoration and only decoration. It is stored on the device, never sent with a sync or an AI request, never used to address the user anywhere outside the app, and never turned into a notification, a streak or a prompt to come back — that would be exactly the engagement loop [`01-product-vision.md`](./01-product-vision.md) rules out.
 
 ### FR-8 — OS-Level Capture Surfaces
 - FR-8.1 A home-screen widget (Android) opens directly into text capture, bypassing the need to open the app first.
@@ -197,19 +213,22 @@ flowchart LR
     C -->|tap a result| D
 ```
 
-**Settings** is intentionally not a nested settings app or a "maze" — it is a single sheet reachable in one tap from the Timeline. It grew past the three preferences this section originally listed, because features that shipped after it (localization, the intelligence toggles, sync, export, backup/restore, tag management, Recently Deleted) each need somewhere to live and none of them belongs on the home screen. So the rule is about *shape*, not count: one sheet, no sub-settings-screens, and every control reachable by scrolling rather than by navigating.
+**Settings** is intentionally not a nested settings app or a "maze" — it is a single sheet reachable in one tap from the Timeline, and every *preference* lives on it. The rule is about shape, not count: one sheet, one level of scrolling, no menu leading to another menu leading to a control.
+
+What that rule does not cover is a subject that needs explaining rather than toggling. Intelligence (FR-8b) and Data & backup (FR-6/FR-7) each open as their own screen, for the same reason Tags and Trash do: they are destinations with content — a consent decision, a provider's credentials, a list of backups, a sentence saying what an export actually contains — and flattening them back into the sheet is what made those rows unreadable in the first place. The test is whether the row is a switch or a subject.
 
 To keep that scannable, the sheet is organized into labelled groups rather than one flat run of tiles:
 
 | Group | Holds |
 | --- | --- |
-| Appearance | Light / Dark / System, Comfort Mode ([`05-design.md`](./05-design.md#comfort-mode)), language |
-| Accessibility | Reduce motion, capture haptics, the quiet anniversary line |
-| Swipe actions | The FR-2.7 edge mapping |
-| Intelligence | The per-capability toggles and the Cloud AI opt-in (see [AI Roadmap](#ai-roadmap)) |
-| Library | Tags, Recently Deleted, storage usage |
-| Data & backup | Sync, Export (FR-6), Restore (FR-7) |
-| About | Version, attribution, storage location, privacy, licences |
+| Appearance | Light / Dark / System, Comfort Mode ([`05-design.md`](./05-design.md#comfort-mode)), language. Both pickers are rows of cards that show the choice itself — a theme by a miniature of its own colours, a language in its own script — not dropdowns. |
+| Your name | Optional. Only decoration: it turns the Timeline title into a greeting and never leaves the device (FR-9). |
+| Accessibility | Reduce motion, capture haptics, the "one year ago" line |
+| Swipe actions | The FR-2.7 per-edge mapping |
+| Intelligence | One row into the intelligence screen (FR-8b) |
+| Library | Tags, Trash, storage usage |
+| Data & backup | Export / import / local backups (FR-6, FR-7), and the optional sync server |
+| About | Update (FR-8a), version, attribution, storage location, privacy, licences |
 
 Tags, Recently Deleted and About open as full screens rather than nested sheets — they are destinations with their own content, not preferences, so pushing a route is the honest interaction. Everything that is genuinely a *preference* stays on the one sheet.
 

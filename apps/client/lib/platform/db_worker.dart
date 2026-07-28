@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
@@ -39,6 +40,7 @@ enum _DbCommand {
   setTagColor,
   backup,
   exportArchive,
+  importArchive,
   // Library maintenance (trash, tag manager, storage breakdown).
   deletedNotes,
   purgeDeletedBefore,
@@ -53,6 +55,7 @@ enum _DbCommand {
   storage,
   // Enrichment.
   enrichNote,
+  backfillEnrichment,
   suggestTags,
   summarize,
   relatedNotes,
@@ -312,6 +315,16 @@ class NexDbWorker implements NexDb {
         'mediaRoot': mediaRoot,
       });
 
+  @override
+  Future<ImportResult> importArchive({
+    required String archivePath,
+    required String mediaRoot,
+  }) =>
+      _send<ImportResult>(_DbCommand.importArchive, {
+        'archivePath': archivePath,
+        'mediaRoot': mediaRoot,
+      });
+
   /* --------------------------------------------------- library maintenance */
 
   @override
@@ -376,6 +389,10 @@ class NexDbWorker implements NexDb {
   @override
   Future<void> enrichNote(String noteId) =>
       _send<void>(_DbCommand.enrichNote, {'noteId': noteId});
+
+  @override
+  Future<int> backfillEnrichment({int limit = 25}) =>
+      _send<int>(_DbCommand.backfillEnrichment, {'limit': limit});
 
   @override
   Future<List<TagSuggestion>> suggestTags(String noteId) =>
@@ -527,6 +544,10 @@ class NexDbWorker implements NexDb {
               mediaRoot: arg('mediaRoot')! as String,
             ))
                 .path,
+          _DbCommand.importArchive => await repo.importArchive(
+              archiveFile: File(arg('archivePath')! as String),
+              mediaRoot: arg('mediaRoot')! as String,
+            ),
           _DbCommand.deletedNotes =>
             maintenance.deletedNotes(limit: arg('limit')! as int),
           _DbCommand.purgeDeletedBefore => _voided(
@@ -558,6 +579,8 @@ class NexDbWorker implements NexDb {
           _DbCommand.enrichNote => await enrichment
               .enrichNote(arg('noteId')! as String)
               .then<Object?>((_) => null),
+          _DbCommand.backfillEnrichment =>
+            await enrichment.backfill(limit: arg('limit')! as int),
           _DbCommand.suggestTags =>
             await enrichment.suggestTags(arg('noteId')! as String),
           _DbCommand.summarize =>

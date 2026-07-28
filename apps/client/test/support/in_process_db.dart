@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:nex_client/platform/ai_provider.dart';
@@ -143,6 +144,16 @@ class InProcessDb implements NexDb {
           .path;
 
   @override
+  Future<ImportResult> importArchive({
+    required String archivePath,
+    required String mediaRoot,
+  }) =>
+      _repo.importArchive(
+        archiveFile: File(archivePath),
+        mediaRoot: mediaRoot,
+      );
+
+  @override
   Future<List<Note>> deletedNotes({int limit = 200}) async =>
       _maintenance.deletedNotes(limit: limit);
 
@@ -191,6 +202,18 @@ class InProcessDb implements NexDb {
 
   @override
   Future<void> enrichNote(String noteId) => _enrichment.enrichNote(noteId);
+
+  @override
+  Future<int> backfillEnrichment({int limit = 25}) =>
+      _enrichment.backfill(limit: limit);
+
+  /// Writes a derived field the way a finished enrichment pass would.
+  ///
+  /// Test-only, and not on [NexDb]: the app has no reason to set a transcript
+  /// by hand, but a test does — it is how "the background pass already ran"
+  /// is expressed without standing up a fake provider.
+  void seedTranscript(String noteId, String text) =>
+      _repo.setTranscriptText(noteId, text);
 
   @override
   Future<List<TagSuggestion>> suggestTags(String noteId) =>

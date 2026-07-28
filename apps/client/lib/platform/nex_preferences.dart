@@ -112,6 +112,16 @@ class NexPreferences extends ChangeNotifier {
 
   bool get cloudAiOptIn => _prefs.getBool('ai.cloud_opt_in') ?? false;
 
+  /// What the app calls you, if you told it.
+  ///
+  /// Decoration and nothing else: it never leaves the device, is never sent
+  /// with a sync or an AI request, and an empty value is stored as absent so
+  /// callers only ever have to check for null.
+  String? get displayName {
+    final value = _prefs.getString('profile.name')?.trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
   Locale? get locale {
     final code = _prefs.getString('appearance.locale');
     return code == null || code == 'system' ? null : Locale(code);
@@ -151,6 +161,20 @@ class NexPreferences extends ChangeNotifier {
   Future<void> setCloudAiOptIn(bool value) =>
       _setBool('ai.cloud_opt_in', value);
 
+  Future<void> setDisplayName(String? value) async {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      await _prefs.remove('profile.name');
+    } else {
+      // A name longer than this is not a name, and the app bar has to hold it.
+      await _prefs.setString(
+        'profile.name',
+        trimmed.length > 40 ? trimmed.substring(0, 40) : trimmed,
+      );
+    }
+    notifyListeners();
+  }
+
   Future<void> setLocale(String value) async {
     await _prefs.setString('appearance.locale', value);
     notifyListeners();
@@ -171,20 +195,6 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> swapSwipeMapping() async {
-    final old = leadingAction;
-    await _prefs.setString('swipe.leading', trailingAction.wireName);
-    await _prefs.setString('swipe.trailing', old.wireName);
-    notifyListeners();
-  }
-
-  /// Assigns one edge directly.
-  ///
-  /// The two edges must always differ, so choosing an action for one edge
-  /// hands the other edge whatever it displaced. With exactly two actions that
-  /// is indistinguishable from a swap; the point is that the *control* is a
-  /// choice per edge, which is what a third action would need — and adding one
-  /// then means extending [SwipeAction] and this method, not rewriting the UI.
   /// Assigns one edge, and only that edge.
   ///
   /// The edges are independent: setting one no longer displaces the other, so
@@ -203,6 +213,30 @@ class NexPreferences extends ChangeNotifier {
 
   SwipeAction actionFor({required bool isLeading}) =>
       isLeading ? leadingAction : trailingAction;
+
+  /* ----------------------------------------------------------------- update */
+
+  /// Whether the app looks for a new release on its own.
+  ///
+  /// On by default. Nex ships outside any store, so without this a user only
+  /// learns about a release by going to look for one.
+  bool get autoUpdateCheck => _prefs.getBool('update.auto') ?? true;
+
+  Future<void> setAutoUpdateCheck(bool value) async {
+    await _prefs.setBool('update.auto', value);
+    notifyListeners();
+  }
+
+  DateTime? get lastUpdateCheck {
+    final millis = _prefs.getInt('update.lastCheck');
+    return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  Future<void> setLastUpdateCheck(DateTime value) async {
+    await _prefs.setInt('update.lastCheck', value.millisecondsSinceEpoch);
+    // Deliberately silent: the timestamp is bookkeeping, and rebuilding the
+    // whole settings tree because a background check finished is noise.
+  }
 
   /* ------------------------------------------------------------ AI provider */
 

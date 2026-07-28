@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -6,6 +8,7 @@ import 'l10n/app_localizations.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/os_capture_bridge.dart';
+import 'platform/update_service.dart';
 import 'screens/search_screen.dart';
 import 'screens/timeline_screen.dart';
 
@@ -23,18 +26,32 @@ class NexApp extends StatefulWidget {
   State<NexApp> createState() => _NexAppState();
 }
 
-class _NexAppState extends State<NexApp> {
+class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   final timelineKey = GlobalKey<TimelineScreenState>();
+  late final UpdateService _updates =
+      UpdateService(preferences: widget.preferences);
 
   @override
   void initState() {
     super.initState();
     widget.preferences.addListener(_refresh);
+    // Quietly, on launch and whenever the app comes back — at most once a day.
+    // Nothing interrupts: the only outcome a user ever sees is a dot on the
+    // settings icon.
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_updates.maybeCheck());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_updates.maybeCheck());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.preferences.removeListener(_refresh);
+    _updates.dispose();
     super.dispose();
   }
 
@@ -92,6 +109,7 @@ class _NexAppState extends State<NexApp> {
         services: widget.services,
         preferences: prefs,
         osCapture: widget.osCapture,
+        updates: _updates,
       ),
     );
   }

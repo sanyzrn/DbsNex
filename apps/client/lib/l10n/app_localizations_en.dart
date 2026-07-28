@@ -176,7 +176,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get haptics => 'Capture haptics';
 
   @override
-  String get quietAnniversary => 'Show the quiet anniversary line';
+  String get quietAnniversary => 'One year ago';
 
   @override
   String get intelligence => 'Intelligence';
@@ -243,7 +243,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quietAnniversarySubtitle =>
-      'Only inside Nex. Never a notification or badge.';
+      'When you captured something on this day last year, one small line says so at the top of the timeline. Inside Nex only — never a notification.';
 
   @override
   String get storage => 'Storage';
@@ -293,9 +293,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get swipeActions => 'Swipe actions';
-
-  @override
-  String get swapSwipeMapping => 'Swap start and end actions';
 
   @override
   String get transcription => 'Transcription';
@@ -498,7 +495,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get swipeActionsHint =>
-      'These two actions are the whole set. Tap a row to swap which edge does which.';
+      'Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.';
 
   @override
   String get revealInFolder => 'Copy file path';
@@ -603,6 +600,154 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String updateAvailable(String version) {
     return 'Version $version is available';
+  }
+
+  @override
+  String get autoUpdateCheck => 'Check automatically';
+
+  @override
+  String get autoUpdateCheckHint =>
+      'Once a day, quietly. A new release shows up as a dot here — never a notification.';
+
+  @override
+  String get updateReady => 'Downloaded and ready to install';
+
+  @override
+  String get yourName => 'Your name';
+
+  @override
+  String get yourNameHint => 'Only used to greet you, only on this device.';
+
+  @override
+  String get yourNamePlaceholder => 'Leave empty for no greeting';
+
+  @override
+  String greetingMorning(String name) {
+    return 'Good morning, $name';
+  }
+
+  @override
+  String greetingAfternoon(String name) {
+    return 'Good afternoon, $name';
+  }
+
+  @override
+  String greetingEvening(String name) {
+    return 'Good evening, $name';
+  }
+
+  @override
+  String greetingNight(String name) {
+    return 'Still up, $name?';
+  }
+
+  @override
+  String get exportTitle => 'Taking it with you';
+
+  @override
+  String get exportExplained =>
+      'Writes every note into one zip: the full data as JSON, a readable Markdown file per note, and every photo, recording and attachment. Nothing is left behind and nothing is uploaded — the file is handed to you.';
+
+  @override
+  String get exportAndShare => 'Export and share';
+
+  @override
+  String get importTitle => 'Import';
+
+  @override
+  String get importExplained =>
+      'Reads a Nex export back into this library. Notes already here are left untouched, so importing the same file twice changes nothing.';
+
+  @override
+  String get chooseFile => 'Choose a file';
+
+  @override
+  String importDone(int added, int skipped) {
+    String _temp0 = intl.Intl.pluralLogic(
+      added,
+      locale: localeName,
+      other: '$added notes added',
+      one: '1 note added',
+      zero: 'Nothing new to add',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other: '$skipped already here',
+      one: '1 already here',
+      zero: '',
+    );
+    return '$_temp0 · $_temp1';
+  }
+
+  @override
+  String get importFailed =>
+      'That file could not be read as a Nex export. Your notes were not changed.';
+
+  @override
+  String get localBackupsTitle => 'Backups on this device';
+
+  @override
+  String get localBackupsExplained =>
+      'Once a day, Nex copies its database into its own folder. It is protection against a bad restore or a corrupted file — not against a lost phone. For that, export.';
+
+  @override
+  String get backupNow => 'Back up now';
+
+  @override
+  String get backupDone => 'Backed up';
+
+  @override
+  String get syncNotConfigured =>
+      'No server is set up. Sync is optional — Nex works entirely offline without it.';
+
+  @override
+  String get syncServer => 'Sync server';
+
+  @override
+  String get syncServerHint => 'https://…';
+
+  @override
+  String get syncToken => 'Device token';
+
+  @override
+  String get aiShow => 'See what Nex made of this';
+
+  @override
+  String aiReady(String what) {
+    return '$what ready';
+  }
+
+  @override
+  String get aiSection => 'What Nex read';
+
+  @override
+  String get aiNothingYet =>
+      'Nothing yet. Nex reads a note in the background after it is captured.';
+
+  @override
+  String get hide => 'Hide';
+
+  @override
+  String get catchUpTitle => 'The notes you already have';
+
+  @override
+  String get catchUpBody =>
+      'Nex reads a note in the background right after it is captured — which means everything captured before this was switched on has never been read. This works through that backlog, oldest requests first, a batch at a time.';
+
+  @override
+  String get catchUpAction => 'Catch up';
+
+  @override
+  String catchUpDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes read',
+      one: '1 note read',
+      zero: 'Nothing left to read',
+    );
+    return '$_temp0';
   }
 
   @override

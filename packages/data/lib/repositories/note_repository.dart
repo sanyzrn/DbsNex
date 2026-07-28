@@ -35,6 +35,18 @@ const List<String> tagAccentPalette = [
 bool isTagAccent(String value) =>
     RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(value);
 
+/// What came out of reading an export archive back in.
+///
+/// [skipped] is not an error: importing the same archive twice should leave the
+/// library exactly as it was, and the count is how the UI says so rather than
+/// claiming it added notes it did not.
+class ImportResult {
+  const ImportResult({required this.imported, required this.skipped});
+
+  final int imported;
+  final int skipped;
+}
+
 // newUuidV7, sha256OfBytes and sha256OfFile moved to packages/core (ids.dart):
 // they depend only on uuid and crypto, and keeping them here forced core's
 // capture service to import the storage layer just to mint an id.
@@ -619,6 +631,30 @@ ORDER BY n.created_at DESC
         .toList();
   }
 
+  @override
+  List<Note> listNeedingEnrichment({int limit = 50}) {
+    // Only media whose text was never derived. A text note is already its own
+    // text, and a summary that came back empty is a legitimate answer — asking
+    // again on every pass would spend a request to learn the same thing.
+    final rows = db.select(
+      '''
+SELECT * FROM notes
+WHERE deleted_at IS NULL
+  AND media_uri IS NOT NULL
+  AND (
+    (type = 'voice' AND transcript_text IS NULL)
+    OR (type = 'photo' AND ocr_text IS NULL)
+  )
+ORDER BY created_at DESC
+LIMIT ?
+''',
+      [limit],
+    );
+    return rows
+        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
+        .toList();
+  }
+
   /// Export archive: JSON + Markdown + media (FR-6 / ADR-025).
   Future<File> exportArchive({
     required String outputPath,
@@ -662,6 +698,122 @@ ORDER BY n.created_at DESC
     out.parent.createSync(recursive: true);
     out.writeAsBytesSync(encoded);
     return out;
+  }
+
+  /// Reads an export archive back into the library.
+  ///
+  /// The counterpart to [exportArchive], and the reason an export is worth
+  /// having: without this, an archive was a one-way write that nothing could
+  /// read back, and the only recoverable copy of a library was the automatic
+  /// local backup — which lives on the very device the user might have lost.
+  ///
+  /// Additive by design. A note whose id is already here is left exactly as it
+  /// is rather than overwritten: importing an old archive must never roll a
+  /// note back to a previous state, so re-importing the same file twice is a
+  /// no-op. Media travels with the archive and is written under [mediaRoot],
+  /// and the stored path is rewritten to that new location — a path from
+  /// another device means nothing here.
+  Future<ImportResult> importArchive({
+    required File archiveFile,
+    required String mediaRoot,
+  }) async {
+    final bytes = await archiveFile.readAsBytes();
+    final archive = ZipDecoder().decodeBytes(bytes);
+    final jsonFile = archive.findFile('notes.json');
+    if (jsonFile == null) {
+      throw const FormatException('not a Nex export: notes.json is missing');
+    }
+    final payload =
+        jsonDecode(utf8.decode(jsonFile.content as List<int>)) as Map<String, dynamic>;
+
+    for (final raw in (payload['tags'] as List? ?? const [])) {
+      final tag = raw as Map<String, dynamic>;
+      upsertTagFromSync(
+        id: tag['id']! as String,
+        name: tag['name']! as String,
+        color: tag['color'] as String?,
+        createdAt: DateTime.parse(tag['created_at']! as String),
+      );
+    }
+
+    var imported = 0;
+    var skipped = 0;
+    for (final raw in (payload['notes'] as List? ?? const [])) {
+      final json = raw as Map<String, dynamic>;
+      final note = Note.fromRow(json);
+      if (db.select('SELECT id FROM notes WHERE id = ?', [note.id]).isNotEmpty) {
+        skipped++;
+        continue;
+      }
+
+      String? mediaUri;
+      if (note.mediaUri != null) {
+        final name = p.basename(note.mediaUri!);
+        final entry = archive.findFile('media/$name');
+        if (entry != null) {
+          final target = File(p.join(mediaRoot, name));
+          target.parent.createSync(recursive: true);
+          target.writeAsBytesSync(entry.content as List<int>);
+          mediaUri = target.path;
+        }
+        // No media in the archive: the note still comes in, with its text and
+        // its tags. Losing the whole note over a missing attachment would be a
+        // worse trade than losing the attachment.
+      }
+
+      applyRemoteNote(
+        id: note.id,
+        type: note.type,
+        content: note.content,
+        mediaUri: mediaUri,
+        mediaHash: note.mediaHash,
+        durationMs: note.durationMs,
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt,
+        deletedAt: note.deletedAt,
+        deviceId: note.deviceId,
+        rev: note.rev,
+        tagIds: [
+          for (final tag in (json['tags'] as List? ?? const []))
+            (tag as Map<String, dynamic>)['id']! as String,
+        ],
+      );
+      // applyRemoteNote carries no captions, transcripts or summaries — they
+      // are not part of the sync wire — so they are written back here.
+      _restoreEnrichment(note);
+      imported++;
+    }
+    return ImportResult(imported: imported, skipped: skipped);
+  }
+
+  void _restoreEnrichment(Note note) {
+    if (note.caption == null &&
+        note.transcriptText == null &&
+        note.ocrText == null &&
+        note.summaryText == null &&
+        note.mimeType == null) {
+      return;
+    }
+    db.execute(
+      '''
+UPDATE notes
+SET caption = ?, transcript_text = ?, ocr_text = ?, summary_text = ?,
+    mime_type = ?
+WHERE id = ?
+''',
+      [
+        note.caption,
+        note.transcriptText,
+        note.ocrText,
+        note.summaryText,
+        note.mimeType,
+        note.id,
+      ],
+    );
+    final searchable = note.searchableDerivedText;
+    if (searchable != null && note.deletedAt == null) {
+      _upsertFts(note.id, searchable);
+    }
   }
 
   /// Reads an export archive and returns the parsed notes/tags JSON payload.

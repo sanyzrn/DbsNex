@@ -66,6 +66,7 @@ class _SearchScreenState extends State<SearchScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      showDragHandle: true,
       builder: (_) =>
           NoteDetailSheet(services: widget.services, noteId: note.id),
     );

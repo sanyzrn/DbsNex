@@ -66,6 +66,11 @@ class NexServices {
   final BackupPolicy _backupPolicy;
   final NexPreferences _preferences;
 
+  /// Whether the intelligence layer is on and actually has a provider behind
+  /// it. The UI asks so it does not offer a control that cannot do anything.
+  bool get aiIsUsable =>
+      _preferences.aiEnabled && _preferences.aiProvider.isUsable;
+
   final _timelineController = StreamController<List<Note>>.broadcast();
   Stream<List<Note>> get timelineStream => _timelineController.stream;
 
@@ -161,11 +166,34 @@ class NexServices {
       'baseUrl': ai.baseUrl,
       'model': ai.model,
     }));
+    // Turning it on has to mean something for the notes that are already here.
+    // Enrichment is a capture-time step, so without this the layer would only
+    // ever read notes captured after the moment it was configured — and every
+    // recording made before that would stay untranscribed for good.
+    if (ai.isUsable) unawaited(backfillEnrichment());
   }
 
   /// Fire-and-forget post-capture enrichment — never awaited by capture UI.
   void scheduleEnrichment(String noteId) {
     unawaited(worker.enrichNote(noteId));
+  }
+
+  /// Works through the notes the intelligence layer has never read.
+  ///
+  /// Bounded per call and safe to repeat: each pass takes the newest notes
+  /// still missing their derived text, so calling it again picks up where the
+  /// last one stopped.
+  Future<int> backfillEnrichment({int limit = 25}) async {
+    if (_closed) return 0;
+    try {
+      final done = await worker.backfillEnrichment(limit: limit);
+      if (done > 0) await refreshTimeline();
+      return done;
+    } catch (_) {
+      // Nothing here is worth interrupting anyone over: the notes are intact,
+      // they simply have no transcript yet.
+      return 0;
+    }
   }
 
   /* --------------------------------------------------------------- notes */
@@ -310,10 +338,38 @@ class NexServices {
     }
   }
 
-  Future<String> exportNow() {
-    final stamp = DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
-    final out = p.join(Directory.systemTemp.path, 'nex-export-$stamp.zip');
+  /// Writes the whole library to a zip and returns its path.
+  ///
+  /// The file lands in the cache directory rather than the system temp root:
+  /// on Android the share provider is configured for app storage, and a file
+  /// under `/tmp` could not be handed to another app at all.
+  Future<String> exportNow() async {
+    final stamp = DateTime.now()
+        .toIso8601String()
+        .substring(0, 16)
+        .replaceAll(':', '-');
+    final dir = await getTemporaryDirectory();
+    final out = p.join(dir.path, 'Nex-$stamp.zip');
     return worker.exportArchive(outputPath: out, mediaRoot: mediaDir);
+  }
+
+  /// Reads an exported archive back into this library.
+  ///
+  /// Additive: notes already here are left alone, so importing the same file
+  /// twice changes nothing. Media is copied into this device's media folder.
+  Future<ImportResult> importArchive(String archivePath) async {
+    final result = await worker.importArchive(
+      archivePath: archivePath,
+      mediaRoot: mediaDir,
+    );
+    await refreshTimeline();
+    return result;
+  }
+
+  /// Takes a backup right now, outside the once-a-day policy.
+  Future<void> backupNow() async {
+    await worker.backup(backupDir);
+    await _backupPolicy.markDone();
   }
 
   /// Runs a sync cycle against the user-configured endpoint.
