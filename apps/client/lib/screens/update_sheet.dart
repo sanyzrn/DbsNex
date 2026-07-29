@@ -190,7 +190,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
       final file = await _downloader.download(
         url: url,
         into: dir,
-        filename: 'Nex-$version${Platform.isWindows ? '.exe' : '.apk'}',
+        filename: nexInstallerFilename(version),
         onProgress: (value) {
           if (mounted) setState(() => _progress = value);
         },

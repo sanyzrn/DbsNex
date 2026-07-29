@@ -130,6 +130,18 @@ String? _assetNameSuffix() {
   return null;
 }
 
+/// What a downloaded installer is called on disk.
+///
+/// One definition, because it is a fact two places have to agree on: the
+/// service names the file it fetches, and the service's own "already on disk"
+/// check has to find that same name again. It was written inline in both,
+/// which is exactly the shape of thing that stays right until a platform is
+/// added — and the tests had a third copy that hardcoded `.apk`, so on Windows
+/// they wrote a file the code would never look for and then asserted it had
+/// been found.
+String nexInstallerFilename(NexVersion version) =>
+    'Nex-$version${Platform.isWindows ? '.exe' : '.apk'}';
+
 /// Asks GitHub whether a newer release exists.
 ///
 /// This is the only outbound request the app makes outside sync, it happens

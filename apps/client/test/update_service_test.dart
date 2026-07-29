@@ -154,7 +154,7 @@ void main() {
   test('an installer already on disk is not fetched twice', () async {
     final current = NexVersion.tryParse(nexAppVersion)!;
     final next = '${current.major}.${current.minor}.${current.patch + 1}';
-    File(p.join(tmp.path, 'Nex-$next.apk')).writeAsBytesSync([1, 2, 3, 4]);
+    File(p.join(tmp.path, nexInstallerFilename(NexVersion.tryParse(next)!))).writeAsBytesSync([1, 2, 3, 4]);
 
     var downloads = 0;
     final client = MockClient((request) async {
@@ -180,7 +180,7 @@ void main() {
     final next = '${current.major}.${current.minor}.${current.patch + 1}';
     // Right name, wrong length: an interrupted download must not be handed to
     // the installer as if it were whole.
-    File(p.join(tmp.path, 'Nex-$next.apk')).writeAsBytesSync([9]);
+    File(p.join(tmp.path, nexInstallerFilename(NexVersion.tryParse(next)!))).writeAsBytesSync([9]);
 
     var downloads = 0;
     final client = MockClient((request) async {
@@ -242,7 +242,7 @@ void main() {
     // notification about the past.
     final current = NexVersion.tryParse(nexAppVersion)!;
     final next = '${current.major}.${current.minor}.${current.patch + 1}';
-    File(p.join(tmp.path, 'Nex-$next.apk')).writeAsBytesSync([1, 2, 3, 4]);
+    File(p.join(tmp.path, nexInstallerFilename(NexVersion.tryParse(next)!))).writeAsBytesSync([1, 2, 3, 4]);
 
     final service = build(client: serving(newerRelease()));
     addTearDown(service.dispose);

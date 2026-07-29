@@ -167,7 +167,7 @@ class UpdateService extends ChangeNotifier {
     final url = update.downloadUrl;
     final version = update.version;
     if (url == null || version == null) return;
-    final name = 'Nex-$version${Platform.isWindows ? '.exe' : '.apk'}';
+    final name = nexInstallerFilename(version);
     try {
       final dir = await _directory();
       final existing = File('${dir.path}${Platform.pathSeparator}$name');
