@@ -63,7 +63,6 @@ class TimelineScreenState extends State<TimelineScreen> {
 
   /// Keeps one card open at a time and lets a scroll close it.
   final NexSwipeController _swipe = NexSwipeController();
-  List<Note> anniversary = const [];
   List<Tag> filterTags = const [];
   String? selectedTagId;
   NoteType? selectedType;
@@ -101,7 +100,6 @@ class TimelineScreenState extends State<TimelineScreen> {
     });
     _search.addListener(_onSearchChanged);
     unawaited(_loadTimeline());
-    unawaited(_loadAnniversary());
     unawaited(_loadFilterTags());
   }
 
@@ -118,9 +116,9 @@ class TimelineScreenState extends State<TimelineScreen> {
 
   /// Brings the field in and puts the cursor in it.
   ///
-  /// The AppBar icon and Ctrl+F both call this, so the gesture is a shortcut
-  /// rather than the only way in — a hidden gesture as the sole route to a core
-  /// feature is worse than the icon it replaced.
+  /// Tapping the field itself does this, and so does Ctrl+F — the field lives
+  /// at the top of the list permanently now, so a dedicated AppBar icon for it
+  /// pointed at something already on screen.
   Future<void> revealSearch() async {
     if (_scroll.hasClients && _scroll.offset > 0) {
       await _scroll.animateTo(
@@ -157,10 +155,19 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// FR-4 filter chips. TagFilterRow shipped in packages/ui, complete and
   /// covered by its own test, but nothing ever imported it — the timeline had
   /// no way to filter at all.
+  ///
+  /// Built from usage counts rather than the bare tag list: a tag nothing is
+  /// tagged with anymore (its last note deleted, or created and never used)
+  /// was still showing up as a pill that filtered to an empty list.
   Future<void> _loadFilterTags() async {
-    final loaded = await widget.services.listTags();
+    final loaded = await widget.services.tagUsage();
     if (!mounted) return;
-    setState(() => filterTags = loaded);
+    setState(() {
+      filterTags = [
+        for (final usage in loaded)
+          if (usage.count > 0) usage.tag,
+      ];
+    });
   }
 
   /// Everything this screen shows, read again.
@@ -180,7 +187,6 @@ class TimelineScreenState extends State<TimelineScreen> {
     await Future.wait([
       widget.services.refreshTimeline(),
       _loadFilterTags(),
-      _loadAnniversary(),
     ]);
     if (widget.preferences.syncBaseUrl == null) return;
     try {
@@ -266,15 +272,6 @@ class TimelineScreenState extends State<TimelineScreen> {
     final loaded = await widget.services.timeline(limit: 200);
     if (!mounted) return;
     setState(() { _all = loaded; notes = _visible(loaded); });
-  }
-
-  /// "A year ago today", opt-in and quiet by default. Loaded once rather than
-  /// on every build: it is a database query, and build runs on every frame.
-  Future<void> _loadAnniversary() async {
-    if (!widget.preferences.quietAnniversary) return;
-    final found = await widget.services.anniversary(DateTime.now());
-    if (!mounted) return;
-    setState(() => anniversary = found);
   }
 
   @override
@@ -514,15 +511,6 @@ class TimelineScreenState extends State<TimelineScreen> {
             ),
         },
         actions: [
-          // The same reveal the pull-down performs. Search is one interaction
-          // and one surface now: it used to be a route push behind an
-          // unlabelled icon, which put half the product's tagline a transition
-          // away from the timeline it searches.
-          IconButton(
-            tooltip: l10n.search,
-            icon: const Icon(Icons.search),
-            onPressed: () => unawaited(revealSearch()),
-          ),
           // Content lives here, preferences live behind the gear. Trash and
           // Tags were reachable only through Settings, and neither is a
           // preference — one of them holds the user's own deleted notes.
@@ -692,13 +680,6 @@ class TimelineScreenState extends State<TimelineScreen> {
     }
 
     return [
-      if (anniversary.isNotEmpty)
-        SliverToBoxAdapter(
-          child: _AnniversaryRow(
-            count: anniversary.length,
-            onTap: () => unawaited(_showAnniversary()),
-          ),
-        ),
       SliverList.builder(
         itemCount: notes.length,
         itemBuilder: (context, index) {
@@ -734,13 +715,29 @@ class TimelineScreenState extends State<TimelineScreen> {
               child: NoteCard(
                 note: note,
                 strings: nexCardStrings(context),
-                onTap: () => unawaited(_openNote(note)),
+                onTap: () => _tapNote(note),
               ),
             ),
           );
         },
       ),
     ];
+  }
+
+  /// A tap on a card, which means two different things depending on what the
+  /// list already looked like.
+  ///
+  /// With a card swiped open, a tap anywhere — on the open card itself, or on
+  /// any other one — used to both close it *and* open whatever was tapped,
+  /// since the outer tap-to-close and the card's own tap handler both fired
+  /// off the same touch. The first tap while something is open now only
+  /// closes it; opening a note takes its own, second tap.
+  void _tapNote(Note note) {
+    if (_swipe.openCard != null) {
+      _swipe.closeAll();
+      return;
+    }
+    unawaited(_openNote(note));
   }
 
   Future<void> _openNote(Note note) async {
@@ -760,19 +757,6 @@ class TimelineScreenState extends State<TimelineScreen> {
     if (_searching) await _search.run();
   }
 
-  /// Shows only what was captured a year ago today.
-  ///
-  /// The line used to be inert text: the app's one resurfacing feature, with no
-  /// way to act on what it announced.
-  Future<void> _showAnniversary() async {
-    _tick();
-    setState(() {
-      selectedTagId = null;
-      selectedType = null;
-      final ids = anniversary.map((n) => n.id).toSet();
-      notes = (_all ?? const []).where((n) => ids.contains(n.id)).toList();
-    });
-  }
 }
 
 /// Keeps the filter row under the app bar while the cards scroll past it.
@@ -874,64 +858,6 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_FilterRowHeader old) => true;
 }
 
-/// "One year ago", as something you can act on.
-///
-/// It was a 12.5px grey sentence with no container, no icon and no gesture
-/// detector — the single most valuable thing a capture app can show you,
-/// rendered as the least prominent thing on the screen.
-class _AnniversaryRow extends StatelessWidget {
-  const _AnniversaryRow({required this.count, required this.onTap});
-
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return Padding(
-      padding: nexCardInsets,
-      child: Material(
-        color: theme.colorScheme.surfaceContainerHighest,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(NexRadius.md),
-          side: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: NexSpacing.md,
-              vertical: NexSpacing.sm,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.history_toggle_off,
-                  size: 18,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: NexSpacing.sm),
-                Expanded(
-                  child: Text(
-                    l10n.oneYearAgo(count),
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  size: 18,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 /// Wraps the picker's answer so "All" survives the trip back through
 /// `Navigator.pop`, which cannot distinguish a null result from a dismissal.
 class _TypeChoice {

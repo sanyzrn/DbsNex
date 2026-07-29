@@ -48,6 +48,16 @@ class NexSwipeController extends ChangeNotifier {
   }
 }
 
+/// The fraction of the card's width, from its physical left edge, that a
+/// swipe may start from.
+const _leadingZone = 0.30;
+
+/// The fraction of the card's width, from its physical right edge, that a
+/// swipe may start from. The rest of the card — the middle 50% here — starts
+/// nothing, so scrolling or tapping through the body of a card no longer has
+/// a chance of being read as the beginning of a swipe.
+const _trailingZone = 0.20;
+
 /// A horizontal drag that yields to a vertical scroll.
 ///
 /// The plain recognizer claims the gesture as soon as horizontal travel passes
@@ -55,9 +65,40 @@ class NexSwipeController extends ChangeNotifier {
 /// time — the list would swipe a card open instead of scrolling. This one
 /// refuses to enter the arena until the movement is clearly sideways.
 class _SidewaysDragRecognizer extends HorizontalDragGestureRecognizer {
-  _SidewaysDragRecognizer({super.debugOwner});
+  _SidewaysDragRecognizer({
+    super.debugOwner,
+    required this.widthOf,
+    required this.isClosed,
+  });
+
+  /// Read at every pointer-down rather than captured once: the recognizer
+  /// instance outlives any single `build`, so a closure over the field is the
+  /// only way this sees the card's *current* width instead of the width at
+  /// the moment the gesture detector was first created.
+  final double Function() widthOf;
+
+  /// Whether the card is at rest.
+  ///
+  /// The zone restriction only applies then. An already-open card is drawn
+  /// shifted toward one edge, so "the middle" of the card's original bounds
+  /// may now be sitting over content the finger needs to reach to close it —
+  /// this only exists to stop a resting card opening by accident, not to make
+  /// an open one harder to put back.
+  final bool Function() isClosed;
 
   Offset _travel = Offset.zero;
+
+  @override
+  bool isPointerAllowed(PointerEvent event) {
+    final width = widthOf();
+    if (width > 0 && isClosed()) {
+      final dx = event.localPosition.dx;
+      if (dx > width * _leadingZone && dx < width * (1 - _trailingZone)) {
+        return false;
+      }
+    }
+    return super.isPointerAllowed(event);
+  }
 
   @override
   void handleEvent(PointerEvent event) {
@@ -88,6 +129,10 @@ class _SidewaysDragRecognizer extends HorizontalDragGestureRecognizer {
 ///
 /// Behaviour, in the order the problems appeared:
 ///
+/// * A resting card only starts a swipe from its outer edges — the leading
+///   30% and the trailing 20% of its width (see [_leadingZone] and
+///   [_trailingZone]). The middle used to open on any sideways drag, which
+///   is also where a thumb naturally lands while scrolling past a card.
 /// * The offset is animated by a spring rather than assigned from the raw
 ///   pointer delta, so releasing settles instead of snapping.
 /// * A gesture cannot cross the middle. Once a direction is picked, dragging
@@ -327,7 +372,11 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
             gestures: {
               _SidewaysDragRecognizer:
                   GestureRecognizerFactoryWithHandlers<_SidewaysDragRecognizer>(
-                () => _SidewaysDragRecognizer(debugOwner: this),
+                () => _SidewaysDragRecognizer(
+                  debugOwner: this,
+                  widthOf: () => _width,
+                  isClosed: () => _isClosed,
+                ),
                 (instance) => instance
                   ..onStart = _onDragStart
                   ..onUpdate = _onDragUpdate

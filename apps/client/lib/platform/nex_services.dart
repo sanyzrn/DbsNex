@@ -293,8 +293,6 @@ class NexServices {
 
   Future<void> deleteTag(String id) => worker.deleteTag(id);
 
-  Future<List<Note>> anniversary(DateTime now) => worker.anniversary(now);
-
   Future<Note?> nearestMiss(String query) => worker.nearestMiss(query);
 
   Future<StorageSnapshot> storage() => worker.storage(
@@ -397,19 +395,27 @@ class NexServices {
   }
 
   /// Newest-first list of local SQLite backup files (FR-7.2).
+  ///
+  /// Synchronous, like the retention sweep in [NexDatabase.createBackup]
+  /// already is: a handful of files in one directory does not need the
+  /// stream machinery `Directory.list()` brings with it.
   Future<List<File>> listBackups() async {
     final dir = Directory(backupDir);
-    if (!await dir.exists()) return const [];
+    if (!dir.existsSync()) return const [];
 
-    final entries = await dir
-        .list()
-        .where((e) => e is File && e.path.endsWith('.sqlite'))
-        .cast<File>()
-        .toList();
-
-    entries.sort((a, b) => b.path.compareTo(a.path));
+    final entries = dir
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.sqlite'))
+        .toList()
+      ..sort((a, b) => b.path.compareTo(a.path));
     return entries;
   }
+
+  /// Removes one local backup file. Plain filesystem I/O, the same as the
+  /// export path already does (`nexSendFileOut`) — a backup is not part of
+  /// the note database the worker isolate guards.
+  Future<void> deleteBackup(File backup) async => backup.deleteSync();
 
   Future<RestartRequired> restoreLatestBackup() async {
     final backups = await listBackups();

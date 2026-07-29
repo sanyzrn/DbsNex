@@ -195,10 +195,6 @@ class InProcessDb implements NexDb {
   Future<void> deleteTag(String id) async => _maintenance.deleteTag(id);
 
   @override
-  Future<List<Note>> anniversary(DateTime now) async =>
-      _maintenance.anniversary(now);
-
-  @override
   Future<Note?> nearestMiss(String query) async =>
       _maintenance.nearestMiss(query);
 

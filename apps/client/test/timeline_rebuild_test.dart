@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/widgets/commit_receipt.dart';
+import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
 import 'package:nex_client/widgets/empty_timeline.dart';
 
@@ -115,6 +117,107 @@ void main() {
     expect(timeline.landedId, isNull);
   });
 
+  testWidgets(
+      'a toast stays above a dialog opened while it is still showing',
+      (tester) async {
+    // Reported symptom: the capsule toast sometimes rendered behind other
+    // UI, e.g. behind the note-edit dialog. A SnackBar is scoped to the
+    // nearest registered Scaffold, and the timeline's own Scaffold sits
+    // *under* whatever the Navigator pushes on top of it next — so a dialog
+    // opened while the toast was still up painted right over it.
+    final note = (await services.captureText('gone in a moment'))!;
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    final timeline = tester.state<TimelineScreenState>(
+      find.byType(TimelineScreen),
+    );
+    await timeline.deleteWithUndo(note);
+    await tester.pump();
+    expect(find.text('Undo'), findsOneWidget);
+
+    unawaited(showDialog<void>(
+      context: tester.element(find.byType(TimelineScreen)),
+      builder: (ctx) => AlertDialog(
+        title: const Text('something modal'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('close'),
+          ),
+        ],
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    // Still there, still the thing that actually receives the tap — not the
+    // dialog's barrier sitting on top of it.
+    final undo = find.text('Undo');
+    expect(undo, findsOneWidget);
+    await tester.tap(undo);
+    await tester.pumpAndSettle();
+
+    expect(find.text('gone in a moment'), findsOneWidget);
+  });
+
+  testWidgets(
+      'tapping a different card while one is swiped open only closes it',
+      (tester) async {
+    // Reported symptom: swipe a card open, tap a different one, and both
+    // things happened on the same touch — the open card closed *and* the
+    // tapped card's own detail sheet opened. The first tap while anything is
+    // open now only resets it; opening a note takes a second, separate tap.
+    await services.captureText('first note');
+    await services.captureText('second note');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    final firstCard = tester.getRect(
+      find
+          .ancestor(
+            of: find.text('first note'),
+            matching: find.byType(SwipeableNoteCard),
+          )
+          .first,
+    );
+    // Inside the trailing 20% of the card's own width, per the edge-zone
+    // restriction — the only place a resting card opens from. Half the
+    // card's width clears the "open" threshold (~0.25 of it) with room to
+    // spare below the "commit and run the action" one (~0.62), whatever the
+    // card's actual width turns out to be on this surface.
+    await tester.dragFrom(
+      Offset(firstCard.right - 10, firstCard.center.dy),
+      Offset(-firstCard.width * 0.5, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsOneWidget);
+
+    await tester.tap(find.text('second note'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Delete'),
+      findsNothing,
+      reason: 'the open card is reset by the first tap',
+    );
+    expect(
+      find.byType(NoteDetailSheet),
+      findsNothing,
+      reason: 'that same tap must not also open the tapped card',
+    );
+
+    // Nothing is open now, so the same tap behaves normally.
+    await tester.tap(find.text('second note'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteDetailSheet), findsOneWidget);
+  });
+
   testWidgets('search happens on the timeline, without pushing a route',
       (tester) async {
     for (var i = 0; i < 10; i++) {
@@ -134,16 +237,10 @@ void main() {
     final field = find.byType(TextField);
     expect(field, findsOneWidget);
 
-    // The AppBar's icon, not the one inside the field: there are two now that
-    // the field is permanently on screen. The icon still earns its place —
-    // scrolled down a long list, it is what brings the field back and focuses
-    // it in one tap.
-    await tester.tap(
-      find.descendant(
-        of: find.byType(AppBar),
-        matching: find.byIcon(Icons.search),
-      ),
-    );
+    // Tapping the field itself is the only way in now — the AppBar's own
+    // search icon was removed once the field became permanently visible,
+    // since it pointed at something already on screen.
+    await tester.tap(field);
     await tester.pumpAndSettle();
 
     // Same route. Search used to be a full-screen push behind this icon, which
@@ -206,7 +303,7 @@ void main() {
     // The reported symptom: delete the tags, make a new one, and the filter row
     // kept showing the old set until the app was closed and reopened. The row
     // is fed by its own query, which only ever ran once — in initState.
-    await services.captureText('a note');
+    final note = (await services.captureText('a note'))!;
     await services.refreshTimeline();
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
@@ -215,9 +312,11 @@ void main() {
 
     expect(find.text('Rockets'), findsNothing);
 
-    // Created the way the tag manager and the note sheet both create one, then
-    // the refresh every mutation path already performs.
-    await services.createTag('Rockets');
+    // Created and attached the way the tag picker actually does it — a tag
+    // with nothing tagged with it does not belong in the filter row at all
+    // (see the "unused tags" test below), so this has to put it on a note to
+    // stay a test of the staleness bug rather than of that.
+    await services.addTag(noteId: note.id, name: 'Rockets');
     await services.refreshTimeline();
     await tester.pumpAndSettle();
 
@@ -225,6 +324,30 @@ void main() {
       find.text('Rockets'),
       findsWidgets,
       reason: 'the filter row has to notice, without a cold launch',
+    );
+  });
+
+  testWidgets('a tag nothing is tagged with does not clutter the filter row',
+      (tester) async {
+    // Reported symptom: a tag with no notes on it any more still took up a
+    // pill at the top, and selecting it just filtered to nothing.
+    final note = (await services.captureText('a note'))!;
+    final tag = await services.addTag(noteId: note.id, name: 'Errands');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Errands'), findsWidgets);
+
+    await services.removeTag(noteId: note.id, tagId: tag.id);
+    await services.refreshTimeline();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Errands'),
+      findsNothing,
+      reason: 'nothing uses it any more, so it has nothing to filter to',
     );
   });
 
@@ -293,6 +416,19 @@ void main() {
       line.bottom,
       lessThanOrEqualTo(fab.top),
       reason: 'the copy must end above the button, not behind it',
+    );
+
+    // The AI paragraph sits below that line now. It is the one genuinely at
+    // risk of running past the viewport on a short window, but that is a
+    // reason for it to scroll — which SingleChildScrollView already does,
+    // inside the space this Padding protects — not a reason to fail here.
+    expect(
+      find.text(
+        'It can also read what you capture — voice becomes text, photos '
+        'give up their words, tags get suggested. A provider in Settings '
+        'adds summaries and search.',
+      ),
+      findsOneWidget,
     );
   });
 

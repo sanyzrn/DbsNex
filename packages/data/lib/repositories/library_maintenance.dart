@@ -73,16 +73,6 @@ class LibraryMaintenance {
 
   void deleteTag(String id) => repo.db.execute('DELETE FROM tags WHERE id = ?', [id]);
 
-  List<Note> anniversary(DateTime now) {
-    final start = DateTime.utc(now.year - 1, now.month, now.day);
-    final end = start.add(const Duration(days: 1));
-    return repo.db.select('''SELECT * FROM notes WHERE deleted_at IS NULL
-      AND created_at >= ? AND created_at < ? ORDER BY created_at DESC''',
-      [start.toIso8601String(), end.toIso8601String()])
-      .map((row) => Note.fromRow(row, tags: repo.tagsForNote(row['id'] as String)))
-      .toList();
-  }
-
   Note? nearestMiss(String query) {
     final needle = _normal(query);
     if (needle.isEmpty) return null;

@@ -96,8 +96,6 @@ abstract interface class NexDb {
 
   Future<void> deleteTag(String id);
 
-  Future<List<Note>> anniversary(DateTime now);
-
   Future<Note?> nearestMiss(String query);
 
   Future<StorageSnapshot> storage({

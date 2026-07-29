@@ -103,6 +103,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emptyNoSave => 'There is no Save button.';
 
   @override
+  String get emptyAi =>
+      'It can also read what you capture — voice becomes text, photos give up their words, tags get suggested. A provider in Settings adds summaries and search.';
+
+  @override
   String get delete => 'Delete';
 
   @override
@@ -176,9 +180,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get haptics => 'Capture haptics';
 
   @override
-  String get quietAnniversary => 'One year ago';
-
-  @override
   String get intelligence => 'Intelligence';
 
   @override
@@ -242,10 +243,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languagePersian => 'Persian';
 
   @override
-  String get quietAnniversarySubtitle =>
-      'When you captured something on this day last year, one small line says so at the top of the timeline. Inside Nex only — never a notification.';
-
-  @override
   String get storage => 'Storage';
 
   @override
@@ -267,17 +264,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get captureFailed =>
       'Capture could not be stored. Your existing notes were not changed.';
-
-  @override
-  String oneYearAgo(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'One year ago · $count captures',
-      one: 'One year ago · 1 capture',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get noteNotFound => 'Note not found';
@@ -342,6 +328,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get restoreBody =>
       'Replace the local database with the newest verified backup?';
+
+  @override
+  String get deleteBackup => 'Delete backup';
+
+  @override
+  String get deleteBackupBody =>
+      'This local backup file will be deleted. It cannot be undone.';
 
   @override
   String backupCount(int count) {

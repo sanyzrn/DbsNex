@@ -3,6 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
+/// The middle of a resting card no longer starts a swipe — only its outer
+/// 30%/20% edges do (every card here is 400px wide) — so these tests begin
+/// each drag from inside whichever edge the direction implies rather than
+/// from the finder's own centre. The accumulated distance travelled is what
+/// every assertion here cares about, not where the touch happened to land.
+Future<void> _dragCard(WidgetTester tester, Finder finder, double dx) {
+  final y = tester.getCenter(finder).dy;
+  final x = dx < 0 ? 370.0 : 40.0;
+  return tester.dragFrom(Offset(x, y), Offset(dx, 0));
+}
+
 void main() {
   testWidgets('swipe reveals an action and tapping it fires the callback',
       (tester) async {
@@ -38,7 +49,7 @@ void main() {
     // Closed: Delete label must not leak / stay visible.
     expect(find.text('Delete'), findsNothing);
 
-    await tester.drag(find.text('Note'), const Offset(-200, 0));
+    await _dragCard(tester, find.text('Note'), -200);
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsOneWidget);
     expect(deleted, isFalse);
@@ -47,12 +58,59 @@ void main() {
     expect(deleted, isTrue);
     expect(find.text('Delete'), findsNothing);
 
-    await tester.drag(find.text('Note'), const Offset(200, 0));
+    await _dragCard(tester, find.text('Note'), 200);
     await tester.pumpAndSettle();
     expect(tagged, isFalse);
     await tester.tap(find.text('Add Tag'));
     await tester.pumpAndSettle();
     expect(tagged, isTrue);
+  });
+
+  testWidgets('a resting card only opens from its outer edges, not its middle',
+      (tester) async {
+    // Reported symptom: the whole card swiped, so scrolling or tapping near
+    // the middle of a card had a real chance of being read as the start of a
+    // swipe. Only the outer 30%/20% may open it now.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            child: SwipeableNoteCard(
+              deleteLabel: 'Delete',
+              addTagLabel: 'Add Tag',
+              resolveAction: ({required bool isLeading}) =>
+                  isLeading ? NexSwipeAction.addTag : NexSwipeAction.delete,
+              onDelete: () {},
+              onAddTag: () {},
+              child: const SizedBox(
+                height: 80,
+                width: double.infinity,
+                child: ColoredBox(
+                  color: Colors.white,
+                  child: Center(child: Text('Note')),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Dead centre of a 400px card: inside the middle 50%, which starts
+    // nothing.
+    await tester.dragFrom(
+      Offset(200, tester.getCenter(find.text('Note')).dy),
+      const Offset(-150, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsNothing);
+
+    // The same travel, but begun inside the trailing 20% (320-400 of 400),
+    // opens it.
+    await _dragCard(tester, find.text('Note'), -150);
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsOneWidget);
   });
 
   testWidgets('a gesture cannot cross from one action into the other',
@@ -87,11 +145,11 @@ void main() {
 
     // Open Delete, then drag back further than it travelled. It must close and
     // stop, not continue into Add Tag on the other side.
-    await tester.drag(find.text('Note'), const Offset(-150, 0));
+    await _dragCard(tester, find.text('Note'), -150);
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsOneWidget);
 
-    await tester.drag(find.text('Note'), const Offset(320, 0));
+    await _dragCard(tester, find.text('Note'), 320);
     await tester.pumpAndSettle();
     expect(find.text('Add Tag'), findsNothing);
     expect(find.text('Delete'), findsNothing);
@@ -99,7 +157,7 @@ void main() {
     expect(deleted, isFalse);
 
     // And the card is genuinely closed: the next swipe the other way works.
-    await tester.drag(find.text('Note'), const Offset(150, 0));
+    await _dragCard(tester, find.text('Note'), 150);
     await tester.pumpAndSettle();
     expect(find.text('Add Tag'), findsOneWidget);
   });
@@ -134,7 +192,7 @@ void main() {
     );
 
     // Past 62% of 400px, so releasing acts rather than parking the panel open.
-    await tester.drag(find.text('Note'), const Offset(-300, 0));
+    await _dragCard(tester, find.text('Note'), -300);
     await tester.pumpAndSettle();
     expect(deleted, isTrue);
     expect(find.text('Delete'), findsNothing);
@@ -174,9 +232,10 @@ void main() {
       );
       // Held rather than released: a partial swipe is a state the user sees,
       // and letting go of it would snap the card shut before anything could be
-      // measured.
+      // measured. Started from the trailing edge zone — every call here drags
+      // leftward — since the middle of a resting card no longer opens.
       final gesture = await tester.startGesture(
-        tester.getCenter(find.text('Note')),
+        Offset(370, tester.getCenter(find.text('Note')).dy),
       );
       await gesture.moveBy(Offset(dx / 2, 0));
       await tester.pump();
@@ -295,10 +354,13 @@ void main() {
       ),
     );
 
-    // Started on the note's own text, and dragged across the marks.
-    await tester.drag(
+    // Started right at the trailing edge — exactly where the dots sit, and
+    // now the only place a rightward-opening swipe may begin at all — and
+    // dragged back across them.
+    await _dragCard(
+      tester,
       find.text('a note with several tags on it'),
-      const Offset(-150, 0),
+      -150,
     );
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsOneWidget);
@@ -335,7 +397,7 @@ void main() {
         ),
       ),
     );
-    await tester.drag(find.text('Note'), const Offset(-20, 0));
+    await _dragCard(tester, find.text('Note'), -20);
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsNothing);
   });

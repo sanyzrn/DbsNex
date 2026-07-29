@@ -50,7 +50,6 @@ enum _DbCommand {
   renameTag,
   mergeTag,
   deleteTag,
-  anniversary,
   nearestMiss,
   storage,
   // Enrichment.
@@ -365,10 +364,6 @@ class NexDbWorker implements NexDb {
       _send<void>(_DbCommand.deleteTag, {'id': id});
 
   @override
-  Future<List<Note>> anniversary(DateTime now) =>
-      _send<List<Note>>(_DbCommand.anniversary, {'now': now});
-
-  @override
   Future<Note?> nearestMiss(String query) =>
       _send<Note?>(_DbCommand.nearestMiss, {'query': query});
 
@@ -567,8 +562,6 @@ class NexDbWorker implements NexDb {
               )),
           _DbCommand.deleteTag =>
             _voided(() => maintenance.deleteTag(arg('id')! as String)),
-          _DbCommand.anniversary =>
-            maintenance.anniversary(arg('now')! as DateTime),
           _DbCommand.nearestMiss =>
             maintenance.nearestMiss(arg('query')! as String),
           _DbCommand.storage => await maintenance.storage(
