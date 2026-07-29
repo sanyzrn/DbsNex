@@ -293,8 +293,6 @@ class NexServices {
 
   Future<void> deleteTag(String id) => worker.deleteTag(id);
 
-  Future<List<Note>> anniversary(DateTime now) => worker.anniversary(now);
-
   Future<Note?> nearestMiss(String query) => worker.nearestMiss(query);
 
   Future<StorageSnapshot> storage() => worker.storage(

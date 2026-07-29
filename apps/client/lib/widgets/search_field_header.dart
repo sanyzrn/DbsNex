@@ -60,7 +60,13 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
         // Below a third of the way in there is not enough of the field on
         // screen to read, and a half-drawn control reads as a glitch.
         opacity: ((progress - 0.3) / 0.5).clamp(0.0, 1.0),
-        child: ColoredBox(
+        // A tap anywhere outside the field closes search the same way the X
+        // button does — the X was the only way out, so leaving search meant
+        // aiming for one small target instead of just tapping whatever you
+        // meant to look at.
+        child: TapRegion(
+          onTapOutside: (_) { if (searching) onClear(); },
+          child: ColoredBox(
           color: scheme.surface,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
@@ -129,6 +135,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                 ),
               ),
             ),
+          ),
           ),
         ),
       ),

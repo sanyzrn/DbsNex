@@ -107,9 +107,6 @@ class NexPreferences extends ChangeNotifier {
 
   bool get haptics => _prefs.getBool('accessibility.haptics') ?? true;
 
-  bool get quietAnniversary =>
-      _prefs.getBool('timeline.quiet_anniversary') ?? true;
-
   bool get cloudAiOptIn => _prefs.getBool('ai.cloud_opt_in') ?? false;
 
   /// What the app calls you, if you told it.
@@ -154,9 +151,6 @@ class NexPreferences extends ChangeNotifier {
       _setBool('accessibility.reduce_motion', value);
 
   Future<void> setHaptics(bool value) => _setBool('accessibility.haptics', value);
-
-  Future<void> setQuietAnniversary(bool value) =>
-      _setBool('timeline.quiet_anniversary', value);
 
   Future<void> setCloudAiOptIn(bool value) =>
       _setBool('ai.cloud_opt_in', value);

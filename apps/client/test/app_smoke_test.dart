@@ -15,6 +15,7 @@ import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/os_capture_bridge.dart';
 import 'package:nex_client/screens/intelligence_screen.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
+import 'package:nex_client/screens/timeline_screen.dart';
 import 'package:nex_client/widgets/choice_cards.dart';
 
 import 'support/in_process_db.dart';
@@ -151,7 +152,17 @@ void main() {
     );
     expect(box.size.width, closeTo(nexCaptureFabSize, 1));
     expect(box.size.height, closeTo(nexCaptureFabSize, 1));
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+    // The Scaffold that actually owns the FAB — TimelineScreen's own, not the
+    // bare one the app shell wraps the Navigator in so toasts can paint above
+    // dialogs (see NexApp.builder).
+    final scaffold = tester.widget<Scaffold>(
+      find
+          .descendant(
+            of: find.byType(TimelineScreen),
+            matching: find.byType(Scaffold),
+          )
+          .first,
+    );
     expect(
       scaffold.floatingActionButtonLocation,
       FloatingActionButtonLocation.centerFloat,

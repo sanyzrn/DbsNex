@@ -15,6 +15,7 @@ import '../platform/sharing.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/nex_services.dart';
 import '../widgets/tag_picker.dart';
+import '../utils/nex_bidi.dart';
 
 /// What the sheet reports back when it closes.
 ///
@@ -237,12 +238,21 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       builder: (ctx) => AlertDialog(
         title: Text(l10n.editNote),
         content: NexDialogBody(
-          child: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLines: null,
-            minLines: 3,
-            keyboardType: TextInputType.multiline,
+          // Persian content in an English-locale app used to render
+          // left-aligned: the field followed the ambient (LTR) Directionality
+          // rather than the script actually typed into it. Re-evaluated on
+          // every keystroke, the same way the capture box already does.
+          child: StatefulBuilder(
+            builder: (context, setDialogState) => TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: null,
+              minLines: 3,
+              keyboardType: TextInputType.multiline,
+              textDirection: nexTextDirection(controller.text),
+              textAlign: nexTextAlign(controller.text),
+              onChanged: (_) => setDialogState(() {}),
+            ),
           ),
         ),
         actions: [
@@ -353,11 +363,16 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       builder: (ctx) => AlertDialog(
         title: Text(l10n.caption),
         content: NexDialogBody(
-          child: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLines: 3,
-            decoration: InputDecoration(hintText: l10n.captionHint),
+          child: StatefulBuilder(
+            builder: (context, setDialogState) => TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: 3,
+              textDirection: nexTextDirection(controller.text),
+              textAlign: nexTextAlign(controller.text),
+              decoration: InputDecoration(hintText: l10n.captionHint),
+              onChanged: (_) => setDialogState(() {}),
+            ),
           ),
         ),
         actions: [

@@ -76,7 +76,6 @@
   "accessibility": "Accessibility",
   "reduceMotion": "Reduce motion",
   "haptics": "Capture haptics",
-  "quietAnniversary": "One year ago",
   "intelligence": "Intelligence",
   "intelligenceLocal": "Runs on this device unless Cloud AI is enabled.",
   "about": "About Nex",
@@ -103,7 +102,6 @@
   "languageSystem": "System",
   "languageEnglish": "English",
   "languagePersian": "Persian",
-  "quietAnniversarySubtitle": "When you captured something on this day last year, one small line says so at the top of the timeline. Inside Nex only — never a notification.",
   "storage": "Storage",
   "storageUsed": "{size} used locally",
   "@storageUsed": {
@@ -124,14 +122,6 @@
   },
   "discard": "Discard",
   "captureFailed": "Capture could not be stored. Your existing notes were not changed.",
-  "oneYearAgo": "{count, plural, =1{One year ago · 1 capture} other{One year ago · {count} captures}}",
-  "@oneYearAgo": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "noteNotFound": "Note not found",
   "mediaUnavailable": "This media file is unavailable.",
   "copy": "Copy",

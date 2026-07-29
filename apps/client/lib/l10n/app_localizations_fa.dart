@@ -176,9 +176,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get haptics => 'لرزش هنگام ثبت';
 
   @override
-  String get quietAnniversary => 'یک سال پیش';
-
-  @override
   String get intelligence => 'هوش مصنوعی';
 
   @override
@@ -242,10 +239,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get languagePersian => 'فارسی';
 
   @override
-  String get quietAnniversarySubtitle =>
-      'اگر همین روز در سال گذشته چیزی ثبت کرده باشید، یک خط کوچک بالای فهرست یادآوری می‌کند. فقط داخل Nex — هیچ‌وقت اعلان نمی‌آید.';
-
-  @override
   String get storage => 'فضای ذخیره‌سازی';
 
   @override
@@ -267,17 +260,6 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get captureFailed =>
       'ثبت ذخیره نشد. یادداشت‌های قبلی شما دست‌نخورده ماندند.';
-
-  @override
-  String oneYearAgo(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'یک سال پیش · $count ثبت',
-      one: 'یک سال پیش · یک ثبت',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get noteNotFound => 'یادداشت پیدا نشد';

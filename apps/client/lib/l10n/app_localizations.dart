@@ -386,12 +386,6 @@ abstract class AppLocalizations {
   /// **'Capture haptics'**
   String get haptics;
 
-  /// No description provided for @quietAnniversary.
-  ///
-  /// In en, this message translates to:
-  /// **'One year ago'**
-  String get quietAnniversary;
-
   /// No description provided for @intelligence.
   ///
   /// In en, this message translates to:
@@ -506,12 +500,6 @@ abstract class AppLocalizations {
   /// **'Persian'**
   String get languagePersian;
 
-  /// No description provided for @quietAnniversarySubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'When you captured something on this day last year, one small line says so at the top of the timeline. Inside Nex only — never a notification.'**
-  String get quietAnniversarySubtitle;
-
   /// No description provided for @storage.
   ///
   /// In en, this message translates to:
@@ -547,12 +535,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Capture could not be stored. Your existing notes were not changed.'**
   String get captureFailed;
-
-  /// No description provided for @oneYearAgo.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{One year ago · 1 capture} other{One year ago · {count} captures}}'**
-  String oneYearAgo(int count);
 
   /// No description provided for @noteNotFound.
   ///

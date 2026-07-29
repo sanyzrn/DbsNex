@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -115,6 +116,52 @@ void main() {
     expect(timeline.landedId, isNull);
   });
 
+  testWidgets(
+      'a toast stays above a dialog opened while it is still showing',
+      (tester) async {
+    // Reported symptom: the capsule toast sometimes rendered behind other
+    // UI, e.g. behind the note-edit dialog. A SnackBar is scoped to the
+    // nearest registered Scaffold, and the timeline's own Scaffold sits
+    // *under* whatever the Navigator pushes on top of it next — so a dialog
+    // opened while the toast was still up painted right over it.
+    final note = (await services.captureText('gone in a moment'))!;
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    final timeline = tester.state<TimelineScreenState>(
+      find.byType(TimelineScreen),
+    );
+    await timeline.deleteWithUndo(note);
+    await tester.pump();
+    expect(find.text('Undo'), findsOneWidget);
+
+    unawaited(showDialog<void>(
+      context: tester.element(find.byType(TimelineScreen)),
+      builder: (ctx) => AlertDialog(
+        title: const Text('something modal'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('close'),
+          ),
+        ],
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    // Still there, still the thing that actually receives the tap — not the
+    // dialog's barrier sitting on top of it.
+    final undo = find.text('Undo');
+    expect(undo, findsOneWidget);
+    await tester.tap(undo);
+    await tester.pumpAndSettle();
+
+    expect(find.text('gone in a moment'), findsOneWidget);
+  });
+
   testWidgets('search happens on the timeline, without pushing a route',
       (tester) async {
     for (var i = 0; i < 10; i++) {
@@ -134,16 +181,10 @@ void main() {
     final field = find.byType(TextField);
     expect(field, findsOneWidget);
 
-    // The AppBar's icon, not the one inside the field: there are two now that
-    // the field is permanently on screen. The icon still earns its place —
-    // scrolled down a long list, it is what brings the field back and focuses
-    // it in one tap.
-    await tester.tap(
-      find.descendant(
-        of: find.byType(AppBar),
-        matching: find.byIcon(Icons.search),
-      ),
-    );
+    // Tapping the field itself is the only way in now — the AppBar's own
+    // search icon was removed once the field became permanently visible,
+    // since it pointed at something already on screen.
+    await tester.tap(field);
     await tester.pumpAndSettle();
 
     // Same route. Search used to be a full-screen push behind this icon, which

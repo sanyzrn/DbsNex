@@ -176,9 +176,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get haptics => 'Capture haptics';
 
   @override
-  String get quietAnniversary => 'One year ago';
-
-  @override
   String get intelligence => 'Intelligence';
 
   @override
@@ -242,10 +239,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languagePersian => 'Persian';
 
   @override
-  String get quietAnniversarySubtitle =>
-      'When you captured something on this day last year, one small line says so at the top of the timeline. Inside Nex only — never a notification.';
-
-  @override
   String get storage => 'Storage';
 
   @override
@@ -267,17 +260,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get captureFailed =>
       'Capture could not be stored. Your existing notes were not changed.';
-
-  @override
-  String oneYearAgo(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'One year ago · $count captures',
-      one: 'One year ago · 1 capture',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get noteNotFound => 'Note not found';

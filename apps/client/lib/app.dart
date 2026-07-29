@@ -159,7 +159,18 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
                   onInvoke: (_) => timelineKey.currentState?.revealSearch(),
                 ),
               },
-              child: FocusTraversalGroup(child: child!),
+              // A bare Scaffold above the Navigator, not inside it. Every
+              // screen's own Scaffold is nested under this one, and
+              // ScaffoldMessenger shows a SnackBar on only the root of a
+              // nested set — so toasts now paint above whatever the
+              // Navigator is showing, dialog or bottom sheet included,
+              // instead of being scoped to whichever page happened to be
+              // underneath when they were raised.
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                resizeToAvoidBottomInset: false,
+                body: FocusTraversalGroup(child: child!),
+              ),
             ),
           ),
         );

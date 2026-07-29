@@ -191,14 +191,6 @@ class SettingsSheet extends StatelessWidget {
                           value: preferences.haptics,
                           onChanged: preferences.setHaptics,
                         ),
-                        SwitchListTile(
-                          contentPadding: _rowPadding,
-                          secondary: const Icon(Icons.cake_outlined),
-                          title: Text(l10n.quietAnniversary),
-                          subtitle: Text(l10n.quietAnniversarySubtitle),
-                          value: preferences.quietAnniversary,
-                          onChanged: preferences.setQuietAnniversary,
-                        ),
                       ],
                     ),
                     _Section(
@@ -360,7 +352,14 @@ class _Section extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   for (var i = 0; i < children.length; i++) ...[
-                    if (i > 0)
+                    // None before the first row, and none right after a
+                    // _SubHeading — a subheading is a caption for the row
+                    // that follows it, not a control of its own, so a
+                    // divider there only separated a label from the one
+                    // thing it was labelling. That showed up as a stray
+                    // extra line under "Language", directly above the
+                    // picker it introduces.
+                    if (i > 0 && children[i - 1] is! _SubHeading)
                       // The quiet token, now that the section has no outline
                       // around it: `outline` is for a boundary you can act on,
                       // and at full strength with nothing enclosing it these
