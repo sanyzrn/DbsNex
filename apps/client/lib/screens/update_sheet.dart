@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/app_update.dart';
+import '../platform/file_opener.dart';
 import '../platform/update_service.dart';
 
 /// Check, download, install — the whole update flow in one sheet.
@@ -190,7 +190,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
       final file = await _downloader.download(
         url: url,
         into: dir,
-        filename: 'Nex-$version${Platform.isWindows ? '.exe' : '.apk'}',
+        filename: nexInstallerFilename(version),
         onProgress: (value) {
           if (mounted) setState(() => _progress = value);
         },
@@ -237,17 +237,19 @@ class _UpdateSheetState extends State<UpdateSheet> {
     final file = _downloaded;
     if (file == null) return;
     final l10n = AppLocalizations.of(context);
-    final result = await OpenFilex.open(
+    final result = await nexOpenFile(
       file.path,
-      type: Platform.isAndroid ? 'application/vnd.android.package-archive' : null,
+      mimeType: Platform.isAndroid
+          ? 'application/vnd.android.package-archive'
+          : null,
     );
-    if (result.type == ResultType.done) {
+    if (result == FileOpenOutcome.opened) {
       // The system installer has it now. Clearing the dot here is a small lie
       // if the user backs out of that prompt, but the next daily check puts it
       // straight back — and a dot that survives a successful install is worse.
       widget.service?.acknowledge();
     }
-    if (!mounted || result.type == ResultType.done) return;
+    if (!mounted || result == FileOpenOutcome.opened) return;
     setState(() {
       _phase = _Phase.failed;
       // The most common cause on Android is the "install unknown apps"

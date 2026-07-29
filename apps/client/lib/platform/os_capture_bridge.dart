@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
@@ -17,7 +19,15 @@ class OsCaptureBridge {
 
   Stream<Map<Object?, Object?>> get events => _events.stream;
 
+  /// Whether this platform has the native half of the bridge.
+  ///
+  /// Only Android registers `nex/os_capture`; the widget, the share target and
+  /// the pending-intent queue are all Android concepts. Windows has no
+  /// equivalent surface yet.
+  static bool get isSupported => !kIsWeb && Platform.isAndroid;
+
   Future<void> start() async {
+    if (!isSupported) return;
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'onOsCapture' && call.arguments is Map) {
         final payload = Map<Object?, Object?>.from(call.arguments as Map);
@@ -25,11 +35,20 @@ class OsCaptureBridge {
         _events.add(payload);
       }
     });
-    final pending = await _channel.invokeMethod<dynamic>('takePending');
-    if (pending is Map) {
-      final payload = Map<Object?, Object?>.from(pending);
-      await handle(payload);
-      _events.add(payload);
+    try {
+      final pending = await _channel.invokeMethod<dynamic>('takePending');
+      if (pending is Map) {
+        final payload = Map<Object?, Object?>.from(pending);
+        await handle(payload);
+        _events.add(payload);
+      }
+    } on MissingPluginException {
+      // Belt and braces behind [isSupported]. This call used to be
+      // unguarded, and on Windows — where nothing registers the channel — it
+      // threw straight out of `start()`, out of `NexServices.bootstrap`, and
+      // into the host's FutureBuilder. The app did not open a timeline at all
+      // on a shipped desktop target; it opened an error screen. Nothing in CI
+      // caught it, because the Windows job builds the app and never runs it.
     }
   }
 
@@ -85,8 +104,23 @@ class OsCaptureBridge {
     }
   }
 
-  /// Pick a file via the platform channel; returns path + original name + MIME.
+  /// Pick a file: the platform channel on Android, the system dialog elsewhere.
+  ///
+  /// This was channel-only, so the File capture option threw
+  /// MissingPluginException on Windows — the one capture type that had no
+  /// working path there. `file_selector` is already a dependency and has an
+  /// endorsed Windows implementation; the media picker has been using it for
+  /// images all along.
   static Future<PickedOsFile?> pickFile() async {
+    if (!isSupported) {
+      final file = await openFile();
+      if (file == null) return null;
+      return PickedOsFile(
+        path: file.path,
+        filename: file.name,
+        mimeType: file.mimeType,
+      );
+    }
     final result = await _channel.invokeMethod<dynamic>('pickFile');
     if (result == null) return null;
     if (result is String) {

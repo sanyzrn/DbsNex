@@ -4,13 +4,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform/file_opener.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/nex_services.dart';
 import '../widgets/tag_picker.dart';
@@ -193,9 +193,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       _toast(l10n.mediaUnavailable);
       return;
     }
-    final result = await OpenFilex.open(uri, type: note?.mimeType);
+    final result = await nexOpenFile(uri, mimeType: note?.mimeType);
     if (!mounted) return;
-    if (result.type != ResultType.done) _toast(l10n.cannotOpen);
+    if (result != FileOpenOutcome.opened) _toast(l10n.cannotOpen);
   }
 
   /// Shares the media itself for a file, photo or voice note, and the body for

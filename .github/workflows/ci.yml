@@ -233,8 +233,16 @@ jobs:
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
       # Plugin availability is a runtime concern: building alone hid the fact
-      # that just_audio had no Windows implementation.
-      - run: flutter test test/platform_capability_test.dart
+      # that just_audio had no Windows implementation — and later that
+      # open_filex has none at all, and that the OS-capture bridge threw
+      # MissingPluginException out of bootstrap, so the app opened an error
+      # screen rather than a timeline on a target that already ships an
+      # installer. A build cannot see any of that.
+      - run: flutter test test/platform_capability_test.dart test/windows_readiness_test.dart
+      # The whole suite, on Windows. Most of it is platform-agnostic, but the
+      # parts that touch the filesystem, path separators and the database are
+      # not, and they had only ever been run on Linux.
+      - run: flutter test
       - run: flutter build windows --debug
 
   client-ios:

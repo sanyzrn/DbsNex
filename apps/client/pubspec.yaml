@@ -38,8 +38,15 @@ dependencies:
     path: ../../packages/ui
   # Hands a note's media to the OS the way a file manager does: the default
   # handler opens it, or the system asks which app should.
+  #
+  # Android and iOS only — its pubspec declares no other platform — so every
+  # desktop open goes through url_launcher instead. See platform/file_opener.
   open_filex: ^4.7.0
   path: ^1.9.1
+  # The desktop half of "open this file with whatever handles it". Its Windows
+  # implementation is ShellExecute, which is also the right way to launch the
+  # update installer: it is what raises the UAC prompt.
+  url_launcher: ^6.3.0
   path_provider: ^2.1.5
   record: ^6.1.1
   # The platform share sheet for file, photo and voice notes.
