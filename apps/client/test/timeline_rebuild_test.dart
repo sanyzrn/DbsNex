@@ -267,6 +267,35 @@ void main() {
     );
   });
 
+  testWidgets('the empty state clears the capture button on a desktop window',
+      (tester) async {
+    // Seen on Windows. The empty state sits in a SliverFillRemaining under the
+    // search field and the filter row, and it was taller than what those left
+    // it — so it overflowed and its last line, "There is no Save button.",
+    // came to rest directly behind the button it is talking about.
+    //
+    // Measured against the real widget tree on purpose: a bare Scaffold gives
+    // the empty state the whole viewport, which is exactly the condition the
+    // bug does not occur in.
+    tester.view.physicalSize = const Size(1100, 726);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    final line = tester.getRect(find.text('There is no Save button.'));
+    final fab = tester.getRect(find.byType(FloatingActionButton));
+
+    expect(
+      line.bottom,
+      lessThanOrEqualTo(fab.top),
+      reason: 'the copy must end above the button, not behind it',
+    );
+  });
+
   testWidgets('the filter row and the cards share one edge on a wide window',
       (tester) async {
     tester.view.physicalSize = const Size(1600, 1200);
