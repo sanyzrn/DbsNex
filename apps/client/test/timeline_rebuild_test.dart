@@ -247,7 +247,7 @@ void main() {
     // The reported symptom: delete the tags, make a new one, and the filter row
     // kept showing the old set until the app was closed and reopened. The row
     // is fed by its own query, which only ever ran once — in initState.
-    await services.captureText('a note');
+    final note = (await services.captureText('a note'))!;
     await services.refreshTimeline();
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
@@ -256,9 +256,11 @@ void main() {
 
     expect(find.text('Rockets'), findsNothing);
 
-    // Created the way the tag manager and the note sheet both create one, then
-    // the refresh every mutation path already performs.
-    await services.createTag('Rockets');
+    // Created and attached the way the tag picker actually does it — a tag
+    // with nothing tagged with it does not belong in the filter row at all
+    // (see the "unused tags" test below), so this has to put it on a note to
+    // stay a test of the staleness bug rather than of that.
+    await services.addTag(noteId: note.id, name: 'Rockets');
     await services.refreshTimeline();
     await tester.pumpAndSettle();
 
@@ -266,6 +268,30 @@ void main() {
       find.text('Rockets'),
       findsWidgets,
       reason: 'the filter row has to notice, without a cold launch',
+    );
+  });
+
+  testWidgets('a tag nothing is tagged with does not clutter the filter row',
+      (tester) async {
+    // Reported symptom: a tag with no notes on it any more still took up a
+    // pill at the top, and selecting it just filtered to nothing.
+    final note = (await services.captureText('a note'))!;
+    final tag = await services.addTag(noteId: note.id, name: 'Errands');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Errands'), findsWidgets);
+
+    await services.removeTag(noteId: note.id, tagId: tag.id);
+    await services.refreshTimeline();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Errands'),
+      findsNothing,
+      reason: 'nothing uses it any more, so it has nothing to filter to',
     );
   });
 

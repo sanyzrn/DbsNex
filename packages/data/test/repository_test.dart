@@ -211,6 +211,28 @@ void main() {
       final page = repo.listTimeline();
       expect(page.map((n) => n.content).toList(), ['new', 'mid', 'old']);
     });
+
+    test('editing a note moves it back to the top of the timeline', () {
+      // Reported symptom: editing an old note left it sitting wherever it was
+      // originally created instead of surfacing where the change was made.
+      final t0 = DateTime.utc(2026, 1, 1);
+      final t1 = DateTime.utc(2026, 1, 2);
+      final t2 = DateTime.utc(2026, 1, 3);
+      final old = repo.insert(makeText('old', at: t0));
+      repo.insert(makeText('mid', at: t1));
+      repo.insert(makeText('new', at: t2));
+      expect(
+        repo.listTimeline().map((n) => n.content).toList(),
+        ['new', 'mid', 'old'],
+      );
+
+      repo.updateContent(old.id, 'old, edited just now');
+
+      expect(
+        repo.listTimeline().map((n) => n.content).toList(),
+        ['old, edited just now', 'new', 'mid'],
+      );
+    });
   });
 
   group('1.9 export round-trip', () {

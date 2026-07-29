@@ -155,10 +155,19 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// FR-4 filter chips. TagFilterRow shipped in packages/ui, complete and
   /// covered by its own test, but nothing ever imported it — the timeline had
   /// no way to filter at all.
+  ///
+  /// Built from usage counts rather than the bare tag list: a tag nothing is
+  /// tagged with anymore (its last note deleted, or created and never used)
+  /// was still showing up as a pill that filtered to an empty list.
   Future<void> _loadFilterTags() async {
-    final loaded = await widget.services.listTags();
+    final loaded = await widget.services.tagUsage();
     if (!mounted) return;
-    setState(() => filterTags = loaded);
+    setState(() {
+      filterTags = [
+        for (final usage in loaded)
+          if (usage.count > 0) usage.tag,
+      ];
+    });
   }
 
   /// Everything this screen shows, read again.

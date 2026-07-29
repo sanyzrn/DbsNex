@@ -178,7 +178,11 @@ WHERE id = ?
     return Note.fromRow(rows.first, tags: tagsForNote(id));
   }
 
-  /// Reverse-chronological timeline page (FR-2.2 / FR-2.5).
+  /// Timeline page, most recently touched first (FR-2.2 / FR-2.5).
+  ///
+  /// Ordered by `updated_at`, not `created_at`: editing a note's content,
+  /// caption or tags bumps it, and a note you just changed belongs at the
+  /// top of what you are looking at, not wherever it was originally written.
   ///
   /// When [tagId] is set, only notes with that tag are returned (Timeline
   /// filter chips / FR-4).
@@ -193,7 +197,7 @@ WHERE id = ?
             '''
 SELECT * FROM notes
 WHERE deleted_at IS NULL
-ORDER BY created_at DESC
+ORDER BY updated_at DESC
 LIMIT ? OFFSET ?
 ''',
             [limit, offset],
@@ -203,7 +207,7 @@ LIMIT ? OFFSET ?
 SELECT n.* FROM notes n
 INNER JOIN note_tags nt ON nt.note_id = n.id
 WHERE n.deleted_at IS NULL AND nt.tag_id = ?
-ORDER BY n.created_at DESC
+ORDER BY n.updated_at DESC
 LIMIT ? OFFSET ?
 ''',
             [tagId, limit, offset],
