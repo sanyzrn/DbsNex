@@ -12,6 +12,7 @@ import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/widgets/commit_receipt.dart';
+import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
 import 'package:nex_client/widgets/empty_timeline.dart';
 
@@ -160,6 +161,61 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('gone in a moment'), findsOneWidget);
+  });
+
+  testWidgets(
+      'tapping a different card while one is swiped open only closes it',
+      (tester) async {
+    // Reported symptom: swipe a card open, tap a different one, and both
+    // things happened on the same touch — the open card closed *and* the
+    // tapped card's own detail sheet opened. The first tap while anything is
+    // open now only resets it; opening a note takes a second, separate tap.
+    await services.captureText('first note');
+    await services.captureText('second note');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    final firstCard = tester.getRect(
+      find
+          .ancestor(
+            of: find.text('first note'),
+            matching: find.byType(SwipeableNoteCard),
+          )
+          .first,
+    );
+    // Inside the trailing 20% of the card's own width, per the edge-zone
+    // restriction — the only place a resting card opens from. Half the
+    // card's width clears the "open" threshold (~0.25 of it) with room to
+    // spare below the "commit and run the action" one (~0.62), whatever the
+    // card's actual width turns out to be on this surface.
+    await tester.dragFrom(
+      Offset(firstCard.right - 10, firstCard.center.dy),
+      Offset(-firstCard.width * 0.5, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsOneWidget);
+
+    await tester.tap(find.text('second note'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Delete'),
+      findsNothing,
+      reason: 'the open card is reset by the first tap',
+    );
+    expect(
+      find.byType(NoteDetailSheet),
+      findsNothing,
+      reason: 'that same tap must not also open the tapped card',
+    );
+
+    // Nothing is open now, so the same tap behaves normally.
+    await tester.tap(find.text('second note'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteDetailSheet), findsOneWidget);
   });
 
   testWidgets('search happens on the timeline, without pushing a route',

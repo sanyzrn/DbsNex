@@ -715,13 +715,29 @@ class TimelineScreenState extends State<TimelineScreen> {
               child: NoteCard(
                 note: note,
                 strings: nexCardStrings(context),
-                onTap: () => unawaited(_openNote(note)),
+                onTap: () => _tapNote(note),
               ),
             ),
           );
         },
       ),
     ];
+  }
+
+  /// A tap on a card, which means two different things depending on what the
+  /// list already looked like.
+  ///
+  /// With a card swiped open, a tap anywhere — on the open card itself, or on
+  /// any other one — used to both close it *and* open whatever was tapped,
+  /// since the outer tap-to-close and the card's own tap handler both fired
+  /// off the same touch. The first tap while something is open now only
+  /// closes it; opening a note takes its own, second tap.
+  void _tapNote(Note note) {
+    if (_swipe.openCard != null) {
+      _swipe.closeAll();
+      return;
+    }
+    unawaited(_openNote(note));
   }
 
   Future<void> _openNote(Note note) async {
