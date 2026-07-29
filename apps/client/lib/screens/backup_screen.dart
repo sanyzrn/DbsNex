@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform/sharing.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../restart_scope.dart';
@@ -82,14 +82,13 @@ class _BackupScreenState extends State<BackupScreen> {
         try {
           final path = await widget.services.exportNow();
           if (!mounted) return;
-          // Handing it to the share sheet is the whole point: a zip sitting in
-          // the app's cache directory is not a backup a person can keep.
-          await SharePlus.instance.share(
-            ShareParams(
-              files: [XFile(path)],
-              fileNameOverrides: [path.split(Platform.pathSeparator).last],
-            ),
-          );
+          // Getting it out of the app is the whole point: a zip sitting in the
+          // app's own directory is not a backup a person can keep. On a phone
+          // that means the share sheet; on Windows, which has no share sheet
+          // worth the name, it means asking where to put it.
+          final outcome = await nexSendFileOut(path, mimeType: 'application/zip');
+          if (!mounted) return;
+          if (outcome == SendOutcome.saved) _say(l10n.exportedTo(path));
         } catch (_) {
           _say(l10n.operationFailed);
         }

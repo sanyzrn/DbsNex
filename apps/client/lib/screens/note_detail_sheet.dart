@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/file_opener.dart';
+import '../platform/sharing.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/nex_services.dart';
 import '../widgets/tag_picker.dart';
@@ -790,11 +791,15 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         label: l10n.open,
                         onPressed: _openExternally,
                       ),
-                    _DetailAction(
-                      icon: Icons.ios_share,
-                      label: l10n.share,
-                      onPressed: _share,
-                    ),
+                    // Absent on Windows rather than present and broken: the
+                    // platform has no share sheet this app can use, and an
+                    // action that does nothing teaches the wrong lesson.
+                    if (nexCanShare)
+                      _DetailAction(
+                        icon: Icons.ios_share,
+                        label: l10n.share,
+                        onPressed: _share,
+                      ),
                     _DetailAction(
                       icon: Icons.copy_outlined,
                       label: l10n.copy,
