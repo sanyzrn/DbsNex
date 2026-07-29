@@ -260,6 +260,12 @@ abstract class AppLocalizations {
   /// **'There is no Save button.'**
   String get emptyNoSave;
 
+  /// No description provided for @emptyAi.
+  ///
+  /// In en, this message translates to:
+  /// **'It can also read what you capture — voice becomes text, photos give up their words, tags get suggested. A provider in Settings adds summaries and search.'**
+  String get emptyAi;
+
   /// No description provided for @delete.
   ///
   /// In en, this message translates to:
@@ -655,6 +661,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Replace the local database with the newest verified backup?'**
   String get restoreBody;
+
+  /// No description provided for @deleteBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete backup'**
+  String get deleteBackup;
+
+  /// No description provided for @deleteBackupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This local backup file will be deleted. It cannot be undone.'**
+  String get deleteBackupBody;
 
   /// No description provided for @backupCount.
   ///

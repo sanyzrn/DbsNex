@@ -103,6 +103,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get emptyNoSave => 'دکمهٔ ذخیره‌ای در کار نیست.';
 
   @override
+  String get emptyAi =>
+      'آنچه ثبت می‌کنید را هم می‌خواند؛ صدا را متن می‌کند، از عکس‌ها متن درمی‌آورد و برچسب پیشنهاد می‌دهد. با فعال‌کردن یک سرویس در تنظیمات، خلاصه‌سازی و جست‌وجو هم اضافه می‌شود.';
+
+  @override
   String get delete => 'حذف';
 
   @override
@@ -324,6 +328,13 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get restoreBody =>
       'پایگاه دادهٔ روی دستگاه با تازه‌ترین پشتیبانِ سالم جایگزین شود؟';
+
+  @override
+  String get deleteBackup => 'حذف پشتیبان';
+
+  @override
+  String get deleteBackupBody =>
+      'این فایل پشتیبان روی دستگاه حذف می‌شود و برگشت‌پذیر نیست.';
 
   @override
   String backupCount(int count) {

@@ -110,6 +110,30 @@ class _BackupScreenState extends State<BackupScreen> {
         }
       });
 
+  Future<void> _deleteBackup(File backup) async {
+    final l10n = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deleteBackup),
+        content: NexDialogBody(child: Text(l10n.deleteBackupBody)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await widget.services.deleteBackup(backup);
+    await _load();
+  }
+
   Future<void> _restore(File backup) async {
     final l10n = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
@@ -209,9 +233,21 @@ class _BackupScreenState extends State<BackupScreen> {
                 // is also the most likely to contain a mistake just made.
                 title: Text(_stamp(backup)),
                 subtitle: Text(nexFormatBytes(backup.lengthSync())),
-                trailing: TextButton(
-                  onPressed: _busy ? null : () => unawaited(_restore(backup)),
-                  child: Text(l10n.restore),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: l10n.deleteBackup,
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed:
+                          _busy ? null : () => unawaited(_deleteBackup(backup)),
+                    ),
+                    TextButton(
+                      onPressed:
+                          _busy ? null : () => unawaited(_restore(backup)),
+                      child: Text(l10n.restore),
+                    ),
+                  ],
                 ),
               ),
         ],

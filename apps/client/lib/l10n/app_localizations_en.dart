@@ -103,6 +103,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emptyNoSave => 'There is no Save button.';
 
   @override
+  String get emptyAi =>
+      'It can also read what you capture — voice becomes text, photos give up their words, tags get suggested. A provider in Settings adds summaries and search.';
+
+  @override
   String get delete => 'Delete';
 
   @override
@@ -324,6 +328,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get restoreBody =>
       'Replace the local database with the newest verified backup?';
+
+  @override
+  String get deleteBackup => 'Delete backup';
+
+  @override
+  String get deleteBackupBody =>
+      'This local backup file will be deleted. It cannot be undone.';
 
   @override
   String backupCount(int count) {

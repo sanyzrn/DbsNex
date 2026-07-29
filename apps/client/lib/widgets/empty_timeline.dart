@@ -37,6 +37,14 @@ class EmptyTimeline extends StatelessWidget {
               _Ghost(Icons.photo_camera_outlined, l10n.emptyPhotograph),
               const SizedBox(height: 16),
               Text(l10n.emptyNoSave, style: theme.textTheme.bodySmall),
+              const SizedBox(height: 4),
+              Text(
+                l10n.emptyAi,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ),

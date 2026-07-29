@@ -48,6 +48,7 @@
   "emptySpeak": "speak",
   "emptyPhotograph": "photograph",
   "emptyNoSave": "There is no Save button.",
+  "emptyAi": "It can also read what you capture — voice becomes text, photos give up their words, tags get suggested. A provider in Settings adds summaries and search.",
   "delete": "Delete",
   "addTag": "Add tag",
   "noteDeleted": "Note deleted",
@@ -149,6 +150,8 @@
   },
   "restoreBackup": "Restore backup",
   "restoreBody": "Replace the local database with the newest verified backup?",
+  "deleteBackup": "Delete backup",
+  "deleteBackupBody": "This local backup file will be deleted. It cannot be undone.",
   "backupCount": "{count, plural, =0{No backups} =1{1 backup} other{{count} backups}}",
   "@backupCount": {
     "placeholders": {

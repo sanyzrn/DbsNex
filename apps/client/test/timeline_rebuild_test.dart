@@ -417,6 +417,19 @@ void main() {
       lessThanOrEqualTo(fab.top),
       reason: 'the copy must end above the button, not behind it',
     );
+
+    // The AI paragraph sits below that line now. It is the one genuinely at
+    // risk of running past the viewport on a short window, but that is a
+    // reason for it to scroll — which SingleChildScrollView already does,
+    // inside the space this Padding protects — not a reason to fail here.
+    expect(
+      find.text(
+        'It can also read what you capture — voice becomes text, photos '
+        'give up their words, tags get suggested. A provider in Settings '
+        'adds summaries and search.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the filter row and the cards share one edge on a wide window',
