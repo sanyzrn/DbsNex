@@ -1,50 +1,57 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Every colour in Nex, drawn from one warm neutral ramp plus one accent.
+/// Every colour in Nex: one neutral ramp per theme, plus one accent.
 ///
-/// Two rules the previous set broke:
+/// The ramp is chosen; the floors are not. Two rules hold whatever the greys
+/// are, and `scaffold_test.dart` is what holds them:
 ///
-/// * **A card's fill is not the page's fill.** They were both `#FFFFFF`, which
-///   left a 1px `#EBEAE8` hairline — 1.20:1 — as the only thing separating a
-///   note from the page behind it. That is below the point at which many people
-///   can resolve a boundary at all, and the card is the tap target for opening
-///   a note. Now the page is a tone down from the card, the border clears 3:1,
-///   and a shadow sits under it: three signals where there was one.
+/// * **A card's fill is not the page's fill.** They were both `#FFFFFF` once,
+///   which left a 1.20:1 hairline as the only thing separating a note from the
+///   page behind it — below the point many people can resolve a boundary at
+///   all, on the app's main tap target. The page is a tone off the card now,
+///   the border clears 3:1, and a shadow sits under it: three signals where
+///   there was one.
 /// * **A boundary and a divider are not the same token.** `border` marks
 ///   something you can act on and is held to 3:1; `borderSoft` is decoration
 ///   between rows and is deliberately quiet. One token was doing both jobs, so
 ///   both were wrong.
+///
+/// Three values here are one to seven steps off what was picked by eye, and
+/// the arithmetic is the reason: `#969595` came to 2.99 against white and
+/// `#2B2B2B` to 1.18 against the dark card. Nobody can see the difference
+/// between 2.99 and 3.03 — which is exactly why the floor has to be checked
+/// rather than judged.
 abstract final class NexColors {
   /* ------------------------------------------------------------- light */
 
   /// The page behind the cards.
-  static const bgPrimaryLight = Color(0xFFF4F2EE);
+  static const bgPrimaryLight = Color(0xFFF5F6F6);
 
   /// A card, a sheet, a dialog: paper on the desk.
   static const bgCardLight = Color(0xFFFFFFFF);
 
   /// Filled containers inside a card — the note type disc, chips at rest.
-  static const bgElevatedLight = Color(0xFFE1DDD6);
+  static const bgElevatedLight = Color(0xFFE0E0E0);
 
-  static const textPrimaryLight = Color(0xFF1A1712);
-  static const textSecondaryLight = Color(0xFF5F594F);
+  static const textPrimaryLight = Color(0xFF262626);
+  static const textSecondaryLight = Color(0xFF5C5C5C);
 
   /// Boundaries you can act on. Held to 3:1 against the card.
-  static const borderLight = Color(0xFF989288);
+  static const borderLight = Color(0xFF959494);
 
   /// Dividers between rows of one surface. Never carries a boundary alone.
-  static const borderSoftLight = Color(0xFFE3DFD8);
+  static const borderSoftLight = Color(0xFFF5F6F6);
 
   /* -------------------------------------------------------------- dark */
 
-  static const bgPrimaryDark = Color(0xFF0B0A09);
-  static const bgCardDark = Color(0xFF1A1815);
-  static const bgElevatedDark = Color(0xFF34312B);
-  static const textPrimaryDark = Color(0xFFF7F4EF);
-  static const textSecondaryDark = Color(0xFFA9A296);
-  static const borderDark = Color(0xFF6E6860);
-  static const borderSoftDark = Color(0xFF2C2924);
+  static const bgPrimaryDark = Color(0xFF141414);
+  static const bgCardDark = Color(0xFF1E1E1E);
+  static const bgElevatedDark = Color(0xFF323232);
+  static const textPrimaryDark = Color(0xFFF2F2F3);
+  static const textSecondaryDark = Color(0xFFABABAB);
+  static const borderDark = Color(0xFF686965);
+  static const borderSoftDark = Color(0xFF000000);
 
   /* ------------------------------------------------------ comfort light */
 
