@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
@@ -8,7 +7,6 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
-
 import '../l10n/app_localizations.dart';
 import '../platform/file_opener.dart';
 import '../platform/sharing.dart';
@@ -17,11 +15,6 @@ import '../platform/nex_services.dart';
 import '../widgets/tag_picker.dart';
 import '../utils/nex_bidi.dart';
 
-/// What the sheet reports back when it closes.
-///
-/// The timeline already switched on this to offer undo after a delete, but the
-/// type was never declared and the sheet popped without a value, so the undo
-/// path was unreachable.
 enum DetailResult { deleted }
 
 class NoteDetailSheet extends StatefulWidget {
@@ -31,11 +24,9 @@ class NoteDetailSheet extends StatefulWidget {
     required this.noteId,
     this.focusAddTag = false,
   });
-
   final NexServices services;
   final String noteId;
   final bool focusAddTag;
-
   @override
   State<NoteDetailSheet> createState() => _NoteDetailSheetState();
 }
@@ -43,13 +34,7 @@ class NoteDetailSheet extends StatefulWidget {
 class _NoteDetailSheetState extends State<NoteDetailSheet> {
   Note? _note;
   List<TagSuggestion> _suggestions = const [];
-  List<SemanticHit> _related = const [];
-
-  /// Whether the user has asked to see what the intelligence layer produced.
-  ///
-  /// The layer works on its own, in the background — that is the point of it —
-  /// but a note is the user's writing, and a machine's reading of it does not
-  /// get to sit on top of that uninvited.
+  List<SearchHit> _related = const [];
   bool _showAi = false;
   bool _loadingAi = false;
   Map<String, String> _relatedTitles = const {};
@@ -66,10 +51,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     if (widget.focusAddTag) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _addTag());
     }
-    // Deliberately not loading the intelligence layer's output here. It does
-    // its work on its own, in the background; showing it is the user's call,
-    // and opening a note should not fire two network requests nobody asked
-    // for. See [_revealAi].
   }
 
   @override
@@ -110,7 +91,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     }
   }
 
-  /// Opens the intelligence panel, fetching what it needs the first time.
   Future<void> _revealAi() async {
     setState(() {
       _showAi = true;
@@ -123,8 +103,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   Future<void> _loadAi() async {
     final suggestions = await widget.services.suggestTags(widget.noteId);
     final related = await widget.services.relatedNotes(widget.noteId);
-    // Resolve the related notes' titles here rather than in build: build runs
-    // every frame and each lookup crosses the isolate boundary.
     final titles = <String, String>{};
     for (final hit in related) {
       final note = await widget.services.getById(hit.noteId);
@@ -139,8 +117,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     });
   }
 
-  /// The text a note can hand to the clipboard: its body, or whatever the
-  /// intelligence layer derived from its media.
   String? _copyableText(Note note) {
     for (final candidate in [
       note.content,
@@ -184,8 +160,15 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     _toast(l10n.copied);
   }
 
-  /// Hands the note's media to the OS, exactly as a file manager would: the
-  /// default handler opens it, or the system asks which app should.
+  /// Item 6 helper: copies an arbitrary block of derived text to the
+  /// clipboard, separate from the whole-note _copyText path.
+  Future<void> _copyBlock(String text) async {
+    final l10n = AppLocalizations.of(context);
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    _toast(l10n.copied);
+  }
+
   Future<void> _openExternally() async {
     final note = _note;
     final uri = note?.mediaUri;
@@ -200,9 +183,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     if (result != FileOpenOutcome.opened) _toast(l10n.cannotOpen);
   }
 
-  /// Shares the media itself for a file, photo or voice note, and the body for
-  /// a text note — sharing a text note as a zero-byte attachment would be
-  /// useless to whatever receives it.
   Future<void> _share() async {
     final note = _note;
     if (note == null) return;
@@ -225,9 +205,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     await SharePlus.instance.share(ShareParams(text: text));
   }
 
-  /// Editing a text note in place. `updateNote` existed on every layer down to
-  /// the repository, but no screen ever called it — a captured note could not
-  /// be corrected after the fact.
   Future<void> _editContent() async {
     final note = _note;
     if (note == null || note.type != NoteType.text) return;
@@ -238,21 +215,29 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       builder: (ctx) => AlertDialog(
         title: Text(l10n.editNote),
         content: NexDialogBody(
-          // Persian content in an English-locale app used to render
-          // left-aligned: the field followed the ambient (LTR) Directionality
-          // rather than the script actually typed into it. Re-evaluated on
-          // every keystroke, the same way the capture box already does.
           child: StatefulBuilder(
-            builder: (context, setDialogState) => TextField(
-              controller: controller,
-              autofocus: true,
-              maxLines: null,
-              minLines: 3,
-              keyboardType: TextInputType.multiline,
-              textDirection: nexTextDirection(controller.text),
-              textAlign: nexTextAlign(controller.text),
-              onChanged: (_) => setDialogState(() {}),
-            ),
+            builder: (context, setDialogState) {
+              // Item 2 fix: wrap the field in a Directionality that matches
+              // the paragraph's own direction. Setting textDirection on the
+              // TextField alone leaves the ambient Directionality unchanged,
+              // which is what causes double-tap in Persian text on an
+              // English-locale build to visually highlight to the end of
+              // the line even though the copied selection is just the word.
+              final direction = nexTextDirection(controller.text);
+              return Directionality(
+                textDirection: direction,
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  maxLines: null,
+                  minLines: 3,
+                  keyboardType: TextInputType.multiline,
+                  textDirection: direction,
+                  textAlign: nexTextAlign(controller.text),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+              );
+            },
           ),
         ),
         actions: [
@@ -329,11 +314,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         '${two(local.hour)}:${two(local.minute)}';
   }
 
-  /// Tagging a note.
-  ///
-  /// The dialog used to offer five hardcoded starter names and a colour grid,
-  /// and no way to reach the tags the user had actually made — so the one list
-  /// it needed to show was the one list it did not have.
   Future<void> _addTag() async {
     final note = _note;
     final all = await widget.services.listTags();
@@ -341,7 +321,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final choice = await TagPickerSheet.show(
       context,
       tags: all,
-      alreadyOn: note?.tags.map((t) => t.id).toSet() ?? const {},
+      alreadyOn: note?.tags.map((t) => t.id).toSet() ?? const <String>{},
     );
     if (choice == null || !mounted) return;
     await widget.services.addTag(
@@ -364,15 +344,22 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         title: Text(l10n.caption),
         content: NexDialogBody(
           child: StatefulBuilder(
-            builder: (context, setDialogState) => TextField(
-              controller: controller,
-              autofocus: true,
-              maxLines: 3,
-              textDirection: nexTextDirection(controller.text),
-              textAlign: nexTextAlign(controller.text),
-              decoration: InputDecoration(hintText: l10n.captionHint),
-              onChanged: (_) => setDialogState(() {}),
-            ),
+            builder: (context, setDialogState) {
+              // Item 2 fix: same Directionality wrap as _editContent.
+              final direction = nexTextDirection(controller.text);
+              return Directionality(
+                textDirection: direction,
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  maxLines: 3,
+                  textDirection: direction,
+                  textAlign: nexTextAlign(controller.text),
+                  decoration: InputDecoration(hintText: l10n.captionHint),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+              );
+            },
           ),
         ),
         actions: [
@@ -394,13 +381,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     await _reload();
   }
 
-  /// Everything the intelligence layer produced about this note, behind a tap.
-  ///
-  /// The layer runs on its own — a recording is transcribed and a long note is
-  /// summarised in the background, without being asked — but its output does
-  /// not open on top of the user's own writing. One quiet row says what is
-  /// there; the tap is what puts it on screen. That also means opening a note
-  /// no longer fires two network calls nobody requested.
   Widget _aiPanel(Note note, AppLocalizations l10n) {
     final theme = Theme.of(context);
     final derived = <(String, String)>[
@@ -411,12 +391,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       if (_summaryIsMeaningful(note))
         (l10n.summary, note.summaryText!.trim()),
     ];
-    // With nothing derived and no provider behind it, the row would promise
-    // something the app cannot deliver.
     if (derived.isEmpty && !widget.services.aiIsUsable) {
       return const SizedBox.shrink();
     }
-
     if (!_showAi) {
       return Align(
         alignment: AlignmentDirectional.centerStart,
@@ -426,12 +403,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
           label: Text(
             derived.isEmpty
                 ? l10n.aiShow
-                : l10n.aiReady(derived.map((d) => d.$1).join(' · ')),
+                : l10n.aiReady(derived.map((d) => d.\$1).join(' · ')),
           ),
         ),
       );
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -447,8 +423,27 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
             ),
           ],
         ),
+        // Item 6: each derived block gets an inline copy affordance to the
+        // right of its label so the transcript/OCR/summary can be copied on
+        // its own.
         for (final (label, body) in derived) ...[
-          Text(label, style: theme.textTheme.bodySmall),
+          Row(
+            children: [
+              Expanded(child: Text(label, style: theme.textTheme.bodySmall)),
+              IconButton(
+                tooltip: l10n.copy,
+                iconSize: 16,
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 28,
+                  height: 28,
+                ),
+                icon: const Icon(Icons.copy_outlined),
+                onPressed: () => unawaited(_copyBlock(body)),
+              ),
+            ],
+          ),
           NexBodyText(body),
           const SizedBox(height: NexSpacing.sm),
         ],
@@ -471,8 +466,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       name: s.name,
                     );
                     setState(() {
-                      _suggestions =
-                          _suggestions.where((x) => x.name != s.name).toList();
+                      _suggestions = _suggestions
+                          .where((x) => x.name != s.name)
+                          .toList();
                     });
                     _reload();
                   },
@@ -533,12 +529,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final isText = note.type == NoteType.text;
     final hasMedia = note.mediaUri != null;
     final screenHeight = MediaQuery.sizeOf(context).height;
-    // A long note is the reason this sheet exists, so it opens at reading
-    // height instead of a strip at the bottom the user has to drag upward.
-    // Short notes still hug their content — a two-line thought does not need
-    // two thirds of the screen.
-    final long =
-        (note.content ?? note.transcriptText ?? note.ocrText ?? '')
+    final long = (note.content ?? note.transcriptText ?? note.ocrText ?? '')
             .trim()
             .length >
         220;
@@ -562,13 +553,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // The type and when it was captured, on one line.
-                  //
-                  // The date used to be on the timeline card and the time was
-                  // nowhere except behind the Details button — so the card
-                  // carried the half nobody needed at a glance and hid the
-                  // half you go looking for. It is the other way round now:
-                  // the card is clean, and this is where you find out when.
                   Row(
                     children: [
                       Text(
@@ -584,13 +568,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                   ),
                   const SizedBox(height: NexSpacing.sm),
                   if (note.type == NoteType.text)
-                    // Only the body turns. The "Text" label, the action row and the
-                    // rest of the sheet keep the interface's direction.
                     NexBodyText(
                       note.content ?? '',
-                      // Looser leading than the timeline card: this is the surface a
-                      // person actually reads a long note on, and 1.5 at 16px runs
-                      // the lines together over a screenful of text.
                       style: Theme.of(
                         context,
                       ).textTheme.bodyLarge?.copyWith(height: 1.62),
@@ -648,9 +627,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                   ] else ...[
-                    // File — same sheet, ADR-008 display fields. Tapping the row
-                    // hands it to the OS, so the note behaves like the same file
-                    // does in a file manager.
                     InkWell(
                       onTap: _openExternally,
                       borderRadius: BorderRadius.circular(NexColors.cardRadius),
@@ -674,8 +650,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                                     note.content?.trim().isNotEmpty == true
                                         ? note.content!
                                         : (note.mediaUri != null
-                                              ? p.basename(note.mediaUri!)
-                                              : l10n.file),
+                                            ? p.basename(note.mediaUri!)
+                                            : l10n.file),
                                     style: Theme.of(
                                       context,
                                     ).textTheme.bodyLarge,
@@ -706,13 +682,16 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             IconButton(
                               tooltip: l10n.revealInFolder,
                               onPressed: _copyPath,
-                              icon: const Icon(Icons.folder_outlined, size: 18),
-                              color: Theme.of(context).colorScheme.secondary,
+                              icon: const Icon(Icons.folder_outlined,
+                                  size: 18),
+                              color:
+                                  Theme.of(context).colorScheme.secondary,
                             ),
                             Icon(
                               Icons.open_in_new,
                               size: 18,
-                              color: Theme.of(context).colorScheme.secondary,
+                              color:
+                                  Theme.of(context).colorScheme.secondary,
                             ),
                           ],
                         ),
@@ -726,7 +705,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: NexSpacing.xs),
-                    if (note.caption != null && note.caption!.trim().isNotEmpty)
+                    if (note.caption != null &&
+                        note.caption!.trim().isNotEmpty)
                       NexBodyText(
                         note.caption!,
                         style: Theme.of(context).textTheme.bodyLarge,
@@ -735,8 +715,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       Text(
                         l10n.noCaption,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
                       ),
                     Align(
                       alignment: AlignmentDirectional.centerStart,
@@ -777,27 +757,22 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               ),
             ),
           ),
-          // The actions are pinned below the scroll rather than sitting at the
-          // end of it: a long note would otherwise bury them under a screenful
-          // of text, and they belong to the note, not to its ending.
-          //
-          // They sit in the open, as labelled icons. They were behind a single
-          // overflow button in the corner, which is the hardest place on a
-          // phone to reach and told you nothing about what was inside. Delete
-          // keeps its own row: it is the one action that cannot be undone by
-          // repeating it, and the timeline owns the actual soft-delete so the
-          // undo toast is offered exactly once.
           Divider(height: 1, color: Theme.of(context).colorScheme.outline),
           Padding(
             padding: EdgeInsets.only(
               left: NexSpacing.md,
               right: NexSpacing.md,
               top: NexSpacing.sm,
-              bottom: MediaQuery.viewInsetsOf(context).bottom + NexSpacing.md,
+              bottom:
+                  MediaQuery.viewInsetsOf(context).bottom + NexSpacing.md,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Item 5: icon-only action row, sized so all five (four when
+                // there's no media) fit in one row on any phone width. No
+                // horizontal scroll, no text labels — accessibility labels
+                // remain on the IconButton tooltips.
                 _ActionRow(
                   actions: [
                     if (hasMedia)
@@ -806,9 +781,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         label: l10n.open,
                         onPressed: _openExternally,
                       ),
-                    // Absent on Windows rather than present and broken: the
-                    // platform has no share sheet this app can use, and an
-                    // action that does nothing teaches the wrong lesson.
                     if (nexCanShare)
                       _DetailAction(
                         icon: Icons.ios_share,
@@ -837,24 +809,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       label: l10n.tag,
                       onPressed: _addTag,
                     ),
-                    _DetailAction(
-                      icon: Icons.auto_awesome_outlined,
-                      label: l10n.summarize,
-                      onPressed: () async {
-                        await widget.services.summarizeOnDemand(note.id);
-                        await _reload();
-                      },
-                    ),
-                    _DetailAction(
-                      icon: Icons.info_outline,
-                      label: l10n.details,
-                      onPressed: _showDetails,
-                    ),
                   ],
                 ),
                 const SizedBox(height: NexSpacing.sm),
                 TextButton.icon(
-                  onPressed: () => Navigator.pop(context, DetailResult.deleted),
+                  onPressed: () =>
+                      Navigator.pop(context, DetailResult.deleted),
                   icon: const Icon(Icons.delete_outline),
                   label: Text(l10n.delete),
                   style: TextButton.styleFrom(
@@ -872,10 +832,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
 class _DetailRow extends StatelessWidget {
   const _DetailRow({required this.label, required this.value});
-
   final String label;
   final String value;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -907,20 +865,19 @@ class _VoicePlayerControls extends StatelessWidget {
     required this.position,
     required this.duration,
   });
-
   final AudioPlayer player;
   final Duration position;
   final Duration duration;
-
   String _fmt(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
+    return '\$m:\$s';
   }
 
   @override
   Widget build(BuildContext context) {
-    final totalMs = duration.inMilliseconds == 0 ? 1 : duration.inMilliseconds;
+    final totalMs =
+        duration.inMilliseconds == 0 ? 1 : duration.inMilliseconds;
     return Column(
       children: [
         Row(
@@ -960,11 +917,15 @@ class _VoicePlayerControls extends StatelessWidget {
   }
 }
 
+/// Item 11: full-screen photo view with swipe-down-to-dismiss.
+///
+/// Wrapped in a Dismissible so a downward drag anywhere over the image pops
+/// the route. InteractiveViewer stays inside for pinch-zoom on the image
+/// itself; the drag-to-dismiss lives on the outer container so it doesn't
+/// fight pinch gestures.
 class _FullScreenPhoto extends StatelessWidget {
   const _FullScreenPhoto({required this.path});
-
   final String path;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -973,30 +934,31 @@ class _FullScreenPhoto extends StatelessWidget {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
-      body: Center(
-        child: InteractiveViewer(
-          child: Image.file(File(path), fit: BoxFit.contain),
+      body: Dismissible(
+        key: const ValueKey('full-screen-photo'),
+        direction: DismissDirection.down,
+        onDismissed: (_) => Navigator.of(context).maybePop(),
+        child: Center(
+          child: InteractiveViewer(
+            child: Image.file(File(path), fit: BoxFit.contain),
+          ),
         ),
       ),
     );
   }
 }
 
-/// A horizontally scrolling strip of labelled icon actions.
-///
-/// Scrolling rather than wrapping: the number of actions depends on the note's
-/// type, and a strip that silently grows a second row shifts everything below
-/// it as you move between notes.
 class _ActionRow extends StatelessWidget {
   const _ActionRow({required this.actions});
-
   final List<Widget> actions;
-
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    child: Row(children: actions),
-  );
+  Widget build(BuildContext context) {
+    // Item 5: distribute icon buttons evenly across the row; no scrolling.
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: actions,
+    );
+  }
 }
 
 class _DetailAction extends StatelessWidget {
@@ -1005,42 +967,23 @@ class _DetailAction extends StatelessWidget {
     required this.label,
     required this.onPressed,
   });
-
   final IconData icon;
   final String label;
   final VoidCallback onPressed;
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(NexColors.cardRadius),
-        child: Container(
-          width: 76,
-          padding: const EdgeInsets.symmetric(vertical: NexSpacing.contentGap),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(NexColors.cardRadius),
-            border: Border.all(color: theme.colorScheme.outline),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 20),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
+    // Item 5: icon-only, tightly sized, with a tooltip + Semantics label so
+    // screen readers and long-press hints still name each action.
+    return Semantics(
+      label: label,
+      button: true,
+      child: IconButton(
+        tooltip: label,
+        onPressed: onPressed,
+        icon: Icon(icon, size: 22),
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints.tightFor(width: 44, height: 44),
       ),
     );
   }
