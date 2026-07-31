@@ -60,7 +60,7 @@ flowchart LR
 
 | Layer | Responsibility | Notes |
 |---|---|---|
-| **UI Layer** | Renders Timeline, Capture flow, Search, Note Detail. No persistence or business logic. | Shared across platforms via a common component package — see [`03-readme.md`](./03-readme.md#tech-stack). |
+| **UI Layer** | Renders Timeline, Capture flow, Search, Note Detail. No persistence or business logic. | Shared across platforms via `packages/ui`. |
 | **Core Domain Layer** | Capture orchestration, tag management, search query composition, sync orchestration (what to sync, when, conflict policy). | Platform-agnostic; pure business logic, fully unit-testable without a UI or database. |
 | **Data Layer** | Local persistent storage (SQLite), repository interfaces, the sync client. | Owns the schema described in [`02-product-specification.md`](./02-product-specification.md#data-model). |
 | **Backend (minimal)** | Small REST/JSON API plus PostgreSQL, providing durable multi-device storage and conflict-aware replication. | Present from v1 as infrastructure, not exercised until v2 sync ships. |

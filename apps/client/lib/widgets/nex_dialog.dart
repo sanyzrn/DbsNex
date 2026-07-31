@@ -25,6 +25,37 @@ class NexDialogBody extends StatelessWidget {
   }
 }
 
+/// Opens a bottom sheet the way every bottom sheet in Nex opens.
+///
+/// The nine call sites had drifted into nine different presentations: some
+/// declared `useSafeArea`, some wrapped a `SafeArea` by hand inside the
+/// builder, and the tag merge sheet did neither — so on a device with gesture
+/// navigation its last row sat under the system bar. `showDragHandle` was set
+/// on most but not all, which meant the affordance telling you a sheet can be
+/// dragged away appeared on some sheets and not others, with no rule behind
+/// which.
+///
+/// `isScrollControlled` is on for all of them. It does not force a tall sheet —
+/// content that sizes itself still does — it only lifts the half-screen cap
+/// that would otherwise clip a long list instead of scrolling it.
+///
+/// [dismissible] is the one real axis of difference: the recording sheet must
+/// not be swiped away mid-recording, and a sheet that cannot be dragged away
+/// must not advertise a drag handle.
+Future<T?> nexShowSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool dismissible = true,
+}) => showModalBottomSheet<T>(
+  context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  isDismissible: dismissible,
+  enableDrag: dismissible,
+  showDragHandle: dismissible,
+  builder: builder,
+);
+
 /// A bottom sheet body that always fills the sheet's width.
 class NexSheetBody extends StatelessWidget {
   const NexSheetBody({super.key, required this.child, this.padding});
@@ -34,10 +65,10 @@ class NexSheetBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: double.infinity,
-        child: Padding(
-          padding: padding ?? const EdgeInsets.all(NexSpacing.lg),
-          child: child,
-        ),
-      );
+    width: double.infinity,
+    child: Padding(
+      padding: padding ?? const EdgeInsets.all(NexSpacing.lg),
+      child: child,
+    ),
+  );
 }

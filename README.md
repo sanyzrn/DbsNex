@@ -2,72 +2,169 @@
 
 > **Capture in Seconds. Find in Seconds.**
 
-Nex is a local-first, minimal capture tool — the inbox for your mind. Instead of asking you to choose a folder, a template, or hit "Save," Nex gets out of your way: tap, capture, done. Organize later, if you ever need to.
+Nex is a local-first, minimal capture tool — the inbox for your mind. Instead of asking you
+to choose a folder, a template, or hit "Save," Nex gets out of your way: tap, capture, done.
+Organize later, if you ever need to.
 
-> Nex is not a knowledge base, not a project manager, not another Notion or Obsidian. It's the fastest possible front door into whatever system you use to think.
+> Nex is not a knowledge base, not a project manager, not another Notion or Obsidian. It's
+> the fastest possible front door into whatever system you use to think.
+
+Android and Windows from one Flutter codebase; iOS later. English and Persian, with full
+right-to-left layout.
 
 ---
 
-## What's here
+## What works today
 
-| Feature (v1) | |
-|---|---|
-| ⚡ One-tap capture | text, voice, or photo — zero mandatory fields |
-| 💾 No Save button | every capture persists automatically |
-| 🕒 Unified timeline | reverse-chronological, no default folders |
-| 🔍 Fast search | text, tag, date, and content-type filters |
-| 📡 Offline-first | every core flow works with zero network connection |
-| 📤 Export + 🛟 backup | your data is never locked in or unprotected, from day one |
+**Capture** — text, voice, photo and arbitrary files. No Save button anywhere: every
+capture is committed the moment it exists. Photos go through a crop step on the way in.
+Files shared to Nex from another app land the same way as ones picked inside it.
 
-Real cross-device sync (Android ⇄ Windows ⇄ iOS) lands in v2; speech-to-text, OCR, and semantic search land in v3. Full roadmap in the docs.
+**Timeline** — one reverse-chronological stream, no folders. Cards are a fixed height, so
+the list stays even. Swipe an edge for delete or add-tag; hold and drag to reorder; one
+note at a time can be pinned to the top.
+
+**Find** — SQLite FTS5 full-text search, plus tag, date and content-type filters. A search
+that matches nothing offers the nearest thing you actually wrote rather than an empty box.
+
+**Organize later** — tags with free-form colours, a tag manager that renames, merges and
+deletes, and a trash that holds deleted notes for 30 days.
+
+**Your data stays yours** — export and import a full archive, automatic throttled local
+backups you can prune by hand, and a storage breakdown that tells you what is using space.
+
+**Intelligence, optional and off by default** — transcription, OCR, summarization, tag
+suggestions, semantic search and related notes, each behind its own switch, against a
+provider you configure and can test. It is the only part of Nex that can send a note off
+the device, and it says so before it is switched on. See [`docs/09-ai.md`](./docs/09-ai.md).
+
+**Comfort** — light, dark and system themes, an independent Comfort Mode that warms and
+softens either one for night capture, reduce-motion support, and a 48px minimum tap target
+enforced by tests.
+
+**Updates** — the app checks a public releases repo and downloads its own installer,
+resuming from where it left off if the connection drops.
+
+### Not shipped yet
+
+Cross-device sync exists as infrastructure — a Node/PostgreSQL API, a client, and a
+conflict-resolution matrix under test — but there is no pairing flow. The only way to reach
+it is by pasting a base URL and a token into Settings. Treat it as unreleased.
+
+---
+
+## Repository layout
+
+```
+apps/
+  client/     Flutter app — the product. Android + Windows.
+  backend/    Node + PostgreSQL sync API. Dormant until v2.
+packages/
+  core/       Domain models, ports, services. Pure Dart, no Flutter.
+  data/       SQLite repository, schema, sync client. Pure Dart.
+  ui/         Design tokens and shared widgets. Flutter.
+  ai/         The intelligence adapters. Deletable by design — CI proves it.
+docs/         Product, architecture, design and decision records.
+```
+
+Two boundaries are load-bearing and are asserted in CI rather than agreed by convention:
+`core` and `data` carry **zero Flutter dependency** (the `dart-packages` job never installs
+Flutter — that is the assertion), and `packages/ai` can be **deleted outright** without
+breaking anything else.
+
+`packages/ui/lib/tokens/nex_tokens.dart` is the single source of truth for colour, type,
+spacing, radius and motion. Nothing downstream should be spelling a hex code or a pixel gap
+by hand.
+
+---
+
+## Getting started
+
+Requires Flutter **3.35.x** / Dart **^3.9** (see [`.fvmrc`](./.fvmrc)). Node 20+ only if you
+intend to touch the backend.
+
+```bash
+make bootstrap          # resolve every package
+
+cd apps/client
+flutter run             # Android device or emulator
+flutter run -d windows  # Windows desktop
+```
+
+Each Dart package resolves independently and all five lockfiles are committed — a root pub
+workspace is deliberately *not* used, for a reason spelled out at the top of the
+[`Makefile`](./Makefile).
+
+### Checks
+
+`make check` reproduces the CI pipeline one-to-one. Run it before pushing.
+
+```bash
+make check          # everything
+make check-dart     # core, data, ai — analyze + test, no Flutter
+make check-ui       # packages/ui
+make check-client   # apps/client
+make check-backend  # typecheck, lint, test
+make fmt            # format Dart and TypeScript
+```
+
+Analysis runs with `--fatal-infos`: an info-level lint fails the build. Format the specific
+files you touched rather than sweeping the tree — a blanket `dart format` produces a large
+unrelated diff.
+
+---
+
+## Releasing
+
+Tag a version and [`release.yml`](./.github/workflows/release.yml) builds a signed Android
+bundle and APK plus a Windows installer, then publishes them to a **separate public
+releases repository** — not this one.
+
+That indirection is the point: GitHub requires authentication for a private repo's release
+API and asset URLs, so an in-app updater pointed at a private source repo breaks the moment
+the repo is made private, and shipping a token inside the app to fix it would mean anyone
+could extract it. A public releases-only repo needs no client-side credential at all.
+
+The one-time setup — creating that repo, minting a fine-grained token scoped to it, and
+storing it as `RELEASES_REPO_TOKEN` — is documented at the top of the workflow. The repo
+name must stay in step with `UpdateChecker`'s default in
+[`app_update.dart`](./apps/client/lib/platform/app_update.dart).
 
 ---
 
 ## Documentation
 
-This repo's full product, design, and engineering documentation lives in [`docs/`](./docs) — that folder, not this file, is the source of truth for how Nex is built:
+[`docs/`](./docs) is the source of truth for how Nex is built. Code comments cite it
+directly — `ADR-0nn` refers to the decision log, `FR-n.n` to the specification — so those
+two are worth knowing where to find.
 
 | Doc | Purpose |
 |---|---|
-| [`docs/01-product-vision.md`](./docs/01-product-vision.md) | Why Nex exists, mission, non-negotiable principles |
-| [`docs/02-product-specification.md`](./docs/02-product-specification.md) | Functional requirements, data model |
-| [`docs/03-readme.md`](./docs/03-readme.md) | The full-length version of this file |
-| [`docs/04-architecture.md`](./docs/04-architecture.md) | Local-first architecture, sync design |
-| [`docs/05-design.md`](./docs/05-design.md) | Design system, UI principles, accessibility |
-| [`docs/06-development.md`](./docs/06-development.md) | Folder structure, conventions, testing strategy |
-| [`docs/07-contributing.md`](./docs/07-contributing.md) | How to contribute |
-| [`docs/08-roadmap.md`](./docs/08-roadmap.md) | v1 → v2 → v3 sequencing |
-| [`docs/09-ai.md`](./docs/09-ai.md) | AI strategy and boundaries |
-| [`docs/10-decisions.md`](./docs/10-decisions.md) | Decision log (ADRs) — why things are the way they are |
-| [`docs/11-build-prompt.md`](./docs/11-build-prompt.md) | Phased, execution-ready build plan |
-| [`docs/12-agent-handoff-prompts.md`](./docs/12-agent-handoff-prompts.md) | Paste-ready prompts per phase for a coding agent |
-| [`docs/13-outstanding-work.md`](./docs/13-outstanding-work.md) | **Known-broken areas and the remaining work to fix them** |
+| [`01-product-vision.md`](./docs/01-product-vision.md) | Why Nex exists, and the principles that are not up for negotiation |
+| [`02-product-specification.md`](./docs/02-product-specification.md) | Functional requirements (`FR-n.n`) and the data model |
+| [`04-architecture.md`](./docs/04-architecture.md) | Local-first architecture and the sync design |
+| [`05-design.md`](./docs/05-design.md) | Design language, UI principles, accessibility floors |
+| [`06-development.md`](./docs/06-development.md) | Conventions, folder structure, testing strategy |
+| [`07-contributing.md`](./docs/07-contributing.md) | How to contribute |
+| [`08-roadmap.md`](./docs/08-roadmap.md) | v1 → v2 → v3 sequencing |
+| [`09-ai.md`](./docs/09-ai.md) | What the intelligence layer may and may not do |
+| [`10-decisions.md`](./docs/10-decisions.md) | Decision log (`ADR-0nn`) — why things are the way they are |
 
-**If you're a contributor or a coding agent working in this repo, read `docs/10-decisions.md` and `docs/11-build-prompt.md` before writing code.** Most judgment calls you'd otherwise have to make are already decided and justified there.
+The numbering has gaps because several documents were build-time scaffolding — a phased
+build prompt, agent handoff prompts, an outstanding-work tracker, a static HTML mockup and a
+duplicate of this file — and were removed once the work they described was finished. The
+remaining numbers are stable because roughly ninety code comments point at them.
 
----
-
-## Tech Stack
-
-Flutter/Dart client (Android, Windows, future iOS from one codebase) · Node.js + PostgreSQL backend (dormant until v2 sync) · SQLite/FTS5 local storage. Full rationale in [`docs/03-readme.md`](./docs/03-readme.md#tech-stack) and [ADR-024](./docs/10-decisions.md#adr-024--flutter-as-the-single-cross-platform-client-framework).
-
----
-
-## Getting Started
-
-```bash
-# run the client on Android
-cd apps/client && flutter run
-
-# run the client as a Windows desktop app
-cd apps/client && flutter run -d windows
-```
+**Before writing code here, read [`10-decisions.md`](./docs/10-decisions.md).** Most of the
+judgment calls you would otherwise have to make are already made and justified there.
 
 ---
 
 ## Contributing
 
-Please read [`docs/07-contributing.md`](./docs/07-contributing.md) first — Nex has a narrow, deliberate identity, and the single most common reason a contribution is declined is that it adds friction to capture, however good the code is.
+Please read [`docs/07-contributing.md`](./docs/07-contributing.md) first. Nex has a narrow,
+deliberate identity, and the single most common reason a contribution is declined is that it
+adds friction to capture — however good the code is.
 
 ---
 

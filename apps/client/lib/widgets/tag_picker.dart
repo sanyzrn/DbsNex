@@ -3,6 +3,7 @@ import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import 'nex_dialog.dart';
 
 /// What the picker hands back: an existing tag, or a name to create.
 class TagChoice {
@@ -37,11 +38,8 @@ class TagPickerSheet extends StatefulWidget {
     required List<Tag> tags,
     Set<String> alreadyOn = const {},
   }) =>
-      showModalBottomSheet<TagChoice>(
+      nexShowSheet<TagChoice>(
         context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        showDragHandle: true,
         builder: (_) => TagPickerSheet(tags: tags, alreadyOn: alreadyOn),
       );
 

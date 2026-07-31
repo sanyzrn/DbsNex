@@ -129,7 +129,7 @@ class _RecordingSheetState extends State<RecordingSheet> {
                       onPressed: () => Navigator.pop(context, false),
                       style: TextButton.styleFrom(
                         foregroundColor: theme.colorScheme.secondary,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        padding: const EdgeInsets.symmetric(vertical: NexSpacing.md),
                       ),
                       child: Text(l10n.discard),
                     ),
@@ -140,7 +140,7 @@ class _RecordingSheetState extends State<RecordingSheet> {
                     child: FilledButton.icon(
                       onPressed: () => Navigator.pop(context, true),
                       style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        padding: const EdgeInsets.symmetric(vertical: NexSpacing.md),
                       ),
                       icon: const Icon(Icons.stop_rounded),
                       label: Text(l10n.stopRecording),

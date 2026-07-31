@@ -339,7 +339,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
             Text(l10n.downloading, style: theme.textTheme.titleMedium),
             const SizedBox(height: NexSpacing.md),
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(NexRadius.sm),
               child: LinearProgressIndicator(value: _progress, minHeight: 8),
             ),
             const SizedBox(height: NexSpacing.sm),

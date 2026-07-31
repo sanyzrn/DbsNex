@@ -13,7 +13,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Phase 1 pipeline (11-build-prompt.md): Dart analyze/lint, dart test for
+# Phase 1 pipeline: Dart analyze/lint, dart test for
 # packages/* (including SQLite/FTS integration), Flutter analyze/test/build for
 # apps/client, and backend lint/typecheck/test.
 
@@ -491,7 +491,7 @@ jobs:
         if: always()
         run: kill "$(cat "$RUNNER_TEMP/backend.pid")" 2>/dev/null || true
 
-  # Permanent Phase 3 proof (09-ai.md / 11-build-prompt.md): packages/ai must be
+  # Permanent Phase 3 proof (09-ai.md): packages/ai must be
   # deletable without breaking core/data/ui/client.
   #
   # The old version only checked apps/client and only rebuilt apps/client, which

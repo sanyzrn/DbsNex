@@ -20,66 +20,102 @@ class EmptyTimeline extends StatelessWidget {
         bottom: nexFabClearance + nexBottomInset(context),
       ),
       child: Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: Column(
-            children: [
-              Text(l10n.emptyPromise, textAlign: TextAlign.center, style: theme.textTheme.displaySmall),
-              const SizedBox(height: 8),
-              Text(l10n.emptySupport, textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
-              const SizedBox(height: 20),
-              _Ghost(Icons.short_text, l10n.emptyType),
-              const SizedBox(height: 8),
-              _Ghost(Icons.graphic_eq, l10n.emptySpeak),
-              const SizedBox(height: 8),
-              _Ghost(Icons.photo_camera_outlined, l10n.emptyPhotograph),
-              const SizedBox(height: 16),
-              Text(l10n.emptyNoSave, style: theme.textTheme.bodySmall),
-              const SizedBox(height: 4),
-              Text(
-                l10n.emptyAi,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+        child: SingleChildScrollView(
+          // md rather than lg above: the ghosts below are drawn to the real
+          // card's inset now, which made the block taller than the room a
+          // desktop window leaves between the filter row and the capture
+          // button. The gap that gave way is decoration; the card geometry is
+          // the part that carries meaning.
+          padding: const EdgeInsets.fromLTRB(
+            NexSpacing.lg,
+            NexSpacing.md,
+            NexSpacing.lg,
+            NexSpacing.md,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              children: [
+                Text(
+                  l10n.emptyPromise,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.displaySmall,
                 ),
-              ),
-            ],
+                const SizedBox(height: NexSpacing.sm),
+                Text(
+                  l10n.emptySupport,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: NexSpacing.md),
+                // The note type's own glyph, not a capture verb's: these are
+                // previews of cards, and the card a text note arrives as
+                // carries the text glyph.
+                _Ghost(nexNoteTypeIcon('text'), l10n.emptyType),
+                const SizedBox(height: NexSpacing.sm),
+                _Ghost(nexNoteTypeIcon('voice'), l10n.emptySpeak),
+                const SizedBox(height: NexSpacing.sm),
+                _Ghost(nexNoteTypeIcon('photo'), l10n.emptyPhotograph),
+                const SizedBox(height: NexSpacing.md),
+                Text(l10n.emptyNoSave, style: theme.textTheme.bodySmall),
+                const SizedBox(height: NexSpacing.xs),
+                Text(
+                  l10n.emptyAi,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
 }
 
+/// An outline of the card a capture will become.
+///
+/// Built from the real card's tokens rather than by eye — the same radius, the
+/// same inset, the same leading square at the same corner. It was drawn a
+/// couple of points off on every one of those, so the shape the empty screen
+/// promised was not quite the shape the first note arrived in.
 class _Ghost extends StatelessWidget {
   const _Ghost(this.icon, this.label);
   final IconData icon;
   final String label;
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.symmetric(horizontal: 8),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      border: Border.all(color: Theme.of(context).colorScheme.outline),
-      borderRadius: BorderRadius.circular(22),
-    ),
-    child: Row(children: [
-      Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Icon(icon),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
+      padding: const EdgeInsets.all(NexSpacing.cardInset),
+      decoration: BoxDecoration(
+        border: Border.all(color: scheme.outline),
+        borderRadius: BorderRadius.circular(NexRadius.lg),
       ),
-      const SizedBox(width: 14),
-      Expanded(child: Divider(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3))),
-      const SizedBox(width: 14),
-      Text(label, style: Theme.of(context).textTheme.bodySmall),
-    ]),
-  );
+      child: Row(
+        children: [
+          Container(
+            width: nexCardLeadingSize,
+            height: nexCardLeadingSize,
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(
+                NexRadius.inside(NexRadius.lg, NexSpacing.cardInset),
+              ),
+            ),
+            child: Icon(icon),
+          ),
+          const SizedBox(width: NexSpacing.contentGap),
+          Expanded(
+            child: Divider(color: scheme.secondary.withValues(alpha: 0.3)),
+          ),
+          const SizedBox(width: NexSpacing.contentGap),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
 }

@@ -88,7 +88,7 @@ class _Card<T> extends StatelessWidget {
       label: choice.label,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(NexRadius.lg),
         child: AnimatedContainer(
           duration: NexMotion.standard,
           curve: NexMotion.curve,
@@ -97,7 +97,7 @@ class _Card<T> extends StatelessWidget {
             horizontal: NexSpacing.sm,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(NexRadius.lg),
             color: isSelected
                 ? accent.withValues(alpha: 0.06)
                 : theme.colorScheme.surface,

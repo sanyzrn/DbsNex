@@ -25,11 +25,14 @@ class SyncResult {
 
 /// Transport contract for v2 sync. Declared in core; implemented in data.
 ///
-/// `/sync/pull` returns a monotonic sequence cursor, and that is what a correct
-/// client must persist. `SyncClient` still tracks a timestamp watermark, so
-/// clock skew between the Node process and PostgreSQL can drop rows. Wiring the
-/// cursor through, along with the `tag_remap` response, is tracked as Phase 3 in
-/// `docs/13-outstanding-work.md`.
+/// `/sync/pull` returns a monotonic sequence cursor, and that is what the
+/// client persists — see `SqliteNoteRepository.syncCursor`. It used to keep a
+/// timestamp watermark instead, which clock skew between the Node process and
+/// PostgreSQL could skip rows past; the cursor, the `tag_remap` response and
+/// page draining are all wired through now.
+///
+/// Sync is not a shipped feature: there is no pairing flow, and the only way
+/// to reach it is by pasting a base URL and a token into Settings.
 abstract interface class SyncPort {
   Future<SyncResult> sync();
 

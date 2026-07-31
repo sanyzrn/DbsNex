@@ -74,7 +74,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 420),
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(NexSpacing.lg),
                     child: Builder(
                       builder: (context) {
                         final l10n = AppLocalizations.of(context);

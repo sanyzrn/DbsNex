@@ -70,7 +70,7 @@ Nex is a cross-platform capture application built around a single timeline of no
 
 ### FR-1 — Capture
 - FR-1.1 A persistent `+` action is reachable from the Timeline in one tap.
-- FR-1.2 Tapping `+` opens a capture bottom sheet with a text field immediately focused and ready to type (Text is the default, immediate mode — not one of several equal menu choices). Inline controls on the same sheet switch into Voice, Photo, or File capture. See [`mockup.html`](./mockup.html) and [`05-design.md`](./05-design.md) — the mockup is authoritative for this interaction.
+- FR-1.2 Tapping `+` opens a capture bottom sheet with a text field immediately focused and ready to type (Text is the default, immediate mode — not one of several equal menu choices). Inline controls on the same sheet switch into Voice, Photo, or File capture. See [`05-design.md`](./05-design.md).
 - FR-1.3 The capture sheet’s text field is empty and keyboard-focused on open; the first character begins an auto-saved text note (FR-1.7).
 - FR-1.4 **Voice** (from the capture sheet) starts recording immediately — no intermediate "press to start" step.
 - FR-1.5 **Photo** (from the capture sheet) opens the camera immediately, with an explicit option to switch to gallery.

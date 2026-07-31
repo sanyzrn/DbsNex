@@ -404,10 +404,10 @@ class _Section extends StatelessWidget {
           DecoratedBox(
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(NexColors.cardRadius),
+              borderRadius: BorderRadius.circular(NexRadius.lg),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(NexColors.cardRadius),
+              borderRadius: BorderRadius.circular(NexRadius.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
