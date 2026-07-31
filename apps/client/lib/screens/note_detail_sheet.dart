@@ -10,6 +10,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
+import '../feature_flags.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/file_opener.dart';
 import '../platform/sharing.dart';
@@ -580,11 +581,18 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     // height instead of a strip at the bottom the user has to drag upward.
     // Short notes still hug their content — a two-line thought does not need
     // two thirds of the screen.
-    final long =
-        (note.content ?? note.transcriptText ?? note.ocrText ?? '')
-            .trim()
-            .length >
-        220;
+    //
+    // The transcript/OCR text only counts while the AI panel is actually
+    // open. It used to count unconditionally, so a voice or photo note whose
+    // *hidden* transcript happened to run past 220 characters forced the
+    // sheet to its 70%-tall minimum for a screen showing a player and a
+    // "Transcript ready" link — the rest was empty space below Delete, and
+    // which notes hit it depended on how long their speech happened to be.
+    final visibleText =
+        note.content ??
+        (_showAi ? (note.transcriptText ?? note.ocrText) : null) ??
+        '';
+    final long = visibleText.trim().length > 220;
     return ConstrainedBox(
       constraints: BoxConstraints(
         maxHeight: screenHeight * 0.92,
@@ -880,13 +888,14 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       label: l10n.tag,
                       onPressed: _addTag,
                     ),
-                    _DetailAction(
-                      icon: note.pinnedAt != null
-                          ? Icons.push_pin
-                          : Icons.push_pin_outlined,
-                      label: note.pinnedAt != null ? l10n.unpin : l10n.pin,
-                      onPressed: _togglePin,
-                    ),
+                    if (kPinAndReorderEnabled)
+                      _DetailAction(
+                        icon: note.pinnedAt != null
+                            ? Icons.push_pin
+                            : Icons.push_pin_outlined,
+                        label: note.pinnedAt != null ? l10n.unpin : l10n.pin,
+                        onPressed: _togglePin,
+                      ),
                     _DetailAction(
                       icon: Icons.auto_awesome_outlined,
                       label: l10n.summarize,
