@@ -95,6 +95,12 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     _addColumnIfMissing('notes', 'caption', 'TEXT');
     _addColumnIfMissing('notes', 'mime_type', 'TEXT');
 
+    // Local-only organisation: at most one pinned note, and a manual
+    // position set by dragging in Rearrange mode. Neither is synced or
+    // exported (see Note.pinnedAt / Note.sortOrder).
+    _addColumnIfMissing('notes', 'pinned_at', 'TEXT');
+    _addColumnIfMissing('notes', 'sort_order', 'INTEGER');
+
     // Tags get the outbox notes have always had.
     //
     // Without it the client cannot tell which tags are dirty, so it pushed the

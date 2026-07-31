@@ -237,6 +237,14 @@
   "@tag": {
     "description": "Short label on the chip that opens the add-tag dialog"
   },
+  "pin": "Pin",
+  "@pin": {
+    "description": "Detail-sheet action that pins this note to the top of the timeline"
+  },
+  "unpin": "Unpin",
+  "@unpin": {
+    "description": "Detail-sheet action that releases the pinned note"
+  },
   "summary": "Summary",
   "@summary": {
     "description": "Summary section heading in the detail sheet"

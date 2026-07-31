@@ -416,6 +416,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tag => 'Tag';
 
   @override
+  String get pin => 'Pin';
+
+  @override
+  String get unpin => 'Unpin';
+
+  @override
   String get summary => 'Summary';
 
   @override

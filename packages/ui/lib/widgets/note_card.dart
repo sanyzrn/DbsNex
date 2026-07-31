@@ -69,61 +69,29 @@ class NoteCard extends StatelessWidget {
           // individual tag, or the preview separately — a long undifferentiated
           // announcement with nothing inside it to navigate to.
           explicitChildNodes: true,
-          child: Material(
-            // The card's own fill, not the page's. They used to be the same
-            // colour, which left a 1.2:1 hairline as the only thing marking the
-            // boundary of the app's main tap target.
-            color: theme.colorScheme.surfaceContainerLowest,
-            // No outline: the boundary is carried by the tonal step between the
-            // card's fill and the page's, plus the shadow. The shadow is a
-            // little deeper than it was because it is now doing the outline's
-            // share of the work as well as its own.
-            elevation: 2,
-            shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(NexRadius.lg),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.all(NexSpacing.cardInset),
-                child: Row(
-                  children: [
-                    _Leading(note: note),
-                    const SizedBox(width: NexSpacing.contentGap),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          previewOverride ?? _Preview(note: note),
-                          if (footnote != null) ...[
-                            const SizedBox(height: NexSpacing.xs),
-                            Text(
-                              footnote!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    // Colours, not names. A tag's name is already in its own
-                    // words inside the note; on the card it was competing with
-                    // the note's first line for the same glance, and three of
-                    // them filled the row. The dot is the whole of what a
-                    // timeline needs: which tags, at a glance, without reading.
-                    if (note.tags.isNotEmpty) ...[
-                      const SizedBox(width: NexSpacing.sm),
-                      _TagDots(tags: note.tags, strings: strings),
-                    ],
-                  ],
-                ),
+          child: Stack(
+            children: [
+              _CardBody(
+                note: note,
+                onTap: onTap,
+                previewOverride: previewOverride,
+                footnote: footnote,
+                strings: strings,
               ),
-            ),
+              // A glance is the whole point: which one card, among many, is
+              // held in place. Reading "pinned" off the detail sheet only
+              // told you after you had already opened it.
+              if (note.pinnedAt != null)
+                PositionedDirectional(
+                  top: NexSpacing.xs,
+                  end: NexSpacing.xs,
+                  child: Icon(
+                    Icons.push_pin,
+                    size: 14,
+                    color: theme.colorScheme.secondary,
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -139,6 +107,83 @@ class NoteCard extends StatelessWidget {
     strings.noteOfType(note.type.name),
     note.searchableDerivedText ?? '',
   ].where((value) => value.isNotEmpty).join('. ');
+}
+
+class _CardBody extends StatelessWidget {
+  const _CardBody({
+    required this.note,
+    required this.onTap,
+    required this.previewOverride,
+    required this.footnote,
+    required this.strings,
+  });
+
+  final Note note;
+  final VoidCallback? onTap;
+  final Widget? previewOverride;
+  final String? footnote;
+  final NexCardStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      // The card's own fill, not the page's. They used to be the same
+      // colour, which left a 1.2:1 hairline as the only thing marking the
+      // boundary of the app's main tap target.
+      color: theme.colorScheme.surfaceContainerLowest,
+      // No outline: the boundary is carried by the tonal step between the
+      // card's fill and the page's, plus the shadow. The shadow is a
+      // little deeper than it was because it is now doing the outline's
+      // share of the work as well as its own.
+      elevation: 2,
+      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(NexSpacing.cardInset),
+          child: Row(
+            children: [
+              _Leading(note: note),
+              const SizedBox(width: NexSpacing.contentGap),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    previewOverride ?? _Preview(note: note),
+                    if (footnote != null) ...[
+                      const SizedBox(height: NexSpacing.xs),
+                      Text(
+                        footnote!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              // Colours, not names. A tag's name is already in its own
+              // words inside the note; on the card it was competing with
+              // the note's first line for the same glance, and three of
+              // them filled the row. The dot is the whole of what a
+              // timeline needs: which tags, at a glance, without reading.
+              if (note.tags.isNotEmpty) ...[
+                const SizedBox(width: NexSpacing.sm),
+                _TagDots(tags: note.tags, strings: strings),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// A tag's colour, stacked down the card's trailing edge.
@@ -248,7 +293,8 @@ class _Leading extends StatelessWidget {
           cacheWidth: (nexCardLeadingSize * ratio).round(),
           cacheHeight: (nexCardLeadingSize * ratio).round(),
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const _IconBox(Icons.image_not_supported_outlined),
+          errorBuilder: (_, __, ___) =>
+              const _IconBox(Icons.image_not_supported_outlined),
         ),
       );
     }
@@ -298,20 +344,23 @@ class TagChip extends StatelessWidget {
     // A chip's default tap target is 48px tall — half again the chip itself,
     // and on a card it is decoration rather than a control, so that padding
     // was pure card height. A removable chip *is* a control and keeps it.
-    materialTapTargetSize:
-        compact && onRemove == null ? MaterialTapTargetSize.shrinkWrap : null,
+    materialTapTargetSize: compact && onRemove == null
+        ? MaterialTapTargetSize.shrinkWrap
+        : null,
     label: Text(tag.name),
-    avatar: tag.color == null ? null : Semantics(
-      label: strings.accentColor,
-      child: Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: nexParseTagColor(tag.color),
-        ),
-      ),
-    ),
+    avatar: tag.color == null
+        ? null
+        : Semantics(
+            label: strings.accentColor,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: nexParseTagColor(tag.color),
+              ),
+            ),
+          ),
     onDeleted: onRemove,
   );
 }

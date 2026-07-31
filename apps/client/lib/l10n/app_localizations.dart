@@ -794,6 +794,18 @@ abstract class AppLocalizations {
   /// **'Tag'**
   String get tag;
 
+  /// Detail-sheet action that pins this note to the top of the timeline
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get pin;
+
+  /// Detail-sheet action that releases the pinned note
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get unpin;
+
   /// Summary section heading in the detail sheet
   ///
   /// In en, this message translates to:

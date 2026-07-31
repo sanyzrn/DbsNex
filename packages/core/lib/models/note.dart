@@ -58,6 +58,8 @@ class Note {
     required this.rev,
     required this.syncState,
     this.tags = const [],
+    this.pinnedAt,
+    this.sortOrder,
   });
 
   final String id;
@@ -80,6 +82,20 @@ class Note {
   final int rev;
   final SyncState syncState;
   final List<Tag> tags;
+
+  /// Set on at most one note at a time (see [NoteRepository.pinNote]).
+  ///
+  /// Local only — never synced or exported, the same as [sortOrder]: both
+  /// are how *this device* likes its own timeline arranged, not something
+  /// that means anything to another device or survives a JSON export.
+  final DateTime? pinnedAt;
+
+  /// Manual position, set by dragging in Rearrange mode. Null means "not
+  /// manually placed" — such notes sort by [updatedAt] ahead of any that
+  /// have been (see [NoteRepository.listTimeline]), so a fresh capture still
+  /// surfaces at the top rather than waiting at the bottom of a hand-ordered
+  /// list it was never part of arranging.
+  final int? sortOrder;
 
   bool get isDeleted => deletedAt != null;
 
@@ -193,6 +209,10 @@ class Note {
       rev: row['rev']! as int,
       syncState: SyncState.fromWire(row['sync_state']! as String),
       tags: tags,
+      pinnedAt: (row['pinned_at'] as String?) != null
+          ? DateTime.parse(row['pinned_at']! as String).toUtc()
+          : null,
+      sortOrder: row['sort_order'] as int?,
     );
   }
 }

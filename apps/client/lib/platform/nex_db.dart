@@ -50,6 +50,10 @@ abstract interface class NexDb {
 
   Future<void> setCaption(String id, String caption);
 
+  Future<void> pinNote(String id);
+
+  Future<void> unpinNote(String id);
+
   Future<Tag> addTag({
     required String noteId,
     required String name,
