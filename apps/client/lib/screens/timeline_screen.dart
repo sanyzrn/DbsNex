@@ -232,18 +232,18 @@ class TimelineScreenState extends State<TimelineScreen> {
       builder: (ctx) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-            for (final type in <NoteType?>[null, ...NoteType.values])
-              ListTile(
-                leading: Icon(nexNoteTypeIcon(type?.wireName)),
-                title: Text(
-                  type == null ? l10n.all : l10n.noteType(type.wireName),
-                ),
-                trailing: selectedType == type ? const Icon(Icons.check) : null,
-                selected: selectedType == type,
-                // Wrapped, because popping a bare null cannot be told apart
-                // from the user dismissing the sheet.
-                onTap: () => Navigator.pop(ctx, _TypeChoice(type)),
+          for (final type in <NoteType?>[null, ...NoteType.values])
+            ListTile(
+              leading: Icon(nexNoteTypeIcon(type?.wireName)),
+              title: Text(
+                type == null ? l10n.all : l10n.noteType(type.wireName),
               ),
+              trailing: selectedType == type ? const Icon(Icons.check) : null,
+              selected: selectedType == type,
+              // Wrapped, because popping a bare null cannot be told apart
+              // from the user dismissing the sheet.
+              onTap: () => Navigator.pop(ctx, _TypeChoice(type)),
+            ),
         ],
       ),
     );
@@ -507,6 +507,22 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// moved it: reflect that in [notes] straight away rather than waiting on
   /// the next stream tick, and persist the set that was actually dragged
   /// against — see [NexServices.reorderNotes].
+  ///
+  /// `sort_order` is one column shared by every note, not one scoped to
+  /// whatever filter happens to be active. Persisting it for only the notes
+  /// on screen — which is what [notes] holds under a filter — stamped a
+  /// dense 0, 1, 2… onto that handful and left every other note with
+  /// whatever it already had, so the two competed for the same numbers and
+  /// the *unfiltered* timeline came out shuffled by an outcome nobody chose.
+  /// Reported as: reordering under "All" behaves; reordering under a single
+  /// tag rearranges notes that were never touched.
+  ///
+  /// The fix splices the move into [_all] — the complete, unfiltered list —
+  /// right next to the note it now sits beside in the filtered view, and
+  /// persists that whole list. Every note outside the filter keeps its exact
+  /// relative position; only the moved note's slot changes. Filtering does
+  /// not reorder, so re-deriving [notes] from the patched [_all] reproduces
+  /// the same visible order the drag actually produced.
   void _onReorder(int oldIndex, int newIndex) {
     if (oldIndex < newIndex) newIndex -= 1;
     // Nothing may land above a pinned note. It cannot be dragged itself, but
@@ -517,10 +533,38 @@ class TimelineScreenState extends State<TimelineScreen> {
       newIndex = 1;
     }
     if (newIndex == oldIndex) return;
-    final reordered = List<Note>.of(notes);
-    reordered.insert(newIndex, reordered.removeAt(oldIndex));
-    setState(() => notes = reordered);
-    unawaited(widget.services.reorderNotes([for (final n in reordered) n.id]));
+
+    final visibleReordered = List<Note>.of(notes);
+    final moved = visibleReordered.removeAt(oldIndex);
+    visibleReordered.insert(newIndex, moved);
+
+    // Anchor on whichever neighbour the move actually determined: the note
+    // now right after it if there is one, otherwise the note now right
+    // before it. Either way, `all` only has to know "next to this id" — it
+    // never needs to reconstruct newIndex/oldIndex arithmetic of its own.
+    final all = List<Note>.of(_all ?? notes)
+      ..removeWhere((n) => n.id == moved.id);
+    final after = newIndex + 1 < visibleReordered.length
+        ? visibleReordered[newIndex + 1]
+        : null;
+    final before = newIndex > 0 ? visibleReordered[newIndex - 1] : null;
+    int insertAt;
+    if (after != null) {
+      final at = all.indexWhere((n) => n.id == after.id);
+      insertAt = at < 0 ? all.length : at;
+    } else if (before != null) {
+      final at = all.indexWhere((n) => n.id == before.id);
+      insertAt = at < 0 ? all.length : at + 1;
+    } else {
+      insertAt = 0;
+    }
+    all.insert(insertAt, moved);
+
+    setState(() {
+      _all = all;
+      notes = visibleReordered;
+    });
+    unawaited(widget.services.reorderNotes([for (final n in all) n.id]));
   }
 
   /// The same long press, released without ever crossing into a drag.
@@ -551,25 +595,23 @@ class TimelineScreenState extends State<TimelineScreen> {
       builder: (ctx) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-            ListTile(
-              leading: Icon(
-                note.pinnedAt != null
-                    ? Icons.push_pin
-                    : Icons.push_pin_outlined,
-              ),
-              title: Text(note.pinnedAt != null ? l10n.unpin : l10n.pin),
-              onTap: () => Navigator.pop(ctx, _QuickAction.togglePin),
+          ListTile(
+            leading: Icon(
+              note.pinnedAt != null ? Icons.push_pin : Icons.push_pin_outlined,
             ),
-            ListTile(
-              leading: const Icon(Icons.label_outline),
-              title: Text(l10n.addTag),
-              onTap: () => Navigator.pop(ctx, _QuickAction.addTag),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: Text(l10n.delete),
-              onTap: () => Navigator.pop(ctx, _QuickAction.delete),
-            ),
+            title: Text(note.pinnedAt != null ? l10n.unpin : l10n.pin),
+            onTap: () => Navigator.pop(ctx, _QuickAction.togglePin),
+          ),
+          ListTile(
+            leading: const Icon(Icons.label_outline),
+            title: Text(l10n.addTag),
+            onTap: () => Navigator.pop(ctx, _QuickAction.addTag),
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: Text(l10n.delete),
+            onTap: () => Navigator.pop(ctx, _QuickAction.delete),
+          ),
         ],
       ),
     );

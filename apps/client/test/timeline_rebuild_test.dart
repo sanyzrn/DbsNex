@@ -407,6 +407,73 @@ void main() {
   });
 
   testWidgets(
+    'reordering under a tag filter does not disturb notes outside it',
+    (tester) async {
+      // Newest first, unfiltered: delta, gamma, beta, alpha.
+      await services.captureText('alpha');
+      await services.captureText('beta');
+      await services.captureText('gamma');
+      await services.captureText('delta');
+      final all = await services.timeline();
+      final beta = all.firstWhere((n) => n.content == 'beta');
+      final delta = all.firstWhere((n) => n.content == 'delta');
+      await services.addTag(noteId: beta.id, name: 'Work');
+      await services.addTag(noteId: delta.id, name: 'Work');
+      await services.refreshTimeline();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      // Filtered to Work: only delta and beta show, in that order.
+      await tester.tap(find.text('Work'));
+      await tester.pumpAndSettle();
+      expect(find.text('gamma'), findsNothing);
+      expect(find.text('alpha'), findsNothing);
+      expect(
+        tester.getCenter(find.text('delta')).dy,
+        lessThan(tester.getCenter(find.text('beta')).dy),
+      );
+
+      // Drag beta above delta, inside the filtered view.
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('beta')),
+      );
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+      await gesture.moveBy(const Offset(0, -300));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(
+        tester.getCenter(find.text('beta')).dy,
+        lessThan(tester.getCenter(find.text('delta')).dy),
+        reason: 'beta now leads within the filtered view',
+      );
+
+      // Clear the filter and read fresh from the repository — not the
+      // in-memory list the drag rewrote directly. Reported symptom: this
+      // used to come back with gamma and alpha shuffled too, since the drag
+      // persisted sort_order for only the two filtered notes and left the
+      // other two contesting the same low numbers.
+      await tester.tap(find.text('Work'));
+      await tester.pumpAndSettle();
+      await services.refreshTimeline();
+      await tester.pumpAndSettle();
+
+      // beta leads, delta follows it — the move survives — and gamma/alpha,
+      // which were never part of the drag, keep the relative order they had
+      // before it: gamma above alpha, both below the moved pair.
+      final betaY = tester.getCenter(find.text('beta')).dy;
+      final deltaY = tester.getCenter(find.text('delta')).dy;
+      final gammaY = tester.getCenter(find.text('gamma')).dy;
+      final alphaY = tester.getCenter(find.text('alpha')).dy;
+      expect(betaY, lessThan(deltaY));
+      expect(deltaY, lessThan(gammaY));
+      expect(gammaY, lessThan(alphaY));
+    },
+  );
+
+  testWidgets(
     'holding a card without moving opens quick actions, not a reorder',
     (tester) async {
       await services.captureText('a note to act on');
