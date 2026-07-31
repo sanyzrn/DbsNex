@@ -55,7 +55,6 @@ class NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
       padding: nexCardInsets,
       child: SizedBox(
@@ -69,29 +68,12 @@ class NoteCard extends StatelessWidget {
           // individual tag, or the preview separately — a long undifferentiated
           // announcement with nothing inside it to navigate to.
           explicitChildNodes: true,
-          child: Stack(
-            children: [
-              _CardBody(
-                note: note,
-                onTap: onTap,
-                previewOverride: previewOverride,
-                footnote: footnote,
-                strings: strings,
-              ),
-              // A glance is the whole point: which one card, among many, is
-              // held in place. Reading "pinned" off the detail sheet only
-              // told you after you had already opened it.
-              if (note.pinnedAt != null)
-                PositionedDirectional(
-                  top: NexSpacing.xs,
-                  end: NexSpacing.xs,
-                  child: Icon(
-                    Icons.push_pin,
-                    size: 14,
-                    color: theme.colorScheme.secondary,
-                  ),
-                ),
-            ],
+          child: _CardBody(
+            note: note,
+            onTap: onTap,
+            previewOverride: previewOverride,
+            footnote: footnote,
+            strings: strings,
           ),
         ),
       ),
@@ -148,7 +130,7 @@ class _CardBody extends StatelessWidget {
           padding: const EdgeInsets.all(NexSpacing.cardInset),
           child: Row(
             children: [
-              _Leading(note: note),
+              _LeadingWithPin(note: note),
               const SizedBox(width: NexSpacing.contentGap),
               Expanded(
                 child: Column(
@@ -299,6 +281,58 @@ class _Leading extends StatelessWidget {
       );
     }
     return _IconBox(nexNoteTypeIcon(note.type.wireName));
+  }
+}
+
+/// The leading glyph, with a pin badge on it when the note is held in place.
+///
+/// A glance is the whole point: which one card, among many, is pinned. That
+/// used to be a bare 14px glyph floated into the card's top corner by a Stack
+/// — outside the card's own padding, crowding its corner radius, attached to
+/// nothing. A badge on the leading square is the same information sitting on
+/// an object that is already there, which is what makes it read as part of the
+/// card rather than as something dropped on top of it.
+class _LeadingWithPin extends StatelessWidget {
+  const _LeadingWithPin({required this.note});
+
+  final Note note;
+
+  static const _size = 20.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final leading = _Leading(note: note);
+    if (note.pinnedAt == null) return leading;
+    final scheme = Theme.of(context).colorScheme;
+    return Stack(
+      // The badge sits half off the square's corner. Nothing is clipped: it
+      // lands well inside the card, which is what does the clipping here.
+      clipBehavior: Clip.none,
+      children: [
+        leading,
+        PositionedDirectional(
+          bottom: -NexSpacing.xs,
+          end: -NexSpacing.xs,
+          child: Container(
+            width: _size,
+            height: _size,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              // The card's own fill, so the badge reads as lifted off the
+              // square rather than painted onto it.
+              color: scheme.surfaceContainerLowest,
+              border: Border.all(color: scheme.outline),
+            ),
+            child: Icon(
+              Icons.push_pin,
+              size: 11,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

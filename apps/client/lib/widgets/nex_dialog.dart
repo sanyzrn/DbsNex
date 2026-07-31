@@ -42,6 +42,16 @@ class NexDialogBody extends StatelessWidget {
 /// [dismissible] is the one real axis of difference: the recording sheet must
 /// not be swiped away mid-recording, and a sheet that cannot be dragged away
 /// must not advertise a drag handle.
+///
+/// **The bottom `SafeArea` is not redundant with `useSafeArea`.** Flutter
+/// applies `SafeArea(bottom: false)` for that flag — it guards the status bar
+/// and nothing else, and its own documentation says so: "the bottom sheet
+/// extends all the way to the bottom of the screen, including any system
+/// intrusions." Every sheet has to inset its own bottom edge, and the ones
+/// that remembered to did it three different ways. On a phone using gesture
+/// navigation the intrusion is small enough to look like padding; switch the
+/// same phone to three-button navigation and the sheet's last control — Delete
+/// on a note, Save on a picker — sits under the navigation bar.
 Future<T?> nexShowSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
@@ -53,7 +63,7 @@ Future<T?> nexShowSheet<T>({
   isDismissible: dismissible,
   enableDrag: dismissible,
   showDragHandle: dismissible,
-  builder: builder,
+  builder: (context) => SafeArea(top: false, child: builder(context)),
 );
 
 /// A bottom sheet body that always fills the sheet's width.

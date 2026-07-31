@@ -509,6 +509,14 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// against — see [NexServices.reorderNotes].
   void _onReorder(int oldIndex, int newIndex) {
     if (oldIndex < newIndex) newIndex -= 1;
+    // Nothing may land above a pinned note. It cannot be dragged itself, but
+    // another card dropped on top of it would push it to second place — and
+    // `listTimeline` sorts pinned-first, so the next read would snap it back
+    // and the list would visibly jump for no reason the user could name.
+    if (notes.isNotEmpty && notes.first.pinnedAt != null && newIndex == 0) {
+      newIndex = 1;
+    }
+    if (newIndex == oldIndex) return;
     final reordered = List<Note>.of(notes);
     reordered.insert(newIndex, reordered.removeAt(oldIndex));
     setState(() => notes = reordered);
@@ -865,7 +873,10 @@ class TimelineScreenState extends State<TimelineScreen> {
               addTagLabel: l10n.addTag,
               haptics: widget.preferences.haptics,
               controller: _swipe,
-              reorderIndex: index,
+              // A pinned note is held in place by definition, so it is not
+              // a thing that can be dragged somewhere else. Null here is what
+              // SwipeableNoteCard reads as "no reorder gesture on this card".
+              reorderIndex: notes[index].pinnedAt == null ? index : null,
               resolveAction: ({required bool isLeading}) {
                 final action = isLeading
                     ? widget.preferences.leadingAction
