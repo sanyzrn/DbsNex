@@ -534,7 +534,9 @@ class TimelineScreenState extends State<TimelineScreen> {
   void _onReorderEnd(int index) {
     final start = _reorderStartIndex;
     _reorderStartIndex = null;
-    if (start == index) unawaited(_showQuickActions(notes[index]));
+    if (start == index && kReorderQuickActionsEnabled) {
+      unawaited(_showQuickActions(notes[index]));
+    }
   }
 
   /// What a long press that never turned into a drag opens: the same actions
@@ -877,7 +879,7 @@ class TimelineScreenState extends State<TimelineScreen> {
               addTagLabel: l10n.addTag,
               haptics: widget.preferences.haptics,
               controller: _swipe,
-              reorderIndex: kPinAndReorderEnabled ? index : null,
+              reorderIndex: index,
               resolveAction: ({required bool isLeading}) {
                 final action = isLeading
                     ? widget.preferences.leadingAction

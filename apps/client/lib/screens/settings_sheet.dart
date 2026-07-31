@@ -322,6 +322,15 @@ const _rowPadding = EdgeInsetsDirectional.only(
 /// instead of moving once it is pinned at its own boundary — a negative
 /// value is exactly a downward drag past the top — so it stands in for the
 /// drag-to-dismiss the content itself cannot forward.
+///
+/// [OverscrollNotification.dragDetails] is what keeps this to an actual drag
+/// at the top: a fast fling from further down the list can cross the whole
+/// scroll range and bounce past the top boundary in one continuous motion,
+/// which reports overscroll too, but with `dragDetails: null` — no finger is
+/// pressing at that point, the scrollable is just settling its own fling.
+/// Without this check that fling closed the sheet on the way to the top
+/// instead of merely scrolling it there; only a second, deliberate drag once
+/// it has actually arrived should do that.
 class _DismissOnOverscroll extends StatefulWidget {
   const _DismissOnOverscroll({required this.child});
 
@@ -335,7 +344,9 @@ class _DismissOnOverscrollState extends State<_DismissOnOverscroll> {
   bool _dismissed = false;
 
   bool _onNotification(OverscrollNotification notification) {
-    if (!_dismissed && notification.overscroll < -8) {
+    if (!_dismissed &&
+        notification.dragDetails != null &&
+        notification.overscroll < -8) {
       _dismissed = true;
       Navigator.of(context).maybePop();
     }
