@@ -157,7 +157,12 @@ class UpdateChecker {
   UpdateChecker({
     required this.currentVersion,
     http.Client? client,
-    this.repository = 'sanyzrn/DbsNex',
+    // A separate, public repo — never the source repo, which the release
+    // workflow now publishes to instead (see release.yml). GitHub's release
+    // API and asset URLs both need authentication once a repo is private,
+    // and shipping a token in the client to provide it would mean anyone
+    // could pull it back out of the built app.
+    this.repository = 'sanyzrn/DbsNex-releases',
     this.assetSuffix,
   }) : _client = client ?? http.Client(),
        _ownsClient = client == null;

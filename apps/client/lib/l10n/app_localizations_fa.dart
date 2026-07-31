@@ -828,6 +828,15 @@ class AppLocalizationsFa extends AppLocalizations {
   String get retry => 'دوباره تلاش کن';
 
   @override
+  String get cropPhotoTitle => 'برش عکس';
+
+  @override
+  String get cropConfirm => 'استفاده از عکس';
+
+  @override
+  String get cropCancel => 'دور ریختن عکس';
+
+  @override
   String get tagColor => 'رنگ برچسب';
 
   @override

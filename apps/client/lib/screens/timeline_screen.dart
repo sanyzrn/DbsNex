@@ -27,6 +27,7 @@ import '../widgets/search_results.dart';
 import '../widgets/tag_picker.dart';
 import 'library_screen.dart';
 import 'note_detail_sheet.dart';
+import 'photo_crop_screen.dart';
 import 'settings_sheet.dart';
 
 class TimelineScreen extends StatefulWidget {
@@ -338,15 +339,20 @@ class TimelineScreenState extends State<TimelineScreen> {
       // and the one the old handler could not have caught.
       final picked = await ImagePicker().pickImage(source: source);
       if (picked == null) return;
-      final bytes = await picked.readAsBytes();
+      final original = await picked.readAsBytes();
+      if (!mounted) return;
+      final cropped = await Navigator.of(context).push<Uint8List>(
+        MaterialPageRoute(builder: (_) => PhotoCropScreen(image: original)),
+      );
+      if (cropped == null) return;
       final dest = p.join(
         widget.services.mediaDir,
         'photo-${DateTime.now().millisecondsSinceEpoch}${p.extension(picked.path)}',
       );
-      await File(dest).writeAsBytes(bytes, flush: true);
+      await File(dest).writeAsBytes(cropped, flush: true);
       final note = await widget.services.capturePhoto(
         mediaUri: dest,
-        mediaBytes: Uint8List.fromList(bytes),
+        mediaBytes: cropped,
       );
       landedId = note.id;
       widget.services.scheduleEnrichment(note.id);

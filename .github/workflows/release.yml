@@ -4,9 +4,22 @@ name: Release
 # installer, and attaches them to a GitHub Release. Triggered by version tags or
 # manually.
 #
+# The release is published to RELEASES_REPO — a separate, public repo — not to
+# this one. This repo is private; GitHub's release API and asset downloads both
+# require authentication once a repo is private, and the in-app updater has no
+# way to hold a credential for that without shipping a token inside the app
+# that anyone could pull back out of it. A public releases-only repo needs no
+# token in the client at all.
+#
+# One-time setup this depends on:
+#   1. Create the public repo named in RELEASES_REPO below (empty is fine).
+#   2. Generate a fine-grained PAT scoped to *only* that repo, with
+#      Contents: Read and write — nothing else.
+#   3. Add it to this (private) repo's secrets as RELEASES_REPO_TOKEN.
+#
 # Required repo secrets (one-time; never commit the keystore):
 #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
-#   ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#   ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, RELEASES_REPO_TOKEN
 
 on:
   push:
@@ -28,6 +41,10 @@ concurrency:
 env:
   # Tag push -> github.ref_name; manual run -> inputs.tag
   RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  # The public repo the in-app updater actually checks — see the note at the
+  # top of this file. Change this and UpdateChecker's default `repository`
+  # together; the two have to agree, or the app looks in the wrong place.
+  RELEASES_REPO: sanyzrn/DbsNex-releases
 
 jobs:
   # The tag is the single source of truth for the version. Every number that
@@ -268,11 +285,19 @@ jobs:
         # to the repository.
         uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 # v2.1.0
         with:
+          # A different repo — the public one the in-app updater actually
+          # checks (see the note at the top of this file) — which needs its
+          # own token: the default GITHUB_TOKEN is scoped to the repo the
+          # workflow runs in and cannot write anywhere else.
+          repository: ${{ env.RELEASES_REPO }}
+          token: ${{ secrets.RELEASES_REPO_TOKEN }}
           # The normalised tag, so a manual run started from a bare "0.2.1"
           # still creates and publishes v0.2.1.
           tag_name: ${{ needs.version.outputs.tag }}
           name: ${{ needs.version.outputs.tag }}
-          target_commitish: ${{ github.sha }}
+          # No target_commitish: that would be a commit SHA from *this* repo,
+          # which the releases repo has no history for. The release is a
+          # drop of build artifacts, not a snapshot of this repo's tree.
           # Manual verification runs (workflow_dispatch) publish as draft so a
           # test tag does not look like a production release.
           draft: ${{ github.event_name == 'workflow_dispatch' }}
