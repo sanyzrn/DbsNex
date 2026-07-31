@@ -23,13 +23,13 @@ void main() {
   });
 
   Future<void> pump(WidgetTester tester) => tester.pumpWidget(
-        MaterialApp(
-          theme: nexLightTheme(),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: AiProviderScreen(preferences: preferences),
-        ),
-      );
+    MaterialApp(
+      theme: nexLightTheme(),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: AiProviderScreen(preferences: preferences),
+    ),
+  );
 
   // The action bar is pinned, so the button is on screen whatever the list
   // above it is scrolled to.
@@ -40,7 +40,11 @@ void main() {
   /// scrolling, and it does not.
   Future<Finder> keyField(WidgetTester tester) async {
     final finder = find.widgetWithText(TextField, 'API key');
-    await tester.scrollUntilVisible(finder, 120, scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      finder,
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
     return finder;
   }
 
@@ -60,8 +64,9 @@ void main() {
     expect(saveEnabled(tester), isTrue);
   });
 
-  testWidgets('saving confirms, stores, and disables itself again',
-      (tester) async {
+  testWidgets('saving confirms, stores, and disables itself again', (
+    tester,
+  ) async {
     await pump(tester);
     await tester.enterText(await keyField(tester), 'second');
     await tester.pump();
@@ -91,4 +96,46 @@ void main() {
 
     expect(preferences.aiProvider.provider, AiProvider.none);
   });
+
+  testWidgets(
+    "switching providers shows each one's own key, not the one just left",
+    (tester) async {
+      // Gemini was configured once before, then OpenAI was made active again —
+      // Gemini's key must still be there when the screen switches back to it.
+      await preferences.setAiProvider(
+        const AiProviderConfig(
+          provider: AiProvider.gemini,
+          apiKey: 'gemini-key',
+        ),
+      );
+      await preferences.setAiProvider(
+        const AiProviderConfig(provider: AiProvider.openai, apiKey: 'first'),
+      );
+      await pump(tester);
+
+      await tester.tap(find.text(AiProvider.gemini.label));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(await keyField(tester)).controller!.text,
+        'gemini-key',
+        reason: 'Gemini\'s own saved key, not OpenAI\'s',
+      );
+      // It is not the active provider yet, so Save is how you would switch to
+      // it — even though nothing about it needs editing.
+      expect(saveEnabled(tester), isTrue);
+
+      await tester.tap(find.text(AiProvider.openai.label));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(await keyField(tester)).controller!.text,
+        'first',
+        reason: 'back to OpenAI, whose key was never touched',
+      );
+      expect(
+        saveEnabled(tester),
+        isFalse,
+        reason: 'already active, and its fields still match what is stored',
+      );
+    },
+  );
 }

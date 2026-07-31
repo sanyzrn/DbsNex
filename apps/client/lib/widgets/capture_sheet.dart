@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show BoxWidthStyle;
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
@@ -83,33 +84,64 @@ class _CaptureSheetState extends State<CaptureSheet> {
     return PopScope(
       onPopInvokedWithResult: (_, __) => flush(),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.viewInsetsOf(context).bottom + 16),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(
-            controller: controller,
-            autofocus: true,
-            minLines: 3,
-            maxLines: null,
-            textDirection: nexTextDirection(controller.text),
-            textAlign: nexTextAlign(controller.text),
-            decoration: InputDecoration(hintText: l10n.captureHint, border: InputBorder.none),
-            onChanged: changed,
-            onSubmitted: (_) => close(),
-          ),
-          const Divider(height: 1),
-          Wrap(spacing: 2, children: [
-            _Action(Icons.mic_none, l10n.voice, widget.onVoice),
-            _Action(Icons.photo_camera_outlined, l10n.camera, widget.onCamera),
-            _Action(Icons.photo_library_outlined, l10n.gallery, widget.onGallery),
-            _Action(Icons.attach_file, l10n.file, widget.onFile),
-            IconButton.filled(
-              constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-              onPressed: close,
-              tooltip: l10n.capture,
-              icon: const Icon(Icons.arrow_upward),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          8,
+          16,
+          MediaQuery.viewInsetsOf(context).bottom + 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller,
+              autofocus: true,
+              minLines: 3,
+              maxLines: null,
+              textDirection: nexTextDirection(controller.text),
+              textAlign: nexTextAlign(controller.text),
+              // Default is BoxWidthStyle.max, which pads a selection's highlight
+              // out to the far edge of its line on Persian text — double-tapping
+              // a word painted a bar running to the end of the line, empty space
+              // included, even though the selection itself (and copy) was always
+              // just the word.
+              selectionWidthStyle: BoxWidthStyle.tight,
+              decoration: InputDecoration(
+                hintText: l10n.captureHint,
+                border: InputBorder.none,
+              ),
+              onChanged: changed,
+              onSubmitted: (_) => close(),
             ),
-          ]),
-        ]),
+            const Divider(height: 1),
+            Wrap(
+              spacing: 2,
+              children: [
+                _Action(Icons.mic_none, l10n.voice, widget.onVoice),
+                _Action(
+                  Icons.photo_camera_outlined,
+                  l10n.camera,
+                  widget.onCamera,
+                ),
+                _Action(
+                  Icons.photo_library_outlined,
+                  l10n.gallery,
+                  widget.onGallery,
+                ),
+                _Action(Icons.attach_file, l10n.file, widget.onFile),
+                IconButton.filled(
+                  constraints: const BoxConstraints.tightFor(
+                    width: 44,
+                    height: 44,
+                  ),
+                  onPressed: close,
+                  tooltip: l10n.capture,
+                  icon: const Icon(Icons.arrow_upward),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

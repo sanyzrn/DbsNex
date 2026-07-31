@@ -16,7 +16,8 @@ import 'backup_screen.dart';
 import 'intelligence_screen.dart';
 import 'update_sheet.dart';
 
-String _swipeLabel(AppLocalizations l10n, SwipeAction action) => switch (action) {
+String _swipeLabel(AppLocalizations l10n, SwipeAction action) =>
+    switch (action) {
       SwipeAction.none => l10n.swipeNone,
       SwipeAction.delete => l10n.delete,
       SwipeAction.addTag => l10n.addTag,
@@ -68,7 +69,10 @@ class SettingsSheet extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(l10n.settings, style: theme.textTheme.titleLarge),
+                    child: Text(
+                      l10n.settings,
+                      style: theme.textTheme.titleLarge,
+                    ),
                   ),
                   IconButton(
                     tooltip: l10n.cancel,
@@ -79,214 +83,219 @@ class SettingsSheet extends StatelessWidget {
               ),
             ),
             Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  NexSpacing.md,
-                  0,
-                  NexSpacing.md,
-                  NexSpacing.lg,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _Section(
-                      icon: Icons.palette_outlined,
-                      title: l10n.appearance,
-                      children: [
-                        _Inset(
-                          child: NexChoiceCards<ThemeMode>(
-                            haptics: preferences.haptics,
-                            selected: preferences.themeMode,
-                            onSelected: preferences.setThemeMode,
-                            choices: [
-                              NexChoice(
-                                value: ThemeMode.light,
-                                label: l10n.themeLight,
-                                preview: NexThemeSwatch(
-                                  mode: ThemeMode.light,
-                                  comfort: preferences.comfortMode,
+              child: _DismissOnOverscroll(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(
+                    NexSpacing.md,
+                    0,
+                    NexSpacing.md,
+                    NexSpacing.lg,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _Section(
+                        icon: Icons.palette_outlined,
+                        title: l10n.appearance,
+                        children: [
+                          _Inset(
+                            child: NexChoiceCards<ThemeMode>(
+                              haptics: preferences.haptics,
+                              selected: preferences.themeMode,
+                              onSelected: preferences.setThemeMode,
+                              choices: [
+                                NexChoice(
+                                  value: ThemeMode.light,
+                                  label: l10n.themeLight,
+                                  preview: NexThemeSwatch(
+                                    mode: ThemeMode.light,
+                                    comfort: preferences.comfortMode,
+                                  ),
                                 ),
-                              ),
-                              NexChoice(
-                                value: ThemeMode.dark,
-                                label: l10n.themeDark,
-                                preview: NexThemeSwatch(
-                                  mode: ThemeMode.dark,
-                                  comfort: preferences.comfortMode,
+                                NexChoice(
+                                  value: ThemeMode.dark,
+                                  label: l10n.themeDark,
+                                  preview: NexThemeSwatch(
+                                    mode: ThemeMode.dark,
+                                    comfort: preferences.comfortMode,
+                                  ),
                                 ),
-                              ),
-                              NexChoice(
-                                value: ThemeMode.system,
-                                label: l10n.themeSystem,
-                                preview: NexThemeSwatch(
-                                  mode: ThemeMode.system,
-                                  comfort: preferences.comfortMode,
+                                NexChoice(
+                                  value: ThemeMode.system,
+                                  label: l10n.themeSystem,
+                                  preview: NexThemeSwatch(
+                                    mode: ThemeMode.system,
+                                    comfort: preferences.comfortMode,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SwitchListTile(
-                          contentPadding: _rowPadding,
-                          secondary: const Icon(Icons.wb_twilight_outlined),
-                          title: Text(l10n.comfortMode),
-                          subtitle: Text(l10n.comfortModeSubtitle),
-                          value: preferences.comfortMode,
-                          onChanged: preferences.setComfortMode,
-                        ),
-                        _SubHeading(icon: Icons.translate, label: l10n.language),
-                        _Inset(
-                          child: NexChoiceCards<String>(
-                            haptics: preferences.haptics,
-                            selected:
-                                preferences.locale?.languageCode ?? 'system',
-                            onSelected: preferences.setLocale,
-                            choices: [
-                              NexChoice(
-                                value: 'system',
-                                label: l10n.languageSystem,
-                                preview: const NexScriptSample(
-                                  icon: Icons.phone_iphone_outlined,
-                                ),
-                              ),
-                              // Each language in its own script: recognising
-                              // your own alphabet does not require reading the
-                              // language the app is currently in.
-                              const NexChoice(
-                                value: 'en',
-                                label: 'English',
-                                preview: NexScriptSample(sample: 'Aa'),
-                              ),
-                              const NexChoice(
-                                value: 'fa',
-                                label: 'فارسی',
-                                preview: NexScriptSample(sample: 'اَ'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    _Section(
-                      icon: Icons.person_outline,
-                      title: l10n.yourName,
-                      footnote: l10n.yourNameHint,
-                      children: [_NameRow(preferences: preferences)],
-                    ),
-                    _Section(
-                      icon: Icons.accessibility_new_outlined,
-                      title: l10n.accessibility,
-                      children: [
-                        SwitchListTile(
-                          contentPadding: _rowPadding,
-                          secondary: const Icon(Icons.animation_outlined),
-                          title: Text(l10n.reduceMotion),
-                          value: preferences.reduceMotion,
-                          onChanged: preferences.setReduceMotion,
-                        ),
-                        SwitchListTile(
-                          contentPadding: _rowPadding,
-                          secondary: const Icon(Icons.vibration),
-                          title: Text(l10n.haptics),
-                          value: preferences.haptics,
-                          onChanged: preferences.setHaptics,
-                        ),
-                      ],
-                    ),
-                    _Section(
-                      icon: Icons.swipe_outlined,
-                      title: l10n.swipeActions,
-                      footnote: l10n.swipeActionsHint,
-                      children: [_SwipeMapping(preferences: preferences)],
-                    ),
-                    _Section(
-                      icon: Icons.auto_awesome_outlined,
-                      title: l10n.intelligence,
-                      children: [
-                        ListTile(
-                          contentPadding: _rowPadding,
-                          leading: const Icon(Icons.auto_awesome_outlined),
-                          title: Text(l10n.intelligenceOpen),
-                          subtitle: Text(
-                            preferences.aiEnabled
-                                ? preferences.aiProvider.provider.label
-                                : l10n.intelligenceOff,
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute<void>(
-                              builder: (_) => IntelligenceScreen(
-                                services: services,
-                                preferences: preferences,
-                              ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    _Section(
-                      icon: Icons.backup_outlined,
-                      title: l10n.dataAndBackup,
-                      children: [
-                        FutureBuilder<List<File>>(
-                          future: services.listBackups(),
-                          builder: (context, snapshot) => ListTile(
+                          SwitchListTile(
                             contentPadding: _rowPadding,
-                            leading: const Icon(Icons.import_export),
-                            title: Text(l10n.exportTitle),
+                            secondary: const Icon(Icons.wb_twilight_outlined),
+                            title: Text(l10n.comfortMode),
+                            subtitle: Text(l10n.comfortModeSubtitle),
+                            value: preferences.comfortMode,
+                            onChanged: preferences.setComfortMode,
+                          ),
+                          _SubHeading(
+                            icon: Icons.translate,
+                            label: l10n.language,
+                          ),
+                          _Inset(
+                            child: NexChoiceCards<String>(
+                              haptics: preferences.haptics,
+                              selected:
+                                  preferences.locale?.languageCode ?? 'system',
+                              onSelected: preferences.setLocale,
+                              choices: [
+                                NexChoice(
+                                  value: 'system',
+                                  label: l10n.languageSystem,
+                                  preview: const NexScriptSample(
+                                    icon: Icons.phone_iphone_outlined,
+                                  ),
+                                ),
+                                // Each language in its own script: recognising
+                                // your own alphabet does not require reading the
+                                // language the app is currently in.
+                                const NexChoice(
+                                  value: 'en',
+                                  label: 'English',
+                                  preview: NexScriptSample(sample: 'Aa'),
+                                ),
+                                const NexChoice(
+                                  value: 'fa',
+                                  label: 'فارسی',
+                                  preview: NexScriptSample(sample: 'اَ'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      _Section(
+                        icon: Icons.person_outline,
+                        title: l10n.yourName,
+                        footnote: l10n.yourNameHint,
+                        children: [_NameRow(preferences: preferences)],
+                      ),
+                      _Section(
+                        icon: Icons.accessibility_new_outlined,
+                        title: l10n.accessibility,
+                        children: [
+                          SwitchListTile(
+                            contentPadding: _rowPadding,
+                            secondary: const Icon(Icons.animation_outlined),
+                            title: Text(l10n.reduceMotion),
+                            value: preferences.reduceMotion,
+                            onChanged: preferences.setReduceMotion,
+                          ),
+                          SwitchListTile(
+                            contentPadding: _rowPadding,
+                            secondary: const Icon(Icons.vibration),
+                            title: Text(l10n.haptics),
+                            value: preferences.haptics,
+                            onChanged: preferences.setHaptics,
+                          ),
+                        ],
+                      ),
+                      _Section(
+                        icon: Icons.swipe_outlined,
+                        title: l10n.swipeActions,
+                        footnote: l10n.swipeActionsHint,
+                        children: [_SwipeMapping(preferences: preferences)],
+                      ),
+                      _Section(
+                        icon: Icons.auto_awesome_outlined,
+                        title: l10n.intelligence,
+                        children: [
+                          ListTile(
+                            contentPadding: _rowPadding,
+                            leading: const Icon(Icons.auto_awesome_outlined),
+                            title: Text(l10n.intelligenceOpen),
                             subtitle: Text(
-                              l10n.backupCount(snapshot.data?.length ?? 0),
+                              preferences.aiEnabled
+                                  ? preferences.aiProvider.provider.label
+                                  : l10n.intelligenceOff,
                             ),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute<void>(
-                                builder: (_) => BackupScreen(
+                                builder: (_) => IntelligenceScreen(
                                   services: services,
                                   preferences: preferences,
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        _SyncRow(
-                          services: services,
-                          preferences: preferences,
-                        ),
-                      ],
-                    ),
-                    _Section(
-                      icon: Icons.info_outline,
-                      title: l10n.about,
-                      children: [
-                        _UpdateRow(
-                          updates: updates,
-                          preferences: preferences,
-                        ),
-                        SwitchListTile(
-                          contentPadding: _rowPadding,
-                          secondary: const Icon(Icons.update_outlined),
-                          title: Text(l10n.autoUpdateCheck),
-                          subtitle: Text(l10n.autoUpdateCheckHint),
-                          value: preferences.autoUpdateCheck,
-                          onChanged: preferences.setAutoUpdateCheck,
-                        ),
-                        ListTile(
-                          contentPadding: _rowPadding,
-                          leading: const Icon(Icons.auto_stories_outlined),
-                          title: Text(l10n.about),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute<void>(
-                              builder: (_) => AboutScreen(services: services),
+                        ],
+                      ),
+                      _Section(
+                        icon: Icons.backup_outlined,
+                        title: l10n.dataAndBackup,
+                        children: [
+                          FutureBuilder<List<File>>(
+                            future: services.listBackups(),
+                            builder: (context, snapshot) => ListTile(
+                              contentPadding: _rowPadding,
+                              leading: const Icon(Icons.import_export),
+                              title: Text(l10n.exportTitle),
+                              subtitle: Text(
+                                l10n.backupCount(snapshot.data?.length ?? 0),
+                              ),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (_) => BackupScreen(
+                                    services: services,
+                                    preferences: preferences,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          _SyncRow(
+                            services: services,
+                            preferences: preferences,
+                          ),
+                        ],
+                      ),
+                      _Section(
+                        icon: Icons.info_outline,
+                        title: l10n.about,
+                        children: [
+                          _UpdateRow(
+                            updates: updates,
+                            preferences: preferences,
+                          ),
+                          SwitchListTile(
+                            contentPadding: _rowPadding,
+                            secondary: const Icon(Icons.update_outlined),
+                            title: Text(l10n.autoUpdateCheck),
+                            subtitle: Text(l10n.autoUpdateCheckHint),
+                            value: preferences.autoUpdateCheck,
+                            onChanged: preferences.setAutoUpdateCheck,
+                          ),
+                          ListTile(
+                            contentPadding: _rowPadding,
+                            leading: const Icon(Icons.auto_stories_outlined),
+                            title: Text(l10n.about),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => AboutScreen(services: services),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -295,13 +304,51 @@ class SettingsSheet extends StatelessWidget {
       ),
     );
   }
-
 }
 
 const _rowPadding = EdgeInsetsDirectional.only(
   start: NexSpacing.md,
   end: NexSpacing.sm,
 );
+
+/// Closes the sheet on a downward drag anywhere over [child], once it is
+/// already scrolled to the top.
+///
+/// The sheet's own drag-to-dismiss only ever saw the header above the
+/// scroll view: a plain `SingleChildScrollView` wins the same vertical drag
+/// in the gesture arena outright, whether or not it has anywhere left to
+/// scroll, so a swipe that started over the settings themselves never
+/// reached it. `OverscrollNotification` is what the scroll view reports
+/// instead of moving once it is pinned at its own boundary — a negative
+/// value is exactly a downward drag past the top — so it stands in for the
+/// drag-to-dismiss the content itself cannot forward.
+class _DismissOnOverscroll extends StatefulWidget {
+  const _DismissOnOverscroll({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_DismissOnOverscroll> createState() => _DismissOnOverscrollState();
+}
+
+class _DismissOnOverscrollState extends State<_DismissOnOverscroll> {
+  bool _dismissed = false;
+
+  bool _onNotification(OverscrollNotification notification) {
+    if (!_dismissed && notification.overscroll < -8) {
+      _dismissed = true;
+      Navigator.of(context).maybePop();
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      NotificationListener<OverscrollNotification>(
+        onNotification: _onNotification,
+        child: widget.child,
+      );
+}
 
 /// One labelled group of preferences, drawn as a card.
 class _Section extends StatelessWidget {
@@ -336,7 +383,9 @@ class _Section extends StatelessWidget {
                 const SizedBox(width: NexSpacing.sm),
                 Text(
                   title,
-                  style: theme.textTheme.bodySmall?.copyWith(letterSpacing: 0.3),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    letterSpacing: 0.3,
+                  ),
                 ),
               ],
             ),
@@ -472,7 +521,11 @@ class _SyncRowState extends State<_SyncRow> {
     try {
       final result = await widget.services.syncNow();
       messenger.showSnackBar(
-        SnackBar(content: Text('${l10n.syncComplete} · ${result.pushed}↑ ${result.pulled}↓')),
+        SnackBar(
+          content: Text(
+            '${l10n.syncComplete} · ${result.pushed}↑ ${result.pulled}↓',
+          ),
+        ),
       );
     } catch (_) {
       messenger.showSnackBar(SnackBar(content: Text(l10n.operationFailed)));
@@ -547,8 +600,9 @@ class _NameRow extends StatefulWidget {
 class _NameRowState extends State<_NameRow> {
   Future<void> _edit() async {
     final l10n = AppLocalizations.of(context);
-    final controller =
-        TextEditingController(text: widget.preferences.displayName ?? '');
+    final controller = TextEditingController(
+      text: widget.preferences.displayName ?? '',
+    );
     final saved = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -602,10 +656,8 @@ class _Inset extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(NexSpacing.md),
-        child: child,
-      );
+  Widget build(BuildContext context) =>
+      Padding(padding: const EdgeInsets.all(NexSpacing.md), child: child);
 }
 
 /// The FR-2.7 swipe mapping.
@@ -629,7 +681,10 @@ class _SwipeMappingState extends State<_SwipeMapping> {
     required bool isLeading,
     required SwipeAction action,
   }) async {
-    await widget.preferences.setSwipeAction(isLeading: isLeading, action: action);
+    await widget.preferences.setSwipeAction(
+      isLeading: isLeading,
+      action: action,
+    );
     if (mounted) setState(() {});
   }
 
@@ -660,16 +715,16 @@ class _SwipeMappingState extends State<_SwipeMapping> {
 }
 
 IconData _swipeIcon(SwipeAction action) => switch (action) {
-      SwipeAction.none => Icons.block,
-      SwipeAction.delete => Icons.delete_outline,
-      SwipeAction.addTag => Icons.label_outline,
-    };
+  SwipeAction.none => Icons.block,
+  SwipeAction.delete => Icons.delete_outline,
+  SwipeAction.addTag => Icons.label_outline,
+};
 
 Color _swipeColor(ThemeData theme, SwipeAction action) => switch (action) {
-      SwipeAction.none => theme.colorScheme.outline,
-      SwipeAction.delete => theme.colorScheme.error,
-      SwipeAction.addTag => theme.colorScheme.secondary,
-    };
+  SwipeAction.none => theme.colorScheme.outline,
+  SwipeAction.delete => theme.colorScheme.error,
+  SwipeAction.addTag => theme.colorScheme.secondary,
+};
 
 /// One edge of the mapping, with its action chosen from a menu.
 ///
@@ -710,8 +765,7 @@ class _SwipeRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Text(_swipeLabel(l10n, candidate))),
-                if (candidate == action)
-                  const Icon(Icons.check, size: 18),
+                if (candidate == action) const Icon(Icons.check, size: 18),
               ],
             ),
           ),
@@ -735,7 +789,6 @@ class _SwipeRow extends StatelessWidget {
     );
   }
 }
-
 
 /// The update row, with the same dot the settings icon carries.
 ///
@@ -768,15 +821,14 @@ class _UpdateRow extends StatelessWidget {
             ],
           ),
           title: Text(l10n.checkForUpdate),
-          subtitle: Text(
-            switch ((waiting, version)) {
-              // Saying it is already downloaded is the point of downloading it
-              // early: the next tap is an install, not a wait.
-              (true, final v?) when ready => '${l10n.updateAvailable(v)} · ${l10n.updateReady}',
-              (true, final v?) => l10n.updateAvailable(v),
-              _ => l10n.installedVersion(nexAppVersion),
-            },
-          ),
+          subtitle: Text(switch ((waiting, version)) {
+            // Saying it is already downloaded is the point of downloading it
+            // early: the next tap is an install, not a wait.
+            (true, final v?) when ready =>
+              '${l10n.updateAvailable(v)} · ${l10n.updateReady}',
+            (true, final v?) => l10n.updateAvailable(v),
+            _ => l10n.installedVersion(nexAppVersion),
+          }),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => UpdateSheet.show(
             context,
