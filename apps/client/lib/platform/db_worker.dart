@@ -35,6 +35,7 @@ enum _DbCommand {
   setCaption,
   pinNote,
   unpinNote,
+  pinnedNoteId,
   reorderNotes,
   addTag,
   removeTag,
@@ -279,6 +280,9 @@ class NexDbWorker implements NexDb {
   @override
   Future<void> unpinNote(String id) =>
       _send<void>(_DbCommand.unpinNote, {'id': id});
+
+  @override
+  Future<String?> pinnedNoteId() => _send<String?>(_DbCommand.pinnedNoteId);
 
   @override
   Future<void> reorderNotes(List<String> orderedIds) =>
@@ -533,6 +537,7 @@ class NexDbWorker implements NexDb {
             _voided(() => repo.pinNote(arg('id')! as String)),
           _DbCommand.unpinNote =>
             _voided(() => repo.unpinNote(arg('id')! as String)),
+          _DbCommand.pinnedNoteId => repo.pinnedNoteId(),
           _DbCommand.reorderNotes => _voided(
               () => repo.reorderNotes(
                 (arg('orderedIds')! as List).cast<String>(),

@@ -145,6 +145,16 @@ WHERE id = ? AND deleted_at IS NULL
   void unpinNote(String noteId) =>
       db.execute('UPDATE notes SET pinned_at = NULL WHERE id = ?', [noteId]);
 
+  /// The id of the one note currently pinned, if any. Pinning never touches
+  /// `updated_at` (see [pinNote]), so the pinned note is not necessarily
+  /// inside any timeline page — this is the only reliable way to ask.
+  String? pinnedNoteId() {
+    final rows = db.select(
+      'SELECT id FROM notes WHERE pinned_at IS NOT NULL AND deleted_at IS NULL LIMIT 1',
+    );
+    return rows.isEmpty ? null : rows.first['id'] as String;
+  }
+
   /// Stamps every note in [orderedIds] with its index as `sort_order`, in one
   /// transaction — the whole set a Rearrange-mode drag was performed against,
   /// not just the two notes that swapped places, so the rest of that list

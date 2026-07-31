@@ -10,7 +10,6 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
-import '../feature_flags.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/file_opener.dart';
 import '../platform/sharing.dart';
@@ -46,6 +45,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   Note? _note;
   List<TagSuggestion> _suggestions = const [];
   List<SemanticHit> _related = const [];
+
+  /// The currently pinned note's id, if any — only one note is ever pinned
+  /// at a time, so this note's own pin action is disabled whenever it names
+  /// someone else.
+  String? _pinnedNoteId;
 
   /// Whether the user has asked to see what the intelligence layer produced.
   ///
@@ -84,8 +88,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
   Future<void> _reload() async {
     final loaded = await widget.services.getById(widget.noteId);
+    final pinnedNoteId = await widget.services.pinnedNoteId();
     if (!mounted) return;
-    setState(() => _note = loaded);
+    setState(() {
+      _note = loaded;
+      _pinnedNoteId = pinnedNoteId;
+    });
     final note = _note;
     if (note?.type == NoteType.voice &&
         note?.mediaUri != null &&
@@ -877,25 +885,23 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         label: l10n.edit,
                         onPressed: _editContent,
                       ),
-                    if (!isText)
-                      _DetailAction(
-                        icon: Icons.notes_outlined,
-                        label: l10n.caption,
-                        onPressed: _editCaption,
-                      ),
+                    // Tag and caption both already have their own add/edit
+                    // affordance further up the sheet — see the tag chip row
+                    // and the caption row above. Repeating them here just
+                    // duplicated an action that was never out of reach.
                     _DetailAction(
-                      icon: Icons.label_outline,
-                      label: l10n.tag,
-                      onPressed: _addTag,
+                      icon: note.pinnedAt != null
+                          ? Icons.push_pin
+                          : Icons.push_pin_outlined,
+                      label: note.pinnedAt != null ? l10n.unpin : l10n.pin,
+                      // Only one note is ever pinned at a time (see
+                      // NoteRepository.pinNote); rather than silently
+                      // stealing the pin from whichever note holds it, the
+                      // action is simply off until that one is unpinned.
+                      onPressed: note.pinnedAt == null && _pinnedNoteId != null
+                          ? null
+                          : _togglePin,
                     ),
-                    if (kPinAndReorderEnabled)
-                      _DetailAction(
-                        icon: note.pinnedAt != null
-                            ? Icons.push_pin
-                            : Icons.push_pin_outlined,
-                        label: note.pinnedAt != null ? l10n.unpin : l10n.pin,
-                        onPressed: _togglePin,
-                      ),
                     _DetailAction(
                       icon: Icons.auto_awesome_outlined,
                       label: l10n.summarize,
@@ -1104,6 +1110,10 @@ class _ActionRow extends StatelessWidget {
 /// just not painted. Seven of these in a row used to run past the width of
 /// the sheet on anything but the widest phone; the label was the only thing
 /// making each one wider than the 48px floor it actually needs.
+///
+/// No fill, no border: a bare icon with its own ripple reads lighter than a
+/// row of outlined chips, and there is nothing here for a border to set
+/// apart from — the sheet's background is already the only thing behind it.
 class _DetailAction extends StatelessWidget {
   const _DetailAction({
     required this.icon,
@@ -1113,11 +1123,14 @@ class _DetailAction extends StatelessWidget {
 
   final IconData icon;
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final color = onPressed == null
+        ? theme.disabledColor
+        : theme.colorScheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
       child: Tooltip(
@@ -1125,16 +1138,10 @@ class _DetailAction extends StatelessWidget {
         child: InkWell(
           onTap: onPressed,
           borderRadius: BorderRadius.circular(NexColors.cardRadius),
-          child: Container(
+          child: SizedBox(
             width: nexMinTapTarget,
             height: nexMinTapTarget,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(NexColors.cardRadius),
-              border: Border.all(color: theme.colorScheme.outline),
-            ),
-            child: Icon(icon, size: 20),
+            child: Center(child: Icon(icon, size: 20, color: color)),
           ),
         ),
       ),

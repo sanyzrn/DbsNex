@@ -123,6 +123,9 @@ class InProcessDb implements NexDb {
   Future<void> unpinNote(String id) async => _repo.unpinNote(id);
 
   @override
+  Future<String?> pinnedNoteId() async => _repo.pinnedNoteId();
+
+  @override
   Future<void> reorderNotes(List<String> orderedIds) async =>
       _repo.reorderNotes(orderedIds);
 

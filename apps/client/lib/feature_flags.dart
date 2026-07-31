@@ -1,13 +1,10 @@
-/// Temporary kill switch for a shipped-but-paused feature — not a user
-/// preference, but a single constant a developer flips back once the
-/// feature is ready again.
+/// Temporary kill switch for the quick-actions bottom sheet that used to open
+/// when a long press on a timeline card released without ever turning into a
+/// drag — not a user preference, but a single constant a developer flips
+/// back once that menu is reworked.
 ///
-/// Covers long-press-to-reorder on a timeline card, the quick-actions menu
-/// that opens instead when it is released without moving, and the pin
-/// capability that surfaced through both that menu and the note detail
-/// sheet. Paused at the user's request while it's reworked; every piece
-/// behind it — `SwipeableNoteCard`'s reorder support, the repository's
-/// pin/reorder methods, `Note.pinnedAt`/`sortOrder`, the pinned-first sort in
-/// `listTimeline` — is untouched, so setting this back to `true` is the
-/// whole re-enable.
-const kPinAndReorderEnabled = false;
+/// Drag-to-reorder itself, and pinning (now reachable from the note detail
+/// sheet's action row), are unaffected — only this menu is paused, at the
+/// user's request. `_showQuickActions` in `timeline_screen.dart` is
+/// untouched, so setting this back to `true` is the whole re-enable.
+const kReorderQuickActionsEnabled = false;

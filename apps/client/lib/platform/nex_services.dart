@@ -248,6 +248,9 @@ class NexServices {
 
   Future<void> unpinNote(String id) => worker.unpinNote(id);
 
+  /// The id of the one note currently pinned, if any.
+  Future<String?> pinnedNoteId() => worker.pinnedNoteId();
+
   /// Persists a manual order for exactly the notes in [orderedIds] — the
   /// currently-displayed set a Rearrange drag was performed against.
   Future<void> reorderNotes(List<String> orderedIds) =>

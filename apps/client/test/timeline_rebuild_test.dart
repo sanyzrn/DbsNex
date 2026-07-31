@@ -263,59 +263,84 @@ void main() {
     },
   );
 
-  testWidgets(
-    'pinning a note leads the timeline, and only one stays pinned',
-    (tester) async {
-      await services.captureText('older note');
-      await services.captureText('newer note');
-      await services.refreshTimeline();
-      await tester.pumpWidget(
-        NexApp(services: services, preferences: preferences),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('pinning a note leads the timeline, and only one stays pinned', (
+    tester,
+  ) async {
+    await services.captureText('older note');
+    await services.captureText('newer note');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
 
-      // Newest first, before anything is pinned.
-      expect(
-        tester.getCenter(find.text('newer note')).dy,
-        lessThan(tester.getCenter(find.text('older note')).dy),
-      );
+    // Newest first, before anything is pinned.
+    expect(
+      tester.getCenter(find.text('newer note')).dy,
+      lessThan(tester.getCenter(find.text('older note')).dy),
+    );
 
-      await tester.tap(find.text('older note'));
-      await tester.pumpAndSettle();
-      // The detail sheet's action row is icon-only; its members are found by
-      // tooltip rather than by label text.
-      await tester.tap(find.byTooltip('Pin'));
-      await tester.pumpAndSettle();
-      expect(find.byTooltip('Unpin'), findsOneWidget);
-      Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('older note'));
+    await tester.pumpAndSettle();
+    // The detail sheet's action row is icon-only; its members are found by
+    // tooltip rather than by label text.
+    await tester.tap(find.byTooltip('Pin'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Unpin'), findsOneWidget);
+    Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
+    await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.push_pin), findsOneWidget);
-      expect(
-        tester.getCenter(find.text('older note')).dy,
-        lessThan(tester.getCenter(find.text('newer note')).dy),
-        reason: 'the pinned note leads even though it is the older one',
-      );
+    expect(find.byIcon(Icons.push_pin), findsOneWidget);
+    expect(
+      tester.getCenter(find.text('older note')).dy,
+      lessThan(tester.getCenter(find.text('newer note')).dy),
+      reason: 'the pinned note leads even though it is the older one',
+    );
 
-      // Pinning the other note releases the first — never two at once.
-      await tester.tap(find.text('newer note'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Pin'));
-      await tester.pumpAndSettle();
-      Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
-      await tester.pumpAndSettle();
+    // Only one note is ever pinned at a time — rather than silently
+    // stealing the pin, the action on every other note is simply off while
+    // one is already pinned.
+    await tester.tap(find.text('newer note'));
+    await tester.pumpAndSettle();
+    final pinAction = tester.widget<InkWell>(
+      find.descendant(
+        of: find.byTooltip('Pin'),
+        matching: find.byType(InkWell),
+      ),
+    );
+    expect(pinAction.onTap, isNull);
+    await tester.tap(find.byTooltip('Pin'));
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
+    await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.push_pin), findsOneWidget);
-      expect(
-        tester.getCenter(find.text('newer note')).dy,
-        lessThan(tester.getCenter(find.text('older note')).dy),
-      );
-    },
-    // Pin is paused behind kPinAndReorderEnabled — see feature_flags.dart.
-    // The code this exercises is untouched, so flipping the flag back on is
-    // all re-enabling it needs.
-    skip: !kPinAndReorderEnabled,
-  );
+    expect(
+      tester.getCenter(find.text('older note')).dy,
+      lessThan(tester.getCenter(find.text('newer note')).dy),
+      reason: 'a disabled Pin action must not have moved the pin',
+    );
+
+    // Unpinning first frees the action back up, and the new note takes over.
+    await tester.tap(find.text('older note'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Unpin'));
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('newer note'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Pin'));
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.push_pin), findsOneWidget);
+    expect(
+      tester.getCenter(find.text('newer note')).dy,
+      lessThan(tester.getCenter(find.text('older note')).dy),
+    );
+  });
 
   testWidgets(
     'holding a card without moving opens quick actions, not a reorder',
@@ -340,58 +365,59 @@ void main() {
 
       expect(find.byIcon(Icons.push_pin), findsOneWidget);
     },
-    skip: !kPinAndReorderEnabled,
+    // The menu itself is paused behind kReorderQuickActionsEnabled — see
+    // feature_flags.dart. The code this exercises is untouched, so flipping
+    // the flag back on is all re-enabling it needs.
+    skip: !kReorderQuickActionsEnabled,
   );
 
-  testWidgets(
-    'holding and dragging a card past another reorders the list',
-    (tester) async {
-      await services.captureText('note A');
-      await services.captureText('note B');
-      await services.captureText('note C');
-      await services.refreshTimeline();
-      await tester.pumpWidget(
-        NexApp(services: services, preferences: preferences),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('holding and dragging a card past another reorders the list', (
+    tester,
+  ) async {
+    await services.captureText('note A');
+    await services.captureText('note B');
+    await services.captureText('note C');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
 
-      // Newest first: C, then B, then A.
-      expect(
-        tester.getCenter(find.text('note C')).dy,
-        lessThan(tester.getCenter(find.text('note B')).dy),
-      );
+    // Newest first: C, then B, then A.
+    expect(
+      tester.getCenter(find.text('note C')).dy,
+      lessThan(tester.getCenter(find.text('note B')).dy),
+    );
 
-      final gesture = await tester.startGesture(
-        tester.getCenter(find.text('note C')),
-      );
-      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
-      await gesture.moveBy(const Offset(0, 300));
-      await tester.pump();
-      await gesture.up();
-      await tester.pumpAndSettle();
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('note C')),
+    );
+    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+    await gesture.moveBy(const Offset(0, 300));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
 
-      // Dragged well past B, so it now leads.
-      expect(
-        tester.getCenter(find.text('note B')).dy,
-        lessThan(tester.getCenter(find.text('note C')).dy),
-      );
-      // Reported symptom: a real drag would still open the quick-actions
-      // sheet on release, since onReorderEnd fires the instant the finger
-      // lifts — well before onReorder, which only runs once the drop's
-      // settle animation finishes ~250ms later.
-      expect(find.text('Pin'), findsNothing);
+    // Dragged well past B, so it now leads.
+    expect(
+      tester.getCenter(find.text('note B')).dy,
+      lessThan(tester.getCenter(find.text('note C')).dy),
+    );
+    // Reported symptom: a real drag would still open the quick-actions
+    // sheet on release, since onReorderEnd fires the instant the finger
+    // lifts — well before onReorder, which only runs once the drop's
+    // settle animation finishes ~250ms later.
+    expect(find.text('Pin'), findsNothing);
 
-      // The order survives a fresh read from the repository, not just the
-      // in-memory list the drag rewrote directly.
-      await services.refreshTimeline();
-      await tester.pumpAndSettle();
-      expect(
-        tester.getCenter(find.text('note B')).dy,
-        lessThan(tester.getCenter(find.text('note C')).dy),
-      );
-    },
-    skip: !kPinAndReorderEnabled,
-  );
+    // The order survives a fresh read from the repository, not just the
+    // in-memory list the drag rewrote directly.
+    await services.refreshTimeline();
+    await tester.pumpAndSettle();
+    expect(
+      tester.getCenter(find.text('note B')).dy,
+      lessThan(tester.getCenter(find.text('note C')).dy),
+    );
+  });
 
   testWidgets('search happens on the timeline, without pushing a route', (
     tester,
