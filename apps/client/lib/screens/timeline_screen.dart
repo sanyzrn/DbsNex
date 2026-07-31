@@ -63,6 +63,12 @@ class TimelineScreenState extends State<TimelineScreen> {
 
   /// Keeps one card open at a time and lets a scroll close it.
   final NexSwipeController _swipe = NexSwipeController();
+
+  /// Set by [_onReorder] and read by [_onReorderEnd]: the list's own
+  /// `onReorderEnd` fires whether or not the item actually moved, which is
+  /// exactly the signal a long press that was released without moving needs —
+  /// so a hold-and-release with no drag opens the quick actions instead.
+  bool _reorderMoved = false;
   List<Tag> filterTags = const [];
   String? selectedTagId;
   NoteType? selectedType;
@@ -450,6 +456,111 @@ class TimelineScreenState extends State<TimelineScreen> {
       ));
   }
 
+  /// A long-press-and-drag on a card's middle zone (see [SwipeableNoteCard])
+  /// moved it: reflect that in [notes] straight away rather than waiting on
+  /// the next stream tick, and persist the set that was actually dragged
+  /// against — see [NexServices.reorderNotes].
+  void _onReorder(int oldIndex, int newIndex) {
+    _reorderMoved = true;
+    if (oldIndex < newIndex) newIndex -= 1;
+    final reordered = List<Note>.of(notes);
+    reordered.insert(newIndex, reordered.removeAt(oldIndex));
+    setState(() => notes = reordered);
+    unawaited(
+      widget.services.reorderNotes([for (final n in reordered) n.id]),
+    );
+  }
+
+  /// The same long press, released without ever crossing into a drag: the
+  /// list still calls this, with the index unchanged, which is the only way
+  /// to tell "held it, let go" apart from "held it, moved it" — see
+  /// [_onReorder] and [_reorderMoved].
+  void _onReorderEnd(int index) {
+    if (_reorderMoved) {
+      _reorderMoved = false;
+      return;
+    }
+    unawaited(_showQuickActions(notes[index]));
+  }
+
+  /// What a long press that never turned into a drag opens: the same actions
+  /// a swipe or the detail sheet already offer, reachable without aiming for
+  /// either edge.
+  Future<void> _showQuickActions(Note note) async {
+    final l10n = AppLocalizations.of(context);
+    final action = await showModalBottomSheet<_QuickAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                note.pinnedAt != null
+                    ? Icons.push_pin
+                    : Icons.push_pin_outlined,
+              ),
+              title: Text(note.pinnedAt != null ? l10n.unpin : l10n.pin),
+              onTap: () => Navigator.pop(ctx, _QuickAction.togglePin),
+            ),
+            ListTile(
+              leading: const Icon(Icons.label_outline),
+              title: Text(l10n.addTag),
+              onTap: () => Navigator.pop(ctx, _QuickAction.addTag),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l10n.delete),
+              onTap: () => Navigator.pop(ctx, _QuickAction.delete),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case _QuickAction.togglePin:
+        if (note.pinnedAt != null) {
+          await widget.services.unpinNote(note.id);
+        } else {
+          await widget.services.pinNote(note.id);
+        }
+        await widget.services.refreshTimeline();
+      case _QuickAction.addTag:
+        await _addTagTo(note);
+      case _QuickAction.delete:
+        await deleteWithUndo(note);
+    }
+  }
+
+  /// The dragged card's lift off the background — the same effect
+  /// [ReorderableListView] gives its own items by default, reused here since
+  /// [SliverReorderableList] has no default of its own to fall back on.
+  Widget _reorderProxyDecorator(
+    Widget child,
+    int index,
+    Animation<double> animation,
+  ) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final t = Curves.easeOut.transform(animation.value);
+        return Transform.scale(
+          scale: 1 + 0.02 * t,
+          child: Material(
+            color: Colors.transparent,
+            elevation: 8 * t,
+            shadowColor: Colors.black.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(NexRadius.lg),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+
   /// "Nex", or a greeting if the user told the app their name.
   ///
   /// Decoration, deliberately kept to the one place the app already had a
@@ -680,11 +791,16 @@ class TimelineScreenState extends State<TimelineScreen> {
     }
 
     return [
-      SliverList.builder(
+      SliverReorderableList(
         itemCount: notes.length,
+        onReorderStart: (_) => _swipe.closeAll(),
+        onReorder: _onReorder,
+        onReorderEnd: _onReorderEnd,
+        proxyDecorator: _reorderProxyDecorator,
         itemBuilder: (context, index) {
           final note = notes[index];
           return CommitReceipt(
+            key: ValueKey(note.id),
             active: landedId == note.id,
             // Cleared when it finishes, so the receipt is a moment rather than
             // a permanent mark on whichever note was captured last.
@@ -700,6 +816,7 @@ class TimelineScreenState extends State<TimelineScreen> {
               addTagLabel: l10n.addTag,
               haptics: widget.preferences.haptics,
               controller: _swipe,
+              reorderIndex: index,
               resolveAction: ({required bool isLeading}) {
                 final action = isLeading
                     ? widget.preferences.leadingAction
@@ -864,6 +981,10 @@ class _TypeChoice {
   const _TypeChoice(this.type);
   final NoteType? type;
 }
+
+/// What a hold-and-release without a drag can do to a note — see
+/// [TimelineScreenState._showQuickActions].
+enum _QuickAction { togglePin, addTag, delete }
 
 /// The mockup's leading icon button on the filter row.
 ///

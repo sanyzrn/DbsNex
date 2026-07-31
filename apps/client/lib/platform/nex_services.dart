@@ -248,6 +248,11 @@ class NexServices {
 
   Future<void> unpinNote(String id) => worker.unpinNote(id);
 
+  /// Persists a manual order for exactly the notes in [orderedIds] — the
+  /// currently-displayed set a Rearrange drag was performed against.
+  Future<void> reorderNotes(List<String> orderedIds) =>
+      worker.reorderNotes(orderedIds);
+
   /* ---------------------------------------------------------------- tags */
 
   Future<Tag> addTag({

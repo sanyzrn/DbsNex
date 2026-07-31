@@ -123,6 +123,10 @@ class InProcessDb implements NexDb {
   Future<void> unpinNote(String id) async => _repo.unpinNote(id);
 
   @override
+  Future<void> reorderNotes(List<String> orderedIds) async =>
+      _repo.reorderNotes(orderedIds);
+
+  @override
   Future<Tag> addTag({
     required String noteId,
     required String name,

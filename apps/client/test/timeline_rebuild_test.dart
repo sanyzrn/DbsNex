@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -261,6 +262,72 @@ void main() {
     expect(
       tester.getCenter(find.text('newer note')).dy,
       lessThan(tester.getCenter(find.text('older note')).dy),
+    );
+  });
+
+  testWidgets(
+      'holding a card without moving opens quick actions, not a reorder',
+      (tester) async {
+    await services.captureText('a note to act on');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('a note to act on')),
+    );
+    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pin'), findsOneWidget);
+    await tester.tap(find.text('Pin'));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.push_pin), findsOneWidget);
+  });
+
+  testWidgets('holding and dragging a card past another reorders the list',
+      (tester) async {
+    await services.captureText('note A');
+    await services.captureText('note B');
+    await services.captureText('note C');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    // Newest first: C, then B, then A.
+    expect(
+      tester.getCenter(find.text('note C')).dy,
+      lessThan(tester.getCenter(find.text('note B')).dy),
+    );
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('note C')),
+    );
+    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+    await gesture.moveBy(const Offset(0, 300));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    // Dragged well past B, so it now leads.
+    expect(
+      tester.getCenter(find.text('note B')).dy,
+      lessThan(tester.getCenter(find.text('note C')).dy),
+    );
+
+    // The order survives a fresh read from the repository, not just the
+    // in-memory list the drag rewrote directly.
+    await services.refreshTimeline();
+    await tester.pumpAndSettle();
+    expect(
+      tester.getCenter(find.text('note B')).dy,
+      lessThan(tester.getCenter(find.text('note C')).dy),
     );
   });
 

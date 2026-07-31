@@ -54,6 +54,11 @@ abstract interface class NexDb {
 
   Future<void> unpinNote(String id);
 
+  /// Stamps every id in [orderedIds] with its index as a manual position —
+  /// the whole set a Rearrange drag was performed against (see
+  /// [SqliteNoteRepository.reorderNotes]).
+  Future<void> reorderNotes(List<String> orderedIds);
+
   Future<Tag> addTag({
     required String noteId,
     required String name,
