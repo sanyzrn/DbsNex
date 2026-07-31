@@ -3,6 +3,7 @@ import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import 'nex_dialog.dart';
 
 /// Picks a tag's accent colour.
 ///
@@ -23,11 +24,8 @@ class TagColorPicker extends StatefulWidget {
     BuildContext context, {
     String? initial,
   }) =>
-      showModalBottomSheet<({String? color})>(
+      nexShowSheet<({String? color})>(
         context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        showDragHandle: true,
         builder: (_) => TagColorPicker(initial: initial),
       );
 

@@ -491,9 +491,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               Expanded(child: Text(label, style: theme.textTheme.bodySmall)),
               InkWell(
                 onTap: () => unawaited(_copyDerivedText(body)),
-                borderRadius: BorderRadius.circular(NexColors.cardRadius),
+                borderRadius: BorderRadius.circular(NexRadius.lg),
                 child: Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.all(NexSpacing.xs),
                   child: Icon(
                     Icons.copy_outlined,
                     size: 14,
@@ -687,7 +687,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           );
                         },
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(NexRadius.md),
                           child: Image.file(
                             File(note.mediaUri!),
                             fit: BoxFit.cover,
@@ -712,7 +712,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                     // does in a file manager.
                     InkWell(
                       onTap: _openExternally,
-                      borderRadius: BorderRadius.circular(NexColors.cardRadius),
+                      borderRadius: BorderRadius.circular(NexRadius.lg),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: NexSpacing.sm,
@@ -1137,7 +1137,7 @@ class _DetailAction extends StatelessWidget {
         message: label,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(NexColors.cardRadius),
+          borderRadius: BorderRadius.circular(NexRadius.lg),
           child: SizedBox(
             width: nexMinTapTarget,
             height: nexMinTapTarget,

@@ -21,6 +21,7 @@ import '../widgets/capture_sheet.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/commit_receipt.dart';
 import '../widgets/empty_timeline.dart';
+import '../widgets/nex_dialog.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/search_field_header.dart';
 import '../widgets/search_results.dart';
@@ -226,13 +227,11 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// The content-type filter, behind the mockup's icon button.
   Future<void> _pickType() async {
     final l10n = AppLocalizations.of(context);
-    final chosen = await showModalBottomSheet<_TypeChoice>(
+    final chosen = await nexShowSheet<_TypeChoice>(
       context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
             for (final type in <NoteType?>[null, ...NoteType.values])
               ListTile(
                 leading: Icon(nexNoteTypeIcon(type?.wireName)),
@@ -245,8 +244,7 @@ class TimelineScreenState extends State<TimelineScreen> {
                 // from the user dismissing the sheet.
                 onTap: () => Navigator.pop(ctx, _TypeChoice(type)),
               ),
-          ],
-        ),
+        ],
       ),
     );
     if (chosen == null) return;
@@ -301,10 +299,8 @@ class TimelineScreenState extends State<TimelineScreen> {
   }
 
   Future<void> openCapture() async {
-    await showModalBottomSheet<void>(
+    await nexShowSheet<void>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
       builder: (sheetContext) => CaptureSheet(
         services: widget.services,
         onCommitted: (id) {
@@ -396,13 +392,11 @@ class TimelineScreenState extends State<TimelineScreen> {
     );
     await recorder.start(const RecordConfig(), path: path);
     if (!mounted) return;
-    final keep = await showModalBottomSheet<bool>(
+    // Not dismissible: swiping the sheet away mid-recording would leave the
+    // recorder running with nothing on screen driving it.
+    final keep = await nexShowSheet<bool>(
       context: context,
-      isDismissible: false,
-      // The waveform needs the full sheet width and its own height, not the
-      // half-screen default a content-sized sheet collapses to.
-      isScrollControlled: true,
-      useSafeArea: true,
+      dismissible: false,
       builder: (_) => RecordingSheet(recorder: recorder),
     );
     final recorded = await recorder.stop();
@@ -515,6 +509,14 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// against — see [NexServices.reorderNotes].
   void _onReorder(int oldIndex, int newIndex) {
     if (oldIndex < newIndex) newIndex -= 1;
+    // Nothing may land above a pinned note. It cannot be dragged itself, but
+    // another card dropped on top of it would push it to second place — and
+    // `listTimeline` sorts pinned-first, so the next read would snap it back
+    // and the list would visibly jump for no reason the user could name.
+    if (notes.isNotEmpty && notes.first.pinnedAt != null && newIndex == 0) {
+      newIndex = 1;
+    }
+    if (newIndex == oldIndex) return;
     final reordered = List<Note>.of(notes);
     reordered.insert(newIndex, reordered.removeAt(oldIndex));
     setState(() => notes = reordered);
@@ -544,13 +546,11 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// either edge.
   Future<void> _showQuickActions(Note note) async {
     final l10n = AppLocalizations.of(context);
-    final action = await showModalBottomSheet<_QuickAction>(
+    final action = await nexShowSheet<_QuickAction>(
       context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
             ListTile(
               leading: Icon(
                 note.pinnedAt != null
@@ -570,8 +570,7 @@ class TimelineScreenState extends State<TimelineScreen> {
               title: Text(l10n.delete),
               onTap: () => Navigator.pop(ctx, _QuickAction.delete),
             ),
-          ],
-        ),
+        ],
       ),
     );
     if (!mounted || action == null) return;
@@ -703,13 +702,8 @@ class TimelineScreenState extends State<TimelineScreen> {
           _SettingsButton(
             updates: widget.updates,
             tooltip: l10n.settings,
-            // useSafeArea keeps the sheet clear of the status bar; without it
-            // the title sat flush against the top of the screen.
-            onPressed: () => showModalBottomSheet<void>(
+            onPressed: () => nexShowSheet<void>(
               context: context,
-              isScrollControlled: true,
-              useSafeArea: true,
-              showDragHandle: true,
               builder: (_) => SettingsSheet(
                 services: widget.services,
                 preferences: widget.preferences,
@@ -879,7 +873,10 @@ class TimelineScreenState extends State<TimelineScreen> {
               addTagLabel: l10n.addTag,
               haptics: widget.preferences.haptics,
               controller: _swipe,
-              reorderIndex: index,
+              // A pinned note is held in place by definition, so it is not
+              // a thing that can be dragged somewhere else. Null here is what
+              // SwipeableNoteCard reads as "no reorder gesture on this card".
+              reorderIndex: notes[index].pinnedAt == null ? index : null,
               resolveAction: ({required bool isLeading}) {
                 final action = isLeading
                     ? widget.preferences.leadingAction
@@ -921,11 +918,8 @@ class TimelineScreenState extends State<TimelineScreen> {
   }
 
   Future<void> _openNote(Note note) async {
-    final result = await showModalBottomSheet<DetailResult>(
+    final result = await nexShowSheet<DetailResult>(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
       builder: (_) =>
           NoteDetailSheet(services: widget.services, noteId: note.id),
     );

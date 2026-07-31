@@ -234,11 +234,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _backfilling ? null : () => unawaited(_catchUp()),
                   icon: _backfilling
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const NexInlineSpinner()
                       : const Icon(Icons.history_toggle_off),
                   label: Text(l10n.catchUpAction),
                 ),

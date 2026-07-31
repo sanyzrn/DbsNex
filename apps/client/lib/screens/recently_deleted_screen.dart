@@ -133,27 +133,19 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
         ],
       ),
       body: notes.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.delete_outline,
-                    size: 40,
-                    color: theme.colorScheme.outline,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.recentlyDeletedEmpty,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ],
-              ),
+          ? NexEmptyState(
+              icon: Icons.delete_outline,
+              message: l10n.recentlyDeletedEmpty,
             )
           : Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                  padding: const EdgeInsets.fromLTRB(
+                    NexSpacing.md,
+                    NexSpacing.sm,
+                    NexSpacing.md,
+                    NexSpacing.xs,
+                  ),
                   child: Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: Text(
@@ -171,7 +163,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                       final note = notes[index];
                       return ListTile(
                         minTileHeight: 56,
-                        leading: Icon(_iconFor(note.type)),
+                        leading: Icon(nexNoteTypeIcon(note.type.wireName)),
                         title: Text(
                           note.searchableDerivedText?.trim().isNotEmpty == true
                               ? note.searchableDerivedText!
@@ -206,10 +198,4 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
     );
   }
 
-  static IconData _iconFor(NoteType type) => switch (type) {
-        NoteType.text => Icons.short_text,
-        NoteType.voice => Icons.graphic_eq,
-        NoteType.photo => Icons.photo_outlined,
-        NoteType.file => Icons.insert_drive_file_outlined,
-      };
 }

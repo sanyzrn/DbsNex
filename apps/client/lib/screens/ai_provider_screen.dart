@@ -281,11 +281,7 @@ class _ActionBar extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: testing ? null : onTest,
                 icon: testing
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                    ? const NexInlineSpinner()
                     : const Icon(Icons.wifi_tethering),
                 label: Text(l10n.testConnection),
               ),
@@ -402,7 +398,7 @@ class _ResultBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(NexSpacing.md),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(NexColors.cardRadius),
+        borderRadius: BorderRadius.circular(NexRadius.lg),
         border: Border.all(color: color),
       ),
       child: Row(

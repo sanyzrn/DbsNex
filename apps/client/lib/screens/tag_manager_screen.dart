@@ -49,27 +49,13 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
         child: const Icon(Icons.add),
       ),
       body: tags.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.label_outline,
-                    size: 40,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.noTagsYet,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  TextButton.icon(
-                    onPressed: () => unawaited(_createTag()),
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.createTag),
-                  ),
-                ],
+          ? NexEmptyState(
+              icon: Icons.label_outline,
+              message: l10n.noTagsYet,
+              action: TextButton.icon(
+                onPressed: () => unawaited(_createTag()),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.createTag),
               ),
             )
           : ListView.separated(
@@ -158,7 +144,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       controller.dispose();
       if (name != null) await widget.services.renameTag(value.tag.id, name);
     } else if (action == 'merge') {
-      final target = await showModalBottomSheet<TagUsage>(
+      final target = await nexShowSheet<TagUsage>(
         context: context,
         builder: (context) => ListView(
           shrinkWrap: true,

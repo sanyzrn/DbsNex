@@ -115,8 +115,6 @@ abstract final class NexColors {
   /// "organize", stays quiet next to the delete panel, and clears 4.5:1
   /// against the white label it carries.
   static const swipeAddTag = Color(0xFF4A5568);
-
-  static const cardRadius = 20.0;
 }
 
 /// The 4pt grid. Every gap in the app is one of these.
@@ -142,11 +140,16 @@ abstract final class NexMotion {
 
 /// One radius scale. Inner radii are derived from an outer radius minus the
 /// inset that separates them, so concentric corners actually stay concentric.
+///
+/// [lg] is the card radius, and it is the only name for it. It used to live on
+/// [NexColors] as well — a radius on the colour class — and the app reached for
+/// whichever of the two names was nearer, so the same corner was written two
+/// ways in the same sheet.
 abstract final class NexRadius {
   static const xs = 4.0;
   static const sm = 8.0;
   static const md = 12.0;
-  static const lg = NexColors.cardRadius;
+  static const lg = 20.0;
   static const xl = 28.0;
 
   /// The radius a shape nested [inset] inside a [outer]-radius shape needs in

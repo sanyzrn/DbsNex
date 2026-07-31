@@ -342,6 +342,70 @@ void main() {
     );
   });
 
+  testWidgets('a pinned note cannot be dragged, and nothing lands above it', (
+    tester,
+  ) async {
+    await services.captureText('note A');
+    await services.captureText('note B');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    // Pin the older one, which moves it to the top.
+    await tester.tap(find.text('note A'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Pin'));
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
+    await tester.pumpAndSettle();
+    expect(
+      tester.getCenter(find.text('note A')).dy,
+      lessThan(tester.getCenter(find.text('note B')).dy),
+    );
+
+    // Holding the pinned card and dragging it down does nothing: it is held
+    // in place, so it carries no reorder gesture at all.
+    final pinned = await tester.startGesture(
+      tester.getCenter(find.text('note A')),
+    );
+    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+    await pinned.moveBy(const Offset(0, 200));
+    await tester.pump();
+    await pinned.up();
+    await tester.pumpAndSettle();
+    expect(
+      tester.getCenter(find.text('note A')).dy,
+      lessThan(tester.getCenter(find.text('note B')).dy),
+      reason: 'a pinned card must not be draggable',
+    );
+
+    // Dragging the other card up over it must not displace it either — the
+    // pinned-first sort would only snap it back on the next read.
+    final other = await tester.startGesture(
+      tester.getCenter(find.text('note B')),
+    );
+    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+    await other.moveBy(const Offset(0, -200));
+    await tester.pump();
+    await other.up();
+    await tester.pumpAndSettle();
+    expect(
+      tester.getCenter(find.text('note A')).dy,
+      lessThan(tester.getCenter(find.text('note B')).dy),
+      reason: 'nothing may land above the pinned note',
+    );
+
+    await services.refreshTimeline();
+    await tester.pumpAndSettle();
+    expect(
+      tester.getCenter(find.text('note A')).dy,
+      lessThan(tester.getCenter(find.text('note B')).dy),
+      reason: 'and the order survives a fresh read',
+    );
+  });
+
   testWidgets(
     'holding a card without moving opens quick actions, not a reorder',
     (tester) async {
