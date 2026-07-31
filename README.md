@@ -125,10 +125,14 @@ API and asset URLs, so an in-app updater pointed at a private source repo breaks
 the repo is made private, and shipping a token inside the app to fix it would mean anyone
 could extract it. A public releases-only repo needs no client-side credential at all.
 
-The one-time setup — creating that repo, minting a fine-grained token scoped to it, and
-storing it as `RELEASES_REPO_TOKEN` — is documented at the top of the workflow. The repo
-name must stay in step with `UpdateChecker`'s default in
+The one-time setup — creating that repo with a single README commit, minting a fine-grained
+token scoped to it, and storing it as `RELEASES_REPO_TOKEN` — is documented at the top of
+the workflow. The repo name must stay in step with `UpdateChecker`'s default in
 [`app_update.dart`](./apps/client/lib/platform/app_update.dart).
+
+GitHub attaches "Source code (zip)" and "(tar.gz)" to every release and gives no way to
+suppress them. Publishing to a separate repo is what defuses that: those archives are of
+the releases repo, which holds one README — not of this one.
 
 ---
 

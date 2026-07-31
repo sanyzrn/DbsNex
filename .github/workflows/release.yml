@@ -12,10 +12,20 @@ name: Release
 # token in the client at all.
 #
 # One-time setup this depends on:
-#   1. Create the public repo named in RELEASES_REPO below (empty is fine).
+#   1. Create the public repo named in RELEASES_REPO below, with one commit in
+#      it — a short README saying it holds build artifacts is enough. Not an
+#      empty repo: a release has to tag a commit, and a repo with no commits
+#      has no default branch for the tag to point at.
 #   2. Generate a fine-grained PAT scoped to *only* that repo, with
 #      Contents: Read and write — nothing else.
 #   3. Add it to this (private) repo's secrets as RELEASES_REPO_TOKEN.
+#
+# On the "Source code (zip)" and "(tar.gz)" entries: GitHub attaches those to
+# every release and offers no way to turn them off. Publishing to a separate
+# repo is what makes them harmless — they are archives of RELEASES_REPO, which
+# holds only that README, not of this repository. Keeping that repo to a single
+# file is what keeps them a couple of hundred bytes of nothing rather than a
+# copy of the source beside the installer.
 #
 # Required repo secrets (one-time; never commit the keystore):
 #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
