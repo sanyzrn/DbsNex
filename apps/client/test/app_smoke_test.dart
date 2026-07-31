@@ -87,8 +87,9 @@ void main() {
     expect(find.text('Save'), findsNothing);
   });
 
-  testWidgets('Content-type filter narrows the timeline to one type (FR-4.5)',
-      (tester) async {
+  testWidgets('Content-type filter narrows the timeline to one type (FR-4.5)', (
+    tester,
+  ) async {
     await services.captureText('a written thought');
     await services.captureVoice(
       mediaUri: p.join(tmp.path, 'media', 'clip.m4a'),
@@ -111,8 +112,9 @@ void main() {
     expect(find.text('a written thought'), findsNothing);
   });
 
-  testWidgets('Timeline is home with capture FAB and no Save button',
-      (tester) async {
+  testWidgets('Timeline is home with capture FAB and no Save button', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -121,23 +123,25 @@ void main() {
     expect(find.text('Save'), findsNothing);
   });
 
-  testWidgets('Capture sheet focuses text with Voice/Camera/Gallery/File inline',
-      (tester) async {
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pumpAndSettle();
-    // Text is the default mode — a focused field, not a menu tile.
-    expect(find.byType(TextField), findsWidgets);
-    expect(find.text('Voice'), findsOneWidget);
-    expect(find.text('Camera'), findsOneWidget);
-    expect(find.text('Gallery'), findsOneWidget);
-    expect(find.text('File'), findsOneWidget);
-    // Not a type-picker-first menu of four equal choices.
-    expect(find.text('Text'), findsNothing);
-    expect(find.text('Save'), findsNothing);
-  });
+  testWidgets(
+    'Capture sheet focuses text with Voice/Camera/Gallery/File inline',
+    (tester) async {
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      // Text is the default mode — a focused field, not a menu tile.
+      expect(find.byType(TextField), findsWidgets);
+      expect(find.text('Voice'), findsOneWidget);
+      expect(find.text('Camera'), findsOneWidget);
+      expect(find.text('Gallery'), findsOneWidget);
+      expect(find.text('File'), findsOneWidget);
+      // Not a type-picker-first menu of four equal choices.
+      expect(find.text('Text'), findsNothing);
+      expect(find.text('Save'), findsNothing);
+    },
+  );
 
   testWidgets('Capture FAB is centered and large (~64px)', (tester) async {
     await tester.pumpWidget(
@@ -175,7 +179,10 @@ void main() {
       'type': 'shared_text',
       'text': 'shared from another app',
     });
-    expect((await services.timeline()).first.content, 'shared from another app');
+    expect(
+      (await services.timeline()).first.content,
+      'shared from another app',
+    );
   });
 
   test('OS share-intent photo auto-saves with media_hash', () async {
@@ -205,48 +212,55 @@ void main() {
     expect(note.content, isNot(contains('.bin')));
   });
 
-  test('Optional caption on media notes is distinct from OCR/transcript', () async {
-    final bytes = Uint8List.fromList([1, 2, 3]);
-    final photo = await services.capturePhoto(
-      mediaUri: p.join(services.mediaDir, 'p.jpg'),
-      mediaBytes: bytes,
-    );
-    expect(photo.caption, isNull);
-    await services.setCaption(photo.id, 'whiteboard from sync');
-    final updated = (await services.getById(photo.id))!;
-    expect(updated.caption, 'whiteboard from sync');
-    expect(updated.ocrText, isNull);
-  });
+  test(
+    'Optional caption on media notes is distinct from OCR/transcript',
+    () async {
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      final photo = await services.capturePhoto(
+        mediaUri: p.join(services.mediaDir, 'p.jpg'),
+        mediaBytes: bytes,
+      );
+      expect(photo.caption, isNull);
+      await services.setCaption(photo.id, 'whiteboard from sync');
+      final updated = (await services.getById(photo.id))!;
+      expect(updated.caption, 'whiteboard from sync');
+      expect(updated.ocrText, isNull);
+    },
+  );
 
   test('Timeline tag filter returns only matching notes', () async {
     final a = (await services.captureText('alpha'))!;
     final b = (await services.captureText('beta'))!;
     await services.addTag(noteId: a.id, name: 'Work');
     await services.addTag(noteId: b.id, name: 'Idea');
-    final work = (await services.listTags()).firstWhere((t) => t.name == 'Work');
+    final work = (await services.listTags()).firstWhere(
+      (t) => t.name == 'Work',
+    );
     final filtered = await services.timeline(tagId: work.id);
     expect(filtered.map((n) => n.id), [a.id]);
   });
 
-  test('Swipe mapping defaults, and each edge moves alone (ADR-022 revised)',
-      () async {
-    expect(preferences.leadingAction, SwipeAction.addTag);
-    expect(preferences.trailingAction, SwipeAction.delete);
-    // Setting one edge must leave the other exactly where it was: the old
-    // swap coupled them, which is the behaviour this replaced.
-    await preferences.setSwipeAction(
-      isLeading: true,
-      action: SwipeAction.delete,
-    );
-    expect(preferences.leadingAction, SwipeAction.delete);
-    expect(preferences.trailingAction, SwipeAction.delete);
-    await preferences.setSwipeAction(
-      isLeading: false,
-      action: SwipeAction.none,
-    );
-    expect(preferences.leadingAction, SwipeAction.delete);
-    expect(preferences.trailingAction, SwipeAction.none);
-  });
+  test(
+    'Swipe mapping defaults, and each edge moves alone (ADR-022 revised)',
+    () async {
+      expect(preferences.leadingAction, SwipeAction.addTag);
+      expect(preferences.trailingAction, SwipeAction.delete);
+      // Setting one edge must leave the other exactly where it was: the old
+      // swap coupled them, which is the behaviour this replaced.
+      await preferences.setSwipeAction(
+        isLeading: true,
+        action: SwipeAction.delete,
+      );
+      expect(preferences.leadingAction, SwipeAction.delete);
+      expect(preferences.trailingAction, SwipeAction.delete);
+      await preferences.setSwipeAction(
+        isLeading: false,
+        action: SwipeAction.none,
+      );
+      expect(preferences.leadingAction, SwipeAction.delete);
+      expect(preferences.trailingAction, SwipeAction.none);
+    },
+  );
 
   test('Comfort Mode defaults off and toggles (ADR-023)', () async {
     expect(preferences.comfortMode, isFalse);
@@ -281,10 +295,10 @@ void main() {
       ..writeAsBytesSync([1, 2, 3, 4]);
     // Touch mtimes via path sort (listBackups sorts by path desc).
     final listed = await services.listBackups();
-    expect(listed.map((f) => p.basename(f.path)), containsAll([
-      'nex-2020.sqlite',
-      'nex-2021.sqlite',
-    ]));
+    expect(
+      listed.map((f) => p.basename(f.path)),
+      containsAll(['nex-2020.sqlite', 'nex-2021.sqlite']),
+    );
     expect(listed.first.path, newer.path);
     expect(older.existsSync(), isTrue);
   });
@@ -333,16 +347,19 @@ void main() {
     expect(hits.first.tags.first.name, 'Work');
   });
 
-  test('Search budget: FTS under 200ms for 1000 notes (1.x.2 hardening)', () async {
-    for (var i = 0; i < 1000; i++) {
-      await services.captureText('note number $i with keywords alpha');
-    }
-    final sw = Stopwatch()..start();
-    final hits = await services.search(const SearchFilters(query: 'alpha'));
-    sw.stop();
-    expect(hits.length, greaterThan(0));
-    expect(sw.elapsedMilliseconds, lessThan(200));
-  });
+  test(
+    'Search budget: FTS under 200ms for 1000 notes (1.x.2 hardening)',
+    () async {
+      for (var i = 0; i < 1000; i++) {
+        await services.captureText('note number $i with keywords alpha');
+      }
+      final sw = Stopwatch()..start();
+      final hits = await services.search(const SearchFilters(query: 'alpha'));
+      sw.stop();
+      expect(hits.length, greaterThan(0));
+      expect(sw.elapsedMilliseconds, lessThan(200));
+    },
+  );
 
   test('Durable write budget: text capture under 300ms', () async {
     final sw = Stopwatch()..start();
@@ -389,8 +406,9 @@ void main() {
     expect(sw.elapsedMilliseconds, lessThan(300));
   });
 
-  testWidgets('Intelligence is off by default and lives on its own screen',
-      (tester) async {
+  testWidgets('Intelligence is off by default and lives on its own screen', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -437,8 +455,9 @@ void main() {
     expect(preferences.effectiveAiCapabilities.transcription, isTrue);
   });
 
-  testWidgets('UI tokens apply bg-primary; Comfort swaps tokens',
-      (tester) async {
+  testWidgets('UI tokens apply bg-primary; Comfort swaps tokens', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -448,14 +467,12 @@ void main() {
     await preferences.setComfortMode(true);
     await tester.pump();
     app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(
-      app.theme!.scaffoldBackgroundColor,
-      NexColors.bgPrimaryLightComfort,
-    );
+    expect(app.theme!.scaffoldBackgroundColor, NexColors.bgPrimaryLightComfort);
   });
 
-  testWidgets('Settings sheet exposes swipe + Appearance + Comfort',
-      (tester) async {
+  testWidgets('Settings sheet exposes swipe + Appearance + Comfort', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -477,8 +494,65 @@ void main() {
     );
   });
 
-  testWidgets('the language picker shows every language in its own script',
-      (tester) async {
+  testWidgets('the full-screen photo viewer closes on a downward swipe', (
+    tester,
+  ) async {
+    final path = p.join(services.mediaDir, 'p.jpg');
+    final bytes = Uint8List.fromList(List.filled(200, 7));
+    File(path).writeAsBytesSync(bytes);
+    await services.capturePhoto(mediaUri: path, mediaBytes: bytes);
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(NoteCard).first);
+    await tester.pumpAndSettle();
+    // Scoped to the detail sheet: the timeline card behind it has its own,
+    // much smaller thumbnail.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NoteDetailSheet),
+        matching: find.byType(Image),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+
+    // A fixed point on the full-screen route rather than the viewer's own
+    // center: the test image is not real JPEG bytes, so it never decodes,
+    // and InteractiveViewer sizes to a child that never reports a size.
+    // It used to take the AppBar's back arrow — nothing else closed it.
+    await tester.dragFrom(const Offset(400, 300), const Offset(0, 400));
+    await tester.pumpAndSettle();
+    expect(find.byType(InteractiveViewer), findsNothing);
+  });
+
+  testWidgets('dragging down over the settings content closes the sheet', (
+    tester,
+  ) async {
+    // Reported symptom: swiping down closed Settings only when the drag
+    // started on the empty header row above the scroll view — starting it
+    // over the settings themselves, already scrolled to the top, did
+    // nothing, since a plain SingleChildScrollView wins that vertical drag
+    // outright whether or not it has anywhere left to scroll.
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('Appearance'), findsOneWidget);
+
+    await tester.drag(find.text('Appearance'), const Offset(0, 400));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Appearance'), findsNothing);
+  });
+
+  testWidgets('the language picker shows every language in its own script', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -502,8 +576,9 @@ void main() {
     expect(preferences.locale?.languageCode, 'fa');
   });
 
-  testWidgets('a long note opens at reading height with its actions in reach',
-      (tester) async {
+  testWidgets('a long note opens at reading height with its actions in reach', (
+    tester,
+  ) async {
     final long = List.filled(60, 'a sentence that keeps going.').join(' ');
     await services.captureText(long);
     await services.refreshTimeline();
@@ -521,13 +596,16 @@ void main() {
     expect(sheet, greaterThan(screen * 0.6));
 
     // And the actions are pinned below the scroll, so a screenful of text does
-    // not bury them: they are on screen without scrolling anywhere.
+    // not bury them: they are on screen without scrolling anywhere. The
+    // action row is icon-only, so its members are found by tooltip rather
+    // than by label text.
     expect(find.text('Delete').hitTestable(), findsOneWidget);
-    expect(find.text('Copy').hitTestable(), findsOneWidget);
+    expect(find.byTooltip('Copy').hitTestable(), findsOneWidget);
   });
 
-  testWidgets('what the AI read is behind a tap, not on top of the note',
-      (tester) async {
+  testWidgets('what the AI read is behind a tap, not on top of the note', (
+    tester,
+  ) async {
     final note = await services.captureVoice(
       mediaUri: p.join(tmp.path, 'media', 'said.m4a'),
       mediaBytes: Uint8List.fromList([1, 2, 3]),
@@ -545,10 +623,8 @@ void main() {
 
     // Scoped to the sheet: the timeline card behind it previews a voice note
     // by its transcript, which is the card's job and not what this is about.
-    Finder inSheet(Finder matching) => find.descendant(
-          of: find.byType(NoteDetailSheet),
-          matching: matching,
-        );
+    Finder inSheet(Finder matching) =>
+        find.descendant(of: find.byType(NoteDetailSheet), matching: matching);
 
     // The work happened on its own, but it does not open on top of the note.
     expect(inSheet(find.text('the machine heard this')), findsNothing);
@@ -562,8 +638,9 @@ void main() {
     expect(inSheet(find.text('the machine heard this')), findsOneWidget);
   });
 
-  testWidgets('a short note is still only as tall as it needs to be',
-      (tester) async {
+  testWidgets('a short note is still only as tall as it needs to be', (
+    tester,
+  ) async {
     await services.captureText('short');
     await services.refreshTimeline();
     await tester.pumpWidget(
@@ -578,7 +655,9 @@ void main() {
     expect(sheet, lessThan(screen * 0.7));
   });
 
-  testWidgets('a name turns the timeline title into a greeting', (tester) async {
+  testWidgets('a name turns the timeline title into a greeting', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -598,8 +677,9 @@ void main() {
     expect(find.text('Nex'), findsOneWidget);
   });
 
-  testWidgets('the greeting mark trails the words, in either direction',
-      (tester) async {
+  testWidgets('the greeting mark trails the words, in either direction', (
+    tester,
+  ) async {
     // It used to be baked into the front of the string, which put it at the
     // start — the right edge in Persian, the left in English. Separating it
     // out lets the Row place it at the trailing end in both.
@@ -614,17 +694,22 @@ void main() {
       final words = tester.getRect(find.textContaining('Sany'));
       // The mark is the one Text in the title that is not the greeting.
       final mark = tester.getRect(
-        find.descendant(
-          of: find.byType(AppBar),
-          matching: find.byWidgetPredicate(
-            (w) => w is Text && w.data != null && !w.data!.contains('Sany'),
-          ),
-        ).first,
+        find
+            .descendant(
+              of: find.byType(AppBar),
+              matching: find.byWidgetPredicate(
+                (w) => w is Text && w.data != null && !w.data!.contains('Sany'),
+              ),
+            )
+            .first,
       );
 
       if (locale == 'fa') {
-        expect(mark.center.dx, lessThan(words.center.dx),
-            reason: 'trailing is the left edge in Persian');
+        expect(
+          mark.center.dx,
+          lessThan(words.center.dx),
+          reason: 'trailing is the left edge in Persian',
+        );
       } else {
         expect(mark.center.dx, greaterThan(words.center.dx));
       }
@@ -634,12 +719,15 @@ void main() {
   test('No Pin/Archive swipe actions exist', () async {
     // The set is open now (ADR-022 revised), but it opens by deliberate
     // addition — Pin and Archive are still not in it.
-    expect(
-      SwipeAction.values.map((e) => e.name).toList(),
-      ['none', 'delete', 'addTag'],
-    );
-    expect(NexSwipeAction.values.map((e) => e.name).toList(),
-        ['delete', 'addTag']);
+    expect(SwipeAction.values.map((e) => e.name).toList(), [
+      'none',
+      'delete',
+      'addTag',
+    ]);
+    expect(NexSwipeAction.values.map((e) => e.name).toList(), [
+      'delete',
+      'addTag',
+    ]);
   });
 
   test('each swipe edge is set on its own (ADR-022 revised)', () async {

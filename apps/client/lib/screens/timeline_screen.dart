@@ -83,8 +83,9 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// itself scrolling back up.
   final ScrollController _scroll = ScrollController();
 
-  late final NoteSearchController _search =
-      NoteSearchController(services: widget.services);
+  late final NoteSearchController _search = NoteSearchController(
+    services: widget.services,
+  );
   final FocusNode _searchFocus = FocusNode();
 
   /// Which of the three greetings this run of the app gets.
@@ -96,7 +97,10 @@ class TimelineScreenState extends State<TimelineScreen> {
     super.initState();
     subscription = widget.services.timelineStream.listen((value) {
       if (!mounted) return;
-      setState(() { _all = value; notes = _visible(value); });
+      setState(() {
+        _all = value;
+        notes = _visible(value);
+      });
       // The filter row is fed by a separate query that only ran once, at
       // startup. Creating or deleting a tag anywhere in the app left the row
       // showing the old set until the next cold launch — which is exactly the
@@ -155,7 +159,10 @@ class TimelineScreenState extends State<TimelineScreen> {
   Future<void> _loadTimeline() async {
     final loaded = await widget.services.timeline(limit: 200);
     if (!mounted) return;
-    setState(() { _all = loaded; notes = _visible(loaded); });
+    setState(() {
+      _all = loaded;
+      notes = _visible(loaded);
+    });
   }
 
   /// FR-4 filter chips. TagFilterRow shipped in packages/ui, complete and
@@ -190,10 +197,7 @@ class TimelineScreenState extends State<TimelineScreen> {
   Future<void> _refresh() async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    await Future.wait([
-      widget.services.refreshTimeline(),
-      _loadFilterTags(),
-    ]);
+    await Future.wait([widget.services.refreshTimeline(), _loadFilterTags()]);
     if (widget.preferences.syncBaseUrl == null) return;
     try {
       await widget.services.syncNow();
@@ -277,7 +281,10 @@ class TimelineScreenState extends State<TimelineScreen> {
   Future<void> _applyFilters() async {
     final loaded = await widget.services.timeline(limit: 200);
     if (!mounted) return;
-    setState(() { _all = loaded; notes = _visible(loaded); });
+    setState(() {
+      _all = loaded;
+      notes = _visible(loaded);
+    });
   }
 
   @override
@@ -298,11 +305,26 @@ class TimelineScreenState extends State<TimelineScreen> {
       showDragHandle: true,
       builder: (sheetContext) => CaptureSheet(
         services: widget.services,
-        onCommitted: (id) { landedId = id; if (widget.preferences.haptics) HapticFeedback.lightImpact(); },
-        onVoice: () { Navigator.pop(sheetContext); captureVoice(); },
-        onCamera: () { Navigator.pop(sheetContext); capturePhoto(ImageSource.camera); },
-        onGallery: () { Navigator.pop(sheetContext); capturePhoto(ImageSource.gallery); },
-        onFile: () { Navigator.pop(sheetContext); captureFile(); },
+        onCommitted: (id) {
+          landedId = id;
+          if (widget.preferences.haptics) HapticFeedback.lightImpact();
+        },
+        onVoice: () {
+          Navigator.pop(sheetContext);
+          captureVoice();
+        },
+        onCamera: () {
+          Navigator.pop(sheetContext);
+          capturePhoto(ImageSource.camera);
+        },
+        onGallery: () {
+          Navigator.pop(sheetContext);
+          capturePhoto(ImageSource.gallery);
+        },
+        onFile: () {
+          Navigator.pop(sheetContext);
+          captureFile();
+        },
       ),
     );
     widget.services.refreshTimeline();
@@ -379,7 +401,11 @@ class TimelineScreenState extends State<TimelineScreen> {
     final recorded = await recorder.stop();
     elapsed.stop();
     await recorder.dispose();
-    if (keep != true || recorded == null) { final file = File(path); if (file.existsSync()) file.deleteSync(); return; }
+    if (keep != true || recorded == null) {
+      final file = File(path);
+      if (file.existsSync()) file.deleteSync();
+      return;
+    }
     final bytes = await File(recorded).readAsBytes();
     final note = await widget.services.captureVoice(
       mediaUri: recorded,
@@ -396,8 +422,10 @@ class TimelineScreenState extends State<TimelineScreen> {
     final picked = await OsCaptureBridge.pickFile();
     if (picked == null) return;
     await widget.osCapture?.handle({
-      'type': 'shared_file', 'path': picked.path,
-      'filename': picked.filename, 'mimeType': picked.mimeType,
+      'type': 'shared_file',
+      'path': picked.path,
+      'filename': picked.filename,
+      'mimeType': picked.mimeType,
     });
   }
 
@@ -406,10 +434,16 @@ class TimelineScreenState extends State<TimelineScreen> {
   ///
   /// Offers the tags that exist rather than a bare text field, so tagging is
   /// picking from what you already use — the common case by a wide margin.
+  ///
+  /// Every tag, not [filterTags]: that list only holds tags with at least one
+  /// note left on them, so tagging the first note after clearing a library
+  /// (or after every tagged note happened to be deleted) offered nothing.
   Future<void> _addTagTo(Note note) async {
+    final all = await widget.services.listTags();
+    if (!mounted) return;
     final choice = await TagPickerSheet.show(
       context,
-      tags: filterTags,
+      tags: all,
       alreadyOn: note.tags.map((t) => t.id).toSet(),
     );
     if (choice == null || !mounted) return;
@@ -434,26 +468,33 @@ class TimelineScreenState extends State<TimelineScreen> {
     final theme = Theme.of(context);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        // Shape, colour, inset and elevation all come from `snackBarTheme` now,
-        // so this and the other nine toasts in the app are one capsule rather
-        // than one hand-styled banner and nine framework defaults.
-        duration: const Duration(seconds: 5),
-        content: Row(children: [
-          Icon(Icons.delete_outline,
-              size: 20, color: theme.colorScheme.onInverseSurface),
-          const SizedBox(width: NexSpacing.md),
-          Expanded(child: Text(l10n.noteDeleted)),
-        ]),
-        action: SnackBarAction(
-          label: l10n.undo,
-          onPressed: () async {
-            _tick();
-            await widget.services.undelete(note.id);
-            await widget.services.refreshTimeline();
-          },
+      ..showSnackBar(
+        SnackBar(
+          // Shape, colour, inset and elevation all come from `snackBarTheme` now,
+          // so this and the other nine toasts in the app are one capsule rather
+          // than one hand-styled banner and nine framework defaults.
+          duration: const Duration(seconds: 5),
+          content: Row(
+            children: [
+              Icon(
+                Icons.delete_outline,
+                size: 20,
+                color: theme.colorScheme.onInverseSurface,
+              ),
+              const SizedBox(width: NexSpacing.md),
+              Expanded(child: Text(l10n.noteDeleted)),
+            ],
+          ),
+          action: SnackBarAction(
+            label: l10n.undo,
+            onPressed: () async {
+              _tick();
+              await widget.services.undelete(note.id);
+              await widget.services.refreshTimeline();
+            },
+          ),
         ),
-      ));
+      );
   }
 
   /// A long-press-and-drag on a card's middle zone (see [SwipeableNoteCard])
@@ -466,9 +507,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     final reordered = List<Note>.of(notes);
     reordered.insert(newIndex, reordered.removeAt(oldIndex));
     setState(() => notes = reordered);
-    unawaited(
-      widget.services.reorderNotes([for (final n in reordered) n.id]),
-    );
+    unawaited(widget.services.reorderNotes([for (final n in reordered) n.id]));
   }
 
   /// The same long press, released without ever crossing into a drag: the
@@ -578,25 +617,25 @@ class TimelineScreenState extends State<TimelineScreen> {
     final v = _greetingVariant;
     final (glyphs, text) = switch (DateTime.now().hour) {
       >= 5 && < 12 => (
-          const ['☀️', '🌱', '☕'],
-          [l10n.greetingMorning, l10n.greetingMorningB, l10n.greetingMorningC],
-        ),
+        const ['☀️', '🌱', '☕'],
+        [l10n.greetingMorning, l10n.greetingMorningB, l10n.greetingMorningC],
+      ),
       >= 12 && < 17 => (
-          const ['🌤️', '🍵', '📌'],
-          [
-            l10n.greetingAfternoon,
-            l10n.greetingAfternoonB,
-            l10n.greetingAfternoonC,
-          ],
-        ),
+        const ['🌤️', '🍵', '📌'],
+        [
+          l10n.greetingAfternoon,
+          l10n.greetingAfternoonB,
+          l10n.greetingAfternoonC,
+        ],
+      ),
       >= 17 && < 23 => (
-          const ['🌆', '🌙', '🕯️'],
-          [l10n.greetingEvening, l10n.greetingEveningB, l10n.greetingEveningC],
-        ),
+        const ['🌆', '🌙', '🕯️'],
+        [l10n.greetingEvening, l10n.greetingEveningB, l10n.greetingEveningC],
+      ),
       _ => (
-          const ['🦉', '🌚', '✨'],
-          [l10n.greetingNight, l10n.greetingNightB, l10n.greetingNightC],
-        ),
+        const ['🦉', '🌚', '✨'],
+        [l10n.greetingNight, l10n.greetingNightB, l10n.greetingNightC],
+      ),
     };
     // Returned apart rather than joined into one string: the mark is animated,
     // so it has to be its own widget. Kept out of the text also puts it at the
@@ -613,13 +652,13 @@ class TimelineScreenState extends State<TimelineScreen> {
         title: switch (_greeting(l10n)) {
           null => Text(l10n.appTitle),
           (final text, final glyph) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(child: Text(text, overflow: TextOverflow.ellipsis)),
-                const SizedBox(width: NexSpacing.sm),
-                _GreetingGlyph(glyph),
-              ],
-            ),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(child: Text(text, overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: NexSpacing.sm),
+              _GreetingGlyph(glyph),
+            ],
+          ),
         },
         actions: [
           // Content lives here, preferences live behind the gear. Trash and
@@ -649,13 +688,17 @@ class TimelineScreenState extends State<TimelineScreen> {
             tooltip: l10n.settings,
             // useSafeArea keeps the sheet clear of the status bar; without it
             // the title sat flush against the top of the screen.
-            onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true,
-              useSafeArea: true, showDragHandle: true,
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              showDragHandle: true,
               builder: (_) => SettingsSheet(
                 services: widget.services,
                 preferences: widget.preferences,
                 updates: widget.updates,
-              )),
+              ),
+            ),
           ),
         ],
       ),
@@ -687,55 +730,55 @@ class TimelineScreenState extends State<TimelineScreen> {
                   onRefresh: _refresh,
                   edgeOffset: nexSearchHeaderExtent,
                   child: CustomScrollView(
-                  controller: _scroll,
-                  // Always scrollable, so the pull works on a short list too —
-                  // a refresh gesture that only exists once you have enough
-                  // notes to scroll is a refresh gesture nobody finds.
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    // Both headers are always in the list, keyed, and collapse
-                    // to zero extent rather than leaving it. A sliver list that
-                    // changes length while another sliver changes its pinning
-                    // leaves the viewport painting a child it never laid out.
-                    SliverPersistentHeader(
-                      key: const ValueKey('search-header'),
-                      delegate: SearchFieldHeader(
-                        controller: _search.query,
-                        focusNode: _searchFocus,
-                        searching: _searching,
-                        onTap: () => unawaited(revealSearch()),
-                        onChanged: (_) => _search.schedule(),
-                        onClear: _exitSearch,
-                      ),
-                    ),
-                    SliverPersistentHeader(
-                      key: const ValueKey('filter-header'),
-                      pinned: true,
-                      delegate: _FilterRowHeader(
-                        visible: !_searching,
-                        child: TagFilterRow(
-                          tags: filterTags,
-                          selectedTagId: selectedTagId,
-                          allLabel: l10n.all,
-                          leading: _TypeFilterButton(
-                            selected: selectedType,
-                            onPressed: () => unawaited(_pickType()),
-                          ),
-                          onSelected: (value) => unawaited(_selectTag(value)),
+                    controller: _scroll,
+                    // Always scrollable, so the pull works on a short list too —
+                    // a refresh gesture that only exists once you have enough
+                    // notes to scroll is a refresh gesture nobody finds.
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      // Both headers are always in the list, keyed, and collapse
+                      // to zero extent rather than leaving it. A sliver list that
+                      // changes length while another sliver changes its pinning
+                      // leaves the viewport painting a child it never laid out.
+                      SliverPersistentHeader(
+                        key: const ValueKey('search-header'),
+                        delegate: SearchFieldHeader(
+                          controller: _search.query,
+                          focusNode: _searchFocus,
+                          searching: _searching,
+                          onTap: () => unawaited(revealSearch()),
+                          onChanged: (_) => _search.schedule(),
+                          onClear: _exitSearch,
                         ),
                       ),
-                    ),
-                    ..._bodySlivers(l10n),
-                    // The capture button floats over the list, and on a
-                    // device with a three-button navigation bar the system's
-                    // own bar sits under that — the last card has to clear
-                    // both, or it cannot be read or tapped.
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: nexFabClearance + nexBottomInset(context),
+                      SliverPersistentHeader(
+                        key: const ValueKey('filter-header'),
+                        pinned: true,
+                        delegate: _FilterRowHeader(
+                          visible: !_searching,
+                          child: TagFilterRow(
+                            tags: filterTags,
+                            selectedTagId: selectedTagId,
+                            allLabel: l10n.all,
+                            leading: _TypeFilterButton(
+                              selected: selectedType,
+                              onPressed: () => unawaited(_pickType()),
+                            ),
+                            onSelected: (value) => unawaited(_selectTag(value)),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                      ..._bodySlivers(l10n),
+                      // The capture button floats over the list, and on a
+                      // device with a three-button navigation bar the system's
+                      // own bar sits under that — the last card has to clear
+                      // both, or it cannot be read or tapped.
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: nexFabClearance + nexBottomInset(context),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -745,7 +788,10 @@ class TimelineScreenState extends State<TimelineScreen> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
-        onPressed: openCapture, tooltip: l10n.capture, child: const Icon(Icons.add, size: 32)),
+        onPressed: openCapture,
+        tooltip: l10n.capture,
+        child: const Icon(Icons.add, size: 32),
+      ),
     );
   }
 
@@ -873,7 +919,6 @@ class TimelineScreenState extends State<TimelineScreen> {
     await _loadFilterTags();
     if (_searching) await _search.run();
   }
-
 }
 
 /// Keeps the filter row under the app bar while the cards scroll past it.
@@ -915,8 +960,7 @@ class _GreetingGlyphState extends State<_GreetingGlyph>
   @override
   void didUpdateWidget(_GreetingGlyph old) {
     super.didUpdateWidget(old);
-    if (old.glyph != widget.glyph &&
-        !MediaQuery.disableAnimationsOf(context)) {
+    if (old.glyph != widget.glyph && !MediaQuery.disableAnimationsOf(context)) {
       _controller.forward(from: 0);
     }
   }
@@ -929,18 +973,18 @@ class _GreetingGlyphState extends State<_GreetingGlyph>
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          final t = Curves.easeOutBack.transform(_controller.value);
-          return Transform.rotate(
-            // A small wave that unwinds as it settles, rather than a pulse:
-            // the glyph reads as greeting you, which is what the line says.
-            angle: (1 - _controller.value) * 0.5,
-            child: Transform.scale(scale: 0.4 + 0.6 * t, child: child),
-          );
-        },
-        child: Text(widget.glyph),
+    animation: _controller,
+    builder: (context, child) {
+      final t = Curves.easeOutBack.transform(_controller.value);
+      return Transform.rotate(
+        // A small wave that unwinds as it settles, rather than a pulse:
+        // the glyph reads as greeting you, which is what the line says.
+        angle: (1 - _controller.value) * 0.5,
+        child: Transform.scale(scale: 0.4 + 0.6 * t, child: child),
       );
+    },
+    child: Text(widget.glyph),
+  );
 }
 
 class _FilterRowHeader extends SliverPersistentHeaderDelegate {

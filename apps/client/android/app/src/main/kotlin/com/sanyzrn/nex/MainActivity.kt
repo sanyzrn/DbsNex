@@ -34,7 +34,7 @@ class MainActivity : FlutterActivity() {
             }
             else -> result.notImplemented()
         }}
-        handleIncoming(intent)
+        handleIncoming(intent, live = false)
     }
 
     @Deprecated("Deprecated in Java")
@@ -48,26 +48,48 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent); setIntent(intent); handleIncoming(intent)
+        super.onNewIntent(intent); setIntent(intent); handleIncoming(intent, live = true)
     }
 
-    private fun handleIncoming(intent: Intent?) {
-        if (intent?.action == ACTION_TEXT_CAPTURE) return enqueue(mapOf("type" to "text_capture"))
+    // [live] is false from configureFlutterEngine: that path always means a
+    // fresh FlutterEngine, whose Dart side has not called start() yet, so an
+    // immediate onOsCapture push either lands nowhere or gets buffered and
+    // replayed once Dart does register a handler — right before its own
+    // takePending() call retrieves the same still-set [pending] and the
+    // capture lands twice. Queuing only and letting takePending() collect it
+    // is the one delivery that path needs. onNewIntent, by contrast, fires on
+    // an Activity/engine that is already running with Dart's handler already
+    // registered and its one takePending() call long since made, so a live
+    // push is the only way that event is ever delivered at all.
+    // Which extra is present decides text vs. file, not the MIME type: a file
+    // manager sharing a .md (or any other text-based) file sends
+    // ACTION_SEND with type="text/markdown" and the file in EXTRA_STREAM —
+    // matching the old `type.startsWith("text/")` check just as a genuine
+    // plain-text share does, but with no EXTRA_TEXT at all. That branch's
+    // `getStringExtra(EXTRA_TEXT)` came back null, `?.let` never ran, and the
+    // share vanished with nothing captured and no error.
+    private fun handleIncoming(intent: Intent?, live: Boolean) {
+        if (intent?.action == ACTION_TEXT_CAPTURE) {
+            return enqueue(mapOf("type" to "text_capture"), live)
+        }
         if (intent?.action != Intent.ACTION_SEND) return
-        val type = intent.type.orEmpty()
-        if (type.startsWith("text/")) {
+        val stream = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        if (stream == null) {
             intent.getStringExtra(Intent.EXTRA_TEXT)?.takeIf { it.isNotBlank() }?.let {
-                enqueue(mapOf("type" to "shared_text", "text" to it))
+                enqueue(mapOf("type" to "shared_text", "text" to it), live)
             }
-        } else intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.let { uri ->
-            copyUri(uri)?.let { data ->
-                enqueue(data + ("type" to if (type.startsWith("image/")) "shared_photo" else "shared_file"))
-            }
+        } else copyUri(stream)?.let { data ->
+            val type = intent.type.orEmpty()
+            enqueue(
+                data + ("type" to if (type.startsWith("image/")) "shared_photo" else "shared_file"),
+                live,
+            )
         }
     }
 
-    private fun enqueue(value: Map<String, String>) {
-        pending = value; channel?.invokeMethod("onOsCapture", value)
+    private fun enqueue(value: Map<String, String>, live: Boolean) {
+        pending = value
+        if (live) channel?.invokeMethod("onOsCapture", value)
     }
 
     private fun copyUri(uri: Uri): Map<String, String>? = try {

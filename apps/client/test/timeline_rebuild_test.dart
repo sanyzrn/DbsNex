@@ -34,11 +34,7 @@ void main() {
     Directory(mediaDir).createSync(recursive: true);
     Directory(backupDir).createSync(recursive: true);
     return NexServices.forTest(
-      worker: InProcessDb(
-        dbPath: dbPath,
-        deviceId: 'test',
-        readDelay: delay,
-      ),
+      worker: InProcessDb(dbPath: dbPath, deviceId: 'test', readDelay: delay),
       deviceId: 'test',
       preferences: await NexPreferences.load(),
       backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
@@ -60,8 +56,9 @@ void main() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
-  testWidgets('a cold launch with notes never flashes the onboarding screen',
-      (tester) async {
+  testWidgets('a cold launch with notes never flashes the onboarding screen', (
+    tester,
+  ) async {
     await services.captureText('something already here');
     // Deliberately slow, so the "not loaded yet" state lasts long enough to
     // observe. `_all` was `const []` at field initialisation, which satisfies
@@ -81,8 +78,9 @@ void main() {
     expect(find.text('something already here'), findsOneWidget);
   });
 
-  testWidgets('a genuinely empty library still gets the onboarding screen',
-      (tester) async {
+  testWidgets('a genuinely empty library still gets the onboarding screen', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -90,8 +88,9 @@ void main() {
     expect(find.byType(EmptyTimeline), findsOneWidget);
   });
 
-  testWidgets('a captured note gets a receipt that clears itself',
-      (tester) async {
+  testWidgets('a captured note gets a receipt that clears itself', (
+    tester,
+  ) async {
     await services.captureText('older');
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
@@ -118,9 +117,9 @@ void main() {
     expect(timeline.landedId, isNull);
   });
 
-  testWidgets(
-      'a toast stays above a dialog opened while it is still showing',
-      (tester) async {
+  testWidgets('a toast stays above a dialog opened while it is still showing', (
+    tester,
+  ) async {
     // Reported symptom: the capsule toast sometimes rendered behind other
     // UI, e.g. behind the note-edit dialog. A SnackBar is scoped to the
     // nearest registered Scaffold, and the timeline's own Scaffold sits
@@ -140,18 +139,20 @@ void main() {
     await tester.pump();
     expect(find.text('Undo'), findsOneWidget);
 
-    unawaited(showDialog<void>(
-      context: tester.element(find.byType(TimelineScreen)),
-      builder: (ctx) => AlertDialog(
-        title: const Text('something modal'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('close'),
-          ),
-        ],
+    unawaited(
+      showDialog<void>(
+        context: tester.element(find.byType(TimelineScreen)),
+        builder: (ctx) => AlertDialog(
+          title: const Text('something modal'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('close'),
+            ),
+          ],
+        ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
 
     // Still there, still the thing that actually receives the tap — not the
@@ -165,62 +166,105 @@ void main() {
   });
 
   testWidgets(
-      'tapping a different card while one is swiped open only closes it',
-      (tester) async {
-    // Reported symptom: swipe a card open, tap a different one, and both
-    // things happened on the same touch — the open card closed *and* the
-    // tapped card's own detail sheet opened. The first tap while anything is
-    // open now only resets it; opening a note takes a second, separate tap.
-    await services.captureText('first note');
-    await services.captureText('second note');
-    await services.refreshTimeline();
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.pumpAndSettle();
+    'swipe-to-add-tag offers existing tags even when none are in use',
+    (tester) async {
+      // Reported symptom: delete every note (their tags survive, unused),
+      // capture something new, then swipe it to add a tag — the picker said
+      // "no tags" even though one plainly existed, because it was reading
+      // filterTags (built from tag *usage counts*) instead of the tag list
+      // itself. The detail sheet's own "Tag" button never had this bug, since
+      // it always asked for every tag directly.
+      await services.createTag('Idea');
+      await services.captureText('a fresh note');
+      await services.refreshTimeline();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
 
-    final firstCard = tester.getRect(
-      find
-          .ancestor(
-            of: find.text('first note'),
-            matching: find.byType(SwipeableNoteCard),
-          )
-          .first,
-    );
-    // Inside the trailing 20% of the card's own width, per the edge-zone
-    // restriction — the only place a resting card opens from. Half the
-    // card's width clears the "open" threshold (~0.25 of it) with room to
-    // spare below the "commit and run the action" one (~0.62), whatever the
-    // card's actual width turns out to be on this surface.
-    await tester.dragFrom(
-      Offset(firstCard.right - 10, firstCard.center.dy),
-      Offset(-firstCard.width * 0.5, 0),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Delete'), findsOneWidget);
+      final card = tester.getRect(
+        find
+            .ancestor(
+              of: find.text('a fresh note'),
+              matching: find.byType(SwipeableNoteCard),
+            )
+            .first,
+      );
+      // The leading edge is bound to Add Tag by default (ADR-022 revised).
+      await tester.dragFrom(
+        Offset(card.left + 10, card.center.dy),
+        Offset(card.width * 0.5, 0),
+      );
+      await tester.pumpAndSettle();
+      // Lowercase 't': app_en.arb's own string, not the literal package/ui
+      // tests use when they supply their own label directly.
+      expect(find.text('Add tag'), findsOneWidget);
+      await tester.tap(find.text('Add tag'));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('second note'));
-    await tester.pumpAndSettle();
+      expect(find.text('Idea'), findsOneWidget);
+    },
+  );
 
-    expect(
-      find.text('Delete'),
-      findsNothing,
-      reason: 'the open card is reset by the first tap',
-    );
-    expect(
-      find.byType(NoteDetailSheet),
-      findsNothing,
-      reason: 'that same tap must not also open the tapped card',
-    );
+  testWidgets(
+    'tapping a different card while one is swiped open only closes it',
+    (tester) async {
+      // Reported symptom: swipe a card open, tap a different one, and both
+      // things happened on the same touch — the open card closed *and* the
+      // tapped card's own detail sheet opened. The first tap while anything is
+      // open now only resets it; opening a note takes a second, separate tap.
+      await services.captureText('first note');
+      await services.captureText('second note');
+      await services.refreshTimeline();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
 
-    // Nothing is open now, so the same tap behaves normally.
-    await tester.tap(find.text('second note'));
-    await tester.pumpAndSettle();
-    expect(find.byType(NoteDetailSheet), findsOneWidget);
-  });
+      final firstCard = tester.getRect(
+        find
+            .ancestor(
+              of: find.text('first note'),
+              matching: find.byType(SwipeableNoteCard),
+            )
+            .first,
+      );
+      // Inside the trailing 20% of the card's own width, per the edge-zone
+      // restriction — the only place a resting card opens from. Half the
+      // card's width clears the "open" threshold (~0.25 of it) with room to
+      // spare below the "commit and run the action" one (~0.62), whatever the
+      // card's actual width turns out to be on this surface.
+      await tester.dragFrom(
+        Offset(firstCard.right - 10, firstCard.center.dy),
+        Offset(-firstCard.width * 0.5, 0),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Delete'), findsOneWidget);
 
-  testWidgets('pinning a note leads the timeline, and only one stays pinned',
-      (tester) async {
+      await tester.tap(find.text('second note'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Delete'),
+        findsNothing,
+        reason: 'the open card is reset by the first tap',
+      );
+      expect(
+        find.byType(NoteDetailSheet),
+        findsNothing,
+        reason: 'that same tap must not also open the tapped card',
+      );
+
+      // Nothing is open now, so the same tap behaves normally.
+      await tester.tap(find.text('second note'));
+      await tester.pumpAndSettle();
+      expect(find.byType(NoteDetailSheet), findsOneWidget);
+    },
+  );
+
+  testWidgets('pinning a note leads the timeline, and only one stays pinned', (
+    tester,
+  ) async {
     await services.captureText('older note');
     await services.captureText('newer note');
     await services.refreshTimeline();
@@ -237,9 +281,11 @@ void main() {
 
     await tester.tap(find.text('older note'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Pin'));
+    // The detail sheet's action row is icon-only; its members are found by
+    // tooltip rather than by label text.
+    await tester.tap(find.byTooltip('Pin'));
     await tester.pumpAndSettle();
-    expect(find.text('Unpin'), findsOneWidget);
+    expect(find.byTooltip('Unpin'), findsOneWidget);
     Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
     await tester.pumpAndSettle();
 
@@ -253,7 +299,7 @@ void main() {
     // Pinning the other note releases the first — never two at once.
     await tester.tap(find.text('newer note'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Pin'));
+    await tester.tap(find.byTooltip('Pin'));
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
     await tester.pumpAndSettle();
@@ -266,31 +312,33 @@ void main() {
   });
 
   testWidgets(
-      'holding a card without moving opens quick actions, not a reorder',
-      (tester) async {
-    await services.captureText('a note to act on');
-    await services.refreshTimeline();
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.pumpAndSettle();
+    'holding a card without moving opens quick actions, not a reorder',
+    (tester) async {
+      await services.captureText('a note to act on');
+      await services.refreshTimeline();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
 
-    final gesture = await tester.startGesture(
-      tester.getCenter(find.text('a note to act on')),
-    );
-    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
-    await gesture.up();
-    await tester.pumpAndSettle();
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('a note to act on')),
+      );
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+      await gesture.up();
+      await tester.pumpAndSettle();
 
-    expect(find.text('Pin'), findsOneWidget);
-    await tester.tap(find.text('Pin'));
-    await tester.pumpAndSettle();
+      expect(find.text('Pin'), findsOneWidget);
+      await tester.tap(find.text('Pin'));
+      await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.push_pin), findsOneWidget);
-  });
+      expect(find.byIcon(Icons.push_pin), findsOneWidget);
+    },
+  );
 
-  testWidgets('holding and dragging a card past another reorders the list',
-      (tester) async {
+  testWidgets('holding and dragging a card past another reorders the list', (
+    tester,
+  ) async {
     await services.captureText('note A');
     await services.captureText('note B');
     await services.captureText('note C');
@@ -331,8 +379,9 @@ void main() {
     );
   });
 
-  testWidgets('search happens on the timeline, without pushing a route',
-      (tester) async {
+  testWidgets('search happens on the timeline, without pushing a route', (
+    tester,
+  ) async {
     for (var i = 0; i < 10; i++) {
       await services.captureText('filler $i');
     }
@@ -362,7 +411,9 @@ void main() {
     expect(field, findsOneWidget);
     expect(
       tester.getRect(field).top,
-      greaterThanOrEqualTo(tester.getRect(find.byType(CustomScrollView)).top - 1),
+      greaterThanOrEqualTo(
+        tester.getRect(find.byType(CustomScrollView)).top - 1,
+      ),
     );
 
     await tester.enterText(field, 'rockets');
@@ -371,8 +422,9 @@ void main() {
     expect(find.text('a note about bread'), findsNothing);
   });
 
-  testWidgets('a library too short to scroll simply shows the field',
-      (tester) async {
+  testWidgets('a library too short to scroll simply shows the field', (
+    tester,
+  ) async {
     await services.captureText('the only note');
     await services.refreshTimeline();
     await tester.pumpWidget(
@@ -411,37 +463,40 @@ void main() {
     expect(find.text('arrived while you were away'), findsOneWidget);
   });
 
-  testWidgets('a tag created elsewhere reaches the filter row without a restart',
-      (tester) async {
-    // The reported symptom: delete the tags, make a new one, and the filter row
-    // kept showing the old set until the app was closed and reopened. The row
-    // is fed by its own query, which only ever ran once — in initState.
-    final note = (await services.captureText('a note'))!;
-    await services.refreshTimeline();
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'a tag created elsewhere reaches the filter row without a restart',
+    (tester) async {
+      // The reported symptom: delete the tags, make a new one, and the filter row
+      // kept showing the old set until the app was closed and reopened. The row
+      // is fed by its own query, which only ever ran once — in initState.
+      final note = (await services.captureText('a note'))!;
+      await services.refreshTimeline();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Rockets'), findsNothing);
+      expect(find.text('Rockets'), findsNothing);
 
-    // Created and attached the way the tag picker actually does it — a tag
-    // with nothing tagged with it does not belong in the filter row at all
-    // (see the "unused tags" test below), so this has to put it on a note to
-    // stay a test of the staleness bug rather than of that.
-    await services.addTag(noteId: note.id, name: 'Rockets');
-    await services.refreshTimeline();
-    await tester.pumpAndSettle();
+      // Created and attached the way the tag picker actually does it — a tag
+      // with nothing tagged with it does not belong in the filter row at all
+      // (see the "unused tags" test below), so this has to put it on a note to
+      // stay a test of the staleness bug rather than of that.
+      await services.addTag(noteId: note.id, name: 'Rockets');
+      await services.refreshTimeline();
+      await tester.pumpAndSettle();
 
-    expect(
-      find.text('Rockets'),
-      findsWidgets,
-      reason: 'the filter row has to notice, without a cold launch',
-    );
-  });
+      expect(
+        find.text('Rockets'),
+        findsWidgets,
+        reason: 'the filter row has to notice, without a cold launch',
+      );
+    },
+  );
 
-  testWidgets('a tag nothing is tagged with does not clutter the filter row',
-      (tester) async {
+  testWidgets('a tag nothing is tagged with does not clutter the filter row', (
+    tester,
+  ) async {
     // Reported symptom: a tag with no notes on it any more still took up a
     // pill at the top, and selecting it just filtered to nothing.
     final note = (await services.captureText('a note'))!;
@@ -503,8 +558,9 @@ void main() {
     );
   });
 
-  testWidgets('the empty state clears the capture button on a desktop window',
-      (tester) async {
+  testWidgets('the empty state clears the capture button on a desktop window', (
+    tester,
+  ) async {
     // Seen on Windows. The empty state sits in a SliverFillRemaining under the
     // search field and the filter row, and it was taller than what those left
     // it — so it overflowed and its last line, "There is no Save button.",
@@ -545,8 +601,9 @@ void main() {
     );
   });
 
-  testWidgets('the filter row and the cards share one edge on a wide window',
-      (tester) async {
+  testWidgets('the filter row and the cards share one edge on a wide window', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1600, 1200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -174,6 +175,16 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     _toast(l10n.copied);
   }
 
+  /// Copies one of the AI panel's own texts — a transcript, an OCR read, a
+  /// summary — rather than [_copyableText]'s fallback chain, which is the
+  /// note's own content first and would copy the wrong thing here.
+  Future<void> _copyDerivedText(String text) async {
+    final l10n = AppLocalizations.of(context);
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    _toast(l10n.copied);
+  }
+
   Future<void> _copyPath() async {
     final note = _note;
     final uri = note?.mediaUri;
@@ -251,6 +262,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               keyboardType: TextInputType.multiline,
               textDirection: nexTextDirection(controller.text),
               textAlign: nexTextAlign(controller.text),
+              // See the same field in capture_sheet.dart: BoxWidthStyle.max
+              // (the default) paints a double-tap word selection out to the
+              // end of the line on Persian text.
+              selectionWidthStyle: BoxWidthStyle.tight,
               onChanged: (_) => setDialogState(() {}),
             ),
           ),
@@ -384,6 +399,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               maxLines: 3,
               textDirection: nexTextDirection(controller.text),
               textAlign: nexTextAlign(controller.text),
+              selectionWidthStyle: BoxWidthStyle.tight,
               decoration: InputDecoration(hintText: l10n.captionHint),
               onChanged: (_) => setDialogState(() {}),
             ),
@@ -422,8 +438,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         (l10n.transcript, note.transcriptText!.trim()),
       if (note.ocrText?.trim().isNotEmpty ?? false)
         (l10n.ocr, note.ocrText!.trim()),
-      if (_summaryIsMeaningful(note))
-        (l10n.summary, note.summaryText!.trim()),
+      if (_summaryIsMeaningful(note)) (l10n.summary, note.summaryText!.trim()),
     ];
     // With nothing derived and no provider behind it, the row would promise
     // something the app cannot deliver.
@@ -462,7 +477,23 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
           ],
         ),
         for (final (label, body) in derived) ...[
-          Text(label, style: theme.textTheme.bodySmall),
+          Row(
+            children: [
+              Expanded(child: Text(label, style: theme.textTheme.bodySmall)),
+              InkWell(
+                onTap: () => unawaited(_copyDerivedText(body)),
+                borderRadius: BorderRadius.circular(NexColors.cardRadius),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.copy_outlined,
+                    size: 14,
+                    color: theme.colorScheme.secondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
           NexBodyText(body),
           const SizedBox(height: NexSpacing.sm),
         ],
@@ -480,13 +511,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                 ActionChip(
                   label: Text(s.name),
                   onPressed: () async {
-                    await widget.services.addTag(
-                      noteId: note.id,
-                      name: s.name,
-                    );
+                    await widget.services.addTag(noteId: note.id, name: s.name);
                     setState(() {
-                      _suggestions =
-                          _suggestions.where((x) => x.name != s.name).toList();
+                      _suggestions = _suggestions
+                          .where((x) => x.name != s.name)
+                          .toList();
                     });
                     _reload();
                   },
@@ -981,22 +1010,64 @@ class _VoicePlayerControls extends StatelessWidget {
   }
 }
 
-class _FullScreenPhoto extends StatelessWidget {
+class _FullScreenPhoto extends StatefulWidget {
   const _FullScreenPhoto({required this.path});
 
   final String path;
 
   @override
+  State<_FullScreenPhoto> createState() => _FullScreenPhotoState();
+}
+
+class _FullScreenPhotoState extends State<_FullScreenPhoto> {
+  double _dragDy = 0;
+
+  /// Past this much downward drag, releasing closes the viewer instead of
+  /// springing back — the photo equivalent of the swipe card's own commit
+  /// threshold.
+  static const _dismissDistance = 120.0;
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    // Only downward: there is nothing above the photo to reveal.
+    setState(
+      () => _dragDy = (_dragDy + details.delta.dy).clamp(0.0, double.infinity),
+    );
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    final flung = details.velocity.pixelsPerSecond.dy > 800;
+    if (_dragDy > _dismissDistance || flung) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _dragDy = 0);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final progress = (_dragDy / _dismissDistance).clamp(0.0, 1.0);
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color.lerp(Colors.black, Colors.transparent, progress),
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
-      body: Center(
-        child: InteractiveViewer(
-          child: Image.file(File(path), fit: BoxFit.contain),
+      body: GestureDetector(
+        // Opaque rather than the default deferToChild: a contained image
+        // rarely fills the whole screen, and a swipe that starts in the
+        // black margin around it — not on the image's own pixels — must
+        // dismiss too.
+        behavior: HitTestBehavior.opaque,
+        onVerticalDragUpdate: _onDragUpdate,
+        onVerticalDragEnd: _onDragEnd,
+        child: Center(
+          child: Transform.translate(
+            offset: Offset(0, _dragDy),
+            child: InteractiveViewer(
+              child: Image.file(File(widget.path), fit: BoxFit.contain),
+            ),
+          ),
         ),
       ),
     );
@@ -1020,6 +1091,10 @@ class _ActionRow extends StatelessWidget {
   );
 }
 
+/// Icon-only: [label] still exists, as the tooltip and the semantic name,
+/// just not painted. Seven of these in a row used to run past the width of
+/// the sheet on anything but the widest phone; the label was the only thing
+/// making each one wider than the 48px floor it actually needs.
 class _DetailAction extends StatelessWidget {
   const _DetailAction({
     required this.icon,
@@ -1036,30 +1111,21 @@ class _DetailAction extends StatelessWidget {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(NexColors.cardRadius),
-        child: Container(
-          width: 76,
-          padding: const EdgeInsets.symmetric(vertical: NexSpacing.contentGap),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(NexColors.cardRadius),
-            border: Border.all(color: theme.colorScheme.outline),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 20),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
+      child: Tooltip(
+        message: label,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(NexColors.cardRadius),
+          child: Container(
+            width: nexMinTapTarget,
+            height: nexMinTapTarget,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(NexColors.cardRadius),
+              border: Border.all(color: theme.colorScheme.outline),
+            ),
+            child: Icon(icon, size: 20),
           ),
         ),
       ),

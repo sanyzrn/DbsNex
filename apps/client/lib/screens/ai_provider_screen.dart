@@ -25,16 +25,26 @@ class AiProviderScreen extends StatefulWidget {
 class _AiProviderScreenState extends State<AiProviderScreen> {
   late AiProviderConfig _config = widget.preferences.aiProvider;
 
-  /// What is actually in preferences, so the screen can tell whether the thing
-  /// on display is the thing in effect.
-  late AiProviderConfig _saved = widget.preferences.aiProvider;
+  /// The provider actually in effect — unlike [_stored], this does not move
+  /// just from looking at a different one, only from a save that adopts it.
+  late AiProvider _activeProvider = _config.provider;
 
-  late final TextEditingController _key =
-      TextEditingController(text: _config.apiKey);
-  late final TextEditingController _baseUrl =
-      TextEditingController(text: _config.baseUrl);
-  late final TextEditingController _model =
-      TextEditingController(text: _config.model);
+  /// What is stored for the provider currently on screen, whether or not it
+  /// is [_activeProvider]. Each provider keeps its own key/URL/model now
+  /// (see `NexPreferences.configFor`), so this is what the fields were last
+  /// saved as for *this* provider — not whatever the previous provider being
+  /// viewed happened to have typed into them.
+  late AiProviderConfig _stored = _config;
+
+  late final TextEditingController _key = TextEditingController(
+    text: _config.apiKey,
+  );
+  late final TextEditingController _baseUrl = TextEditingController(
+    text: _config.baseUrl,
+  );
+  late final TextEditingController _model = TextEditingController(
+    text: _config.model,
+  );
 
   bool _obscure = true;
   bool _testing = false;
@@ -49,13 +59,13 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
   }
 
   AiProviderConfig get _current => _config.copyWith(
-        apiKey: _key.text,
-        // A hidden field must not still be speaking. Typing an endpoint for
-        // Custom and then switching to Gemini used to leave that endpoint in
-        // effect against a provider that has only one host.
-        baseUrl: _config.provider.needsBaseUrl ? _baseUrl.text : '',
-        model: _model.text,
-      );
+    apiKey: _key.text,
+    // A hidden field must not still be speaking. Typing an endpoint for
+    // Custom and then switching to Gemini used to leave that endpoint in
+    // effect against a provider that has only one host.
+    baseUrl: _config.provider.needsBaseUrl ? _baseUrl.text : '',
+    model: _model.text,
+  );
 
   /// Whether anything on screen differs from what is stored.
   ///
@@ -63,11 +73,15 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
   /// after a save, which makes the button meaningless: there is no way to tell
   /// from it whether the thing on screen is the thing that is in effect.
   /// `AiProviderConfig` carries no equality, so the fields are compared here.
+  ///
+  /// Two things can make this true: the provider on screen is not the active
+  /// one (so Save is how you switch to it), or its fields no longer match
+  /// what was last saved for it (so Save is how you update it).
   bool get _dirty =>
-      _saved.provider != _current.provider ||
-      _saved.apiKey != _current.apiKey ||
-      _saved.baseUrl != _current.baseUrl ||
-      _saved.model != _current.model;
+      _activeProvider != _current.provider ||
+      _stored.apiKey != _current.apiKey ||
+      _stored.baseUrl != _current.baseUrl ||
+      _stored.model != _current.model;
 
   Future<void> _save() async {
     final saving = _current;
@@ -75,7 +89,8 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
     if (!mounted) return;
     setState(() {
       _config = saving;
-      _saved = saving;
+      _stored = saving;
+      _activeProvider = saving.provider;
     });
     // It said nothing at all before — no confirmation, no error, no change in
     // the button. There was no way to know whether the key had been kept.
@@ -147,8 +162,18 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
                   : candidate.defaultModel,
               onTap: () {
                 if (candidate == provider) return;
+                // Whatever was saved for this provider before, not whatever
+                // is still sitting in the fields from the one just left —
+                // switching to OpenAI used to keep showing Claude's key,
+                // simply because nothing here ever looked at OpenAI's own
+                // storage slot.
+                final stored = widget.preferences.configFor(candidate);
+                _key.text = stored.apiKey;
+                _baseUrl.text = stored.baseUrl;
+                _model.text = stored.model;
                 setState(() {
-                  _config = _config.copyWith(provider: candidate);
+                  _config = stored;
+                  _stored = stored;
                   _result = null;
                 });
               },
@@ -167,7 +192,9 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   tooltip: l10n.apiKey,
-                  icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(
+                    _obscure ? Icons.visibility : Icons.visibility_off,
+                  ),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
@@ -336,8 +363,9 @@ class _ProviderTile extends StatelessWidget {
                       provider.label,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: selected ? accent : theme.colorScheme.onSurface,
-                        fontWeight:
-                            selected ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                       ),
                     ),
                     if (subtitle.isNotEmpty)
@@ -368,8 +396,9 @@ class _ResultBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final color =
-        result.success ? theme.colorScheme.secondary : theme.colorScheme.error;
+    final color = result.success
+        ? theme.colorScheme.secondary
+        : theme.colorScheme.error;
     return Container(
       padding: const EdgeInsets.all(NexSpacing.md),
       decoration: BoxDecoration(
@@ -387,9 +416,7 @@ class _ResultBanner extends StatelessWidget {
           const SizedBox(width: NexSpacing.sm),
           Expanded(
             child: Text(
-              result.success
-                  ? l10n.connectionOk(result.detail)
-                  : result.detail,
+              result.success ? l10n.connectionOk(result.detail) : result.detail,
               style: theme.textTheme.bodyMedium,
             ),
           ),
