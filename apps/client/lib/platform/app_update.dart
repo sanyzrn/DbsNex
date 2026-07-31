@@ -92,7 +92,13 @@ enum UpdateStatus {
 
 @immutable
 class UpdateCheck {
-  const UpdateCheck._(this.status, {this.version, this.downloadUrl, this.sizeBytes, this.notes});
+  const UpdateCheck._(
+    this.status, {
+    this.version,
+    this.downloadUrl,
+    this.sizeBytes,
+    this.notes,
+  });
 
   const UpdateCheck.upToDate() : this._(UpdateStatus.upToDate);
 
@@ -104,12 +110,12 @@ class UpdateCheck {
     int? sizeBytes,
     String? notes,
   }) : this._(
-          UpdateStatus.available,
-          version: version,
-          downloadUrl: downloadUrl,
-          sizeBytes: sizeBytes,
-          notes: notes,
-        );
+         UpdateStatus.available,
+         version: version,
+         downloadUrl: downloadUrl,
+         sizeBytes: sizeBytes,
+         notes: notes,
+       );
 
   final UpdateStatus status;
   final NexVersion? version;
@@ -151,7 +157,12 @@ class UpdateChecker {
   UpdateChecker({
     required this.currentVersion,
     http.Client? client,
-    this.repository = 'sanyzrn/DbsNex',
+    // A separate, public repo — never the source repo, which the release
+    // workflow now publishes to instead (see release.yml). GitHub's release
+    // API and asset URLs both need authentication once a repo is private,
+    // and shipping a token in the client to provide it would mean anyone
+    // could pull it back out of the built app.
+    this.repository = 'sanyzrn/DbsNex-releases',
     this.assetSuffix,
   }) : _client = client ?? http.Client(),
        _ownsClient = client == null;
@@ -176,10 +187,12 @@ class UpdateChecker {
     if (suffix == null) return const UpdateCheck.unavailable();
 
     try {
-      final response = await _client.get(
-        _latestUri,
-        headers: const {'Accept': 'application/vnd.github+json'},
-      ).timeout(const Duration(seconds: 15));
+      final response = await _client
+          .get(
+            _latestUri,
+            headers: const {'Accept': 'application/vnd.github+json'},
+          )
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode != 200) return const UpdateCheck.unavailable();
       return _parse(response.body, installed: installed, suffix: suffix);
     } on TimeoutException {
@@ -196,8 +209,7 @@ class UpdateChecker {
     String body, {
     required NexVersion installed,
     required String suffix,
-  }) =>
-      _parse(body, installed: installed, suffix: suffix);
+  }) => _parse(body, installed: installed, suffix: suffix);
 
   UpdateCheck _parse(
     String body, {
@@ -210,7 +222,9 @@ class UpdateChecker {
     } catch (_) {
       return const UpdateCheck.unavailable();
     }
-    if (decoded is! Map<String, dynamic>) return const UpdateCheck.unavailable();
+    if (decoded is! Map<String, dynamic>) {
+      return const UpdateCheck.unavailable();
+    }
 
     // A draft is not published to users, and a pre-release is opt-in — neither
     // should be pushed at someone who tapped "check for update".
@@ -254,8 +268,8 @@ class UpdateChecker {
 /// download can never be handed to the package installer as if it were whole.
 class UpdateDownloader {
   UpdateDownloader({http.Client? client})
-      : _client = client ?? http.Client(),
-        _ownsClient = client == null;
+    : _client = client ?? http.Client(),
+      _ownsClient = client == null;
 
   final http.Client _client;
   final bool _ownsClient;
@@ -274,18 +288,62 @@ class UpdateDownloader {
     // never matched the delete. A user who updates monthly quietly accrues
     // hundreds of megabytes, in an app whose Settings screen reports storage.
     await _sweepInstallers(into, keep: filename);
-    if (partial.existsSync()) partial.deleteSync();
     if (target.existsSync()) target.deleteSync();
 
+    // A `.part` left by an interrupted attempt used to be deleted here
+    // unconditionally, so a dropped connection or a killed app meant the
+    // whole thing — tens of megabytes — started over from zero. Asking for
+    // it by Range instead means only the part that's missing crosses the
+    // network again.
+    var received = partial.existsSync() ? partial.lengthSync() : 0;
     final request = http.Request('GET', Uri.parse(url));
-    final response = await _client.send(request);
-    if (response.statusCode != 200) {
-      throw HttpException('Download failed (${response.statusCode})', uri: request.url);
+    if (received > 0) {
+      request.headers[HttpHeaders.rangeHeader] = 'bytes=$received-';
+    }
+    var response = await _client.send(request);
+
+    int? total;
+    FileMode mode;
+    if (response.statusCode == 206) {
+      // The server honoured the range: what's already on disk plus whatever
+      // this response streams in is the whole file.
+      total =
+          _totalFromContentRange(response.headers['content-range']) ??
+          (response.contentLength == null
+              ? null
+              : received + response.contentLength!);
+      mode = FileMode.append;
+    } else if (response.statusCode == 200) {
+      // No partial honoured — a server that ignores Range, or nothing to
+      // resume in the first place. Either way this response is the whole
+      // file from byte zero, so anything already on disk has to go.
+      received = 0;
+      total = response.contentLength;
+      mode = FileMode.write;
+    } else if (response.statusCode == 416) {
+      // The range asked for is already past the end of the file — the
+      // partial is at least as long as the real thing, which means it is
+      // stale (a previous release under the same name) rather than
+      // finishable. Drop it and fetch the whole file fresh.
+      if (partial.existsSync()) partial.deleteSync();
+      response = await _client.send(http.Request('GET', Uri.parse(url)));
+      if (response.statusCode != 200) {
+        throw HttpException(
+          'Download failed (${response.statusCode})',
+          uri: request.url,
+        );
+      }
+      received = 0;
+      total = response.contentLength;
+      mode = FileMode.write;
+    } else {
+      throw HttpException(
+        'Download failed (${response.statusCode})',
+        uri: request.url,
+      );
     }
 
-    final total = response.contentLength;
-    var received = 0;
-    final sink = partial.openWrite();
+    final sink = partial.openWrite(mode: mode);
     try {
       await for (final chunk in response.stream) {
         sink.add(chunk);
@@ -300,11 +358,21 @@ class UpdateDownloader {
     }
 
     if (total != null && total > 0 && received != total) {
-      partial.deleteSync();
+      // Left in place rather than deleted: a retry resumes from here instead
+      // of paying for these bytes again.
       throw const HttpException('Download ended early');
     }
     partial.renameSync(target.path);
     return target;
+  }
+
+  /// The `<total>` out of a `Content-Range: bytes <start>-<end>/<total>`
+  /// header — the authoritative size for a resumed download, since the
+  /// response's own Content-Length is only the length of this one chunk.
+  static int? _totalFromContentRange(String? header) {
+    if (header == null) return null;
+    final match = RegExp(r'/(\d+)$').firstMatch(header.trim());
+    return match == null ? null : int.tryParse(match.group(1)!);
   }
 
   /// Deletes stale `Nex-*.apk` / `.exe` files, leaving [keep] alone.

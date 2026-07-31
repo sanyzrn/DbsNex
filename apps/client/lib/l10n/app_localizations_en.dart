@@ -829,6 +829,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retry => 'Try again';
 
   @override
+  String get cropPhotoTitle => 'Crop photo';
+
+  @override
+  String get cropConfirm => 'Use photo';
+
+  @override
+  String get cropCancel => 'Discard photo';
+
+  @override
   String get tagColor => 'Tag color';
 
   @override

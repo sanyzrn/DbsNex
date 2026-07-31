@@ -655,6 +655,63 @@ void main() {
     expect(sheet, lessThan(screen * 0.7));
   });
 
+  testWidgets(
+    "a voice note's long hidden transcript does not force reading height",
+    (tester) async {
+      // Tall enough that 70% of it clearly exceeds this content's natural
+      // height — on the default 800x600 test surface the two are close
+      // enough that the forced minimum never actually bound, and the bug
+      // this guards against would have passed right along with the fix.
+      tester.view.physicalSize = const Size(400, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      // Reported symptom: a rare, unexplained empty gap below Delete. The
+      // sheet's "is this a long note" check counted the transcript even
+      // while the AI panel that shows it was still collapsed — so whichever
+      // recording happened to transcribe past 220 characters forced the
+      // sheet to 70% of the screen for a view that was just a player and a
+      // "Transcript ready" link, with nothing to fill the rest.
+      //
+      // Both notes here carry a transcript — a "Transcript ready" toggle of
+      // its own either way — so only its *length* differs between them, not
+      // whether the row exists at all. The two should still open at the same
+      // height, since neither transcript is actually shown yet.
+      final plain = await services.captureVoice(
+        mediaUri: p.join(tmp.path, 'media', 'plain.m4a'),
+        mediaBytes: Uint8List.fromList([1, 2, 3]),
+        durationMs: 5000,
+      );
+      testWorker.seedTranscript(plain.id, 'short');
+      final long = await services.captureVoice(
+        mediaUri: p.join(tmp.path, 'media', 'long.m4a'),
+        mediaBytes: Uint8List.fromList([1, 2, 3]),
+        durationMs: 38000,
+      );
+      testWorker.seedTranscript(
+        long.id,
+        List.filled(40, 'a sentence that keeps going.').join(' '),
+      );
+      await services.refreshTimeline();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(NoteCard).first); // newest first: long
+      await tester.pumpAndSettle();
+      final longHeight = tester.getSize(find.byType(NoteDetailSheet)).height;
+      Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(NoteCard).last); // plain
+      await tester.pumpAndSettle();
+      final plainHeight = tester.getSize(find.byType(NoteDetailSheet)).height;
+
+      expect(longHeight, closeTo(plainHeight, 1));
+    },
+  );
+
   testWidgets('a name turns the timeline title into a greeting', (
     tester,
   ) async {

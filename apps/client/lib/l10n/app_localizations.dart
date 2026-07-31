@@ -1430,6 +1430,24 @@ abstract class AppLocalizations {
   /// **'Try again'**
   String get retry;
 
+  /// Title of the crop screen shown right after taking or picking a photo
+  ///
+  /// In en, this message translates to:
+  /// **'Crop photo'**
+  String get cropPhotoTitle;
+
+  /// Confirms the crop and saves the photo
+  ///
+  /// In en, this message translates to:
+  /// **'Use photo'**
+  String get cropConfirm;
+
+  /// Cancels the whole photo capture, not just the crop
+  ///
+  /// In en, this message translates to:
+  /// **'Discard photo'**
+  String get cropCancel;
+
   /// Title of the tag color picker
   ///
   /// In en, this message translates to:

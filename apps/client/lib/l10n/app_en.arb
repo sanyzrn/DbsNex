@@ -706,6 +706,18 @@
   "@retry": {
     "description": "Action on a failure message that repeats what failed"
   },
+  "cropPhotoTitle": "Crop photo",
+  "@cropPhotoTitle": {
+    "description": "Title of the crop screen shown right after taking or picking a photo"
+  },
+  "cropConfirm": "Use photo",
+  "@cropConfirm": {
+    "description": "Confirms the crop and saves the photo"
+  },
+  "cropCancel": "Discard photo",
+  "@cropCancel": {
+    "description": "Cancels the whole photo capture, not just the crop"
+  },
   "tagColor": "Tag color",
   "@tagColor": {
     "description": "Title of the tag color picker"

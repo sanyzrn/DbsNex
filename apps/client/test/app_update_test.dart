@@ -59,7 +59,10 @@ void main() {
     late UpdateChecker checker;
 
     setUp(() {
-      checker = UpdateChecker(currentVersion: '0.2.0', assetSuffix: '-universal.apk');
+      checker = UpdateChecker(
+        currentVersion: '0.2.0',
+        assetSuffix: '-universal.apk',
+      );
     });
 
     tearDown(() => checker.close());
@@ -69,23 +72,24 @@ void main() {
       List<Map<String, Object?>> assets = const [
         {
           'name': 'Nex-0.3.0-universal.apk',
-          'browser_download_url': 'https://example.invalid/Nex-0.3.0-universal.apk',
+          'browser_download_url':
+              'https://example.invalid/Nex-0.3.0-universal.apk',
           'size': 42,
         },
       ],
       bool draft = false,
       bool prerelease = false,
       String? body,
-    }) =>
-        jsonEncode({
-          'tag_name': tag,
-          'draft': draft,
-          'prerelease': prerelease,
-          'body': body,
-          'assets': assets,
-        });
+    }) => jsonEncode({
+      'tag_name': tag,
+      'draft': draft,
+      'prerelease': prerelease,
+      'body': body,
+      'assets': assets,
+    });
 
-    UpdateCheck run(String body, {String current = '0.2.0'}) => checker.parseForTest(
+    UpdateCheck run(String body, {String current = '0.2.0'}) =>
+        checker.parseForTest(
           body,
           installed: NexVersion.tryParse(current)!,
           suffix: '-universal.apk',
@@ -109,7 +113,10 @@ void main() {
     });
 
     test('drafts and pre-releases are not pushed at the user', () {
-      expect(run(release(tag: 'v0.3.0', draft: true)).status, UpdateStatus.upToDate);
+      expect(
+        run(release(tag: 'v0.3.0', draft: true)).status,
+        UpdateStatus.upToDate,
+      );
       expect(
         run(release(tag: 'v0.3.0', prerelease: true)).status,
         UpdateStatus.upToDate,
@@ -205,11 +212,74 @@ void main() {
         filename: 'Nex-0.3.0.apk',
       );
 
-      final left = tmp
-          .listSync()
-          .map((e) => e.uri.pathSegments.last)
-          .toSet();
+      final left = tmp.listSync().map((e) => e.uri.pathSegments.last).toSet();
       expect(left, {'Nex-0.3.0.apk', 'holiday-photo.jpg'});
     });
+
+    test('an interrupted download resumes from the partial file', () async {
+      // Reported symptom: a network blip, or just leaving the app, dropped
+      // the connection partway through and the next attempt started over
+      // from zero — tens of megabytes paid for twice. The `.part` a previous
+      // attempt left behind is no longer deleted on sight; it is asked for
+      // by Range instead, and only the missing tail crosses the network.
+      File('${tmp.path}/Nex-0.3.0.apk.part').writeAsBytesSync([1, 2, 3]);
+
+      String? rangeSent;
+      final downloader = UpdateDownloader(
+        client: MockClient((request) async {
+          rangeSent = request.headers['range'];
+          return http.Response.bytes(
+            [4, 5, 6, 7],
+            206,
+            headers: {'content-range': 'bytes 3-6/7'},
+          );
+        }),
+      );
+      addTearDown(downloader.close);
+
+      final result = await downloader.download(
+        url: 'https://example.invalid/Nex-0.3.0.apk',
+        into: tmp,
+        filename: 'Nex-0.3.0.apk',
+      );
+
+      expect(rangeSent, 'bytes=3-');
+      expect(result.readAsBytesSync(), [1, 2, 3, 4, 5, 6, 7]);
+      expect(File('${tmp.path}/Nex-0.3.0.apk.part').existsSync(), isFalse);
+    });
+
+    test(
+      'a partial past the end of the real file is dropped, not resumed',
+      () async {
+        // The .part is longer than the asset actually is — left over from a
+        // different release under the same name, or corrupted — so the range
+        // requested is unsatisfiable (416). That is a reason to start over,
+        // not to keep the stale bytes already on disk.
+        File(
+          '${tmp.path}/Nex-0.3.0.apk.part',
+        ).writeAsBytesSync([9, 9, 9, 9, 9]);
+
+        var requests = 0;
+        final downloader = UpdateDownloader(
+          client: MockClient((request) async {
+            requests++;
+            if (request.headers.containsKey('range')) {
+              return http.Response('', 416);
+            }
+            return http.Response.bytes([1, 2, 3, 4], 200);
+          }),
+        );
+        addTearDown(downloader.close);
+
+        final result = await downloader.download(
+          url: 'https://example.invalid/Nex-0.3.0.apk',
+          into: tmp,
+          filename: 'Nex-0.3.0.apk',
+        );
+
+        expect(requests, 2);
+        expect(result.readAsBytesSync(), [1, 2, 3, 4]);
+      },
+    );
   });
 }

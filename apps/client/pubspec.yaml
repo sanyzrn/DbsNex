@@ -19,6 +19,10 @@ dependencies:
   # asks, plus the streamed download of the installer.
   http: ^1.2.2
   image_picker: ^1.1.2
+  # Crop UI right after a capture. Pure Dart — no native platform code — so
+  # it works uniformly on every target this app builds for, unlike
+  # image_cropper, which has no Windows implementation at all.
+  crop_your_image: ^2.0.0
   # Pinned to the version flutter_localizations resolves against on 3.35.x.
   # "any" delegated the constraint entirely to whatever Flutter stable was
   # installed at build time.

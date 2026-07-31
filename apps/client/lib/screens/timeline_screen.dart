@@ -8,6 +8,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
+import '../feature_flags.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/capture_failure.dart';
 import '../platform/nex_preferences.dart';
@@ -26,6 +27,7 @@ import '../widgets/search_results.dart';
 import '../widgets/tag_picker.dart';
 import 'library_screen.dart';
 import 'note_detail_sheet.dart';
+import 'photo_crop_screen.dart';
 import 'settings_sheet.dart';
 
 class TimelineScreen extends StatefulWidget {
@@ -64,11 +66,11 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// Keeps one card open at a time and lets a scroll close it.
   final NexSwipeController _swipe = NexSwipeController();
 
-  /// Set by [_onReorder] and read by [_onReorderEnd]: the list's own
-  /// `onReorderEnd` fires whether or not the item actually moved, which is
-  /// exactly the signal a long press that was released without moving needs —
-  /// so a hold-and-release with no drag opens the quick actions instead.
-  bool _reorderMoved = false;
+  /// The index [_onReorderStart] captured, compared against the index
+  /// [_onReorderEnd] is handed to tell a hold-and-release apart from an
+  /// actual drag — see the doc comment on [_onReorderEnd] for why this has
+  /// to be a direct index comparison rather than waiting on [_onReorder].
+  int? _reorderStartIndex;
   List<Tag> filterTags = const [];
   String? selectedTagId;
   NoteType? selectedType;
@@ -337,15 +339,20 @@ class TimelineScreenState extends State<TimelineScreen> {
       // and the one the old handler could not have caught.
       final picked = await ImagePicker().pickImage(source: source);
       if (picked == null) return;
-      final bytes = await picked.readAsBytes();
+      final original = await picked.readAsBytes();
+      if (!mounted) return;
+      final cropped = await Navigator.of(context).push<Uint8List>(
+        MaterialPageRoute(builder: (_) => PhotoCropScreen(image: original)),
+      );
+      if (cropped == null) return;
       final dest = p.join(
         widget.services.mediaDir,
         'photo-${DateTime.now().millisecondsSinceEpoch}${p.extension(picked.path)}',
       );
-      await File(dest).writeAsBytes(bytes, flush: true);
+      await File(dest).writeAsBytes(cropped, flush: true);
       final note = await widget.services.capturePhoto(
         mediaUri: dest,
-        mediaBytes: Uint8List.fromList(bytes),
+        mediaBytes: cropped,
       );
       landedId = note.id;
       widget.services.scheduleEnrichment(note.id);
@@ -497,12 +504,16 @@ class TimelineScreenState extends State<TimelineScreen> {
       );
   }
 
+  void _onReorderStart(int index) {
+    _reorderStartIndex = index;
+    _swipe.closeAll();
+  }
+
   /// A long-press-and-drag on a card's middle zone (see [SwipeableNoteCard])
   /// moved it: reflect that in [notes] straight away rather than waiting on
   /// the next stream tick, and persist the set that was actually dragged
   /// against — see [NexServices.reorderNotes].
   void _onReorder(int oldIndex, int newIndex) {
-    _reorderMoved = true;
     if (oldIndex < newIndex) newIndex -= 1;
     final reordered = List<Note>.of(notes);
     reordered.insert(newIndex, reordered.removeAt(oldIndex));
@@ -510,16 +521,20 @@ class TimelineScreenState extends State<TimelineScreen> {
     unawaited(widget.services.reorderNotes([for (final n in reordered) n.id]));
   }
 
-  /// The same long press, released without ever crossing into a drag: the
-  /// list still calls this, with the index unchanged, which is the only way
-  /// to tell "held it, let go" apart from "held it, moved it" — see
-  /// [_onReorder] and [_reorderMoved].
+  /// The same long press, released without ever crossing into a drag.
+  ///
+  /// This fires the instant the finger lifts, carrying the drop index — the
+  /// same index [_onReorder] would use if the drag actually moved anything.
+  /// [_onReorder] itself, though, only runs ~250ms later, once the drop's
+  /// settle animation finishes; waiting for it here to decide whether to
+  /// open the quick actions menu meant every real reorder opened the menu
+  /// first and reordered second, the release fired while the card was still
+  /// settling. Comparing indices directly avoids the wait entirely: the drop
+  /// index is already final the moment this is called.
   void _onReorderEnd(int index) {
-    if (_reorderMoved) {
-      _reorderMoved = false;
-      return;
-    }
-    unawaited(_showQuickActions(notes[index]));
+    final start = _reorderStartIndex;
+    _reorderStartIndex = null;
+    if (start == index) unawaited(_showQuickActions(notes[index]));
   }
 
   /// What a long press that never turned into a drag opens: the same actions
@@ -839,7 +854,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     return [
       SliverReorderableList(
         itemCount: notes.length,
-        onReorderStart: (_) => _swipe.closeAll(),
+        onReorderStart: _onReorderStart,
         onReorder: _onReorder,
         onReorderEnd: _onReorderEnd,
         proxyDecorator: _reorderProxyDecorator,
@@ -862,7 +877,7 @@ class TimelineScreenState extends State<TimelineScreen> {
               addTagLabel: l10n.addTag,
               haptics: widget.preferences.haptics,
               controller: _swipe,
-              reorderIndex: index,
+              reorderIndex: kPinAndReorderEnabled ? index : null,
               resolveAction: ({required bool isLeading}) {
                 final action = isLeading
                     ? widget.preferences.leadingAction
