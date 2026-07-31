@@ -53,10 +53,11 @@ class NexSwipeController extends ChangeNotifier {
 const _leadingZone = 0.30;
 
 /// The fraction of the card's width, from its physical right edge, that a
-/// swipe may start from. The rest of the card — the middle 50% here — starts
-/// nothing, so scrolling or tapping through the body of a card no longer has
-/// a chance of being read as the beginning of a swipe.
-const _trailingZone = 0.20;
+/// swipe may start from — the same fraction as [_leadingZone], so neither
+/// edge gets an easier reach than the other. The rest of the card — the
+/// middle 40% — starts no swipe at all, which is also exactly the region a
+/// long press turns into a drag-to-reorder (see [SwipeableNoteCard]).
+const _trailingZone = 0.30;
 
 /// A horizontal drag that yields to a vertical scroll.
 ///
@@ -125,14 +126,69 @@ class _SidewaysDragRecognizer extends HorizontalDragGestureRecognizer {
   }
 }
 
+/// Starts a [SliverReorderableList] drag only for a pointer that lands in the
+/// card's middle 40% while the card is at rest — the same zone-gating
+/// technique as [_SidewaysDragRecognizer], applied to the standard
+/// long-press-to-reorder recognizer instead of a hand-rolled one.
+///
+/// Gating happens here, not by disabling the listener above it: disabling by
+/// zone would have to happen at build time, before the pointer that decides
+/// the zone has even landed.
+class _MiddleZoneDragRecognizer extends DelayedMultiDragGestureRecognizer {
+  _MiddleZoneDragRecognizer({
+    super.debugOwner,
+    required this.widthOf,
+    required this.isClosed,
+  });
+
+  final double Function() widthOf;
+  final bool Function() isClosed;
+
+  @override
+  bool isPointerAllowed(PointerDownEvent event) {
+    if (!isClosed()) return false;
+    final width = widthOf();
+    if (width > 0) {
+      final dx = event.localPosition.dx;
+      if (dx <= width * _leadingZone || dx >= width * (1 - _trailingZone)) {
+        return false;
+      }
+    }
+    return super.isPointerAllowed(event);
+  }
+}
+
+/// [ReorderableDelayedDragStartListener] wraps the whole item by design — see
+/// its own doc comment — so the middle-zone restriction lives in
+/// [_MiddleZoneDragRecognizer] rather than in how much of the card this
+/// listens on.
+class _MiddleZoneReorderListener extends ReorderableDelayedDragStartListener {
+  const _MiddleZoneReorderListener({
+    required super.child,
+    required super.index,
+    required this.widthOf,
+    required this.isClosed,
+  });
+
+  final double Function() widthOf;
+  final bool Function() isClosed;
+
+  @override
+  MultiDragGestureRecognizer createRecognizer() => _MiddleZoneDragRecognizer(
+        debugOwner: this,
+        widthOf: widthOf,
+        isClosed: isClosed,
+      );
+}
+
 /// A timeline card that reveals one of its two actions on a swipe.
 ///
 /// Behaviour, in the order the problems appeared:
 ///
-/// * A resting card only starts a swipe from its outer edges — the leading
-///   30% and the trailing 20% of its width (see [_leadingZone] and
-///   [_trailingZone]). The middle used to open on any sideways drag, which
-///   is also where a thumb naturally lands while scrolling past a card.
+/// * A resting card only starts a swipe from its outer edges — 30% of its
+///   width on each side (see [_leadingZone] and [_trailingZone]). The middle
+///   used to open on any sideways drag, which is also where a thumb
+///   naturally lands while scrolling past a card.
 /// * The offset is animated by a spring rather than assigned from the raw
 ///   pointer delta, so releasing settles instead of snapping.
 /// * A gesture cannot cross the middle. Once a direction is picked, dragging
@@ -141,6 +197,10 @@ class _SidewaysDragRecognizer extends HorizontalDragGestureRecognizer {
 /// * Dragging most of the way across commits the action on release, the way
 ///   Mail on iOS does, instead of requiring a second tap on the panel.
 /// * Only one card in a list is open at a time, and a scroll closes it.
+/// * A long press on the middle zone (see [reorderIndex]) lifts the card for
+///   a drag-to-reorder, using [SliverReorderableList]'s own mechanism —
+///   releasing without moving reports the same start and end index, which is
+///   the list's cue to treat it as a tap-and-hold rather than a reorder.
 class SwipeableNoteCard extends StatefulWidget {
   const SwipeableNoteCard({
     super.key,
@@ -153,6 +213,7 @@ class SwipeableNoteCard extends StatefulWidget {
     this.haptics = true,
     this.controller,
     this.insets = nexCardInsets,
+    this.reorderIndex,
   });
 
   final Widget child;
@@ -174,6 +235,12 @@ class SwipeableNoteCard extends StatefulWidget {
 
   /// Shared across a list so only one card stays open.
   final NexSwipeController? controller;
+
+  /// This card's position in an enclosing [SliverReorderableList].
+  ///
+  /// Null outside of one — a bare [SwipeableNoteCard] then has no long-press
+  /// behaviour at all, only the swipe.
+  final int? reorderIndex;
 
   @override
   State<SwipeableNoteCard> createState() => _SwipeableNoteCardState();
@@ -362,7 +429,7 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     return LayoutBuilder(
       builder: (context, constraints) {
         _width = constraints.maxWidth;
-        return Semantics(
+        Widget card = Semantics(
           customSemanticsActions: {
             CustomSemanticsAction(label: widget.deleteLabel): widget.onDelete,
             CustomSemanticsAction(label: widget.addTagLabel): widget.onAddTag,
@@ -433,6 +500,17 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
             ),
           ),
         );
+
+        final reorderIndex = widget.reorderIndex;
+        if (reorderIndex != null) {
+          card = _MiddleZoneReorderListener(
+            index: reorderIndex,
+            widthOf: () => _width,
+            isClosed: () => _isClosed,
+            child: card,
+          );
+        }
+        return card;
       },
     );
   }

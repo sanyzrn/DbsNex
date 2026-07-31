@@ -1,13 +1,15 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 /// The middle of a resting card no longer starts a swipe — only its outer
-/// 30%/20% edges do (every card here is 400px wide) — so these tests begin
-/// each drag from inside whichever edge the direction implies rather than
-/// from the finder's own centre. The accumulated distance travelled is what
-/// every assertion here cares about, not where the touch happened to land.
+/// 30% edges, on both sides, do (every card here is 400px wide) — so these
+/// tests begin each drag from inside whichever edge the direction implies
+/// rather than from the finder's own centre. The accumulated distance
+/// travelled is what every assertion here cares about, not where the touch
+/// happened to land.
 Future<void> _dragCard(WidgetTester tester, Finder finder, double dx) {
   final y = tester.getCenter(finder).dy;
   final x = dx < 0 ? 370.0 : 40.0;
@@ -70,7 +72,7 @@ void main() {
       (tester) async {
     // Reported symptom: the whole card swiped, so scrolling or tapping near
     // the middle of a card had a real chance of being read as the start of a
-    // swipe. Only the outer 30%/20% may open it now.
+    // swipe. Only the outer 30% on each side may open it now.
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -97,7 +99,7 @@ void main() {
       ),
     );
 
-    // Dead centre of a 400px card: inside the middle 50%, which starts
+    // Dead centre of a 400px card: inside the middle 40%, which starts
     // nothing.
     await tester.dragFrom(
       Offset(200, tester.getCenter(find.text('Note')).dy),
@@ -106,9 +108,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsNothing);
 
-    // The same travel, but begun inside the trailing 20% (320-400 of 400),
+    // The same travel, but begun inside the trailing 30% (280-400 of 400),
     // opens it.
     await _dragCard(tester, find.text('Note'), -150);
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsOneWidget);
+  });
+
+  testWidgets('the trailing zone is the same width as the leading one',
+      (tester) async {
+    // Reported as asymmetric: 30% on the left, 20% on the right. x=300 on a
+    // 400px card sits inside a 30% trailing zone (280-400) but outside a 20%
+    // one (320-400) — so this only opens with both edges equal.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            child: SwipeableNoteCard(
+              deleteLabel: 'Delete',
+              addTagLabel: 'Add Tag',
+              resolveAction: ({required bool isLeading}) =>
+                  NexSwipeAction.delete,
+              onDelete: () {},
+              onAddTag: () {},
+              child: const SizedBox(
+                height: 80,
+                width: double.infinity,
+                child: ColoredBox(
+                  color: Colors.white,
+                  child: Center(child: Text('Note')),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.dragFrom(
+      Offset(300, tester.getCenter(find.text('Note')).dy),
+      const Offset(-150, 0),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsOneWidget);
   });
@@ -400,5 +441,138 @@ void main() {
     await _dragCard(tester, find.text('Note'), -20);
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsNothing);
+  });
+
+  group('a long press on the middle zone reorders the list', () {
+    /// Three 80px cards in a real [SliverReorderableList], the way the
+    /// timeline wires them — [SwipeableNoteCard.reorderIndex] only does
+    /// anything with one of these as an ancestor.
+    ///
+    /// A sliver list gives every item a tight width equal to its own cross
+    /// axis extent, so a `SizedBox(width: 400)` around one item is ignored —
+    /// the 400px card the zone maths below assume only exists if the whole
+    /// scroll view is that wide.
+    Widget harness(void Function(int, int) onReorder) => MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              child: CustomScrollView(
+                slivers: [
+                  SliverReorderableList(
+                    itemCount: 3,
+                    onReorder: onReorder,
+                    itemBuilder: (context, index) => SizedBox(
+                      key: ValueKey(index),
+                      child: SwipeableNoteCard(
+                        reorderIndex: index,
+                        deleteLabel: 'Delete',
+                        addTagLabel: 'Add Tag',
+                        resolveAction: ({required bool isLeading}) =>
+                            NexSwipeAction.delete,
+                        onDelete: () {},
+                        onAddTag: () {},
+                        child: SizedBox(
+                          height: 80,
+                          width: double.infinity,
+                          child: ColoredBox(
+                            color: Colors.white,
+                            child: Center(child: Text('Note $index')),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+    testWidgets('held past the long-press delay, then dragged, moves the item',
+        (tester) async {
+      final reordered = <(int, int)>[];
+      await tester.pumpWidget(
+        harness((from, to) => reordered.add((from, to))),
+      );
+
+      // Well inside the middle 40% of a 400px card.
+      final gesture = await tester.startGesture(
+        Offset(200, tester.getCenter(find.text('Note 0')).dy),
+      );
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+      await gesture.moveBy(const Offset(0, 200));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(reordered, isNotEmpty);
+    });
+
+    testWidgets('the same hold-and-drag from an edge zone does not reorder',
+        (tester) async {
+      final reordered = <(int, int)>[];
+      await tester.pumpWidget(
+        harness((from, to) => reordered.add((from, to))),
+      );
+
+      // Trailing 30% of a 400px card — a swipe zone, not the reorder zone.
+      final gesture = await tester.startGesture(
+        Offset(370, tester.getCenter(find.text('Note 0')).dy),
+      );
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+      await gesture.moveBy(const Offset(0, 200));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(reordered, isEmpty);
+    });
+
+    testWidgets('a quick tap on the middle zone still reaches the child',
+        (tester) async {
+      var tapped = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                SliverReorderableList(
+                  itemCount: 1,
+                  onReorder: (_, __) {},
+                  itemBuilder: (context, index) => SizedBox(
+                    key: const ValueKey(0),
+                    width: 400,
+                    child: SwipeableNoteCard(
+                      reorderIndex: 0,
+                      deleteLabel: 'Delete',
+                      addTagLabel: 'Add Tag',
+                      resolveAction: ({required bool isLeading}) =>
+                          NexSwipeAction.delete,
+                      onDelete: () {},
+                      onAddTag: () {},
+                      child: GestureDetector(
+                        onTap: () => tapped = true,
+                        child: const SizedBox(
+                          height: 80,
+                          width: double.infinity,
+                          child: ColoredBox(
+                            color: Colors.white,
+                            child: Center(child: Text('Note')),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Note'));
+      await tester.pumpAndSettle();
+      expect(tapped, isTrue);
+    });
   });
 }
