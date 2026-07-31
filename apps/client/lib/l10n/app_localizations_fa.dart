@@ -416,6 +416,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get tag => 'برچسب';
 
   @override
+  String get pin => 'پین کردن';
+
+  @override
+  String get unpin => 'برداشتن پین';
+
+  @override
   String get summary => 'خلاصه';
 
   @override

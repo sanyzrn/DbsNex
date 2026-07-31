@@ -233,6 +233,69 @@ void main() {
         ['old, edited just now', 'new', 'mid'],
       );
     });
+
+    test('a pinned note leads the timeline, and only one is ever pinned', () {
+      final t0 = DateTime.utc(2026, 1, 1);
+      final t1 = DateTime.utc(2026, 1, 2);
+      final t2 = DateTime.utc(2026, 1, 3);
+      final old = repo.insert(makeText('old', at: t0));
+      final mid = repo.insert(makeText('mid', at: t1));
+      repo.insert(makeText('new', at: t2));
+
+      repo.pinNote(old.id);
+      expect(
+        repo.listTimeline().map((n) => n.content).toList(),
+        ['old', 'new', 'mid'],
+        reason: 'pinned leads even though it is the oldest',
+      );
+
+      // Pinning a second note releases the first — never two at once.
+      repo.pinNote(mid.id);
+      expect(
+        repo.listTimeline().map((n) => n.content).toList(),
+        ['mid', 'new', 'old'],
+      );
+
+      repo.unpinNote(mid.id);
+      expect(
+        repo.listTimeline().map((n) => n.content).toList(),
+        ['new', 'mid', 'old'],
+        reason: 'back to plain recency once nothing is pinned',
+      );
+    });
+
+    test('a manual order holds until a fresh capture, which still leads', () {
+      final t0 = DateTime.utc(2026, 1, 1);
+      final t1 = DateTime.utc(2026, 1, 2);
+      final t2 = DateTime.utc(2026, 1, 3);
+      final old = repo.insert(makeText('old', at: t0));
+      final mid = repo.insert(makeText('mid', at: t1));
+      final recent = repo.insert(makeText('new', at: t2));
+
+      // Dragged "old" to the front of the on-screen order.
+      repo.reorderNotes([old.id, recent.id, mid.id]);
+      expect(
+        repo.listTimeline().map((n) => n.content).toList(),
+        ['old', 'new', 'mid'],
+      );
+
+      // Editing one of the arranged notes does not reshuffle the
+      // arrangement — a manual placement is a deliberate override, not
+      // something a later edit should silently undo.
+      repo.updateContent(mid.id, 'mid, edited');
+      expect(
+        repo.listTimeline().map((n) => n.content).toList(),
+        ['old', 'new', 'mid, edited'],
+      );
+
+      // A brand-new capture has no manual position, so it still leads —
+      // ahead of the whole hand-arranged block, not stuck behind it.
+      repo.insert(makeText('just captured', at: t2.add(const Duration(days: 1))));
+      expect(
+        repo.listTimeline().map((n) => n.content).toList(),
+        ['just captured', 'old', 'new', 'mid, edited'],
+      );
+    });
   });
 
   group('1.9 export round-trip', () {

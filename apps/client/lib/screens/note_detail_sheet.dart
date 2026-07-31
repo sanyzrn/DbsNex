@@ -353,6 +353,20 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     await _reload();
   }
 
+  /// Only one note is ever pinned — pinning this one releases whatever else
+  /// held it, the same as the repository enforces underneath.
+  Future<void> _togglePin() async {
+    final note = _note;
+    if (note == null) return;
+    if (note.pinnedAt != null) {
+      await widget.services.unpinNote(note.id);
+    } else {
+      await widget.services.pinNote(note.id);
+    }
+    await widget.services.refreshTimeline();
+    await _reload();
+  }
+
   Future<void> _editCaption() async {
     final note = _note;
     if (note == null || note.type == NoteType.text) return;
@@ -836,6 +850,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       icon: Icons.label_outline,
                       label: l10n.tag,
                       onPressed: _addTag,
+                    ),
+                    _DetailAction(
+                      icon: note.pinnedAt != null
+                          ? Icons.push_pin
+                          : Icons.push_pin_outlined,
+                      label: note.pinnedAt != null ? l10n.unpin : l10n.pin,
+                      onPressed: _togglePin,
                     ),
                     _DetailAction(
                       icon: Icons.auto_awesome_outlined,

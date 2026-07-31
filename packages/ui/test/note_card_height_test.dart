@@ -68,6 +68,34 @@ void main() {
     expect(short, nexCardHeight + nexCardInsets.vertical);
   });
 
+  testWidgets('a pinned note shows a pin, an unpinned one does not',
+      (tester) async {
+    final now = DateTime.utc(2026, 7, 28);
+    final pinned = Note(
+      id: 'pinned',
+      type: NoteType.text,
+      content: 'pinned note',
+      createdAt: now,
+      updatedAt: now,
+      pinnedAt: now,
+      deviceId: 'test',
+      rev: 1,
+      syncState: SyncState.pending,
+    );
+
+    await heightOf(tester, note('not pinned'));
+    expect(find.byIcon(Icons.push_pin), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(width: 400, child: NoteCard(note: pinned)),
+        ),
+      ),
+    );
+    expect(find.byIcon(Icons.push_pin), findsOneWidget);
+  });
+
   testWidgets('tags are colours on the card, never names', (tester) async {
     // The name is already in the note's own words and in its detail sheet; on
     // the card it competed with the first line for the same glance, and three

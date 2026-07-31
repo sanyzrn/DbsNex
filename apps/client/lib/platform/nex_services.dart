@@ -242,6 +242,12 @@ class NexServices {
   Future<void> setCaption(String id, String caption) =>
       worker.setCaption(id, caption);
 
+  /// Pins [id], releasing whatever else was pinned — at most one note is
+  /// ever pinned at a time.
+  Future<void> pinNote(String id) => worker.pinNote(id);
+
+  Future<void> unpinNote(String id) => worker.unpinNote(id);
+
   /* ---------------------------------------------------------------- tags */
 
   Future<Tag> addTag({

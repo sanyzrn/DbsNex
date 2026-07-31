@@ -120,6 +120,51 @@ WHERE id = ? AND deleted_at IS NULL
     _upsertFts(noteId, content);
   }
 
+  /// Pins [noteId], unpinning whatever else was pinned first — only one note
+  /// is ever pinned at a time. Touches only `pinned_at`: this is local
+  /// device state, not a change worth pushing to sync.
+  void pinNote(String noteId) {
+    final now = DateTime.now().toUtc().toIso8601String();
+    db.execute('BEGIN IMMEDIATE');
+    try {
+      db.execute(
+        'UPDATE notes SET pinned_at = NULL WHERE pinned_at IS NOT NULL AND id != ?',
+        [noteId],
+      );
+      db.execute(
+        'UPDATE notes SET pinned_at = ? WHERE id = ?',
+        [now, noteId],
+      );
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    }
+  }
+
+  void unpinNote(String noteId) =>
+      db.execute('UPDATE notes SET pinned_at = NULL WHERE id = ?', [noteId]);
+
+  /// Stamps every note in [orderedIds] with its index as `sort_order`, in one
+  /// transaction — the whole set a Rearrange-mode drag was performed against,
+  /// not just the two notes that swapped places, so the rest of that list
+  /// keeps its relative order instead of falling back to recency mid-list.
+  void reorderNotes(List<String> orderedIds) {
+    db.execute('BEGIN IMMEDIATE');
+    try {
+      for (var i = 0; i < orderedIds.length; i++) {
+        db.execute(
+          'UPDATE notes SET sort_order = ? WHERE id = ?',
+          [i, orderedIds[i]],
+        );
+      }
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    }
+  }
+
   void softDelete(String noteId) {
     final now = DateTime.now().toUtc().toIso8601String();
     db.execute(
@@ -184,6 +229,12 @@ WHERE id = ?
   /// caption or tags bumps it, and a note you just changed belongs at the
   /// top of what you are looking at, not wherever it was originally written.
   ///
+  /// The pinned note (at most one) always leads. Behind it, notes nobody has
+  /// manually placed sort by recency same as ever; notes that *have* been
+  /// dragged into place in Rearrange mode follow, in that manual order —
+  /// which is why a fresh capture still surfaces at the top instead of
+  /// waiting at the bottom of an arrangement it was never part of.
+  ///
   /// When [tagId] is set, only notes with that tag are returned (Timeline
   /// filter chips / FR-4).
   @override
@@ -192,12 +243,19 @@ WHERE id = ?
     int offset = 0,
     String? tagId,
   }) {
+    const order = '''
+ORDER BY
+  (pinned_at IS NOT NULL) DESC,
+  (sort_order IS NOT NULL) ASC,
+  sort_order ASC,
+  updated_at DESC
+''';
     final rows = tagId == null
         ? db.select(
             '''
 SELECT * FROM notes
 WHERE deleted_at IS NULL
-ORDER BY updated_at DESC
+$order
 LIMIT ? OFFSET ?
 ''',
             [limit, offset],
@@ -207,7 +265,7 @@ LIMIT ? OFFSET ?
 SELECT n.* FROM notes n
 INNER JOIN note_tags nt ON nt.note_id = n.id
 WHERE n.deleted_at IS NULL AND nt.tag_id = ?
-ORDER BY n.updated_at DESC
+$order
 LIMIT ? OFFSET ?
 ''',
             [tagId, limit, offset],

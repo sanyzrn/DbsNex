@@ -117,6 +117,12 @@ class InProcessDb implements NexDb {
       _repo.setCaption(id, caption);
 
   @override
+  Future<void> pinNote(String id) async => _repo.pinNote(id);
+
+  @override
+  Future<void> unpinNote(String id) async => _repo.unpinNote(id);
+
+  @override
   Future<Tag> addTag({
     required String noteId,
     required String name,

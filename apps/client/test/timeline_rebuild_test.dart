@@ -218,6 +218,52 @@ void main() {
     expect(find.byType(NoteDetailSheet), findsOneWidget);
   });
 
+  testWidgets('pinning a note leads the timeline, and only one stays pinned',
+      (tester) async {
+    await services.captureText('older note');
+    await services.captureText('newer note');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    // Newest first, before anything is pinned.
+    expect(
+      tester.getCenter(find.text('newer note')).dy,
+      lessThan(tester.getCenter(find.text('older note')).dy),
+    );
+
+    await tester.tap(find.text('older note'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pin'));
+    await tester.pumpAndSettle();
+    expect(find.text('Unpin'), findsOneWidget);
+    Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.push_pin), findsOneWidget);
+    expect(
+      tester.getCenter(find.text('older note')).dy,
+      lessThan(tester.getCenter(find.text('newer note')).dy),
+      reason: 'the pinned note leads even though it is the older one',
+    );
+
+    // Pinning the other note releases the first — never two at once.
+    await tester.tap(find.text('newer note'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pin'));
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.push_pin), findsOneWidget);
+    expect(
+      tester.getCenter(find.text('newer note')).dy,
+      lessThan(tester.getCenter(find.text('older note')).dy),
+    );
+  });
+
   testWidgets('search happens on the timeline, without pushing a route',
       (tester) async {
     for (var i = 0; i < 10; i++) {
