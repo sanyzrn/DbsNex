@@ -54,11 +54,33 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # checkout already fetched full history (fetch-depth: 0), so this
-          # only needs the base branch ref itself.
-          git fetch --no-tags origin "$BASE"
-          FILES=$(git diff --name-only "origin/$BASE...HEAD")
+          # The PR's own recorded base commit, not origin/$BASE.
+          #
+          # origin/$BASE moves, and it moves most sharply at the one moment
+          # this matters: merging a pull request while its checks are still
+          # running puts its commits into main, so a diff taken against main a
+          # second later comes back empty. Every flag then went false, every
+          # job skipped, and the run reported success — a green tick on a pull
+          # request nothing had actually verified. The base SHA is fixed for
+          # the life of the pull request and cannot do that.
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          git fetch --no-tags origin "$BASE_SHA" 2>/dev/null || true
+          FILES=$(git diff --name-only "$BASE_SHA...HEAD" 2>/dev/null || true)
           echo "$FILES"
+
+          # An empty list is "I could not work out what changed", not "nothing
+          # changed" — a pull request with no files in it does not exist. The
+          # safe reading of not knowing is to verify everything; the unsafe one
+          # is what shipped untested code above.
+          if [ -z "$FILES" ]; then
+            echo "no diff resolved against $BASE_SHA: verifying everything"
+            {
+              echo "dart=true"
+              echo "backend=true"
+              echo "desktop=true"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           match() { printf '%s\n' "$FILES" | grep -Eq "$1"; }
 
