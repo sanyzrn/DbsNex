@@ -18,6 +18,10 @@ dependencies:
   # The in-app updater: one GET to the GitHub releases API when the user
   # asks, plus the streamed download of the installer.
   http: ^1.2.2
+  # Verifies a downloaded installer against the release's SHA256SUMS asset.
+  # Already resolved transitively (http depends on it); declared directly
+  # because app_update.dart now imports it.
+  crypto: ^3.0.6
   image_picker: ^1.1.2
   # Crop UI right after a capture. Pure Dart — no native platform code — so
   # it works uniformly on every target this app builds for, unlike

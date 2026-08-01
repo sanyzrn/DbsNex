@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -183,6 +184,88 @@ void main() {
     });
   });
 
+  group('UpdateChecker.check() resolves a checksum', () {
+    // parseForTest exercises `_parse` synchronously and cannot see the
+    // SHA256SUMS follow-up fetch, which only happens inside `check()` — so
+    // these run the whole thing over a mocked http.Client instead.
+    String releaseWithSums({String? sumsLine}) => jsonEncode({
+      'tag_name': 'v0.3.0',
+      'draft': false,
+      'prerelease': false,
+      'body': null,
+      'assets': [
+        {
+          'name': 'Nex-0.3.0-universal.apk',
+          'browser_download_url':
+              'https://example.invalid/Nex-0.3.0-universal.apk',
+          'size': 4,
+        },
+        if (sumsLine != null)
+          {
+            'name': 'SHA256SUMS',
+            'browser_download_url': 'https://example.invalid/SHA256SUMS',
+          },
+      ],
+    });
+
+    test('fetches SHA256SUMS and matches the asset by name', () async {
+      final digest = sha256.convert(utf8.encode('installer bytes')).toString();
+      final checker = UpdateChecker(
+        currentVersion: '0.2.0',
+        assetSuffix: '-universal.apk',
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('SHA256SUMS')) {
+            return http.Response(
+              'deadbeef  Nex-0.2.9-universal.apk\n'
+              '$digest  Nex-0.3.0-universal.apk\n',
+              200,
+            );
+          }
+          return http.Response(releaseWithSums(sumsLine: digest), 200);
+        }),
+      );
+      addTearDown(checker.close);
+
+      final result = await checker.check();
+
+      expect(result.status, UpdateStatus.available);
+      expect(result.checksumSha256, digest);
+    });
+
+    test('no SHA256SUMS asset means no checksum, not a failure', () async {
+      final checker = UpdateChecker(
+        currentVersion: '0.2.0',
+        assetSuffix: '-universal.apk',
+        client: MockClient((_) async => http.Response(releaseWithSums(), 200)),
+      );
+      addTearDown(checker.close);
+
+      final result = await checker.check();
+
+      expect(result.status, UpdateStatus.available);
+      expect(result.checksumSha256, isNull);
+    });
+
+    test('a failed checksum fetch does not block the update', () async {
+      final checker = UpdateChecker(
+        currentVersion: '0.2.0',
+        assetSuffix: '-universal.apk',
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('SHA256SUMS')) {
+            return http.Response('server error', 500);
+          }
+          return http.Response(releaseWithSums(sumsLine: 'irrelevant'), 200);
+        }),
+      );
+      addTearDown(checker.close);
+
+      final result = await checker.check();
+
+      expect(result.status, UpdateStatus.available);
+      expect(result.checksumSha256, isNull);
+    });
+  });
+
   group('UpdateDownloader', () {
     late Directory tmp;
 
@@ -279,6 +362,52 @@ void main() {
 
         expect(requests, 2);
         expect(result.readAsBytesSync(), [1, 2, 3, 4]);
+      },
+    );
+
+    test('a matching checksum is accepted', () async {
+      final bytes = [1, 2, 3, 4];
+      final digest = sha256.convert(bytes).toString();
+      final downloader = UpdateDownloader(
+        client: MockClient((_) async => http.Response.bytes(bytes, 200)),
+      );
+      addTearDown(downloader.close);
+
+      final result = await downloader.download(
+        url: 'https://example.invalid/Nex-0.3.0.apk',
+        into: tmp,
+        filename: 'Nex-0.3.0.apk',
+        expectedSha256: digest,
+      );
+
+      expect(result.readAsBytesSync(), bytes);
+    });
+
+    test(
+      'a mismatched checksum is rejected and the file is not left behind',
+      () async {
+        // A right-length, wrong-content download — corrupted in transit, or a
+        // release whose asset does not match what SHA256SUMS says — must not
+        // reach the installer under either name.
+        final downloader = UpdateDownloader(
+          client: MockClient(
+            (_) async => http.Response.bytes([1, 2, 3, 4], 200),
+          ),
+        );
+        addTearDown(downloader.close);
+
+        await expectLater(
+          downloader.download(
+            url: 'https://example.invalid/Nex-0.3.0.apk',
+            into: tmp,
+            filename: 'Nex-0.3.0.apk',
+            expectedSha256: '0' * 64,
+          ),
+          throwsA(isA<HttpException>()),
+        );
+
+        expect(File('${tmp.path}/Nex-0.3.0.apk').existsSync(), isFalse);
+        expect(File('${tmp.path}/Nex-0.3.0.apk.part').existsSync(), isFalse);
       },
     );
   });

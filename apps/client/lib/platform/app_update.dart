@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 
@@ -96,6 +97,9 @@ class UpdateCheck {
     this.status, {
     this.version,
     this.downloadUrl,
+    this.assetName,
+    this.checksumsUrl,
+    this.checksumSha256,
     this.sizeBytes,
     this.notes,
   });
@@ -107,12 +111,18 @@ class UpdateCheck {
   const UpdateCheck.available({
     required NexVersion version,
     required String downloadUrl,
+    String? assetName,
+    String? checksumsUrl,
+    String? checksumSha256,
     int? sizeBytes,
     String? notes,
   }) : this._(
          UpdateStatus.available,
          version: version,
          downloadUrl: downloadUrl,
+         assetName: assetName,
+         checksumsUrl: checksumsUrl,
+         checksumSha256: checksumSha256,
          sizeBytes: sizeBytes,
          notes: notes,
        );
@@ -120,8 +130,32 @@ class UpdateCheck {
   final UpdateStatus status;
   final NexVersion? version;
   final String? downloadUrl;
+
+  /// The release asset's own name, e.g. `Nex-0.3.0-universal.apk` — not
+  /// [downloadUrl], which is opaque, and not the local install filename from
+  /// [nexInstallerFilename], which is not what `SHA256SUMS` lists it under.
+  final String? assetName;
+
+  /// The `SHA256SUMS` asset's URL, when the release published one.
+  final String? checksumsUrl;
+
+  /// [assetName]'s expected SHA-256, once fetched from [checksumsUrl] — null
+  /// until then, and null forever for a release built before this existed.
+  final String? checksumSha256;
+
   final int? sizeBytes;
   final String? notes;
+
+  UpdateCheck _withChecksum(String hash) => UpdateCheck._(
+    status,
+    version: version,
+    downloadUrl: downloadUrl,
+    assetName: assetName,
+    checksumsUrl: checksumsUrl,
+    checksumSha256: hash,
+    sizeBytes: sizeBytes,
+    notes: notes,
+  );
 }
 
 /// Which release asset a platform installs.
@@ -194,13 +228,55 @@ class UpdateChecker {
           )
           .timeout(const Duration(seconds: 15));
       if (response.statusCode != 200) return const UpdateCheck.unavailable();
-      return _parse(response.body, installed: installed, suffix: suffix);
+      final result = _parse(
+        response.body,
+        installed: installed,
+        suffix: suffix,
+      );
+      if (result.status != UpdateStatus.available ||
+          result.checksumsUrl == null ||
+          result.assetName == null) {
+        return result;
+      }
+      // A release built before this shipped has no SHA256SUMS asset at all —
+      // that is [checksumsUrl] being null, handled above. This fetch failing
+      // (offline, a flaky GitHub Pages-style CDN blip) is different: the asset
+      // itself is fine, only this one extra request came back empty. Either
+      // way the download proceeds unverified rather than being blocked on a
+      // side channel the actual update does not depend on.
+      final hash = await _fetchChecksum(
+        result.checksumsUrl!,
+        result.assetName!,
+      );
+      return hash == null ? result : result._withChecksum(hash);
     } on TimeoutException {
       return const UpdateCheck.unavailable();
     } catch (_) {
       // Offline, DNS failure, TLS failure, malformed body — all the same
       // outcome to the user, and none of them should reach the UI as a crash.
       return const UpdateCheck.unavailable();
+    }
+  }
+
+  /// Looks up [assetName]'s line in the `SHA256SUMS` text file at [url].
+  ///
+  /// The format is `sha256sum`'s own: a hex digest, whitespace, the filename —
+  /// so this reads it the same way a person running `sha256sum -c` would.
+  Future<String?> _fetchChecksum(String url, String assetName) async {
+    try {
+      final response = await _client
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) return null;
+      for (final line in const LineSplitter().convert(response.body)) {
+        final parts = line.trim().split(RegExp(r'\s+'));
+        if (parts.length >= 2 && parts.last == assetName) {
+          return parts.first.toLowerCase();
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -239,22 +315,35 @@ class UpdateChecker {
 
     final assets = decoded['assets'];
     if (assets is! List) return const UpdateCheck.unavailable();
+    String? matchedUrl;
+    String? matchedName;
+    int? matchedSize;
+    String? checksumsUrl;
     for (final asset in assets) {
       if (asset is! Map) continue;
       final name = asset['name'];
       final url = asset['browser_download_url'];
       if (name is! String || url is! String) continue;
-      if (!name.endsWith(suffix)) continue;
+      if (name == 'SHA256SUMS') {
+        checksumsUrl = url;
+        continue;
+      }
+      if (matchedUrl != null || !name.endsWith(suffix)) continue;
+      matchedUrl = url;
+      matchedName = name;
       final size = asset['size'];
-      return UpdateCheck.available(
-        version: latest,
-        downloadUrl: url,
-        sizeBytes: size is int ? size : null,
-        notes: decoded['body'] is String ? decoded['body'] as String : null,
-      );
+      matchedSize = size is int ? size : null;
     }
     // A newer release with nothing this platform can install is not an update.
-    return const UpdateCheck.upToDate();
+    if (matchedUrl == null) return const UpdateCheck.upToDate();
+    return UpdateCheck.available(
+      version: latest,
+      downloadUrl: matchedUrl,
+      assetName: matchedName,
+      checksumsUrl: checksumsUrl,
+      sizeBytes: matchedSize,
+      notes: decoded['body'] is String ? decoded['body'] as String : null,
+    );
   }
 
   void close() {
@@ -279,6 +368,12 @@ class UpdateDownloader {
     required Directory into,
     required String filename,
     void Function(double? progress)? onProgress,
+    // Null for a release published before SHA256SUMS existed, or when
+    // fetching it failed — see UpdateChecker._fetchChecksum. Verification is
+    // best-effort on top of the length check just below, not a replacement
+    // for it: an installer that is the right size but the wrong bytes is
+    // exactly what this catches.
+    String? expectedSha256,
   }) async {
     final partial = File('${into.path}${Platform.pathSeparator}$filename.part');
     final target = File('${into.path}${Platform.pathSeparator}$filename');
@@ -361,6 +456,17 @@ class UpdateDownloader {
       // Left in place rather than deleted: a retry resumes from here instead
       // of paying for these bytes again.
       throw const HttpException('Download ended early');
+    }
+    if (expectedSha256 != null) {
+      final digest = await sha256.bind(partial.openRead()).first;
+      if ('$digest' != expectedSha256.toLowerCase()) {
+        // Deleted, not left for a retry: unlike a truncated download, a
+        // resume can only ever reproduce these same wrong bytes again.
+        await partial.delete();
+        throw const HttpException(
+          'Downloaded file failed checksum verification',
+        );
+      }
     }
     partial.renameSync(target.path);
     return target;

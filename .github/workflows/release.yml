@@ -289,6 +289,20 @@ jobs:
       - name: List artifacts
         run: find . -type f -printf '%p %s bytes\n'
 
+      # The in-app updater downloads over a plain HTTPS GET with no signature
+      # on the file itself — a hash it can check the download against closes
+      # a corrupted-in-transit or substituted asset. Named for the filename
+      # GitHub actually publishes the asset under (the flat basename, not
+      # this job's `android/` / `windows-installer/` artifact subdirectories),
+      # since that is what the client matches against `SHA256SUMS` by.
+      - name: Generate SHA-256 checksums
+        run: |
+          : > SHA256SUMS
+          for f in android/*.aab android/*.apk windows-installer/*.exe; do
+            sha256sum "$f" | awk -v name="$(basename "$f")" '{ print $1, name }' >> SHA256SUMS
+          done
+          cat SHA256SUMS
+
       - name: Create GitHub Release
         # Third-party actions are pinned by commit SHA: this job holds
         # contents: write, so a compromised mutable tag would be able to push
@@ -316,3 +330,4 @@ jobs:
             android/*.aab
             android/*.apk
             windows-installer/*.exe
+            SHA256SUMS
