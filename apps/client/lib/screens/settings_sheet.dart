@@ -140,6 +140,39 @@ class SettingsSheet extends StatelessWidget {
                             onChanged: preferences.setComfortMode,
                           ),
                           _SubHeading(
+                            icon: Icons.format_size,
+                            label: l10n.uiScale,
+                          ),
+                          _Inset(
+                            child: NexChoiceCards<double>(
+                              haptics: preferences.haptics,
+                              selected: preferences.uiScale,
+                              onSelected: preferences.setUiScale,
+                              choices: [
+                                NexChoice(
+                                  value: 0.9,
+                                  label: l10n.uiScaleSmall,
+                                  preview: const _TextSizePreview(fontSize: 14),
+                                ),
+                                NexChoice(
+                                  value: 1.0,
+                                  label: l10n.uiScaleDefault,
+                                  preview: const _TextSizePreview(fontSize: 18),
+                                ),
+                                NexChoice(
+                                  value: 1.15,
+                                  label: l10n.uiScaleLarge,
+                                  preview: const _TextSizePreview(fontSize: 22),
+                                ),
+                                NexChoice(
+                                  value: 1.3,
+                                  label: l10n.uiScaleLarger,
+                                  preview: const _TextSizePreview(fontSize: 26),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _SubHeading(
                             icon: Icons.translate,
                             label: l10n.language,
                           ),
@@ -180,6 +213,20 @@ class SettingsSheet extends StatelessWidget {
                         title: l10n.yourName,
                         footnote: l10n.yourNameHint,
                         children: [_NameRow(preferences: preferences)],
+                      ),
+                      _Section(
+                        icon: Icons.edit_note_outlined,
+                        title: l10n.capture,
+                        children: [
+                          SwitchListTile(
+                            contentPadding: _rowPadding,
+                            secondary: const Icon(Icons.keyboard_return),
+                            title: Text(l10n.enterSubmitsCapture),
+                            subtitle: Text(l10n.enterSubmitsCaptureSubtitle),
+                            value: preferences.enterSubmitsCapture,
+                            onChanged: preferences.setEnterSubmitsCapture,
+                          ),
+                        ],
                       ),
                       _Section(
                         icon: Icons.accessibility_new_outlined,
@@ -705,20 +752,42 @@ class _SwipeMappingState extends State<_SwipeMapping> {
     // The leading edge is the left in LTR and the right in RTL, so the arrow
     // that describes the gesture has to follow the reading direction.
     final rtl = Directionality.of(context) == TextDirection.rtl;
+    // Shared between both edges: a choice's value carries no per-edge state,
+    // only which edge is "selected" differs.
+    final choices = [
+      for (final action in SwipeAction.values)
+        NexChoice(
+          value: action,
+          label: _swipeLabel(l10n, action),
+          preview: _SwipeActionPreview(action: action),
+        ),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SwipeRow(
+        _SubHeading(
           icon: rtl ? Icons.arrow_back : Icons.arrow_forward,
-          title: l10n.swipeLeading,
-          action: widget.preferences.leadingAction,
-          onSelected: (action) => _select(isLeading: true, action: action),
+          label: l10n.swipeLeading,
         ),
-        _SwipeRow(
+        _Inset(
+          child: NexChoiceCards<SwipeAction>(
+            haptics: widget.preferences.haptics,
+            selected: widget.preferences.leadingAction,
+            onSelected: (action) => _select(isLeading: true, action: action),
+            choices: choices,
+          ),
+        ),
+        _SubHeading(
           icon: rtl ? Icons.arrow_forward : Icons.arrow_back,
-          title: l10n.swipeTrailing,
-          action: widget.preferences.trailingAction,
-          onSelected: (action) => _select(isLeading: false, action: action),
+          label: l10n.swipeTrailing,
+        ),
+        _Inset(
+          child: NexChoiceCards<SwipeAction>(
+            haptics: widget.preferences.haptics,
+            selected: widget.preferences.trailingAction,
+            onSelected: (action) => _select(isLeading: false, action: action),
+            choices: choices,
+          ),
         ),
       ],
     );
@@ -737,68 +806,53 @@ Color _swipeColor(ThemeData theme, SwipeAction action) => switch (action) {
   SwipeAction.addTag => theme.colorScheme.secondary,
 };
 
-/// One edge of the mapping, with its action chosen from a menu.
-///
-/// A menu rather than a swap button: the control has to say what the choices
-/// *are*. It also survives a third action being added — that becomes one more
-/// entry here, not another rewrite of this widget.
-class _SwipeRow extends StatelessWidget {
-  const _SwipeRow({
-    required this.icon,
-    required this.title,
-    required this.action,
-    required this.onSelected,
-  });
+/// A swipe action's card preview: the same tinted-circle language the
+/// theme/language pickers already use, coloured per action so Delete reads
+/// as destructive and Add tag doesn't.
+class _SwipeActionPreview extends StatelessWidget {
+  const _SwipeActionPreview({required this.action});
 
-  final IconData icon;
-  final String title;
   final SwipeAction action;
-  final ValueChanged<SwipeAction> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final accent = _swipeColor(theme, action);
-    return PopupMenuButton<SwipeAction>(
-      tooltip: title,
-      onSelected: onSelected,
-      itemBuilder: (context) => [
-        for (final candidate in SwipeAction.values)
-          PopupMenuItem(
-            value: candidate,
-            child: Row(
-              children: [
-                Icon(
-                  _swipeIcon(candidate),
-                  size: 18,
-                  color: _swipeColor(theme, candidate),
-                ),
-                const SizedBox(width: 12),
-                Expanded(child: Text(_swipeLabel(l10n, candidate))),
-                if (candidate == action) const Icon(Icons.check, size: 18),
-              ],
-            ),
-          ),
-      ],
-      child: ListTile(
-        contentPadding: _rowPadding,
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: Row(
-          children: [
-            Icon(_swipeIcon(action), size: 16, color: accent),
-            const SizedBox(width: 6),
-            Text(
-              _swipeLabel(l10n, action),
-              style: theme.textTheme.bodyMedium?.copyWith(color: accent),
-            ),
-          ],
-        ),
-        trailing: const Icon(Icons.expand_more),
+    final color = _swipeColor(Theme.of(context), action);
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color.withValues(alpha: 0.12),
       ),
+      child: Icon(_swipeIcon(action), size: 20, color: color),
     );
   }
+}
+
+/// A card preview that shows the size rather than naming it — the same
+/// "Aa" at a different scale every text-size control uses, since a number
+/// of points means nothing next to actually seeing it.
+class _TextSizePreview extends StatelessWidget {
+  const _TextSizePreview({required this.fontSize});
+
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 40,
+    height: 40,
+    child: Center(
+      child: Text(
+        'Aa',
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+    ),
+  );
 }
 
 /// The update row, with the same dot the settings icon carries.

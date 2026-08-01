@@ -40,7 +40,7 @@ class AboutScreen extends StatelessWidget {
                   theme.brightness == Brightness.dark
                       ? 'assets/branding/text_logo_dark.png'
                       : 'assets/branding/text_logo_light.png',
-                  width: 200,
+                  width: 160,
                   semanticLabel: 'Nex',
                 ),
                 const SizedBox(height: NexSpacing.xs),
@@ -92,6 +92,14 @@ class AboutScreen extends StatelessWidget {
             title: l10n.sourceCode,
             subtitle: 'github.com/sanyzrn/DbsNex',
             url: _repositoryUrl,
+            copiedLabel: l10n.copied,
+            copyTooltip: l10n.copy,
+          ),
+          _LinkTile(
+            icon: Icons.feedback_outlined,
+            title: l10n.sendFeedback,
+            subtitle: l10n.sendFeedbackSubtitle,
+            url: '$_repositoryUrl/issues/new',
             copiedLabel: l10n.copied,
             copyTooltip: l10n.copy,
           ),

@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:ui' show BoxWidthStyle;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
+import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../utils/nex_bidi.dart';
 
@@ -10,6 +12,7 @@ class CaptureSheet extends StatefulWidget {
   const CaptureSheet({
     super.key,
     required this.services,
+    required this.preferences,
     required this.onVoice,
     required this.onCamera,
     required this.onGallery,
@@ -17,6 +20,7 @@ class CaptureSheet extends StatefulWidget {
     this.onCommitted,
   });
   final NexServices services;
+  final NexPreferences preferences;
   final VoidCallback onVoice;
   final VoidCallback onCamera;
   final VoidCallback onGallery;
@@ -93,25 +97,51 @@ class _CaptureSheetState extends State<CaptureSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: controller,
-              autofocus: true,
-              minLines: 3,
-              maxLines: null,
-              textDirection: nexTextDirection(controller.text),
-              textAlign: nexTextAlign(controller.text),
-              // Default is BoxWidthStyle.max, which pads a selection's highlight
-              // out to the far edge of its line on Persian text — double-tapping
-              // a word painted a bar running to the end of the line, empty space
-              // included, even though the selection itself (and copy) was always
-              // just the word.
-              selectionWidthStyle: BoxWidthStyle.tight,
-              decoration: InputDecoration(
-                hintText: l10n.captureHint,
-                border: InputBorder.none,
+            Focus(
+              // A multiline field's own default is to insert a newline on
+              // Enter — textInputAction only changes the on-screen
+              // keyboard's action button, physical Enter still needs
+              // catching here. Shift+Enter is the escape hatch to actually
+              // start a new line while this is on.
+              onKeyEvent: (node, event) {
+                if (!widget.preferences.enterSubmitsCapture) {
+                  return KeyEventResult.ignored;
+                }
+                if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                final isEnter =
+                    event.logicalKey == LogicalKeyboardKey.enter ||
+                    event.logicalKey == LogicalKeyboardKey.numpadEnter;
+                if (!isEnter || HardwareKeyboard.instance.isShiftPressed) {
+                  return KeyEventResult.ignored;
+                }
+                close();
+                return KeyEventResult.handled;
+              },
+              child: TextField(
+                controller: controller,
+                autofocus: true,
+                minLines: 3,
+                maxLines: null,
+                textDirection: nexTextDirection(controller.text),
+                textAlign: nexTextAlign(controller.text),
+                // Default is BoxWidthStyle.max, which pads a selection's highlight
+                // out to the far edge of its line on Persian text — double-tapping
+                // a word painted a bar running to the end of the line, empty space
+                // included, even though the selection itself (and copy) was always
+                // just the word.
+                selectionWidthStyle: BoxWidthStyle.tight,
+                decoration: InputDecoration(
+                  hintText: l10n.captureHint,
+                  border: InputBorder.none,
+                ),
+                textInputAction: widget.preferences.enterSubmitsCapture
+                    ? TextInputAction.send
+                    : TextInputAction.newline,
+                onChanged: changed,
+                onSubmitted: widget.preferences.enterSubmitsCapture
+                    ? (_) => close()
+                    : null,
               ),
-              onChanged: changed,
-              onSubmitted: (_) => close(),
             ),
             const Divider(height: 1),
             Wrap(
@@ -147,16 +177,24 @@ class _CaptureSheetState extends State<CaptureSheet> {
   }
 }
 
+/// Icon-only on purpose: four of these plus the submit button already read
+/// clearly by shape (a mic, a camera, ...), and the label under each one was
+/// the only text-heavy thing in a row that is otherwise pure affordance. The
+/// name survives as a tooltip and a semantic label — it just stops being
+/// printed on the button.
 class _Action extends StatelessWidget {
   const _Action(this.icon, this.label, this.onTap);
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => TextButton.icon(
-    style: TextButton.styleFrom(minimumSize: const Size(0, nexMinTapTarget)),
+  Widget build(BuildContext context) => IconButton(
+    tooltip: label,
+    constraints: const BoxConstraints.tightFor(
+      width: nexMinTapTarget,
+      height: nexMinTapTarget,
+    ),
     onPressed: onTap,
-    icon: Icon(icon, size: 18),
-    label: Text(label),
+    icon: Icon(icon, size: 20),
   );
 }

@@ -155,7 +155,7 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-8a.3 The check reads the repository's latest published release and compares versions **semantically**, not as strings. Drafts and pre-releases are never offered.
 - FR-8a.4 The request carries no note content, no device identifier and no telemetry. This is the one outbound call outside sync, and it is a plain read.
 - FR-8a.5 A failed check reports that it failed. It never reports "up to date" for a check that did not complete.
-- FR-8a.6 On Android the update downloads the **universal APK** and hands it to the system installer; the platform, not Nex, asks the user to confirm. Silent self-installation is neither possible nor attempted outside an app store. A release therefore always publishes a universal APK alongside the per-ABI splits — the app cannot know the device's ABI before downloading.
+- FR-8a.6 On Android the update downloads the **split APK matching the device's own ABI** (`Abi.current()`, resolved without any device query or plugin) and hands it to the system installer; the platform, not Nex, asks the user to confirm. Silent self-installation is neither possible nor attempted outside an app store. A release publishes a universal APK alongside the per-ABI splits purely as a fallback for the rare release missing an exact split — most installs never touch it.
 - FR-8a.7 Updating never touches the local library. Releases are signed with one key, so an update installs over the existing app and its notes, media and preferences survive.
 
 ### FR-9 — Your Name

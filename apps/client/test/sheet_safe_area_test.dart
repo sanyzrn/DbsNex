@@ -76,8 +76,9 @@ void main() {
     expect(find.byType(NoteDetailSheet), findsOneWidget);
 
     // Delete is the sheet's last control, so it is the one that lands under
-    // the navigation bar when the bottom inset is not reserved.
-    final delete = tester.getRect(find.text('Delete'));
+    // the navigation bar when the bottom inset is not reserved. Icon-only,
+    // so it's found by tooltip rather than by label text.
+    final delete = tester.getRect(find.byTooltip('Delete'));
     expect(
       delete.bottom,
       lessThanOrEqualTo(900 - navBar),

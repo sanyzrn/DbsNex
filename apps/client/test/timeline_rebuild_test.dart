@@ -719,6 +719,57 @@ void main() {
     );
   });
 
+  testWidgets(
+    'untagging a note down to zero notices without a manual refresh',
+    (tester) async {
+      // Reported symptom: untag a note's last tag from the detail sheet's
+      // own remove button (not deleting the tag, not through the service
+      // directly) and the pill stayed in the filter row. removeTag's caller
+      // only reloaded the detail sheet's own note, never the timeline that
+      // feeds the filter row — addTag's equivalent path already refreshed it.
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final note = (await services.captureText('a note'))!;
+      await services.addTag(noteId: note.id, name: 'Errands');
+      await services.refreshTimeline();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Errands'), findsWidgets);
+
+      await tester.tap(find.text('a note'));
+      await tester.pumpAndSettle();
+      expect(find.byType(NoteDetailSheet), findsOneWidget);
+
+      final chip = find.descendant(
+        of: find.byType(NoteDetailSheet),
+        matching: find.widgetWithText(InputChip, 'Errands'),
+      );
+      expect(chip, findsOneWidget);
+      // The chip's own delete affordance — there's no avatar on an
+      // uncoloured tag, so this is the only icon inside it.
+      await tester.tap(find.descendant(of: chip, matching: find.byType(Icon)));
+      await tester.pumpAndSettle();
+      expect(
+        find.byType(NoteDetailSheet),
+        findsOneWidget,
+        reason: 'removing a tag must not itself close the sheet',
+      );
+
+      Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Errands'),
+        findsNothing,
+        reason: 'nothing uses it any more, and this needed no manual refresh',
+      );
+    },
+  );
+
   testWidgets('the search header follows a theme change', (tester) async {
     // Reported from a device: switch to light and the strip around the search
     // field stayed black; on another phone, switching to dark left it white.

@@ -149,20 +149,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     });
   }
 
-  /// The text a note can hand to the clipboard: its body, or whatever the
-  /// intelligence layer derived from its media.
-  String? _copyableText(Note note) {
-    for (final candidate in [
-      note.content,
-      note.transcriptText,
-      note.ocrText,
-      note.caption,
-    ]) {
-      final text = candidate?.trim();
-      if (text != null && text.isNotEmpty) return text;
-    }
-    return null;
-  }
+  /// The text the main copy action hands to the clipboard: whatever
+  /// [Note.displayText] shows on screen, so the button copies what the user
+  /// is actually looking at — a caption once there is one, not the
+  /// transcript/OCR text underneath it. That text keeps its own small copy
+  /// icon in the AI panel (see [_copyDerivedText]).
+  String? _copyableText(Note note) => note.displayText;
 
   void _toast(String message) {
     ScaffoldMessenger.of(context)
@@ -821,7 +813,14 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                               noteId: note.id,
                               tagId: tag.id,
                             );
-                            _reload();
+                            // Unlike _addTag, this can take a tag's usage
+                            // count to zero — without a refresh here, the
+                            // filter row on the timeline never hears about
+                            // it and keeps showing a tag nothing wears
+                            // anymore until some unrelated capture or
+                            // delete happens to trigger one.
+                            await widget.services.refreshTimeline();
+                            await _reload();
                           },
                         ),
                       ActionChip(
@@ -840,12 +839,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
           // end of it: a long note would otherwise bury them under a screenful
           // of text, and they belong to the note, not to its ending.
           //
-          // They sit in the open, as labelled icons. They were behind a single
+          // They sit in the open, as icons. They were behind a single
           // overflow button in the corner, which is the hardest place on a
           // phone to reach and told you nothing about what was inside. Delete
-          // keeps its own row: it is the one action that cannot be undone by
-          // repeating it, and the timeline owns the actual soft-delete so the
-          // undo toast is offered exactly once.
+          // lives here too now, last and in red — the timeline still owns
+          // the actual soft-delete, so the undo toast is offered exactly
+          // once regardless of where the button sits.
           Divider(height: 1, color: Theme.of(context).colorScheme.outline),
           Padding(
             padding: EdgeInsets.only(
@@ -915,16 +914,14 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       label: l10n.details,
                       onPressed: _showDetails,
                     ),
+                    _DetailAction(
+                      icon: Icons.delete_outline,
+                      label: l10n.delete,
+                      destructive: true,
+                      onPressed: () =>
+                          Navigator.pop(context, DetailResult.deleted),
+                    ),
                   ],
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                TextButton.icon(
-                  onPressed: () => Navigator.pop(context, DetailResult.deleted),
-                  icon: const Icon(Icons.delete_outline),
-                  label: Text(l10n.delete),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.error,
-                  ),
                 ),
               ],
             ),
@@ -1119,17 +1116,24 @@ class _DetailAction extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onPressed,
+    this.destructive = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
 
+  /// Delete's own colour: the row is otherwise neutral, and this is the one
+  /// action here that cannot be undone by repeating it.
+  final bool destructive;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = onPressed == null
         ? theme.disabledColor
+        : destructive
+        ? theme.colorScheme.error
         : theme.colorScheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),

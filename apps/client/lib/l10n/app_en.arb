@@ -103,6 +103,13 @@
   "themeSystem": "System",
   "comfortMode": "Comfort Mode",
   "comfortModeSubtitle": "Lower contrast and warmer colors, independent of Light or Dark",
+  "uiScale": "Text & UI size",
+  "uiScaleSmall": "Small",
+  "uiScaleDefault": "Default",
+  "uiScaleLarge": "Large",
+  "uiScaleLarger": "Larger",
+  "enterSubmitsCapture": "Enter saves the note",
+  "enterSubmitsCaptureSubtitle": "Off starts a new line instead. Shift+Enter always starts a new line either way.",
   "languageSystem": "System",
   "languageEnglish": "English",
   "languagePersian": "Persian",
@@ -346,7 +353,7 @@
   "@opening": {
     "description": "Screen-reader label for the startup splash"
   },
-  "swipeActionsHint": "Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.",
+  "swipeActionsHint": "Each edge is set on its own. Tap a card to pick what that swipe does, or turn it off.",
   "@swipeActionsHint": {
     "description": "Explains that each swipe edge is configured independently"
   },
@@ -385,6 +392,14 @@
   "sourceCode": "Source code",
   "@sourceCode": {
     "description": "About screen row linking to the repository"
+  },
+  "sendFeedback": "Send feedback",
+  "@sendFeedback": {
+    "description": "About screen row linking to the issue tracker"
+  },
+  "sendFeedbackSubtitle": "github.com/sanyzrn/DbsNex/issues",
+  "@sendFeedbackSubtitle": {
+    "description": "About screen: where feedback goes"
   },
   "capabilities": "What Nex does",
   "@capabilities": {

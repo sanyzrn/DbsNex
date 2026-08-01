@@ -244,6 +244,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'Lower contrast and warmer colors, independent of Light or Dark';
 
   @override
+  String get uiScale => 'Text & UI size';
+
+  @override
+  String get uiScaleSmall => 'Small';
+
+  @override
+  String get uiScaleDefault => 'Default';
+
+  @override
+  String get uiScaleLarge => 'Large';
+
+  @override
+  String get uiScaleLarger => 'Larger';
+
+  @override
+  String get enterSubmitsCapture => 'Enter saves the note';
+
+  @override
+  String get enterSubmitsCaptureSubtitle =>
+      'Off starts a new line instead. Shift+Enter always starts a new line either way.';
+
+  @override
   String get languageSystem => 'System';
 
   @override
@@ -504,7 +526,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get swipeActionsHint =>
-      'Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.';
+      'Each edge is set on its own. Tap a card to pick what that swipe does, or turn it off.';
 
   @override
   String get revealInFolder => 'Copy file path';
@@ -534,6 +556,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sourceCode => 'Source code';
+
+  @override
+  String get sendFeedback => 'Send feedback';
+
+  @override
+  String get sendFeedbackSubtitle => 'github.com/sanyzrn/DbsNex/issues';
 
   @override
   String get capabilities => 'What Nex does';

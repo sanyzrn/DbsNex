@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
@@ -85,6 +86,50 @@ void main() {
       expect(find.text('Nothing to share yet'), findsOneWidget);
     },
   );
+
+  testWidgets('feedback copies the issue tracker link, not the repo root', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    // flutter_test ships no default handler for the clipboard channel, so an
+    // un-mocked await on Clipboard.getData never resolves — it is not
+    // exercised anywhere else in this suite.
+    String? clipboardText;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+            return null;
+          }
+          if (call.method == 'Clipboard.getData') {
+            return {'text': clipboardText};
+          }
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: AboutScreen(services: services),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Send feedback'), findsOneWidget);
+    await tester.tap(find.text('Send feedback'));
+    await tester.pumpAndSettle();
+
+    final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+    expect(clipboard?.text, 'https://github.com/sanyzrn/DbsNex/issues/new');
+  });
 
   testWidgets('the wordmark image swaps with the theme, not just the tint', (
     tester,

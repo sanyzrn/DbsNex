@@ -334,6 +334,7 @@ class TimelineScreenState extends State<TimelineScreen> {
       context: context,
       builder: (sheetContext) => CaptureSheet(
         services: widget.services,
+        preferences: widget.preferences,
         onCommitted: (id) {
           landedId = id;
           if (widget.preferences.haptics) HapticFeedback.lightImpact();

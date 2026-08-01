@@ -506,6 +506,48 @@ abstract class AppLocalizations {
   /// **'Lower contrast and warmer colors, independent of Light or Dark'**
   String get comfortModeSubtitle;
 
+  /// No description provided for @uiScale.
+  ///
+  /// In en, this message translates to:
+  /// **'Text & UI size'**
+  String get uiScale;
+
+  /// No description provided for @uiScaleSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get uiScaleSmall;
+
+  /// No description provided for @uiScaleDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get uiScaleDefault;
+
+  /// No description provided for @uiScaleLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get uiScaleLarge;
+
+  /// No description provided for @uiScaleLarger.
+  ///
+  /// In en, this message translates to:
+  /// **'Larger'**
+  String get uiScaleLarger;
+
+  /// No description provided for @enterSubmitsCapture.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter saves the note'**
+  String get enterSubmitsCapture;
+
+  /// No description provided for @enterSubmitsCaptureSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Off starts a new line instead. Shift+Enter always starts a new line either way.'**
+  String get enterSubmitsCaptureSubtitle;
+
   /// No description provided for @languageSystem.
   ///
   /// In en, this message translates to:
@@ -959,7 +1001,7 @@ abstract class AppLocalizations {
   /// Explains that each swipe edge is configured independently
   ///
   /// In en, this message translates to:
-  /// **'Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.'**
+  /// **'Each edge is set on its own. Tap a card to pick what that swipe does, or turn it off.'**
   String get swipeActionsHint;
 
   /// Copies a media note's file path to the clipboard
@@ -1015,6 +1057,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Source code'**
   String get sourceCode;
+
+  /// About screen row linking to the issue tracker
+  ///
+  /// In en, this message translates to:
+  /// **'Send feedback'**
+  String get sendFeedback;
+
+  /// About screen: where feedback goes
+  ///
+  /// In en, this message translates to:
+  /// **'github.com/sanyzrn/DbsNex/issues'**
+  String get sendFeedbackSubtitle;
 
   /// About screen section heading
   ///

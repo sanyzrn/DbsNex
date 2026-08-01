@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -182,6 +183,85 @@ void main() {
       expect(run('[]').status, UpdateStatus.unavailable);
       expect(run(release(tag: 'garbage')).status, UpdateStatus.unavailable);
     });
+  });
+
+  group('Android ABI matches its own split, not the universal APK', () {
+    test('each running ABI maps to the split the release workflow builds', () {
+      expect(androidAbiSuffixForTest(Abi.androidArm64), '-arm64-v8a.apk');
+      expect(androidAbiSuffixForTest(Abi.androidArm), '-armeabi-v7a.apk');
+      expect(androidAbiSuffixForTest(Abi.androidX64), '-x86_64.apk');
+    });
+
+    test(
+      'an ABI the release workflow does not split for falls back to universal',
+      () {
+        // 32-bit x86 (the emulator's IA32) has no split built for it.
+        expect(androidAbiSuffixForTest(Abi.androidIA32), '-universal.apk');
+      },
+    );
+
+    test('a release with the matching split skips the universal APK', () {
+      final checker = UpdateChecker(currentVersion: '0.2.0');
+      final result = checker.parseForTest(
+        jsonEncode({
+          'tag_name': 'v0.3.0',
+          'draft': false,
+          'prerelease': false,
+          'body': null,
+          'assets': [
+            {
+              'name': 'Nex-0.3.0-universal.apk',
+              'browser_download_url': 'https://example.invalid/universal.apk',
+              'size': 90000000,
+            },
+            {
+              'name': 'Nex-0.3.0-arm64-v8a.apk',
+              'browser_download_url': 'https://example.invalid/arm64.apk',
+              'size': 30000000,
+            },
+          ],
+        }),
+        installed: NexVersion.tryParse('0.2.0')!,
+        suffix: '-arm64-v8a.apk',
+        fallbackSuffix: '-universal.apk',
+      );
+      checker.close();
+      expect(result.status, UpdateStatus.available);
+      expect(result.downloadUrl, 'https://example.invalid/arm64.apk');
+      expect(result.assetName, 'Nex-0.3.0-arm64-v8a.apk');
+      expect(result.sizeBytes, 30000000);
+    });
+
+    test(
+      'a release built without that split still offers the universal APK',
+      () {
+        final checker = UpdateChecker(currentVersion: '0.2.0');
+        final result = checker.parseForTest(
+          jsonEncode({
+            'tag_name': 'v0.3.0',
+            'draft': false,
+            'prerelease': false,
+            'body': null,
+            'assets': [
+              {
+                'name': 'Nex-0.3.0-universal.apk',
+                'browser_download_url': 'https://example.invalid/universal.apk',
+                'size': 90000000,
+              },
+            ],
+          }),
+          installed: NexVersion.tryParse('0.2.0')!,
+          suffix: '-arm64-v8a.apk',
+          fallbackSuffix: '-universal.apk',
+        );
+        checker.close();
+        // Without the fallback this would report upToDate — see the sibling
+        // test in the plain 'UpdateChecker' group above, which asserts
+        // exactly that for a suffix with no fallback at all.
+        expect(result.status, UpdateStatus.available);
+        expect(result.downloadUrl, 'https://example.invalid/universal.apk');
+      },
+    );
   });
 
   group('UpdateChecker.check() resolves a checksum', () {

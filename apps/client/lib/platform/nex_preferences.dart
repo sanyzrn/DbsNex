@@ -169,6 +169,19 @@ class NexPreferences extends ChangeNotifier {
 
   bool get comfortMode => _prefs.getBool('appearance.comfort') ?? false;
 
+  /// A multiplier on top of the system's own text scale, not a replacement
+  /// for it — someone who already runs a larger system font can still make
+  /// Nex itself a little bigger or smaller on top of that. 1.0 is "as the
+  /// device already asks for."
+  double get uiScale => _prefs.getDouble('appearance.ui_scale') ?? 1.0;
+
+  /// Whether Enter submits the note being typed on first capture, rather
+  /// than starting a new line. Scoped to that one field on purpose — editing
+  /// an existing note is a different moment, where a stray Enter should
+  /// never end the session.
+  bool get enterSubmitsCapture =>
+      _prefs.getBool('capture.enter_submits') ?? true;
+
   bool get reduceMotion =>
       _prefs.getBool('accessibility.reduce_motion') ?? false;
 
@@ -213,6 +226,14 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setComfortMode(bool value) =>
       _setBool('appearance.comfort', value);
+
+  Future<void> setUiScale(double value) async {
+    await _prefs.setDouble('appearance.ui_scale', value);
+    notifyListeners();
+  }
+
+  Future<void> setEnterSubmitsCapture(bool value) =>
+      _setBool('capture.enter_submits', value);
 
   Future<void> setReduceMotion(bool value) =>
       _setBool('accessibility.reduce_motion', value);

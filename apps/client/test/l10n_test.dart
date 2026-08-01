@@ -20,9 +20,9 @@ void main() {
   final en = load('lib/l10n/app_en.arb');
   final fa = load('lib/l10n/app_fa.arb');
 
-  // Identical in both locales on purpose: the product name, and a URL scheme,
-  // which is not a word in any language.
-  const untranslatable = {'appTitle', 'syncServerHint'};
+  // Identical in both locales on purpose: the product name, and URLs, which
+  // are not words in any language.
+  const untranslatable = {'appTitle', 'syncServerHint', 'sendFeedbackSubtitle'};
 
   test('every English message has a Persian one', () {
     expect(en.keys.toSet().difference(fa.keys.toSet()), isEmpty);
@@ -44,8 +44,9 @@ void main() {
     // The `@key` metadata is authoritative about which names are placeholders.
     // Scraping `{…}` out of the message itself cannot tell a placeholder from
     // an ICU plural or select branch.
-    final template = jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
-        as Map<String, dynamic>;
+    final template =
+        jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
+            as Map<String, dynamic>;
     for (final key in en.keys) {
       final meta = template['@$key'];
       if (meta is! Map<String, dynamic>) continue;
