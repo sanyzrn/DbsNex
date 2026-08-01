@@ -86,6 +86,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/branding/
   fonts:
     # Shipped as assets rather than left to the platform: without them Android
     # renders Roboto, Windows Segoe UI Variable and iOS SF Pro, so the same

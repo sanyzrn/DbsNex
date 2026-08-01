@@ -85,4 +85,37 @@ void main() {
       expect(find.text('Nothing to share yet'), findsOneWidget);
     },
   );
+
+  testWidgets('the wordmark image swaps with the theme, not just the tint', (
+    tester,
+  ) async {
+    Future<void> pumpWithBrightness(Brightness brightness) => tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: ThemeData(brightness: Brightness.light),
+        darkTheme: ThemeData(brightness: Brightness.dark),
+        themeMode: brightness == Brightness.dark
+            ? ThemeMode.dark
+            : ThemeMode.light,
+        home: AboutScreen(services: services),
+      ),
+    );
+
+    await pumpWithBrightness(Brightness.light);
+    await tester.pumpAndSettle();
+    Image image = tester.widget(find.byType(Image).first);
+    expect(
+      (image.image as AssetImage).assetName,
+      'assets/branding/text_logo_light.png',
+    );
+
+    await pumpWithBrightness(Brightness.dark);
+    await tester.pumpAndSettle();
+    image = tester.widget(find.byType(Image).first);
+    expect(
+      (image.image as AssetImage).assetName,
+      'assets/branding/text_logo_dark.png',
+    );
+  });
 }

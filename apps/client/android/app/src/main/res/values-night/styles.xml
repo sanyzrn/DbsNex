@@ -2,7 +2,7 @@
 <resources>
     <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowSplashScreenBackground">@color/nex_launch_dark</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/nex_icon_foreground</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/nex_splash_icon_dark</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:navigationBarColor">@color/nex_launch_dark</item>
         <item name="android:windowActionModeOverlay">true</item>
