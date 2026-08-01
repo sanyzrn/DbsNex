@@ -37,11 +37,10 @@ class TagPickerSheet extends StatefulWidget {
     BuildContext context, {
     required List<Tag> tags,
     Set<String> alreadyOn = const {},
-  }) =>
-      nexShowSheet<TagChoice>(
-        context: context,
-        builder: (_) => TagPickerSheet(tags: tags, alreadyOn: alreadyOn),
-      );
+  }) => nexShowSheet<TagChoice>(
+    context: context,
+    builder: (_) => TagPickerSheet(tags: tags, alreadyOn: alreadyOn),
+  );
 
   @override
   State<TagPickerSheet> createState() => _TagPickerSheetState();
@@ -68,8 +67,9 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
   bool get _canCreate {
     final name = _query.trim();
     if (name.isEmpty) return false;
-    return !widget.tags
-        .any((tag) => tag.name.toLowerCase() == name.toLowerCase());
+    return !widget.tags.any(
+      (tag) => tag.name.toLowerCase() == name.toLowerCase(),
+    );
   }
 
   @override
@@ -78,9 +78,7 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     final theme = Theme.of(context);
     final matches = _matches;
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -115,40 +113,58 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
           ),
           const SizedBox(height: NexSpacing.sm),
           Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                if (_canCreate)
-                  ListTile(
-                    leading: const Icon(Icons.add),
-                    title: Text(_query.trim()),
-                    subtitle: Text(l10n.createTag),
-                    onTap: () => Navigator.pop(
-                      context,
-                      TagChoice.create(_query.trim()),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_canCreate)
+                    ListTile(
+                      leading: const Icon(Icons.add),
+                      title: Text(_query.trim()),
+                      subtitle: Text(l10n.createTag),
+                      onTap: () => Navigator.pop(
+                        context,
+                        TagChoice.create(_query.trim()),
+                      ),
                     ),
-                  ),
-                if (matches.isEmpty && !_canCreate)
-                  Padding(
-                    padding: const EdgeInsets.all(NexSpacing.lg),
-                    child: Text(
-                      l10n.noTagsYet,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium,
+                  if (matches.isEmpty && !_canCreate)
+                    Padding(
+                      padding: const EdgeInsets.all(NexSpacing.lg),
+                      child: Text(
+                        l10n.noTagsYet,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium,
+                      ),
                     ),
-                  ),
-                for (final tag in matches)
-                  ListTile(
-                    leading: _Dot(color: tag.color),
-                    title: Text(tag.name),
-                    enabled: !widget.alreadyOn.contains(tag.id),
-                    trailing: widget.alreadyOn.contains(tag.id)
-                        ? const Icon(Icons.check, size: 18)
-                        : null,
-                    onTap: () =>
-                        Navigator.pop(context, TagChoice.existing(tag)),
-                  ),
-              ],
+                  if (matches.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        NexSpacing.lg,
+                        NexSpacing.xs,
+                        NexSpacing.lg,
+                        0,
+                      ),
+                      // Chips wrap by their own width instead of stacking one
+                      // per row — three short tag names or five fit the same
+                      // row a single long one takes alone.
+                      child: Wrap(
+                        spacing: NexSpacing.sm,
+                        runSpacing: NexSpacing.sm,
+                        children: [
+                          for (final tag in matches)
+                            _TagOption(
+                              tag: tag,
+                              alreadyOn: widget.alreadyOn.contains(tag.id),
+                              onTap: () => Navigator.pop(
+                                context,
+                                TagChoice.existing(tag),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: NexSpacing.md),
@@ -158,30 +174,69 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
   }
 }
 
-class _Dot extends StatelessWidget {
-  const _Dot({required this.color});
+/// One tag in the wrap: a pill carrying its dot and name, checked off and
+/// inert once the note already carries it.
+class _TagOption extends StatelessWidget {
+  const _TagOption({
+    required this.tag,
+    required this.alreadyOn,
+    required this.onTap,
+  });
 
-  final String? color;
+  final Tag tag;
+  final bool alreadyOn;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SizedBox(
-      width: 24,
-      height: 24,
-      child: Center(
-        child: Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: nexParseTagColor(color) ?? Colors.transparent,
-            border: color == null
-                ? Border.all(color: theme.colorScheme.outline)
-                : null,
+    final scheme = theme.colorScheme;
+    final dot = nexParseTagColor(tag.color);
+    final pill = Material(
+      color: alreadyOn
+          ? scheme.surfaceContainerHighest
+          : scheme.surfaceContainerLowest,
+      shape: StadiumBorder(side: BorderSide(color: scheme.outline)),
+      child: InkWell(
+        onTap: alreadyOn ? null : onTap,
+        customBorder: const StadiumBorder(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: NexSpacing.md,
+            vertical: NexSpacing.sm,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: dot ?? Colors.transparent,
+                  border: dot == null
+                      ? Border.all(color: scheme.outline)
+                      : null,
+                ),
+              ),
+              const SizedBox(width: NexSpacing.contentGap),
+              Text(
+                tag.name,
+                style: alreadyOn
+                    ? theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      )
+                    : theme.textTheme.bodyMedium,
+              ),
+              if (alreadyOn) ...[
+                const SizedBox(width: NexSpacing.contentGap),
+                Icon(Icons.check, size: 16, color: scheme.onSurfaceVariant),
+              ],
+            ],
           ),
         ),
       ),
     );
+    return alreadyOn ? Semantics(label: tag.name, child: pill) : pill;
   }
 }
