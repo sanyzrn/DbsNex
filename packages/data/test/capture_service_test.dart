@@ -77,9 +77,25 @@ void main() {
     test('no Save concept — capture returns persisted note immediately', () {
       final before = DateTime.now().toUtc();
       final note = capture.submitTextCapture('instant')!;
-      expect(note.createdAt.isBefore(before.subtract(const Duration(seconds: 1))),
-          isFalse);
+      expect(
+        note.createdAt.isBefore(before.subtract(const Duration(seconds: 1))),
+        isFalse,
+      );
       expect(repo.getById(note.id)?.content, 'instant');
+    });
+
+    test('a very large paste is stored and searchable, no truncation', () {
+      // There is no capture-time length limit by design (FR: zero friction) —
+      // this pins down that "no limit" does not silently mean "gets cut off"
+      // or "the FTS index chokes" once someone actually pastes a few
+      // megabytes of text into the capture field.
+      final huge = 'needle ${'word ' * 500000}haystack';
+      final note = capture.submitTextCapture(huge)!;
+      expect(repo.getById(note.id)?.content, huge);
+      expect(
+        search.search(const SearchFilters(query: 'needle haystack')),
+        hasLength(1),
+      );
     });
   });
 }
