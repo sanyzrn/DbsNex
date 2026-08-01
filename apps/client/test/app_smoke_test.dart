@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -16,6 +16,7 @@ import 'package:nex_client/platform/os_capture_bridge.dart';
 import 'package:nex_client/screens/intelligence_screen.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
+import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/choice_cards.dart';
 
 import 'support/in_process_db.dart';
@@ -133,15 +134,82 @@ void main() {
       await tester.pumpAndSettle();
       // Text is the default mode — a focused field, not a menu tile.
       expect(find.byType(TextField), findsWidgets);
-      expect(find.text('Voice'), findsOneWidget);
-      expect(find.text('Camera'), findsOneWidget);
-      expect(find.text('Gallery'), findsOneWidget);
-      expect(find.text('File'), findsOneWidget);
+      // Icon-only: the name survives as a tooltip, not as printed text.
+      expect(find.byTooltip('Voice'), findsOneWidget);
+      expect(find.byTooltip('Camera'), findsOneWidget);
+      expect(find.byTooltip('Gallery'), findsOneWidget);
+      expect(find.byTooltip('File'), findsOneWidget);
       // Not a type-picker-first menu of four equal choices.
       expect(find.text('Text'), findsNothing);
       expect(find.text('Save'), findsNothing);
     },
   );
+
+  testWidgets(
+    'Enter submits the first capture by default; Shift+Enter still breaks a line',
+    (tester) async {
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+
+      // The timeline's own search field is a TextField too, and it never
+      // leaves the tree — scope to the capture sheet's field specifically.
+      final captureField = find.descendant(
+        of: find.byType(CaptureSheet),
+        matching: find.byType(TextField),
+      );
+
+      await tester.enterText(captureField, 'first line');
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+
+      // Shift+Enter is the escape hatch: our handler must not treat it as
+      // submit, leaving the field's own newline handling free to act.
+      expect(
+        captureField,
+        findsOneWidget,
+        reason: 'Shift+Enter must not submit',
+      );
+      expect(find.byType(CaptureSheet), findsOneWidget);
+
+      await tester.enterText(captureField, 'first line\nsecond line');
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      // Plain Enter submitted and closed the sheet.
+      expect(find.byType(CaptureSheet), findsNothing);
+      final notes = await services.timeline(limit: 5);
+      expect(notes.first.content, 'first line\nsecond line');
+    },
+  );
+
+  testWidgets('turning off "Enter saves" lets Enter break a line instead', (
+    tester,
+  ) async {
+    await preferences.setEnterSubmitsCapture(false);
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+
+    final captureField = find.descendant(
+      of: find.byType(CaptureSheet),
+      matching: find.byType(TextField),
+    );
+
+    await tester.enterText(captureField, 'a line');
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    // The preference is off, so our handler ignores Enter entirely —
+    // it never submits, whatever the field itself then does with it.
+    expect(find.byType(CaptureSheet), findsOneWidget, reason: 'still open');
+  });
 
   testWidgets('Capture FAB is centered and large (~64px)', (tester) async {
     await tester.pumpWidget(
@@ -228,6 +296,46 @@ void main() {
     },
   );
 
+  test(
+    'a manual caption outranks the AI-derived text for display and copy',
+    () async {
+      // Reported symptom: the timeline card (and the detail sheet's main
+      // copy button) kept showing the OCR/transcript read even after the
+      // user wrote their own caption — the extracted text has its own small
+      // copy icon in the AI panel, but it should not be what the card and
+      // the primary copy action lead with once a caption exists.
+      await preferences.setAiEnabled(true);
+      services.applyAiPreferences(preferences);
+
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      final photo = await services.capturePhoto(
+        mediaUri: p.join(services.mediaDir, 'p.jpg'),
+        mediaBytes: bytes,
+      );
+      await services.backfillEnrichment();
+      final withOcr = (await services.getById(photo.id))!;
+      expect(
+        withOcr.ocrText,
+        isNotNull,
+        reason: 'the on-device adapter always produces something',
+      );
+      expect(
+        withOcr.displayText,
+        withOcr.ocrText,
+        reason: 'nothing else to show yet',
+      );
+
+      await services.setCaption(photo.id, 'the actual point of this photo');
+      final captioned = (await services.getById(photo.id))!;
+      expect(captioned.displayText, 'the actual point of this photo');
+      expect(
+        captioned.displayText,
+        isNot(contains(captioned.ocrText!)),
+        reason: 'the caption replaces the reading, not sits beside it',
+      );
+    },
+  );
+
   test('Timeline tag filter returns only matching notes', () async {
     final a = (await services.captureText('alpha'))!;
     final b = (await services.captureText('beta'))!;
@@ -266,6 +374,32 @@ void main() {
     expect(preferences.comfortMode, isFalse);
     await preferences.setComfortMode(true);
     expect(preferences.comfortMode, isTrue);
+  });
+
+  test('UI scale defaults to 1.0 and persists a choice', () async {
+    expect(preferences.uiScale, 1.0);
+    await preferences.setUiScale(1.3);
+    expect(preferences.uiScale, 1.3);
+  });
+
+  testWidgets('the UI scale preference actually reaches the text scaler', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    final before = MediaQuery.of(
+      tester.element(find.byType(Scaffold).first),
+    ).textScaler;
+
+    await preferences.setUiScale(1.3);
+    await tester.pumpAndSettle();
+    final after = MediaQuery.of(
+      tester.element(find.byType(Scaffold).first),
+    ).textScaler;
+
+    expect(after.scale(100), greaterThan(before.scale(100)));
   });
 
   test('Theme mode defaults to System and can force Light/Dark', () async {
@@ -523,6 +657,42 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(find.text('Text & UI size'), findsOneWidget);
+    expect(find.byType(NexChoiceCards<double>), findsOneWidget);
+  });
+
+  testWidgets('swipe actions are chosen from cards, not a popup menu', (
+    tester,
+  ) async {
+    // The picker used to be a raw PopupMenuButton — Flutter's stock dropdown
+    // chrome, nothing like the cards every other choice in Settings uses.
+    // The swipe-actions section sits below the fold on the default test
+    // surface, and a scroll view only mounts what is within reach.
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PopupMenuButton<SwipeAction>), findsNothing);
+    expect(find.byType(NexChoiceCards<SwipeAction>), findsNWidgets(2));
+
+    expect(preferences.leadingAction, SwipeAction.addTag);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NexChoiceCards<SwipeAction>).first,
+        matching: find.text('Nothing'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(preferences.leadingAction, SwipeAction.none);
+    // The other edge is untouched — cards for one edge don't leak into
+    // the other's selection.
+    expect(preferences.trailingAction, SwipeAction.delete);
   });
 
   testWidgets('the full-screen photo viewer closes on a downward swipe', (
@@ -630,9 +800,41 @@ void main() {
     // not bury them: they are on screen without scrolling anywhere. The
     // action row is icon-only, so its members are found by tooltip rather
     // than by label text.
-    expect(find.text('Delete').hitTestable(), findsOneWidget);
+    expect(find.byTooltip('Delete').hitTestable(), findsOneWidget);
     expect(find.byTooltip('Copy').hitTestable(), findsOneWidget);
   });
+
+  testWidgets(
+    'Delete sits in the action row, unlabeled, and stays red among neutral icons',
+    (tester) async {
+      await services.captureText('a note');
+      await services.refreshTimeline();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('a note'));
+      await tester.pumpAndSettle();
+
+      final deleteTooltip = find.byTooltip('Delete');
+      expect(deleteTooltip, findsOneWidget);
+      // No printed "Delete" label anywhere in the sheet — tooltip only.
+      expect(find.text('Delete'), findsNothing);
+
+      final deleteIcon = tester.widget<Icon>(
+        find.descendant(of: deleteTooltip, matching: find.byType(Icon)),
+      );
+      final copyIcon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byTooltip('Copy'),
+          matching: find.byType(Icon),
+        ),
+      );
+      final theme = Theme.of(tester.element(find.byType(NoteDetailSheet)));
+      expect(deleteIcon.color, theme.colorScheme.error);
+      expect(copyIcon.color, isNot(theme.colorScheme.error));
+    },
+  );
 
   testWidgets('what the AI read is behind a tap, not on top of the note', (
     tester,

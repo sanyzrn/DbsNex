@@ -31,8 +31,9 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   /// So a toast can be raised from a listener, above any screen's own context.
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
-  late final UpdateService _updates =
-      UpdateService(preferences: widget.preferences);
+  late final UpdateService _updates = UpdateService(
+    preferences: widget.preferences,
+  );
 
   @override
   void initState() {
@@ -137,15 +138,27 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) {
         final media = MediaQuery.of(context);
+        // The user's own multiplier composes with the system's, rather than
+        // replacing it — someone with a larger system font can still nudge
+        // Nex a little further in either direction on top of that. The floor
+        // and ceiling widen from the system-only clamp below to leave that
+        // combination room to actually move.
+        final scaled =
+            TextScaler.linear(prefs.uiScale).scale(1) *
+            media.textScaler.scale(1);
         return MediaQuery(
           data: media.copyWith(
             disableAnimations: prefs.reduceMotion || media.disableAnimations,
-            textScaler: media.textScaler.clamp(minScaleFactor: 0.85, maxScaleFactor: 1.6),
+            textScaler: TextScaler.linear(
+              scaled,
+            ).clamp(minScaleFactor: 0.75, maxScaleFactor: 1.9),
           ),
           child: Shortcuts(
             shortcuts: const {
-              SingleActivator(LogicalKeyboardKey.keyN, control: true): _CaptureIntent(),
-              SingleActivator(LogicalKeyboardKey.keyF, control: true): _SearchIntent(),
+              SingleActivator(LogicalKeyboardKey.keyN, control: true):
+                  _CaptureIntent(),
+              SingleActivator(LogicalKeyboardKey.keyF, control: true):
+                  _SearchIntent(),
             },
             child: Actions(
               actions: {
@@ -186,5 +199,10 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   }
 }
 
-class _CaptureIntent extends Intent { const _CaptureIntent(); }
-class _SearchIntent extends Intent { const _SearchIntent(); }
+class _CaptureIntent extends Intent {
+  const _CaptureIntent();
+}
+
+class _SearchIntent extends Intent {
+  const _SearchIntent();
+}

@@ -68,6 +68,13 @@
   "themeSystem": "مثل سیستم",
   "comfortMode": "حالت آسایش",
   "comfortModeSubtitle": "کنتراست کمتر و رنگ‌های گرم‌تر؛ جدا از روشن یا تیره بودن پوسته",
+  "uiScale": "اندازه‌ی متن و رابط",
+  "uiScaleSmall": "کوچک",
+  "uiScaleDefault": "پیش‌فرض",
+  "uiScaleLarge": "بزرگ",
+  "uiScaleLarger": "بزرگ‌تر",
+  "enterSubmitsCapture": "اینتر یادداشت را ثبت کند",
+  "enterSubmitsCaptureSubtitle": "در حالت خاموش، اینتر خط جدید شروع می‌کند. Shift+Enter در هر دو حالت همیشه خط جدید می‌سازد.",
   "languageSystem": "مثل سیستم",
   "languageEnglish": "انگلیسی",
   "languagePersian": "فارسی",
@@ -276,7 +283,7 @@
   "@opening": {
     "description": "Screen-reader label for the startup splash"
   },
-  "swipeActionsHint": "هر طرف جداگانه تنظیم می‌شود. روی هر ردیف بزنید تا کارِ آن کشیدن را انتخاب کنید یا خاموشش کنید.",
+  "swipeActionsHint": "هر طرف جداگانه تنظیم می‌شود. روی هر کارت بزنید تا کارِ آن کشیدن را انتخاب کنید یا خاموشش کنید.",
   "@swipeActionsHint": {
     "description": "Explains that each swipe edge is configured independently"
   },
@@ -292,6 +299,8 @@
   "open": "باز کردن",
   "cannotOpen": "روی این دستگاه برنامه‌ای برای باز کردن این فایل نیست.",
   "sourceCode": "کد منبع",
+  "sendFeedback": "ارسال بازخورد",
+  "sendFeedbackSubtitle": "github.com/sanyzrn/DbsNex/issues",
   "capabilities": "Nex چه می‌کند",
   "capabilityCapture": "ثبت متن، صدا، عکس و فایل، بدون دکمهٔ ذخیره",
   "capabilitySearch": "جست‌وجوی متن، برچسب، تاریخ و نوع، همه روی همین دستگاه",

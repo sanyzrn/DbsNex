@@ -87,7 +87,7 @@ class NoteCard extends StatelessWidget {
   /// on the parent would read the tag list twice on the way past.
   String _label() => [
     strings.noteOfType(note.type.name),
-    note.searchableDerivedText ?? '',
+    note.displayText ?? '',
   ].where((value) => value.isNotEmpty).join('. ');
 }
 
@@ -234,7 +234,7 @@ class _Preview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = note.searchableDerivedText ?? note.type.name;
+    final text = note.displayText ?? note.type.name;
     final direction = nexDirectionOf(text);
     return SizedBox(
       // Full width, so a short right-to-left line reaches the right edge

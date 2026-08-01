@@ -12,7 +12,8 @@ enum NoteType {
   static NoteType fromWire(String value) {
     return NoteType.values.firstWhere(
       (t) => t.name == value,
-      orElse: () => throw ArgumentError.value(value, 'type', 'unknown note type'),
+      orElse: () =>
+          throw ArgumentError.value(value, 'type', 'unknown note type'),
     );
   }
 }
@@ -71,8 +72,10 @@ class Note {
   final String? transcriptText;
   final String? ocrText;
   final String? summaryText;
+
   /// Optional user-authored description on photo/voice/file (never at capture).
   final String? caption;
+
   /// MIME type from share-intent / file pick when known.
   final String? mimeType;
   final DateTime createdAt;
@@ -100,8 +103,7 @@ class Note {
   bool get isDeleted => deletedAt != null;
 
   /// Display filename for file notes (stored in [content]).
-  String? get originalFilename =>
-      type == NoteType.file ? content : null;
+  String? get originalFilename => type == NoteType.file ? content : null;
 
   /// Text used for keyword search — original body or AI-derived text.
   String? get searchableDerivedText {
@@ -124,6 +126,35 @@ class Note {
         .where((s) => s.isNotEmpty)
         .join(' ');
     return joined.isEmpty ? null : joined;
+  }
+
+  /// Text a card or the copy button shows as the note's own line: the
+  /// caption once there is one, the AI-derived read of the media otherwise.
+  ///
+  /// Unlike [searchableDerivedText], this never joins the two — captioning a
+  /// note is the user's own word on it, and it replaces the machine's
+  /// reading on screen rather than sitting next to it. The transcript or OCR
+  /// text stays reachable (and searchable) behind its own small copy icon;
+  /// it just stops being the headline once someone has written one.
+  String? get displayText {
+    switch (type) {
+      case NoteType.text:
+        return content;
+      case NoteType.voice:
+        return _firstNonEmpty([caption, transcriptText]);
+      case NoteType.photo:
+        return _firstNonEmpty([caption, ocrText]);
+      case NoteType.file:
+        return _firstNonEmpty([caption, content]);
+    }
+  }
+
+  static String? _firstNonEmpty(List<String?> parts) {
+    for (final part in parts) {
+      final text = part?.trim();
+      if (text != null && text.isNotEmpty) return text;
+    }
+    return null;
   }
 
   Note copyWith({
@@ -167,25 +198,25 @@ class Note {
   }
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'type': type.wireName,
-        'content': content,
-        'media_uri': mediaUri,
-        'media_hash': mediaHash,
-        'duration_ms': durationMs,
-        'transcript_text': transcriptText,
-        'ocr_text': ocrText,
-        'summary_text': summaryText,
-        'caption': caption,
-        'mime_type': mimeType,
-        'created_at': createdAt.toUtc().toIso8601String(),
-        'updated_at': updatedAt.toUtc().toIso8601String(),
-        'deleted_at': deletedAt?.toUtc().toIso8601String(),
-        'device_id': deviceId,
-        'rev': rev,
-        'sync_state': syncState.wireName,
-        'tags': tags.map((t) => t.toJson()).toList(),
-      };
+    'id': id,
+    'type': type.wireName,
+    'content': content,
+    'media_uri': mediaUri,
+    'media_hash': mediaHash,
+    'duration_ms': durationMs,
+    'transcript_text': transcriptText,
+    'ocr_text': ocrText,
+    'summary_text': summaryText,
+    'caption': caption,
+    'mime_type': mimeType,
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'updated_at': updatedAt.toUtc().toIso8601String(),
+    'deleted_at': deletedAt?.toUtc().toIso8601String(),
+    'device_id': deviceId,
+    'rev': rev,
+    'sync_state': syncState.wireName,
+    'tags': tags.map((t) => t.toJson()).toList(),
+  };
 
   factory Note.fromRow(Map<String, Object?> row, {List<Tag> tags = const []}) {
     return Note(

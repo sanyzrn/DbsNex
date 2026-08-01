@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -161,14 +162,27 @@ class UpdateCheck {
 /// Which release asset a platform installs.
 ///
 /// The names are a contract with the release workflow, which builds exactly
-/// these. Android takes the universal APK because the app cannot know the
-/// device's ABI before downloading, and installing the wrong split silently
-/// fails.
+/// these. Android matches the running process's own ABI — `Abi.current()` is
+/// the architecture Dart is actually compiled for, no device query or plugin
+/// needed — to one of the per-ABI splits the workflow already builds, rather
+/// than always taking the much larger universal APK. [UpdateChecker.check]
+/// falls back to universal if a release is ever missing that exact split.
 String? _assetNameSuffix() {
-  if (Platform.isAndroid) return '-universal.apk';
+  if (Platform.isAndroid) return _androidAbiSuffix(Abi.current());
   if (Platform.isWindows) return '.exe';
   return null;
 }
+
+@visibleForTesting
+String androidAbiSuffixForTest(Abi abi) => _androidAbiSuffix(abi);
+
+String _androidAbiSuffix(Abi abi) => switch (abi) {
+  Abi.androidArm64 => '-arm64-v8a.apk',
+  Abi.androidArm => '-armeabi-v7a.apk',
+  Abi.androidX64 => '-x86_64.apk',
+  // 32-bit x86 and anything future the release workflow does not split for.
+  _ => '-universal.apk',
+};
 
 /// What a downloaded installer is called on disk.
 ///
@@ -219,6 +233,12 @@ class UpdateChecker {
     if (installed == null) return const UpdateCheck.unavailable();
     final suffix = assetSuffix ?? _assetNameSuffix();
     if (suffix == null) return const UpdateCheck.unavailable();
+    // Only the real ABI-detected suffix gets a fallback — a suffix a test
+    // supplied on purpose should match exactly or not at all.
+    final fallbackSuffix =
+        assetSuffix == null && Platform.isAndroid && suffix != '-universal.apk'
+        ? '-universal.apk'
+        : null;
 
     try {
       final response = await _client
@@ -232,6 +252,7 @@ class UpdateChecker {
         response.body,
         installed: installed,
         suffix: suffix,
+        fallbackSuffix: fallbackSuffix,
       );
       if (result.status != UpdateStatus.available ||
           result.checksumsUrl == null ||
@@ -285,12 +306,19 @@ class UpdateChecker {
     String body, {
     required NexVersion installed,
     required String suffix,
-  }) => _parse(body, installed: installed, suffix: suffix);
+    String? fallbackSuffix,
+  }) => _parse(
+    body,
+    installed: installed,
+    suffix: suffix,
+    fallbackSuffix: fallbackSuffix,
+  );
 
   UpdateCheck _parse(
     String body, {
     required NexVersion installed,
     required String suffix,
+    String? fallbackSuffix,
   }) {
     final Object? decoded;
     try {
@@ -318,6 +346,12 @@ class UpdateChecker {
     String? matchedUrl;
     String? matchedName;
     int? matchedSize;
+    // Only used if the exact suffix (an ABI split) never turns up — a
+    // release built without this feature, or one where the split failed to
+    // build, still has a universal APK the device can install.
+    String? fallbackUrl;
+    String? fallbackName;
+    int? fallbackSize;
     String? checksumsUrl;
     for (final asset in assets) {
       if (asset is! Map) continue;
@@ -328,20 +362,28 @@ class UpdateChecker {
         checksumsUrl = url;
         continue;
       }
-      if (matchedUrl != null || !name.endsWith(suffix)) continue;
-      matchedUrl = url;
-      matchedName = name;
       final size = asset['size'];
-      matchedSize = size is int ? size : null;
+      if (matchedUrl == null && name.endsWith(suffix)) {
+        matchedUrl = url;
+        matchedName = name;
+        matchedSize = size is int ? size : null;
+      } else if (fallbackSuffix != null &&
+          fallbackUrl == null &&
+          name.endsWith(fallbackSuffix)) {
+        fallbackUrl = url;
+        fallbackName = name;
+        fallbackSize = size is int ? size : null;
+      }
     }
+    final downloadUrl = matchedUrl ?? fallbackUrl;
     // A newer release with nothing this platform can install is not an update.
-    if (matchedUrl == null) return const UpdateCheck.upToDate();
+    if (downloadUrl == null) return const UpdateCheck.upToDate();
     return UpdateCheck.available(
       version: latest,
-      downloadUrl: matchedUrl,
-      assetName: matchedName,
+      downloadUrl: downloadUrl,
+      assetName: matchedUrl != null ? matchedName : fallbackName,
       checksumsUrl: checksumsUrl,
-      sizeBytes: matchedSize,
+      sizeBytes: matchedUrl != null ? matchedSize : fallbackSize,
       notes: decoded['body'] is String ? decoded['body'] as String : null,
     );
   }

@@ -244,6 +244,28 @@ class AppLocalizationsFa extends AppLocalizations {
       'کنتراست کمتر و رنگ‌های گرم‌تر؛ جدا از روشن یا تیره بودن پوسته';
 
   @override
+  String get uiScale => 'اندازه‌ی متن و رابط';
+
+  @override
+  String get uiScaleSmall => 'کوچک';
+
+  @override
+  String get uiScaleDefault => 'پیش‌فرض';
+
+  @override
+  String get uiScaleLarge => 'بزرگ';
+
+  @override
+  String get uiScaleLarger => 'بزرگ‌تر';
+
+  @override
+  String get enterSubmitsCapture => 'اینتر یادداشت را ثبت کند';
+
+  @override
+  String get enterSubmitsCaptureSubtitle =>
+      'در حالت خاموش، اینتر خط جدید شروع می‌کند. Shift+Enter در هر دو حالت همیشه خط جدید می‌سازد.';
+
+  @override
   String get languageSystem => 'مثل سیستم';
 
   @override
@@ -504,7 +526,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get swipeActionsHint =>
-      'هر طرف جداگانه تنظیم می‌شود. روی هر ردیف بزنید تا کارِ آن کشیدن را انتخاب کنید یا خاموشش کنید.';
+      'هر طرف جداگانه تنظیم می‌شود. روی هر کارت بزنید تا کارِ آن کشیدن را انتخاب کنید یا خاموشش کنید.';
 
   @override
   String get revealInFolder => 'نمایش مسیر فایل';
@@ -535,6 +557,12 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get sourceCode => 'کد منبع';
+
+  @override
+  String get sendFeedback => 'ارسال بازخورد';
+
+  @override
+  String get sendFeedbackSubtitle => 'github.com/sanyzrn/DbsNex/issues';
 
   @override
   String get capabilities => 'Nex چه می‌کند';

@@ -149,7 +149,7 @@ class _Wordmark extends StatelessWidget {
     Theme.of(context).brightness == Brightness.dark
         ? 'assets/branding/dark_splash.png'
         : 'assets/branding/light_splash.png',
-    width: 240,
+    width: 192,
     semanticLabel: 'Nex',
   );
 }
