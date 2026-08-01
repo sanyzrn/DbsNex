@@ -36,10 +36,12 @@ class AboutScreen extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Text(
-                  'Nex',
-                  style: theme.textTheme.displaySmall,
-                  textAlign: TextAlign.center,
+                Image.asset(
+                  theme.brightness == Brightness.dark
+                      ? 'assets/branding/text_logo_dark.png'
+                      : 'assets/branding/text_logo_light.png',
+                  width: 200,
+                  semanticLabel: 'Nex',
                 ),
                 const SizedBox(height: NexSpacing.xs),
                 Text(
