@@ -94,6 +94,9 @@
   "silenceBody": "Nex never sends notifications, badges, reminders, or engagement prompts.",
   "privacy": "Privacy",
   "privacyBody": "Core capture and search do not collect or transmit your notes.",
+  "shareDiagnostics": "Share diagnostics",
+  "shareDiagnosticsBody": "A local log of the last few crashes, in case something breaks. Nothing is sent anywhere unless you choose to share it here.",
+  "noDiagnosticsYet": "Nothing to share yet",
   "openSourceLicenses": "Open-source licences",
   "themeLight": "Light",
   "themeDark": "Dark",
@@ -610,7 +613,7 @@
   "@localBackupsTitle": {
     "description": "Heading above the local backup list"
   },
-  "localBackupsExplained": "Once a day, Nex copies its database into its own folder. It is protection against a bad restore or a corrupted file — not against a lost phone. For that, export.",
+  "localBackupsExplained": "Once a day, Nex copies its database into its own folder — the text, tags and dates, not the photos, recordings or attachments those notes point to. It is protection against a bad restore or a corrupted file, on this device. For a copy that includes the media, or to move to another device, export.",
   "@localBackupsExplained": {
     "description": "Says what local backups are and are not for"
   },

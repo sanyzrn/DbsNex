@@ -452,6 +452,24 @@ abstract class AppLocalizations {
   /// **'Core capture and search do not collect or transmit your notes.'**
   String get privacyBody;
 
+  /// No description provided for @shareDiagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Share diagnostics'**
+  String get shareDiagnostics;
+
+  /// No description provided for @shareDiagnosticsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A local log of the last few crashes, in case something breaks. Nothing is sent anywhere unless you choose to share it here.'**
+  String get shareDiagnosticsBody;
+
+  /// No description provided for @noDiagnosticsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to share yet'**
+  String get noDiagnosticsYet;
+
   /// No description provided for @openSourceLicenses.
   ///
   /// In en, this message translates to:
@@ -1295,7 +1313,7 @@ abstract class AppLocalizations {
   /// Says what local backups are and are not for
   ///
   /// In en, this message translates to:
-  /// **'Once a day, Nex copies its database into its own folder. It is protection against a bad restore or a corrupted file — not against a lost phone. For that, export.'**
+  /// **'Once a day, Nex copies its database into its own folder — the text, tags and dates, not the photos, recordings or attachments those notes point to. It is protection against a bad restore or a corrupted file, on this device. For a copy that includes the media, or to move to another device, export.'**
   String get localBackupsExplained;
 
   /// Takes a backup outside the daily schedule

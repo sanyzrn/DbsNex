@@ -53,8 +53,8 @@ class NexServices {
     required this.backupDir,
     required BackupPolicy backupPolicy,
     required NexPreferences preferences,
-  })  : _backupPolicy = backupPolicy,
-        _preferences = preferences;
+  }) : _backupPolicy = backupPolicy,
+       _preferences = preferences;
 
   final NexDb worker;
   final MediaPicker mediaPicker;
@@ -160,12 +160,14 @@ class NexServices {
     final ai = preferences.aiEnabled
         ? preferences.aiProvider
         : const AiProviderConfig();
-    unawaited(worker.setAiProvider({
-      'provider': ai.provider.wireName,
-      'apiKey': ai.apiKey,
-      'baseUrl': ai.baseUrl,
-      'model': ai.model,
-    }));
+    unawaited(
+      worker.setAiProvider({
+        'provider': ai.provider.wireName,
+        'apiKey': ai.apiKey,
+        'baseUrl': ai.baseUrl,
+        'model': ai.model,
+      }),
+    );
     // Turning it on has to mean something for the notes that are already here.
     // Enrichment is a capture-time step, so without this the layer would only
     // ever read notes captured after the moment it was configured — and every
@@ -206,31 +208,28 @@ class NexServices {
     required String mediaUri,
     required Uint8List mediaBytes,
     required int durationMs,
-  }) =>
-      worker.captureVoice(
-        mediaUri: mediaUri,
-        mediaBytes: mediaBytes,
-        durationMs: durationMs,
-      );
+  }) => worker.captureVoice(
+    mediaUri: mediaUri,
+    mediaBytes: mediaBytes,
+    durationMs: durationMs,
+  );
 
   Future<Note> capturePhoto({
     required String mediaUri,
     required Uint8List mediaBytes,
-  }) =>
-      worker.capturePhoto(mediaUri: mediaUri, mediaBytes: mediaBytes);
+  }) => worker.capturePhoto(mediaUri: mediaUri, mediaBytes: mediaBytes);
 
   Future<Note> captureFile({
     required String mediaUri,
     required Uint8List mediaBytes,
     String? originalFilename,
     String? mimeType,
-  }) =>
-      worker.captureFile(
-        mediaUri: mediaUri,
-        mediaBytes: mediaBytes,
-        originalFilename: originalFilename,
-        mimeType: mimeType,
-      );
+  }) => worker.captureFile(
+    mediaUri: mediaUri,
+    mediaBytes: mediaBytes,
+    originalFilename: originalFilename,
+    mimeType: mimeType,
+  );
 
   Future<void> updateNote(String id, String content) =>
       worker.updateNote(id, content);
@@ -262,8 +261,7 @@ class NexServices {
     required String noteId,
     required String name,
     String? color,
-  }) =>
-      worker.addTag(noteId: noteId, name: name, color: color);
+  }) => worker.addTag(noteId: noteId, name: name, color: color);
 
   Future<void> removeTag({required String noteId, required String tagId}) =>
       worker.removeTag(noteId: noteId, tagId: tagId);
@@ -278,8 +276,11 @@ class NexServices {
 
   /* -------------------------------------------------------------- search */
 
-  Future<List<Note>> timeline({int limit = 50, int offset = 0, String? tagId}) =>
-      worker.timeline(limit: limit, offset: offset, tagId: tagId);
+  Future<List<Note>> timeline({
+    int limit = 50,
+    int offset = 0,
+    String? tagId,
+  }) => worker.timeline(limit: limit, offset: offset, tagId: tagId);
 
   Future<List<Note>> search(SearchFilters filters) => worker.search(filters);
 
@@ -299,21 +300,15 @@ class NexServices {
 
   Future<void> renameTag(String id, String name) => worker.renameTag(id, name);
 
-  Future<void> mergeTag({
-    required String sourceId,
-    required String targetId,
-  }) =>
+  Future<void> mergeTag({required String sourceId, required String targetId}) =>
       worker.mergeTag(sourceId: sourceId, targetId: targetId);
 
   Future<void> deleteTag(String id) => worker.deleteTag(id);
 
   Future<Note?> nearestMiss(String query) => worker.nearestMiss(query);
 
-  Future<StorageSnapshot> storage() => worker.storage(
-        dbPath: dbPath,
-        mediaDir: mediaDir,
-        backupDir: backupDir,
-      );
+  Future<StorageSnapshot> storage() =>
+      worker.storage(dbPath: dbPath, mediaDir: mediaDir, backupDir: backupDir);
 
   /* ---------------------------------------------------------- enrichment */
 
@@ -326,13 +321,40 @@ class NexServices {
   Future<List<SemanticHit>> relatedNotes(String noteId, {int limit = 5}) =>
       worker.relatedNotes(noteId, limit: limit);
 
+  /// How many notes [refreshTimeline] keeps in the stream.
+  ///
+  /// Every mutation elsewhere — capture, tag edit, delete, sync — calls
+  /// [refreshTimeline] with no idea how far the timeline has been scrolled,
+  /// so the window has to live here rather than as an argument threaded
+  /// through every one of those call sites. Only [loadMoreTimeline] grows it;
+  /// nothing shrinks it, so a capture or a sync elsewhere never truncates a
+  /// scrolled-down timeline back to the first page.
+  int _timelineWindow = 200;
+
   Future<void> refreshTimeline() async {
     if (_closed) return;
-    _timelineController.add(await worker.timeline(limit: 200));
+    _timelineController.add(await worker.timeline(limit: _timelineWindow));
   }
 
   Future<List<Note>> loadMore({required int offset, int limit = 50}) =>
       worker.loadMore(offset: offset, limit: limit);
+
+  /// The scroll-to-bottom half of pagination: fetches the page past the
+  /// current window with [loadMore], and — only if that page was not empty —
+  /// grows the window and reloads through the same [refreshTimeline] every
+  /// other mutation uses, so the result is the one canonical ordering rather
+  /// than a hand-appended list that could drift from it.
+  ///
+  /// Returns false once a fetch turns up nothing to add, so the caller —
+  /// [TimelineScreenState] — knows to stop asking until something changes.
+  Future<bool> loadMoreTimeline({int by = 50}) async {
+    if (_closed) return false;
+    final more = await worker.loadMore(offset: _timelineWindow, limit: by);
+    if (more.isEmpty) return false;
+    _timelineWindow += more.length;
+    await refreshTimeline();
+    return true;
+  }
 
   /// Backup is throttled and runs off the launch path, inside the worker
   /// isolate. It used to be a synchronous full-file copy on every launch.
@@ -417,12 +439,13 @@ class NexServices {
     final dir = Directory(backupDir);
     if (!dir.existsSync()) return const [];
 
-    final entries = dir
-        .listSync()
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.sqlite'))
-        .toList()
-      ..sort((a, b) => b.path.compareTo(a.path));
+    final entries =
+        dir
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.sqlite'))
+            .toList()
+          ..sort((a, b) => b.path.compareTo(a.path));
     return entries;
   }
 

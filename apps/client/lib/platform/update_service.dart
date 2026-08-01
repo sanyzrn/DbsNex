@@ -24,10 +24,10 @@ class UpdateService extends ChangeNotifier {
     UpdateDownloader? downloader,
     Future<Directory> Function()? directory,
     DateTime Function()? now,
-  })  : _checker = checker ?? UpdateChecker(currentVersion: nexAppVersion),
-        _downloader = downloader ?? UpdateDownloader(),
-        _directory = directory ?? getTemporaryDirectory,
-        _now = now ?? DateTime.now;
+  }) : _checker = checker ?? UpdateChecker(currentVersion: nexAppVersion),
+       _downloader = downloader ?? UpdateDownloader(),
+       _directory = directory ?? getTemporaryDirectory,
+       _now = now ?? DateTime.now;
 
   /// How stale a check may get before the app looks again.
   ///
@@ -185,6 +185,7 @@ class UpdateService extends ChangeNotifier {
         url: url,
         into: dir,
         filename: name,
+        expectedSha256: update.checksumSha256,
         onProgress: (value) {
           _progress = value;
           _notify();

@@ -215,6 +215,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Core capture and search do not collect or transmit your notes.';
 
   @override
+  String get shareDiagnostics => 'Share diagnostics';
+
+  @override
+  String get shareDiagnosticsBody =>
+      'A local log of the last few crashes, in case something breaks. Nothing is sent anywhere unless you choose to share it here.';
+
+  @override
+  String get noDiagnosticsYet => 'Nothing to share yet';
+
+  @override
   String get openSourceLicenses => 'Open-source licences';
 
   @override
@@ -739,7 +749,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get localBackupsExplained =>
-      'Once a day, Nex copies its database into its own folder. It is protection against a bad restore or a corrupted file — not against a lost phone. For that, export.';
+      'Once a day, Nex copies its database into its own folder — the text, tags and dates, not the photos, recordings or attachments those notes point to. It is protection against a bad restore or a corrupted file, on this device. For a copy that includes the media, or to move to another device, export.';
 
   @override
   String get backupNow => 'Back up now';

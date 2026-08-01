@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
+import '../platform/crash_reporter.dart';
 import '../platform/nex_services.dart';
+import '../platform/sharing.dart';
 import 'update_sheet.dart';
 
 const _websiteUrl = 'https://SaeedZarrini.ir';
@@ -114,6 +116,28 @@ class AboutScreen extends StatelessWidget {
             subtitle: Text(l10n.privacyBody),
           ),
           ListTile(
+            leading: const Icon(Icons.bug_report_outlined),
+            title: Text(l10n.shareDiagnostics),
+            subtitle: Text(l10n.shareDiagnosticsBody),
+            onTap: () async {
+              final log = await NexCrashLog.open();
+              if (!log.file.existsSync()) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    SnackBar(content: Text(l10n.noDiagnosticsYet)),
+                  );
+                return;
+              }
+              await nexSendFileOut(
+                log.file.path,
+                suggestedName: 'nex-diagnostics.txt',
+                mimeType: 'text/plain',
+              );
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.article_outlined),
             title: Text(l10n.openSourceLicenses),
             trailing: const Icon(Icons.chevron_right),
@@ -136,14 +160,14 @@ class _Heading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-          NexSpacing.md,
-          NexSpacing.md,
-          NexSpacing.md,
-          NexSpacing.xs,
-        ),
-        child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-      );
+    padding: const EdgeInsets.fromLTRB(
+      NexSpacing.md,
+      NexSpacing.md,
+      NexSpacing.md,
+      NexSpacing.xs,
+    ),
+    child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+  );
 }
 
 class _Bullet extends StatelessWidget {
@@ -196,26 +220,26 @@ class _LinkTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: IconButton(
-          tooltip: copyTooltip,
-          icon: const Icon(Icons.copy),
-          onPressed: () async {
-            await Clipboard.setData(ClipboardData(text: url));
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(SnackBar(content: Text(copiedLabel)));
-          },
-        ),
-        onTap: () async {
-          await Clipboard.setData(ClipboardData(text: url));
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(content: Text(copiedLabel)));
-        },
-      );
+    leading: Icon(icon),
+    title: Text(title),
+    subtitle: Text(subtitle),
+    trailing: IconButton(
+      tooltip: copyTooltip,
+      icon: const Icon(Icons.copy),
+      onPressed: () async {
+        await Clipboard.setData(ClipboardData(text: url));
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(copiedLabel)));
+      },
+    ),
+    onTap: () async {
+      await Clipboard.setData(ClipboardData(text: url));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(copiedLabel)));
+    },
+  );
 }

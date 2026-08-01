@@ -18,6 +18,10 @@ dependencies:
   # The in-app updater: one GET to the GitHub releases API when the user
   # asks, plus the streamed download of the installer.
   http: ^1.2.2
+  # Verifies a downloaded installer against the release's SHA256SUMS asset.
+  # Already resolved transitively (http depends on it); declared directly
+  # because app_update.dart now imports it.
+  crypto: ^3.0.6
   image_picker: ^1.1.2
   # Crop UI right after a capture. Pure Dart — no native platform code — so
   # it works uniformly on every target this app builds for, unlike
@@ -56,6 +60,11 @@ dependencies:
   # The platform share sheet for file, photo and voice notes.
   share_plus: ^12.0.2
   shared_preferences: ^2.3.3
+  # AI provider API keys only — everything else stays in shared_preferences.
+  # Android Keystore (EncryptedSharedPreferences) / Windows DPAPI, so a paid
+  # third-party credential is not sitting in a plaintext XML or JSON file
+  # anyone with ADB or filesystem access to the device can read.
+  flutter_secure_storage: ^10.3.1
   sqlite3: ^2.7.5
   sqlite3_flutter_libs: ^0.5.28
   uuid: ^4.5.1
@@ -64,6 +73,15 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  # Only for test/flutter_test_config.dart, to register the in-memory fake
+  # flutter_secure_storage ships for exactly this: no plugin is registered
+  # under flutter_test, so every test touching NexPreferences would otherwise
+  # hit a real platform channel that does not exist there.
+  flutter_secure_storage_platform_interface: ^2.0.1
+  # Only for about_screen_test.dart's fake, for the same reason: no plugin is
+  # registered under flutter_test for getApplicationSupportDirectory either.
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
 
 flutter:
   uses-material-design: true

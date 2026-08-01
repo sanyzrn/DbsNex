@@ -78,6 +78,13 @@ class TimelineScreenState extends State<TimelineScreen> {
   StreamSubscription<List<Note>>? subscription;
   String? landedId;
 
+  /// Guards against firing a second [NexServices.loadMoreTimeline] while one
+  /// is still in flight, and against firing one at all once a fetch has come
+  /// back empty — a finger held past the bottom during the overscroll bounce
+  /// delivers a scroll notification per frame, not one per gesture.
+  bool _loadingMore = false;
+  bool _exhausted = false;
+
   /// Starts at the top, with the search field in view.
   ///
   /// It used to start scrolled past the field, so that pulling down revealed
@@ -104,6 +111,12 @@ class TimelineScreenState extends State<TimelineScreen> {
         _all = value;
         notes = _visible(value);
       });
+      // A capture or a delete can change whether there is more to load —
+      // most obviously a capture, past a window an earlier scroll had
+      // already exhausted. Re-arming here costs one wasted fetch on the next
+      // scroll-to-bottom when it turns out nothing changed; leaving it stuck
+      // costs a note nobody can ever scroll to.
+      _exhausted = false;
       // The filter row is fed by a separate query that only ran once, at
       // startup. Creating or deleting a tag anywhere in the app left the row
       // showing the old set until the next cold launch — which is exactly the
@@ -276,6 +289,24 @@ class TimelineScreenState extends State<TimelineScreen> {
       if (tagId != null && !note.tags.any((t) => t.id == tagId)) return false;
       return true;
     }).toList();
+  }
+
+  /// Grows the timeline window when the list is close to its end.
+  ///
+  /// Not while searching — search results are their own query, not
+  /// [NexServices.loadMoreTimeline]'s window. The result reaches [notes]
+  /// through the same stream subscription every other mutation already goes
+  /// through, so there is nothing to do here with what comes back beyond
+  /// remembering whether it was empty.
+  void _maybeLoadMore() {
+    if (_searching || _loadingMore || _exhausted) return;
+    _loadingMore = true;
+    unawaited(
+      widget.services
+          .loadMoreTimeline()
+          .then((more) => _exhausted = !more)
+          .whenComplete(() => _loadingMore = false),
+    );
   }
 
   Future<void> _applyFilters() async {
@@ -770,6 +801,10 @@ class TimelineScreenState extends State<TimelineScreen> {
               // Scrolling dismisses an open card, the way every list with
               // swipe actions behaves.
               if (notification is ScrollStartNotification) _swipe.closeAll();
+              // Past 200 notes, this is the only thing that ever asks for
+              // the rest — nothing rendered the tail of a long timeline
+              // before this, it just never loaded.
+              if (notification.metrics.extentAfter < 600) _maybeLoadMore();
               return false;
             },
             child: Center(
