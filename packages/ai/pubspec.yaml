@@ -11,6 +11,11 @@ environment:
 dependencies:
   nex_core:
     path: ../core
+  # Phase 0 of the offline-AI roadmap (docs/09-ai.md): a local llama.cpp
+  # runtime, pinned to an exact pre-1.0 dev build rather than a caret range —
+  # this is a feasibility harness, not a shipped adapter, and the API is
+  # still moving under 0.9.x. Re-pin deliberately, don't let it float.
+  llama_cpp_dart: 0.9.0-dev.10
 
 dev_dependencies:
   lints: ^5.0.0

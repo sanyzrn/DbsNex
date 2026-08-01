@@ -153,6 +153,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
+  image:
+    dependency: transitive
+    description:
+      name: image
+      sha256: f9881ff4998044947ec38d098bc7c8316ae1186fa786eddffdb867b9bc94dfce
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.8.0"
   io:
     dependency: transitive
     description:
@@ -169,6 +177,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.1.1"
+  llama_cpp_dart:
+    dependency: "direct main"
+    description:
+      name: llama_cpp_dart
+      sha256: f72ca4f6d5b61ec6379eeccd52386c849c65e289aaf355c5317e2f506d592e9b
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.0-dev.10"
   logging:
     dependency: transitive
     description:
@@ -239,6 +255,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
+  petitparser:
+    dependency: transitive
+    description:
+      name: petitparser
+      sha256: "91bd59303e9f769f108f8df05e371341b15d59e995e6806aefab827b58336675"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.0.2"
   pool:
     dependency: transitive
     description:
@@ -447,6 +471,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.1"
+  xml:
+    dependency: transitive
+    description:
+      name: xml
+      sha256: "971043b3a0d3da28727e40ed3e0b5d18b742fa5a68665cca88e74b7876d5e025"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.6.1"
   yaml:
     dependency: transitive
     description:
