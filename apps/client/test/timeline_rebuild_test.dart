@@ -634,6 +634,35 @@ void main() {
     expect(find.text('arrived while you were away'), findsOneWidget);
   });
 
+  testWidgets('scrolling toward the bottom loads notes past the first 200', (
+    tester,
+  ) async {
+    // Past 200 notes, refreshTimeline's window used to be a fixed 200 with
+    // no way to ask for more — the rest were not off-screen, they had never
+    // been fetched at all.
+    for (var i = 0; i < 210; i++) {
+      await services.captureText('note $i');
+    }
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    final timeline = tester.state<TimelineScreenState>(
+      find.byType(TimelineScreen),
+    );
+    expect(timeline.notes, hasLength(200));
+
+    final list = find.byType(CustomScrollView);
+    for (var i = 0; i < 20 && timeline.notes.length < 210; i++) {
+      await tester.fling(list, const Offset(0, -3000), 3000);
+      await tester.pumpAndSettle();
+    }
+
+    expect(timeline.notes, hasLength(210));
+  });
+
   testWidgets(
     'a tag created elsewhere reaches the filter row without a restart',
     (tester) async {

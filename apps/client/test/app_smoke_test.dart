@@ -379,6 +379,37 @@ void main() {
     expect(sw.elapsedMilliseconds, lessThan(200));
   });
 
+  test(
+    'loadMoreTimeline grows the timeline window past the first page',
+    () async {
+      // refreshTimeline's window used to be a hardcoded 200 with no way to
+      // ask for more: past that count, older notes were not just off-screen,
+      // nothing ever fetched them.
+      final events = <List<Note>>[];
+      final sub = services.timelineStream.listen(events.add);
+      addTearDown(sub.cancel);
+
+      for (var i = 0; i < 210; i++) {
+        await services.captureText('bulk $i');
+      }
+      // The broadcast controller's `add` schedules delivery rather than
+      // calling listeners inline, so each assertion needs a turn of the
+      // event loop before `events` reflects it.
+      await services.refreshTimeline();
+      await Future<void>.delayed(Duration.zero);
+      expect(events.last, hasLength(200));
+
+      expect(await services.loadMoreTimeline(), isTrue);
+      await Future<void>.delayed(Duration.zero);
+      expect(events.last, hasLength(210));
+
+      // Nothing left past 210: the next ask comes back empty, and the window
+      // is not reloaded a third time over it.
+      expect(await services.loadMoreTimeline(), isFalse);
+      expect(events.last, hasLength(210));
+    },
+  );
+
   test('Voice capture stores hash; keyword search excludes it', () async {
     final bytes = Uint8List.fromList([1, 2, 3, 4]);
     final voice = await services.captureVoice(
