@@ -215,6 +215,16 @@ class AppLocalizationsFa extends AppLocalizations {
       'ثبت و جست‌وجوی یادداشت‌ها نه چیزی جمع‌آوری می‌کند و نه چیزی به بیرون می‌فرستد.';
 
   @override
+  String get shareDiagnostics => 'اشتراک‌گذاری گزارش خطا';
+
+  @override
+  String get shareDiagnosticsBody =>
+      'ثبت محلی چند خطای آخر، برای وقتی چیزی خراب شد. چیزی به هیچ‌جا فرستاده نمی‌شود مگر خودتان اینجا اشتراک بگذارید.';
+
+  @override
+  String get noDiagnosticsYet => 'چیزی برای اشتراک‌گذاری نیست';
+
+  @override
   String get openSourceLicenses => 'پروانه‌های متن‌باز';
 
   @override

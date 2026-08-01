@@ -78,6 +78,10 @@ dev_dependencies:
   # under flutter_test, so every test touching NexPreferences would otherwise
   # hit a real platform channel that does not exist there.
   flutter_secure_storage_platform_interface: ^2.0.1
+  # Only for about_screen_test.dart's fake, for the same reason: no plugin is
+  # registered under flutter_test for getApplicationSupportDirectory either.
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
 
 flutter:
   uses-material-design: true

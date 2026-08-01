@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_core/nex_core.dart';
 import 'bootstrap_host.dart';
+import 'platform/crash_reporter.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // As early as this can happen: an error during bootstrap is exactly the
+  // kind this exists to catch. Local file only — see NexCrashLog's own doc
+  // comment for why nothing here is a telemetry SDK in disguise.
+  (await NexCrashLog.open()).install();
 
   // The app targets SDK 35, where Android draws edge to edge whether or not the
   // app asked. Declaring it is what makes the platform report the real inset

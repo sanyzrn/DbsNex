@@ -452,6 +452,24 @@ abstract class AppLocalizations {
   /// **'Core capture and search do not collect or transmit your notes.'**
   String get privacyBody;
 
+  /// No description provided for @shareDiagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Share diagnostics'**
+  String get shareDiagnostics;
+
+  /// No description provided for @shareDiagnosticsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A local log of the last few crashes, in case something breaks. Nothing is sent anywhere unless you choose to share it here.'**
+  String get shareDiagnosticsBody;
+
+  /// No description provided for @noDiagnosticsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to share yet'**
+  String get noDiagnosticsYet;
+
   /// No description provided for @openSourceLicenses.
   ///
   /// In en, this message translates to:
