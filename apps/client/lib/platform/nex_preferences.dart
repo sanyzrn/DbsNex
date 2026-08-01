@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -30,9 +31,21 @@ extension SwipeActionWire on SwipeAction {
 }
 
 class NexPreferences extends ChangeNotifier {
-  NexPreferences._(this._prefs);
+  NexPreferences._(this._prefs, this._secureStorage);
 
   final SharedPreferences _prefs;
+  final FlutterSecureStorage _secureStorage;
+
+  /// In-memory mirror of every provider's API key, hydrated once by [load]
+  /// and kept in sync on every write.
+  ///
+  /// `configFor`/`aiProvider` are read synchronously from a dozen call
+  /// sites — some inside `build()`, one in a field initialiser — so the
+  /// secure-storage read that produces a key has to happen exactly once, up
+  /// front, not on every read. Everything else a provider needs (base URL,
+  /// model, which provider is active) is not a credential and stays in
+  /// `_prefs`, read directly, the way it always was.
+  final Map<String, String> _secureApiKeys = {};
 
   static const _kDeviceId = 'nex.device_id';
   static const _kSyncBaseUrl = 'sync.base_url';
@@ -41,7 +54,33 @@ class NexPreferences extends ChangeNotifier {
   static Future<NexPreferences> load() async {
     final prefs = await SharedPreferences.getInstance();
     await _migrateAiProviderStorage(prefs);
-    return NexPreferences._(prefs);
+    final preferences = NexPreferences._(prefs, const FlutterSecureStorage());
+    await preferences._migrateAndHydrateApiKeys();
+    return preferences;
+  }
+
+  /// Moves each provider's key out of the plaintext slot [_migrateAiProviderStorage]
+  /// left it in and into secure storage, then reads whatever is there —
+  /// freshly migrated or already secure from an earlier launch — into
+  /// [_secureApiKeys].
+  ///
+  /// A key was previously kept in `shared_preferences`: on Android that is an
+  /// unencrypted XML file readable on a rooted device or through an ADB
+  /// backup; on Windows, plaintext JSON. For a paid third-party credential
+  /// that is a real cost to a user whose device is compromised, not a
+  /// theoretical one.
+  Future<void> _migrateAndHydrateApiKeys() async {
+    for (final provider in AiProvider.values) {
+      if (provider == AiProvider.none) continue;
+      final key = 'ai.key.${provider.wireName}';
+      final legacy = _prefs.getString(key);
+      if (legacy != null && legacy.isNotEmpty) {
+        await _secureStorage.write(key: key, value: legacy);
+        await _prefs.remove(key);
+      }
+      final secured = await _secureStorage.read(key: key);
+      if (secured != null) _secureApiKeys[provider.wireName] = secured;
+    }
   }
 
   /// One-time move from the single `ai.key`/`ai.baseUrl`/`ai.model` slot to
@@ -280,17 +319,15 @@ class NexPreferences extends ChangeNotifier {
   AiCapabilities get effectiveAiCapabilities =>
       aiEnabled ? aiCapabilities : AiCapabilities.allOff;
 
-  // Stored in shared_preferences, which is not encrypted. On Android the file
-  // lives in the app's private data directory, so it is out of reach of other
-  // apps but readable on a rooted or backed-up device. Documented rather than
-  // hidden — the alternative is a secure-storage plugin, and pretending a
-  // plaintext preference is a secret would be worse than saying so.
-  //
   // The key/baseUrl/model are namespaced per provider rather than kept in one
   // shared slot: a single slot meant switching from, say, Claude to OpenAI
   // left Claude's key sitting in the OpenAI field, since there was only ever
   // one to overwrite. Each provider now keeps its own, so switching back to
   // one configured earlier restores what was saved for it.
+  //
+  // Only the key lives in secure storage — see [_secureApiKeys]. baseUrl and
+  // model are not credentials, and keeping them in plain `_prefs` is what
+  // lets every other getter here stay a synchronous read against one store.
   AiProviderConfig get aiProvider =>
       configFor(AiProviderWire.fromWire(_prefs.getString('ai.provider')));
 
@@ -299,22 +336,24 @@ class NexPreferences extends ChangeNotifier {
   /// is only looking at (not yet saving) a different provider.
   AiProviderConfig configFor(AiProvider provider) => AiProviderConfig(
     provider: provider,
-    apiKey: _prefs.getString('ai.key.${provider.wireName}') ?? '',
+    apiKey: _secureApiKeys[provider.wireName] ?? '',
     baseUrl: _prefs.getString('ai.baseUrl.${provider.wireName}') ?? '',
     model: _prefs.getString('ai.model.${provider.wireName}') ?? '',
   );
 
   Future<void> setAiProvider(AiProviderConfig config) async {
-    await _prefs.setString('ai.provider', config.provider.wireName);
-    await _prefs.setString('ai.key.${config.provider.wireName}', config.apiKey);
-    await _prefs.setString(
-      'ai.baseUrl.${config.provider.wireName}',
-      config.baseUrl,
-    );
-    await _prefs.setString(
-      'ai.model.${config.provider.wireName}',
-      config.model,
-    );
+    final wireName = config.provider.wireName;
+    final key = 'ai.key.$wireName';
+    await _prefs.setString('ai.provider', wireName);
+    if (config.apiKey.isEmpty) {
+      await _secureStorage.delete(key: key);
+      _secureApiKeys.remove(wireName);
+    } else {
+      await _secureStorage.write(key: key, value: config.apiKey);
+      _secureApiKeys[wireName] = config.apiKey;
+    }
+    await _prefs.setString('ai.baseUrl.$wireName', config.baseUrl);
+    await _prefs.setString('ai.model.$wireName', config.model);
     notifyListeners();
   }
 }
