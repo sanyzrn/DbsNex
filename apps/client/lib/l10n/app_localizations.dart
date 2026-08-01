@@ -1295,7 +1295,7 @@ abstract class AppLocalizations {
   /// Says what local backups are and are not for
   ///
   /// In en, this message translates to:
-  /// **'Once a day, Nex copies its database into its own folder. It is protection against a bad restore or a corrupted file — not against a lost phone. For that, export.'**
+  /// **'Once a day, Nex copies its database into its own folder — the text, tags and dates, not the photos, recordings or attachments those notes point to. It is protection against a bad restore or a corrupted file, on this device. For a copy that includes the media, or to move to another device, export.'**
   String get localBackupsExplained;
 
   /// Takes a backup outside the daily schedule

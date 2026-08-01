@@ -27,6 +27,15 @@ const schema = z.object({
   PAIRING_CODE_TTL_SECONDS: z.coerce.number().int().positive().default(600),
   TOMBSTONE_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
   PURGE_INTERVAL_MINUTES: z.coerce.number().int().positive().default(60),
+  // Number of trusted reverse-proxy hops in front of this process — never a
+  // bare `true`, which tells Express to trust the left-most X-Forwarded-For
+  // entry from *anyone*, meaning any client can hand-write the IP the rate
+  // limiters key on and get its own private bucket. 0 (the default, no
+  // deployment in front) makes Express use the socket's own address, which is
+  // what it already did before this existed — so an unconfigured deployment
+  // behaves exactly as before, and one that does sit behind a proxy opts in
+  // to the exact hop count that proxy adds.
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 })
   // Each variable used to be validated in isolation, so nothing stopped a
   // destructive test affordance and a production deployment from being

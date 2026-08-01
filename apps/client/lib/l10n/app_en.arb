@@ -610,7 +610,7 @@
   "@localBackupsTitle": {
     "description": "Heading above the local backup list"
   },
-  "localBackupsExplained": "Once a day, Nex copies its database into its own folder. It is protection against a bad restore or a corrupted file — not against a lost phone. For that, export.",
+  "localBackupsExplained": "Once a day, Nex copies its database into its own folder — the text, tags and dates, not the photos, recordings or attachments those notes point to. It is protection against a bad restore or a corrupted file, on this device. For a copy that includes the media, or to move to another device, export.",
   "@localBackupsExplained": {
     "description": "Says what local backups are and are not for"
   },

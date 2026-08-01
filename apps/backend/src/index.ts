@@ -31,6 +31,14 @@ import { startPurgeSchedule } from "./services/purge.ts";
  */
 const app = express();
 
+// Off (0 trusted hops) unless the deployment says otherwise — see the
+// TRUST_PROXY doc comment in env.ts for why this is a hop count, not `true`.
+// Without it, every rate limiter below keyed on `req.ip` saw the same
+// upstream proxy address for every request behind it, so every real client
+// shared one bucket; the moment a deployment does sit behind a proxy, this
+// is what makes `req.ip` resolve to the actual client again.
+app.set("trust proxy", env.TRUST_PROXY);
+
 app.disable("x-powered-by");
 app.use(requestId);
 app.use(helmet());
