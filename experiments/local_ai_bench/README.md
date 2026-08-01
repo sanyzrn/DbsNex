@@ -1,9 +1,13 @@
-# Phase 0 bench harness — running it
+# local_ai_bench
 
-`local_ai_bench_main.dart` is a throwaway screen for one question: does a
-local GGUF model run acceptably on real Android hardware? See
-`docs/09-ai.md` for where this sits in the roadmap. Nothing here ships —
-`main.dart` never imports this directory.
+Throwaway feasibility harness for Phase 0 of the offline-AI roadmap
+(`../../docs/09-ai.md`): does a local GGUF model run acceptably on real
+Android hardware, before anything is designed on top of it.
+
+A standalone project, not part of `apps/client`. `apps/client` and every
+package under `packages/` are checked by CI (the "packages/ai deletion
+proof" job) to never depend on `nex_ai` directly, so this experiment lives
+outside both — free to depend on `nex_ai` without touching that guarantee.
 
 ## 1. Native library
 
@@ -19,7 +23,8 @@ plausibly run on a mid-range phone, big enough to be worth measuring. A few
 families that were commonly available in GGUF at the time this was written:
 Google's Gemma 3 (1B/4B), Qwen2.5 (3B), Microsoft's Phi-3.5-mini. **Verify
 current availability and exact repo names on Hugging Face yourself** — this
-sandbox has no route to huggingface.co, so none of this was checked live.
+was written from a sandbox with no route to huggingface.co, so none of this
+was checked live.
 
 Get the `.gguf` file onto the test device, e.g.:
 
@@ -30,7 +35,8 @@ adb push gemma-3-4b-it-Q4_K_M.gguf /sdcard/Download/
 ## 3. Run it
 
 ```
-flutter run -d <device-id> -t lib/dev/local_ai_bench_main.dart
+cd experiments/local_ai_bench
+flutter run -d <device-id>
 ```
 
 In the app: **Pick .gguf** → browse to the file → **Load model** → run one

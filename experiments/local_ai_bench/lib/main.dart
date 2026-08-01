@@ -1,13 +1,12 @@
-// Standalone entry point for Phase 0 of the offline-AI roadmap
-// (docs/09-ai.md). Not part of the shipped app — main.dart never imports
-// anything under lib/dev/, and nothing here is reachable from it.
+// Phase 0 of the offline-AI roadmap (../../docs/09-ai.md). A standalone app,
+// not part of Nex itself — see this project's pubspec.yaml for why.
 //
 // Run on a real Android device (an emulator gives no useful timing numbers):
-//   flutter run -d <device-id> -t lib/dev/local_ai_bench_main.dart
+//   flutter run -d <device-id>
 //
 // One-time setup before it can load a model — see:
 //   - android/app/libs/README.md   (the native llama.cpp library)
-//   - lib/dev/README.md            (getting a .gguf model onto the device)
+//   - README.md                    (getting a .gguf model onto the device)
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -131,7 +130,9 @@ class _BenchScreenState extends State<_BenchScreen> {
         body: Center(
           child: Padding(
             padding: EdgeInsets.all(24),
-            child: Text('Phase 0 targets Android only — see docs/09-ai.md.'),
+            child: Text(
+              'Phase 0 targets Android only — see ../../docs/09-ai.md.',
+            ),
           ),
         ),
       );

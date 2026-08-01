@@ -44,12 +44,6 @@ dependencies:
     path: ../../packages/data
   nex_ui:
     path: ../../packages/ui
-  # Only used by lib/dev/local_ai_bench_main.dart, a standalone entry point
-  # main.dart never reaches — see that file and android/app/libs/README.md.
-  # Phase 0 of the offline-AI roadmap (docs/09-ai.md): proving a local model
-  # runs at all before anything real is built on it.
-  nex_ai:
-    path: ../../packages/ai
   # Hands a note's media to the OS the way a file manager does: the default
   # handler opens it, or the system asks which app should.
   #
