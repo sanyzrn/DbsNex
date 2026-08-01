@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Phase 0 of the offline-AI roadmap (docs/09-ai.md): the llama.cpp native
+# runtime, fetched by hand per android/app/libs/README.md — a multi-megabyte
+# binary that does not belong in git, and build.gradle.kts already treats
+# its absence as the normal case.
+/android/app/libs/*.aar

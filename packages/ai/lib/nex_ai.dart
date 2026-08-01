@@ -8,6 +8,8 @@
 /// re-exports them and is the home for future vendor/cloud adapters.
 library;
 
+export 'src/local_llm_bench_engine.dart' show BenchResult, NexLocalBenchEngine;
+
 export 'package:nex_core/nex_core.dart'
     show
         AIAdapter,

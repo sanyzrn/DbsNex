@@ -95,4 +95,17 @@ kotlin {
     }
 }
 
+// Phase 0 of the offline-AI roadmap (docs/09-ai.md): llama_cpp_dart ships no
+// native binaries in its Dart package, so the llama.cpp runtime the dev
+// bench screen loads has to be added here by hand — see
+// android/app/libs/README.md for where it comes from. Conditional on
+// purpose: this file is never committed, so an unmodified checkout (and
+// every CI build) must keep building exactly as before without it.
+dependencies {
+    val llamaCppAar = file("libs/llama-cpp-dart.aar")
+    if (llamaCppAar.exists()) {
+        implementation(files(llamaCppAar))
+    }
+}
+
 flutter { source = "../.." }
