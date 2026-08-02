@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../platform/crash_reporter.dart';
 import '../platform/nex_services.dart';
 import '../platform/sharing.dart';
+import '../widgets/nex_toast.dart';
 import 'update_sheet.dart';
 
 const _websiteUrl = 'https://SaeedZarrini.ir';
@@ -136,7 +137,7 @@ class AboutScreen extends StatelessWidget {
                 ScaffoldMessenger.of(context)
                   ..hideCurrentSnackBar()
                   ..showSnackBar(
-                    SnackBar(content: Text(l10n.noDiagnosticsYet)),
+                    nexToast(content: Text(l10n.noDiagnosticsYet)),
                   );
                 return;
               }
@@ -241,7 +242,7 @@ class _LinkTile extends StatelessWidget {
         if (!context.mounted) return;
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(copiedLabel)));
+          ..showSnackBar(nexToast(content: Text(copiedLabel)));
       },
     ),
     onTap: () async {
@@ -249,7 +250,7 @@ class _LinkTile extends StatelessWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(copiedLabel)));
+        ..showSnackBar(nexToast(content: Text(copiedLabel)));
     },
   );
 }

@@ -44,9 +44,9 @@ class SyncClient implements SyncPort {
   static const _maxPages = 200;
 
   Map<String, String> get _headers => {
-        'content-type': 'application/json',
-        if (bearerToken != null) 'authorization': 'Bearer $bearerToken',
-      };
+    'content-type': 'application/json',
+    if (bearerToken != null) 'authorization': 'Bearer $bearerToken',
+  };
 
   /// Flush pending local notes/tags, then pull remote deltas.
   @override
@@ -70,7 +70,9 @@ class SyncClient implements SyncPort {
       body: jsonEncode(pushBody),
     );
     if (pushRes.statusCode >= 300) {
-      throw StateError('sync push failed: ${pushRes.statusCode} ${pushRes.body}');
+      throw StateError(
+        'sync push failed: ${pushRes.statusCode} ${pushRes.body}',
+      );
     }
     final push = PushResponse.fromJson(
       jsonDecode(pushRes.body) as Map<String, dynamic>,
@@ -113,7 +115,9 @@ class SyncClient implements SyncPort {
       repo.syncCursor = page.cursor;
       if (!page.hasMore) break;
       if (++pages > _maxPages) {
-        throw StateError('sync pull: cursor failed to advance after $pages pages');
+        throw StateError(
+          'sync pull: cursor failed to advance after $pages pages',
+        );
       }
     }
 
@@ -172,19 +176,19 @@ class SyncClient implements SyncPort {
   }
 
   Map<String, Object?> _notePayload(Note note) => {
-        'id': note.id,
-        'type': note.type.wireName,
-        'content': note.content,
-        'media_uri': note.mediaUri,
-        'media_hash': note.mediaHash,
-        'duration_ms': note.durationMs,
-        'created_at': note.createdAt.toUtc().toIso8601String(),
-        'updated_at': note.updatedAt.toUtc().toIso8601String(),
-        'deleted_at': note.deletedAt?.toUtc().toIso8601String(),
-        'device_id': note.deviceId,
-        'rev': note.rev,
-        'tags': note.tags.map((t) => t.toJson()).toList(),
-      };
+    'id': note.id,
+    'type': note.type.wireName,
+    'content': note.content,
+    'media_uri': note.mediaUri,
+    'media_hash': note.mediaHash,
+    'duration_ms': note.durationMs,
+    'created_at': note.createdAt.toUtc().toIso8601String(),
+    'updated_at': note.updatedAt.toUtc().toIso8601String(),
+    'deleted_at': note.deletedAt?.toUtc().toIso8601String(),
+    'device_id': note.deviceId,
+    'rev': note.rev,
+    'tags': note.tags.map((t) => t.toJson()).toList(),
+  };
 
   @override
   void close() => _http.close();

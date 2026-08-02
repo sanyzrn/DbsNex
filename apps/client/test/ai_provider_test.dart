@@ -23,10 +23,7 @@ void main() {
 
   group('AiProviderConfig', () {
     test('falls back to the provider defaults', () {
-      const config = AiProviderConfig(
-        provider: AiProvider.openai,
-        apiKey: 'k',
-      );
+      const config = AiProviderConfig(provider: AiProvider.openai, apiKey: 'k');
       expect(config.resolvedBaseUrl, 'https://api.openai.com');
       expect(config.resolvedModel, 'gpt-4o-mini');
       expect(config.isUsable, isTrue);
@@ -119,7 +116,10 @@ void main() {
 
       final summary = await adapter.summarize(textNote('a long note'))!;
 
-      expect(seen.url.toString(), 'https://openrouter.ai/api/v1/chat/completions');
+      expect(
+        seen.url.toString(),
+        'https://openrouter.ai/api/v1/chat/completions',
+      );
       expect(seen.headers['authorization'], 'Bearer secret');
       final body = jsonDecode(seen.body) as Map<String, dynamic>;
       expect((body['messages'] as List).length, 2);
@@ -315,7 +315,9 @@ void main() {
       final result = await testWith(
         400,
         jsonEncode({
-          'error': {'message': 'API key not valid. Please pass a valid API key.'},
+          'error': {
+            'message': 'API key not valid. Please pass a valid API key.',
+          },
         }),
       );
       expect(result.success, isFalse);
@@ -353,7 +355,9 @@ void main() {
           provider: AiProvider.gemini,
           apiKey: 'k',
         ),
-        client: MockClient((_) async => http.Response('{"candidates":[]}', 200)),
+        client: MockClient(
+          (_) async => http.Response('{"candidates":[]}', 200),
+        ),
       );
       final result = await adapter.test();
       expect(result.success, isFalse);
@@ -365,24 +369,22 @@ void main() {
     test('names what is missing before touching the network', () async {
       var called = false;
       MockClient watcher() => MockClient((_) async {
-            called = true;
-            return http.Response('{}', 200);
-          });
+        called = true;
+        return http.Response('{}', 200);
+      });
 
       expect(
         (await CloudAIAdapter(
           config: const AiProviderConfig(),
           client: watcher(),
-        ).test())
-            .detail,
+        ).test()).detail,
         contains('provider'),
       );
       expect(
         (await CloudAIAdapter(
           config: const AiProviderConfig(provider: AiProvider.openai),
           client: watcher(),
-        ).test())
-            .detail,
+        ).test()).detail,
         contains('key'),
       );
       expect(called, isFalse);

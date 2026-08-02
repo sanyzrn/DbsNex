@@ -35,38 +35,36 @@ class NoteRevision {
   /// Builds a revision from the server's `NoteRow` wire form — the same shape
   /// `spec/merge-conformance.json` stores, so both languages read one corpus.
   factory NoteRevision.fromJson(Map<String, Object?> json) => NoteRevision(
-        id: json['id']! as String,
-        type: NoteType.fromWire(json['type']! as String),
-        content: json['content'] as String?,
-        mediaUri: json['media_uri'] as String?,
-        mediaHash: json['media_hash'] as String?,
-        durationMs: json['duration_ms'] as int?,
-        createdAt: DateTime.parse(json['created_at']! as String).toUtc(),
-        updatedAt: DateTime.parse(json['updated_at']! as String).toUtc(),
-        deletedAt: json['deleted_at'] == null
-            ? null
-            : DateTime.parse(json['deleted_at']! as String).toUtc(),
-        deviceId: json['device_id']! as String,
-        rev: json['rev']! as int,
-        tagIds: ((json['tag_ids'] as List?) ?? const [])
-            .cast<String>()
-            .toSet(),
-      );
+    id: json['id']! as String,
+    type: NoteType.fromWire(json['type']! as String),
+    content: json['content'] as String?,
+    mediaUri: json['media_uri'] as String?,
+    mediaHash: json['media_hash'] as String?,
+    durationMs: json['duration_ms'] as int?,
+    createdAt: DateTime.parse(json['created_at']! as String).toUtc(),
+    updatedAt: DateTime.parse(json['updated_at']! as String).toUtc(),
+    deletedAt: json['deleted_at'] == null
+        ? null
+        : DateTime.parse(json['deleted_at']! as String).toUtc(),
+    deviceId: json['device_id']! as String,
+    rev: json['rev']! as int,
+    tagIds: ((json['tag_ids'] as List?) ?? const []).cast<String>().toSet(),
+  );
 
   factory NoteRevision.fromNote(Note note) => NoteRevision(
-        id: note.id,
-        type: note.type,
-        content: note.content,
-        mediaUri: note.mediaUri,
-        mediaHash: note.mediaHash,
-        durationMs: note.durationMs,
-        createdAt: note.createdAt,
-        updatedAt: note.updatedAt,
-        deletedAt: note.deletedAt,
-        deviceId: note.deviceId,
-        rev: note.rev,
-        tagIds: note.tags.map((t) => t.id).toSet(),
-      );
+    id: note.id,
+    type: note.type,
+    content: note.content,
+    mediaUri: note.mediaUri,
+    mediaHash: note.mediaHash,
+    durationMs: note.durationMs,
+    createdAt: note.createdAt,
+    updatedAt: note.updatedAt,
+    deletedAt: note.deletedAt,
+    deviceId: note.deviceId,
+    rev: note.rev,
+    tagIds: note.tags.map((t) => t.id).toSet(),
+  );
 }
 
 /// Result of merging two concurrent revisions of the same note.
@@ -105,19 +103,19 @@ class MergedNote {
   /// Wire form. Keys and value shapes match the server's `NoteRow`, which is
   /// what makes `spec/merge-conformance.json` readable by both languages.
   Map<String, Object?> toJson() => {
-        'id': id,
-        'type': type.wireName,
-        'content': content,
-        'media_uri': mediaUri,
-        'media_hash': mediaHash,
-        'duration_ms': durationMs,
-        'created_at': createdAt.toUtc().toIso8601String(),
-        'updated_at': updatedAt.toUtc().toIso8601String(),
-        'deleted_at': deletedAt?.toUtc().toIso8601String(),
-        'device_id': deviceId,
-        'rev': rev,
-        'tag_ids': tagIds,
-      };
+    'id': id,
+    'type': type.wireName,
+    'content': content,
+    'media_uri': mediaUri,
+    'media_hash': mediaHash,
+    'duration_ms': durationMs,
+    'created_at': createdAt.toUtc().toIso8601String(),
+    'updated_at': updatedAt.toUtc().toIso8601String(),
+    'deleted_at': deletedAt?.toUtc().toIso8601String(),
+    'device_id': deviceId,
+    'rev': rev,
+    'tag_ids': tagIds,
+  };
 }
 
 /// Field-aware conflict resolution (ADR-020 / 04-architecture.md):

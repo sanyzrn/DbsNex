@@ -5,6 +5,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/note_search.dart';
 import 'card_strings.dart';
+import 'search_field_header.dart' show nexSearchTapGroup;
 
 /// Search results as slivers, so they can replace the timeline's cards inside
 /// the timeline's own scroll view rather than on a screen of their own.
@@ -67,10 +68,13 @@ List<Widget> searchResultSlivers({
       ),
       if (search.nearest != null)
         SliverToBoxAdapter(
-          child: NoteCard(
-            note: search.nearest!,
-            strings: nexCardStrings(context),
-            onTap: () => onOpen(search.nearest!),
+          child: TapRegion(
+            groupId: nexSearchTapGroup,
+            child: NoteCard(
+              note: search.nearest!,
+              strings: nexCardStrings(context),
+              onTap: () => onOpen(search.nearest!),
+            ),
           ),
         ),
     ];
@@ -95,10 +99,13 @@ List<Widget> searchResultSlivers({
       itemCount: search.results.length,
       itemBuilder: (context, index) {
         final note = search.results[index];
-        return NoteCard(
-          note: note,
-          strings: nexCardStrings(context),
-          onTap: () => onOpen(note),
+        return TapRegion(
+          groupId: nexSearchTapGroup,
+          child: NoteCard(
+            note: note,
+            strings: nexCardStrings(context),
+            onTap: () => onOpen(note),
+          ),
         );
       },
     ),

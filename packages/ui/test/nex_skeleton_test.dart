@@ -7,15 +7,16 @@ import 'package:nex_ui/nex_ui.dart';
 /// flight.
 void main() {
   Widget host(Widget child, {bool animations = true}) => MaterialApp(
-        theme: nexLightTheme(),
-        home: MediaQuery(
-          data: MediaQueryData(disableAnimations: !animations),
-          child: Scaffold(body: child),
-        ),
-      );
+    theme: nexLightTheme(),
+    home: MediaQuery(
+      data: MediaQueryData(disableAnimations: !animations),
+      child: Scaffold(body: child),
+    ),
+  );
 
-  testWidgets('a card skeleton occupies exactly the space its card will',
-      (tester) async {
+  testWidgets('a card skeleton occupies exactly the space its card will', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       host(const SizedBox(width: 400, child: NexCardSkeleton())),
     );
@@ -37,14 +38,16 @@ void main() {
     // in-app preference — so this needs no preference of its own.
     // Scoped to the skeleton: the Cupertino page transition contributes a
     // DecoratedBox of its own, and it is not a BoxDecoration.
-    final decoration = tester
-        .widget<DecoratedBox>(
-          find.descendant(
-            of: find.byType(NexSkeleton),
-            matching: find.byType(DecoratedBox),
-          ),
-        )
-        .decoration as BoxDecoration;
+    final decoration =
+        tester
+                .widget<DecoratedBox>(
+                  find.descendant(
+                    of: find.byType(NexSkeleton),
+                    matching: find.byType(DecoratedBox),
+                  ),
+                )
+                .decoration
+            as BoxDecoration;
     expect(decoration.gradient, isNull);
     expect(decoration.color, isNotNull);
 
@@ -58,14 +61,16 @@ void main() {
       host(const SizedBox(width: 200, child: NexSkeleton())),
     );
 
-    BoxDecoration decoration() => tester
-        .widget<DecoratedBox>(
-          find.descendant(
-            of: find.byType(NexSkeleton),
-            matching: find.byType(DecoratedBox),
-          ),
-        )
-        .decoration as BoxDecoration;
+    BoxDecoration decoration() =>
+        tester
+                .widget<DecoratedBox>(
+                  find.descendant(
+                    of: find.byType(NexSkeleton),
+                    matching: find.byType(DecoratedBox),
+                  ),
+                )
+                .decoration
+            as BoxDecoration;
 
     final first = (decoration().gradient! as LinearGradient).begin;
     await tester.pump(const Duration(milliseconds: 300));

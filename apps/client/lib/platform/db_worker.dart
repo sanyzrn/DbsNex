@@ -148,13 +148,7 @@ class NexDbWorker implements NexDb {
 
     final isolate = await Isolate.spawn(
       _entryPoint,
-      _WorkerBoot(
-        responses.sendPort,
-        dbPath,
-        deviceId,
-        adapter,
-        capabilities,
-      ),
+      _WorkerBoot(responses.sendPort, dbPath, deviceId, adapter, capabilities),
       debugName: 'nex-db',
     );
 
@@ -194,16 +188,22 @@ class NexDbWorker implements NexDb {
   /* ------------------------------------------------------------- reading */
 
   @override
-  Future<List<Note>> timeline({int limit = 200, int offset = 0, String? tagId}) =>
-      _send<List<Note>>(_DbCommand.timeline, {
-        'limit': limit,
-        'offset': offset,
-        'tagId': tagId,
-      });
+  Future<List<Note>> timeline({
+    int limit = 200,
+    int offset = 0,
+    String? tagId,
+  }) => _send<List<Note>>(_DbCommand.timeline, {
+    'limit': limit,
+    'offset': offset,
+    'tagId': tagId,
+  });
 
   @override
   Future<List<Note>> loadMore({required int offset, int limit = 50}) =>
-      _send<List<Note>>(_DbCommand.loadMore, {'limit': limit, 'offset': offset});
+      _send<List<Note>>(_DbCommand.loadMore, {
+        'limit': limit,
+        'offset': offset,
+      });
 
   @override
   Future<List<Note>> search(SearchFilters filters) =>
@@ -224,22 +224,20 @@ class NexDbWorker implements NexDb {
     required String mediaUri,
     required Uint8List mediaBytes,
     required int durationMs,
-  }) =>
-      _send<Note>(_DbCommand.captureVoice, {
-        'mediaUri': mediaUri,
-        'mediaBytes': mediaBytes,
-        'durationMs': durationMs,
-      });
+  }) => _send<Note>(_DbCommand.captureVoice, {
+    'mediaUri': mediaUri,
+    'mediaBytes': mediaBytes,
+    'durationMs': durationMs,
+  });
 
   @override
   Future<Note> capturePhoto({
     required String mediaUri,
     required Uint8List mediaBytes,
-  }) =>
-      _send<Note>(_DbCommand.capturePhoto, {
-        'mediaUri': mediaUri,
-        'mediaBytes': mediaBytes,
-      });
+  }) => _send<Note>(_DbCommand.capturePhoto, {
+    'mediaUri': mediaUri,
+    'mediaBytes': mediaBytes,
+  });
 
   @override
   Future<Note> captureFile({
@@ -247,13 +245,12 @@ class NexDbWorker implements NexDb {
     required Uint8List mediaBytes,
     String? originalFilename,
     String? mimeType,
-  }) =>
-      _send<Note>(_DbCommand.captureFile, {
-        'mediaUri': mediaUri,
-        'mediaBytes': mediaBytes,
-        'originalFilename': originalFilename,
-        'mimeType': mimeType,
-      });
+  }) => _send<Note>(_DbCommand.captureFile, {
+    'mediaUri': mediaUri,
+    'mediaBytes': mediaBytes,
+    'originalFilename': originalFilename,
+    'mimeType': mimeType,
+  });
 
   /* ------------------------------------------------------------- mutating */
 
@@ -295,12 +292,11 @@ class NexDbWorker implements NexDb {
     required String noteId,
     required String name,
     String? color,
-  }) =>
-      _send<Tag>(_DbCommand.addTag, {
-        'noteId': noteId,
-        'name': name,
-        'color': color,
-      });
+  }) => _send<Tag>(_DbCommand.addTag, {
+    'noteId': noteId,
+    'name': name,
+    'color': color,
+  });
 
   @override
   Future<void> removeTag({required String noteId, required String tagId}) =>
@@ -327,21 +323,19 @@ class NexDbWorker implements NexDb {
   Future<String> exportArchive({
     required String outputPath,
     required String mediaRoot,
-  }) =>
-      _send<String>(_DbCommand.exportArchive, {
-        'outputPath': outputPath,
-        'mediaRoot': mediaRoot,
-      });
+  }) => _send<String>(_DbCommand.exportArchive, {
+    'outputPath': outputPath,
+    'mediaRoot': mediaRoot,
+  });
 
   @override
   Future<ImportResult> importArchive({
     required String archivePath,
     required String mediaRoot,
-  }) =>
-      _send<ImportResult>(_DbCommand.importArchive, {
-        'archivePath': archivePath,
-        'mediaRoot': mediaRoot,
-      });
+  }) => _send<ImportResult>(_DbCommand.importArchive, {
+    'archivePath': archivePath,
+    'mediaRoot': mediaRoot,
+  });
 
   /* --------------------------------------------------- library maintenance */
 
@@ -369,10 +363,7 @@ class NexDbWorker implements NexDb {
       _send<void>(_DbCommand.renameTag, {'id': id, 'name': name});
 
   @override
-  Future<void> mergeTag({
-    required String sourceId,
-    required String targetId,
-  }) =>
+  Future<void> mergeTag({required String sourceId, required String targetId}) =>
       _send<void>(_DbCommand.mergeTag, {
         'sourceId': sourceId,
         'targetId': targetId,
@@ -391,12 +382,11 @@ class NexDbWorker implements NexDb {
     required String dbPath,
     required String mediaDir,
     required String backupDir,
-  }) =>
-      _send<StorageSnapshot>(_DbCommand.storage, {
-        'dbPath': dbPath,
-        'mediaDir': mediaDir,
-        'backupDir': backupDir,
-      });
+  }) => _send<StorageSnapshot>(_DbCommand.storage, {
+    'dbPath': dbPath,
+    'mediaDir': mediaDir,
+    'backupDir': backupDir,
+  });
 
   /* ----------------------------------------------------------- enrichment */
 
@@ -437,10 +427,7 @@ class NexDbWorker implements NexDb {
   /// deliberately withholds — so it is built here, inside the isolate that owns
   /// it, rather than on the UI isolate where it has nothing to talk to.
   @override
-  Future<SyncResult> sync({
-    required String baseUrl,
-    String? bearerToken,
-  }) =>
+  Future<SyncResult> sync({required String baseUrl, String? bearerToken}) =>
       _send<SyncResult>(_DbCommand.sync, {
         'baseUrl': baseUrl,
         'bearerToken': bearerToken,
@@ -498,150 +485,175 @@ class NexDbWorker implements NexDb {
       try {
         final Object? result = switch (message.command) {
           _DbCommand.timeline || _DbCommand.loadMore => search.timeline(
-              limit: arg('limit')! as int,
-              offset: arg('offset')! as int,
-              tagId: arg('tagId') as String?,
-            ),
+            limit: arg('limit')! as int,
+            offset: arg('offset')! as int,
+            tagId: arg('tagId') as String?,
+          ),
           _DbCommand.search => search.search(arg('filters')! as SearchFilters),
           _DbCommand.getById => repo.getById(arg('id')! as String),
-          _DbCommand.captureText =>
-            capture.submitTextCapture(arg('content')! as String),
+          _DbCommand.captureText => capture.submitTextCapture(
+            arg('content')! as String,
+          ),
           _DbCommand.captureVoice => capture.submitVoiceCapture(
-              mediaUri: arg('mediaUri')! as String,
-              mediaBytes: arg('mediaBytes')! as Uint8List,
-              durationMs: arg('durationMs')! as int,
-            ),
+            mediaUri: arg('mediaUri')! as String,
+            mediaBytes: arg('mediaBytes')! as Uint8List,
+            durationMs: arg('durationMs')! as int,
+          ),
           _DbCommand.capturePhoto => capture.submitPhotoCapture(
-              mediaUri: arg('mediaUri')! as String,
-              mediaBytes: arg('mediaBytes')! as Uint8List,
-            ),
+            mediaUri: arg('mediaUri')! as String,
+            mediaBytes: arg('mediaBytes')! as Uint8List,
+          ),
           _DbCommand.captureFile => capture.submitFileCapture(
-              mediaUri: arg('mediaUri')! as String,
-              mediaBytes: arg('mediaBytes')! as Uint8List,
-              originalFilename: arg('originalFilename') as String?,
-              mimeType: arg('mimeType') as String?,
+            mediaUri: arg('mediaUri')! as String,
+            mediaBytes: arg('mediaBytes')! as Uint8List,
+            originalFilename: arg('originalFilename') as String?,
+            mimeType: arg('mimeType') as String?,
+          ),
+          _DbCommand.updateNote => _voided(
+            () => repo.updateContent(
+              arg('id')! as String,
+              arg('content')! as String,
             ),
-          _DbCommand.updateNote => _voided(() => repo.updateContent(
-                arg('id')! as String,
-                arg('content')! as String,
-              )),
-          _DbCommand.deleteNote =>
-            _voided(() => repo.softDelete(arg('id')! as String)),
-          _DbCommand.undelete =>
-            _voided(() => repo.undelete(arg('id')! as String)),
-          _DbCommand.setCaption => _voided(() => repo.setCaption(
-                arg('id')! as String,
-                arg('caption')! as String,
-              )),
-          _DbCommand.pinNote =>
-            _voided(() => repo.pinNote(arg('id')! as String)),
-          _DbCommand.unpinNote =>
-            _voided(() => repo.unpinNote(arg('id')! as String)),
+          ),
+          _DbCommand.deleteNote => _voided(
+            () => repo.softDelete(arg('id')! as String),
+          ),
+          _DbCommand.undelete => _voided(
+            () => repo.undelete(arg('id')! as String),
+          ),
+          _DbCommand.setCaption => _voided(
+            () => repo.setCaption(
+              arg('id')! as String,
+              arg('caption')! as String,
+            ),
+          ),
+          _DbCommand.pinNote => _voided(
+            () => repo.pinNote(arg('id')! as String),
+          ),
+          _DbCommand.unpinNote => _voided(
+            () => repo.unpinNote(arg('id')! as String),
+          ),
           _DbCommand.pinnedNoteId => repo.pinnedNoteId(),
           _DbCommand.reorderNotes => _voided(
-              () => repo.reorderNotes(
-                (arg('orderedIds')! as List).cast<String>(),
-              ),
-            ),
+            () =>
+                repo.reorderNotes((arg('orderedIds')! as List).cast<String>()),
+          ),
           _DbCommand.addTag => tags.addTag(
+            noteId: arg('noteId')! as String,
+            name: arg('name')! as String,
+            color: arg('color') as String?,
+          ),
+          _DbCommand.removeTag => _voided(
+            () => tags.removeTag(
               noteId: arg('noteId')! as String,
-              name: arg('name')! as String,
-              color: arg('color') as String?,
+              tagId: arg('tagId')! as String,
             ),
-          _DbCommand.removeTag => _voided(() => tags.removeTag(
-                noteId: arg('noteId')! as String,
-                tagId: arg('tagId')! as String,
-              )),
+          ),
           _DbCommand.createTag => repo.upsertTag(
-              name: arg('name')! as String,
+            name: arg('name')! as String,
+            color: arg('color') as String?,
+          ),
+          _DbCommand.listTags => tags.listTags(),
+          _DbCommand.setTagColor => _voided(
+            () => tags.setColor(
+              tagId: arg('tagId')! as String,
               color: arg('color') as String?,
             ),
-          _DbCommand.listTags => tags.listTags(),
-          _DbCommand.setTagColor => _voided(() => tags.setColor(
-                tagId: arg('tagId')! as String,
-                color: arg('color') as String?,
-              )),
+          ),
           _DbCommand.backup => repo.backup(arg('dir')! as String),
-          _DbCommand.exportArchive =>
-            (await repo.exportArchive(
-              outputPath: arg('outputPath')! as String,
-              mediaRoot: arg('mediaRoot')! as String,
-            ))
-                .path,
+          _DbCommand.exportArchive => (await repo.exportArchive(
+            outputPath: arg('outputPath')! as String,
+            mediaRoot: arg('mediaRoot')! as String,
+          )).path,
           _DbCommand.importArchive => await repo.importArchive(
-              archiveFile: File(arg('archivePath')! as String),
-              mediaRoot: arg('mediaRoot')! as String,
-            ),
-          _DbCommand.deletedNotes =>
-            maintenance.deletedNotes(limit: arg('limit')! as int),
+            archiveFile: File(arg('archivePath')! as String),
+            mediaRoot: arg('mediaRoot')! as String,
+          ),
+          _DbCommand.deletedNotes => maintenance.deletedNotes(
+            limit: arg('limit')! as int,
+          ),
           _DbCommand.purgeDeletedBefore => _voided(
-              () => maintenance.purgeDeletedBefore(arg('cutoff')! as DateTime)),
-          _DbCommand.purgeNote =>
-            _voided(() => maintenance.purgeNote(arg('id')! as String)),
-          _DbCommand.purgeAllDeleted =>
-            _voided(maintenance.purgeAllDeleted),
+            () => maintenance.purgeDeletedBefore(arg('cutoff')! as DateTime),
+          ),
+          _DbCommand.purgeNote => _voided(
+            () => maintenance.purgeNote(arg('id')! as String),
+          ),
+          _DbCommand.purgeAllDeleted => _voided(maintenance.purgeAllDeleted),
           _DbCommand.tagUsage => maintenance.tagUsage(),
-          _DbCommand.renameTag => _voided(() => maintenance.renameTag(
-                arg('id')! as String,
-                arg('name')! as String,
-              )),
-          _DbCommand.mergeTag => _voided(() => maintenance.mergeTag(
-                sourceId: arg('sourceId')! as String,
-                targetId: arg('targetId')! as String,
-              )),
-          _DbCommand.deleteTag =>
-            _voided(() => maintenance.deleteTag(arg('id')! as String)),
-          _DbCommand.nearestMiss =>
-            maintenance.nearestMiss(arg('query')! as String),
+          _DbCommand.renameTag => _voided(
+            () => maintenance.renameTag(
+              arg('id')! as String,
+              arg('name')! as String,
+            ),
+          ),
+          _DbCommand.mergeTag => _voided(
+            () => maintenance.mergeTag(
+              sourceId: arg('sourceId')! as String,
+              targetId: arg('targetId')! as String,
+            ),
+          ),
+          _DbCommand.deleteTag => _voided(
+            () => maintenance.deleteTag(arg('id')! as String),
+          ),
+          _DbCommand.nearestMiss => maintenance.nearestMiss(
+            arg('query')! as String,
+          ),
           _DbCommand.storage => await maintenance.storage(
-              arg('dbPath')! as String,
-              arg('mediaDir')! as String,
-              arg('backupDir')! as String,
-            ),
-          _DbCommand.enrichNote => await enrichment
-              .enrichNote(arg('noteId')! as String)
-              .then<Object?>((_) => null),
-          _DbCommand.backfillEnrichment =>
-            await enrichment.backfill(limit: arg('limit')! as int),
-          _DbCommand.suggestTags =>
-            await enrichment.suggestTags(arg('noteId')! as String),
-          _DbCommand.summarize =>
-            await enrichment.summarizeOnDemand(arg('noteId')! as String),
+            arg('dbPath')! as String,
+            arg('mediaDir')! as String,
+            arg('backupDir')! as String,
+          ),
+          _DbCommand.enrichNote =>
+            await enrichment
+                .enrichNote(arg('noteId')! as String)
+                .then<Object?>((_) => null),
+          _DbCommand.backfillEnrichment => await enrichment.backfill(
+            limit: arg('limit')! as int,
+          ),
+          _DbCommand.suggestTags => await enrichment.suggestTags(
+            arg('noteId')! as String,
+          ),
+          _DbCommand.summarize => await enrichment.summarizeOnDemand(
+            arg('noteId')! as String,
+          ),
           _DbCommand.relatedNotes => await enrichment.relatedNotes(
-              arg('noteId')! as String,
-              limit: arg('limit')! as int,
+            arg('noteId')! as String,
+            limit: arg('limit')! as int,
+          ),
+          _DbCommand.setAiCapabilities => _voided(
+            () => enrichment.updateCapabilities(
+              arg('capabilities')! as AiCapabilities,
             ),
-          _DbCommand.setAiCapabilities => _voided(() => enrichment
-              .updateCapabilities(arg('capabilities')! as AiCapabilities)),
+          ),
           _DbCommand.setAiProvider => _voided(() {
-              final raw = (arg('config')! as Map).cast<String, String>();
-              final config = AiProviderConfig(
-                provider: AiProviderWire.fromWire(raw['provider']),
-                apiKey: raw['apiKey'] ?? '',
-                baseUrl: raw['baseUrl'] ?? '',
-                model: raw['model'] ?? '',
-              );
-              // No provider, or an incomplete one, falls back to the local
-              // heuristics rather than to nothing: tag hints keep working.
-              enrichment.updateAdapter(
-                config.isUsable
-                    ? CloudAIAdapter(config: config)
-                    : const OnDeviceAIAdapter(),
-              );
-            }),
+            final raw = (arg('config')! as Map).cast<String, String>();
+            final config = AiProviderConfig(
+              provider: AiProviderWire.fromWire(raw['provider']),
+              apiKey: raw['apiKey'] ?? '',
+              baseUrl: raw['baseUrl'] ?? '',
+              model: raw['model'] ?? '',
+            );
+            // No provider, or an incomplete one, falls back to the local
+            // heuristics rather than to nothing: tag hints keep working.
+            enrichment.updateAdapter(
+              config.isUsable
+                  ? CloudAIAdapter(config: config)
+                  : const OnDeviceAIAdapter(),
+            );
+          }),
           _DbCommand.sync => await () async {
-              final client = SyncClient(
-                baseUrl: arg('baseUrl')! as String,
-                deviceId: boot.deviceId,
-                repo: repo,
-                bearerToken: arg('bearerToken') as String?,
-              );
-              try {
-                return await client.sync();
-              } finally {
-                client.close();
-              }
-            }(),
+            final client = SyncClient(
+              baseUrl: arg('baseUrl')! as String,
+              deviceId: boot.deviceId,
+              repo: repo,
+              bearerToken: arg('bearerToken') as String?,
+            );
+            try {
+              return await client.sync();
+            } finally {
+              client.close();
+            }
+          }(),
           _DbCommand.close => null,
         };
 

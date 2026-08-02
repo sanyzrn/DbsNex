@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' show Random;
 
 import 'package:archive/archive.dart';
 import 'package:nex_core/nex_core.dart';
@@ -31,9 +32,14 @@ const List<String> tagAccentPalette = [
   '#B49AE0',
 ];
 
+final _accentRandom = Random();
+
+/// A random pick off [tagAccentPalette], for a new tag nobody coloured.
+String _randomAccent() =>
+    tagAccentPalette[_accentRandom.nextInt(tagAccentPalette.length)];
+
 /// Whether a string is a colour a tag may carry: `#RRGGBB`, case-insensitive.
-bool isTagAccent(String value) =>
-    RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(value);
+bool isTagAccent(String value) => RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(value);
 
 /// What came out of reading an export archive back in.
 ///
@@ -110,12 +116,7 @@ SET content = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ? AND deleted_at IS NULL
 ''',
-      [
-        content,
-        now,
-        if (localDeviceId != null) localDeviceId,
-        noteId,
-      ],
+      [content, now, if (localDeviceId != null) localDeviceId, noteId],
     );
     _upsertFts(noteId, content);
   }
@@ -131,10 +132,7 @@ WHERE id = ? AND deleted_at IS NULL
         'UPDATE notes SET pinned_at = NULL WHERE pinned_at IS NOT NULL AND id != ?',
         [noteId],
       );
-      db.execute(
-        'UPDATE notes SET pinned_at = ? WHERE id = ?',
-        [now, noteId],
-      );
+      db.execute('UPDATE notes SET pinned_at = ? WHERE id = ?', [now, noteId]);
       db.execute('COMMIT');
     } catch (_) {
       db.execute('ROLLBACK');
@@ -163,10 +161,10 @@ WHERE id = ? AND deleted_at IS NULL
     db.execute('BEGIN IMMEDIATE');
     try {
       for (var i = 0; i < orderedIds.length; i++) {
-        db.execute(
-          'UPDATE notes SET sort_order = ? WHERE id = ?',
-          [i, orderedIds[i]],
-        );
+        db.execute('UPDATE notes SET sort_order = ? WHERE id = ?', [
+          i,
+          orderedIds[i],
+        ]);
       }
       db.execute('COMMIT');
     } catch (_) {
@@ -184,12 +182,7 @@ SET deleted_at = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [
-        now,
-        now,
-        if (localDeviceId != null) localDeviceId,
-        noteId,
-      ],
+      [now, now, if (localDeviceId != null) localDeviceId, noteId],
     );
     db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
   }
@@ -206,11 +199,7 @@ SET deleted_at = NULL, updated_at = ?, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [
-        now,
-        if (localDeviceId != null) localDeviceId,
-        noteId,
-      ],
+      [now, if (localDeviceId != null) localDeviceId, noteId],
     );
     final content = rows.first['content'] as String?;
     final type = rows.first['type'] as String?;
@@ -248,11 +237,7 @@ WHERE id = ?
   /// When [tagId] is set, only notes with that tag are returned (Timeline
   /// filter chips / FR-4).
   @override
-  List<Note> listTimeline({
-    int limit = 50,
-    int offset = 0,
-    String? tagId,
-  }) {
+  List<Note> listTimeline({int limit = 50, int offset = 0, String? tagId}) {
     const order = '''
 ORDER BY
   (pinned_at IS NOT NULL) DESC,
@@ -334,17 +319,17 @@ ORDER BY t.name COLLATE NOCASE
     final tag = Tag(
       id: newUuidV7(),
       name: trimmed,
-      color: color,
+      // A brand new tag with nobody having picked a colour for it yet still
+      // gets one — a random pick off the same starter palette the colour
+      // picker offers first — rather than sitting grey until somebody
+      // opens the tag manager. `setTagColor` remains the explicit way back
+      // to no colour at all.
+      color: color ?? _randomAccent(),
       createdAt: DateTime.now().toUtc(),
     );
     db.execute(
       'INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?)',
-      [
-        tag.id,
-        tag.name,
-        tag.color,
-        tag.createdAt.toUtc().toIso8601String(),
-      ],
+      [tag.id, tag.name, tag.color, tag.createdAt.toUtc().toIso8601String()],
     );
     return tag;
   }
@@ -360,10 +345,10 @@ ORDER BY t.name COLLATE NOCASE
 
   @override
   void detachTag({required String noteId, required String tagId}) {
-    db.execute(
-      'DELETE FROM note_tags WHERE note_id = ? AND tag_id = ?',
-      [noteId, tagId],
-    );
+    db.execute('DELETE FROM note_tags WHERE note_id = ? AND tag_id = ?', [
+      noteId,
+      tagId,
+    ]);
     _bumpNote(noteId);
   }
 
@@ -375,13 +360,11 @@ ORDER BY t.name COLLATE NOCASE
 
   /// Outbox: notes still pending sync (including tombstones).
   List<Note> listPending({bool includeDeleted = false}) {
-    final rows = db.select(
-      '''
+    final rows = db.select('''
 SELECT * FROM notes
 WHERE sync_state = 'pending'
 ORDER BY updated_at ASC
-''',
-    );
+''');
     return rows
         .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
         .where((n) => includeDeleted || !n.isDeleted)
@@ -396,16 +379,15 @@ ORDER BY updated_at ASC
   /// the server actually acknowledged — see [SyncClient].
   void markSynced(String noteId, {int? serverRev}) {
     if (serverRev == null) {
-      db.execute(
-        "UPDATE notes SET sync_state = 'synced' WHERE id = ?",
-        [noteId],
-      );
+      db.execute("UPDATE notes SET sync_state = 'synced' WHERE id = ?", [
+        noteId,
+      ]);
       return;
     }
-    db.execute(
-      "UPDATE notes SET sync_state = 'synced', rev = ? WHERE id = ?",
-      [serverRev, noteId],
-    );
+    db.execute("UPDATE notes SET sync_state = 'synced', rev = ? WHERE id = ?", [
+      serverRev,
+      noteId,
+    ]);
   }
 
   /// Outbox: tags still pending sync.
@@ -443,10 +425,9 @@ ORDER BY updated_at ASC
     db.execute('BEGIN');
     try {
       for (final pair in real) {
-        final losing = db.select(
-          'SELECT * FROM tags WHERE id = ?',
-          [pair.clientId],
-        );
+        final losing = db.select('SELECT * FROM tags WHERE id = ?', [
+          pair.clientId,
+        ]);
         if (losing.isEmpty) continue;
         final row = losing.first;
 
@@ -465,22 +446,16 @@ ORDER BY updated_at ASC
         // The losing row goes first: `tags.name` is UNIQUE, so the canonical
         // row cannot take the name while the loser still holds it.
         db.execute('DELETE FROM tags WHERE id = ?', [pair.clientId]);
-        final existing = db.select(
-          'SELECT id FROM tags WHERE id = ?',
-          [pair.canonicalId],
-        );
+        final existing = db.select('SELECT id FROM tags WHERE id = ?', [
+          pair.canonicalId,
+        ]);
         if (existing.isEmpty) {
           db.execute(
             '''
 INSERT INTO tags (id, name, color, created_at, sync_state)
 VALUES (?, ?, ?, ?, 'synced')
 ''',
-            [
-              pair.canonicalId,
-              row['name'],
-              row['color'],
-              row['created_at'],
-            ],
+            [pair.canonicalId, row['name'], row['color'], row['created_at']],
           );
         }
         for (final noteId in noteIds) {
@@ -585,7 +560,9 @@ VALUES (?, ?, ?, ?, 'synced')
           ],
         );
       }
-      return Tag.fromRow(db.select('SELECT * FROM tags WHERE id = ?', [id]).first);
+      return Tag.fromRow(
+        db.select('SELECT * FROM tags WHERE id = ?', [id]).first,
+      );
     }
     // Straight from the server, so it is already in step with it — pushing it
     // back would mint a new sequence and re-broadcast it to every peer.
@@ -596,7 +573,9 @@ VALUES (?, ?, ?, ?, 'synced')
 ''',
       [id, name, color, createdAt.toUtc().toIso8601String()],
     );
-    return Tag.fromRow(db.select('SELECT * FROM tags WHERE id = ?', [id]).first);
+    return Tag.fromRow(
+      db.select('SELECT * FROM tags WHERE id = ?', [id]).first,
+    );
   }
 
   /// Apply a server-merged note as local truth (does not mark pending).
@@ -662,7 +641,10 @@ WHERE id = ?
       );
     }
     db.execute('DELETE FROM notes_fts WHERE note_id = ?', [id]);
-    if (type == NoteType.text && content != null && content.isNotEmpty && deletedAt == null) {
+    if (type == NoteType.text &&
+        content != null &&
+        content.isNotEmpty &&
+        deletedAt == null) {
       _upsertFts(id, content);
     }
     db.execute('DELETE FROM note_tags WHERE note_id = ?', [id]);
@@ -688,29 +670,26 @@ WHERE id = ?
   /// Persist AI transcript alongside the voice note (09-ai.md — non-destructive).
   @override
   void setTranscriptText(String noteId, String text) {
-    db.execute(
-      'UPDATE notes SET transcript_text = ? WHERE id = ?',
-      [text, noteId],
-    );
+    db.execute('UPDATE notes SET transcript_text = ? WHERE id = ?', [
+      text,
+      noteId,
+    ]);
     if (text.isNotEmpty) _upsertFts(noteId, text);
   }
 
   /// Persist AI OCR text alongside the photo note.
   @override
   void setOcrText(String noteId, String text) {
-    db.execute(
-      'UPDATE notes SET ocr_text = ? WHERE id = ?',
-      [text, noteId],
-    );
+    db.execute('UPDATE notes SET ocr_text = ? WHERE id = ?', [text, noteId]);
     if (text.isNotEmpty) _upsertFts(noteId, text);
   }
 
   @override
   void setSummaryText(String noteId, String text) {
-    db.execute(
-      'UPDATE notes SET summary_text = ? WHERE id = ?',
-      [text, noteId],
-    );
+    db.execute('UPDATE notes SET summary_text = ? WHERE id = ?', [
+      text,
+      noteId,
+    ]);
   }
 
   /// Optional post-capture caption on photo/voice/file (distinct from OCR/transcript).
@@ -725,12 +704,7 @@ SET caption = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ? AND deleted_at IS NULL
 ''',
-      [
-        value,
-        now,
-        if (localDeviceId != null) localDeviceId,
-        noteId,
-      ],
+      [value, now, if (localDeviceId != null) localDeviceId, noteId],
     );
     final note = getById(noteId);
     final searchable = note?.searchableDerivedText;
@@ -770,9 +744,7 @@ ON CONFLICT(note_id) DO UPDATE SET
 
   @override
   List<NoteEmbedding> listEmbeddings() {
-    final rows = db.select(
-      'SELECT note_id, values_json FROM note_embeddings',
-    );
+    final rows = db.select('SELECT note_id, values_json FROM note_embeddings');
     return [
       for (final r in rows)
         NoteEmbedding(
@@ -835,7 +807,8 @@ n.id IN (
       args.addAll(filters.types.map((t) => t.wireName));
     }
 
-    final sql = '''
+    final sql =
+        '''
 SELECT n.* FROM notes n
 WHERE ${where.join(' AND ')}
 ORDER BY n.created_at DESC
@@ -939,7 +912,8 @@ LIMIT ?
       throw const FormatException('not a Nex export: notes.json is missing');
     }
     final payload =
-        jsonDecode(utf8.decode(jsonFile.content as List<int>)) as Map<String, dynamic>;
+        jsonDecode(utf8.decode(jsonFile.content as List<int>))
+            as Map<String, dynamic>;
 
     for (final raw in (payload['tags'] as List? ?? const [])) {
       final tag = raw as Map<String, dynamic>;
@@ -956,7 +930,9 @@ LIMIT ?
     for (final raw in (payload['notes'] as List? ?? const [])) {
       final json = raw as Map<String, dynamic>;
       final note = Note.fromRow(json);
-      if (db.select('SELECT id FROM notes WHERE id = ?', [note.id]).isNotEmpty) {
+      if (db.select('SELECT id FROM notes WHERE id = ?', [
+        note.id,
+      ]).isNotEmpty) {
         skipped++;
         continue;
       }
@@ -1054,21 +1030,17 @@ SET updated_at = ?, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [
-        now,
-        if (localDeviceId != null) localDeviceId,
-        noteId,
-      ],
+      [now, if (localDeviceId != null) localDeviceId, noteId],
     );
   }
 
   void _upsertFts(String noteId, String content) {
     db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
     if (content.isEmpty) return;
-    db.execute(
-      'INSERT INTO notes_fts (note_id, content) VALUES (?, ?)',
-      [noteId, content],
-    );
+    db.execute('INSERT INTO notes_fts (note_id, content) VALUES (?, ?)', [
+      noteId,
+      content,
+    ]);
   }
 
   /// Build an FTS5 MATCH query: quote tokens so ZWNJ-split Persian words match,
@@ -1080,12 +1052,12 @@ WHERE id = ?
   /// user finished typing and meant literally, while the trailing one is still
   /// mid-keystroke.
   String _ftsQuery(String raw) {
-    final cleaned = raw
-        .replaceAll('"', ' ')
-        .replaceAll('*', ' ')
-        .trim();
+    final cleaned = raw.replaceAll('"', ' ').replaceAll('*', ' ').trim();
     if (cleaned.isEmpty) return '""';
-    final tokens = cleaned.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+    final tokens = cleaned
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty)
+        .toList();
     if (tokens.isEmpty) return '""';
     return [
       for (var i = 0; i < tokens.length; i++)
@@ -1099,9 +1071,7 @@ WHERE id = ?
       ..writeln('id: ${note.id}')
       ..writeln('type: ${note.type.wireName}')
       ..writeln('created_at: ${note.createdAt.toUtc().toIso8601String()}')
-      ..writeln(
-        'tags: [${note.tags.map((t) => t.name).join(', ')}]',
-      )
+      ..writeln('tags: [${note.tags.map((t) => t.name).join(', ')}]')
       ..writeln('---')
       ..writeln();
     switch (note.type) {

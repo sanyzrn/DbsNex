@@ -18,17 +18,18 @@ Note textNote(String content) {
 }
 
 Widget host(Note note) => MaterialApp(
-      home: Scaffold(
-        body: SizedBox(width: 400, child: NoteCard(note: note)),
-      ),
-    );
+  home: Scaffold(
+    body: SizedBox(width: 400, child: NoteCard(note: note)),
+  ),
+);
 
 void main() {
   const persian = 'نمونه متن فارسی راست چین شده';
   const english = 'sample sample';
 
-  testWidgets('a right-to-left note turns its text, not its card',
-      (tester) async {
+  testWidgets('a right-to-left note turns its text, not its card', (
+    tester,
+  ) async {
     await tester.pumpWidget(host(textNote(persian)));
 
     // The paragraph itself is right-to-left and flush right.
@@ -51,8 +52,10 @@ void main() {
     expect(body.textAlign, TextAlign.start);
 
     final card = tester.getRect(find.byType(NoteCard));
-    expect(tester.getCenter(find.byIcon(nexNoteTypeIcon('text'))).dx,
-        lessThan(card.center.dx));
+    expect(
+      tester.getCenter(find.byIcon(nexNoteTypeIcon('text'))).dx,
+      lessThan(card.center.dx),
+    );
   });
 
   testWidgets('the icon sits in the same place either way', (tester) async {

@@ -21,14 +21,19 @@ class LibraryMaintenance {
   final SqliteNoteRepository repo;
 
   List<Note> deletedNotes({int limit = 200}) => repo.db
-      .select('SELECT * FROM notes WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT ?', [limit])
-      .map((row) => Note.fromRow(row, tags: repo.tagsForNote(row['id'] as String)))
+      .select(
+        'SELECT * FROM notes WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT ?',
+        [limit],
+      )
+      .map(
+        (row) => Note.fromRow(row, tags: repo.tagsForNote(row['id'] as String)),
+      )
       .toList();
 
   void purgeDeletedBefore(DateTime cutoff) => repo.db.execute(
-        'DELETE FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ?',
-        [cutoff.toUtc().toIso8601String()],
-      );
+    'DELETE FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ?',
+    [cutoff.toUtc().toIso8601String()],
+  );
 
   /// Permanently removes one note from the trash.
   ///
@@ -36,19 +41,29 @@ class LibraryMaintenance {
   /// the only path to it is the trash screen, and a note that was restored
   /// between the tap and the call must survive.
   void purgeNote(String id) => repo.db.execute(
-        'DELETE FROM notes WHERE id = ? AND deleted_at IS NOT NULL',
-        [id],
-      );
+    'DELETE FROM notes WHERE id = ? AND deleted_at IS NOT NULL',
+    [id],
+  );
 
   /// Empties the trash.
   void purgeAllDeleted() =>
       repo.db.execute('DELETE FROM notes WHERE deleted_at IS NOT NULL');
 
-  List<TagUsage> tagUsage() => repo.db.select('''
-    SELECT t.*, COUNT(nt.note_id) AS usage_count
-    FROM tags t LEFT JOIN note_tags nt ON nt.tag_id = t.id
+  // A trashed note (deleted_at set) keeps its note_tags row until it is
+  // purged — only a hard delete cascades that away — so counting nt.note_id
+  // itself still counted a tag as "in use" by a note nobody can see anymore,
+  // until the trash was emptied. Counting n.id instead, joined on
+  // deleted_at IS NULL, means only a note actually on the timeline counts.
+  List<TagUsage> tagUsage() => repo.db
+      .select('''
+    SELECT t.*, COUNT(n.id) AS usage_count
+    FROM tags t
+    LEFT JOIN note_tags nt ON nt.tag_id = t.id
+    LEFT JOIN notes n ON n.id = nt.note_id AND n.deleted_at IS NULL
     GROUP BY t.id ORDER BY usage_count DESC, t.name COLLATE NOCASE
-  ''').map((row) => TagUsage(Tag.fromRow(row), row['usage_count'] as int)).toList();
+  ''')
+      .map((row) => TagUsage(Tag.fromRow(row), row['usage_count'] as int))
+      .toList();
 
   void renameTag(String id, String name) {
     final value = name.trim();
@@ -59,10 +74,13 @@ class LibraryMaintenance {
   void mergeTag({required String sourceId, required String targetId}) {
     repo.db.execute('BEGIN IMMEDIATE');
     try {
-      repo.db.execute('''
+      repo.db.execute(
+        '''
         INSERT OR IGNORE INTO note_tags (note_id, tag_id)
         SELECT note_id, ? FROM note_tags WHERE tag_id = ?
-      ''', [targetId, sourceId]);
+      ''',
+        [targetId, sourceId],
+      );
       repo.db.execute('DELETE FROM tags WHERE id = ?', [sourceId]);
       repo.db.execute('COMMIT');
     } catch (_) {
@@ -71,24 +89,38 @@ class LibraryMaintenance {
     }
   }
 
-  void deleteTag(String id) => repo.db.execute('DELETE FROM tags WHERE id = ?', [id]);
+  void deleteTag(String id) =>
+      repo.db.execute('DELETE FROM tags WHERE id = ?', [id]);
 
   Note? nearestMiss(String query) {
     final needle = _normal(query);
     if (needle.isEmpty) return null;
     Note? best;
     var score = 0.0;
-    for (final row in repo.db.select('''SELECT * FROM notes WHERE deleted_at IS NULL
-                                        AND content IS NOT NULL ORDER BY created_at DESC LIMIT 500''')) {
-      final note = Note.fromRow(row, tags: repo.tagsForNote(row['id'] as String));
-      final candidate = _dice(needle, _normal(note.searchableDerivedText ?? ''));
-      if (candidate > score) { score = candidate; best = note; }
+    for (final row in repo.db.select(
+      '''SELECT * FROM notes WHERE deleted_at IS NULL
+                                        AND content IS NOT NULL ORDER BY created_at DESC LIMIT 500''',
+    )) {
+      final note = Note.fromRow(
+        row,
+        tags: repo.tagsForNote(row['id'] as String),
+      );
+      final candidate = _dice(
+        needle,
+        _normal(note.searchableDerivedText ?? ''),
+      );
+      if (candidate > score) {
+        score = candidate;
+        best = note;
+      }
     }
     return score >= 0.22 ? best : null;
   }
 
-  static String _normal(String value) =>
-      value.toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ').trim();
+  static String _normal(String value) => value
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ')
+      .trim();
 
   static double _dice(String a, String b) {
     if (a.length < 2 || b.length < 2) return a == b ? 1 : 0;
@@ -101,24 +133,39 @@ class LibraryMaintenance {
     for (var i = 0; i < b.length - 1; i++) {
       final pair = b.substring(i, i + 2);
       final count = pairs[pair] ?? 0;
-      if (count > 0) { overlap++; pairs[pair] = count - 1; }
+      if (count > 0) {
+        overlap++;
+        pairs[pair] = count - 1;
+      }
     }
     return (2 * overlap) / math.max(1, a.length + b.length - 2);
   }
 
-  Future<StorageSnapshot> storage(String dbPath, String mediaDir, String backupDir) async {
+  Future<StorageSnapshot> storage(
+    String dbPath,
+    String mediaDir,
+    String backupDir,
+  ) async {
     Future<int> bytes(String path) async {
       final dir = Directory(path);
       if (!dir.existsSync()) return 0;
       var total = 0;
-      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      await for (final entity in dir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         if (entity is File) total += await entity.length();
       }
       return total;
     }
-    final notes = repo.db.select(
-      'SELECT COUNT(*) AS count FROM notes WHERE deleted_at IS NULL',
-    ).first['count'] as int;
+
+    final notes =
+        repo.db
+                .select(
+                  'SELECT COUNT(*) AS count FROM notes WHERE deleted_at IS NULL',
+                )
+                .first['count']
+            as int;
     return StorageSnapshot(
       notes: notes,
       database: File(dbPath).existsSync() ? await File(dbPath).length() : 0,
@@ -135,7 +182,12 @@ class TagUsage {
 }
 
 class StorageSnapshot {
-  const StorageSnapshot({required this.notes, required this.database, required this.media, required this.backups});
+  const StorageSnapshot({
+    required this.notes,
+    required this.database,
+    required this.media,
+    required this.backups,
+  });
   final int notes;
   final int database;
   final int media;

@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../widgets/nex_toast.dart';
 import 'ai_provider_screen.dart';
 
 /// Everything the intelligence layer can do, behind one switch.
@@ -87,7 +88,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
     final done = await widget.services.backfillEnrichment();
     if (!mounted) return;
     setState(() => _backfilling = false);
-    messenger.showSnackBar(SnackBar(content: Text(l10n.catchUpDone(done))));
+    messenger.showSnackBar(nexToast(content: Text(l10n.catchUpDone(done))));
   }
 
   Future<void> _setCapabilities(AiCapabilities capabilities) async {
@@ -170,8 +171,9 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
               subtitle: l10n.ocrSubtitle,
               value: capabilities.ocr,
               supported: provider.readsImages,
-              onChanged: (value) =>
-                  unawaited(_setCapabilities(capabilities.copyWith(ocr: value))),
+              onChanged: (value) => unawaited(
+                _setCapabilities(capabilities.copyWith(ocr: value)),
+              ),
             ),
             _Capability(
               icon: Icons.summarize_outlined,
@@ -222,10 +224,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
                 NexSpacing.lg,
                 NexSpacing.sm,
               ),
-              child: Text(
-                l10n.catchUpBody,
-                style: theme.textTheme.bodyMedium,
-              ),
+              child: Text(l10n.catchUpBody, style: theme.textTheme.bodyMedium),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
@@ -262,14 +261,14 @@ class _Heading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-          NexSpacing.lg,
-          NexSpacing.md,
-          NexSpacing.lg,
-          NexSpacing.xs,
-        ),
-        child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-      );
+    padding: const EdgeInsets.fromLTRB(
+      NexSpacing.lg,
+      NexSpacing.md,
+      NexSpacing.lg,
+      NexSpacing.xs,
+    ),
+    child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+  );
 }
 
 /// One capability, greyed out when the chosen provider cannot serve it.

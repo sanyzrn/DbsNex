@@ -118,6 +118,24 @@ void main() {
     expect(timeline.landedId, isNull);
   });
 
+  testWidgets('a freshly captured note reads "now" on its card', (
+    tester,
+  ) async {
+    await services.captureText('brand new');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('brand new'), findsOneWidget);
+    expect(
+      find.text('now'),
+      findsOneWidget,
+      reason: 'the relative-time line under the preview',
+    );
+  });
+
   testWidgets('a toast stays above a dialog opened while it is still showing', (
     tester,
   ) async {
@@ -807,6 +825,59 @@ void main() {
       nexDarkTheme().colorScheme.surface,
       reason: 'the header repainted in the theme the rest of the app is in',
     );
+  });
+
+  testWidgets('the capture button hides while searching', (tester) async {
+    await services.captureText('a note');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+
+    await tester.tap(find.byType(TextField));
+    await tester.pumpAndSettle();
+
+    // Capture is a timeline action; showing it here read as part of search
+    // itself rather than what it actually did — open an unrelated note.
+    expect(find.byType(FloatingActionButton), findsNothing);
+  });
+
+  testWidgets('tapping a search result opens it, rather than closing search', (
+    tester,
+  ) async {
+    // Reported symptom: the search field's own "tap anywhere outside closes
+    // search" handling fires on pointer-down — before a tapped result card's
+    // own onTap can resolve — so the card never got a chance to open. Search
+    // silently closed back to the plain timeline instead.
+    await services.captureText('a rare word: platypus');
+    await services.captureText('something else entirely');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(TextField));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'platypus');
+    await tester.pumpAndSettle(const Duration(milliseconds: 200));
+
+    expect(find.text('a rare word: platypus'), findsOneWidget);
+    // Not a plain tester.tap(): on a real device, `onTapOutside` (which fires
+    // on pointer-*down*, well before the finger lifts) has time to run a
+    // whole frame — removing the result card via _exitSearch's setState —
+    // before pointer-*up* resolves the tap. A bare tap() sends both with no
+    // pump in between, so it never actually exercised the race.
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('a rare word: platypus')),
+    );
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NoteDetailSheet), findsOneWidget);
   });
 
   testWidgets('the empty state clears the capture button on a desktop window', (

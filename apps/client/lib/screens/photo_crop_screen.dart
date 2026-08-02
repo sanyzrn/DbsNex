@@ -4,6 +4,7 @@ import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/nex_toast.dart';
 
 /// Crop step shown right after a photo is taken or picked, before it is ever
 /// written to disk.
@@ -33,7 +34,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
         setState(() => _cropping = false);
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text('$cause')));
+          ..showSnackBar(nexToast(content: Text('$cause')));
     }
   }
 

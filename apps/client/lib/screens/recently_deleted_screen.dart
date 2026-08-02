@@ -40,8 +40,9 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
   }
 
   Future<void> _purgeThenLoad() async {
-    await widget.services
-        .purgeDeletedBefore(DateTime.now().subtract(const Duration(days: 30)));
+    await widget.services.purgeDeletedBefore(
+      DateTime.now().subtract(const Duration(days: 30)),
+    );
     await reload();
   }
 
@@ -127,7 +128,9 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
           if (notes.isNotEmpty)
             TextButton(
               onPressed: () => unawaited(_emptyTrash()),
-              style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.error,
+              ),
               child: Text(l10n.emptyTrash),
             ),
         ],
@@ -197,5 +200,4 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
             ),
     );
   }
-
 }

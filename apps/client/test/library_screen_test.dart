@@ -75,8 +75,9 @@ void main() {
     expect(find.byType(TagManagerScreen), findsOneWidget);
   });
 
-  testWidgets('Settings no longer holds anything containing notes',
-      (tester) async {
+  testWidgets('Settings no longer holds anything containing notes', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );

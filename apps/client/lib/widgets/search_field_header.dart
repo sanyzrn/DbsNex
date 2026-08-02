@@ -4,8 +4,12 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 
 /// How tall the search field's sliver is: the field itself plus its padding.
-const nexSearchHeaderExtent =
-    nexMinTapTarget + NexSpacing.xs + NexSpacing.sm;
+const nexSearchHeaderExtent = nexMinTapTarget + NexSpacing.xs + NexSpacing.sm;
+
+/// Shared [TapRegion.groupId] between the search field and its results — see
+/// the field's own tap-outside handling below for why a result needs to be a
+/// member of this group rather than just "not the field".
+const nexSearchTapGroup = 'nex-search-tap-group';
 
 /// The query field, living above the first card rather than on a screen of its
 /// own.
@@ -49,11 +53,14 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
   double get maxExtent => nexSearchHeaderExtent;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final progress =
-        (1 - shrinkOffset / nexSearchHeaderExtent).clamp(0.0, 1.0);
+    final progress = (1 - shrinkOffset / nexSearchHeaderExtent).clamp(0.0, 1.0);
 
     return ClipRect(
       child: Opacity(
@@ -63,79 +70,90 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
         // A tap anywhere outside the field closes search the same way the X
         // button does — the X was the only way out, so leaving search meant
         // aiming for one small target instead of just tapping whatever you
-        // meant to look at.
+        // meant to look at. A result card shares [nexSearchTapGroup] with
+        // this region precisely so tapping *it* does not count as "outside":
+        // that tap fires on pointer-down, before the card's own onTap would
+        // resolve, so without the group the card never got a chance to open
+        // — search silently closed back to the timeline instead.
         child: TapRegion(
-          onTapOutside: (_) { if (searching) onClear(); },
+          groupId: nexSearchTapGroup,
+          onTapOutside: (_) {
+            if (searching) onClear();
+          },
           child: ColoredBox(
-          color: scheme.surface,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              NexSpacing.md,
-              NexSpacing.xs,
-              NexSpacing.md,
-              NexSpacing.sm,
-            ),
-            child: Material(
-              color: scheme.surfaceContainerHighest,
-              shape: StadiumBorder(
-                side: BorderSide(
-                  color: searching ? scheme.primary : scheme.outlineVariant,
-                  width: searching ? 1.5 : 1,
-                ),
+            color: scheme.surface,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                NexSpacing.md,
+                NexSpacing.xs,
+                NexSpacing.md,
+                NexSpacing.sm,
               ),
-              child: Padding(
-                padding: const EdgeInsetsDirectional.only(
-                  start: NexSpacing.md,
-                  end: NexSpacing.sm,
+              child: Material(
+                color: scheme.surfaceContainerHighest,
+                shape: StadiumBorder(
+                  side: BorderSide(
+                    color: searching ? scheme.primary : scheme.outlineVariant,
+                    width: searching ? 1.5 : 1,
+                  ),
                 ),
-                child: ConstrainedBox(
-                  // One height, focused or not. The clear button only exists
-                  // while searching, and it is the tallest thing in the row —
-                  // so the field grew by several pixels the moment it was
-                  // tapped, which read as the control jumping under the finger.
-                  // This is also the tap-target floor, which the resting state
-                  // was under.
-                  constraints: const BoxConstraints(minHeight: nexMinTapTarget),
-                  child: Row(
-                  children: [
-                    Icon(
-                      Icons.search,
-                      size: 20,
-                      color: searching ? scheme.primary : scheme.onSurfaceVariant,
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    start: NexSpacing.md,
+                    end: NexSpacing.sm,
+                  ),
+                  child: ConstrainedBox(
+                    // One height, focused or not. The clear button only exists
+                    // while searching, and it is the tallest thing in the row —
+                    // so the field grew by several pixels the moment it was
+                    // tapped, which read as the control jumping under the finger.
+                    // This is also the tap-target floor, which the resting state
+                    // was under.
+                    constraints: const BoxConstraints(
+                      minHeight: nexMinTapTarget,
                     ),
-                    const SizedBox(width: NexSpacing.sm),
-                    Expanded(
-                      child: TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        onTap: onTap,
-                        onChanged: onChanged,
-                        textInputAction: TextInputAction.search,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        // The caret is one of the few places the accent is
-                        // spent: it means the app is listening.
-                        cursorColor: scheme.primary,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          border: InputBorder.none,
-                          hintText: l10n.searchHint,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.search,
+                          size: 20,
+                          color: searching
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
                         ),
-                      ),
+                        const SizedBox(width: NexSpacing.sm),
+                        Expanded(
+                          child: TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            onTap: onTap,
+                            onChanged: onChanged,
+                            textInputAction: TextInputAction.search,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            // The caret is one of the few places the accent is
+                            // spent: it means the app is listening.
+                            cursorColor: scheme.primary,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              border: InputBorder.none,
+                              hintText: l10n.searchHint,
+                            ),
+                          ),
+                        ),
+                        if (searching)
+                          IconButton(
+                            tooltip: l10n.clear,
+                            iconSize: 20,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: onClear,
+                            icon: const Icon(Icons.close),
+                          ),
+                      ],
                     ),
-                    if (searching)
-                      IconButton(
-                        tooltip: l10n.clear,
-                        iconSize: 20,
-                        visualDensity: VisualDensity.compact,
-                        onPressed: onClear,
-                        icon: const Icon(Icons.close),
-                      ),
-                  ],
                   ),
                 ),
               ),
             ),
-          ),
           ),
         ),
       ),

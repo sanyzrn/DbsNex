@@ -18,6 +18,7 @@ import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/choice_cards.dart';
+import 'package:nex_client/widgets/tag_color_picker.dart';
 
 import 'support/in_process_db.dart';
 
@@ -659,6 +660,44 @@ void main() {
     );
     expect(find.text('Text & UI size'), findsOneWidget);
     expect(find.byType(NexChoiceCards<double>), findsOneWidget);
+  });
+
+  testWidgets('picking an accent colour recolours the resolved theme', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+
+    expect(preferences.accentSeed, isNull);
+    await tester.tap(find.text('Accent color'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TagColorPicker), findsOneWidget);
+
+    // The first swatch is "no colour"; the second is the palette's first
+    // real entry.
+    final swatches = find.descendant(
+      of: find.byType(TagColorPicker),
+      matching: find.byType(InkWell),
+    );
+    await tester.tap(swatches.at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(preferences.accentSeed, isNotNull);
+    final seed = nexParseTagColor(preferences.accentSeed)!;
+    final theme = Theme.of(tester.element(find.byType(TimelineScreen)));
+    expect(theme.colorScheme.primary, nexAccentPaletteFrom(seed).light);
+    // Not the shipped default — a colour someone did not pick would defeat
+    // the whole point.
+    expect(theme.colorScheme.primary, isNot(NexColors.defaultAccent.light));
   });
 
   testWidgets('swipe actions are chosen from cards, not a popup menu', (

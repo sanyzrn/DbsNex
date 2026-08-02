@@ -16,11 +16,7 @@ abstract class AIAdapter {
 
 /// Local audio reference for transcription (never logged as content).
 class AudioRef {
-  const AudioRef({
-    required this.mediaUri,
-    this.mediaHash,
-    this.bytes,
-  });
+  const AudioRef({required this.mediaUri, this.mediaHash, this.bytes});
 
   final String mediaUri;
   final String? mediaHash;
@@ -29,11 +25,7 @@ class AudioRef {
 
 /// Local image reference for OCR.
 class ImageRef {
-  const ImageRef({
-    required this.mediaUri,
-    this.mediaHash,
-    this.bytes,
-  });
+  const ImageRef({required this.mediaUri, this.mediaHash, this.bytes});
 
   final String mediaUri;
   final String? mediaHash;

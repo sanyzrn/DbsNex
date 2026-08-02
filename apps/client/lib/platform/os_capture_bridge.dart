@@ -136,10 +136,7 @@ class OsCaptureBridge {
       if (path == null) return null;
       return PickedOsFile(
         path: path,
-        filename: _resolveOriginalFilename(
-          result['filename'] as String?,
-          path,
-        ),
+        filename: _resolveOriginalFilename(result['filename'] as String?, path),
         mimeType: result['mimeType'] as String?,
       );
     }

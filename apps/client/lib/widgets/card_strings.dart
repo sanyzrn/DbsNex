@@ -18,5 +18,14 @@ NexCardStrings nexCardStrings(BuildContext context) {
     noteOfType: (type) => l10n.noteOfType(l10n.noteType(type)),
     tagList: l10n.tagListLabel,
     accentColor: l10n.accentColorLabel,
+    relativeTime: (time) => switch (time.unit) {
+      NexRelativeUnit.now => l10n.timeNow,
+      NexRelativeUnit.minutes => l10n.timeMinutesAgo(time.count),
+      NexRelativeUnit.hours => l10n.timeHoursAgo(time.count),
+      NexRelativeUnit.days => l10n.timeDaysAgo(time.count),
+      NexRelativeUnit.weeks => l10n.timeWeeksAgo(time.count),
+      NexRelativeUnit.months => l10n.timeMonthsAgo(time.count),
+      NexRelativeUnit.years => l10n.timeYearsAgo(time.count),
+    },
   );
 }

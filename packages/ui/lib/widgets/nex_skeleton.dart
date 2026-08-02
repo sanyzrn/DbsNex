@@ -141,7 +141,9 @@ class NexCardSkeleton extends StatelessWidget {
                 NexSkeleton(
                   width: 56,
                   height: 56,
-                  radius: NexRadius.inside(NexRadius.lg, NexSpacing.cardInset),
+                  // Matches the leading icon box it stands in for — see
+                  // NexRadius.cardLeading.
+                  radius: NexRadius.cardLeading,
                 ),
                 const SizedBox(width: NexSpacing.contentGap),
                 const Expanded(

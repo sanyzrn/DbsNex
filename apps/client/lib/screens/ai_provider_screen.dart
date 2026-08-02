@@ -6,6 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
+import '../widgets/nex_toast.dart';
 
 /// Where the intelligence features get their answers from.
 ///
@@ -97,7 +98,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).aiProviderSaved)),
+        nexToast(content: Text(AppLocalizations.of(context).aiProviderSaved)),
       );
   }
 
