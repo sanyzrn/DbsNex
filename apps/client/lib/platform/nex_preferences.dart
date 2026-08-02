@@ -50,6 +50,7 @@ class NexPreferences extends ChangeNotifier {
   static const _kDeviceId = 'nex.device_id';
   static const _kSyncBaseUrl = 'sync.base_url';
   static const _kSyncBearerToken = 'sync.bearer_token';
+  static const _kPendingFeedback = 'feedback.pending_message';
 
   static Future<NexPreferences> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -157,6 +158,22 @@ class NexPreferences extends ChangeNotifier {
       await _prefs.remove(_kSyncBearerToken);
     } else {
       await _prefs.setString(_kSyncBearerToken, value);
+    }
+    notifyListeners();
+  }
+
+  /// Feedback text that failed to send, held so it can be retried without the
+  /// user re-typing it — see `FeedbackService.flushPending`.
+  String? get pendingFeedback {
+    final value = _prefs.getString(_kPendingFeedback);
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  Future<void> setPendingFeedback(String? value) async {
+    if (value == null || value.isEmpty) {
+      await _prefs.remove(_kPendingFeedback);
+    } else {
+      await _prefs.setString(_kPendingFeedback, value);
     }
     notifyListeners();
   }

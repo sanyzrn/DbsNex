@@ -407,11 +407,39 @@
   },
   "sendFeedback": "Send feedback",
   "@sendFeedback": {
-    "description": "About screen row linking to the issue tracker"
+    "description": "About screen row opening the feedback sheet"
   },
-  "sendFeedbackSubtitle": "github.com/sanyzrn/DbsNex/issues",
+  "sendFeedbackSubtitle": "Tell us what's working, or what isn't",
   "@sendFeedbackSubtitle": {
-    "description": "About screen: where feedback goes"
+    "description": "About screen: subtitle under Send feedback"
+  },
+  "feedbackHint": "What's on your mind?",
+  "@feedbackHint": {
+    "description": "Feedback sheet: text field hint"
+  },
+  "feedbackSend": "Send",
+  "@feedbackSend": {
+    "description": "Feedback sheet: submit button"
+  },
+  "feedbackSent": "Feedback sent — thank you",
+  "@feedbackSent": {
+    "description": "Toast shown once feedback is delivered"
+  },
+  "feedbackQueuedOffline": "No connection — this will send once you're back online",
+  "@feedbackQueuedOffline": {
+    "description": "Toast shown when feedback is saved to retry later"
+  },
+  "feedbackFailed": "Couldn't send that",
+  "@feedbackFailed": {
+    "description": "Feedback sheet: inline error when the server rejected the message"
+  },
+  "feedbackUnavailable": "Feedback isn't available in this build yet",
+  "@feedbackUnavailable": {
+    "description": "Feedback sheet: inline notice when no feedback server is configured"
+  },
+  "feedbackOpenIssueInstead": "Open a GitHub issue instead",
+  "@feedbackOpenIssueInstead": {
+    "description": "Feedback sheet: fallback link when sending isn't possible"
   },
   "capabilities": "What Nex does",
   "@capabilities": {

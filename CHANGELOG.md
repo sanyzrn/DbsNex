@@ -53,3 +53,5 @@ Working convention:
 - The update screen now shows what actually changed, as a real list, instead
   of one long paragraph.
 - Toasts pop in instead of just fading.
+- Feedback is now a compose-and-send sheet instead of a link to copy, with a
+  confirmation when it lands and an automatic retry if you were offline.

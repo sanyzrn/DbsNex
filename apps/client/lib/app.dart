@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'l10n/app_localizations.dart';
+import 'platform/feedback_service.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/os_capture_bridge.dart';
@@ -35,6 +36,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   late final UpdateService _updates = UpdateService(
     preferences: widget.preferences,
   );
+  late final _feedback = FeedbackService(preferences: widget.preferences);
 
   @override
   void initState() {
@@ -46,11 +48,19 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // settings icon.
     WidgetsBinding.instance.addObserver(this);
     unawaited(_updates.maybeCheck());
+    // Feedback that failed to send while offline retries here rather than on
+    // a connectivity listener this app does not have — coming back to the
+    // app is, in practice, also when a phone that regained signal while
+    // backgrounded gets noticed.
+    unawaited(_feedback.flushPending());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) unawaited(_updates.maybeCheck());
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_updates.maybeCheck());
+      unawaited(_feedback.flushPending());
+    }
   }
 
   @override
@@ -59,6 +69,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     widget.preferences.removeListener(_refresh);
     _updates.removeListener(_announceDownload);
     _updates.dispose();
+    _feedback.close();
     super.dispose();
   }
 

@@ -338,7 +338,10 @@ class SettingsSheet extends StatelessWidget {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute<void>(
-                                builder: (_) => AboutScreen(services: services),
+                                builder: (_) => AboutScreen(
+                                  services: services,
+                                  preferences: preferences,
+                                ),
                               ),
                             ),
                           ),

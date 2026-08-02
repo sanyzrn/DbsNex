@@ -17,6 +17,7 @@ import { AppError } from "./http/errors.ts";
 import { requestId } from "./http/request-id.ts";
 import { requireDevice } from "./middleware/auth.ts";
 import { authRouter } from "./routes/auth.ts";
+import { feedbackRouter } from "./routes/feedback.ts";
 import { notesRouter } from "./routes/notes.ts";
 import { syncRouter } from "./routes/sync.ts";
 import { tagsRouter } from "./routes/tags.ts";
@@ -115,6 +116,16 @@ const readLimiter = rateLimit({
 // Body limits are per-route and sized to the payload each one accepts, rather
 // than one unauthenticated 10 MB limit applied to everything.
 app.use("/auth", authLimiter, express.json({ limit: "16kb" }), authRouter);
+
+// No device auth: feedback has to be reachable by someone who has never
+// paired a device. The same per-IP limiter as /auth is the right fit — both
+// are unauthenticated, abuse-prone endpoints.
+app.use(
+  "/feedback",
+  authLimiter,
+  express.json({ limit: "8kb" }),
+  feedbackRouter,
+);
 
 // Not mounted at all outside test mode. The corpus-wipe endpoint used to be a
 // route inside syncRouter guarded by a 404 throw, which is a runtime check on

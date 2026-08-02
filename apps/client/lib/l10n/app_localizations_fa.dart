@@ -572,7 +572,30 @@ class AppLocalizationsFa extends AppLocalizations {
   String get sendFeedback => 'ارسال بازخورد';
 
   @override
-  String get sendFeedbackSubtitle => 'github.com/sanyzrn/DbsNex/issues';
+  String get sendFeedbackSubtitle => 'نظرت درباره اپ رو بهمون بگو';
+
+  @override
+  String get feedbackHint => 'چی تو ذهنته؟';
+
+  @override
+  String get feedbackSend => 'ارسال';
+
+  @override
+  String get feedbackSent => 'بازخورد ارسال شد — ممنون از وقتی که گذاشتی';
+
+  @override
+  String get feedbackQueuedOffline =>
+      'اینترنت وصل نیست — به محض وصل شدن ارسال می‌شود';
+
+  @override
+  String get feedbackFailed => 'ارسال نشد';
+
+  @override
+  String get feedbackUnavailable =>
+      'قابلیت ارسال بازخورد هنوز در این نسخه فعال نیست';
+
+  @override
+  String get feedbackOpenIssueInstead => 'به‌جایش یک ایشو در گیت‌هاب باز کن';
 
   @override
   String get capabilities => 'Nex چه می‌کند';

@@ -36,6 +36,10 @@ const schema = z.object({
   // behaves exactly as before, and one that does sit behind a proxy opts in
   // to the exact hop count that proxy adds.
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
+  // Both unset by default: POST /feedback then answers 503 rather than
+  // silently discarding what someone typed, or worse, pretending it sent.
+  TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+  TELEGRAM_CHAT_ID: z.string().min(1).optional(),
 })
   // Each variable used to be validated in isolation, so nothing stopped a
   // destructive test affordance and a production deployment from being
@@ -73,6 +77,9 @@ export const env = Object.freeze({
   allowedOrigins: parsed.data.ALLOWED_ORIGINS.split(",")
     .map((o) => o.trim())
     .filter(Boolean),
+  feedbackConfigured: Boolean(
+    parsed.data.TELEGRAM_BOT_TOKEN && parsed.data.TELEGRAM_CHAT_ID,
+  ),
 });
 
 export type Env = typeof env;

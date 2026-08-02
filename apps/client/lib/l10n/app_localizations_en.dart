@@ -571,7 +571,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sendFeedback => 'Send feedback';
 
   @override
-  String get sendFeedbackSubtitle => 'github.com/sanyzrn/DbsNex/issues';
+  String get sendFeedbackSubtitle => 'Tell us what\'s working, or what isn\'t';
+
+  @override
+  String get feedbackHint => 'What\'s on your mind?';
+
+  @override
+  String get feedbackSend => 'Send';
+
+  @override
+  String get feedbackSent => 'Feedback sent — thank you';
+
+  @override
+  String get feedbackQueuedOffline =>
+      'No connection — this will send once you\'re back online';
+
+  @override
+  String get feedbackFailed => 'Couldn\'t send that';
+
+  @override
+  String get feedbackUnavailable =>
+      'Feedback isn\'t available in this build yet';
+
+  @override
+  String get feedbackOpenIssueInstead => 'Open a GitHub issue instead';
 
   @override
   String get capabilities => 'What Nex does';
