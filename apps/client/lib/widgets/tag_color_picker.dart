@@ -13,9 +13,15 @@ import 'nex_dialog.dart';
 /// encodes *their* meaning — red for urgent, grey for later — and a fixed set
 /// of five cannot express a meaning it did not anticipate.
 class TagColorPicker extends StatefulWidget {
-  const TagColorPicker({super.key, this.initial});
+  const TagColorPicker({super.key, this.initial, this.title});
 
   final String? initial;
+
+  /// Overrides the sheet's own heading, normally "Tag color" — the accent
+  /// picker in Settings reuses this whole widget (swatches, sliders, the
+  /// "no colour" escape hatch as "back to default") rather than duplicating
+  /// it, and needed its own heading to say what it is actually choosing.
+  final String? title;
 
   /// Resolves to the chosen `#RRGGBB`, or to null for "no colour". Dismissing
   /// resolves to nothing at all, which the caller must not confuse with
@@ -23,11 +29,11 @@ class TagColorPicker extends StatefulWidget {
   static Future<({String? color})?> show(
     BuildContext context, {
     String? initial,
-  }) =>
-      nexShowSheet<({String? color})>(
-        context: context,
-        builder: (_) => TagColorPicker(initial: initial),
-      );
+    String? title,
+  }) => nexShowSheet<({String? color})>(
+    context: context,
+    builder: (_) => TagColorPicker(initial: initial, title: title),
+  );
 
   @override
   State<TagColorPicker> createState() => _TagColorPickerState();
@@ -89,7 +95,10 @@ class _TagColorPickerState extends State<TagColorPicker> {
           Row(
             children: [
               Expanded(
-                child: Text(l10n.tagColor, style: theme.textTheme.titleLarge),
+                child: Text(
+                  widget.title ?? l10n.tagColor,
+                  style: theme.textTheme.titleLarge,
+                ),
               ),
               Container(
                 width: 32,
@@ -223,18 +232,18 @@ class _HueSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _GradientSlider(
-        value: hue / 360,
-        colors: const [
-          Color(0xFFFF0000),
-          Color(0xFFFFFF00),
-          Color(0xFF00FF00),
-          Color(0xFF00FFFF),
-          Color(0xFF0000FF),
-          Color(0xFFFF00FF),
-          Color(0xFFFF0000),
-        ],
-        onChanged: (value) => onChanged(value * 360),
-      );
+    value: hue / 360,
+    colors: const [
+      Color(0xFFFF0000),
+      Color(0xFFFFFF00),
+      Color(0xFF00FF00),
+      Color(0xFF00FFFF),
+      Color(0xFF0000FF),
+      Color(0xFFFF00FF),
+      Color(0xFFFF0000),
+    ],
+    onChanged: (value) => onChanged(value * 360),
+  );
 }
 
 class _LabelledSlider extends StatelessWidget {
@@ -252,16 +261,12 @@ class _LabelledSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          _GradientSlider(
-            value: value,
-            colors: gradient,
-            onChanged: onChanged,
-          ),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: Theme.of(context).textTheme.bodySmall),
+      _GradientSlider(value: value, colors: gradient, onChanged: onChanged),
+    ],
+  );
 }
 
 /// A slider whose track shows the values it selects between.

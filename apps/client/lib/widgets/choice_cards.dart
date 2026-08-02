@@ -42,29 +42,29 @@ class NexChoiceCards<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IntrinsicHeight(
-        // The cards have to be the same height whatever their labels wrap to,
-        // and this row lives inside a scroll view, so "stretch" alone would ask
-        // for infinite height.
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < choices.length; i++) ...[
-              if (i > 0) const SizedBox(width: NexSpacing.sm),
-              Expanded(
-                child: _Card<T>(
-                  choice: choices[i],
-                  isSelected: choices[i].value == selected,
-                  onTap: () {
-                    if (choices[i].value == selected) return;
-                    if (haptics) HapticFeedback.selectionClick();
-                    onSelected(choices[i].value);
-                  },
-                ),
-              ),
-            ],
-          ],
-        ),
-      );
+    // The cards have to be the same height whatever their labels wrap to,
+    // and this row lives inside a scroll view, so "stretch" alone would ask
+    // for infinite height.
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < choices.length; i++) ...[
+          if (i > 0) const SizedBox(width: NexSpacing.sm),
+          Expanded(
+            child: _Card<T>(
+              choice: choices[i],
+              isSelected: choices[i].value == selected,
+              onTap: () {
+                if (choices[i].value == selected) return;
+                if (haptics) HapticFeedback.selectionClick();
+                onSelected(choices[i].value);
+              },
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
 }
 
 class _Card<T> extends StatelessWidget {
@@ -147,16 +147,19 @@ class NexThemeSwatch extends StatelessWidget {
       ThemeMode.light => false,
       ThemeMode.system => system == Brightness.dark,
     };
-    final scheme = (dark ? nexDarkTheme(comfortMode: comfort) : nexLightTheme(comfortMode: comfort))
-        .colorScheme;
+    final scheme =
+        (dark
+                ? nexDarkTheme(comfortMode: comfort)
+                : nexLightTheme(comfortMode: comfort))
+            .colorScheme;
     Widget bar(double width, double opacity) => Container(
-          width: width,
-          height: 3,
-          decoration: BoxDecoration(
-            color: scheme.onSurface.withValues(alpha: opacity),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        );
+      width: width,
+      height: 3,
+      decoration: BoxDecoration(
+        color: scheme.onSurface.withValues(alpha: opacity),
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
     final preview = Container(
       width: 46,
       height: 34,
@@ -188,9 +191,12 @@ class NexThemeSwatch extends StatelessWidget {
               height: 34,
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: (dark ? nexLightTheme(comfortMode: comfort) : nexDarkTheme(comfortMode: comfort))
-                    .colorScheme
-                    .surface,
+                color:
+                    (dark
+                            ? nexLightTheme(comfortMode: comfort)
+                            : nexDarkTheme(comfortMode: comfort))
+                        .colorScheme
+                        .surface,
                 borderRadius: BorderRadius.circular(9),
               ),
             ),

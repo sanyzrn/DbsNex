@@ -110,11 +110,7 @@ class TagService {
 
   final NoteRepository _repo;
 
-  Tag addTag({
-    required String noteId,
-    required String name,
-    String? color,
-  }) {
+  Tag addTag({required String noteId, required String name, String? color}) {
     final tag = _repo.upsertTag(name: name, color: color);
     _repo.attachTag(noteId: noteId, tagId: tag.id);
     return tag;

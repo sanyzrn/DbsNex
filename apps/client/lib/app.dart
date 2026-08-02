@@ -10,6 +10,7 @@ import 'platform/nex_services.dart';
 import 'platform/os_capture_bridge.dart';
 import 'platform/update_service.dart';
 import 'screens/timeline_screen.dart';
+import 'widgets/nex_toast.dart';
 
 class NexApp extends StatefulWidget {
   const NexApp({
@@ -81,7 +82,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
+        nexToast(
           duration: const Duration(seconds: 4),
           content: Row(
             mainAxisSize: MainAxisSize.min,
@@ -121,14 +122,23 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // the interface's face, and a Persian note inside an English UI keeps its
     // direction (see NexBodyText) without dragging the whole chrome with it.
     final font = nexFontFor(prefs.locale ?? _systemLocale(context));
+    final accentSeed = nexParseTagColor(prefs.accentSeed);
     return MaterialApp(
       scaffoldMessengerKey: _messengerKey,
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
       locale: prefs.locale,
       themeMode: prefs.themeMode,
-      theme: nexLightTheme(comfortMode: prefs.comfortMode, fontFamily: font),
-      darkTheme: nexDarkTheme(comfortMode: prefs.comfortMode, fontFamily: font),
+      theme: nexLightTheme(
+        comfortMode: prefs.comfortMode,
+        fontFamily: font,
+        accentSeed: accentSeed,
+      ),
+      darkTheme: nexDarkTheme(
+        comfortMode: prefs.comfortMode,
+        fontFamily: font,
+        accentSeed: accentSeed,
+      ),
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

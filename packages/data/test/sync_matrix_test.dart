@@ -55,37 +55,55 @@ void main() {
         );
       });
 
-      test('1) concurrent content edit: later updated_at wins; no duplicate',
-          () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
-        addTearDown(a.close);
-        addTearDown(b.close);
+      test(
+        '1) concurrent content edit: later updated_at wins; no duplicate',
+        () async {
+          final a = _Device(
+            id: 'device-a',
+            baseUrl: baseUrl,
+            bearerToken: tokens['device-a'],
+          );
+          final b = _Device(
+            id: 'device-b',
+            baseUrl: baseUrl,
+            bearerToken: tokens['device-b'],
+          );
+          addTearDown(a.close);
+          addTearDown(b.close);
 
-        final note = a.captureText('v0');
-        await a.sync();
-        await b.sync();
+          final note = a.captureText('v0');
+          await a.sync();
+          await b.sync();
 
-        final tA = DateTime.now().toUtc().add(const Duration(seconds: 1));
-        final tB = DateTime.now().toUtc().add(const Duration(seconds: 2));
-        a.repo.updateContentAt(note.id, 'from A', tA);
-        b.repo.updateContentAt(note.id, 'from B', tB);
+          final tA = DateTime.now().toUtc().add(const Duration(seconds: 1));
+          final tB = DateTime.now().toUtc().add(const Duration(seconds: 2));
+          a.repo.updateContentAt(note.id, 'from A', tA);
+          b.repo.updateContentAt(note.id, 'from B', tB);
 
-        await a.sync();
-        await b.sync();
-        await a.sync();
+          await a.sync();
+          await b.sync();
+          await a.sync();
 
-        final aNote = a.repo.getById(note.id)!;
-        final bNote = b.repo.getById(note.id)!;
-        expect(aNote.content, 'from B');
-        expect(bNote.content, 'from B');
-        expect(a.repo.listTimeline().where((n) => n.id == note.id).length, 1);
-        expect(b.repo.listTimeline().where((n) => n.id == note.id).length, 1);
-      });
+          final aNote = a.repo.getById(note.id)!;
+          final bNote = b.repo.getById(note.id)!;
+          expect(aNote.content, 'from B');
+          expect(bNote.content, 'from B');
+          expect(a.repo.listTimeline().where((n) => n.id == note.id).length, 1);
+          expect(b.repo.listTimeline().where((n) => n.id == note.id).length, 1);
+        },
+      );
 
       test('2) tag add on A + content edit on B: BOTH survive', () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        final a = _Device(
+          id: 'device-a',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-a'],
+        );
+        final b = _Device(
+          id: 'device-b',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-b'],
+        );
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -96,10 +114,10 @@ void main() {
         final work = a.repo.upsertTag(name: 'work');
         a.repo.attachTag(noteId: note.id, tagId: work.id);
         final tTag = DateTime.now().toUtc().add(const Duration(seconds: 1));
-        a.repo.db.execute(
-          "UPDATE notes SET updated_at = ? WHERE id = ?",
-          [tTag.toIso8601String(), note.id],
-        );
+        a.repo.db.execute("UPDATE notes SET updated_at = ? WHERE id = ?", [
+          tTag.toIso8601String(),
+          note.id,
+        ]);
 
         b.repo.updateContentAt(
           note.id,
@@ -119,10 +137,7 @@ void main() {
         // "work" resolves to the existing seeded "Work" rather than making a
         // second tag. What this test is about is that the tag survives the
         // merge, not how it is capitalised.
-        expect(
-          aNote.tags.map((t) => t.name.toLowerCase()),
-          contains('work'),
-        );
+        expect(aNote.tags.map((t) => t.name.toLowerCase()), contains('work'));
         expect(
           bNote.tags.map((t) => t.name.toLowerCase()),
           contains('work'),
@@ -131,8 +146,16 @@ void main() {
       });
 
       test('3) tag add on A + different tag remove on B: union-merge', () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        final a = _Device(
+          id: 'device-a',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-a'],
+        );
+        final b = _Device(
+          id: 'device-b',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-b'],
+        );
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -151,17 +174,17 @@ void main() {
 
         final gamma = a.repo.upsertTag(name: 'gamma');
         a.repo.attachTag(noteId: note.id, tagId: gamma.id);
-        a.repo.db.execute(
-          "UPDATE notes SET updated_at = ? WHERE id = ?",
-          [t0.add(const Duration(seconds: 1)).toIso8601String(), note.id],
-        );
+        a.repo.db.execute("UPDATE notes SET updated_at = ? WHERE id = ?", [
+          t0.add(const Duration(seconds: 1)).toIso8601String(),
+          note.id,
+        ]);
 
         final betaOnB = b.repo.listTags().firstWhere((t) => t.name == 'beta');
         b.repo.detachTag(noteId: note.id, tagId: betaOnB.id);
-        b.repo.db.execute(
-          "UPDATE notes SET updated_at = ? WHERE id = ?",
-          [t0.add(const Duration(seconds: 2)).toIso8601String(), note.id],
-        );
+        b.repo.db.execute("UPDATE notes SET updated_at = ? WHERE id = ?", [
+          t0.add(const Duration(seconds: 2)).toIso8601String(),
+          note.id,
+        ]);
 
         await a.sync();
         await b.sync();
@@ -180,8 +203,16 @@ void main() {
       });
 
       test('4) delete on A vs edit on B: tombstone wins', () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        final a = _Device(
+          id: 'device-a',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-a'],
+        );
+        final b = _Device(
+          id: 'device-b',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-b'],
+        );
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -213,8 +244,16 @@ void main() {
       });
 
       test('5) identical media_hash deduped — not stored twice', () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        final a = _Device(
+          id: 'device-a',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-a'],
+        );
+        final b = _Device(
+          id: 'device-b',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-b'],
+        );
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -260,33 +299,43 @@ void main() {
         );
       });
 
-      test('6) long offline then reconnect: outbox flushes, no loss/dupes',
-          () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
-        addTearDown(a.close);
-        addTearDown(b.close);
+      test(
+        '6) long offline then reconnect: outbox flushes, no loss/dupes',
+        () async {
+          final a = _Device(
+            id: 'device-a',
+            baseUrl: baseUrl,
+            bearerToken: tokens['device-a'],
+          );
+          final b = _Device(
+            id: 'device-b',
+            baseUrl: baseUrl,
+            bearerToken: tokens['device-b'],
+          );
+          addTearDown(a.close);
+          addTearDown(b.close);
 
-        final online = b.captureText('online-1');
-        await b.sync();
+          final online = b.captureText('online-1');
+          await b.sync();
 
-        final offlineNotes = <Note>[
-          for (var i = 0; i < 5; i++) a.captureText('offline-$i'),
-        ];
-        final online2 = b.captureText('online-2');
-        await b.sync();
+          final offlineNotes = <Note>[
+            for (var i = 0; i < 5; i++) a.captureText('offline-$i'),
+          ];
+          final online2 = b.captureText('online-2');
+          await b.sync();
 
-        await a.sync();
-        await b.sync();
-        await a.sync();
+          await a.sync();
+          await b.sync();
+          await a.sync();
 
-        final aIds = a.repo.listTimeline().map((n) => n.id).toSet();
-        final bIds = b.repo.listTimeline().map((n) => n.id).toSet();
-        expect(aIds, equals(bIds));
-        expect(aIds, containsAll(offlineNotes.map((n) => n.id)));
-        expect(aIds, containsAll([online.id, online2.id]));
-        expect(aIds.length, offlineNotes.length + 2);
-      });
+          final aIds = a.repo.listTimeline().map((n) => n.id).toSet();
+          final bIds = b.repo.listTimeline().map((n) => n.id).toSet();
+          expect(aIds, equals(bIds));
+          expect(aIds, containsAll(offlineNotes.map((n) => n.id)));
+          expect(aIds, containsAll([online.id, online2.id]));
+          expect(aIds.length, offlineNotes.length + 2);
+        },
+      );
 
       /* ------------------------------------------------- transport, not merge */
       //
@@ -303,7 +352,11 @@ void main() {
           bearerToken: tokens['device-a'],
           recorder: recorder,
         );
-        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        final b = _Device(
+          id: 'device-b',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-b'],
+        );
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -315,7 +368,9 @@ void main() {
         recorder.requests.clear();
         await a.sync();
 
-        final pulls = recorder.requests.where((u) => u.path.endsWith('/sync/pull'));
+        final pulls = recorder.requests.where(
+          (u) => u.path.endsWith('/sync/pull'),
+        );
         expect(pulls, isNotEmpty, reason: 'the cycle must pull');
         final since = pulls.last.queryParameters['since'];
         expect(since, isNotNull, reason: 'no cursor means a full re-download');
@@ -325,12 +380,20 @@ void main() {
       test('8) the cursor survives a cold start', () async {
         // The watermark used to live in a field on the client, so even with the
         // right field name every launch restarted the pull from zero.
-        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        final b = _Device(
+          id: 'device-b',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-b'],
+        );
         addTearDown(b.close);
         b.captureText('seed');
         await b.sync();
 
-        final first = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final first = _Device(
+          id: 'device-a',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-a'],
+        );
         await first.sync();
         final carried = first.repo.syncCursor;
         first.close();
@@ -343,8 +406,16 @@ void main() {
         final pageSize = int.parse(
           Platform.environment['SYNC_PAGE_SIZE'] ?? '500',
         );
-        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        final a = _Device(
+          id: 'device-a',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-a'],
+        );
+        final b = _Device(
+          id: 'device-b',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-b'],
+        );
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -363,45 +434,69 @@ void main() {
         );
       });
 
-      test('10) the same tag name minted on both devices converges to one id',
-          () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
-        addTearDown(a.close);
-        addTearDown(b.close);
+      test(
+        '10) the same tag name minted on both devices converges to one id',
+        () async {
+          final a = _Device(
+            id: 'device-a',
+            baseUrl: baseUrl,
+            bearerToken: tokens['device-a'],
+          );
+          final b = _Device(
+            id: 'device-b',
+            baseUrl: baseUrl,
+            bearerToken: tokens['device-b'],
+          );
+          addTearDown(a.close);
+          addTearDown(b.close);
 
-        // Independently created, so the two devices mint different UUIDs for
-        // one name — the case tag_remap exists for, and the one the matrix
-        // could never reach because both sides took their tags from A.
-        final onA = a.repo.upsertTag(name: 'zzz-ideas');
-        final onB = b.repo.upsertTag(name: 'zzz-ideas');
-        expect(onA.id, isNot(onB.id), reason: 'the premise of this test');
+          // Independently created, so the two devices mint different UUIDs for
+          // one name — the case tag_remap exists for, and the one the matrix
+          // could never reach because both sides took their tags from A.
+          final onA = a.repo.upsertTag(name: 'zzz-ideas');
+          final onB = b.repo.upsertTag(name: 'zzz-ideas');
+          expect(onA.id, isNot(onB.id), reason: 'the premise of this test');
 
-        final noteA = a.captureText('a note');
-        a.repo.attachTag(noteId: noteA.id, tagId: onA.id);
-        final noteB = b.captureText('b note');
-        b.repo.attachTag(noteId: noteB.id, tagId: onB.id);
+          final noteA = a.captureText('a note');
+          a.repo.attachTag(noteId: noteA.id, tagId: onA.id);
+          final noteB = b.captureText('b note');
+          b.repo.attachTag(noteId: noteB.id, tagId: onB.id);
 
-        await a.sync();
-        await b.sync();
-        await a.sync();
+          await a.sync();
+          await b.sync();
+          await a.sync();
 
-        final aTags = a.repo.listTags().where((t) => t.name == 'zzz-ideas');
-        final bTags = b.repo.listTags().where((t) => t.name == 'zzz-ideas');
-        expect(aTags, hasLength(1), reason: 'a remap that is ignored duplicates');
-        expect(bTags, hasLength(1));
-        expect(
-          aTags.first.id,
-          bTags.first.id,
-          reason: 'both devices must land on the server canonical id',
-        );
-        // And the join must still point at a row that exists.
-        expect(b.repo.tagsForNote(noteB.id).map((t) => t.id), [bTags.first.id]);
-      });
+          final aTags = a.repo.listTags().where((t) => t.name == 'zzz-ideas');
+          final bTags = b.repo.listTags().where((t) => t.name == 'zzz-ideas');
+          expect(
+            aTags,
+            hasLength(1),
+            reason: 'a remap that is ignored duplicates',
+          );
+          expect(bTags, hasLength(1));
+          expect(
+            aTags.first.id,
+            bTags.first.id,
+            reason: 'both devices must land on the server canonical id',
+          );
+          // And the join must still point at a row that exists.
+          expect(b.repo.tagsForNote(noteB.id).map((t) => t.id), [
+            bTags.first.id,
+          ]);
+        },
+      );
 
       test('11) a write the server refuses stays in the outbox', () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
-        final b = _Device(id: 'device-b', baseUrl: baseUrl, bearerToken: tokens['device-b']);
+        final a = _Device(
+          id: 'device-a',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-a'],
+        );
+        final b = _Device(
+          id: 'device-b',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-b'],
+        );
         addTearDown(a.close);
         addTearDown(b.close);
 
@@ -453,7 +548,11 @@ void main() {
       test('12) the push response is read at all', () async {
         // `mergedIds` was decoded from a key the server stopped sending, so it
         // was always empty and nothing noticed.
-        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final a = _Device(
+          id: 'device-a',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-a'],
+        );
         addTearDown(a.close);
 
         final note = a.captureText('acknowledge me');
@@ -464,7 +563,11 @@ void main() {
       });
 
       test('13) an unchanged tag is not re-broadcast on every sync', () async {
-        final a = _Device(id: 'device-a', baseUrl: baseUrl, bearerToken: tokens['device-a']);
+        final a = _Device(
+          id: 'device-a',
+          baseUrl: baseUrl,
+          bearerToken: tokens['device-a'],
+        );
         final recorder = _Recording(http.Client());
         final b = _Device(
           id: 'device-b',
@@ -489,7 +592,8 @@ void main() {
         expect(
           b.repo.syncCursor,
           before,
-          reason: 'an idle sync moved the watermark, so something was rewritten',
+          reason:
+              'an idle sync moved the watermark, so something was rewritten',
         );
       });
     },

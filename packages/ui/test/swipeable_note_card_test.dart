@@ -17,8 +17,9 @@ Future<void> _dragCard(WidgetTester tester, Finder finder, double dx) {
 }
 
 void main() {
-  testWidgets('swipe reveals an action and tapping it fires the callback',
-      (tester) async {
+  testWidgets('swipe reveals an action and tapping it fires the callback', (
+    tester,
+  ) async {
     var deleted = false;
     var tagged = false;
 
@@ -68,55 +69,58 @@ void main() {
     expect(tagged, isTrue);
   });
 
-  testWidgets('a resting card only opens from its outer edges, not its middle',
-      (tester) async {
-    // Reported symptom: the whole card swiped, so scrolling or tapping near
-    // the middle of a card had a real chance of being read as the start of a
-    // swipe. Only the outer 30% on each side may open it now.
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SizedBox(
-            width: 400,
-            child: SwipeableNoteCard(
-              deleteLabel: 'Delete',
-              addTagLabel: 'Add Tag',
-              resolveAction: ({required bool isLeading}) =>
-                  isLeading ? NexSwipeAction.addTag : NexSwipeAction.delete,
-              onDelete: () {},
-              onAddTag: () {},
-              child: const SizedBox(
-                height: 80,
-                width: double.infinity,
-                child: ColoredBox(
-                  color: Colors.white,
-                  child: Center(child: Text('Note')),
+  testWidgets(
+    'a resting card only opens from its outer edges, not its middle',
+    (tester) async {
+      // Reported symptom: the whole card swiped, so scrolling or tapping near
+      // the middle of a card had a real chance of being read as the start of a
+      // swipe. Only the outer 30% on each side may open it now.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              child: SwipeableNoteCard(
+                deleteLabel: 'Delete',
+                addTagLabel: 'Add Tag',
+                resolveAction: ({required bool isLeading}) =>
+                    isLeading ? NexSwipeAction.addTag : NexSwipeAction.delete,
+                onDelete: () {},
+                onAddTag: () {},
+                child: const SizedBox(
+                  height: 80,
+                  width: double.infinity,
+                  child: ColoredBox(
+                    color: Colors.white,
+                    child: Center(child: Text('Note')),
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    // Dead centre of a 400px card: inside the middle 40%, which starts
-    // nothing.
-    await tester.dragFrom(
-      Offset(200, tester.getCenter(find.text('Note')).dy),
-      const Offset(-150, 0),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Delete'), findsNothing);
+      // Dead centre of a 400px card: inside the middle 40%, which starts
+      // nothing.
+      await tester.dragFrom(
+        Offset(200, tester.getCenter(find.text('Note')).dy),
+        const Offset(-150, 0),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Delete'), findsNothing);
 
-    // The same travel, but begun inside the trailing 30% (280-400 of 400),
-    // opens it.
-    await _dragCard(tester, find.text('Note'), -150);
-    await tester.pumpAndSettle();
-    expect(find.text('Delete'), findsOneWidget);
-  });
+      // The same travel, but begun inside the trailing 30% (280-400 of 400),
+      // opens it.
+      await _dragCard(tester, find.text('Note'), -150);
+      await tester.pumpAndSettle();
+      expect(find.text('Delete'), findsOneWidget);
+    },
+  );
 
-  testWidgets('the trailing zone is the same width as the leading one',
-      (tester) async {
+  testWidgets('the trailing zone is the same width as the leading one', (
+    tester,
+  ) async {
     // Reported as asymmetric: 30% on the left, 20% on the right. x=300 on a
     // 400px card sits inside a 30% trailing zone (280-400) but outside a 20%
     // one (320-400) — so this only opens with both edges equal.
@@ -154,8 +158,9 @@ void main() {
     expect(find.text('Delete'), findsOneWidget);
   });
 
-  testWidgets('a gesture cannot cross from one action into the other',
-      (tester) async {
+  testWidgets('a gesture cannot cross from one action into the other', (
+    tester,
+  ) async {
     var deleted = false;
     var tagged = false;
     await tester.pumpWidget(
@@ -203,8 +208,9 @@ void main() {
     expect(find.text('Add Tag'), findsOneWidget);
   });
 
-  testWidgets('dragging most of the way across runs the action on release',
-      (tester) async {
+  testWidgets('dragging most of the way across runs the action on release', (
+    tester,
+  ) async {
     var deleted = false;
     await tester.pumpWidget(
       MaterialApp(
@@ -285,8 +291,9 @@ void main() {
       return gesture;
     }
 
-    testWidgets('it sits inside the card gutter, not against the screen edge',
-        (tester) async {
+    testWidgets('it sits inside the card gutter, not against the screen edge', (
+      tester,
+    ) async {
       final gesture = await holdSwipe(tester, -120);
       addTearDown(gesture.up);
 
@@ -325,8 +332,9 @@ void main() {
       );
     });
 
-    testWidgets('the glyph waits until there is room, then sits centred',
-        (tester) async {
+    testWidgets('the glyph waits until there is room, then sits centred', (
+      tester,
+    ) async {
       final narrow = await holdSwipe(tester, -40);
       double glyphOpacity() => tester
           .widgetList<FadeTransition>(
@@ -398,11 +406,7 @@ void main() {
     // Started right at the trailing edge — exactly where the dots sit, and
     // now the only place a rightward-opening swipe may begin at all — and
     // dragged back across them.
-    await _dragCard(
-      tester,
-      find.text('a note with several tags on it'),
-      -150,
-    );
+    await _dragCard(tester, find.text('a note with several tags on it'), -150);
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsOneWidget);
 
@@ -411,8 +415,9 @@ void main() {
     expect(deleted, isTrue);
   });
 
-  testWidgets('swipe below threshold snaps closed without sticking',
-      (tester) async {
+  testWidgets('swipe below threshold snaps closed without sticking', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -453,67 +458,68 @@ void main() {
     /// the 400px card the zone maths below assume only exists if the whole
     /// scroll view is that wide.
     Widget harness(void Function(int, int) onReorder) => MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              width: 400,
-              child: CustomScrollView(
-                slivers: [
-                  SliverReorderableList(
-                    itemCount: 3,
-                    onReorder: onReorder,
-                    itemBuilder: (context, index) => SizedBox(
-                      key: ValueKey(index),
-                      child: SwipeableNoteCard(
-                        reorderIndex: index,
-                        deleteLabel: 'Delete',
-                        addTagLabel: 'Add Tag',
-                        resolveAction: ({required bool isLeading}) =>
-                            NexSwipeAction.delete,
-                        onDelete: () {},
-                        onAddTag: () {},
-                        child: SizedBox(
-                          height: 80,
-                          width: double.infinity,
-                          child: ColoredBox(
-                            color: Colors.white,
-                            child: Center(child: Text('Note $index')),
-                          ),
-                        ),
+      home: Scaffold(
+        body: SizedBox(
+          width: 400,
+          child: CustomScrollView(
+            slivers: [
+              SliverReorderableList(
+                itemCount: 3,
+                onReorder: onReorder,
+                itemBuilder: (context, index) => SizedBox(
+                  key: ValueKey(index),
+                  child: SwipeableNoteCard(
+                    reorderIndex: index,
+                    deleteLabel: 'Delete',
+                    addTagLabel: 'Add Tag',
+                    resolveAction: ({required bool isLeading}) =>
+                        NexSwipeAction.delete,
+                    onDelete: () {},
+                    onAddTag: () {},
+                    child: SizedBox(
+                      height: 80,
+                      width: double.infinity,
+                      child: ColoredBox(
+                        color: Colors.white,
+                        child: Center(child: Text('Note $index')),
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
+        ),
+      ),
+    );
+
+    testWidgets(
+      'held past the long-press delay, then dragged, moves the item',
+      (tester) async {
+        final reordered = <(int, int)>[];
+        await tester.pumpWidget(
+          harness((from, to) => reordered.add((from, to))),
         );
 
-    testWidgets('held past the long-press delay, then dragged, moves the item',
-        (tester) async {
+        // Well inside the middle 40% of a 400px card.
+        final gesture = await tester.startGesture(
+          Offset(200, tester.getCenter(find.text('Note 0')).dy),
+        );
+        await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+        await gesture.moveBy(const Offset(0, 200));
+        await tester.pump();
+        await gesture.up();
+        await tester.pumpAndSettle();
+
+        expect(reordered, isNotEmpty);
+      },
+    );
+
+    testWidgets('the same hold-and-drag from an edge zone does not reorder', (
+      tester,
+    ) async {
       final reordered = <(int, int)>[];
-      await tester.pumpWidget(
-        harness((from, to) => reordered.add((from, to))),
-      );
-
-      // Well inside the middle 40% of a 400px card.
-      final gesture = await tester.startGesture(
-        Offset(200, tester.getCenter(find.text('Note 0')).dy),
-      );
-      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
-      await gesture.moveBy(const Offset(0, 200));
-      await tester.pump();
-      await gesture.up();
-      await tester.pumpAndSettle();
-
-      expect(reordered, isNotEmpty);
-    });
-
-    testWidgets('the same hold-and-drag from an edge zone does not reorder',
-        (tester) async {
-      final reordered = <(int, int)>[];
-      await tester.pumpWidget(
-        harness((from, to) => reordered.add((from, to))),
-      );
+      await tester.pumpWidget(harness((from, to) => reordered.add((from, to))));
 
       // Trailing 30% of a 400px card — a swipe zone, not the reorder zone.
       final gesture = await tester.startGesture(
@@ -528,8 +534,9 @@ void main() {
       expect(reordered, isEmpty);
     });
 
-    testWidgets('a quick tap on the middle zone still reaches the child',
-        (tester) async {
+    testWidgets('a quick tap on the middle zone still reaches the child', (
+      tester,
+    ) async {
       var tapped = false;
       await tester.pumpWidget(
         MaterialApp(

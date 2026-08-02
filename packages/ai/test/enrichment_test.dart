@@ -77,9 +77,7 @@ void main() {
 
   test('disabled transcription leaves note unchanged', () async {
     final note = insertVoice();
-    enrichment.updateCapabilities(
-      const AiCapabilities(transcription: false),
-    );
+    enrichment.updateCapabilities(const AiCapabilities(transcription: false));
     await enrichment.enrichNote(note.id);
     expect(repo.getById(note.id)!.transcriptText, isNull);
   });

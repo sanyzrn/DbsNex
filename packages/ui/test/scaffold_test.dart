@@ -10,6 +10,10 @@ import 'package:nex_ui/nex_ui.dart';
 /// A token test that pins a failing value is a test defending the bug, so the
 /// assertions are now about what each pairing has to *do*.
 void main() {
+  // The shipped palette — see NexColors.defaultAccent and item 13's
+  // accent-recolouring work, which lets a custom seed replace this.
+  const defaultAccent = NexColors.defaultAccent;
+
   /// (name, card, page, elevated, border, borderSoft, text, secondary)
   final themes = <String, List<Color>>{
     'light': [
@@ -115,7 +119,7 @@ void main() {
       NexColors.bgPrimaryDarkComfort,
     ]) {
       expect(
-        nexContrastRatio(NexColors.accentDark, ground),
+        nexContrastRatio(defaultAccent.dark, ground),
         greaterThanOrEqualTo(3.0),
         reason: 'dark accent on $ground',
       );
@@ -124,7 +128,7 @@ void main() {
 
   test('white text is legible on the filled accent', () {
     expect(
-      nexContrastRatio(const Color(0xFFFFFFFF), NexColors.accentStrongLight),
+      nexContrastRatio(const Color(0xFFFFFFFF), defaultAccent.strongLight),
       greaterThanOrEqualTo(4.5),
     );
   });
@@ -133,8 +137,8 @@ void main() {
     // Contrast ratio cannot answer this — it measures luminance, and two
     // colours of opposite hue can share one. The question is angular.
     double apart(Color a, Color b) {
-      final delta =
-          (HSVColor.fromColor(a).hue - HSVColor.fromColor(b).hue).abs();
+      final delta = (HSVColor.fromColor(a).hue - HSVColor.fromColor(b).hue)
+          .abs();
       return delta > 180 ? 360 - delta : delta;
     }
 
@@ -143,8 +147,10 @@ void main() {
     // accent that sits between the destructive red and the amber that the
     // suggested tag palette already uses.
     expect(apart(NexColors.accentLight, NexColors.danger), greaterThan(90));
-    expect(apart(NexColors.accentLight, const Color(0xFFF0A93B)),
-        greaterThan(90));
+    expect(
+      apart(NexColors.accentLight, const Color(0xFFF0A93B)),
+      greaterThan(90),
+    );
   });
 
   test('destructive intent and invalid input are separate roles', () {
@@ -206,7 +212,11 @@ void main() {
     });
     // No fractional sizes: 12.5 never lands on a pixel boundary.
     for (final style in slots.values) {
-      expect(style!.fontSize! % 1, 0, reason: '${style.fontSize} is fractional');
+      expect(
+        style!.fontSize! % 1,
+        0,
+        reason: '${style.fontSize} is fractional',
+      );
     }
     // A heading and body text one point apart carry no size signal.
     expect(t.titleMedium!.fontSize! - t.bodyLarge!.fontSize!, greaterThan(2));
@@ -221,10 +231,7 @@ void main() {
       nexLightTheme(fontFamily: nexPersianFont).textTheme.bodyLarge!.fontFamily,
       nexPersianFont,
     );
-    expect(
-      nexLightTheme().textTheme.bodyLarge!.fontFamily,
-      nexLatinFont,
-    );
+    expect(nexLightTheme().textTheme.bodyLarge!.fontFamily, nexLatinFont);
     expect(nexFontFor(const Locale('fa')), nexPersianFont);
     expect(nexFontFor(const Locale('en')), nexLatinFont);
     expect(nexFontFor(null), nexLatinFont);
@@ -232,10 +239,13 @@ void main() {
 
   test('no colour role is left to be generated from a near-grey seed', () {
     // `fromSeed` produced these from a chroma-zero seed; inversePrimary in
-    // particular is live as the Undo action's colour.
+    // particular is live as the Undo action's colour. `primary` and
+    // `inversePrimary` are now genuinely derived too (see item 13's
+    // NexAccentPalette) — from NexColors.accentLight itself, which is the
+    // thing being guarded against regressing into a Material-generated grey.
     final scheme = nexLightTheme().colorScheme;
-    expect(scheme.inversePrimary, NexColors.accentLight);
-    expect(scheme.primary, NexColors.accentLight);
+    expect(scheme.inversePrimary, defaultAccent.light);
+    expect(scheme.primary, defaultAccent.light);
     expect(scheme.outline, NexColors.borderLight);
     expect(scheme.outlineVariant, NexColors.borderSoftLight);
     expect(scheme.error, NexColors.error);

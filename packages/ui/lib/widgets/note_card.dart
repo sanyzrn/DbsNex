@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
+import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
 
@@ -16,6 +17,7 @@ class NexCardStrings {
     required this.noteOfType,
     required this.tagList,
     required this.accentColor,
+    this.relativeTime = _defaultRelativeTime,
   });
 
   /// English default, for tests and for anything that has not been localised
@@ -29,6 +31,20 @@ class NexCardStrings {
   static String _defaultNoteOfType(String type) => '$type note';
   static String _defaultTagList(String tags) => 'Tags: $tags';
 
+  /// Compact English shorthand — "now", "5m", "8h", "1d", "2w", "1mo", "1y".
+  /// The app supplies Persian's own, more legible phrasing for the same
+  /// buckets.
+  static String _defaultRelativeTime(NexRelativeTime time) =>
+      switch (time.unit) {
+        NexRelativeUnit.now => 'now',
+        NexRelativeUnit.minutes => '${time.count}m',
+        NexRelativeUnit.hours => '${time.count}h',
+        NexRelativeUnit.days => '${time.count}d',
+        NexRelativeUnit.weeks => '${time.count}w',
+        NexRelativeUnit.months => '${time.count}mo',
+        NexRelativeUnit.years => '${time.count}y',
+      };
+
   /// "Voice note", given the note's type name.
   final String Function(String type) noteOfType;
 
@@ -36,6 +52,9 @@ class NexCardStrings {
   final String Function(String tags) tagList;
 
   final String accentColor;
+
+  /// "8h", "2w" and so on — see [NexRelativeTime].
+  final String Function(NexRelativeTime time) relativeTime;
 }
 
 class NoteCard extends StatelessWidget {
@@ -44,13 +63,11 @@ class NoteCard extends StatelessWidget {
     required this.note,
     this.onTap,
     this.previewOverride,
-    this.footnote,
     this.strings = NexCardStrings.fallback,
   });
   final Note note;
   final VoidCallback? onTap;
   final Widget? previewOverride;
-  final String? footnote;
   final NexCardStrings strings;
 
   @override
@@ -72,7 +89,6 @@ class NoteCard extends StatelessWidget {
             note: note,
             onTap: onTap,
             previewOverride: previewOverride,
-            footnote: footnote,
             strings: strings,
           ),
         ),
@@ -96,14 +112,12 @@ class _CardBody extends StatelessWidget {
     required this.note,
     required this.onTap,
     required this.previewOverride,
-    required this.footnote,
     required this.strings,
   });
 
   final Note note;
   final VoidCallback? onTap;
   final Widget? previewOverride;
-  final String? footnote;
   final NexCardStrings strings;
 
   @override
@@ -139,15 +153,13 @@ class _CardBody extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     previewOverride ?? _Preview(note: note),
-                    if (footnote != null) ...[
-                      const SizedBox(height: NexSpacing.xs),
-                      Text(
-                        footnote!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
+                    const SizedBox(height: NexSpacing.xs),
+                    Text(
+                      strings.relativeTime(nexRelativeTimeOf(note.updatedAt)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
@@ -242,7 +254,11 @@ class _Preview extends StatelessWidget {
       width: double.infinity,
       child: Text(
         text,
-        maxLines: 2,
+        // One line, not two: the card's fixed height budgets exactly enough
+        // room for this plus the relative-time line below it. Growing the
+        // card to fit both a two-line preview and a timestamp would have
+        // made every card taller for a line most previews do not need.
+        maxLines: 1,
         overflow: TextOverflow.ellipsis,
         textDirection: direction,
         textAlign: direction == TextDirection.rtl
@@ -263,11 +279,10 @@ class _Leading extends StatelessWidget {
     final ratio = MediaQuery.devicePixelRatioOf(context);
     if (note.type == NoteType.photo && uri != null) {
       return ClipRRect(
-        // Concentric with the card: the outer radius less the inset that
-        // separates them, rather than an unrelated number.
-        borderRadius: BorderRadius.circular(
-          NexRadius.inside(NexRadius.lg, NexSpacing.cardInset),
-        ),
+        // Matches _IconBox's own rounding — see NexRadius.cardLeading — so a
+        // photo note's thumbnail and every other type's icon box read as the
+        // same shape.
+        borderRadius: BorderRadius.circular(NexRadius.cardLeading),
         child: Image.file(
           File(uri),
           width: nexCardLeadingSize,
@@ -347,13 +362,7 @@ class _IconBox extends StatelessWidget {
       height: nexCardLeadingSize,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(
-          NexRadius.inside(NexRadius.lg, NexSpacing.cardInset),
-        ),
-        // A deliberate 56px element used to sit at 1.10:1 against the card,
-        // which rendered it as nothing but a floating glyph. The fill carries a
-        // real tonal step now, and the ring carries the boundary.
-        border: Border.all(color: scheme.outline),
+        borderRadius: BorderRadius.circular(NexRadius.cardLeading),
       ),
       child: Icon(icon, color: scheme.onSurfaceVariant),
     );

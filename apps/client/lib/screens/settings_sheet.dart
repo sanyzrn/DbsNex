@@ -7,6 +7,8 @@ import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/nex_dialog.dart';
+import '../widgets/nex_toast.dart';
+import '../widgets/tag_color_picker.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -206,6 +208,7 @@ class SettingsSheet extends StatelessWidget {
                               ],
                             ),
                           ),
+                          _AccentColorRow(preferences: preferences),
                         ],
                       ),
                       _Section(
@@ -579,14 +582,14 @@ class _SyncRowState extends State<_SyncRow> {
     try {
       final result = await widget.services.syncNow();
       messenger.showSnackBar(
-        SnackBar(
+        nexToast(
           content: Text(
             '${l10n.syncComplete} · ${result.pushed}↑ ${result.pulled}↓',
           ),
         ),
       );
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.operationFailed)));
+      messenger.showSnackBar(nexToast(content: Text(l10n.operationFailed)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -833,6 +836,57 @@ class _SwipeActionPreview extends StatelessWidget {
 /// A card preview that shows the size rather than naming it — the same
 /// "Aa" at a different scale every text-size control uses, since a number
 /// of points means nothing next to actually seeing it.
+/// One seed colour, recolouring the caret, focus rings and every other
+/// accent-tinted control — see [NexAccentPalette] for how the other three
+/// shades a theme actually needs follow from it.
+class _AccentColorRow extends StatelessWidget {
+  const _AccentColorRow({required this.preferences});
+
+  final NexPreferences preferences;
+
+  Future<void> _pick(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final result = await TagColorPicker.show(
+      context,
+      // The picker's own fallback when nothing is passed is an arbitrary
+      // starter blue meant for a brand-new tag — here it has to be today's
+      // actual accent, seed or default, so editing starts from what is
+      // already on screen rather than jumping to an unrelated hue.
+      initial: preferences.accentSeed ?? _hex(NexColors.accentLight),
+      title: l10n.accentColorPickerTitle,
+    );
+    if (result == null) return;
+    await preferences.setAccentSeed(result.color);
+  }
+
+  static String _hex(Color color) =>
+      '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final swatch =
+        nexParseTagColor(preferences.accentSeed) ?? NexColors.accentLight;
+    return ListTile(
+      contentPadding: _rowPadding,
+      leading: const Icon(Icons.color_lens_outlined),
+      title: Text(l10n.accentColorSetting),
+      subtitle: Text(l10n.accentColorSettingSubtitle),
+      trailing: Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: swatch,
+          border: Border.all(color: theme.colorScheme.outline),
+        ),
+      ),
+      onTap: () => unawaited(_pick(context)),
+    );
+  }
+}
+
 class _TextSizePreview extends StatelessWidget {
   const _TextSizePreview({required this.fontSize});
 

@@ -31,10 +31,7 @@ enum FileOpenOutcome {
 enum FileOpenStrategy { plugin, shell }
 
 @visibleForTesting
-FileOpenStrategy strategyFor({
-  required bool isAndroid,
-  required bool isIOS,
-}) =>
+FileOpenStrategy strategyFor({required bool isAndroid, required bool isIOS}) =>
     isAndroid || isIOS ? FileOpenStrategy.plugin : FileOpenStrategy.shell;
 
 Future<FileOpenOutcome> nexOpenFile(String path, {String? mimeType}) async {

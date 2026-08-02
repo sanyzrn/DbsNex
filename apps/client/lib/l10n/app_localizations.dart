@@ -113,7 +113,7 @@ abstract class AppLocalizations {
   /// No description provided for @captureHint.
   ///
   /// In en, this message translates to:
-  /// **'Capture…'**
+  /// **'What\'s on your mind?'**
   String get captureHint;
 
   /// No description provided for @search.
@@ -505,6 +505,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Lower contrast and warmer colors, independent of Light or Dark'**
   String get comfortModeSubtitle;
+
+  /// Settings row that opens the accent-colour picker
+  ///
+  /// In en, this message translates to:
+  /// **'Accent color'**
+  String get accentColorSetting;
+
+  /// Subtitle explaining what the accent colour affects
+  ///
+  /// In en, this message translates to:
+  /// **'Recolors the caret, focus rings, and active states everywhere'**
+  String get accentColorSettingSubtitle;
+
+  /// Heading of the sheet used to pick the app's accent colour
+  ///
+  /// In en, this message translates to:
+  /// **'Accent color'**
+  String get accentColorPickerTitle;
 
   /// No description provided for @uiScale.
   ///
@@ -1477,6 +1495,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Accent color'**
   String get accentColorLabel;
+
+  /// Card timestamp: updated under a minute ago
+  ///
+  /// In en, this message translates to:
+  /// **'now'**
+  String get timeNow;
+
+  /// Card timestamp: updated N minutes ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count}m'**
+  String timeMinutesAgo(int count);
+
+  /// Card timestamp: updated N hours ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h'**
+  String timeHoursAgo(int count);
+
+  /// Card timestamp: updated N days ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count}d'**
+  String timeDaysAgo(int count);
+
+  /// Card timestamp: updated N weeks ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count}w'**
+  String timeWeeksAgo(int count);
+
+  /// Card timestamp: updated N months ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count}mo'**
+  String timeMonthsAgo(int count);
+
+  /// Card timestamp: updated N years ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count}y'**
+  String timeYearsAgo(int count);
 
   /// Capture failed because the OS refused access
   ///

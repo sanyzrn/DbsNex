@@ -15,7 +15,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get capture => 'Capture';
 
   @override
-  String get captureHint => 'Capture…';
+  String get captureHint => 'What\'s on your mind?';
 
   @override
   String get search => 'Search';
@@ -242,6 +242,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get comfortModeSubtitle =>
       'Lower contrast and warmer colors, independent of Light or Dark';
+
+  @override
+  String get accentColorSetting => 'Accent color';
+
+  @override
+  String get accentColorSettingSubtitle =>
+      'Recolors the caret, focus rings, and active states everywhere';
+
+  @override
+  String get accentColorPickerTitle => 'Accent color';
 
   @override
   String get uiScale => 'Text & UI size';
@@ -850,6 +860,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accentColorLabel => 'Accent color';
+
+  @override
+  String get timeNow => 'now';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return '${count}m';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return '${count}h';
+  }
+
+  @override
+  String timeDaysAgo(int count) {
+    return '${count}d';
+  }
+
+  @override
+  String timeWeeksAgo(int count) {
+    return '${count}w';
+  }
+
+  @override
+  String timeMonthsAgo(int count) {
+    return '${count}mo';
+  }
+
+  @override
+  String timeYearsAgo(int count) {
+    return '${count}y';
+  }
 
   @override
   String get captureFailedPermission =>

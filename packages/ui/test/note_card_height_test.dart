@@ -22,11 +22,8 @@ void main() {
     );
   }
 
-  Tag tag(String name) => Tag(
-        id: 't-$name',
-        name: name,
-        createdAt: DateTime.utc(2026),
-      );
+  Tag tag(String name) =>
+      Tag(id: 't-$name', name: name, createdAt: DateTime.utc(2026));
 
   Future<double> heightOf(WidgetTester tester, Note value) async {
     await tester.pumpWidget(
@@ -39,8 +36,9 @@ void main() {
     return tester.getSize(find.byType(NoteCard)).height;
   }
 
-  testWidgets('every card is the same height, whatever it holds',
-      (tester) async {
+  testWidgets('every card is the same height, whatever it holds', (
+    tester,
+  ) async {
     final short = await heightOf(tester, note('one line'));
     final long = await heightOf(
       tester,
@@ -68,8 +66,9 @@ void main() {
     expect(short, nexCardHeight + nexCardInsets.vertical);
   });
 
-  testWidgets('a pinned note shows a pin, an unpinned one does not',
-      (tester) async {
+  testWidgets('a pinned note shows a pin, an unpinned one does not', (
+    tester,
+  ) async {
     final now = DateTime.utc(2026, 7, 28);
     final pinned = Note(
       id: 'pinned',
@@ -100,10 +99,7 @@ void main() {
     // The name is already in the note's own words and in its detail sheet; on
     // the card it competed with the first line for the same glance, and three
     // of them filled the row.
-    await heightOf(
-      tester,
-      note('short', tags: [tag('Work'), tag('Idea')]),
-    );
+    await heightOf(tester, note('short', tags: [tag('Work'), tag('Idea')]));
 
     expect(find.text('Work'), findsNothing);
     expect(find.text('Idea'), findsNothing);
@@ -118,14 +114,10 @@ void main() {
     final bare = tester.widgetList(find.byType(Container)).length;
 
     await heightOf(tester, note('tagged', tags: [tag('Work')]));
-    expect(
-      tester.widgetList(find.byType(Container)).length,
-      greaterThan(bare),
-    );
+    expect(tester.widgetList(find.byType(Container)).length, greaterThan(bare));
   });
 
-  testWidgets('the glyph sits in equal insets, top and bottom',
-      (tester) async {
+  testWidgets('the glyph sits in equal insets, top and bottom', (tester) async {
     // It used to have 16 above it and 48 below, which is why the card read as
     // top-weighted: it was.
     await heightOf(tester, note('one line'));
@@ -138,15 +130,79 @@ void main() {
     expect(above, closeTo(below, 0.5));
   });
 
-  testWidgets('one- and two-line previews are both centred', (tester) async {
-    await heightOf(tester, note('one line'));
-    final short = tester.getRect(find.text('one line'));
+  testWidgets(
+    'the leading icon box is rounder than the old concentric radius, and borderless',
+    (tester) async {
+      await heightOf(tester, note('one line'));
+      final box = tester.widget<Container>(
+        find
+            .ancestor(
+              of: find.byIcon(nexNoteTypeIcon('text')).first,
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final decoration = box.decoration! as BoxDecoration;
+      expect(decoration.border, isNull);
+      final radius = decoration.borderRadius! as BorderRadius;
+      expect(radius, BorderRadius.circular(NexRadius.cardLeading));
+      // The old NexRadius.inside(lg, cardInset) floored out at 4px — this is
+      // meant to be visibly rounder than that.
+      expect(NexRadius.cardLeading, greaterThan(4));
+    },
+  );
 
-    await heightOf(tester, note('a note that is long enough to take two lines '
-        'in the card preview and therefore wraps'));
-    final long = tester
-        .getRect(find.textContaining('a note that is long enough'));
+  testWidgets(
+    'the preview never wraps to a second line — the timestamp below it '
+    'owns that room instead',
+    (tester) async {
+      // maxLines: 1 now, not 2 — a two-line preview left no room for the
+      // relative-time line under it without growing every card.
+      await heightOf(
+        tester,
+        note(
+          'a note that is long enough to take two lines in the card '
+          'preview and therefore wraps, if it were still allowed to',
+        ),
+      );
+      final rect = tester.getRect(
+        find.textContaining('a note that is long enough'),
+      );
+      // One line of bodyLarge (24px), not two.
+      expect(rect.height, closeTo(24, 1));
+    },
+  );
 
-    expect(long.center.dy, closeTo(short.center.dy, 0.5));
+  testWidgets('the preview and its timestamp are centred as a pair', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            child: NoteCard(
+              note: Note(
+                id: 'fresh',
+                type: NoteType.text,
+                content: 'one line',
+                createdAt: now,
+                updatedAt: now,
+                deviceId: 'test',
+                rev: 1,
+                syncState: SyncState.pending,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final card = tester.getRect(find.byType(NoteCard));
+    final preview = tester.getRect(find.text('one line'));
+    final time = tester.getRect(find.text('now'));
+
+    expect((preview.top + time.bottom) / 2, closeTo(card.center.dy, 1));
   });
 }

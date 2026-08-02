@@ -47,9 +47,9 @@ void main() {
   }
 
   Future<File> exportSource() => sourceRepo.exportArchive(
-        outputPath: p.join(tmp.path, 'export.zip'),
-        mediaRoot: p.join(tmp.path, 'media'),
-      );
+    outputPath: p.join(tmp.path, 'export.zip'),
+    mediaRoot: p.join(tmp.path, 'media'),
+  );
 
   test('notes, tags and enrichment survive the round trip', () async {
     final note = sourceRepo.insert(text('the thing I wrote down'));
@@ -77,40 +77,42 @@ void main() {
     expect(restored.tags.single.color, '#F0A93B');
   });
 
-  test('media travels with the archive and lands in this device\'s folder',
-      () async {
-    final mediaDir = Directory(p.join(tmp.path, 'media'))..createSync();
-    final photo = File(p.join(mediaDir.path, 'shot.jpg'))
-      ..writeAsBytesSync(Uint8List.fromList([1, 2, 3, 4, 5]));
-    final now = DateTime.now().toUtc();
-    final note = sourceRepo.insert(
-      Note(
-        id: newUuidV7(),
-        type: NoteType.photo,
-        mediaUri: photo.path,
-        mediaHash: 'abc123',
-        createdAt: now,
-        updatedAt: now,
-        deviceId: 'device-a',
-        rev: 1,
-        syncState: SyncState.pending,
-      ),
-    );
+  test(
+    'media travels with the archive and lands in this device\'s folder',
+    () async {
+      final mediaDir = Directory(p.join(tmp.path, 'media'))..createSync();
+      final photo = File(p.join(mediaDir.path, 'shot.jpg'))
+        ..writeAsBytesSync(Uint8List.fromList([1, 2, 3, 4, 5]));
+      final now = DateTime.now().toUtc();
+      final note = sourceRepo.insert(
+        Note(
+          id: newUuidV7(),
+          type: NoteType.photo,
+          mediaUri: photo.path,
+          mediaHash: 'abc123',
+          createdAt: now,
+          updatedAt: now,
+          deviceId: 'device-a',
+          rev: 1,
+          syncState: SyncState.pending,
+        ),
+      );
 
-    final archive = await exportSource();
-    final (db, target) = freshTarget('target-media-db');
-    addTearDown(db.close);
-    final targetMedia = p.join(tmp.path, 'target-media');
+      final archive = await exportSource();
+      final (db, target) = freshTarget('target-media-db');
+      addTearDown(db.close);
+      final targetMedia = p.join(tmp.path, 'target-media');
 
-    await target.importArchive(archiveFile: archive, mediaRoot: targetMedia);
+      await target.importArchive(archiveFile: archive, mediaRoot: targetMedia);
 
-    final restored = target.getById(note.id)!;
-    // The old device's path means nothing here, so the stored one has to point
-    // at the copy that just landed.
-    expect(restored.mediaUri, isNot(photo.path));
-    expect(p.dirname(restored.mediaUri!), targetMedia);
-    expect(File(restored.mediaUri!).readAsBytesSync(), [1, 2, 3, 4, 5]);
-  });
+      final restored = target.getById(note.id)!;
+      // The old device's path means nothing here, so the stored one has to point
+      // at the copy that just landed.
+      expect(restored.mediaUri, isNot(photo.path));
+      expect(p.dirname(restored.mediaUri!), targetMedia);
+      expect(File(restored.mediaUri!).readAsBytesSync(), [1, 2, 3, 4, 5]);
+    },
+  );
 
   test('importing the same archive twice changes nothing', () async {
     sourceRepo.insert(text('once'));
@@ -119,10 +121,14 @@ void main() {
     addTearDown(db.close);
     final media = p.join(tmp.path, 'twice-media');
 
-    final first =
-        await target.importArchive(archiveFile: archive, mediaRoot: media);
-    final second =
-        await target.importArchive(archiveFile: archive, mediaRoot: media);
+    final first = await target.importArchive(
+      archiveFile: archive,
+      mediaRoot: media,
+    );
+    final second = await target.importArchive(
+      archiveFile: archive,
+      mediaRoot: media,
+    );
 
     expect(first.imported, 1);
     expect(second.imported, 0, reason: 'nothing new the second time');
@@ -144,25 +150,26 @@ void main() {
     expect(sourceRepo.getById(note.id)!.content, 'edited since the export');
   });
 
-  test('a file that is not an export is refused, and nothing is written',
-      () async {
-    final junk = File(p.join(tmp.path, 'holiday.zip'))
-      ..writeAsBytesSync([0x50, 0x4B, 0x05, 0x06, ...List.filled(18, 0)]);
-    final (db, target) = freshTarget('junk');
-    addTearDown(db.close);
+  test(
+    'a file that is not an export is refused, and nothing is written',
+    () async {
+      final junk = File(p.join(tmp.path, 'holiday.zip'))
+        ..writeAsBytesSync([0x50, 0x4B, 0x05, 0x06, ...List.filled(18, 0)]);
+      final (db, target) = freshTarget('junk');
+      addTearDown(db.close);
 
-    await expectLater(
-      target.importArchive(
-        archiveFile: junk,
-        mediaRoot: p.join(tmp.path, 'junk-media'),
-      ),
-      throwsA(isA<FormatException>()),
-    );
-    expect(target.listTimeline(limit: 50), isEmpty);
-  });
+      await expectLater(
+        target.importArchive(
+          archiveFile: junk,
+          mediaRoot: p.join(tmp.path, 'junk-media'),
+        ),
+        throwsA(isA<FormatException>()),
+      );
+      expect(target.listTimeline(limit: 50), isEmpty);
+    },
+  );
 
-  test('a note whose media is missing from the archive still comes in',
-      () async {
+  test('a note whose media is missing from the archive still comes in', () async {
     final now = DateTime.now().toUtc();
     final note = sourceRepo.insert(
       Note(

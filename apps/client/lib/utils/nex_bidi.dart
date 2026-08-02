@@ -10,4 +10,6 @@ TextDirection nexTextDirection(String? value) {
 }
 
 TextAlign nexTextAlign(String? value) =>
-    nexTextDirection(value) == TextDirection.rtl ? TextAlign.right : TextAlign.left;
+    nexTextDirection(value) == TextDirection.rtl
+    ? TextAlign.right
+    : TextAlign.left;

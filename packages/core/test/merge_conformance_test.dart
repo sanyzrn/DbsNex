@@ -30,7 +30,8 @@ void main() {
     expect(
       specFile.existsSync(),
       isTrue,
-      reason: 'spec/merge-conformance.json must be reachable from packages/core',
+      reason:
+          'spec/merge-conformance.json must be reachable from packages/core',
     );
     cases = jsonDecode(specFile.readAsStringSync()) as List<dynamic>;
     expect(cases, isNotEmpty);

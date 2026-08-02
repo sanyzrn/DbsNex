@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import 'nex_accent_palette.dart';
+
 /// Every colour in Nex: one neutral ramp per theme, plus one accent.
 ///
 /// The ramp is chosen; the floors are not. Two rules hold whatever the greys
@@ -98,6 +100,17 @@ abstract final class NexColors {
   static const accentDark = Color(0xFF60A5FA);
   static const accentStrongDark = Color(0xFF93C5FD);
 
+  /// The shipped palette, exactly — not run through [nexAccentPaletteFrom],
+  /// so nobody who has never touched the accent setting sees so much as a
+  /// rounding-level shift in it. The formula only takes over once someone
+  /// actually picks a seed of their own (see [nexLightTheme]).
+  static const defaultAccent = NexAccentPalette(
+    light: accentLight,
+    strongLight: accentStrongLight,
+    dark: accentDark,
+    strongDark: accentStrongDark,
+  );
+
   /* ---------------------------------------------------------- semantic */
 
   /// "Releasing this will destroy something." Distinct from [error], which is
@@ -136,6 +149,9 @@ abstract final class NexMotion {
   /// How long a commit receipt takes to fade out.
   static const receipt = Duration(milliseconds: 600);
   static const curve = Curves.easeOutCubic;
+
+  /// How long a toast's content takes to pop in — see [NexToastPop].
+  static const toastPop = Duration(milliseconds: 380);
 }
 
 /// One radius scale. Inner radii are derived from an outer radius minus the
@@ -156,6 +172,15 @@ abstract final class NexRadius {
   /// order to look concentric with it.
   static double inside(double outer, double inset) =>
       math.max(xs, outer - inset);
+
+  /// The leading icon box and photo thumbnail on a card, scaled off the
+  /// card's own [lg] radius rather than [inside] concentric with it.
+  ///
+  /// [inside] nested it flush against the card's inset — `lg - cardInset`,
+  /// which floors out at 4px given how close those two numbers are — so the
+  /// leading element read as barely rounded at all next to the card holding
+  /// it. This is a fraction of the card's radius on its own terms instead.
+  static const cardLeading = lg * 0.5;
 }
 
 const nexMinTapTarget = 48.0;
@@ -222,63 +247,82 @@ const nexPersianFont = 'Vazirmatn';
 String nexFontFor(Locale? locale) =>
     locale?.languageCode == 'fa' ? nexPersianFont : nexLatinFont;
 
-ThemeData nexLightTheme({bool comfortMode = false, String? fontFamily}) =>
-    _theme(
-      brightness: Brightness.light,
-      background: comfortMode
-          ? NexColors.bgPrimaryLightComfort
-          : NexColors.bgPrimaryLight,
-      card: comfortMode ? NexColors.bgCardLightComfort : NexColors.bgCardLight,
-      elevated: comfortMode
-          ? NexColors.bgElevatedLightComfort
-          : NexColors.bgElevatedLight,
-      primary: comfortMode
-          ? NexColors.textPrimaryLightComfort
-          : NexColors.textPrimaryLight,
-      secondary: comfortMode
-          ? NexColors.textSecondaryLightComfort
-          : NexColors.textSecondaryLight,
-      border: comfortMode
-          ? NexColors.borderLightComfort
-          : NexColors.borderLight,
-      borderSoft: comfortMode
-          ? NexColors.borderSoftLightComfort
-          : NexColors.borderSoftLight,
-      accent: NexColors.accentLight,
-      accentStrong: NexColors.accentStrongLight,
-      onAccent: const Color(0xFFFFFFFF),
-      // The light theme's toast is a near-black capsule, so its action needs
-      // the accent drawn for dark grounds.
-      accentOnInverse: NexColors.accentDark,
-      fontFamily: fontFamily ?? nexLatinFont,
-    );
+/// [accentSeed] is the one colour someone actually picks — see
+/// [NexAccentPalette] for how the other three roles follow from it. Null
+/// (the default) seeds from [NexColors.accentLight] itself, which is why
+/// leaving it unset reproduces the shipped palette rather than some other
+/// default.
+ThemeData nexLightTheme({
+  bool comfortMode = false,
+  String? fontFamily,
+  Color? accentSeed,
+}) {
+  final palette = accentSeed == null
+      ? NexColors.defaultAccent
+      : nexAccentPaletteFrom(accentSeed);
+  return _theme(
+    brightness: Brightness.light,
+    background: comfortMode
+        ? NexColors.bgPrimaryLightComfort
+        : NexColors.bgPrimaryLight,
+    card: comfortMode ? NexColors.bgCardLightComfort : NexColors.bgCardLight,
+    elevated: comfortMode
+        ? NexColors.bgElevatedLightComfort
+        : NexColors.bgElevatedLight,
+    primary: comfortMode
+        ? NexColors.textPrimaryLightComfort
+        : NexColors.textPrimaryLight,
+    secondary: comfortMode
+        ? NexColors.textSecondaryLightComfort
+        : NexColors.textSecondaryLight,
+    border: comfortMode ? NexColors.borderLightComfort : NexColors.borderLight,
+    borderSoft: comfortMode
+        ? NexColors.borderSoftLightComfort
+        : NexColors.borderSoftLight,
+    accent: palette.light,
+    accentStrong: palette.strongLight,
+    onAccent: const Color(0xFFFFFFFF),
+    // The light theme's toast is a near-black capsule, so its action needs
+    // the accent drawn for dark grounds.
+    accentOnInverse: palette.dark,
+    fontFamily: fontFamily ?? nexLatinFont,
+  );
+}
 
-ThemeData nexDarkTheme({bool comfortMode = false, String? fontFamily}) =>
-    _theme(
-      brightness: Brightness.dark,
-      background: comfortMode
-          ? NexColors.bgPrimaryDarkComfort
-          : NexColors.bgPrimaryDark,
-      card: comfortMode ? NexColors.bgCardDarkComfort : NexColors.bgCardDark,
-      elevated: comfortMode
-          ? NexColors.bgElevatedDarkComfort
-          : NexColors.bgElevatedDark,
-      primary: comfortMode
-          ? NexColors.textPrimaryDarkComfort
-          : NexColors.textPrimaryDark,
-      secondary: comfortMode
-          ? NexColors.textSecondaryDarkComfort
-          : NexColors.textSecondaryDark,
-      border: comfortMode ? NexColors.borderDarkComfort : NexColors.borderDark,
-      borderSoft: comfortMode
-          ? NexColors.borderSoftDarkComfort
-          : NexColors.borderSoftDark,
-      accent: NexColors.accentDark,
-      accentStrong: NexColors.accentStrongDark,
-      onAccent: const Color(0xFF0B0A09),
-      accentOnInverse: NexColors.accentStrongLight,
-      fontFamily: fontFamily ?? nexLatinFont,
-    );
+ThemeData nexDarkTheme({
+  bool comfortMode = false,
+  String? fontFamily,
+  Color? accentSeed,
+}) {
+  final palette = accentSeed == null
+      ? NexColors.defaultAccent
+      : nexAccentPaletteFrom(accentSeed);
+  return _theme(
+    brightness: Brightness.dark,
+    background: comfortMode
+        ? NexColors.bgPrimaryDarkComfort
+        : NexColors.bgPrimaryDark,
+    card: comfortMode ? NexColors.bgCardDarkComfort : NexColors.bgCardDark,
+    elevated: comfortMode
+        ? NexColors.bgElevatedDarkComfort
+        : NexColors.bgElevatedDark,
+    primary: comfortMode
+        ? NexColors.textPrimaryDarkComfort
+        : NexColors.textPrimaryDark,
+    secondary: comfortMode
+        ? NexColors.textSecondaryDarkComfort
+        : NexColors.textSecondaryDark,
+    border: comfortMode ? NexColors.borderDarkComfort : NexColors.borderDark,
+    borderSoft: comfortMode
+        ? NexColors.borderSoftDarkComfort
+        : NexColors.borderSoftDark,
+    accent: palette.dark,
+    accentStrong: palette.strongDark,
+    onAccent: const Color(0xFF0B0A09),
+    accentOnInverse: palette.strongLight,
+    fontFamily: fontFamily ?? nexLatinFont,
+  );
+}
 
 ThemeData _theme({
   required Brightness brightness,
@@ -417,14 +461,13 @@ TextStyle _style({
   required double lineHeight,
   required FontWeight weight,
   required Color color,
-}) =>
-    TextStyle(
-      fontSize: size,
-      height: lineHeight / size,
-      fontWeight: weight,
-      fontVariations: [FontVariation('wght', weight.value.toDouble())],
-      color: color,
-    );
+}) => TextStyle(
+  fontSize: size,
+  height: lineHeight / size,
+  fontWeight: weight,
+  fontVariations: [FontVariation('wght', weight.value.toDouble())],
+  color: color,
+);
 
 /// All fifteen slots, so nothing falls through.
 ///
@@ -435,25 +478,100 @@ TextStyle _style({
 /// component text and body text resolved their colour by different mechanisms.
 TextTheme _textTheme({required Color primary, required Color secondary}) =>
     TextTheme(
-      displayLarge: _style(size: 40, lineHeight: 46, weight: FontWeight.w600, color: primary),
-      displayMedium: _style(size: 34, lineHeight: 40, weight: FontWeight.w600, color: primary),
-      displaySmall: _style(size: 28, lineHeight: 34, weight: FontWeight.w600, color: primary),
-      headlineLarge: _style(size: 34, lineHeight: 40, weight: FontWeight.w600, color: primary),
-      headlineMedium: _style(size: 28, lineHeight: 34, weight: FontWeight.w600, color: primary),
-      headlineSmall: _style(size: 24, lineHeight: 30, weight: FontWeight.w600, color: primary),
-      titleLarge: _style(size: 24, lineHeight: 30, weight: FontWeight.w600, color: primary),
+      displayLarge: _style(
+        size: 40,
+        lineHeight: 46,
+        weight: FontWeight.w600,
+        color: primary,
+      ),
+      displayMedium: _style(
+        size: 34,
+        lineHeight: 40,
+        weight: FontWeight.w600,
+        color: primary,
+      ),
+      displaySmall: _style(
+        size: 28,
+        lineHeight: 34,
+        weight: FontWeight.w600,
+        color: primary,
+      ),
+      headlineLarge: _style(
+        size: 34,
+        lineHeight: 40,
+        weight: FontWeight.w600,
+        color: primary,
+      ),
+      headlineMedium: _style(
+        size: 28,
+        lineHeight: 34,
+        weight: FontWeight.w600,
+        color: primary,
+      ),
+      headlineSmall: _style(
+        size: 24,
+        lineHeight: 30,
+        weight: FontWeight.w600,
+        color: primary,
+      ),
+      titleLarge: _style(
+        size: 24,
+        lineHeight: 30,
+        weight: FontWeight.w600,
+        color: primary,
+      ),
       // 20, not the old 17. A heading one point away from body text carries no
       // size signal at all, so the hierarchy rested entirely on weight.
-      titleMedium: _style(size: 20, lineHeight: 26, weight: FontWeight.w600, color: primary),
-      titleSmall: _style(size: 17, lineHeight: 24, weight: FontWeight.w600, color: primary),
-      bodyLarge: _style(size: 16, lineHeight: 24, weight: FontWeight.w400, color: primary),
-      bodyMedium: _style(size: 15, lineHeight: 22, weight: FontWeight.w400, color: primary),
+      titleMedium: _style(
+        size: 20,
+        lineHeight: 26,
+        weight: FontWeight.w600,
+        color: primary,
+      ),
+      titleSmall: _style(
+        size: 17,
+        lineHeight: 24,
+        weight: FontWeight.w600,
+        color: primary,
+      ),
+      bodyLarge: _style(
+        size: 16,
+        lineHeight: 24,
+        weight: FontWeight.w400,
+        color: primary,
+      ),
+      bodyMedium: _style(
+        size: 15,
+        lineHeight: 22,
+        weight: FontWeight.w400,
+        color: primary,
+      ),
       // 13, not 12.5. Fractional sizes do not land on pixel boundaries, and
       // this is the style every date, tag and storage figure is set in.
-      bodySmall: _style(size: 13, lineHeight: 18, weight: FontWeight.w500, color: secondary),
-      labelLarge: _style(size: 14, lineHeight: 20, weight: FontWeight.w600, color: primary),
-      labelMedium: _style(size: 13, lineHeight: 18, weight: FontWeight.w600, color: primary),
-      labelSmall: _style(size: 12, lineHeight: 16, weight: FontWeight.w600, color: secondary),
+      bodySmall: _style(
+        size: 13,
+        lineHeight: 18,
+        weight: FontWeight.w500,
+        color: secondary,
+      ),
+      labelLarge: _style(
+        size: 14,
+        lineHeight: 20,
+        weight: FontWeight.w600,
+        color: primary,
+      ),
+      labelMedium: _style(
+        size: 13,
+        lineHeight: 18,
+        weight: FontWeight.w600,
+        color: primary,
+      ),
+      labelSmall: _style(
+        size: 12,
+        lineHeight: 16,
+        weight: FontWeight.w600,
+        color: secondary,
+      ),
     );
 
 /// How much room the system's own bars need at the bottom of a scrolling list.
@@ -478,12 +596,12 @@ double nexBottomInset(BuildContext context) =>
 ///
 /// [wireName] is the note type's own wire name; null means "every type".
 IconData nexNoteTypeIcon(String? wireName) => switch (wireName) {
-      'text' => Icons.notes_outlined,
-      'voice' => Icons.graphic_eq_outlined,
-      'photo' => Icons.image_outlined,
-      'file' => Icons.insert_drive_file_outlined,
-      _ => Icons.all_inclusive_outlined,
-    };
+  'text' => Icons.notes_outlined,
+  'voice' => Icons.graphic_eq_outlined,
+  'photo' => Icons.image_outlined,
+  'file' => Icons.insert_drive_file_outlined,
+  _ => Icons.all_inclusive_outlined,
+};
 
 double nexContrastRatio(Color a, Color b) {
   final high = math.max(a.computeLuminance(), b.computeLuminance());
@@ -525,15 +643,15 @@ class NexBadgeDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: NexColors.danger,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Theme.of(context).colorScheme.surface,
-            width: 1.5,
-          ),
-        ),
-      );
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: NexColors.danger,
+      shape: BoxShape.circle,
+      border: Border.all(
+        color: Theme.of(context).colorScheme.surface,
+        width: 1.5,
+      ),
+    ),
+  );
 }

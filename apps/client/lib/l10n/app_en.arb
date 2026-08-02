@@ -2,7 +2,7 @@
   "@@locale": "en",
   "appTitle": "Nex",
   "capture": "Capture",
-  "captureHint": "Capture…",
+  "captureHint": "What's on your mind?",
   "search": "Search",
   "searchHint": "Search notes…",
   "searchStart": "Start typing to find a capture.",
@@ -103,6 +103,18 @@
   "themeSystem": "System",
   "comfortMode": "Comfort Mode",
   "comfortModeSubtitle": "Lower contrast and warmer colors, independent of Light or Dark",
+  "accentColorSetting": "Accent color",
+  "@accentColorSetting": {
+    "description": "Settings row that opens the accent-colour picker"
+  },
+  "accentColorSettingSubtitle": "Recolors the caret, focus rings, and active states everywhere",
+  "@accentColorSettingSubtitle": {
+    "description": "Subtitle explaining what the accent colour affects"
+  },
+  "accentColorPickerTitle": "Accent color",
+  "@accentColorPickerTitle": {
+    "description": "Heading of the sheet used to pick the app's accent colour"
+  },
   "uiScale": "Text & UI size",
   "uiScaleSmall": "Small",
   "uiScaleDefault": "Default",
@@ -707,6 +719,40 @@
   "accentColorLabel": "Accent color",
   "@accentColorLabel": {
     "description": "Screen-reader label for a tag's colour swatch"
+  },
+  "timeNow": "now",
+  "@timeNow": {
+    "description": "Card timestamp: updated under a minute ago"
+  },
+  "timeMinutesAgo": "{count}m",
+  "@timeMinutesAgo": {
+    "description": "Card timestamp: updated N minutes ago",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timeHoursAgo": "{count}h",
+  "@timeHoursAgo": {
+    "description": "Card timestamp: updated N hours ago",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timeDaysAgo": "{count}d",
+  "@timeDaysAgo": {
+    "description": "Card timestamp: updated N days ago",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timeWeeksAgo": "{count}w",
+  "@timeWeeksAgo": {
+    "description": "Card timestamp: updated N weeks ago",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timeMonthsAgo": "{count}mo",
+  "@timeMonthsAgo": {
+    "description": "Card timestamp: updated N months ago",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timeYearsAgo": "{count}y",
+  "@timeYearsAgo": {
+    "description": "Card timestamp: updated N years ago",
+    "placeholders": { "count": { "type": "int" } }
   },
   "captureFailedPermission": "Nex was not allowed to use the camera or your photos. You can grant it in your device settings.",
   "@captureFailedPermission": {

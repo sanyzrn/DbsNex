@@ -22,6 +22,7 @@ import '../widgets/card_strings.dart';
 import '../widgets/commit_receipt.dart';
 import '../widgets/empty_timeline.dart';
 import '../widgets/nex_dialog.dart';
+import '../widgets/nex_toast.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/search_field_header.dart';
 import '../widgets/search_results.dart';
@@ -221,7 +222,7 @@ class TimelineScreenState extends State<TimelineScreen> {
       if (!mounted) return;
       messenger
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(l10n.operationFailed)));
+        ..showSnackBar(nexToast(content: Text(l10n.operationFailed)));
     }
   }
 
@@ -399,7 +400,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
+        nexToast(
           content: Text(switch (failure) {
             CaptureFailure.permission => l10n.captureFailedPermission,
             CaptureFailure.storage => l10n.captureFailedStorage,
@@ -502,7 +503,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
+        nexToast(
           // Shape, colour, inset and elevation all come from `snackBarTheme` now,
           // so this and the other nine toasts in the app are one capsule rather
           // than one hand-styled banner and nine framework defaults.
@@ -876,11 +877,16 @@ class TimelineScreenState extends State<TimelineScreen> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: FloatingActionButton(
-        onPressed: openCapture,
-        tooltip: l10n.capture,
-        child: const Icon(Icons.add, size: 32),
-      ),
+      // Capture is a timeline action. Left up while searching, it read as
+      // part of the search flow itself rather than what it actually still
+      // did — open a fresh note, unrelated to whatever was just searched.
+      floatingActionButton: _searching
+          ? null
+          : FloatingActionButton(
+              onPressed: openCapture,
+              tooltip: l10n.capture,
+              child: const Icon(Icons.add, size: 32),
+            ),
     );
   }
 

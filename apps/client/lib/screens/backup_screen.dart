@@ -11,6 +11,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../restart_scope.dart';
 import '../widgets/nex_dialog.dart';
+import '../widgets/nex_toast.dart';
 
 /// Everything about getting the library out of this device, and back in.
 ///
@@ -50,9 +51,9 @@ class _BackupScreenState extends State<BackupScreen> {
 
   void _say(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(nexToast(content: Text(message)));
   }
 
   /// Runs [action], keeping the screen from starting a second one on top of it.
@@ -67,48 +68,48 @@ class _BackupScreenState extends State<BackupScreen> {
   }
 
   Future<void> _backupNow() => _guard(() async {
-        final l10n = AppLocalizations.of(context);
-        try {
-          await widget.services.backupNow();
-          await _load();
-          _say(l10n.backupDone);
-        } catch (_) {
-          _say(l10n.operationFailed);
-        }
-      });
+    final l10n = AppLocalizations.of(context);
+    try {
+      await widget.services.backupNow();
+      await _load();
+      _say(l10n.backupDone);
+    } catch (_) {
+      _say(l10n.operationFailed);
+    }
+  });
 
   Future<void> _export() => _guard(() async {
-        final l10n = AppLocalizations.of(context);
-        try {
-          final path = await widget.services.exportNow();
-          if (!mounted) return;
-          // Getting it out of the app is the whole point: a zip sitting in the
-          // app's own directory is not a backup a person can keep. On a phone
-          // that means the share sheet; on Windows, which has no share sheet
-          // worth the name, it means asking where to put it.
-          final outcome = await nexSendFileOut(path, mimeType: 'application/zip');
-          if (!mounted) return;
-          if (outcome == SendOutcome.saved) _say(l10n.exportedTo(path));
-        } catch (_) {
-          _say(l10n.operationFailed);
-        }
-      });
+    final l10n = AppLocalizations.of(context);
+    try {
+      final path = await widget.services.exportNow();
+      if (!mounted) return;
+      // Getting it out of the app is the whole point: a zip sitting in the
+      // app's own directory is not a backup a person can keep. On a phone
+      // that means the share sheet; on Windows, which has no share sheet
+      // worth the name, it means asking where to put it.
+      final outcome = await nexSendFileOut(path, mimeType: 'application/zip');
+      if (!mounted) return;
+      if (outcome == SendOutcome.saved) _say(l10n.exportedTo(path));
+    } catch (_) {
+      _say(l10n.operationFailed);
+    }
+  });
 
   Future<void> _import() => _guard(() async {
-        final l10n = AppLocalizations.of(context);
-        final file = await openFile(
-          acceptedTypeGroups: const [
-            XTypeGroup(label: 'Nex export', extensions: ['zip']),
-          ],
-        );
-        if (file == null) return;
-        try {
-          final result = await widget.services.importArchive(file.path);
-          _say(l10n.importDone(result.imported, result.skipped));
-        } catch (_) {
-          _say(l10n.importFailed);
-        }
-      });
+    final l10n = AppLocalizations.of(context);
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(label: 'Nex export', extensions: ['zip']),
+      ],
+    );
+    if (file == null) return;
+    try {
+      final result = await widget.services.importArchive(file.path);
+      _say(l10n.importDone(result.imported, result.skipped));
+    } catch (_) {
+      _say(l10n.importFailed);
+    }
+  });
 
   Future<void> _deleteBackup(File backup) async {
     final l10n = AppLocalizations.of(context);
@@ -239,12 +240,14 @@ class _BackupScreenState extends State<BackupScreen> {
                     IconButton(
                       tooltip: l10n.deleteBackup,
                       icon: const Icon(Icons.delete_outline),
-                      onPressed:
-                          _busy ? null : () => unawaited(_deleteBackup(backup)),
+                      onPressed: _busy
+                          ? null
+                          : () => unawaited(_deleteBackup(backup)),
                     ),
                     TextButton(
-                      onPressed:
-                          _busy ? null : () => unawaited(_restore(backup)),
+                      onPressed: _busy
+                          ? null
+                          : () => unawaited(_restore(backup)),
                       child: Text(l10n.restore),
                     ),
                   ],
@@ -271,14 +274,14 @@ class _Heading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-          NexSpacing.lg,
-          NexSpacing.lg,
-          NexSpacing.lg,
-          NexSpacing.sm,
-        ),
-        child: Text(label, style: Theme.of(context).textTheme.bodySmall),
-      );
+    padding: const EdgeInsets.fromLTRB(
+      NexSpacing.lg,
+      NexSpacing.lg,
+      NexSpacing.lg,
+      NexSpacing.sm,
+    ),
+    child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+  );
 }
 
 /// A thing you can do, with a sentence saying what it does.
@@ -314,7 +317,10 @@ class _Explained extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsetsDirectional.only(top: 2, end: NexSpacing.md),
+            padding: const EdgeInsetsDirectional.only(
+              top: 2,
+              end: NexSpacing.md,
+            ),
             child: Icon(icon, color: theme.colorScheme.secondary),
           ),
           Expanded(

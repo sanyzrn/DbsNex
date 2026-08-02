@@ -32,7 +32,9 @@ bool _hasStrongDirection(String value) {
     if ((rune >= 0x0041 && rune <= 0x005A) ||
         (rune >= 0x0061 && rune <= 0x007A) ||
         (rune >= 0x00C0 && rune <= 0x02AF) ||
-        (rune >= 0x0370 && rune <= 0x058F && !(rune >= 0x0590 && rune <= 0x05FF))) {
+        (rune >= 0x0370 &&
+            rune <= 0x058F &&
+            !(rune >= 0x0590 && rune <= 0x05FF))) {
       return true;
     }
     // Hebrew, Arabic, Persian, Syriac, Thaana and the Arabic presentation forms.
@@ -93,8 +95,9 @@ class NexBodyText extends StatelessWidget {
         maxLines: maxLines,
         overflow: maxLines == null ? null : TextOverflow.ellipsis,
         textDirection: direction,
-        textAlign:
-            direction == TextDirection.rtl ? TextAlign.right : TextAlign.start,
+        textAlign: direction == TextDirection.rtl
+            ? TextAlign.right
+            : TextAlign.start,
       ),
     );
   }

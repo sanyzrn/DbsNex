@@ -15,7 +15,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get capture => 'ثبت';
 
   @override
-  String get captureHint => 'بنویسید…';
+  String get captureHint => 'چی تو ذهنته؟';
 
   @override
   String get search => 'جست‌وجو';
@@ -242,6 +242,16 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get comfortModeSubtitle =>
       'کنتراست کمتر و رنگ‌های گرم‌تر؛ جدا از روشن یا تیره بودن پوسته';
+
+  @override
+  String get accentColorSetting => 'رنگ تاکید';
+
+  @override
+  String get accentColorSettingSubtitle =>
+      'رنگ نشانگر، حلقهٔ فوکوس و حالت‌های فعال را در سراسر اپ تغییر می‌دهد';
+
+  @override
+  String get accentColorPickerTitle => 'رنگ تاکید';
 
   @override
   String get uiScale => 'اندازه‌ی متن و رابط';
@@ -849,6 +859,39 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get accentColorLabel => 'رنگ برچسب';
+
+  @override
+  String get timeNow => 'الان';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return '$count دقیقه قبل';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return '$count ساعت قبل';
+  }
+
+  @override
+  String timeDaysAgo(int count) {
+    return '$count روز قبل';
+  }
+
+  @override
+  String timeWeeksAgo(int count) {
+    return '$count هفته قبل';
+  }
+
+  @override
+  String timeMonthsAgo(int count) {
+    return '$count ماه قبل';
+  }
+
+  @override
+  String timeYearsAgo(int count) {
+    return '$count سال قبل';
+  }
 
   @override
   String get captureFailedPermission =>

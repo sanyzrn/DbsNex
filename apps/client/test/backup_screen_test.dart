@@ -45,8 +45,9 @@ void main() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
-  testWidgets('a local backup can be deleted, with confirmation',
-      (tester) async {
+  testWidgets('a local backup can be deleted, with confirmation', (
+    tester,
+  ) async {
     // The export/import explanations above the backup list are tall enough
     // that the row is below the fold on the default test surface — and a
     // ListView only mounts what is within (or near) its viewport, so the

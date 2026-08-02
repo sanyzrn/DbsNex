@@ -114,10 +114,7 @@ class EnrichmentService {
     try {
       final summary = await call;
       // Never persist a pass-through "summary" identical to the source.
-      final source = (note.content ??
-              note.transcriptText ??
-              note.ocrText ??
-              '')
+      final source = (note.content ?? note.transcriptText ?? note.ocrText ?? '')
           .trim();
       if (summary.text.trim().isEmpty ||
           summary.text.trim() == source ||
@@ -132,7 +129,10 @@ class EnrichmentService {
   }
 
   /// Semantic search by meaning. Results are separate from keyword FTS.
-  Future<List<SemanticHit>> semanticSearch(String query, {int limit = 20}) async {
+  Future<List<SemanticHit>> semanticSearch(
+    String query, {
+    int limit = 20,
+  }) async {
     if (!_capabilities.semanticSearch) return const [];
     final q = query.trim();
     if (q.isEmpty) return const [];

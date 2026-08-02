@@ -1,6 +1,5 @@
 import 'dart:async';
 
-
 import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
@@ -32,7 +31,11 @@ class _RecordingSheetState extends State<RecordingSheet> {
 
   /// Oldest first. Seeded flat so the waveform has a baseline to grow from
   /// rather than filling in from an empty left edge.
-  final List<double> _levels = List<double>.filled(_barCount, 0.04, growable: true);
+  final List<double> _levels = List<double>.filled(
+    _barCount,
+    0.04,
+    growable: true,
+  );
 
   @override
   void initState() {
@@ -44,16 +47,16 @@ class _RecordingSheetState extends State<RecordingSheet> {
     amplitudeSub = widget.recorder
         .onAmplitudeChanged(const Duration(milliseconds: 60))
         .listen((value) {
-      if (!mounted) return;
-      // `current` is dBFS: roughly -60 (silence) to 0 (clipping). Squared so
-      // ordinary speech uses more of the range than a linear map gives it.
-      final normalized = ((value.current + 60) / 60).clamp(0.0, 1.0);
-      setState(() {
-        _levels
-          ..add(0.04 + 0.96 * (normalized * normalized))
-          ..removeAt(0);
-      });
-    });
+          if (!mounted) return;
+          // `current` is dBFS: roughly -60 (silence) to 0 (clipping). Squared so
+          // ordinary speech uses more of the range than a linear map gives it.
+          final normalized = ((value.current + 60) / 60).clamp(0.0, 1.0);
+          setState(() {
+            _levels
+              ..add(0.04 + 0.96 * (normalized * normalized))
+              ..removeAt(0);
+          });
+        });
   }
 
   @override
@@ -66,8 +69,10 @@ class _RecordingSheetState extends State<RecordingSheet> {
 
   String get elapsed {
     final minutes = watch.elapsed.inMinutes.toString().padLeft(2, '0');
-    final seconds =
-        watch.elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final seconds = watch.elapsed.inSeconds
+        .remainder(60)
+        .toString()
+        .padLeft(2, '0');
     return '$minutes:$seconds';
   }
 
@@ -129,7 +134,9 @@ class _RecordingSheetState extends State<RecordingSheet> {
                       onPressed: () => Navigator.pop(context, false),
                       style: TextButton.styleFrom(
                         foregroundColor: theme.colorScheme.secondary,
-                        padding: const EdgeInsets.symmetric(vertical: NexSpacing.md),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: NexSpacing.md,
+                        ),
                       ),
                       child: Text(l10n.discard),
                     ),
@@ -140,7 +147,9 @@ class _RecordingSheetState extends State<RecordingSheet> {
                     child: FilledButton.icon(
                       onPressed: () => Navigator.pop(context, true),
                       style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: NexSpacing.md),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: NexSpacing.md,
+                        ),
                       ),
                       icon: const Icon(Icons.stop_rounded),
                       label: Text(l10n.stopRecording),
@@ -192,13 +201,13 @@ class _RecordingDotState extends State<_RecordingDot>
   }
 
   Widget _dot(double opacity) => Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: NexColors.swipeDelete.withValues(alpha: opacity),
-        ),
-      );
+    width: 10,
+    height: 10,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: NexColors.swipeDelete.withValues(alpha: opacity),
+    ),
+  );
 }
 
 /// Draws the amplitude history as mirrored bars, newest at the right.

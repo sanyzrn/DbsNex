@@ -15,7 +15,8 @@ enum NexSwipeAction { delete, addTag }
 /// An edge with no action does not move at all, so a user who only wants one
 /// gesture is not given a second one they will trigger by accident.
 
-typedef NexSwipeActionResolver = NexSwipeAction? Function({required bool isLeading});
+typedef NexSwipeActionResolver =
+    NexSwipeAction? Function({required bool isLeading});
 
 /// Keeps at most one card open across a list.
 ///
@@ -175,10 +176,10 @@ class _MiddleZoneReorderListener extends ReorderableDelayedDragStartListener {
 
   @override
   MultiDragGestureRecognizer createRecognizer() => _MiddleZoneDragRecognizer(
-        debugOwner: this,
-        widthOf: widthOf,
-        isClosed: isClosed,
-      );
+    debugOwner: this,
+    widthOf: widthOf,
+    isClosed: isClosed,
+  );
 }
 
 /// A timeline card that reveals one of its two actions on a swipe.
@@ -252,8 +253,10 @@ const _commitFraction = 0.62;
 class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     with SingleTickerProviderStateMixin {
   /// Unbounded: the drag is allowed to overshoot the stop so it can rubber-band.
-  late final AnimationController _offset =
-      AnimationController.unbounded(vsync: this, value: 0);
+  late final AnimationController _offset = AnimationController.unbounded(
+    vsync: this,
+    value: 0,
+  );
 
   double _width = 0;
   double get _open => _width * 0.45;
@@ -345,7 +348,9 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     } else {
       // The wall at zero. Dragging back from an open card closes it and stops
       // there rather than continuing into the other action.
-      next = _allowedSign > 0 ? next.clamp(0.0, double.infinity) : next.clamp(double.negativeInfinity, 0.0);
+      next = _allowedSign > 0
+          ? next.clamp(0.0, double.infinity)
+          : next.clamp(double.negativeInfinity, 0.0);
     }
 
     _offset.value = _rubberBand(next);
@@ -370,7 +375,8 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
       }
     }
 
-    final flung = velocity.abs() > 420 &&
+    final flung =
+        velocity.abs() > 420 &&
         (velocity.isNegative == current.isNegative) &&
         current != 0;
     final shouldOpen =
@@ -439,17 +445,17 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
             gestures: {
               _SidewaysDragRecognizer:
                   GestureRecognizerFactoryWithHandlers<_SidewaysDragRecognizer>(
-                () => _SidewaysDragRecognizer(
-                  debugOwner: this,
-                  widthOf: () => _width,
-                  isClosed: () => _isClosed,
-                ),
-                (instance) => instance
-                  ..onStart = _onDragStart
-                  ..onUpdate = _onDragUpdate
-                  ..onEnd = _onDragEnd
-                  ..onCancel = _close,
-              ),
+                    () => _SidewaysDragRecognizer(
+                      debugOwner: this,
+                      widthOf: () => _width,
+                      isClosed: () => _isClosed,
+                    ),
+                    (instance) => instance
+                      ..onStart = _onDragStart
+                      ..onUpdate = _onDragUpdate
+                      ..onEnd = _onDragEnd
+                      ..onCancel = _close,
+                  ),
             },
             child: AnimatedBuilder(
               animation: _offset,
@@ -545,8 +551,9 @@ class _ActionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final destructive = action == NexSwipeAction.delete;
-    final background =
-        destructive ? NexColors.swipeDelete : NexColors.swipeAddTag;
+    final background = destructive
+        ? NexColors.swipeDelete
+        : NexColors.swipeAddTag;
     final showGlyph = width >= _glyphRevealWidth;
     return SizedBox(
       width: width,
@@ -624,13 +631,17 @@ class _ActionGlyphState extends State<_ActionGlyph>
 
   late final Animation<double> _scale = TweenSequence<double>([
     TweenSequenceItem(
-      tween: Tween(begin: 1.0, end: 1.35)
-          .chain(CurveTween(curve: Curves.easeOutCubic)),
+      tween: Tween(
+        begin: 1.0,
+        end: 1.35,
+      ).chain(CurveTween(curve: Curves.easeOutCubic)),
       weight: 30,
     ),
     TweenSequenceItem(
-      tween: Tween(begin: 1.35, end: 1.12)
-          .chain(CurveTween(curve: Curves.elasticOut)),
+      tween: Tween(
+        begin: 1.35,
+        end: 1.12,
+      ).chain(CurveTween(curve: Curves.elasticOut)),
       weight: 70,
     ),
   ]).animate(_pop);
@@ -638,18 +649,24 @@ class _ActionGlyphState extends State<_ActionGlyph>
   /// A quick tip and back. Small on purpose: a full spin would be a mascot.
   late final Animation<double> _tilt = TweenSequence<double>([
     TweenSequenceItem(
-      tween: Tween(begin: 0.0, end: -0.26)
-          .chain(CurveTween(curve: Curves.easeOut)),
+      tween: Tween(
+        begin: 0.0,
+        end: -0.26,
+      ).chain(CurveTween(curve: Curves.easeOut)),
       weight: 30,
     ),
     TweenSequenceItem(
-      tween: Tween(begin: -0.26, end: 0.12)
-          .chain(CurveTween(curve: Curves.easeInOut)),
+      tween: Tween(
+        begin: -0.26,
+        end: 0.12,
+      ).chain(CurveTween(curve: Curves.easeInOut)),
       weight: 30,
     ),
     TweenSequenceItem(
-      tween: Tween(begin: 0.12, end: 0.0)
-          .chain(CurveTween(curve: Curves.easeOutBack)),
+      tween: Tween(
+        begin: 0.12,
+        end: 0.0,
+      ).chain(CurveTween(curve: Curves.easeOutBack)),
       weight: 40,
     ),
   ]).animate(_pop);
@@ -679,11 +696,11 @@ class _ActionGlyphState extends State<_ActionGlyph>
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _pop,
-        child: Icon(widget.icon, color: Colors.white, size: 22),
-        builder: (context, child) => Transform.rotate(
-          angle: _tilt.value,
-          child: Transform.scale(scale: _scale.value, child: child),
-        ),
-      );
+    animation: _pop,
+    child: Icon(widget.icon, color: Colors.white, size: 22),
+    builder: (context, child) => Transform.rotate(
+      angle: _tilt.value,
+      child: Transform.scale(scale: _scale.value, child: child),
+    ),
+  );
 }

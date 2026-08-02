@@ -90,5 +90,26 @@ void main() {
       );
       expect(maintenance.tagUsage().map((u) => u.tag.name), contains('Work'));
     });
+
+    test(
+      'a tag whose only note is trashed reads as unused, not still in use',
+      () {
+        // Reported symptom: soft-deleting the last note carrying a tag left
+        // the tag manager (and the timeline filter row, which reads the same
+        // usage count) showing it as still in use — the count only dropped
+        // to zero once the note was purged out of the trash entirely, since
+        // that is the only point note_tags actually loses the row.
+        final note = insertText('tagged');
+        final tag = repo.upsertTag(name: 'Errands');
+        repo.attachTag(noteId: note.id, tagId: tag.id);
+
+        repo.softDelete(note.id);
+
+        final usage = maintenance.tagUsage().firstWhere(
+          (u) => u.tag.id == tag.id,
+        );
+        expect(usage.count, 0);
+      },
+    );
   });
 }

@@ -19,7 +19,7 @@ import 'package:nex_data/nex_data.dart';
 /// is the worker's concern, and that is what the integration suites exercise.
 class InProcessDb implements NexDb {
   InProcessDb({required this.dbPath, required this.deviceId, this.readDelay})
-      : _db = NexDatabase.open(dbPath) {
+    : _db = NexDatabase.open(dbPath) {
     _repo = SqliteNoteRepository(_db, localDeviceId: deviceId);
     _capture = CaptureService(_repo, deviceId: deviceId);
     _tags = TagService(_repo);
@@ -50,7 +50,11 @@ class InProcessDb implements NexDb {
   bool _closed = false;
 
   @override
-  Future<List<Note>> timeline({int limit = 200, int offset = 0, String? tagId}) async {
+  Future<List<Note>> timeline({
+    int limit = 200,
+    int offset = 0,
+    String? tagId,
+  }) async {
     if (readDelay != null) await Future<void>.delayed(readDelay!);
     return _search.timeline(limit: limit, offset: offset, tagId: tagId);
   }
@@ -60,7 +64,8 @@ class InProcessDb implements NexDb {
       _search.timeline(limit: limit, offset: offset);
 
   @override
-  Future<List<Note>> search(SearchFilters filters) async => _search.search(filters);
+  Future<List<Note>> search(SearchFilters filters) async =>
+      _search.search(filters);
 
   @override
   Future<Note?> getById(String id) async => _repo.getById(id);
@@ -74,12 +79,11 @@ class InProcessDb implements NexDb {
     required String mediaUri,
     required Uint8List mediaBytes,
     required int durationMs,
-  }) async =>
-      _capture.submitVoiceCapture(
-        mediaUri: mediaUri,
-        mediaBytes: mediaBytes,
-        durationMs: durationMs,
-      );
+  }) async => _capture.submitVoiceCapture(
+    mediaUri: mediaUri,
+    mediaBytes: mediaBytes,
+    durationMs: durationMs,
+  );
 
   @override
   Future<Note> capturePhoto({
@@ -94,13 +98,12 @@ class InProcessDb implements NexDb {
     required Uint8List mediaBytes,
     String? originalFilename,
     String? mimeType,
-  }) async =>
-      _capture.submitFileCapture(
-        mediaUri: mediaUri,
-        mediaBytes: mediaBytes,
-        originalFilename: originalFilename,
-        mimeType: mimeType,
-      );
+  }) async => _capture.submitFileCapture(
+    mediaUri: mediaUri,
+    mediaBytes: mediaBytes,
+    originalFilename: originalFilename,
+    mimeType: mimeType,
+  );
 
   @override
   Future<void> updateNote(String id, String content) async =>
@@ -134,15 +137,13 @@ class InProcessDb implements NexDb {
     required String noteId,
     required String name,
     String? color,
-  }) async =>
-      _tags.addTag(noteId: noteId, name: name, color: color);
+  }) async => _tags.addTag(noteId: noteId, name: name, color: color);
 
   @override
   Future<void> removeTag({
     required String noteId,
     required String tagId,
-  }) async =>
-      _tags.removeTag(noteId: noteId, tagId: tagId);
+  }) async => _tags.removeTag(noteId: noteId, tagId: tagId);
 
   @override
   Future<Tag> createTag(String name, {String? color}) async =>
@@ -162,19 +163,17 @@ class InProcessDb implements NexDb {
   Future<String> exportArchive({
     required String outputPath,
     required String mediaRoot,
-  }) async =>
-      (await _repo.exportArchive(outputPath: outputPath, mediaRoot: mediaRoot))
-          .path;
+  }) async => (await _repo.exportArchive(
+    outputPath: outputPath,
+    mediaRoot: mediaRoot,
+  )).path;
 
   @override
   Future<ImportResult> importArchive({
     required String archivePath,
     required String mediaRoot,
   }) =>
-      _repo.importArchive(
-        archiveFile: File(archivePath),
-        mediaRoot: mediaRoot,
-      );
+      _repo.importArchive(archiveFile: File(archivePath), mediaRoot: mediaRoot);
 
   @override
   Future<List<Note>> deletedNotes({int limit = 200}) async =>
@@ -201,8 +200,7 @@ class InProcessDb implements NexDb {
   Future<void> mergeTag({
     required String sourceId,
     required String targetId,
-  }) async =>
-      _maintenance.mergeTag(sourceId: sourceId, targetId: targetId);
+  }) async => _maintenance.mergeTag(sourceId: sourceId, targetId: targetId);
 
   @override
   Future<void> deleteTag(String id) async => _maintenance.deleteTag(id);
@@ -216,8 +214,7 @@ class InProcessDb implements NexDb {
     required String dbPath,
     required String mediaDir,
     required String backupDir,
-  }) =>
-      _maintenance.storage(dbPath, mediaDir, backupDir);
+  }) => _maintenance.storage(dbPath, mediaDir, backupDir);
 
   @override
   Future<void> enrichNote(String noteId) => _enrichment.enrichNote(noteId);
@@ -266,7 +263,10 @@ class InProcessDb implements NexDb {
   }
 
   @override
-  Future<SyncResult> sync({required String baseUrl, String? bearerToken}) async {
+  Future<SyncResult> sync({
+    required String baseUrl,
+    String? bearerToken,
+  }) async {
     final client = SyncClient(
       baseUrl: baseUrl,
       deviceId: deviceId,
@@ -287,4 +287,3 @@ class InProcessDb implements NexDb {
     _db.close();
   }
 }
-

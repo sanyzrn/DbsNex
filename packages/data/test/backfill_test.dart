@@ -45,16 +45,18 @@ void main() {
     );
   }
 
-  test('a voice note with no transcript is pending; one with a transcript is not',
-      () {
-    final pending = media(NoteType.voice, 'a.m4a');
-    final done = media(NoteType.voice, 'b.m4a');
-    repo.setTranscriptText(done.id, 'already read');
+  test(
+    'a voice note with no transcript is pending; one with a transcript is not',
+    () {
+      final pending = media(NoteType.voice, 'a.m4a');
+      final done = media(NoteType.voice, 'b.m4a');
+      repo.setTranscriptText(done.id, 'already read');
 
-    final found = repo.listNeedingEnrichment(limit: 10);
+      final found = repo.listNeedingEnrichment(limit: 10);
 
-    expect(found.map((n) => n.id), [pending.id]);
-  });
+      expect(found.map((n) => n.id), [pending.id]);
+    },
+  );
 
   test('a text note is never pending — it is already its own text', () {
     final now = DateTime.now().toUtc();

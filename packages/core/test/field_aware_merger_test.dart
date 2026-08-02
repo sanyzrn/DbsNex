@@ -109,8 +109,11 @@ void main() {
       );
       final m = merger.merge(a, b);
       expect(m.content, 'edited on B');
-      expect(m.tagIds, contains('tag-work'),
-          reason: 'tag must not be lost to whole-record LWW');
+      expect(
+        m.tagIds,
+        contains('tag-work'),
+        reason: 'tag must not be lost to whole-record LWW',
+      );
     });
 
     test('delete vs edit: deletion (tombstone) wins', () {
@@ -132,14 +135,8 @@ void main() {
     });
 
     test('identical media_hash is duplicate', () {
-      expect(
-        FieldAwareMerger.isDuplicateMedia('abc', 'abc'),
-        isTrue,
-      );
-      expect(
-        FieldAwareMerger.isDuplicateMedia('abc', 'xyz'),
-        isFalse,
-      );
+      expect(FieldAwareMerger.isDuplicateMedia('abc', 'abc'), isTrue);
+      expect(FieldAwareMerger.isDuplicateMedia('abc', 'xyz'), isFalse);
     });
 
     test('updated_at+rev tie: merge is commutative (device_id tie-break)', () {

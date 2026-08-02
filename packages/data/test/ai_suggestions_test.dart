@@ -81,9 +81,7 @@ void main() {
             'Paragraph $i discusses capture latency budgets and offline search. ',
       ).join();
       expect(source.length, greaterThan(80));
-      final future = const OnDeviceAIAdapter().summarize(
-        textNote(source),
-      );
+      final future = const OnDeviceAIAdapter().summarize(textNote(source));
       final text = (await future!).text;
       expect(text, isNotEmpty);
       expect(text, isNot(equals(source.trim())));
@@ -143,41 +141,43 @@ void main() {
       );
     });
 
-    test('OCR stub suggestions exclude hash fragments and are not persisted',
-        () async {
-      final now = DateTime.now().toUtc();
-      final note = repo.insert(
-        Note(
-          id: newUuidV7(),
-          type: NoteType.photo,
-          mediaUri: '/tmp/p.jpg',
-          mediaHash: '69cfddd4deadbeefcafe',
-          createdAt: now,
-          updatedAt: now,
-          deviceId: 'test',
-          rev: 1,
-          syncState: SyncState.pending,
-        ),
-      );
-      await enrichment.enrichNote(note.id);
-      final updated = repo.getById(note.id)!;
-      expect(updated.ocrText, isNotNull);
-      final suggestions = await enrichment.suggestTags(note.id);
-      for (final s in suggestions) {
-        expect(RegExp(r'^[0-9a-f]{6,}$').hasMatch(s.name), isFalse);
-        expect(
-          const {'photo', 'text', 'readable', 'label'}.contains(s.name),
-          isFalse,
+    test(
+      'OCR stub suggestions exclude hash fragments and are not persisted',
+      () async {
+        final now = DateTime.now().toUtc();
+        final note = repo.insert(
+          Note(
+            id: newUuidV7(),
+            type: NoteType.photo,
+            mediaUri: '/tmp/p.jpg',
+            mediaHash: '69cfddd4deadbeefcafe',
+            createdAt: now,
+            updatedAt: now,
+            deviceId: 'test',
+            rev: 1,
+            syncState: SyncState.pending,
+          ),
         );
-      }
-      // The starter tags are seeded rows now, so the invariant is that
-      // suggesting never *adds* one — not that the table is empty.
-      expect(
-        repo.listTags().map((t) => t.name),
-        unorderedEquals(suggestedStarterTags),
-      );
-      expect(updated.tags, isEmpty);
-    });
+        await enrichment.enrichNote(note.id);
+        final updated = repo.getById(note.id)!;
+        expect(updated.ocrText, isNotNull);
+        final suggestions = await enrichment.suggestTags(note.id);
+        for (final s in suggestions) {
+          expect(RegExp(r'^[0-9a-f]{6,}$').hasMatch(s.name), isFalse);
+          expect(
+            const {'photo', 'text', 'readable', 'label'}.contains(s.name),
+            isFalse,
+          );
+        }
+        // The starter tags are seeded rows now, so the invariant is that
+        // suggesting never *adds* one — not that the table is empty.
+        expect(
+          repo.listTags().map((t) => t.name),
+          unorderedEquals(suggestedStarterTags),
+        );
+        expect(updated.tags, isEmpty);
+      },
+    );
 
     test('summarizeOnDemand refuses pass-through / short summaries', () async {
       final now = DateTime.now().toUtc();

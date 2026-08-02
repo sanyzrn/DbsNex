@@ -102,9 +102,8 @@ class _Ghost extends StatelessWidget {
             height: nexCardLeadingSize,
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(
-                NexRadius.inside(NexRadius.lg, NexSpacing.cardInset),
-              ),
+              // Matches the real leading icon box — NexRadius.cardLeading.
+              borderRadius: BorderRadius.circular(NexRadius.cardLeading),
             ),
             child: Icon(icon),
           ),

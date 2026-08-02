@@ -121,8 +121,25 @@ void main() {
       expect(coloured.color, '#2FBF8F');
 
       // ...and from then on it is settled.
-      expect(repo.upsertTag(name: 'Shopping', color: '#F17FA0').color, '#2FBF8F');
+      expect(
+        repo.upsertTag(name: 'Shopping', color: '#F17FA0').color,
+        '#2FBF8F',
+      );
     });
+
+    test(
+      'a brand new tag gets a random accent instead of shipping colourless',
+      () {
+        // Unlike the seeded starters above, a tag the user actually types in
+        // has no "give it a colour later" moment built into the design — it
+        // just sits grey in the filter row until someone visits the tag
+        // manager. Handing it a colour up front means every tag looks
+        // intentional from the first note it is put on.
+        final tag = repo.upsertTag(name: 'Freshly Typed');
+        expect(tag.color, isNotNull);
+        expect(tagAccentPalette, contains(tag.color));
+      },
+    );
 
     test('setTagColor accepts any #RRGGBB and rejects anything else', () {
       final tag = repo.upsertTag(name: 'Work');
@@ -168,8 +185,11 @@ void main() {
       repo.insert(makeText('unrelated english'));
 
       final byStem = repo.search(const SearchFilters(query: 'ایده'));
-      expect(byStem, hasLength(1),
-          reason: 'should find Persian note by content token');
+      expect(
+        byStem,
+        hasLength(1),
+        reason: 'should find Persian note by content token',
+      );
       expect(byStem.first.content, contains('ایده'));
 
       final byWord = repo.search(const SearchFilters(query: 'مهم'));
@@ -221,17 +241,19 @@ void main() {
       final old = repo.insert(makeText('old', at: t0));
       repo.insert(makeText('mid', at: t1));
       repo.insert(makeText('new', at: t2));
-      expect(
-        repo.listTimeline().map((n) => n.content).toList(),
-        ['new', 'mid', 'old'],
-      );
+      expect(repo.listTimeline().map((n) => n.content).toList(), [
+        'new',
+        'mid',
+        'old',
+      ]);
 
       repo.updateContent(old.id, 'old, edited just now');
 
-      expect(
-        repo.listTimeline().map((n) => n.content).toList(),
-        ['old, edited just now', 'new', 'mid'],
-      );
+      expect(repo.listTimeline().map((n) => n.content).toList(), [
+        'old, edited just now',
+        'new',
+        'mid',
+      ]);
     });
 
     test('a pinned note leads the timeline, and only one is ever pinned', () {
@@ -251,10 +273,11 @@ void main() {
 
       // Pinning a second note releases the first — never two at once.
       repo.pinNote(mid.id);
-      expect(
-        repo.listTimeline().map((n) => n.content).toList(),
-        ['mid', 'new', 'old'],
-      );
+      expect(repo.listTimeline().map((n) => n.content).toList(), [
+        'mid',
+        'new',
+        'old',
+      ]);
 
       repo.unpinNote(mid.id);
       expect(
@@ -274,27 +297,33 @@ void main() {
 
       // Dragged "old" to the front of the on-screen order.
       repo.reorderNotes([old.id, recent.id, mid.id]);
-      expect(
-        repo.listTimeline().map((n) => n.content).toList(),
-        ['old', 'new', 'mid'],
-      );
+      expect(repo.listTimeline().map((n) => n.content).toList(), [
+        'old',
+        'new',
+        'mid',
+      ]);
 
       // Editing one of the arranged notes does not reshuffle the
       // arrangement — a manual placement is a deliberate override, not
       // something a later edit should silently undo.
       repo.updateContent(mid.id, 'mid, edited');
-      expect(
-        repo.listTimeline().map((n) => n.content).toList(),
-        ['old', 'new', 'mid, edited'],
-      );
+      expect(repo.listTimeline().map((n) => n.content).toList(), [
+        'old',
+        'new',
+        'mid, edited',
+      ]);
 
       // A brand-new capture has no manual position, so it still leads —
       // ahead of the whole hand-arranged block, not stuck behind it.
-      repo.insert(makeText('just captured', at: t2.add(const Duration(days: 1))));
-      expect(
-        repo.listTimeline().map((n) => n.content).toList(),
-        ['just captured', 'old', 'new', 'mid, edited'],
+      repo.insert(
+        makeText('just captured', at: t2.add(const Duration(days: 1))),
       );
+      expect(repo.listTimeline().map((n) => n.content).toList(), [
+        'just captured',
+        'old',
+        'new',
+        'mid, edited',
+      ]);
     });
   });
 
@@ -327,15 +356,15 @@ void main() {
         mediaRoot: mediaDir.path,
       );
       final payload = SqliteNoteRepository.readExportJson(archive);
-      final exportedNotes =
-          (payload['notes'] as List).cast<Map<String, dynamic>>();
+      final exportedNotes = (payload['notes'] as List)
+          .cast<Map<String, dynamic>>();
       expect(exportedNotes, hasLength(2));
-      final exportedText =
-          exportedNotes.firstWhere((n) => n['type'] == 'text');
+      final exportedText = exportedNotes.firstWhere((n) => n['type'] == 'text');
       expect(exportedText['content'], 'export me');
       expect((exportedText['tags'] as List).first['name'], 'Idea');
-      final exportedPhoto =
-          exportedNotes.firstWhere((n) => n['type'] == 'photo');
+      final exportedPhoto = exportedNotes.firstWhere(
+        (n) => n['type'] == 'photo',
+      );
       expect(exportedPhoto['media_hash'], sha256OfFile(mediaFile.path));
     });
   });

@@ -72,9 +72,8 @@ class TagFilterRow extends StatelessWidget {
                 label: tag.name,
                 selected: selectedTagId == tag.id,
                 accent: tag.color,
-                onTap: () => onSelected(
-                  selectedTagId == tag.id ? null : tag.id,
-                ),
+                onTap: () =>
+                    onSelected(selectedTagId == tag.id ? null : tag.id),
                 theme: theme,
               ),
             ),
@@ -122,9 +121,7 @@ class _Pill extends StatelessWidget {
       child: Material(
         color: bg,
         shape: StadiumBorder(
-          side: BorderSide(
-            color: selected ? scheme.primary : scheme.outline,
-          ),
+          side: BorderSide(color: selected ? scheme.primary : scheme.outline),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(

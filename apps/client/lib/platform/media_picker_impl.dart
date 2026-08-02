@@ -16,7 +16,8 @@ import 'package:nex_core/nex_core.dart';
 /// The UI must read [supportsCamera] / [supportsGallery] rather than checking
 /// the platform itself.
 class PlatformMediaPicker implements MediaPicker {
-  PlatformMediaPicker({ImagePicker? picker}) : _picker = picker ?? ImagePicker();
+  PlatformMediaPicker({ImagePicker? picker})
+    : _picker = picker ?? ImagePicker();
 
   final ImagePicker _picker;
 
@@ -51,6 +52,8 @@ class PlatformMediaPicker implements MediaPicker {
 
     // Desktop: file_selector is the supported path on Windows and Linux.
     final file = await openFile(acceptedTypeGroups: const [_imageGroup]);
-    return file == null ? null : CapturedMedia(path: file.path, name: file.name);
+    return file == null
+        ? null
+        : CapturedMedia(path: file.path, name: file.name);
   }
 }

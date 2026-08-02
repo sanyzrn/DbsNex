@@ -284,6 +284,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
+
+      # CHANGELOG.md's own top section — see that file for the convention —
+      # replaces GitHub's auto-generated notes (a dump of every PR title and
+      # commit, most of it meaningless to whoever is looking at "what's new"
+      # on their phone) with the handful of lines a person actually wrote for
+      # this release.
+      - name: Extract this release's changelog section
+        run: |
+          heading=$(grep -m1 '^## ' CHANGELOG.md || true)
+          if [ -z "$heading" ]; then
+            echo "::error::CHANGELOG.md has no '## ' section to publish."
+            exit 1
+          fi
+          if [ "$heading" = "## Unreleased" ]; then
+            echo "::error::CHANGELOG.md's top section is still 'Unreleased' — rename it to ${{ needs.version.outputs.tag }} in the commit that cuts this release."
+            exit 1
+          fi
+          awk '/^## /{if (found) exit; found=1; next} found' CHANGELOG.md > RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+
       - uses: actions/download-artifact@v4
 
       - name: List artifacts
@@ -325,7 +346,7 @@ jobs:
           # Manual verification runs (workflow_dispatch) publish as draft so a
           # test tag does not look like a production release.
           draft: ${{ github.event_name == 'workflow_dispatch' }}
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
           files: |
             android/*.aab
             android/*.apk

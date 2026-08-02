@@ -61,7 +61,8 @@ class OnDeviceAIAdapter implements AIAdapter {
   @override
   Future<Transcript>? transcribe(AudioRef audio) {
     return Future(() {
-      final seed = audio.mediaHash ??
+      final seed =
+          audio.mediaHash ??
           sha256.convert(utf8.encode(audio.mediaUri)).toString();
       // Stable stub transcript so FTS/search tests are deterministic.
       final text =
@@ -73,7 +74,8 @@ class OnDeviceAIAdapter implements AIAdapter {
   @override
   Future<OCRText>? ocr(ImageRef image) {
     return Future(() {
-      final seed = image.mediaHash ??
+      final seed =
+          image.mediaHash ??
           sha256.convert(utf8.encode(image.mediaUri)).toString();
       final text = 'photo text ${seed.substring(0, 8)} readable label';
       return OCRText(text: text, confidence: 0.4);
@@ -123,10 +125,7 @@ class OnDeviceAIAdapter implements AIAdapter {
   @override
   Future<Summary>? summarize(Note note) {
     return Future(() {
-      final source = (note.content ??
-              note.transcriptText ??
-              note.ocrText ??
-              '')
+      final source = (note.content ?? note.transcriptText ?? note.ocrText ?? '')
           .trim();
       if (source.length < 80) {
         // Too short to meaningfully summarize — leave empty so UI can hide it.
@@ -182,10 +181,7 @@ class OnDeviceAIAdapter implements AIAdapter {
 
 /// Gates cloud-backed adapters behind explicit per-capability opt-in (09-ai.md).
 class CloudGatedAIAdapter implements AIAdapter {
-  const CloudGatedAIAdapter({
-    required this.inner,
-    required this.cloudOptIn,
-  });
+  const CloudGatedAIAdapter({required this.inner, required this.cloudOptIn});
 
   final AIAdapter inner;
   final bool cloudOptIn;
@@ -195,8 +191,7 @@ class CloudGatedAIAdapter implements AIAdapter {
       cloudOptIn ? inner.transcribe(audio) : null;
 
   @override
-  Future<Vector>? embed(String text) =>
-      cloudOptIn ? inner.embed(text) : null;
+  Future<Vector>? embed(String text) => cloudOptIn ? inner.embed(text) : null;
 
   @override
   Future<List<TagSuggestion>>? suggestTags(Note note) =>
@@ -207,6 +202,5 @@ class CloudGatedAIAdapter implements AIAdapter {
       cloudOptIn ? inner.summarize(note) : null;
 
   @override
-  Future<OCRText>? ocr(ImageRef image) =>
-      cloudOptIn ? inner.ocr(image) : null;
+  Future<OCRText>? ocr(ImageRef image) => cloudOptIn ? inner.ocr(image) : null;
 }

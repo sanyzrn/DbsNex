@@ -7,13 +7,17 @@ import 'package:nex_ui/nex_ui.dart';
 /// The floor every interactive surface has to clear, as tests rather than as a
 /// number in a token file that nothing consulted.
 void main() {
-  Tag tag(String name, {String? color}) =>
-      Tag(id: 't-$name', name: name, color: color, createdAt: DateTime.utc(2026));
+  Tag tag(String name, {String? color}) => Tag(
+    id: 't-$name',
+    name: name,
+    color: color,
+    createdAt: DateTime.utc(2026),
+  );
 
   Widget host(Widget child) => MaterialApp(
-        theme: nexLightTheme(),
-        home: Scaffold(body: Center(child: child)),
-      );
+    theme: nexLightTheme(),
+    home: Scaffold(body: Center(child: child)),
+  );
 
   testWidgets('every filter pill is at least a 48px target', (tester) async {
     await tester.pumpWidget(
@@ -21,7 +25,10 @@ void main() {
         SizedBox(
           width: 400,
           child: TagFilterRow(
-            tags: [tag('Work', color: '#F0A93B'), tag('Idea')],
+            tags: [
+              tag('Work', color: '#F0A93B'),
+              tag('Idea'),
+            ],
             selectedTagId: null,
             onSelected: (_) {},
           ),
@@ -92,15 +99,19 @@ void main() {
     );
     // A ring standing off the control, in the accent — not a fill tint, which
     // on a grey control against a grey ground is not perceivable.
-    expect(focused.first.shadows!.first.color, nexLightTheme().colorScheme.primary);
+    expect(
+      focused.first.shadows!.first.color,
+      nexLightTheme().colorScheme.primary,
+    );
     expect(
       focused.first.shadows!.first.spreadRadius,
       nexFocusRingOffset + nexFocusRingWidth,
     );
   });
 
-  testWidgets('a card announces itself in the language it was given',
-      (tester) async {
+  testWidgets('a card announces itself in the language it was given', (
+    tester,
+  ) async {
     final handle = tester.ensureSemantics();
     final note = Note(
       id: 'n1',
@@ -140,8 +151,9 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('a card is navigable inside, not one flat string',
-      (tester) async {
+  testWidgets('a card is navigable inside, not one flat string', (
+    tester,
+  ) async {
     final handle = tester.ensureSemantics();
     final note = Note(
       id: 'n1',
@@ -156,7 +168,12 @@ void main() {
     );
 
     await tester.pumpWidget(
-      host(SizedBox(width: 400, child: NoteCard(note: note, onTap: () {}))),
+      host(
+        SizedBox(
+          width: 400,
+          child: NoteCard(note: note, onTap: () {}),
+        ),
+      ),
     );
 
     // `excludeSemantics` collapsed the whole card into one announcement, so a
@@ -174,7 +191,11 @@ void main() {
       for (final type in NoteType.values) nexNoteTypeIcon(type.wireName),
       nexNoteTypeIcon(null),
     ];
-    expect(icons.toSet().length, icons.length, reason: 'two types share a mark');
+    expect(
+      icons.toSet().length,
+      icons.length,
+      reason: 'two types share a mark',
+    );
     // All outlined: three filled and two outlined in one five-row list reads as
     // unpolished before anyone can say why.
     for (final icon in icons) {

@@ -20,46 +20,46 @@ enum AiWireFormat { openai, anthropic, gemini }
 
 extension AiProviderWire on AiProvider {
   String get wireName => switch (this) {
-        AiProvider.none => 'none',
-        AiProvider.anthropic => 'anthropic',
-        AiProvider.openai => 'openai',
-        AiProvider.gemini => 'gemini',
-        AiProvider.openrouter => 'openrouter',
-        AiProvider.custom => 'custom',
-      };
+    AiProvider.none => 'none',
+    AiProvider.anthropic => 'anthropic',
+    AiProvider.openai => 'openai',
+    AiProvider.gemini => 'gemini',
+    AiProvider.openrouter => 'openrouter',
+    AiProvider.custom => 'custom',
+  };
 
   String get label => switch (this) {
-        AiProvider.none => 'On-device only',
-        AiProvider.anthropic => 'Anthropic',
-        AiProvider.openai => 'OpenAI',
-        AiProvider.gemini => 'Google Gemini',
-        AiProvider.openrouter => 'OpenRouter',
-        AiProvider.custom => 'Custom (OpenAI-compatible)',
-      };
+    AiProvider.none => 'On-device only',
+    AiProvider.anthropic => 'Anthropic',
+    AiProvider.openai => 'OpenAI',
+    AiProvider.gemini => 'Google Gemini',
+    AiProvider.openrouter => 'OpenRouter',
+    AiProvider.custom => 'Custom (OpenAI-compatible)',
+  };
 
   AiWireFormat get format => switch (this) {
-        AiProvider.anthropic => AiWireFormat.anthropic,
-        AiProvider.gemini => AiWireFormat.gemini,
-        _ => AiWireFormat.openai,
-      };
+    AiProvider.anthropic => AiWireFormat.anthropic,
+    AiProvider.gemini => AiWireFormat.gemini,
+    _ => AiWireFormat.openai,
+  };
 
   String get defaultBaseUrl => switch (this) {
-        AiProvider.none => '',
-        AiProvider.anthropic => 'https://api.anthropic.com',
-        AiProvider.openai => 'https://api.openai.com',
-        AiProvider.gemini => 'https://generativelanguage.googleapis.com',
-        AiProvider.openrouter => 'https://openrouter.ai/api',
-        AiProvider.custom => '',
-      };
+    AiProvider.none => '',
+    AiProvider.anthropic => 'https://api.anthropic.com',
+    AiProvider.openai => 'https://api.openai.com',
+    AiProvider.gemini => 'https://generativelanguage.googleapis.com',
+    AiProvider.openrouter => 'https://openrouter.ai/api',
+    AiProvider.custom => '',
+  };
 
   String get defaultModel => switch (this) {
-        AiProvider.none => '',
-        AiProvider.anthropic => 'claude-sonnet-4-5',
-        AiProvider.openai => 'gpt-4o-mini',
-        AiProvider.gemini => 'gemini-2.0-flash',
-        AiProvider.openrouter => 'openai/gpt-4o-mini',
-        AiProvider.custom => '',
-      };
+    AiProvider.none => '',
+    AiProvider.anthropic => 'claude-sonnet-4-5',
+    AiProvider.openai => 'gpt-4o-mini',
+    AiProvider.gemini => 'gemini-2.0-flash',
+    AiProvider.openrouter => 'openai/gpt-4o-mini',
+    AiProvider.custom => '',
+  };
 
   /// Whether the endpoint has to be typed in.
   ///
@@ -88,9 +88,9 @@ extension AiProviderWire on AiProvider {
       this == AiProvider.gemini;
 
   static AiProvider fromWire(String? value) => AiProvider.values.firstWhere(
-        (candidate) => candidate.wireName == value,
-        orElse: () => AiProvider.none,
-      );
+    (candidate) => candidate.wireName == value,
+    orElse: () => AiProvider.none,
+  );
 }
 
 /// Everything needed to reach a provider.
@@ -109,8 +109,9 @@ class AiProviderConfig {
   final String model;
 
   String get resolvedBaseUrl {
-    final value =
-        baseUrl.trim().isEmpty ? provider.defaultBaseUrl : baseUrl.trim();
+    final value = baseUrl.trim().isEmpty
+        ? provider.defaultBaseUrl
+        : baseUrl.trim();
     return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
   }
 
@@ -128,13 +129,12 @@ class AiProviderConfig {
     String? apiKey,
     String? baseUrl,
     String? model,
-  }) =>
-      AiProviderConfig(
-        provider: provider ?? this.provider,
-        apiKey: apiKey ?? this.apiKey,
-        baseUrl: baseUrl ?? this.baseUrl,
-        model: model ?? this.model,
-      );
+  }) => AiProviderConfig(
+    provider: provider ?? this.provider,
+    apiKey: apiKey ?? this.apiKey,
+    baseUrl: baseUrl ?? this.baseUrl,
+    model: model ?? this.model,
+  );
 }
 
 /// The outcome of a connection test, in the user's terms.
@@ -150,8 +150,8 @@ class AiTestResult {
 /// Talks to a configured provider over its HTTP API.
 class CloudAIAdapter implements AIAdapter {
   CloudAIAdapter({required this.config, http.Client? client})
-      : _client = client ?? http.Client(),
-        _ownsClient = client == null;
+    : _client = client ?? http.Client(),
+      _ownsClient = client == null;
 
   final AiProviderConfig config;
   final http.Client _client;
@@ -170,39 +170,40 @@ class CloudAIAdapter implements AIAdapter {
   }
 
   Map<String, String> get _headers => switch (config.provider.format) {
-        AiWireFormat.anthropic => {
-            'content-type': 'application/json',
-            'x-api-key': config.apiKey.trim(),
-            'anthropic-version': '2023-06-01',
-          },
-        // Gemini takes its key as a query parameter (see [_withKey]), so the
-        // request carries no auth header at all. It also accepts
-        // `x-goog-api-key`, but sending the key in the URL is the form Google's
-        // own quickstarts use and the one verified to work against this
-        // account — and a request that authenticates two ways is a request
-        // with two ways to be wrong.
-        AiWireFormat.gemini => {'content-type': 'application/json'},
-        AiWireFormat.openai => {
-            'content-type': 'application/json',
-            'authorization': 'Bearer ${config.apiKey.trim()}',
-          },
-      };
+    AiWireFormat.anthropic => {
+      'content-type': 'application/json',
+      'x-api-key': config.apiKey.trim(),
+      'anthropic-version': '2023-06-01',
+    },
+    // Gemini takes its key as a query parameter (see [_withKey]), so the
+    // request carries no auth header at all. It also accepts
+    // `x-goog-api-key`, but sending the key in the URL is the form Google's
+    // own quickstarts use and the one verified to work against this
+    // account — and a request that authenticates two ways is a request
+    // with two ways to be wrong.
+    AiWireFormat.gemini => {'content-type': 'application/json'},
+    AiWireFormat.openai => {
+      'content-type': 'application/json',
+      'authorization': 'Bearer ${config.apiKey.trim()}',
+    },
+  };
 
   Uri get _chatUri => switch (config.provider.format) {
-        AiWireFormat.anthropic =>
-          Uri.parse('${config.resolvedBaseUrl}/v1/messages'),
-        AiWireFormat.gemini => _withKey(
-            '${config.resolvedBaseUrl}/v1beta/models/'
-            '${config.resolvedModel}:generateContent',
-          ),
-        AiWireFormat.openai =>
-          Uri.parse('${config.resolvedBaseUrl}/v1/chat/completions'),
-      };
+    AiWireFormat.anthropic => Uri.parse(
+      '${config.resolvedBaseUrl}/v1/messages',
+    ),
+    AiWireFormat.gemini => _withKey(
+      '${config.resolvedBaseUrl}/v1beta/models/'
+      '${config.resolvedModel}:generateContent',
+    ),
+    AiWireFormat.openai => Uri.parse(
+      '${config.resolvedBaseUrl}/v1/chat/completions',
+    ),
+  };
 
   /// Gemini's `?key=` form.
-  Uri _withKey(String url) => Uri.parse(url).replace(
-        queryParameters: {'key': config.apiKey.trim()},
-      );
+  Uri _withKey(String url) =>
+      Uri.parse(url).replace(queryParameters: {'key': config.apiKey.trim()});
 
   /// What the provider said the last time it refused, or null.
   ///
@@ -227,72 +228,72 @@ class CloudAIAdapter implements AIAdapter {
 
     final body = switch (config.provider.format) {
       AiWireFormat.anthropic => {
-          'model': config.resolvedModel,
-          'max_tokens': maxTokens,
-          'system': system,
-          'messages': [
-            {
-              'role': 'user',
-              'content': [
-                if (base64Media != null)
-                  {
-                    'type': 'image',
-                    'source': {
-                      'type': 'base64',
-                      'media_type': mediaMimeType ?? 'image/jpeg',
-                      'data': base64Media,
-                    },
+        'model': config.resolvedModel,
+        'max_tokens': maxTokens,
+        'system': system,
+        'messages': [
+          {
+            'role': 'user',
+            'content': [
+              if (base64Media != null)
+                {
+                  'type': 'image',
+                  'source': {
+                    'type': 'base64',
+                    'media_type': mediaMimeType ?? 'image/jpeg',
+                    'data': base64Media,
                   },
-                {'type': 'text', 'text': user},
-              ],
-            },
-          ],
-        },
-      AiWireFormat.gemini => {
-          'systemInstruction': {
-            'parts': [
-              {'text': system},
+                },
+              {'type': 'text', 'text': user},
             ],
           },
-          'contents': [
-            {
-              'role': 'user',
-              'parts': [
-                if (base64Media != null)
-                  {
-                    'inline_data': {
-                      'mime_type': mediaMimeType ?? 'application/octet-stream',
-                      'data': base64Media,
-                    },
+        ],
+      },
+      AiWireFormat.gemini => {
+        'systemInstruction': {
+          'parts': [
+            {'text': system},
+          ],
+        },
+        'contents': [
+          {
+            'role': 'user',
+            'parts': [
+              if (base64Media != null)
+                {
+                  'inline_data': {
+                    'mime_type': mediaMimeType ?? 'application/octet-stream',
+                    'data': base64Media,
                   },
-                {'text': user},
-              ],
-            },
-          ],
-          'generationConfig': {'maxOutputTokens': maxTokens},
-        },
+                },
+              {'text': user},
+            ],
+          },
+        ],
+        'generationConfig': {'maxOutputTokens': maxTokens},
+      },
       AiWireFormat.openai => {
-          'model': config.resolvedModel,
-          'max_tokens': maxTokens,
-          'messages': [
-            {'role': 'system', 'content': system},
-            {
-              'role': 'user',
-              'content': base64Media == null
-                  ? user
-                  : [
-                      {'type': 'text', 'text': user},
-                      {
-                        'type': 'image_url',
-                        'image_url': {
-                          'url':
-                              'data:${mediaMimeType ?? 'image/jpeg'};base64,$base64Media',
-                        },
+        'model': config.resolvedModel,
+        'max_tokens': maxTokens,
+        'messages': [
+          {'role': 'system', 'content': system},
+          {
+            'role': 'user',
+            'content': base64Media == null
+                ? user
+                : [
+                    {'type': 'text', 'text': user},
+                    {
+                      'type': 'image_url',
+                      'image_url': {
+                        'url':
+                            'data:${mediaMimeType ?? 'image/jpeg'};base64,$base64Media',
                       },
-                    ],
-            },
-          ],
-        },
+                    },
+                  ],
+          },
+        ],
+      },
     };
 
     final response = await _client
@@ -355,7 +356,9 @@ class CloudAIAdapter implements AIAdapter {
         final content = decoded['content'];
         if (content is! List) return null;
         for (final part in content) {
-          if (part is Map && part['text'] is String) return part['text'] as String;
+          if (part is Map && part['text'] is String) {
+            return part['text'] as String;
+          }
         }
         return null;
       case AiWireFormat.gemini:
@@ -489,7 +492,7 @@ class CloudAIAdapter implements AIAdapter {
   Future<OCRText> _ocr(Uint8List bytes, String uri) async {
     final reply = await _complete(
       'Transcribe every readable word in the image, in reading order. '
-      'Reply with the text only. If there is no text, reply with nothing.',
+          'Reply with the text only. If there is no text, reply with nothing.',
       'What does this image say?',
       maxTokens: 800,
       media: bytes,
@@ -511,7 +514,7 @@ class CloudAIAdapter implements AIAdapter {
     if (config.provider.format == AiWireFormat.gemini) {
       final reply = await _complete(
         'Transcribe the speech in the audio, in its own language. '
-        'Reply with the transcript only.',
+            'Reply with the transcript only.',
         'Transcribe this recording.',
         maxTokens: 2000,
         media: bytes,
@@ -520,19 +523,20 @@ class CloudAIAdapter implements AIAdapter {
       return Transcript(text: reply?.trim() ?? '');
     }
     // OpenAI has a dedicated multipart endpoint instead.
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('${config.resolvedBaseUrl}/v1/audio/transcriptions'),
-    )
-      ..headers['authorization'] = 'Bearer ${config.apiKey.trim()}'
-      ..fields['model'] = 'whisper-1'
-      ..files.add(
-        http.MultipartFile.fromBytes(
-          'file',
-          bytes,
-          filename: uri.split(Platform.pathSeparator).last,
-        ),
-      );
+    final request =
+        http.MultipartRequest(
+            'POST',
+            Uri.parse('${config.resolvedBaseUrl}/v1/audio/transcriptions'),
+          )
+          ..headers['authorization'] = 'Bearer ${config.apiKey.trim()}'
+          ..fields['model'] = 'whisper-1'
+          ..files.add(
+            http.MultipartFile.fromBytes(
+              'file',
+              bytes,
+              filename: uri.split(Platform.pathSeparator).last,
+            ),
+          );
     final streamed = await _client.send(request).timeout(_mediaTimeout);
     if (streamed.statusCode != 200) return const Transcript(text: '');
     final body = await streamed.stream.bytesToString();
@@ -586,10 +590,7 @@ class CloudAIAdapter implements AIAdapter {
         .post(
           Uri.parse('${config.resolvedBaseUrl}/v1/embeddings'),
           headers: _headers,
-          body: jsonEncode({
-            'model': 'text-embedding-3-small',
-            'input': text,
-          }),
+          body: jsonEncode({'model': 'text-embedding-3-small', 'input': text}),
         )
         .timeout(_textTimeout);
     if (response.statusCode != 200) return const Vector([]);

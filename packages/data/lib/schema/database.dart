@@ -109,7 +109,11 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     // cursor and made each sync broadcast the entire tag table to every peer.
     // Existing rows default to 'pending' so the first sync after this upgrade
     // reconciles them once, and then stops.
-    _addColumnIfMissing('tags', 'sync_state', "TEXT NOT NULL DEFAULT 'pending'");
+    _addColumnIfMissing(
+      'tags',
+      'sync_state',
+      "TEXT NOT NULL DEFAULT 'pending'",
+    );
 
     db.execute('''
 CREATE TABLE IF NOT EXISTS note_embeddings (
@@ -180,12 +184,13 @@ CREATE TABLE IF NOT EXISTS nex_meta (
     db.execute('PRAGMA wal_checkpoint(FULL);');
     File(path).copySync(target.path);
 
-    final existing = dir
-        .listSync()
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.sqlite'))
-        .toList()
-      ..sort((a, b) => b.path.compareTo(a.path));
+    final existing =
+        dir
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.sqlite'))
+            .toList()
+          ..sort((a, b) => b.path.compareTo(a.path));
     for (final stale in existing.skip(backupRetention)) {
       stale.deleteSync();
     }

@@ -32,8 +32,9 @@ void main() {
       .whereType<LinearGradient>()
       .toList();
 
-  testWidgets('the slider gradients follow the reading direction',
-      (tester) async {
+  testWidgets('the slider gradients follow the reading direction', (
+    tester,
+  ) async {
     // `Slider` is directional — in RTL its zero end is on the right — but a
     // LinearGradient with the default begin/end always paints left to right.
     // In Persian the track therefore ran backwards under its own thumb, so

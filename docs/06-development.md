@@ -189,6 +189,8 @@ Two rules the numbers have to obey:
 - **Tag `main` after the work is merged, not before.** A tag names a commit; tagging the branch or an older `main` releases whatever was on that commit.
 - **Never reuse or go backwards.** `versionCode` is `major×1000000 + minor×1000 + patch`, so `0.2.1` is `2001`. Google Play requires it to increase strictly and forever, and Android refuses to install an APK whose `versionCode` is lower than the installed one.
 
+**Rename the changelog heading before you tag.** [`CHANGELOG.md`](../CHANGELOG.md)'s top section — whatever it is titled — is published as-is as both the GitHub Release body and the in-app update sheet's content. As part of the same merge to `main` that you are about to tag, rename its `## Unreleased` heading to `## vX.Y.Z` matching the tag, and start a fresh `## Unreleased` above it. The release workflow refuses to publish if the top heading is still literally `Unreleased`.
+
 `version:` in `apps/client/pubspec.yaml` stays as the local development default, kept in step with `lib/app_version.dart` by `version_test.dart`. Releases overwrite both from the tag, so a stale value there can no longer block or mislabel a release.
 The workflow builds a signed Android App Bundle plus split APKs and a Windows Inno Setup installer, and attaches them all to the GitHub Release. Every build waits on the full CI suite first — tags do not match branches, so without that gate a tag would ship straight to a public release without ever running analyze or the tests.
 

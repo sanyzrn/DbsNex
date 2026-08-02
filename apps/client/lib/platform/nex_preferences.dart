@@ -169,6 +169,11 @@ class NexPreferences extends ChangeNotifier {
 
   bool get comfortMode => _prefs.getBool('appearance.comfort') ?? false;
 
+  /// The one accent colour a user actually picks — `#RRGGBB`, or null for
+  /// the shipped default. The other three accent roles follow from it; see
+  /// [NexAccentPalette].
+  String? get accentSeed => _prefs.getString('appearance.accent_seed');
+
   /// A multiplier on top of the system's own text scale, not a replacement
   /// for it — someone who already runs a larger system font can still make
   /// Nex itself a little bigger or smaller on top of that. 1.0 is "as the
@@ -226,6 +231,17 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setComfortMode(bool value) =>
       _setBool('appearance.comfort', value);
+
+  /// Null clears the setting back to the shipped default rather than storing
+  /// an empty string — [accentSeed] only ever has to check for null.
+  Future<void> setAccentSeed(String? value) async {
+    if (value == null) {
+      await _prefs.remove('appearance.accent_seed');
+    } else {
+      await _prefs.setString('appearance.accent_seed', value);
+    }
+    notifyListeners();
+  }
 
   Future<void> setUiScale(double value) async {
     await _prefs.setDouble('appearance.ui_scale', value);
