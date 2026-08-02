@@ -939,7 +939,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cropConfirm => 'Use photo';
 
   @override
+  String get cropRotate => 'Rotate';
+
+  @override
+  String get cropAnnotate => 'Draw or add text';
+
+  @override
   String get cropCancel => 'Discard photo';
+
+  @override
+  String get annotateTitle => 'Draw or add text';
+
+  @override
+  String get annotateDraw => 'Draw';
+
+  @override
+  String get annotateText => 'Text';
+
+  @override
+  String get annotateTextHint => 'Type something…';
+
+  @override
+  String get annotateUndo => 'Undo';
+
+  @override
+  String get annotateClear => 'Clear all';
+
+  @override
+  String get annotateDone => 'Done';
+
+  @override
+  String get annotateTapToPlaceText =>
+      'Tap anywhere on the photo to place text';
 
   @override
   String get tagColor => 'Tag color';

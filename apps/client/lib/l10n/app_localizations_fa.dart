@@ -938,7 +938,37 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cropConfirm => 'استفاده از عکس';
 
   @override
+  String get cropRotate => 'چرخاندن';
+
+  @override
+  String get cropAnnotate => 'طراحی یا متن';
+
+  @override
   String get cropCancel => 'دور ریختن عکس';
+
+  @override
+  String get annotateTitle => 'طراحی یا متن';
+
+  @override
+  String get annotateDraw => 'طراحی';
+
+  @override
+  String get annotateText => 'متن';
+
+  @override
+  String get annotateTextHint => 'چیزی بنویس…';
+
+  @override
+  String get annotateUndo => 'برگردان';
+
+  @override
+  String get annotateClear => 'پاک کردن همه';
+
+  @override
+  String get annotateDone => 'تمام';
+
+  @override
+  String get annotateTapToPlaceText => 'برای گذاشتن متن، روی عکس بزن';
 
   @override
   String get tagColor => 'رنگ برچسب';

@@ -27,6 +27,11 @@ dependencies:
   # it works uniformly on every target this app builds for, unlike
   # image_cropper, which has no Windows implementation at all.
   crop_your_image: ^2.0.0
+  # Rotates a photo's raw bytes before crop_your_image ever sees them — it has
+  # no rotation API of its own. Already resolved transitively (crop_your_image
+  # depends on it); declared directly because photo_crop_screen.dart now
+  # imports it too.
+  image: ^4.3.0
   # Pinned to the version flutter_localizations resolves against on 3.35.x.
   # "any" delegated the constraint entirely to whatever Flutter stable was
   # installed at build time.
