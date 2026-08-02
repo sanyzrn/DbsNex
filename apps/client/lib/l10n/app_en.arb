@@ -407,11 +407,39 @@
   },
   "sendFeedback": "Send feedback",
   "@sendFeedback": {
-    "description": "About screen row linking to the issue tracker"
+    "description": "About screen row opening the feedback sheet"
   },
-  "sendFeedbackSubtitle": "github.com/sanyzrn/DbsNex/issues",
+  "sendFeedbackSubtitle": "Tell us what's working, or what isn't",
   "@sendFeedbackSubtitle": {
-    "description": "About screen: where feedback goes"
+    "description": "About screen: subtitle under Send feedback"
+  },
+  "feedbackHint": "What's on your mind?",
+  "@feedbackHint": {
+    "description": "Feedback sheet: text field hint"
+  },
+  "feedbackSend": "Send",
+  "@feedbackSend": {
+    "description": "Feedback sheet: submit button"
+  },
+  "feedbackSent": "Feedback sent — thank you",
+  "@feedbackSent": {
+    "description": "Toast shown once feedback is delivered"
+  },
+  "feedbackQueuedOffline": "No connection — this will send once you're back online",
+  "@feedbackQueuedOffline": {
+    "description": "Toast shown when feedback is saved to retry later"
+  },
+  "feedbackFailed": "Couldn't send that",
+  "@feedbackFailed": {
+    "description": "Feedback sheet: inline error when the server rejected the message"
+  },
+  "feedbackUnavailable": "Feedback isn't available in this build yet",
+  "@feedbackUnavailable": {
+    "description": "Feedback sheet: inline notice when no feedback server is configured"
+  },
+  "feedbackOpenIssueInstead": "Open a GitHub issue instead",
+  "@feedbackOpenIssueInstead": {
+    "description": "Feedback sheet: fallback link when sending isn't possible"
   },
   "capabilities": "What Nex does",
   "@capabilities": {
@@ -778,9 +806,49 @@
   "@cropConfirm": {
     "description": "Confirms the crop and saves the photo"
   },
+  "cropRotate": "Rotate",
+  "@cropRotate": {
+    "description": "Crop screen: rotates the photo 90° clockwise"
+  },
+  "cropAnnotate": "Draw or add text",
+  "@cropAnnotate": {
+    "description": "Crop screen: opens the optional annotate step"
+  },
   "cropCancel": "Discard photo",
   "@cropCancel": {
     "description": "Cancels the whole photo capture, not just the crop"
+  },
+  "annotateTitle": "Draw or add text",
+  "@annotateTitle": {
+    "description": "Title of the annotate screen, reached from the crop screen"
+  },
+  "annotateDraw": "Draw",
+  "@annotateDraw": {
+    "description": "Annotate screen: switches to freehand drawing mode"
+  },
+  "annotateText": "Text",
+  "@annotateText": {
+    "description": "Annotate screen: switches to text-placement mode"
+  },
+  "annotateTextHint": "Type something…",
+  "@annotateTextHint": {
+    "description": "Annotate screen: placeholder in the text-entry dialog"
+  },
+  "annotateUndo": "Undo",
+  "@annotateUndo": {
+    "description": "Annotate screen: removes the last stroke or text label"
+  },
+  "annotateClear": "Clear all",
+  "@annotateClear": {
+    "description": "Annotate screen: removes every stroke and text label"
+  },
+  "annotateDone": "Done",
+  "@annotateDone": {
+    "description": "Annotate screen: bakes the annotations into the photo and returns"
+  },
+  "annotateTapToPlaceText": "Tap anywhere on the photo to place text",
+  "@annotateTapToPlaceText": {
+    "description": "Annotate screen: hint shown while in text-placement mode"
   },
   "tagColor": "Tag color",
   "@tagColor": {

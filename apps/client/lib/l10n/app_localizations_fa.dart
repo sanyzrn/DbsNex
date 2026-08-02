@@ -572,7 +572,30 @@ class AppLocalizationsFa extends AppLocalizations {
   String get sendFeedback => 'ارسال بازخورد';
 
   @override
-  String get sendFeedbackSubtitle => 'github.com/sanyzrn/DbsNex/issues';
+  String get sendFeedbackSubtitle => 'نظرت درباره اپ رو بهمون بگو';
+
+  @override
+  String get feedbackHint => 'چی تو ذهنته؟';
+
+  @override
+  String get feedbackSend => 'ارسال';
+
+  @override
+  String get feedbackSent => 'بازخورد ارسال شد — ممنون از وقتی که گذاشتی';
+
+  @override
+  String get feedbackQueuedOffline =>
+      'اینترنت وصل نیست — به محض وصل شدن ارسال می‌شود';
+
+  @override
+  String get feedbackFailed => 'ارسال نشد';
+
+  @override
+  String get feedbackUnavailable =>
+      'قابلیت ارسال بازخورد هنوز در این نسخه فعال نیست';
+
+  @override
+  String get feedbackOpenIssueInstead => 'به‌جایش یک ایشو در گیت‌هاب باز کن';
 
   @override
   String get capabilities => 'Nex چه می‌کند';
@@ -915,7 +938,37 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cropConfirm => 'استفاده از عکس';
 
   @override
+  String get cropRotate => 'چرخاندن';
+
+  @override
+  String get cropAnnotate => 'طراحی یا متن';
+
+  @override
   String get cropCancel => 'دور ریختن عکس';
+
+  @override
+  String get annotateTitle => 'طراحی یا متن';
+
+  @override
+  String get annotateDraw => 'طراحی';
+
+  @override
+  String get annotateText => 'متن';
+
+  @override
+  String get annotateTextHint => 'چیزی بنویس…';
+
+  @override
+  String get annotateUndo => 'برگردان';
+
+  @override
+  String get annotateClear => 'پاک کردن همه';
+
+  @override
+  String get annotateDone => 'تمام';
+
+  @override
+  String get annotateTapToPlaceText => 'برای گذاشتن متن، روی عکس بزن';
 
   @override
   String get tagColor => 'رنگ برچسب';

@@ -22,7 +22,7 @@ void main() {
 
   // Identical in both locales on purpose: the product name, and URLs, which
   // are not words in any language.
-  const untranslatable = {'appTitle', 'syncServerHint', 'sendFeedbackSubtitle'};
+  const untranslatable = {'appTitle', 'syncServerHint'};
 
   test('every English message has a Persian one', () {
     expect(en.keys.toSet().difference(fa.keys.toSet()), isEmpty);

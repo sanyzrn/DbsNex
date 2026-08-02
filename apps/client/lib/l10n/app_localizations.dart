@@ -1076,17 +1076,59 @@ abstract class AppLocalizations {
   /// **'Source code'**
   String get sourceCode;
 
-  /// About screen row linking to the issue tracker
+  /// About screen row opening the feedback sheet
   ///
   /// In en, this message translates to:
   /// **'Send feedback'**
   String get sendFeedback;
 
-  /// About screen: where feedback goes
+  /// About screen: subtitle under Send feedback
   ///
   /// In en, this message translates to:
-  /// **'github.com/sanyzrn/DbsNex/issues'**
+  /// **'Tell us what\'s working, or what isn\'t'**
   String get sendFeedbackSubtitle;
+
+  /// Feedback sheet: text field hint
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s on your mind?'**
+  String get feedbackHint;
+
+  /// Feedback sheet: submit button
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get feedbackSend;
+
+  /// Toast shown once feedback is delivered
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback sent — thank you'**
+  String get feedbackSent;
+
+  /// Toast shown when feedback is saved to retry later
+  ///
+  /// In en, this message translates to:
+  /// **'No connection — this will send once you\'re back online'**
+  String get feedbackQueuedOffline;
+
+  /// Feedback sheet: inline error when the server rejected the message
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send that'**
+  String get feedbackFailed;
+
+  /// Feedback sheet: inline notice when no feedback server is configured
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback isn\'t available in this build yet'**
+  String get feedbackUnavailable;
+
+  /// Feedback sheet: fallback link when sending isn't possible
+  ///
+  /// In en, this message translates to:
+  /// **'Open a GitHub issue instead'**
+  String get feedbackOpenIssueInstead;
 
   /// About screen section heading
   ///
@@ -1574,11 +1616,71 @@ abstract class AppLocalizations {
   /// **'Use photo'**
   String get cropConfirm;
 
+  /// Crop screen: rotates the photo 90° clockwise
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate'**
+  String get cropRotate;
+
+  /// Crop screen: opens the optional annotate step
+  ///
+  /// In en, this message translates to:
+  /// **'Draw or add text'**
+  String get cropAnnotate;
+
   /// Cancels the whole photo capture, not just the crop
   ///
   /// In en, this message translates to:
   /// **'Discard photo'**
   String get cropCancel;
+
+  /// Title of the annotate screen, reached from the crop screen
+  ///
+  /// In en, this message translates to:
+  /// **'Draw or add text'**
+  String get annotateTitle;
+
+  /// Annotate screen: switches to freehand drawing mode
+  ///
+  /// In en, this message translates to:
+  /// **'Draw'**
+  String get annotateDraw;
+
+  /// Annotate screen: switches to text-placement mode
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get annotateText;
+
+  /// Annotate screen: placeholder in the text-entry dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Type something…'**
+  String get annotateTextHint;
+
+  /// Annotate screen: removes the last stroke or text label
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get annotateUndo;
+
+  /// Annotate screen: removes every stroke and text label
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get annotateClear;
+
+  /// Annotate screen: bakes the annotations into the photo and returns
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get annotateDone;
+
+  /// Annotate screen: hint shown while in text-placement mode
+  ///
+  /// In en, this message translates to:
+  /// **'Tap anywhere on the photo to place text'**
+  String get annotateTapToPlaceText;
 
   /// Title of the tag color picker
   ///

@@ -4,8 +4,11 @@ import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/crash_reporter.dart';
+import '../platform/feedback_service.dart';
+import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/sharing.dart';
+import '../widgets/feedback_sheet.dart';
 import '../widgets/nex_toast.dart';
 import 'update_sheet.dart';
 
@@ -13,9 +16,14 @@ const _websiteUrl = 'https://SaeedZarrini.ir';
 const _repositoryUrl = 'https://github.com/sanyzrn/DbsNex';
 
 class AboutScreen extends StatelessWidget {
-  const AboutScreen({super.key, required this.services});
+  const AboutScreen({
+    super.key,
+    required this.services,
+    required this.preferences,
+  });
 
   final NexServices services;
+  final NexPreferences preferences;
 
   @override
   Widget build(BuildContext context) {
@@ -96,13 +104,15 @@ class AboutScreen extends StatelessWidget {
             copiedLabel: l10n.copied,
             copyTooltip: l10n.copy,
           ),
-          _LinkTile(
-            icon: Icons.feedback_outlined,
-            title: l10n.sendFeedback,
-            subtitle: l10n.sendFeedbackSubtitle,
-            url: '$_repositoryUrl/issues/new',
-            copiedLabel: l10n.copied,
-            copyTooltip: l10n.copy,
+          ListTile(
+            leading: const Icon(Icons.feedback_outlined),
+            title: Text(l10n.sendFeedback),
+            subtitle: Text(l10n.sendFeedbackSubtitle),
+            onTap: () async {
+              final service = FeedbackService(preferences: preferences);
+              await FeedbackSheet.show(context, service: service);
+              service.close();
+            },
           ),
           const Divider(),
           ListTile(

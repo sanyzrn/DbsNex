@@ -571,7 +571,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sendFeedback => 'Send feedback';
 
   @override
-  String get sendFeedbackSubtitle => 'github.com/sanyzrn/DbsNex/issues';
+  String get sendFeedbackSubtitle => 'Tell us what\'s working, or what isn\'t';
+
+  @override
+  String get feedbackHint => 'What\'s on your mind?';
+
+  @override
+  String get feedbackSend => 'Send';
+
+  @override
+  String get feedbackSent => 'Feedback sent — thank you';
+
+  @override
+  String get feedbackQueuedOffline =>
+      'No connection — this will send once you\'re back online';
+
+  @override
+  String get feedbackFailed => 'Couldn\'t send that';
+
+  @override
+  String get feedbackUnavailable =>
+      'Feedback isn\'t available in this build yet';
+
+  @override
+  String get feedbackOpenIssueInstead => 'Open a GitHub issue instead';
 
   @override
   String get capabilities => 'What Nex does';
@@ -916,7 +939,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cropConfirm => 'Use photo';
 
   @override
+  String get cropRotate => 'Rotate';
+
+  @override
+  String get cropAnnotate => 'Draw or add text';
+
+  @override
   String get cropCancel => 'Discard photo';
+
+  @override
+  String get annotateTitle => 'Draw or add text';
+
+  @override
+  String get annotateDraw => 'Draw';
+
+  @override
+  String get annotateText => 'Text';
+
+  @override
+  String get annotateTextHint => 'Type something…';
+
+  @override
+  String get annotateUndo => 'Undo';
+
+  @override
+  String get annotateClear => 'Clear all';
+
+  @override
+  String get annotateDone => 'Done';
+
+  @override
+  String get annotateTapToPlaceText =>
+      'Tap anywhere on the photo to place text';
 
   @override
   String get tagColor => 'Tag color';

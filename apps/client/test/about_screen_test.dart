@@ -31,6 +31,7 @@ class _FakePathProviderPlatform extends PathProviderPlatform
 void main() {
   late Directory tmp;
   late NexServices services;
+  late NexPreferences preferences;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -41,10 +42,11 @@ void main() {
     final backupDir = p.join(tmp.path, 'backups');
     Directory(mediaDir).createSync(recursive: true);
     Directory(backupDir).createSync(recursive: true);
+    preferences = await NexPreferences.load();
     services = NexServices.forTest(
       worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
       deviceId: 'test',
-      preferences: await NexPreferences.load(),
+      preferences: preferences,
       backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
       dbPath: dbPath,
       mediaDir: mediaDir,
@@ -70,7 +72,7 @@ void main() {
         MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: AboutScreen(services: services),
+          home: AboutScreen(services: services, preferences: preferences),
         ),
       );
       await tester.pumpAndSettle();
@@ -87,49 +89,68 @@ void main() {
     },
   );
 
-  testWidgets('feedback copies the issue tracker link, not the repo root', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(800, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+  testWidgets(
+    'feedback opens a compose sheet, and falls back to the issue tracker '
+    'when no feedback server is configured',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
 
-    // flutter_test ships no default handler for the clipboard channel, so an
-    // un-mocked await on Clipboard.getData never resolves — it is not
-    // exercised anywhere else in this suite.
-    String? clipboardText;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
-          if (call.method == 'Clipboard.setData') {
-            clipboardText = (call.arguments as Map)['text'] as String?;
+      // flutter_test ships no default handler for the clipboard channel, so an
+      // un-mocked await on Clipboard.getData never resolves — it is not
+      // exercised anywhere else in this suite.
+      String? clipboardText;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText = (call.arguments as Map)['text'] as String?;
+              return null;
+            }
+            if (call.method == 'Clipboard.getData') {
+              return {'text': clipboardText};
+            }
             return null;
-          }
-          if (call.method == 'Clipboard.getData') {
-            return {'text': clipboardText};
-          }
-          return null;
-        });
-    addTearDown(
-      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(SystemChannels.platform, null),
-    );
+          });
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, null),
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: AboutScreen(services: services),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: AboutScreen(services: services, preferences: preferences),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Send feedback'), findsOneWidget);
-    await tester.tap(find.text('Send feedback'));
-    await tester.pumpAndSettle();
+      expect(find.text('Send feedback'), findsOneWidget);
+      await tester.tap(find.text('Send feedback'));
+      await tester.pumpAndSettle();
 
-    final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
-    expect(clipboard?.text, 'https://github.com/sanyzrn/DbsNex/issues/new');
-  });
+      await tester.enterText(find.byType(TextField), 'the timeline is great');
+      await tester.tap(find.text('Send'));
+      await tester.pumpAndSettle();
+
+      // This test build has no NEX_FEEDBACK_API_URL, so sending answers
+      // "unavailable" without ever touching the network — the sheet stays
+      // open, with the typed text still there, and offers the old link as a
+      // fallback rather than a dead end.
+      expect(
+        find.text("Feedback isn't available in this build yet"),
+        findsOneWidget,
+      );
+      expect(find.text('the timeline is great'), findsOneWidget);
+
+      await tester.tap(find.text('Open a GitHub issue instead'));
+      await tester.pumpAndSettle();
+
+      final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+      expect(clipboard?.text, 'https://github.com/sanyzrn/DbsNex/issues/new');
+    },
+  );
 
   testWidgets('the wordmark image swaps with the theme, not just the tint', (
     tester,
@@ -143,7 +164,7 @@ void main() {
         themeMode: brightness == Brightness.dark
             ? ThemeMode.dark
             : ThemeMode.light,
-        home: AboutScreen(services: services),
+        home: AboutScreen(services: services, preferences: preferences),
       ),
     );
 

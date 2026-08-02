@@ -123,4 +123,15 @@ describe("HTTP boundary", () => {
     const text = await res.text();
     assert.ok(!text.includes("SyntaxError:"), `leaked a parser stack: ${text}`);
   });
+
+  // This process never sets TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID — the
+  // deliberate case of a deployment that has not configured feedback yet.
+  test("feedback answers 503 rather than silently discarding the message", async () => {
+    const res = await fetch(`${baseUrl}/feedback`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "hello" }),
+    });
+    assert.equal(res.status, 503);
+  });
 });
