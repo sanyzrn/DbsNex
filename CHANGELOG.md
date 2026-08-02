@@ -50,3 +50,6 @@ Working convention:
 - The icon next to each note is rounder, and lost its outline.
 - Added an accent-colour picker in Settings — pick one colour, and the caret,
   focus rings, and every other accent-tinted control follow it.
+- The update screen now shows what actually changed, as a real list, instead
+  of one long paragraph.
+- Toasts pop in instead of just fading.
