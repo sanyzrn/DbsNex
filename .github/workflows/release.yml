@@ -116,9 +116,9 @@ jobs:
       run:
         working-directory: apps/client
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v5.6.0
         with:
           distribution: temurin
           java-version: "17"
@@ -214,7 +214,7 @@ jobs:
             "dist/Nex-${{ needs.version.outputs.version }}-universal.apk"
           ls -la dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: android
           path: apps/client/dist/*
@@ -231,7 +231,7 @@ jobs:
       run:
         working-directory: apps/client
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
@@ -273,7 +273,7 @@ jobs:
           & $iscc "windows\installer\nex.iss" "/DAppVersion=$version"
           Get-ChildItem "windows\installer\Output\*.exe" | Format-Table Name, Length
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-installer
           path: apps/client/windows/installer/Output/*.exe
@@ -284,7 +284,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # CHANGELOG.md's own top section — see that file for the convention —
       # replaces GitHub's auto-generated notes (a dump of every PR title and
@@ -305,7 +305,7 @@ jobs:
           awk '/^## /{if (found) exit; found=1; next} found' CHANGELOG.md > RELEASE_NOTES.md
           cat RELEASE_NOTES.md
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
 
       - name: List artifacts
         run: find . -type f -printf '%p %s bytes\n'
@@ -328,7 +328,7 @@ jobs:
         # Third-party actions are pinned by commit SHA: this job holds
         # contents: write, so a compromised mutable tag would be able to push
         # to the repository.
-        uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 # v2.1.0
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           # A different repo — the public one the in-app updater actually
           # checks (see the note at the top of this file) — which needs its
