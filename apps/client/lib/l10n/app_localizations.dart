@@ -176,6 +176,60 @@ abstract class AppLocalizations {
   /// **'Text'**
   String get text;
 
+  /// Title of the photo editor shown right after taking or picking a photo
+  ///
+  /// In en, this message translates to:
+  /// **'Edit photo'**
+  String get photoEditorTitle;
+
+  /// Toolbar button and picker title for the crop aspect ratio
+  ///
+  /// In en, this message translates to:
+  /// **'Aspect ratio'**
+  String get photoEditorAspect;
+
+  /// Aspect preset with no fixed ratio
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get photoEditorFree;
+
+  /// Aspect preset matching the photo's own proportions
+  ///
+  /// In en, this message translates to:
+  /// **'Original'**
+  String get photoEditorOriginal;
+
+  /// 1:1 aspect preset
+  ///
+  /// In en, this message translates to:
+  /// **'Square'**
+  String get photoEditorSquare;
+
+  /// Rotates the photo 90 degrees
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate'**
+  String get photoEditorRotate;
+
+  /// Mirrors the photo horizontally
+  ///
+  /// In en, this message translates to:
+  /// **'Flip'**
+  String get photoEditorFlip;
+
+  /// Mirrors the photo vertically
+  ///
+  /// In en, this message translates to:
+  /// **'Flip vertical'**
+  String get photoEditorFlipVertical;
+
+  /// Discards every edit and restores the photo as it arrived
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get photoEditorReset;
+
   /// No description provided for @filters.
   ///
   /// In en, this message translates to:
@@ -908,6 +962,30 @@ abstract class AppLocalizations {
   /// **'Voice · {seconds}s'**
   String voiceDuration(int seconds);
 
+  /// Settings section about the Android home-screen widgets
+  ///
+  /// In en, this message translates to:
+  /// **'Home-screen widgets'**
+  String get widgetsSection;
+
+  /// Opens instructions for adding a Nex widget to the home screen
+  ///
+  /// In en, this message translates to:
+  /// **'How to add'**
+  String get widgetsHowTo;
+
+  /// Settings row subtitle naming the four home-screen widgets
+  ///
+  /// In en, this message translates to:
+  /// **'Quick capture, voice, camera and recent notes — added from your launcher'**
+  String get widgetsSubtitle;
+
+  /// Instructions for adding a Nex widget to the home screen
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press an empty spot on your home screen, choose Widgets, and find Nex. Four widgets are available: quick capture, voice memo, camera, and recent notes.\n\nWidgets only read the snapshot the app keeps for them on this device — nothing is sent anywhere.'**
+  String get widgetsHowToBody;
+
   /// Hint under a photo in the detail sheet
   ///
   /// In en, this message translates to:
@@ -997,6 +1075,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nex is opening'**
   String get opening;
+
+  /// Inserts the clipboard text into the capture field
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get paste;
+
+  /// Tooltip on the capture sheet's paste chip
+  ///
+  /// In en, this message translates to:
+  /// **'Insert the text you copied'**
+  String get pasteClipboard;
 
   /// Explains that each swipe edge is configured independently
   ///
@@ -1501,12 +1591,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try again'**
   String get retry;
-
-  /// Title of the crop screen shown right after taking or picking a photo
-  ///
-  /// In en, this message translates to:
-  /// **'Crop photo'**
-  String get cropPhotoTitle;
 
   /// Confirms the crop and saves the photo
   ///

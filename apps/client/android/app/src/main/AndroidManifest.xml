@@ -37,6 +37,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:enableOnBackInvokedCallback="true"
         android:networkSecurityConfig="@xml/network_security_config"
+        android:supportsRtl="true"
+        android:localeConfig="@xml/locales_config"
         android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
@@ -62,10 +64,30 @@
                 <data android:mimeType="*/*" />
             </intent-filter>
         </activity>
-        <receiver android:name=".CaptureWidgetProvider" android:exported="true" android:label="Nex Capture">
+        <!-- Four widgets, one provider class each, so the launcher's widget
+             picker offers them as four distinct entries with no configuration
+             step. All four share NexWidgetProvider's rendering and read the
+             snapshot file the Flutter side keeps fresh. -->
+        <receiver android:name=".NexQuickCaptureWidget" android:exported="true" android:label="@string/widget_quick_capture_label">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/capture_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_quick_capture" />
         </receiver>
+        <receiver android:name=".NexVoiceWidget" android:exported="true" android:label="@string/widget_voice_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_voice" />
+        </receiver>
+        <receiver android:name=".NexCameraWidget" android:exported="true" android:label="@string/widget_camera_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_camera" />
+        </receiver>
+        <receiver android:name=".NexNotesWidget" android:exported="true" android:label="@string/widget_notes_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info_notes" />
+        </receiver>
+        <service
+            android:name=".NexWidgetNotesService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
         <meta-data android:name="flutterEmbedding" android:value="2" />
     </application>
 </manifest>

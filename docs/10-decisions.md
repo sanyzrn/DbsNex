@@ -295,6 +295,36 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 
 ---
 
+## ADR-029 — The home-screen widget grows from one dead button into four real widgets
+
+- **Context:** ADR-027 shipped a single "Capture" widget that opened the app into text capture — except it did nothing at all: the `text_capture` signal was enqueued by `MainActivity`, delivered to `OsCaptureBridge`, and then dropped, because no screen ever listened to the bridge's events stream. Worse, the widget was a fixed dark card on every launcher (no light/dark adaptation), offered no RTL, and there was no way for a widget to show *content*, so the home screen could hold a capture button but not the captures themselves. A capture app's highest-leverage surface outside the app is the home screen; a button that opens an app is the weakest possible version of that surface.
+- **Decision:** Replace the single widget with four distinct widgets, each its own `AppWidgetProvider` class so the launcher's widget picker shows them without a configuration step:
+  1. **Quick capture** — opens straight into the text capture sheet (the old widget, now actually wired: cold-start taps are queued natively and drained by the timeline once it mounts; live taps arrive on the bridge's events stream, which the timeline now listens to).
+  2. **Voice memo** — one tap starts the same voice capture flow as the in-app mic.
+  3. **Photo** — one tap opens the camera capture flow.
+  4. **Recent notes** — a scrollable list of the newest notes (type glyph, one-line preview, relative time, pin badge) fed by a `RemoteViewsService`, with a New note footer and a refresh button; tapping a row opens that note in the app.
+- The data path is a **snapshot file, not a database handle**: after every timeline refresh, `NexServices` writes `widget_snapshot.json` (versioned, throttled, fail-open) into the app's own files directory, and a `nex/widgets` channel call tells Android to repaint. Widgets run in the app's own process and read the file directly — no permissions, no schema coupling, no risk to the database the worker isolate owns.
+- **Rationale:** The snapshot decoupling keeps the widget pipeline invisible to the capture path (a home-screen repaint can never stall a capture), while the four-widget family covers the three capture types plus content at a glance — the Google Keep lesson applied without copying its design: the widgets are tone-matched to Nex's own tokens (light/dark from the device's night mode, rounded card, ink-blue accent, `layoutDirection="locale"`).
+- **Alternatives Considered:** (1) A single reconfigurable widget with a configuration activity — rejected: every extra step between the picker and a placed widget costs placements, and four classes cost nothing. (2) Widgets reading the SQLite database directly — rejected: the DB is owned by a worker isolate, and a widget read racing a write is a corruption risk for zero benefit over a JSON snapshot. (3) `setPendingIntentTemplate` for rows — per-row PendingIntents with unique request codes are simpler to reason about and keep.
+- **Status:** Accepted, v0.3. The dead `text_capture` path is fixed as part of this work; the old `CaptureWidgetProvider` is removed.
+
+---
+
+## ADR-030 — The post-capture crop step becomes a real photo editor
+
+- **Context:** The crop screen shipped as the minimum viable step: a `crop_your_image` crop rect with two buttons. Photos taken on modern phones routinely need rotation (camera orientation mistakes happen), and a crop-only step cannot fix a sideways photo — the user had to delete and re-capture. The step also stored whatever bytes came back with the *source file's* extension (a PNG payload named `.jpg`), kept the full multi-megapixel original, and normalized nothing (EXIF orientation was left to downstream renderers to mis-handle).
+- **Decision:** Replace the crop screen with a full photo editor (`PhotoEditorScreen`), still one step on the way in, still returning bytes (or null to discard):
+  - **Aspect presets** — Free, Original, 1:1, 4:3, 3:4, 16:9, 9:16 — applied live through the crop controller; Free starts on the whole photo rather than a centered square.
+  - **Rotate** 90° left/right and **flip** horizontal/vertical, applied to actual pixels on a background isolate (`compute()` over `package:image` — already in the dependency graph via `crop_your_image`).
+  - **Pinch-zoom and pan** while framing, rule-of-thirds grid, generous corner handles, **Reset** to the photo as it arrived.
+  - A **normalization pass** at load: EXIF orientation baked in, long edge capped at 3200px (indistinguishable at phone scale, a fraction of the storage and of every later decode's cost).
+  - **Honest output**: the final file's encoding matches its extension — JPEG (quality 90) for photographic input, PNG preserved — and a confirm with zero edits returns the normalized bytes without a pointless lossy round trip.
+- **Rationale:** Rotation and framing are the two edits a capture app's photo step actually needs; everything else (filters, text, stickers) belongs to a gallery editor, not to the friction-minimal capture path. The pure-Dart `package:image` pipeline keeps the editor working on every platform the app builds for, and running it under `compute()` keeps a 12-megapixel rotate off the UI thread.
+- **Alternatives Considered:** (1) Native platform croppers (uCrop etc.) — rejected: per-platform code, no Windows story, and the crop UI would not match Nex's design tokens. (2) Adding the transform to crop_your_image via its controller — rejected once the 2.0.0 API was read: it has no rotation API at all, so the transforms are owned here regardless. (3) Keeping the original resolution — rejected: a 48MP capture buys nothing on any screen this app renders to, at real storage and memory cost on every timeline thumbnail and full-screen view.
+- **Status:** Accepted, v0.3.
+
+---
+
 ## Decision-Making Heuristic
 
 When facing a new choice, run it through the product's filter:

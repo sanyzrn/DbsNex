@@ -17,8 +17,18 @@ right-to-left layout.
 ## What works today
 
 **Capture** — text, voice, photo and arbitrary files. No Save button anywhere: every
-capture is committed the moment it exists. Photos go through a crop step on the way in.
-Files shared to Nex from another app land the same way as ones picked inside it.
+capture is committed the moment it exists. Photos go through a real editor on the way
+in — crop with aspect presets (Free, Original, 1:1, 4:3, 3:4, 16:9, 9:16), 90° rotation,
+horizontal/vertical flip, pinch-zoom framing, rule-of-thirds grid and reset — with EXIF
+orientation baked in and oversized captures downscaled to what a screen can show. Files
+shared to Nex from another app land the same way as ones picked inside it.
+
+**Home-screen widgets (Android)** — four widgets, added straight from the launcher:
+quick capture (opens into the capture sheet), voice memo (one tap starts recording),
+photo (one tap opens the camera), and recent notes (a scrollable list of your latest
+captures that opens the note you tap). They follow the device's light/dark theme and
+update themselves from the app's own snapshot after every capture — nothing is sent
+anywhere.
 
 **Timeline** — one reverse-chronological stream, no folders. Cards are a fixed height, so
 the list stays even. Swipe an edge for delete or add-tag; hold and drag to reorder; one

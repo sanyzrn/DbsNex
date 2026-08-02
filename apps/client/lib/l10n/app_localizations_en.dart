@@ -48,6 +48,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text => 'Text';
 
   @override
+  String get photoEditorTitle => 'Edit photo';
+
+  @override
+  String get photoEditorAspect => 'Aspect ratio';
+
+  @override
+  String get photoEditorFree => 'Free';
+
+  @override
+  String get photoEditorOriginal => 'Original';
+
+  @override
+  String get photoEditorSquare => 'Square';
+
+  @override
+  String get photoEditorRotate => 'Rotate';
+
+  @override
+  String get photoEditorFlip => 'Flip';
+
+  @override
+  String get photoEditorFlipVertical => 'Flip vertical';
+
+  @override
+  String get photoEditorReset => 'Reset';
+
+  @override
   String get filters => 'Filters';
 
   @override
@@ -477,6 +504,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get widgetsSection => 'Home-screen widgets';
+
+  @override
+  String get widgetsHowTo => 'How to add';
+
+  @override
+  String get widgetsSubtitle =>
+      'Quick capture, voice, camera and recent notes — added from your launcher';
+
+  @override
+  String get widgetsHowToBody =>
+      'Long-press an empty spot on your home screen, choose Widgets, and find Nex. Four widgets are available: quick capture, voice memo, camera, and recent notes.\n\nWidgets only read the snapshot the app keeps for them on this device — nothing is sent anywhere.';
+
+  @override
   String get tapToExpand => 'Tap the image to view it full screen';
 
   @override
@@ -523,6 +564,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get opening => 'Nex is opening';
+
+  @override
+  String get paste => 'Paste';
+
+  @override
+  String get pasteClipboard => 'Insert the text you copied';
 
   @override
   String get swipeActionsHint =>
@@ -865,9 +912,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retry => 'Try again';
-
-  @override
-  String get cropPhotoTitle => 'Crop photo';
 
   @override
   String get cropConfirm => 'Use photo';

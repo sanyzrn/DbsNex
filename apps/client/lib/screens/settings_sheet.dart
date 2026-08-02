@@ -281,6 +281,34 @@ class SettingsSheet extends StatelessWidget {
                         ],
                       ),
                       _Section(
+                        icon: Icons.widgets_outlined,
+                        title: l10n.widgetsSection,
+                        children: [
+                          ListTile(
+                            contentPadding: _rowPadding,
+                            leading: const Icon(Icons.add_to_home_screen),
+                            title: Text(l10n.widgetsHowTo),
+                            subtitle: Text(l10n.widgetsSubtitle),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => showDialog<void>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text(l10n.widgetsSection),
+                                content: NexDialogBody(
+                                  child: Text(l10n.widgetsHowToBody),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: Text(l10n.cancel),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      _Section(
                         icon: Icons.backup_outlined,
                         title: l10n.dataAndBackup,
                         children: [

@@ -1,4 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="widget_description">Open Nex directly into text capture</string>
+    <!-- Home-screen widget picker entries (launcher labels + descriptions). -->
+    <string name="widget_quick_capture_label">Nex — Quick capture</string>
+    <string name="widget_voice_label">Nex — Voice memo</string>
+    <string name="widget_camera_label">Nex — Photo</string>
+    <string name="widget_notes_label">Nex — Recent notes</string>
+
+    <string name="widget_quick_capture_desc">Open Nex and start typing</string>
+    <string name="widget_voice_desc">Start a voice memo with one tap</string>
+    <string name="widget_camera_desc">Take a photo straight into Nex</string>
+    <string name="widget_notes_desc">Your latest notes, one tap from the home screen</string>
+
+    <!-- Widget chrome. All text is re-set from code so it follows the app's
+         per-app language; these are the fallbacks the picker previews use. -->
+    <string name="widget_capture_title">Capture</string>
+    <string name="widget_capture_subtitle">Tap to capture a note</string>
+    <string name="widget_voice_title">Voice memo</string>
+    <string name="widget_voice_subtitle">Tap to record</string>
+    <string name="widget_camera_title">Photo</string>
+    <string name="widget_camera_subtitle">Tap to take a photo</string>
+    <string name="widget_notes_title">Recent notes</string>
+    <string name="widget_new_note">New note</string>
+    <string name="widget_empty_title">No notes yet</string>
+    <string name="widget_empty_hint">Tap below to add your first note</string>
+    <string name="widget_refresh">Refresh</string>
+    <string name="widget_open_note">Open note</string>
+
+    <!-- Relative timestamps in widget rows. -->
+    <string name="widget_time_now">now</string>
+    <plurals name="widget_time_minutes">
+        <item quantity="one">1 min ago</item>
+        <item quantity="other">%1$d mins ago</item>
+    </plurals>
+    <plurals name="widget_time_hours">
+        <item quantity="one">1 hour ago</item>
+        <item quantity="other">%1$d hours ago</item>
+    </plurals>
+    <plurals name="widget_time_days">
+        <item quantity="one">yesterday</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
 </resources>

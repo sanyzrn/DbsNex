@@ -48,6 +48,33 @@ class AppLocalizationsFa extends AppLocalizations {
   String get text => 'متن';
 
   @override
+  String get photoEditorTitle => 'ویرایش عکس';
+
+  @override
+  String get photoEditorAspect => 'نسبت تصویر';
+
+  @override
+  String get photoEditorFree => 'آزاد';
+
+  @override
+  String get photoEditorOriginal => 'اصلی';
+
+  @override
+  String get photoEditorSquare => 'مربع';
+
+  @override
+  String get photoEditorRotate => 'چرخش';
+
+  @override
+  String get photoEditorFlip => 'قرینه';
+
+  @override
+  String get photoEditorFlipVertical => 'قرینه عمودی';
+
+  @override
+  String get photoEditorReset => 'بازنشانی';
+
+  @override
   String get filters => 'فیلترها';
 
   @override
@@ -477,6 +504,20 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get widgetsSection => 'ویجت‌های صفحه اصلی';
+
+  @override
+  String get widgetsHowTo => 'روش افزودن';
+
+  @override
+  String get widgetsSubtitle =>
+      'ثبت سریع، صدا، دوربین و یادداشت‌های اخیر — از داخل لانچر اضافه می‌شوند';
+
+  @override
+  String get widgetsHowToBody =>
+      'روی جای خالی صفحه اصلی انگشت بگذارید و نگه دارید، Widgets را انتخاب کنید و Nex را پیدا کنید. چهار ویجت در دسترس است: ثبت سریع، یادداشت صوتی، دوربین و یادداشت‌های اخیر.\n\nویجت‌ها فقط همان خلاصه‌ای را می‌خوانند که برنامه روی همین دستگاه برایشان نگه می‌دارد؛ چیزی جایی فرستاده نمی‌شود.';
+
+  @override
   String get tapToExpand => 'برای نمایش تمام‌صفحه روی تصویر بزنید';
 
   @override
@@ -523,6 +564,12 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get opening => 'Nex در حال باز شدن است';
+
+  @override
+  String get paste => 'جای‌گذاری';
+
+  @override
+  String get pasteClipboard => 'درج متنی که کپی کرده‌اید';
 
   @override
   String get swipeActionsHint =>
@@ -864,9 +911,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get retry => 'دوباره تلاش کن';
-
-  @override
-  String get cropPhotoTitle => 'برش عکس';
 
   @override
   String get cropConfirm => 'استفاده از عکس';

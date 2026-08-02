@@ -26,9 +26,10 @@ import '../widgets/recording_sheet.dart';
 import '../widgets/search_field_header.dart';
 import '../widgets/search_results.dart';
 import '../widgets/tag_picker.dart';
+import '../utils/image_editing.dart';
 import 'library_screen.dart';
 import 'note_detail_sheet.dart';
-import 'photo_crop_screen.dart';
+import 'photo_editor_screen.dart';
 import 'settings_sheet.dart';
 
 class TimelineScreen extends StatefulWidget {
@@ -102,9 +103,36 @@ class TimelineScreenState extends State<TimelineScreen> {
   final int _greetingVariant = math.Random().nextInt(3);
   bool _searching = false;
 
+  /// One OS-driven capture flow at a time. A home-screen widget can fire a
+  /// voice or camera deep link while one is already running; without this
+  /// guard the second call would start a second recorder or a second picker
+  /// intent on top of the first.
+  bool _captureBusy = false;
+
+  /// Whether a widget-triggered capture sheet is already up. A second
+  /// quick-capture tap during a cold start can arrive both queued and live;
+  /// without this the drain and the stream would stack two sheets.
+  bool _osSheetOpen = false;
+
+  StreamSubscription<Map<Object?, Object?>>? _osEvents;
+
   @override
   void initState() {
     super.initState();
+    // Live widget taps and share-intent captures arrive here; events that
+    // landed before this screen existed (a cold start from a widget) are
+    // drained from the bridge's queue after the first frame, when the
+    // capture sheets can actually be shown.
+    _osEvents = widget.osCapture?.events.listen((payload) {
+      if (mounted) _handleOsEvent(payload);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final payload
+          in widget.osCapture?.takePendingUiEvents() ?? const []) {
+        _handleOsEvent(payload);
+      }
+    });
     subscription = widget.services.timelineStream.listen((value) {
       if (!mounted) return;
       setState(() {
@@ -318,9 +346,40 @@ class TimelineScreenState extends State<TimelineScreen> {
     });
   }
 
+  /// What an OS deep link means on the timeline.
+  ///
+  /// Widget taps land here in two ways: queued (cold start, drained in
+  /// initState) and live (app already running, via [_osEvents]). Both end up
+  /// in the same place — the exact same capture or navigation the in-app
+  /// buttons already drive, so a widget user gets nothing the app does not
+  /// also offer.
+  void _handleOsEvent(Map<Object?, Object?> payload) {
+    if (_captureBusy) return;
+    switch (payload['type']) {
+      case 'text_capture':
+        if (_osSheetOpen) return;
+        _osSheetOpen = true;
+        unawaited(openCapture().whenComplete(() => _osSheetOpen = false));
+      case 'voice_capture':
+        unawaited(captureVoice());
+      case 'camera_capture':
+        unawaited(capturePhoto(ImageSource.camera));
+      case 'open_note':
+        final id = payload['noteId'] as String?;
+        if (id != null) unawaited(_openNoteById(id));
+    }
+  }
+
+  Future<void> _openNoteById(String id) async {
+    final note = await widget.services.getById(id);
+    if (!mounted || note == null || note.deletedAt != null) return;
+    await _openNote(note);
+  }
+
   @override
   void dispose() {
     subscription?.cancel();
+    _osEvents?.cancel();
     _swipe.dispose();
     _search.removeListener(_onSearchChanged);
     _search.dispose();
@@ -361,6 +420,8 @@ class TimelineScreenState extends State<TimelineScreen> {
   }
 
   Future<void> capturePhoto(ImageSource source) async {
+    if (_captureBusy) return;
+    _captureBusy = true;
     try {
       // Inside the try: this is the call that throws when the OS refuses the
       // camera or the photo library, which is the single most likely failure
@@ -369,18 +430,29 @@ class TimelineScreenState extends State<TimelineScreen> {
       if (picked == null) return;
       final original = await picked.readAsBytes();
       if (!mounted) return;
-      final cropped = await Navigator.of(context).push<Uint8List>(
-        MaterialPageRoute(builder: (_) => PhotoCropScreen(image: original)),
+      // The editor normalizes, rotates, flips and frames the photo, and
+      // returns bytes whose encoding matches their extension.
+      final edited = await Navigator.of(context).push<Uint8List>(
+        MaterialPageRoute(
+          builder: (_) => PhotoEditorScreen(
+            image: original,
+            haptics: widget.preferences.haptics,
+          ),
+        ),
       );
-      if (cropped == null) return;
+      if (edited == null) return;
+      final extension = nexExtensionFor(
+        nexImageFormatOf(edited),
+        fallback: p.extension(picked.path),
+      );
       final dest = p.join(
         widget.services.mediaDir,
-        'photo-${DateTime.now().millisecondsSinceEpoch}${p.extension(picked.path)}',
+        'photo-${DateTime.now().millisecondsSinceEpoch}.$extension',
       );
-      await File(dest).writeAsBytes(cropped, flush: true);
+      await File(dest).writeAsBytes(edited, flush: true);
       final note = await widget.services.capturePhoto(
         mediaUri: dest,
-        mediaBytes: cropped,
+        mediaBytes: edited,
       );
       landedId = note.id;
       widget.services.scheduleEnrichment(note.id);
@@ -391,6 +463,8 @@ class TimelineScreenState extends State<TimelineScreen> {
       // four unrelated reasons and three of them are things the user can do
       // something about — but only if the app says which one happened.
       if (mounted) _reportCaptureFailure(CaptureFailure.of(error), source);
+    } finally {
+      _captureBusy = false;
     }
   }
 
@@ -415,40 +489,49 @@ class TimelineScreenState extends State<TimelineScreen> {
   }
 
   Future<void> captureVoice() async {
-    final recorder = AudioRecorder();
-    if (!await recorder.hasPermission()) return recorder.dispose();
-    final elapsed = Stopwatch()..start();
-    final path = p.join(
-      widget.services.mediaDir,
-      'voice-${DateTime.now().millisecondsSinceEpoch}.m4a',
-    );
-    await recorder.start(const RecordConfig(), path: path);
-    if (!mounted) return;
-    // Not dismissible: swiping the sheet away mid-recording would leave the
-    // recorder running with nothing on screen driving it.
-    final keep = await nexShowSheet<bool>(
-      context: context,
-      dismissible: false,
-      builder: (_) => RecordingSheet(recorder: recorder),
-    );
-    final recorded = await recorder.stop();
-    elapsed.stop();
-    await recorder.dispose();
-    if (keep != true || recorded == null) {
-      final file = File(path);
-      if (file.existsSync()) file.deleteSync();
-      return;
+    if (_captureBusy) return;
+    _captureBusy = true;
+    try {
+      final recorder = AudioRecorder();
+      if (!await recorder.hasPermission()) {
+        await recorder.dispose();
+        return;
+      }
+      final elapsed = Stopwatch()..start();
+      final path = p.join(
+        widget.services.mediaDir,
+        'voice-${DateTime.now().millisecondsSinceEpoch}.m4a',
+      );
+      await recorder.start(const RecordConfig(), path: path);
+      if (!mounted) return;
+      // Not dismissible: swiping the sheet away mid-recording would leave the
+      // recorder running with nothing on screen driving it.
+      final keep = await nexShowSheet<bool>(
+        context: context,
+        dismissible: false,
+        builder: (_) => RecordingSheet(recorder: recorder),
+      );
+      final recorded = await recorder.stop();
+      elapsed.stop();
+      await recorder.dispose();
+      if (keep != true || recorded == null) {
+        final file = File(path);
+        if (file.existsSync()) file.deleteSync();
+        return;
+      }
+      final bytes = await File(recorded).readAsBytes();
+      final note = await widget.services.captureVoice(
+        mediaUri: recorded,
+        mediaBytes: Uint8List.fromList(bytes),
+        durationMs: elapsed.elapsedMilliseconds,
+      );
+      landedId = note.id;
+      widget.services.scheduleEnrichment(note.id);
+      if (widget.preferences.haptics) HapticFeedback.lightImpact();
+      widget.services.refreshTimeline();
+    } finally {
+      _captureBusy = false;
     }
-    final bytes = await File(recorded).readAsBytes();
-    final note = await widget.services.captureVoice(
-      mediaUri: recorded,
-      mediaBytes: Uint8List.fromList(bytes),
-      durationMs: elapsed.elapsedMilliseconds,
-    );
-    landedId = note.id;
-    widget.services.scheduleEnrichment(note.id);
-    if (widget.preferences.haptics) HapticFeedback.lightImpact();
-    widget.services.refreshTimeline();
   }
 
   Future<void> captureFile() async {

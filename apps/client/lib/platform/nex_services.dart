@@ -18,6 +18,7 @@ import 'ai_provider.dart';
 import 'nex_db.dart';
 import 'media_picker_impl.dart';
 import 'nex_preferences.dart';
+import 'widget_snapshot.dart';
 
 /// Thrown when sync is invoked before the device has been paired with a server.
 class SyncNotConfigured implements Exception {
@@ -53,6 +54,7 @@ class NexServices {
     required this.backupDir,
     required BackupPolicy backupPolicy,
     required NexPreferences preferences,
+    this.widgetSnapshot,
   }) : _backupPolicy = backupPolicy,
        _preferences = preferences;
 
@@ -62,6 +64,10 @@ class NexServices {
   final String dbPath;
   final String mediaDir;
   final String backupDir;
+
+  /// Feeds the Android home-screen widgets. Null in tests and on platforms
+  /// with no widget system.
+  final WidgetSnapshotStore? widgetSnapshot;
 
   final BackupPolicy _backupPolicy;
   final NexPreferences _preferences;
@@ -84,6 +90,7 @@ class NexServices {
     required NexPreferences preferences,
     AIAdapter? aiAdapter,
     MediaPicker? mediaPicker,
+    WidgetSnapshotStore? widgetSnapshot,
   }) async {
     if (!kIsWeb &&
         (Platform.isAndroid || Platform.isIOS || Platform.isWindows)) {
@@ -122,6 +129,7 @@ class NexServices {
       backupDir: backupDir,
       backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
       preferences: preferences,
+      widgetSnapshot: widgetSnapshot,
     );
 
     unawaited(services.refreshTimeline());
@@ -333,7 +341,13 @@ class NexServices {
 
   Future<void> refreshTimeline() async {
     if (_closed) return;
-    _timelineController.add(await worker.timeline(limit: _timelineWindow));
+    final notes = await worker.timeline(limit: _timelineWindow);
+    _timelineController.add(notes);
+    // The home-screen widgets are fed from the same reload every mutation
+    // already goes through, so they can never drift from what the timeline
+    // shows. Fire-and-forget: the store throttles and swallows its own
+    // errors, and the capture path never waits on a widget.
+    unawaited(widgetSnapshot?.publish(notes));
   }
 
   Future<List<Note>> loadMore({required int offset, int limit = 50}) =>

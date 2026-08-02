@@ -3,7 +3,7 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    // This module has Kotlin sources (MainActivity, CaptureWidgetProvider) and
+    // This module has Kotlin sources (MainActivity, the widget providers) and
     // configures the Kotlin compiler below, but never applied the plugin —
     // settings.gradle.kts declares it `apply false` and nothing applied it here.
     // Without it the `kotlin { }` extension does not exist, so Gradle resolved

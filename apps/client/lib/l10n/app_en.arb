@@ -13,6 +13,42 @@
   "photo": "Photo",
   "file": "File",
   "text": "Text",
+  "photoEditorTitle": "Edit photo",
+  "@photoEditorTitle": {
+    "description": "Title of the photo editor shown right after taking or picking a photo"
+  },
+  "photoEditorAspect": "Aspect ratio",
+  "@photoEditorAspect": {
+    "description": "Toolbar button and picker title for the crop aspect ratio"
+  },
+  "photoEditorFree": "Free",
+  "@photoEditorFree": {
+    "description": "Aspect preset with no fixed ratio"
+  },
+  "photoEditorOriginal": "Original",
+  "@photoEditorOriginal": {
+    "description": "Aspect preset matching the photo's own proportions"
+  },
+  "photoEditorSquare": "Square",
+  "@photoEditorSquare": {
+    "description": "1:1 aspect preset"
+  },
+  "photoEditorRotate": "Rotate",
+  "@photoEditorRotate": {
+    "description": "Rotates the photo 90 degrees"
+  },
+  "photoEditorFlip": "Flip",
+  "@photoEditorFlip": {
+    "description": "Mirrors the photo horizontally"
+  },
+  "photoEditorFlipVertical": "Flip vertical",
+  "@photoEditorFlipVertical": {
+    "description": "Mirrors the photo vertically"
+  },
+  "photoEditorReset": "Reset",
+  "@photoEditorReset": {
+    "description": "Discards every edit and restores the photo as it arrived"
+  },
   "filters": "Filters",
   "filtersCount": "Filters ({count})",
   "@filtersCount": {
@@ -288,6 +324,22 @@
       }
     }
   },
+  "widgetsSection": "Home-screen widgets",
+  "@widgetsSection": {
+    "description": "Settings section about the Android home-screen widgets"
+  },
+  "widgetsHowTo": "How to add",
+  "@widgetsHowTo": {
+    "description": "Opens instructions for adding a Nex widget to the home screen"
+  },
+  "widgetsSubtitle": "Quick capture, voice, camera and recent notes — added from your launcher",
+  "@widgetsSubtitle": {
+    "description": "Settings row subtitle naming the four home-screen widgets"
+  },
+  "widgetsHowToBody": "Long-press an empty spot on your home screen, choose Widgets, and find Nex. Four widgets are available: quick capture, voice memo, camera, and recent notes.\n\nWidgets only read the snapshot the app keeps for them on this device — nothing is sent anywhere.",
+  "@widgetsHowToBody": {
+    "description": "Instructions for adding a Nex widget to the home screen"
+  },
   "tapToExpand": "Tap the image to view it full screen",
   "@tapToExpand": {
     "description": "Hint under a photo in the detail sheet"
@@ -352,6 +404,14 @@
   "opening": "Nex is opening",
   "@opening": {
     "description": "Screen-reader label for the startup splash"
+  },
+  "paste": "Paste",
+  "@paste": {
+    "description": "Inserts the clipboard text into the capture field"
+  },
+  "pasteClipboard": "Insert the text you copied",
+  "@pasteClipboard": {
+    "description": "Tooltip on the capture sheet's paste chip"
   },
   "swipeActionsHint": "Each edge is set on its own. Tap a card to pick what that swipe does, or turn it off.",
   "@swipeActionsHint": {
@@ -723,10 +783,6 @@
   "retry": "Try again",
   "@retry": {
     "description": "Action on a failure message that repeats what failed"
-  },
-  "cropPhotoTitle": "Crop photo",
-  "@cropPhotoTitle": {
-    "description": "Title of the crop screen shown right after taking or picking a photo"
   },
   "cropConfirm": "Use photo",
   "@cropConfirm": {

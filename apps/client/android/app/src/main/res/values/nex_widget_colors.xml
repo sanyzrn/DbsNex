@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widgets follow the app's own design tokens (nex_tokens.dart):
+         card fills, neutral discs, the ink-blue accent, and the same
+         radius scale. Light and dark variants are picked in code from the
+         device's night mode. -->
+    <color name="nex_widget_card_light">#FFFFFFFF</color>
+    <color name="nex_widget_card_dark">#FF1E1E1E</color>
+    <color name="nex_widget_border_light">#1A000000</color>
+    <color name="nex_widget_border_dark">#33FFFFFF</color>
+    <color name="nex_widget_text_light">#FF262626</color>
+    <color name="nex_widget_text_dark">#FFF2F2F3</color>
+    <color name="nex_widget_secondary_light">#FF5C5C5C</color>
+    <color name="nex_widget_secondary_dark">#FFABABAB</color>
+    <color name="nex_widget_disc_light">#FFE0E0E0</color>
+    <color name="nex_widget_disc_dark">#FF323232</color>
+    <color name="nex_widget_accent_light">#FF2563EB</color>
+    <color name="nex_widget_accent_dark">#FF60A5FA</color>
+    <color name="nex_widget_on_accent_light">#FFFFFFFF</color>
+    <color name="nex_widget_on_accent_dark">#FF0B0A09</color>
+</resources>

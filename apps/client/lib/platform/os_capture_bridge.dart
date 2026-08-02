@@ -19,6 +19,29 @@ class OsCaptureBridge {
 
   Stream<Map<Object?, Object?>> get events => _events.stream;
 
+  /// Deep links that need the UI to do something, in arrival order.
+  ///
+  /// A widget tap can land before the timeline exists — a cold start from a
+  /// home-screen widget is the whole point of the widgets — and the events
+  /// stream is a broadcast stream that drops everything before the first
+  /// listener. These are queued here instead and drained by the timeline
+  /// once it mounts. Live pushes (app already running) go straight through
+  /// [events] and never queue.
+  final List<Map<Object?, Object?>> _pendingUi = [];
+
+  List<Map<Object?, Object?>> takePendingUiEvents() {
+    if (_pendingUi.isEmpty) return const [];
+    final taken = List<Map<Object?, Object?>>.of(_pendingUi);
+    _pendingUi.clear();
+    return taken;
+  }
+
+  void _queueUi(Map<Object?, Object?> payload) {
+    if (_pendingUi.length >= 4) _pendingUi.removeAt(0);
+    _pendingUi.add(payload);
+    _events.add(payload);
+  }
+
   /// Whether this platform has the native half of the bridge.
   ///
   /// Only Android registers `nex/os_capture`; the widget, the share target and
@@ -30,17 +53,19 @@ class OsCaptureBridge {
     if (!isSupported) return;
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'onOsCapture' && call.arguments is Map) {
-        final payload = Map<Object?, Object?>.from(call.arguments as Map);
-        await handle(payload);
-        _events.add(payload);
+        await handle(Map<Object?, Object?>.from(call.arguments as Map));
       }
     });
     try {
+      // The native side queues every deep link that arrived before the
+      // engine was ready and hands them all over here, in order.
       final pending = await _channel.invokeMethod<dynamic>('takePending');
-      if (pending is Map) {
-        final payload = Map<Object?, Object?>.from(pending);
-        await handle(payload);
-        _events.add(payload);
+      if (pending is List) {
+        for (final item in pending) {
+          if (item is Map) {
+            await handle(Map<Object?, Object?>.from(item));
+          }
+        }
       }
     } on MissingPluginException {
       // Belt and braces behind [isSupported]. This call used to be
@@ -55,8 +80,15 @@ class OsCaptureBridge {
   Future<void> handle(Map<Object?, Object?> payload) async {
     final type = payload['type'] as String?;
     switch (type) {
+      // Widget deep links — the UI decides what each one means. Nothing is
+      // captured here: text capture creates no note until content, voice and
+      // camera capture need permission prompts and the capture sheet, and
+      // opening a note is navigation, not storage.
       case 'text_capture':
-        // Widget opens into text capture — signal UI; no note until content.
+      case 'voice_capture':
+      case 'camera_capture':
+      case 'open_note':
+        _queueUi(payload);
         return;
       case 'shared_text':
         final text = (payload['text'] as String?)?.trim() ?? '';

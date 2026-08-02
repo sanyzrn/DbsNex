@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 0.2.0
+version: 0.3.0
 
 environment:
   sdk: ^3.9.0
@@ -27,6 +27,10 @@ dependencies:
   # it works uniformly on every target this app builds for, unlike
   # image_cropper, which has no Windows implementation at all.
   crop_your_image: ^2.0.0
+  # The photo editor's transform pipeline (rotate, flip, downscale, encode).
+  # Pure Dart, already resolved transitively through crop_your_image; declared
+  # directly because utils/image_editing.dart now imports it.
+  image: ^4.8.0
   # Pinned to the version flutter_localizations resolves against on 3.35.x.
   # "any" delegated the constraint entirely to whatever Flutter stable was
   # installed at build time.

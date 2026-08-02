@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
 import 'l10n/app_localizations.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/os_capture_bridge.dart';
+import 'platform/widget_snapshot.dart';
+import 'platform/widgets_bridge.dart';
 import 'restart_scope.dart';
 
 class NexBootstrapHost extends StatefulWidget {
@@ -32,7 +36,22 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     final delay = Future<void>.delayed(_minimumSplashDuration);
 
     final preferences = await NexPreferences.load();
-    final services = await NexServices.bootstrap(preferences: preferences);
+
+    // The home-screen widgets read a JSON snapshot from the app's own
+    // directory; this store writes it after every timeline refresh, and the
+    // bridge tells Android to repaint. Both are Android-only and both fail
+    // open — on every other platform the snapshot simply never fires.
+    final support = await getApplicationSupportDirectory();
+    final widgetsBridge = NexWidgetsBridge();
+    final widgetSnapshot = WidgetSnapshotStore(
+      filePath: p.join(support.path, 'widget_snapshot.json'),
+      onPublished: widgetsBridge.notifyChanged,
+    );
+
+    final services = await NexServices.bootstrap(
+      preferences: preferences,
+      widgetSnapshot: widgetSnapshot,
+    );
     services.applyAiPreferences(preferences);
 
     final bridge = OsCaptureBridge(services);

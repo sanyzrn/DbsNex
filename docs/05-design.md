@@ -69,6 +69,24 @@ All four combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode
 - **Manual toggle in v1.x.** Automatically scheduling it by time of day (sunset/sunrise, like Night Shift) is a reasonable future addition but adds scheduling and location complexity not justified for the initial release — see [ADR-023](./10-decisions.md#adr-023--comfort-mode-as-an-independent-axis-from-lightdark-theme).
 - **Applies everywhere**, not just the Timeline — Capture Sheet, Search, and Settings all inherit the same tokens, since the moment this exists to protect (a 2 AM capture) touches the capture flow first.
 
+### Home-screen widgets
+
+The Android home screen is the one surface outside the app that can shorten the
+capture path, so Nex ships four widgets there — see
+[ADR-029](./10-decisions.md#adr-029--the-home-screen-widget-grows-from-one-dead-button-into-four-real-widgets):
+
+- **Quick capture** — opens straight into the capture sheet.
+- **Voice memo** — one tap starts recording.
+- **Photo** — one tap opens the camera capture flow.
+- **Recent notes** — the newest notes, scrollable, each opening its note.
+
+They are tone-matched to the app's own tokens rather than to the launcher: the same
+rounded card, the ink-blue accent on one-tap actions, a neutral disc for content
+rows, secondary text for metadata, and light/dark variants resolved from the
+device's night mode. RTL layouts follow the locale. A widget is decoration-plus-one-
+tap, never a dashboard: the only interactive content is the notes list, and even
+that leads back into the app for anything beyond a glance.
+
 ---
 
 ## Components

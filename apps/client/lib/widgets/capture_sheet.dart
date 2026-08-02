@@ -36,6 +36,47 @@ class _CaptureSheetState extends State<CaptureSheet> {
   String? noteId;
   String persisted = '';
 
+  /// The clipboard's text, read once when the sheet opens. A capture app's
+  /// most common neighbour is whatever the user just copied elsewhere; one
+  /// tap drops it into the note. Null (or empty) means no chip.
+  String? _clipboard;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_readClipboard());
+  }
+
+  Future<void> _readClipboard() async {
+    String? text;
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      text = data?.text;
+    } catch (_) {
+      // No clipboard on this platform, or the OS refused — the chip simply
+      // never appears.
+      return;
+    }
+    if (!mounted || text == null || text.trim().isEmpty) return;
+    setState(() => _clipboard = text);
+  }
+
+  /// Drops the clipboard into the field the same way typing would: the note
+  /// is created by [changed] exactly as if the first keystroke had arrived.
+  void _paste() {
+    final text = _clipboard;
+    if (text == null || text.isEmpty) return;
+    final selection = controller.selection;
+    final start = selection.isValid ? selection.start : controller.text.length;
+    final end = selection.isValid ? selection.end : start;
+    controller.text = controller.text.replaceRange(start, end, text);
+    controller.selection = TextSelection.collapsed(
+      offset: start + text.length,
+    );
+    setState(() => _clipboard = null);
+    changed(controller.text);
+  }
+
   void changed(String value) {
     setState(() {});
     if (noteId == null && value.isNotEmpty) {
@@ -97,6 +138,18 @@ class _CaptureSheetState extends State<CaptureSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (_clipboard != null) ...[
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: ActionChip(
+                  avatar: const Icon(Icons.content_paste, size: 16),
+                  label: Text(l10n.paste),
+                  tooltip: l10n.pasteClipboard,
+                  onPressed: _paste,
+                ),
+              ),
+              const SizedBox(height: NexSpacing.xs),
+            ],
             Focus(
               // A multiline field's own default is to insert a newline on
               // Enter — textInputAction only changes the on-screen

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_quick_capture_label">Nex — ثبت سریع</string>
+    <string name="widget_voice_label">Nex — یادداشت صوتی</string>
+    <string name="widget_camera_label">Nex — عکس</string>
+    <string name="widget_notes_label">Nex — یادداشت‌های اخیر</string>
+
+    <string name="widget_quick_capture_desc">Nex را باز کنید و شروع به نوشتن کنید</string>
+    <string name="widget_voice_desc">با یک لمس، یادداشت صوتی بگیرید</string>
+    <string name="widget_camera_desc">مستقیم با Nex عکس بگیرید</string>
+    <string name="widget_notes_desc">آخرین یادداشت‌های شما، با یک لمس از صفحه اصلی</string>
+
+    <string name="widget_capture_title">ثبت</string>
+    <string name="widget_capture_subtitle">برای ثبت یادداشت لمس کنید</string>
+    <string name="widget_voice_title">یادداشت صوتی</string>
+    <string name="widget_voice_subtitle">برای ضبط لمس کنید</string>
+    <string name="widget_camera_title">عکس</string>
+    <string name="widget_camera_subtitle">برای گرفتن عکس لمس کنید</string>
+    <string name="widget_notes_title">یادداشت‌های اخیر</string>
+    <string name="widget_new_note">یادداشت جدید</string>
+    <string name="widget_empty_title">هنوز یادداشتی نیست</string>
+    <string name="widget_empty_hint">برای افزودن اولین یادداشت، پایین را لمس کنید</string>
+    <string name="widget_refresh">تازه‌سازی</string>
+    <string name="widget_open_note">باز کردن یادداشت</string>
+
+    <string name="widget_time_now">هم‌اکنون</string>
+    <plurals name="widget_time_minutes">
+        <item quantity="one">۱ دقیقه پیش</item>
+        <item quantity="other">%1$d دقیقه پیش</item>
+    </plurals>
+    <plurals name="widget_time_hours">
+        <item quantity="one">۱ ساعت پیش</item>
+        <item quantity="other">%1$d ساعت پیش</item>
+    </plurals>
+    <plurals name="widget_time_days">
+        <item quantity="one">دیروز</item>
+        <item quantity="other">%1$d روز پیش</item>
+    </plurals>
+</resources>

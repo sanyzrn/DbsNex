@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Opts the app into per-app language preferences on Android 13+ (API 33):
+     the user can pick English or Persian for Nex alone, independent of the
+     system language. Ignored on older releases. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="fa" />
+</locale-config>
