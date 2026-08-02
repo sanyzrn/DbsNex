@@ -354,10 +354,11 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// buttons already drive, so a widget user gets nothing the app does not
   /// also offer.
   void _handleOsEvent(Map<Object?, Object?> payload) {
-    if (_captureBusy) return;
+    // While a capture flow is running or a capture sheet is up, a widget tap
+    // must not stack a second sheet or start a second recorder on top of it.
+    if (_captureBusy || _osSheetOpen) return;
     switch (payload['type']) {
       case 'text_capture':
-        if (_osSheetOpen) return;
         _osSheetOpen = true;
         unawaited(openCapture().whenComplete(() => _osSheetOpen = false));
       case 'voice_capture':

@@ -23,7 +23,7 @@ Note _note(
       updatedAt: DateTime.fromMillisecondsSinceEpoch(1_700_000_000_000),
       deviceId: 'test',
       rev: 1,
-      syncState: SyncState.local,
+      syncState: SyncState.pending,
       pinnedAt: pinned ? DateTime.fromMillisecondsSinceEpoch(1_700_000_000_000) : null,
     );
 

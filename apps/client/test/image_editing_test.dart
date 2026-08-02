@@ -25,7 +25,11 @@ Uint8List _png(int width, int height, {bool gradient = false}) {
 
 Uint8List _jpeg(int width, int height) {
   final image = img.Image(width: width, height: height);
-  image.fill(img.ColorRgb8(90, 120, 200));
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      image.setPixelRgba(x, y, 90, 120, 200, 255);
+    }
+  }
   return img.encodeJpg(image, quality: 92);
 }
 
