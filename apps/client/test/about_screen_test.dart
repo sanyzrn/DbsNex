@@ -152,6 +152,38 @@ void main() {
     },
   );
 
+  testWidgets('the Send button stays above the keyboard, not under it', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    // A realistic on-screen keyboard height — the field autofocuses, so a
+    // real device would already have the keyboard up by the time this sheet
+    // is visible.
+    const keyboardHeight = 500.0;
+    tester.view.viewInsets = const FakeViewPadding(bottom: keyboardHeight);
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: AboutScreen(services: services, preferences: preferences),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Send feedback'));
+    await tester.pumpAndSettle();
+
+    final send = tester.getRect(find.text('Send'));
+    expect(
+      send.bottom,
+      lessThanOrEqualTo(1600 / 1 - keyboardHeight),
+      reason: 'the Send button must end above the keyboard, not under it',
+    );
+  });
+
   testWidgets('the wordmark image swaps with the theme, not just the tint', (
     tester,
   ) async {

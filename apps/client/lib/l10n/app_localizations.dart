@@ -1262,28 +1262,28 @@ abstract class AppLocalizations {
   /// **'Version {version} is available'**
   String updateAvailable(String version);
 
-  /// Update sheet: link to the full changelog history, shown regardless of update status
-  ///
-  /// In en, this message translates to:
-  /// **'See what changed in past versions'**
-  String get changelogLink;
-
-  /// Title of the full changelog history screen
+  /// Heading above the inline changelog panel on the update sheet, shown regardless of update status
   ///
   /// In en, this message translates to:
   /// **'Changelog'**
   String get changelogTitle;
 
-  /// Heading above one release's notes in the changelog history
+  /// Heading above the current (not-yet-numbered) section of the changelog panel
+  ///
+  /// In en, this message translates to:
+  /// **'Latest changes'**
+  String get changelogLatestHeading;
+
+  /// Heading above one past release's notes in the changelog panel
   ///
   /// In en, this message translates to:
   /// **'Version {version}'**
   String changelogVersionHeading(String version);
 
-  /// Changelog history screen when the release list fails to load or is empty
+  /// Changelog panel when the bundled CHANGELOG.md has nothing to show
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load past versions. Check your connection and try again.'**
+  /// **'Changelog unavailable.'**
   String get changelogEmpty;
 
   /// Settings toggle for the daily background update check

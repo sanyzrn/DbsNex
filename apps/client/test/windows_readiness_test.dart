@@ -113,9 +113,9 @@ void main() {
       if (OsCaptureBridge.isSupported) return;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        const MethodChannel('plugins.flutter.io/file_selector'),
-        (call) async => null,
-      );
+            const MethodChannel('plugins.flutter.io/file_selector'),
+            (call) async => null,
+          );
       await expectLater(OsCaptureBridge.pickFile(), completion(isNull));
     });
   });

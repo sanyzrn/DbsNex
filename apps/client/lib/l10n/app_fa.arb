@@ -357,26 +357,26 @@
       }
     }
   },
-  "changelogLink": "دیدن تغییرات نسخه‌های قبلی",
-  "@changelogLink": {
-    "description": "Update sheet: link to the full changelog history, shown regardless of update status"
-  },
   "changelogTitle": "تاریخچهٔ تغییرات",
   "@changelogTitle": {
-    "description": "Title of the full changelog history screen"
+    "description": "Heading above the inline changelog panel on the update sheet, shown regardless of update status"
+  },
+  "changelogLatestHeading": "جدیدترین تغییرات",
+  "@changelogLatestHeading": {
+    "description": "Heading above the current (not-yet-numbered) section of the changelog panel"
   },
   "changelogVersionHeading": "نسخهٔ {version}",
   "@changelogVersionHeading": {
-    "description": "Heading above one release's notes in the changelog history",
+    "description": "Heading above one past release's notes in the changelog panel",
     "placeholders": {
       "version": {
         "type": "String"
       }
     }
   },
-  "changelogEmpty": "تغییرات نسخه‌های قبلی بارگذاری نشد. اتصال را بررسی و دوباره امتحان کنید.",
+  "changelogEmpty": "تاریخچهٔ تغییرات در دسترس نیست.",
   "@changelogEmpty": {
-    "description": "Changelog history screen when the release list fails to load or is empty"
+    "description": "Changelog panel when the bundled CHANGELOG.md has nothing to show"
   },
   "autoUpdateCheck": "بررسی خودکار",
   "autoUpdateCheckHint": "روزی یک بار، بی‌سروصدا. نسخهٔ جدید فقط با یک نقطه اینجا خبر داده می‌شود — هیچ‌وقت اعلان نمی‌آید.",

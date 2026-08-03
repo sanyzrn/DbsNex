@@ -93,6 +93,12 @@ flutter:
   generate: true
   assets:
     - assets/branding/
+    # Bundled rather than fetched: a separate releases repo may have no
+    # history published yet, and the changelog screen should never depend on
+    # a network round trip to show what shipped. This is the same file
+    # release.yml's own top section becomes a GitHub Release body from — one
+    # source, read two different ways.
+    - ../../CHANGELOG.md
   fonts:
     # Shipped as assets rather than left to the platform: without them Android
     # renders Roboto, Windows Segoe UI Variable and iOS SF Pro, so the same

@@ -388,70 +388,9 @@ class UpdateChecker {
     );
   }
 
-  /// Every published release's notes, newest first — not just the one ahead
-  /// of [currentVersion]. `/releases/latest` (used by [check]) only ever
-  /// answers "what's next"; a changelog someone can browse on its own needs
-  /// the whole list.
-  Future<List<ReleaseNote>> listReleases({int limit = 30}) async {
-    try {
-      final response = await _client
-          .get(
-            Uri.parse(
-              'https://api.github.com/repos/$repository/releases'
-              '?per_page=$limit',
-            ),
-            headers: const {'Accept': 'application/vnd.github+json'},
-          )
-          .timeout(const Duration(seconds: 15));
-      if (response.statusCode != 200) return const [];
-      final decoded = jsonDecode(response.body);
-      if (decoded is! List) return const [];
-      return [
-        for (final entry in decoded)
-          if (entry is Map<String, dynamic>) _releaseNoteFrom(entry),
-      ].whereType<ReleaseNote>().toList();
-    } catch (_) {
-      // Same "nothing rather than a crash" contract as check() — this is a
-      // browsable extra, never something the update flow itself depends on.
-      return const [];
-    }
-  }
-
-  /// Drafts, and releases with nothing worth showing, are silently skipped
-  /// rather than shown as an empty entry.
-  ReleaseNote? _releaseNoteFrom(Map<String, dynamic> entry) {
-    if (entry['draft'] == true) return null;
-    final tag = '${entry['tag_name']}';
-    final version = NexVersion.tryParse(tag)?.toString() ?? tag;
-    final notes = entry['body'] is String
-        ? (entry['body'] as String).trim()
-        : '';
-    if (version.isEmpty || notes.isEmpty) return null;
-    return ReleaseNote(
-      version: version,
-      notes: notes,
-      publishedAt: DateTime.tryParse('${entry['published_at']}'),
-    );
-  }
-
   void close() {
     if (_ownsClient) _client.close();
   }
-}
-
-/// One published release's notes, for the browsable changelog — distinct
-/// from [UpdateCheck], which is about whether *this device* needs it.
-@immutable
-class ReleaseNote {
-  const ReleaseNote({
-    required this.version,
-    required this.notes,
-    this.publishedAt,
-  });
-
-  final String version;
-  final String notes;
-  final DateTime? publishedAt;
 }
 
 /// Streams the installer to disk, reporting progress.

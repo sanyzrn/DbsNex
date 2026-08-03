@@ -541,26 +541,26 @@
       }
     }
   },
-  "changelogLink": "See what changed in past versions",
-  "@changelogLink": {
-    "description": "Update sheet: link to the full changelog history, shown regardless of update status"
-  },
   "changelogTitle": "Changelog",
   "@changelogTitle": {
-    "description": "Title of the full changelog history screen"
+    "description": "Heading above the inline changelog panel on the update sheet, shown regardless of update status"
+  },
+  "changelogLatestHeading": "Latest changes",
+  "@changelogLatestHeading": {
+    "description": "Heading above the current (not-yet-numbered) section of the changelog panel"
   },
   "changelogVersionHeading": "Version {version}",
   "@changelogVersionHeading": {
-    "description": "Heading above one release's notes in the changelog history",
+    "description": "Heading above one past release's notes in the changelog panel",
     "placeholders": {
       "version": {
         "type": "String"
       }
     }
   },
-  "changelogEmpty": "Couldn't load past versions. Check your connection and try again.",
+  "changelogEmpty": "Changelog unavailable.",
   "@changelogEmpty": {
-    "description": "Changelog history screen when the release list fails to load or is empty"
+    "description": "Changelog panel when the bundled CHANGELOG.md has nothing to show"
   },
   "autoUpdateCheck": "Check automatically",
   "@autoUpdateCheck": {

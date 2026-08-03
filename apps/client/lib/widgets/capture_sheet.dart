@@ -97,50 +97,62 @@ class _CaptureSheetState extends State<CaptureSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Focus(
-              // A multiline field's own default is to insert a newline on
-              // Enter — textInputAction only changes the on-screen
-              // keyboard's action button, physical Enter still needs
-              // catching here. Shift+Enter is the escape hatch to actually
-              // start a new line while this is on.
-              onKeyEvent: (node, event) {
-                if (!widget.preferences.enterSubmitsCapture) {
-                  return KeyEventResult.ignored;
-                }
-                if (event is! KeyDownEvent) return KeyEventResult.ignored;
-                final isEnter =
-                    event.logicalKey == LogicalKeyboardKey.enter ||
-                    event.logicalKey == LogicalKeyboardKey.numpadEnter;
-                if (!isEnter || HardwareKeyboard.instance.isShiftPressed) {
-                  return KeyEventResult.ignored;
-                }
-                close();
-                return KeyEventResult.handled;
-              },
-              child: TextField(
-                controller: controller,
-                autofocus: true,
-                minLines: 3,
-                maxLines: null,
-                textDirection: nexTextDirection(controller.text),
-                textAlign: nexTextAlign(controller.text),
-                // Default is BoxWidthStyle.max, which pads a selection's highlight
-                // out to the far edge of its line on Persian text — double-tapping
-                // a word painted a bar running to the end of the line, empty space
-                // included, even though the selection itself (and copy) was always
-                // just the word.
-                selectionWidthStyle: BoxWidthStyle.tight,
-                decoration: InputDecoration(
-                  hintText: l10n.captureHint,
-                  border: InputBorder.none,
+            // Bounded rather than left to grow with `maxLines: null`: a long
+            // paste used to push the divider and every action icon below it
+            // straight off the bottom of the sheet, with no scroll view
+            // around the whole thing to recover them. A `TextField` given a
+            // height constraint from its parent scrolls its own overflow
+            // internally instead of demanding more space, so capping the
+            // height here is the whole fix — the icon row stays put.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.35,
+              ),
+              child: Focus(
+                // A multiline field's own default is to insert a newline on
+                // Enter — textInputAction only changes the on-screen
+                // keyboard's action button, physical Enter still needs
+                // catching here. Shift+Enter is the escape hatch to actually
+                // start a new line while this is on.
+                onKeyEvent: (node, event) {
+                  if (!widget.preferences.enterSubmitsCapture) {
+                    return KeyEventResult.ignored;
+                  }
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  final isEnter =
+                      event.logicalKey == LogicalKeyboardKey.enter ||
+                      event.logicalKey == LogicalKeyboardKey.numpadEnter;
+                  if (!isEnter || HardwareKeyboard.instance.isShiftPressed) {
+                    return KeyEventResult.ignored;
+                  }
+                  close();
+                  return KeyEventResult.handled;
+                },
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  minLines: 3,
+                  maxLines: null,
+                  textDirection: nexTextDirection(controller.text),
+                  textAlign: nexTextAlign(controller.text),
+                  // Default is BoxWidthStyle.max, which pads a selection's highlight
+                  // out to the far edge of its line on Persian text — double-tapping
+                  // a word painted a bar running to the end of the line, empty space
+                  // included, even though the selection itself (and copy) was always
+                  // just the word.
+                  selectionWidthStyle: BoxWidthStyle.tight,
+                  decoration: InputDecoration(
+                    hintText: l10n.captureHint,
+                    border: InputBorder.none,
+                  ),
+                  textInputAction: widget.preferences.enterSubmitsCapture
+                      ? TextInputAction.send
+                      : TextInputAction.newline,
+                  onChanged: changed,
+                  onSubmitted: widget.preferences.enterSubmitsCapture
+                      ? (_) => close()
+                      : null,
                 ),
-                textInputAction: widget.preferences.enterSubmitsCapture
-                    ? TextInputAction.send
-                    : TextInputAction.newline,
-                onChanged: changed,
-                onSubmitted: widget.preferences.enterSubmitsCapture
-                    ? (_) => close()
-                    : null,
               ),
             ),
             const Divider(height: 1),
