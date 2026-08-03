@@ -38,6 +38,12 @@ class UpdateService extends ChangeNotifier {
 
   final NexPreferences preferences;
   final UpdateChecker _checker;
+
+  /// Exposed so a browsable changelog can reuse the same client and
+  /// `repository` rather than standing up a second [UpdateChecker] that
+  /// might, in a test, be pointed somewhere else entirely.
+  UpdateChecker get checker => _checker;
+
   final UpdateDownloader _downloader;
   final Future<Directory> Function() _directory;
   final DateTime Function() _now;

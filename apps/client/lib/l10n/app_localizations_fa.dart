@@ -85,6 +85,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get nothingClose => 'چیزی نزدیک به آن هم پیدا نشد.';
 
   @override
+  String get semanticMatches =>
+      'هیچ‌کدام همان کلمه‌ها را ندارند، اما این‌ها همین موضوع را می‌گویند:';
+
+  @override
   String get emptyPromise => 'هر چیزی که اینجا بگذارید، می‌ماند.';
 
   @override
@@ -678,6 +682,21 @@ class AppLocalizationsFa extends AppLocalizations {
   String updateAvailable(String version) {
     return 'نسخهٔ $version منتشر شده';
   }
+
+  @override
+  String get changelogLink => 'دیدن تغییرات نسخه‌های قبلی';
+
+  @override
+  String get changelogTitle => 'تاریخچهٔ تغییرات';
+
+  @override
+  String changelogVersionHeading(String version) {
+    return 'نسخهٔ $version';
+  }
+
+  @override
+  String get changelogEmpty =>
+      'تغییرات نسخه‌های قبلی بارگذاری نشد. اتصال را بررسی و دوباره امتحان کنید.';
 
   @override
   String get autoUpdateCheck => 'بررسی خودکار';

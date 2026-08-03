@@ -55,3 +55,8 @@ Working convention:
 - Toasts pop in instead of just fading.
 - Feedback is now a compose-and-send sheet instead of a link to copy, with a
   confirmation when it lands and an automatic retry if you were offline.
+- Rotating and freehand drawing/text are now part of the photo crop step.
+- Search now also looks by meaning, not just matching words, when nothing
+  else turns up.
+- Added a "See what changed in past versions" link on the update screen —
+  a real changelog history, not just the newest release's notes.

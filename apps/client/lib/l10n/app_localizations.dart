@@ -224,6 +224,12 @@ abstract class AppLocalizations {
   /// **'Nothing close either.'**
   String get nothingClose;
 
+  /// No description provided for @semanticMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing shares those words, but these are about the same thing:'**
+  String get semanticMatches;
+
   /// No description provided for @emptyPromise.
   ///
   /// In en, this message translates to:
@@ -1255,6 +1261,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Version {version} is available'**
   String updateAvailable(String version);
+
+  /// Update sheet: link to the full changelog history, shown regardless of update status
+  ///
+  /// In en, this message translates to:
+  /// **'See what changed in past versions'**
+  String get changelogLink;
+
+  /// Title of the full changelog history screen
+  ///
+  /// In en, this message translates to:
+  /// **'Changelog'**
+  String get changelogTitle;
+
+  /// Heading above one release's notes in the changelog history
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String changelogVersionHeading(String version);
+
+  /// Changelog history screen when the release list fails to load or is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load past versions. Check your connection and try again.'**
+  String get changelogEmpty;
 
   /// Settings toggle for the daily background update check
   ///

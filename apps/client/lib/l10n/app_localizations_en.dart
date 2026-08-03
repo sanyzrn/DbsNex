@@ -85,6 +85,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nothingClose => 'Nothing close either.';
 
   @override
+  String get semanticMatches =>
+      'Nothing shares those words, but these are about the same thing:';
+
+  @override
   String get emptyPromise => 'Anything you put here is kept.';
 
   @override
@@ -679,6 +683,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String updateAvailable(String version) {
     return 'Version $version is available';
   }
+
+  @override
+  String get changelogLink => 'See what changed in past versions';
+
+  @override
+  String get changelogTitle => 'Changelog';
+
+  @override
+  String changelogVersionHeading(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get changelogEmpty =>
+      'Couldn\'t load past versions. Check your connection and try again.';
 
   @override
   String get autoUpdateCheck => 'Check automatically';

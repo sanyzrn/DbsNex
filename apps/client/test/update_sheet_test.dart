@@ -63,4 +63,34 @@ void main() {
       expect(find.textContaining('- first change'), findsNothing);
     },
   );
+
+  testWidgets(
+    'the changelog link is there whether or not an update is pending',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final preferences = await NexPreferences.load();
+      final service = _FixedUpdateService(
+        const UpdateCheck.upToDate(),
+        preferences: preferences,
+      );
+      addTearDown(service.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: UpdateSheet(haptics: false, service: service),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // "What have I missed" is a fair question even when there is nothing
+      // new to install right now.
+      expect(find.text('See what changed in past versions'), findsOneWidget);
+    },
+  );
 }

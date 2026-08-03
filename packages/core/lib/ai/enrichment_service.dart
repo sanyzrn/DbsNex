@@ -128,6 +128,12 @@ class EnrichmentService {
     }
   }
 
+  /// Below this cosine similarity, a hit is noise rather than a match — an
+  /// unfiltered top-N would otherwise hand back the whole library, ranked,
+  /// for any query, since nothing here stops a search for "invoice" from
+  /// still returning a note about breakfast in last place.
+  static const _minSemanticSimilarity = 0.3;
+
   /// Semantic search by meaning. Results are separate from keyword FTS.
   Future<List<SemanticHit>> semanticSearch(
     String query, {
@@ -144,7 +150,7 @@ class EnrichmentService {
       final scored = <SemanticHit>[];
       for (final row in rows) {
         final sim = _cosine(queryVec.values, row.values);
-        if (sim.isNaN) continue;
+        if (sim.isNaN || sim < _minSemanticSimilarity) continue;
         scored.add(SemanticHit(noteId: row.noteId, score: sim));
       }
       scored.sort((a, b) => b.score.compareTo(a.score));

@@ -127,6 +127,11 @@ abstract interface class NexDb {
 
   Future<List<SemanticHit>> relatedNotes(String noteId, {int limit});
 
+  /// Notes ranked by embedding similarity to [query], meaning-based rather
+  /// than keyword-based. Empty whenever the capability is off or no provider
+  /// is configured to embed with — see [EnrichmentService.semanticSearch].
+  Future<List<SemanticHit>> semanticSearch(String query, {int limit});
+
   Future<void> setAiCapabilities(AiCapabilities capabilities);
 
   /// Points the enrichment service at a provider.

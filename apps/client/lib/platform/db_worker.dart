@@ -62,6 +62,7 @@ enum _DbCommand {
   suggestTags,
   summarize,
   relatedNotes,
+  semanticSearch,
   setAiCapabilities,
   setAiProvider,
   sync,
@@ -414,6 +415,13 @@ class NexDbWorker implements NexDb {
       });
 
   @override
+  Future<List<SemanticHit>> semanticSearch(String query, {int limit = 20}) =>
+      _send<List<SemanticHit>>(_DbCommand.semanticSearch, {
+        'query': query,
+        'limit': limit,
+      });
+
+  @override
   Future<void> setAiProvider(Map<String, String> config) =>
       _send<void>(_DbCommand.setAiProvider, {'config': config});
 
@@ -618,6 +626,10 @@ class NexDbWorker implements NexDb {
           ),
           _DbCommand.relatedNotes => await enrichment.relatedNotes(
             arg('noteId')! as String,
+            limit: arg('limit')! as int,
+          ),
+          _DbCommand.semanticSearch => await enrichment.semanticSearch(
+            arg('query')! as String,
             limit: arg('limit')! as int,
           ),
           _DbCommand.setAiCapabilities => _voided(
