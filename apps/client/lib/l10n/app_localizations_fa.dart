@@ -684,10 +684,10 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get changelogLink => 'دیدن تغییرات نسخه‌های قبلی';
+  String get changelogTitle => 'تاریخچهٔ تغییرات';
 
   @override
-  String get changelogTitle => 'تاریخچهٔ تغییرات';
+  String get changelogLatestHeading => 'جدیدترین تغییرات';
 
   @override
   String changelogVersionHeading(String version) {
@@ -695,8 +695,7 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get changelogEmpty =>
-      'تغییرات نسخه‌های قبلی بارگذاری نشد. اتصال را بررسی و دوباره امتحان کنید.';
+  String get changelogEmpty => 'تاریخچهٔ تغییرات در دسترس نیست.';
 
   @override
   String get autoUpdateCheck => 'بررسی خودکار';

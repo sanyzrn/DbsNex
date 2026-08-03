@@ -188,6 +188,50 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a long paste keeps the submit button on screen instead of pushing it off',
+    (tester) async {
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+
+      final captureField = find.descendant(
+        of: find.byType(CaptureSheet),
+        matching: find.byType(TextField),
+      );
+      // A field left unbounded (`maxLines: null` with nothing capping its
+      // height) grows with every line pasted in, and used to push the
+      // submit button below the bottom of the sheet entirely.
+      await tester.enterText(
+        captureField,
+        List.filled(60, 'a line').join('\n'),
+      );
+      await tester.pump();
+
+      // The FAB behind the sheet also has tooltip "Capture" — scope to the
+      // sheet's own submit button specifically.
+      final submit = find.descendant(
+        of: find.byType(CaptureSheet),
+        matching: find.byTooltip('Capture'),
+      );
+      expect(submit, findsOneWidget);
+      final screenHeight =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      expect(
+        tester.getBottomRight(submit).dy,
+        lessThanOrEqualTo(screenHeight),
+        reason: 'the submit button must stay within the visible screen',
+      );
+
+      // Still reachable, not just present in the tree.
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+      expect(find.byType(CaptureSheet), findsNothing);
+    },
+  );
+
   testWidgets('turning off "Enter saves" lets Enter break a line instead', (
     tester,
   ) async {

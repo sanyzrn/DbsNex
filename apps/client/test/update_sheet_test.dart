@@ -65,7 +65,7 @@ void main() {
   );
 
   testWidgets(
-    'the changelog link is there whether or not an update is pending',
+    'the changelog panel is there whether or not an update is pending',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final preferences = await NexPreferences.load();
@@ -89,8 +89,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // "What have I missed" is a fair question even when there is nothing
-      // new to install right now.
-      expect(find.text('See what changed in past versions'), findsOneWidget);
+      // new to install right now, and it's inline now — no separate screen.
+      // The panel's own content is covered by changelog_panel_test.dart;
+      // this only has to prove the section is wired in regardless of phase.
+      expect(find.text('Changelog'), findsOneWidget);
     },
   );
 }

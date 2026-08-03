@@ -58,5 +58,8 @@ Working convention:
 - Rotating and freehand drawing/text are now part of the photo crop step.
 - Search now also looks by meaning, not just matching words, when nothing
   else turns up.
-- Added a "See what changed in past versions" link on the update screen —
-  a real changelog history, not just the newest release's notes.
+- The update screen now shows the full changelog inline, past versions
+  included, instead of only the newest release's notes.
+- Fixed pasting a long block of text into a capture pushing the send button
+  off the screen — the text box now scrolls instead of growing forever.
+- Fixed the feedback compose box ending up hidden behind the keyboard.

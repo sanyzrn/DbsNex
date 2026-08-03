@@ -685,10 +685,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get changelogLink => 'See what changed in past versions';
+  String get changelogTitle => 'Changelog';
 
   @override
-  String get changelogTitle => 'Changelog';
+  String get changelogLatestHeading => 'Latest changes';
 
   @override
   String changelogVersionHeading(String version) {
@@ -696,8 +696,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get changelogEmpty =>
-      'Couldn\'t load past versions. Check your connection and try again.';
+  String get changelogEmpty => 'Changelog unavailable.';
 
   @override
   String get autoUpdateCheck => 'Check automatically';

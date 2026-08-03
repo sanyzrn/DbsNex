@@ -10,8 +10,8 @@ import '../l10n/app_localizations.dart';
 import '../platform/app_update.dart';
 import '../platform/file_opener.dart';
 import '../platform/update_service.dart';
+import '../widgets/changelog_panel.dart';
 import '../widgets/release_notes.dart';
-import 'changelog_screen.dart';
 
 /// Check, download, install — the whole update flow in one sheet.
 ///
@@ -285,20 +285,15 @@ class _UpdateSheetState extends State<UpdateSheet> {
           ),
           const SizedBox(height: NexSpacing.lg),
           ..._body(l10n, theme),
-          const SizedBox(height: NexSpacing.lg),
+          const SizedBox(height: NexSpacing.xl),
           // Always here, regardless of phase — "what changed" is a fair
-          // question whether or not an update happens to be pending right now.
-          Center(
-            child: TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) =>
-                      ChangelogScreen(checker: widget.service?.checker),
-                ),
-              ),
-              child: Text(l10n.changelogLink),
-            ),
-          ),
+          // question whether or not an update happens to be pending right now,
+          // and it never touches the network: bundled straight from
+          // CHANGELOG.md, the same file the release workflow already treats
+          // as the one source of truth.
+          Text(l10n.changelogTitle, style: theme.textTheme.titleMedium),
+          const SizedBox(height: NexSpacing.sm),
+          const ChangelogPanel(),
         ],
       ),
     );

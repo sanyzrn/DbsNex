@@ -67,6 +67,12 @@ Future<T?> nexShowSheet<T>({
 );
 
 /// A bottom sheet body that always fills the sheet's width.
+///
+/// `showModalBottomSheet` does not push its content above the keyboard on
+/// its own — every sheet with a text field has to add the keyboard's own
+/// inset to its bottom padding by hand, or the field's last controls end up
+/// hidden behind it the moment the field autofocuses. Doing that here once
+/// means every [NexSheetBody] gets it for free.
 class NexSheetBody extends StatelessWidget {
   const NexSheetBody({super.key, required this.child, this.padding});
 
@@ -74,11 +80,18 @@ class NexSheetBody extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: double.infinity,
-    child: Padding(
-      padding: padding ?? const EdgeInsets.all(NexSpacing.lg),
-      child: child,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final base = (padding ?? const EdgeInsets.all(NexSpacing.lg)).resolve(
+      Directionality.of(context),
+    );
+    return SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding:
+            base +
+            EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        child: child,
+      ),
+    );
+  }
 }
