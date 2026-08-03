@@ -684,6 +684,21 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get changelogLink => 'دیدن تغییرات نسخه‌های قبلی';
+
+  @override
+  String get changelogTitle => 'تاریخچهٔ تغییرات';
+
+  @override
+  String changelogVersionHeading(String version) {
+    return 'نسخهٔ $version';
+  }
+
+  @override
+  String get changelogEmpty =>
+      'تغییرات نسخه‌های قبلی بارگذاری نشد. اتصال را بررسی و دوباره امتحان کنید.';
+
+  @override
   String get autoUpdateCheck => 'بررسی خودکار';
 
   @override

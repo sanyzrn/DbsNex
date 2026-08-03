@@ -685,6 +685,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get changelogLink => 'See what changed in past versions';
+
+  @override
+  String get changelogTitle => 'Changelog';
+
+  @override
+  String changelogVersionHeading(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get changelogEmpty =>
+      'Couldn\'t load past versions. Check your connection and try again.';
+
+  @override
   String get autoUpdateCheck => 'Check automatically';
 
   @override

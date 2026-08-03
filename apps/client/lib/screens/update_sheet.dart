@@ -10,6 +10,8 @@ import '../l10n/app_localizations.dart';
 import '../platform/app_update.dart';
 import '../platform/file_opener.dart';
 import '../platform/update_service.dart';
+import '../widgets/release_notes.dart';
+import 'changelog_screen.dart';
 
 /// Check, download, install — the whole update flow in one sheet.
 ///
@@ -283,6 +285,20 @@ class _UpdateSheetState extends State<UpdateSheet> {
           ),
           const SizedBox(height: NexSpacing.lg),
           ..._body(l10n, theme),
+          const SizedBox(height: NexSpacing.lg),
+          // Always here, regardless of phase — "what changed" is a fair
+          // question whether or not an update happens to be pending right now.
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      ChangelogScreen(checker: widget.service?.checker),
+                ),
+              ),
+              child: Text(l10n.changelogLink),
+            ),
+          ),
         ],
       ),
     );
@@ -321,7 +337,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 220),
               child: SingleChildScrollView(
-                child: _ReleaseNotes(raw: _result!.notes!, theme: theme),
+                child: ReleaseNotesList(raw: _result!.notes!),
               ),
             ),
           ],
@@ -368,68 +384,4 @@ class _UpdateSheetState extends State<UpdateSheet> {
           OutlinedButton(onPressed: _check, child: Text(l10n.tryAgain)),
         ],
       };
-}
-
-/// Renders [CHANGELOG.md](../../../../CHANGELOG.md)'s bullet list as an
-/// actual list, not the flat paragraph a bare `Text` would make of it — the
-/// source is already curated to be user-facing, so the one thing left to fix
-/// here is presentation.
-class _ReleaseNotes extends StatelessWidget {
-  const _ReleaseNotes({required this.raw, required this.theme});
-
-  final String raw;
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    final lines = raw
-        .trim()
-        .split('\n')
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (final line in lines) _ReleaseNoteLine(line: line, theme: theme),
-      ],
-    );
-  }
-}
-
-class _ReleaseNoteLine extends StatelessWidget {
-  const _ReleaseNoteLine({required this.line, required this.theme});
-
-  final String line;
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    // Every line in the source is a `- ` bullet (see CHANGELOG.md's own
-    // convention); the strip-and-guard keeps this from breaking if that ever
-    // stops being true rather than swallowing a line silently.
-    final isBullet = line.startsWith('- ');
-    final text = isBullet ? line.substring(2) : line;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: NexSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (isBullet)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Container(
-                width: 5,
-                height: 5,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-            ),
-          if (isBullet) const SizedBox(width: NexSpacing.sm),
-          Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
-        ],
-      ),
-    );
-  }
 }

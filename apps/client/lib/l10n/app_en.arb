@@ -541,6 +541,27 @@
       }
     }
   },
+  "changelogLink": "See what changed in past versions",
+  "@changelogLink": {
+    "description": "Update sheet: link to the full changelog history, shown regardless of update status"
+  },
+  "changelogTitle": "Changelog",
+  "@changelogTitle": {
+    "description": "Title of the full changelog history screen"
+  },
+  "changelogVersionHeading": "Version {version}",
+  "@changelogVersionHeading": {
+    "description": "Heading above one release's notes in the changelog history",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "changelogEmpty": "Couldn't load past versions. Check your connection and try again.",
+  "@changelogEmpty": {
+    "description": "Changelog history screen when the release list fails to load or is empty"
+  },
   "autoUpdateCheck": "Check automatically",
   "@autoUpdateCheck": {
     "description": "Settings toggle for the daily background update check"

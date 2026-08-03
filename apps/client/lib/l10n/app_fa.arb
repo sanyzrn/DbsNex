@@ -357,6 +357,27 @@
       }
     }
   },
+  "changelogLink": "دیدن تغییرات نسخه‌های قبلی",
+  "@changelogLink": {
+    "description": "Update sheet: link to the full changelog history, shown regardless of update status"
+  },
+  "changelogTitle": "تاریخچهٔ تغییرات",
+  "@changelogTitle": {
+    "description": "Title of the full changelog history screen"
+  },
+  "changelogVersionHeading": "نسخهٔ {version}",
+  "@changelogVersionHeading": {
+    "description": "Heading above one release's notes in the changelog history",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "changelogEmpty": "تغییرات نسخه‌های قبلی بارگذاری نشد. اتصال را بررسی و دوباره امتحان کنید.",
+  "@changelogEmpty": {
+    "description": "Changelog history screen when the release list fails to load or is empty"
+  },
   "autoUpdateCheck": "بررسی خودکار",
   "autoUpdateCheckHint": "روزی یک بار، بی‌سروصدا. نسخهٔ جدید فقط با یک نقطه اینجا خبر داده می‌شود — هیچ‌وقت اعلان نمی‌آید.",
   "updateReady": "دانلود شد و آمادهٔ نصب است",
