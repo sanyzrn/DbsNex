@@ -1,0 +1,8 @@
+name = "nex-feedback"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Secrets — never committed. Set with:
+#   wrangler secret put TELEGRAM_BOT_TOKEN
+#   wrangler secret put TELEGRAM_CHAT_ID
+# Locally, put the same two keys in .dev.vars (gitignored) instead.

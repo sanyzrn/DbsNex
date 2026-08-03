@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "verbatimModuleSyntax": true,
+    // Both, deliberately: the handler itself is Workers-shaped (Request,
+    // Response, ExportedHandler), but index.test.ts runs under Node and
+    // needs node:test / node:assert. skipLibCheck keeps the two ambient
+    // globals from fighting over Request/Response's exact shape.
+    "types": ["@cloudflare/workers-types", "node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src"]
+}
