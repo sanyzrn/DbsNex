@@ -321,6 +321,9 @@ class NexServices {
   Future<List<SemanticHit>> relatedNotes(String noteId, {int limit = 5}) =>
       worker.relatedNotes(noteId, limit: limit);
 
+  Future<List<SemanticHit>> semanticSearch(String query, {int limit = 20}) =>
+      worker.semanticSearch(query, limit: limit);
+
   /// How many notes [refreshTimeline] keeps in the stream.
   ///
   /// Every mutation elsewhere — capture, tag edit, delete, sync — calls

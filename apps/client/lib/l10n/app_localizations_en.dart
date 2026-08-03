@@ -85,6 +85,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nothingClose => 'Nothing close either.';
 
   @override
+  String get semanticMatches =>
+      'Nothing shares those words, but these are about the same thing:';
+
+  @override
   String get emptyPromise => 'Anything you put here is kept.';
 
   @override

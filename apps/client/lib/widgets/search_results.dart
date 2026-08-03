@@ -42,6 +42,7 @@ List<Widget> searchResultSlivers({
   }
 
   if (search.results.isEmpty) {
+    final hasSemantic = search.semanticResults.isNotEmpty;
     return [
       SliverToBoxAdapter(
         child: Padding(
@@ -60,7 +61,7 @@ List<Widget> searchResultSlivers({
               if (search.nearest != null) ...[
                 Text(l10n.closestThing, style: theme.textTheme.bodySmall),
                 const SizedBox(height: NexSpacing.sm),
-              ] else
+              ] else if (!hasSemantic)
                 Text(l10n.nothingClose, style: theme.textTheme.bodyMedium),
             ],
           ),
@@ -77,6 +78,35 @@ List<Widget> searchResultSlivers({
             ),
           ),
         ),
+      // Nothing shares a word with the query, but these share its meaning —
+      // a keyword index can never surface them, only an embedding can.
+      if (hasSemantic) ...[
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              NexSpacing.lg,
+              NexSpacing.md,
+              NexSpacing.lg,
+              NexSpacing.sm,
+            ),
+            child: Text(l10n.semanticMatches, style: theme.textTheme.bodySmall),
+          ),
+        ),
+        SliverList.builder(
+          itemCount: search.semanticResults.length,
+          itemBuilder: (context, index) {
+            final note = search.semanticResults[index];
+            return TapRegion(
+              groupId: nexSearchTapGroup,
+              child: NoteCard(
+                note: note,
+                strings: nexCardStrings(context),
+                onTap: () => onOpen(note),
+              ),
+            );
+          },
+        ),
+      ],
     ];
   }
 

@@ -224,6 +224,12 @@ abstract class AppLocalizations {
   /// **'Nothing close either.'**
   String get nothingClose;
 
+  /// No description provided for @semanticMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing shares those words, but these are about the same thing:'**
+  String get semanticMatches;
+
   /// No description provided for @emptyPromise.
   ///
   /// In en, this message translates to:

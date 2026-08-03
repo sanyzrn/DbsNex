@@ -85,6 +85,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get nothingClose => 'چیزی نزدیک به آن هم پیدا نشد.';
 
   @override
+  String get semanticMatches =>
+      'هیچ‌کدام همان کلمه‌ها را ندارند، اما این‌ها همین موضوع را می‌گویند:';
+
+  @override
   String get emptyPromise => 'هر چیزی که اینجا بگذارید، می‌ماند.';
 
   @override

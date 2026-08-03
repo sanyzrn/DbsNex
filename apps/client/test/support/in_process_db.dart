@@ -18,14 +18,21 @@ import 'package:nex_data/nex_data.dart';
 /// deliberately does not cover is the hop itself — the isolate's own behaviour
 /// is the worker's concern, and that is what the integration suites exercise.
 class InProcessDb implements NexDb {
-  InProcessDb({required this.dbPath, required this.deviceId, this.readDelay})
-    : _db = NexDatabase.open(dbPath) {
+  InProcessDb({
+    required this.dbPath,
+    required this.deviceId,
+    this.readDelay,
+    AIAdapter? adapter,
+  }) : _db = NexDatabase.open(dbPath) {
     _repo = SqliteNoteRepository(_db, localDeviceId: deviceId);
     _capture = CaptureService(_repo, deviceId: deviceId);
     _tags = TagService(_repo);
     _search = SearchService(_repo);
     _maintenance = LibraryMaintenance(_repo);
-    _enrichment = EnrichmentService(repo: _repo);
+    _enrichment = EnrichmentService(
+      repo: _repo,
+      adapter: adapter ?? const NullAIAdapter(),
+    );
   }
 
   final String dbPath;
@@ -242,6 +249,10 @@ class InProcessDb implements NexDb {
   @override
   Future<List<SemanticHit>> relatedNotes(String noteId, {int limit = 5}) =>
       _enrichment.relatedNotes(noteId, limit: limit);
+
+  @override
+  Future<List<SemanticHit>> semanticSearch(String query, {int limit = 20}) =>
+      _enrichment.semanticSearch(query, limit: limit);
 
   @override
   Future<void> setAiCapabilities(AiCapabilities capabilities) async =>
