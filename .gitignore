@@ -29,6 +29,10 @@ apps/client/CHANGELOG.md
 node_modules/
 dist/
 apps/backend/dist/
+
+# Cloudflare Worker (apps/feedback-worker)
+.wrangler/
+apps/feedback-worker/.dev.vars
 npm-debug.log*
 
 # Env

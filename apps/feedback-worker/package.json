@@ -1,0 +1,23 @@
+{
+  "name": "@nex/feedback-worker",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Standalone Cloudflare Worker: forwards app feedback to a Telegram chat. No dependency on apps/backend or any other part of Nex.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/index.test.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260801.1",
+    "@types/node": "22.20.1",
+    "tsx": "4.23.1",
+    "typescript": "5.7.3",
+    "wrangler": "4.118.0"
+  }
+}
