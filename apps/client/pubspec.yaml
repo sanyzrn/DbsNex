@@ -95,10 +95,18 @@ flutter:
     - assets/branding/
     # Bundled rather than fetched: a separate releases repo may have no
     # history published yet, and the changelog screen should never depend on
-    # a network round trip to show what shipped. This is the same file
-    # release.yml's own top section becomes a GitHub Release body from — one
-    # source, read two different ways.
-    - ../../CHANGELOG.md
+    # a network round trip to show what shipped.
+    #
+    # A copy, not the root CHANGELOG.md via a `../../` path: that was tried
+    # first and looked fine under `flutter test`, whose asset resolution
+    # reads straight off disk — but a real `flutter build` records a
+    # `..`-escaping asset key in AssetManifest.json without ever copying the
+    # actual bytes into build/flutter_assets/, so `rootBundle.loadString`
+    # throws on a real device and the panel falls back to "unavailable".
+    # changelog_panel_test.dart asserts this file matches the root one
+    # byte-for-byte, so drift between the two fails CI instead of shipping
+    # silently.
+    - assets/CHANGELOG.md
   fonts:
     # Shipped as assets rather than left to the platform: without them Android
     # renders Roboto, Windows Segoe UI Variable and iOS SF Pro, so the same
