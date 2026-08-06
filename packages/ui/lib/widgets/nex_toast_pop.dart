@@ -29,10 +29,15 @@ class _NexToastPopState extends State<NexToastPop>
     vsync: this,
     duration: NexMotion.toastPop,
   );
-  late final _scale = CurvedAnimation(
-    parent: _controller,
-    curve: Curves.easeOutBack,
-  );
+  // Not 0→1: a toast is wide and short, so scaling it up from nothing reads
+  // as a dot expanding sideways into a capsule — exactly the "circle opening
+  // in the middle" look this was meant to avoid — rather than as a pop.
+  // Starting close to full size keeps the overshoot-and-settle character
+  // from easeOutBack while making the motion a subtle settle, not a growth.
+  late final _scale = Tween<double>(
+    begin: 0.86,
+    end: 1.0,
+  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
   late final _fade = CurvedAnimation(
     parent: _controller,
     curve: Curves.easeOut,

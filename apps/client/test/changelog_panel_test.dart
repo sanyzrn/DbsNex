@@ -1,10 +1,38 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/widgets/changelog_panel.dart';
 
 void main() {
+  test(
+    "the bundled asset copy matches the repo's own CHANGELOG.md exactly",
+    () {
+      // assets/CHANGELOG.md exists only because a `..`-escaping asset path
+      // silently fails to bundle on a real build (see the comment on this
+      // asset in pubspec.yaml) — it is a committed copy, not a symlink, so
+      // nothing enforces it stays current except this test. Run from
+      // apps/client, hence the two levels up to the repo root.
+      final root = File(
+        p.join(Directory.current.path, '..', '..', 'CHANGELOG.md'),
+      );
+      final bundled = File(
+        p.join(Directory.current.path, 'assets', 'CHANGELOG.md'),
+      );
+
+      expect(
+        bundled.readAsStringSync(),
+        root.readAsStringSync(),
+        reason:
+            'apps/client/assets/CHANGELOG.md has drifted from the root '
+            'CHANGELOG.md — copy the root file over it again.',
+      );
+    },
+  );
+
   testWidgets(
     'shows real bullets from the bundled CHANGELOG.md, not a network fetch',
     (tester) async {

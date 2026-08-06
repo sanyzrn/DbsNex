@@ -19,11 +19,6 @@ apps/client/android/.gradle/
 apps/client/windows/flutter/ephemeral/
 apps/client/.flutter-plugins
 apps/client/.flutter-plugins-dependencies
-# `pubspec.yaml` bundles ../../CHANGELOG.md as an asset (see
-# widgets/changelog_panel.dart); Flutter's tooling stages a copy of any
-# `..`-escaping asset directly under the package root while resolving it.
-# The root file stays the one source of truth — this is a build artifact.
-apps/client/CHANGELOG.md
 
 # Node / Backend
 node_modules/

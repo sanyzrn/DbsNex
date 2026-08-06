@@ -1091,17 +1091,44 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto> {
 ///
 /// Scrolling rather than wrapping: the number of actions depends on the note's
 /// type, and a strip that silently grows a second row shifts everything below
-/// it as you move between notes.
+/// it as you move between notes. Each action holds the 48px accessibility
+/// floor (see [nexMinTapTarget]), so on a narrow or lower-resolution phone the
+/// full strip — up to eight actions — routinely does not fit; shrinking the
+/// icons to squeeze more in was tried and rejected for exactly the same
+/// reason 48px is the floor everywhere else. A faded edge is the fix: it
+/// only ever hints that a scroll is possible, never claims one is not needed,
+/// which a same-width `Row` that just quietly clips its last icon does not.
 class _ActionRow extends StatelessWidget {
   const _ActionRow({required this.actions});
 
   final List<Widget> actions;
 
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    child: Row(children: actions),
-  );
+  Widget build(BuildContext context) {
+    // AlignmentDirectional needs a resolved TextDirection before
+    // LinearGradient.createShader can use it — createShader's shaderCallback
+    // only receives a Rect, not a BuildContext, so the direction has to be
+    // captured here and threaded through explicitly.
+    final textDirection = Directionality.of(context);
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        begin: AlignmentDirectional.centerStart,
+        end: AlignmentDirectional.centerEnd,
+        colors: [
+          Colors.transparent,
+          Colors.black,
+          Colors.black,
+          Colors.transparent,
+        ],
+        stops: [0.0, 0.06, 0.94, 1.0],
+      ).createShader(bounds, textDirection: textDirection),
+      blendMode: BlendMode.dstIn,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: actions),
+      ),
+    );
+  }
 }
 
 /// Icon-only: [label] still exists, as the tooltip and the semantic name,

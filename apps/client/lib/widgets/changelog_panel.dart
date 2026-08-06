@@ -45,10 +45,9 @@ List<ChangelogSection> parseChangelogSections(String raw) {
 }
 
 /// The changelog, inline and scrollable, right where the update sheet always
-/// shows it — not a separate route, and not a network fetch. `flutter test`
-/// runs without a real asset bundle unless the caller wraps it, but the
-/// bundled CHANGELOG.md is always present in a running app: it is the one
-/// piece of user-facing content this screen does not depend on a server for.
+/// shows it — not a separate route, and not a network fetch. The bundled
+/// copy is always present in a running app: it is the one piece of
+/// user-facing content this screen does not depend on a server for.
 class ChangelogPanel extends StatefulWidget {
   const ChangelogPanel({super.key});
 
@@ -66,10 +65,10 @@ class _ChangelogPanelState extends State<ChangelogPanel> {
       _load();
 
   Future<List<ChangelogSection>> _load() async {
-    // The asset key is the literal pubspec path, `..` and all — Flutter does
-    // not normalise it to the bare filename, confirmed against this app's
-    // own generated AssetManifest.json.
-    final raw = await rootBundle.loadString('../../CHANGELOG.md');
+    // assets/CHANGELOG.md, not the root file directly: see the comment on
+    // this asset in pubspec.yaml for why a `..`-escaping path silently fails
+    // on a real build despite working under `flutter test`.
+    final raw = await rootBundle.loadString('assets/CHANGELOG.md');
     return parseChangelogSections(raw);
   }
 
