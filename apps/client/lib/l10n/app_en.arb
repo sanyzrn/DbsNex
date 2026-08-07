@@ -1012,5 +1012,13 @@
   "intelligenceOpen": "Transcription, summaries, tags",
   "@intelligenceOpen": {
     "description": "Settings row that opens the intelligence screen"
+  },
+  "aiDaySummaryChip": "AI Summary",
+  "@aiDaySummaryChip": {
+    "description": "Small chip next to the timeline greeting that reopens the collapsed AI day summary"
+  },
+  "aiDaySummarySemanticLabel": "Today's summary",
+  "@aiDaySummarySemanticLabel": {
+    "description": "Screen-reader label for the AI-generated day summary panel on the timeline"
   }
 }

@@ -144,7 +144,7 @@ class _CardBody extends StatelessWidget {
           padding: const EdgeInsets.all(NexSpacing.cardInset),
           child: Row(
             children: [
-              _LeadingWithPin(note: note),
+              _LeadingWithPin(note: note, strings: strings),
               const SizedBox(width: NexSpacing.contentGap),
               Expanded(
                 child: Column(
@@ -163,15 +163,6 @@ class _CardBody extends StatelessWidget {
                   ],
                 ),
               ),
-              // Colours, not names. A tag's name is already in its own
-              // words inside the note; on the card it was competing with
-              // the note's first line for the same glance, and three of
-              // them filled the row. The dot is the whole of what a
-              // timeline needs: which tags, at a glance, without reading.
-              if (note.tags.isNotEmpty) ...[
-                const SizedBox(width: NexSpacing.sm),
-                _TagDots(tags: note.tags, strings: strings),
-              ],
             ],
           ),
         ),
@@ -180,20 +171,37 @@ class _CardBody extends StatelessWidget {
   }
 }
 
-/// A tag's colour, stacked down the card's trailing edge.
+/// Up to 4 tag-colour dots, one per corner of the leading icon box.
 ///
-/// Vertical rather than a row under the text: it costs the card no height at
-/// all, which is the point — the date and the tag chips were most of why a card
-/// was 120px tall. Capped at four, because past that they stop being
-/// distinguishable and start being a texture.
+/// On the icon rather than in a column beside it: a column cost the card no
+/// height, but a photo note's thumbnail already fills that column's width
+/// with the photo itself, so the dots had nowhere consistent to sit once a
+/// card's leading square stopped always being a bare glyph. A dot pinned to
+/// the icon's own corner reads as a property of that note's icon at a
+/// glance, the way an app badge sits on a home-screen icon, without a
+/// second column competing with the preview text for width.
+///
+/// Corners fill top-right, bottom-left, top-left, bottom-right in that
+/// order — RTL-aware (top-end, bottom-start, top-start, bottom-end) — so a
+/// fourth tag's dot lands under the pin badge on a pinned note rather than
+/// swapping position with it.
 ///
 /// A tag with no colour still gets a mark, drawn as an outline, so "this note
-/// is tagged" never depends on the user having picked a colour.
-class _TagDots extends StatelessWidget {
-  const _TagDots({required this.tags, required this.strings});
+/// is tagged" never depends on the user having picked a colour. Display-only:
+/// nothing here reacts to a tap, since a dot this small identifies a tag by
+/// colour, not by picking it.
+class _CornerTagDots extends StatelessWidget {
+  const _CornerTagDots({required this.tags, required this.strings});
 
   static const _max = 4;
-  static const _size = 8.0;
+  static const _size = 10.0;
+
+  static const _corners = [
+    _DotCorner.topEnd,
+    _DotCorner.bottomStart,
+    _DotCorner.topStart,
+    _DotCorner.bottomEnd,
+  ];
 
   final List<Tag> tags;
   final NexCardStrings strings;
@@ -209,28 +217,49 @@ class _TagDots extends StatelessWidget {
       container: true,
       label: strings.tagList(tags.map((tag) => tag.name).join(', ')),
       excludeSemantics: true,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < shown.length; i++) ...[
-            if (i > 0) const SizedBox(height: NexSpacing.xs + 2),
-            Container(
-              width: _size,
-              height: _size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: nexParseTagColor(shown[i].color),
-                border: shown[i].color == null
-                    ? Border.all(color: scheme.outline, width: 1.5)
-                    : null,
+      child: SizedBox(
+        width: nexCardLeadingSize,
+        height: nexCardLeadingSize,
+        child: Stack(
+          children: [
+            for (var i = 0; i < shown.length; i++)
+              _positioned(
+                _corners[i],
+                Container(
+                  width: _size,
+                  height: _size,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: nexParseTagColor(shown[i].color),
+                    border: shown[i].color == null
+                        ? Border.all(color: scheme.outline, width: 1.5)
+                        : null,
+                  ),
+                ),
               ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
+
+  Widget _positioned(_DotCorner corner, Widget dot) => switch (corner) {
+    _DotCorner.topEnd => PositionedDirectional(top: 0, end: 0, child: dot),
+    _DotCorner.bottomStart => PositionedDirectional(
+      bottom: 0,
+      start: 0,
+      child: dot,
+    ),
+    _DotCorner.topStart => PositionedDirectional(top: 0, start: 0, child: dot),
+    _DotCorner.bottomEnd => PositionedDirectional(
+      bottom: 0,
+      end: 0,
+      child: dot,
+    ),
+  };
 }
+
+enum _DotCorner { topEnd, bottomStart, topStart, bottomEnd }
 
 /// The note's own words, laid out in the note's own direction.
 ///
@@ -308,16 +337,18 @@ class _Leading extends StatelessWidget {
 /// an object that is already there, which is what makes it read as part of the
 /// card rather than as something dropped on top of it.
 class _LeadingWithPin extends StatelessWidget {
-  const _LeadingWithPin({required this.note});
+  const _LeadingWithPin({required this.note, required this.strings});
 
   final Note note;
+  final NexCardStrings strings;
 
   static const _size = 20.0;
 
   @override
   Widget build(BuildContext context) {
     final leading = _Leading(note: note);
-    if (note.pinnedAt == null) return leading;
+    final hasTags = note.tags.isNotEmpty;
+    if (note.pinnedAt == null && !hasTags) return leading;
     final scheme = Theme.of(context).colorScheme;
     return Stack(
       // The badge sits half off the square's corner. Nothing is clipped: it
@@ -325,27 +356,29 @@ class _LeadingWithPin extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         leading,
-        PositionedDirectional(
-          bottom: -NexSpacing.xs,
-          end: -NexSpacing.xs,
-          child: Container(
-            width: _size,
-            height: _size,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              // The card's own fill, so the badge reads as lifted off the
-              // square rather than painted onto it.
-              color: scheme.surfaceContainerLowest,
-              border: Border.all(color: scheme.outline),
-            ),
-            child: Icon(
-              Icons.push_pin,
-              size: 11,
-              color: scheme.onSurfaceVariant,
+        if (hasTags) _CornerTagDots(tags: note.tags, strings: strings),
+        if (note.pinnedAt != null)
+          PositionedDirectional(
+            bottom: -NexSpacing.xs,
+            end: -NexSpacing.xs,
+            child: Container(
+              width: _size,
+              height: _size,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                // The card's own fill, so the badge reads as lifted off the
+                // square rather than painted onto it.
+                color: scheme.surfaceContainerLowest,
+                border: Border.all(color: scheme.outline),
+              ),
+              child: Icon(
+                Icons.push_pin,
+                size: 11,
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           ),
-        ),
       ],
     );
   }

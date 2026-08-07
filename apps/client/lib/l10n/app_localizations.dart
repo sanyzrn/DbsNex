@@ -1915,6 +1915,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Transcription, summaries, tags'**
   String get intelligenceOpen;
+
+  /// Small chip next to the timeline greeting that reopens the collapsed AI day summary
+  ///
+  /// In en, this message translates to:
+  /// **'AI Summary'**
+  String get aiDaySummaryChip;
+
+  /// Screen-reader label for the AI-generated day summary panel on the timeline
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s summary'**
+  String get aiDaySummarySemanticLabel;
 }
 
 class _AppLocalizationsDelegate

@@ -143,6 +143,62 @@ void main() {
       expect(called, isFalse);
     });
 
+    test('digest asks for a recap of everything, not one note', () async {
+      late http.Request seen;
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.openai,
+          apiKey: 'secret',
+        ),
+        client: MockClient((request) async {
+          seen = request;
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': 'Busy week, three grocery lists!'},
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      final recap = await adapter.digest('milk, eggs\nfinish the report');
+
+      expect(seen.url.path, '/v1/chat/completions');
+      final body = jsonDecode(seen.body) as Map<String, dynamic>;
+      final userTurn = (body['messages'] as List).last as Map;
+      expect(userTurn['content'], 'milk, eggs\nfinish the report');
+      expect(recap, 'Busy week, three grocery lists!');
+    });
+
+    test('digest is unavailable without a usable config or without notes', () {
+      var called = false;
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(provider: AiProvider.openai),
+        client: MockClient((request) async {
+          called = true;
+          return http.Response('{}', 200);
+        }),
+      );
+      expect(adapter.digest('something'), completion(isNull));
+
+      final usable = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.openai,
+          apiKey: 'secret',
+        ),
+        client: MockClient((request) async {
+          called = true;
+          return http.Response('{}', 200);
+        }),
+      );
+      expect(usable.digest('   '), completion(isNull));
+      expect(called, isFalse);
+    });
+
     test('Anthropic offers no embeddings rather than guessing an endpoint', () {
       final adapter = CloudAIAdapter(
         config: const AiProviderConfig(

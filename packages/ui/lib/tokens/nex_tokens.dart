@@ -47,7 +47,14 @@ abstract final class NexColors {
 
   /* -------------------------------------------------------------- dark */
 
-  static const bgPrimaryDark = Color(0xFF141414);
+  // Warmer and a touch lighter than it was (#141414) — moved toward the
+  // Nex_ui Figma redesign's near-black, which reads closer to this than to
+  // pure neutral. Kept comfortably below bgCardDark rather than matching the
+  // Figma screen background exactly (#20201F is close enough to the current
+  // card colour that using it here would read as the card sitting *behind*
+  // the page instead of elevated above it — the Figma file's own card colour
+  // wasn't confirmed before its MCP access hit a rate limit).
+  static const bgPrimaryDark = Color(0xFF1A1A19);
   static const bgCardDark = Color(0xFF1E1E1E);
   static const bgElevatedDark = Color(0xFF323232);
   static const textPrimaryDark = Color(0xFFF2F2F3);
@@ -173,14 +180,14 @@ abstract final class NexRadius {
   static double inside(double outer, double inset) =>
       math.max(xs, outer - inset);
 
-  /// The leading icon box and photo thumbnail on a card, scaled off the
-  /// card's own [lg] radius rather than [inside] concentric with it.
+  /// The leading icon box and photo thumbnail on a card.
   ///
-  /// [inside] nested it flush against the card's inset — `lg - cardInset`,
-  /// which floors out at 4px given how close those two numbers are — so the
-  /// leading element read as barely rounded at all next to the card holding
-  /// it. This is a fraction of the card's radius on its own terms instead.
-  static const cardLeading = lg * 0.5;
+  /// Matches the Nex_ui Figma redesign's icon-box radius ratio (~0.3 of the
+  /// box's own size) rather than [inside] concentric with the card or a
+  /// fraction of the card's own [lg] radius — both of those tied the leading
+  /// element's roundness to a number about the card, when the box shrank on
+  /// its own terms and needed a roundness to match.
+  static const cardLeading = 14.0;
 }
 
 const nexMinTapTarget = 48.0;
@@ -215,7 +222,18 @@ const nexCardInsets = EdgeInsets.symmetric(
 );
 
 /// The type glyph's container on a card, and the photo thumbnail's size.
-const nexCardLeadingSize = 56.0;
+///
+/// Smaller than it was — the Nex_ui Figma redesign's icon box scales
+/// noticeably down against the rest of its layout, from the 56dp this used
+/// to be. It is never its own tap target (the whole card is, via the
+/// [InkWell] in `_CardBody`), so nothing here is bound by [nexMinTapTarget].
+/// It is bound by something else, though: `nexCardHeight` derives the
+/// card's whole height from this number, and the preview line plus the
+/// relative-time line stacked beside it need 46dp between them at minimum
+/// (24 + 4 + 18, from the bodyLarge/bodySmall line heights and the gap
+/// between them) — going smaller than that overflows the text column this
+/// box sits next to.
+const nexCardLeadingSize = 48.0;
 
 /// One height for every card in the timeline.
 ///
