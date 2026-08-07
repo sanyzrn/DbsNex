@@ -218,6 +218,13 @@ jobs:
         with:
           name: android
           path: apps/client/dist/*
+          # Only ever consumed by publish-release's download-artifact step in
+          # this same run — the actual long-lived distribution is the GitHub
+          # Release in RELEASES_REPO, not this artifact. Left at the default
+          # 90 days, every release run permanently added ~130MB (this plus
+          # windows-installer) to the account's Actions storage quota until it
+          # was exhausted.
+          retention-days: 1
 
   build-windows:
     name: Windows Inno Setup installer
@@ -277,6 +284,8 @@ jobs:
         with:
           name: windows-installer
           path: apps/client/windows/installer/Output/*.exe
+          # See the matching comment on the "android" artifact above.
+          retention-days: 1
 
   publish-release:
     name: Publish GitHub Release
