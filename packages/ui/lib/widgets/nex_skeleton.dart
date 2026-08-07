@@ -139,8 +139,8 @@ class NexCardSkeleton extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 NexSkeleton(
-                  width: 56,
-                  height: 56,
+                  width: nexCardLeadingSize,
+                  height: nexCardLeadingSize,
                   // Matches the leading icon box it stands in for — see
                   // NexRadius.cardLeading.
                   radius: NexRadius.cardLeading,
@@ -150,16 +150,19 @@ class NexCardSkeleton extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      NexSkeleton(height: 16),
-                      SizedBox(height: NexSpacing.sm),
+                      // Sized to fit nexCardLeadingSize's own height, same as
+                      // the real preview-plus-timestamp column beside it —
+                      // shrinking the icon box shrinks the room this has too.
+                      NexSkeleton(height: 14),
+                      SizedBox(height: NexSpacing.xs),
                       // Short, the way a second line of a preview usually is.
                       FractionallySizedBox(
                         alignment: AlignmentDirectional.centerStart,
                         widthFactor: 0.6,
-                        child: NexSkeleton(height: 16),
+                        child: NexSkeleton(height: 14),
                       ),
                       Spacer(),
-                      NexSkeleton(width: 72, height: 14),
+                      NexSkeleton(width: 72, height: 12),
                     ],
                   ),
                 ),
