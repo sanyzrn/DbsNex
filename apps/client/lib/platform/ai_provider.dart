@@ -481,6 +481,29 @@ class CloudAIAdapter implements AIAdapter {
     return Summary(text: reply?.trim() ?? '');
   }
 
+  /// A warm, one-paragraph recap of what someone has been capturing lately.
+  ///
+  /// Not part of [AIAdapter]: every other capability there takes one [Note],
+  /// because enrichment is a per-note pipeline. This is the one place in the
+  /// app that wants "here is a handful of recent notes, say something about
+  /// them" rather than "extract something from this one" — it belongs to the
+  /// timeline's own daily-summary panel, not to the note-scoped contract.
+  Future<String?> digest(String recentNotesText) async {
+    if (!config.isUsable || recentNotesText.trim().isEmpty) return null;
+    final reply = await _complete(
+      'You write the short recap a notes app shows someone when they open '
+      "it: warm, a little funny, never corporate. You're given a handful of "
+      'their recent notes. Write 2-3 sentences that greet them and touch on '
+      "what they've been capturing, as if a friend skimmed it and is glad to "
+      'see them. Reply in the same language the notes are written in. Reply '
+      'with the recap only — no heading, no bullet points, no quotes around '
+      'it.',
+      recentNotesText,
+      maxTokens: 400,
+    );
+    return reply?.trim();
+  }
+
   @override
   Future<OCRText>? ocr(ImageRef image) {
     if (!config.isUsable || !config.provider.readsImages) return null;

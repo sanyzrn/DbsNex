@@ -945,4 +945,26 @@ void main() {
     expect(row.width, lessThanOrEqualTo(760));
     expect(row.center.dx, closeTo(card.center.dx, 1));
   });
+
+  testWidgets('the AI day summary never appears without a usable provider', (
+    tester,
+  ) async {
+    await services.captureText('a note from today');
+
+    // AI off entirely — the default.
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.auto_awesome), findsNothing);
+
+    // AI on, but no provider configured — still nothing to show, and
+    // nothing tries to reach a network the app has no address for.
+    await preferences.setAiEnabled(true);
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.auto_awesome), findsNothing);
+  });
 }

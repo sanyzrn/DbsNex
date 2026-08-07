@@ -1102,4 +1102,10 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get intelligenceOpen => 'رونویسی، خلاصه، برچسب';
+
+  @override
+  String get aiDaySummaryChip => 'خلاصه هوشمند';
+
+  @override
+  String get aiDaySummarySemanticLabel => 'خلاصه امروز';
 }

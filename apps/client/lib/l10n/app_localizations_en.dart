@@ -1102,4 +1102,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get intelligenceOpen => 'Transcription, summaries, tags';
+
+  @override
+  String get aiDaySummaryChip => 'AI Summary';
+
+  @override
+  String get aiDaySummarySemanticLabel => 'Today\'s summary';
 }

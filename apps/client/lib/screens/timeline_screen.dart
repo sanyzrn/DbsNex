@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
 import '../feature_flags.dart';
 import '../l10n/app_localizations.dart';
+import '../platform/ai_provider.dart';
 import '../platform/capture_failure.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -103,6 +104,20 @@ class TimelineScreenState extends State<TimelineScreen> {
   final int _greetingVariant = math.Random().nextInt(3);
   bool _searching = false;
 
+  /// The AI-generated recap shown near the greeting — see [_loadAiSummary].
+  String? _aiSummaryText;
+  bool _aiSummaryLoading = false;
+
+  /// Starts expanded and latches shut on the first real scroll. Reopening
+  /// (see [_reopenAiSummary]) puts it back exactly here — there is no
+  /// "half-open" state, matching how it behaved the first time.
+  bool _aiSummaryCollapsed = false;
+
+  /// Requesting the recap is a cold-launch thing, not a per-note-change
+  /// thing — without this latch, every capture re-firing [timelineStream]
+  /// would ask the provider again.
+  bool _aiSummaryRequested = false;
+
   @override
   void initState() {
     super.initState();
@@ -124,11 +139,83 @@ class TimelineScreenState extends State<TimelineScreen> {
       // "I had to restart it" report. Every mutation path already refreshes
       // the timeline, so this is the one place that has to notice.
       unawaited(_loadFilterTags());
+      if (!_aiSummaryRequested && value.isNotEmpty) {
+        _aiSummaryRequested = true;
+        unawaited(_loadAiSummary());
+      }
     });
     _search.addListener(_onSearchChanged);
+    _scroll.addListener(_onAiSummaryScroll);
     unawaited(_loadTimeline());
     unawaited(_loadFilterTags());
   }
+
+  /// Fetches (or restores) today's recap. Called once, the first time the
+  /// timeline stream delivers any notes — see [_aiSummaryRequested].
+  ///
+  /// Silently does nothing when AI is off or unconfigured: this panel is
+  /// additive chrome, never a reason to show an error on the app's home
+  /// screen. A failed or empty reply leaves it absent the same way.
+  Future<void> _loadAiSummary() async {
+    final prefs = widget.preferences;
+    if (!prefs.aiEnabled || !prefs.aiProvider.isUsable) return;
+    final today = _aiSummaryDateKey();
+    if (prefs.aiDaySummaryDate == today) {
+      final cached = prefs.aiDaySummaryText;
+      if (mounted && cached != null && cached.isNotEmpty) {
+        setState(() => _aiSummaryText = cached);
+      }
+      return;
+    }
+    final source = _aiSummarySource();
+    if (source.isEmpty) return;
+    if (mounted) setState(() => _aiSummaryLoading = true);
+    final adapter = CloudAIAdapter(config: prefs.aiProvider);
+    String? text;
+    try {
+      text = await adapter.digest(source);
+    } catch (_) {
+      text = null;
+    } finally {
+      adapter.close();
+    }
+    if (!mounted) return;
+    setState(() {
+      _aiSummaryLoading = false;
+      _aiSummaryText = text;
+    });
+    if (text != null && text.isNotEmpty) {
+      unawaited(prefs.setAiDaySummary(text: text, dateKey: today));
+    }
+  }
+
+  String _aiSummaryDateKey() {
+    final now = DateTime.now();
+    return '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+  }
+
+  /// The most recent notes' own text, newest first — plenty for a recap to
+  /// say something real without sending the whole library on every launch.
+  String _aiSummarySource() {
+    final recent = (_all ?? notes).take(20);
+    final lines = <String>[
+      for (final note in recent)
+        (note.content ?? note.transcriptText ?? note.ocrText ?? '').trim(),
+    ]..removeWhere((line) => line.isEmpty);
+    return lines.join('\n');
+  }
+
+  /// Collapses the panel on the first real scroll, the way the Figma
+  /// redesign asked for. One-way: once collapsed, further scrolling does
+  /// nothing until [_reopenAiSummary] is tapped.
+  void _onAiSummaryScroll() {
+    if (_aiSummaryCollapsed) return;
+    if (_scroll.offset > 4) setState(() => _aiSummaryCollapsed = true);
+  }
+
+  void _reopenAiSummary() => setState(() => _aiSummaryCollapsed = false);
 
   void _onSearchChanged() {
     if (mounted) setState(() {});
@@ -326,6 +413,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     _search.removeListener(_onSearchChanged);
     _search.dispose();
     _searchFocus.dispose();
+    _scroll.removeListener(_onAiSummaryScroll);
     _scroll.dispose();
     super.dispose();
   }
@@ -740,17 +828,35 @@ class TimelineScreenState extends State<TimelineScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: switch (_greeting(l10n)) {
-          null => Text(l10n.appTitle),
-          (final text, final glyph) => Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(child: Text(text, overflow: TextOverflow.ellipsis)),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: switch (_greeting(l10n)) {
+                null => Text(l10n.appTitle, overflow: TextOverflow.ellipsis),
+                (final text, final glyph) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(text, overflow: TextOverflow.ellipsis),
+                    ),
+                    const SizedBox(width: NexSpacing.sm),
+                    _GreetingGlyph(glyph),
+                  ],
+                ),
+              },
+            ),
+            // Only once there is something cached to reopen — collapsing
+            // never leaves the chip pointing at nothing.
+            if (_aiSummaryCollapsed && _aiSummaryText != null) ...[
               const SizedBox(width: NexSpacing.sm),
-              _GreetingGlyph(glyph),
+              _AiSummaryChip(
+                label: l10n.aiDaySummaryChip,
+                onTap: _reopenAiSummary,
+              ),
             ],
-          ),
-        },
+          ],
+        ),
         actions: [
           // Content lives here, preferences live behind the gear. Trash and
           // Tags were reachable only through Settings, and neither is a
@@ -826,6 +932,36 @@ class TimelineScreenState extends State<TimelineScreen> {
                     // notes to scroll is a refresh gesture nobody finds.
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
+                      // Above the search field, matching the Nex_ui redesign:
+                      // collapses to nothing rather than leaving the list, the
+                      // same reason the two headers below do.
+                      SliverToBoxAdapter(
+                        key: const ValueKey('ai-summary-panel'),
+                        child: AnimatedSize(
+                          duration: NexMotion.slow,
+                          curve: NexMotion.curve,
+                          alignment: Alignment.topCenter,
+                          child:
+                              _searching ||
+                                  _aiSummaryCollapsed ||
+                                  (!_aiSummaryLoading && _aiSummaryText == null)
+                              ? const SizedBox.shrink()
+                              : Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    NexSpacing.md,
+                                    NexSpacing.sm,
+                                    NexSpacing.md,
+                                    0,
+                                  ),
+                                  child: _AiDaySummaryPanel(
+                                    loading: _aiSummaryLoading,
+                                    text: _aiSummaryText,
+                                    semanticLabel:
+                                        l10n.aiDaySummarySemanticLabel,
+                                  ),
+                                ),
+                        ),
+                      ),
                       // Both headers are always in the list, keyed, and collapse
                       // to zero extent rather than leaving it. A sliver list that
                       // changes length while another sliver changes its pinning
@@ -1080,6 +1216,94 @@ class _GreetingGlyphState extends State<_GreetingGlyph>
     },
     child: Text(widget.glyph),
   );
+}
+
+/// The small pill next to the greeting that reopens a collapsed day summary.
+///
+/// Icon-and-label rather than icon-only: it is the only way back to the
+/// panel once it has collapsed, so it has to read as a button with a
+/// purpose at a glance, not be decoded from a bare glyph.
+class _AiSummaryChip extends StatelessWidget {
+  const _AiSummaryChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return NexTappable(
+      onTap: onTap,
+      semanticLabel: label,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(NexRadius.xl),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: NexSpacing.sm,
+          vertical: NexSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          border: Border.all(color: scheme.outline),
+          borderRadius: BorderRadius.circular(NexRadius.xl),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(width: NexSpacing.xs),
+            Icon(Icons.auto_awesome, size: 16, color: scheme.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The expanded AI recap card: two shimmer lines while the request is in
+/// flight, the recap itself once it lands.
+///
+/// No dashed border, unlike the Nex_ui mock: that reads there as "content
+/// goes here" — a Figma placeholder convention for an empty slot, not a
+/// finished look meant to ship. A filled card matches how every other
+/// elevated surface in the app is drawn.
+class _AiDaySummaryPanel extends StatelessWidget {
+  const _AiDaySummaryPanel({
+    required this.loading,
+    required this.text,
+    required this.semanticLabel,
+  });
+
+  final bool loading;
+  final String? text;
+  final String semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      container: true,
+      label: semanticLabel,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(NexSpacing.cardInset),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(NexRadius.lg),
+        ),
+        child: loading
+            ? const Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  NexSkeleton(height: 16),
+                  SizedBox(height: NexSpacing.xs),
+                  NexSkeleton(height: 16),
+                ],
+              )
+            : Text(text ?? '', style: Theme.of(context).textTheme.bodyMedium),
+      ),
+    );
+  }
 }
 
 class _FilterRowHeader extends SliverPersistentHeaderDelegate {

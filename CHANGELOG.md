@@ -69,3 +69,9 @@ Working convention:
   copy now instead of an asset path that only worked under tests).
 - The note detail action icons fade at the edge when there is more to
   scroll to, on phones too narrow to show them all at once.
+- Tag colours now show as small dots on the note's own icon instead of a
+  column beside it, and that icon is smaller and rounder.
+- The timeline's dark background is a touch warmer.
+- With an AI provider configured, the timeline now opens with a short,
+  friendly recap of recent notes, generated once a day; it collapses on the
+  first scroll and reopens from a small chip beside the greeting.

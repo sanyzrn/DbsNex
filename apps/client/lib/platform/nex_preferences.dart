@@ -410,4 +410,25 @@ class NexPreferences extends ChangeNotifier {
     await _prefs.setString('ai.model.$wireName', config.model);
     notifyListeners();
   }
+
+  /* --------------------------------------------------------- AI day summary */
+
+  /// The timeline's daily AI recap, cached against the date it was written
+  /// for — see `_TimelineScreenState._loadAiSummary`. Generating it is a real
+  /// network call, so a cold launch that already has today's text shows it
+  /// immediately instead of re-asking the provider on every open.
+  ///
+  /// No [notifyListeners] here: this cache is read by the one screen that
+  /// writes it, on its own schedule, not something the rest of the app
+  /// reacts to.
+  String? get aiDaySummaryText => _prefs.getString('ai.daySummary.text');
+  String? get aiDaySummaryDate => _prefs.getString('ai.daySummary.date');
+
+  Future<void> setAiDaySummary({
+    required String text,
+    required String dateKey,
+  }) async {
+    await _prefs.setString('ai.daySummary.text', text);
+    await _prefs.setString('ai.daySummary.date', dateKey);
+  }
 }
