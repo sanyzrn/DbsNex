@@ -43,6 +43,10 @@ on:
 
 permissions:
   contents: write
+  # Lets publish-release delete this run's own hand-off artifacts once the
+  # Release exists — see the cleanup step at the end of that job. Deleting an
+  # artifact is an Actions write, not a contents write.
+  actions: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -361,3 +365,27 @@ jobs:
             android/*.apk
             windows-installer/*.exe
             SHA256SUMS
+
+      # The artifacts were only ever a hand-off between jobs of this run; the
+      # release above is the long-lived distribution. retention-days: 1 caps
+      # the damage, but the runner error "Artifact storage quota has been hit"
+      # (which fails the upload step and with it the whole release) is based
+      # on usage recalculated every 6-12 hours, so even 1-day artifacts can
+      # block a re-run started the same day. Delete them as soon as the
+      # Release exists: a draft run already holds its files, and after a
+      # published release nothing downloads these again.
+      #
+      # cleanup{} guards keep this from masking a real failure: deleting the
+      # staging artifacts when the Release was never created would throw away
+      # the only remaining copy of a 9-minute build.
+      - name: Delete this run's staging artifacts
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run view "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --json artifacts --jq '.artifacts[].id' | while read -r id; do
+            gh api -X DELETE \
+              "repos/$GITHUB_REPOSITORY/actions/artifacts/$id" --silent
+            echo "deleted staging artifact $id"
+          done
