@@ -1,5 +1,6 @@
-import "express-async-errors";
-
+// Express 5 forwards a rejected async handler to error middleware on its
+// own — the express-async-errors shim this used to need was only for
+// Express 4, which never awaited a handler's returned promise.
 import cors from "cors";
 import express, {
   type NextFunction,

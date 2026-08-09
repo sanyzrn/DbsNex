@@ -319,7 +319,7 @@ class _Leading extends StatelessWidget {
           cacheWidth: (nexCardLeadingSize * ratio).round(),
           cacheHeight: (nexCardLeadingSize * ratio).round(),
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
+          errorBuilder: (_, _, _) =>
               const _IconBox(Icons.image_not_supported_outlined),
         ),
       );
