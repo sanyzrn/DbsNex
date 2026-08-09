@@ -545,7 +545,7 @@ void main() {
               slivers: [
                 SliverReorderableList(
                   itemCount: 1,
-                  onReorder: (_, __) {},
+                  onReorder: (_, _) {},
                   itemBuilder: (context, index) => SizedBox(
                     key: const ValueKey(0),
                     width: 400,
