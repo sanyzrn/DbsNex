@@ -71,11 +71,20 @@ authRouter.post("/pair", async (req: Request, res: Response) => {
 
     const deviceId = randomUUID();
     const token = mintSecret();
+    const expiresAt = new Date(
+      Date.now() + env.DEVICE_TOKEN_TTL_DAYS * 86_400_000,
+    ).toISOString();
 
     await client.query(
-      `INSERT INTO devices (device_id, user_id, label, token_hash)
-       VALUES ($1, $2, $3, $4)`,
-      [deviceId, row.user_id, parsed.data.label ?? null, hashToken(token)],
+      `INSERT INTO devices (device_id, user_id, label, token_hash, expires_at)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        deviceId,
+        row.user_id,
+        parsed.data.label ?? null,
+        hashToken(token),
+        expiresAt,
+      ],
     );
 
     await client.query(

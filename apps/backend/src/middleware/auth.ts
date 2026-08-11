@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 
 import { getPool } from "../db/index.ts";
@@ -21,12 +21,6 @@ export interface AuthContext {
 /** SHA-256 hex. Tokens are high-entropy, so a plain digest is sufficient. */
 export function hashToken(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
-}
-
-/** Constant-time comparison of two hex digests of equal length. */
-export function safeEqualHex(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex"));
 }
 
 function bearerFrom(req: Request): string | null {
@@ -58,12 +52,13 @@ export async function requireDevice(
     `SELECT device_id, user_id
        FROM devices
       WHERE token_hash = $1
-        AND revoked_at IS NULL`,
+        AND revoked_at IS NULL
+        AND (expires_at IS NULL OR expires_at > NOW())`,
     [hashToken(token)],
   );
 
   const row = rows[0];
-  if (!row) throw new Unauthorized("invalid or revoked token");
+  if (!row) throw new Unauthorized("invalid, expired, or revoked token");
 
   req.auth = { deviceId: row.device_id, userId: row.user_id };
 

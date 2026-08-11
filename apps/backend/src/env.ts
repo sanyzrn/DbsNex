@@ -25,6 +25,11 @@ const schema = z.object({
   SYNC_RATE_LIMIT: z.coerce.number().int().positive().default(60),
   READ_RATE_LIMIT: z.coerce.number().int().positive().default(120),
   PAIRING_CODE_TTL_SECONDS: z.coerce.number().int().positive().default(600),
+  // Devices paired before this existed keep a NULL expiry (see migration
+  // 0007) and are unaffected. 365 days: long enough that a daily user never
+  // notices, short enough that a token nobody has used in a year is worth
+  // re-pairing rather than trusting indefinitely.
+  DEVICE_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(365),
   TOMBSTONE_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
   PURGE_INTERVAL_MINUTES: z.coerce.number().int().positive().default(60),
   // Number of trusted reverse-proxy hops in front of this process — never a
