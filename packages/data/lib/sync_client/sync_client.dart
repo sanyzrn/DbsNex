@@ -1,7 +1,10 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:nex_core/nex_core.dart';
+// nex_core also exports a MergedNote (the field-aware merger's server-side
+// result type) — unrelated to sync_wire's wire-level typedef of the same
+// name, and unused here, so it's hidden rather than left to collide.
+import 'package:nex_core/nex_core.dart' hide MergedNote;
 
 import '../repositories/note_repository.dart';
 import 'sync_wire.dart';
@@ -43,6 +46,14 @@ class SyncClient implements SyncPort {
   /// wrong with the watermark, and looping forever is worse than stopping.
   static const _maxPages = 200;
 
+  /// The server's push endpoint rejects a `notes` or `tags` array above 500
+  /// items (routes/sync.ts's `pushSchema`) with a flat 400 — and the whole
+  /// outbox used to go up in one request, so a device with a backlog above
+  /// that — a long offline period, or a first sync of an existing corpus —
+  /// never synced at all: push threw before the pull this same cycle would
+  /// otherwise have run even got a chance to recover anything.
+  static const _pushBatchSize = 500;
+
   Map<String, String> get _headers => {
     'content-type': 'application/json',
     if (bearerToken != null) 'authorization': 'Bearer $bearerToken',
@@ -58,32 +69,35 @@ class SyncClient implements SyncPort {
     // the entire tag table to every other device on the account.
     final pendingTags = repo.listPendingTags();
 
-    final pushBody = {
-      'device_id': deviceId,
-      'tags': pendingTags.map((t) => t.toJson()).toList(),
-      'notes': pendingNotes.map(_notePayload).toList(),
-    };
+    // One request per batch, capped to what the server accepts. Notes and
+    // tags are chunked independently and paired off by index: most outboxes
+    // are almost entirely notes, so this keeps the common case at one
+    // request without leaving a large tag backlog uncovered on its own.
+    final noteBatches = _chunked(pendingNotes, _pushBatchSize);
+    final tagBatches = _chunked(pendingTags, _pushBatchSize);
+    final batchCount = noteBatches.length > tagBatches.length
+        ? noteBatches.length
+        : tagBatches.length;
 
-    final pushRes = await _http.post(
-      Uri.parse('$baseUrl/sync/push'),
-      headers: _headers,
-      body: jsonEncode(pushBody),
-    );
-    if (pushRes.statusCode >= 300) {
-      throw StateError(
-        'sync push failed: ${pushRes.statusCode} ${pushRes.body}',
+    final merged = <MergedNote>[];
+    final tagRemap = <TagRemapEntry>[];
+    final mediaDeduped = <String>[];
+    for (var i = 0; i < (batchCount == 0 ? 1 : batchCount); i++) {
+      final push = await _push(
+        notes: i < noteBatches.length ? noteBatches[i] : const [],
+        tags: i < tagBatches.length ? tagBatches[i] : const [],
       );
+      merged.addAll(push.merged);
+      tagRemap.addAll(push.tagRemap);
+      mediaDeduped.addAll(push.mediaDeduped);
     }
-    final push = PushResponse.fromJson(
-      jsonDecode(pushRes.body) as Map<String, dynamic>,
-    );
 
     // Only what the server acknowledged leaves the outbox. It reports a write
     // it refused as stale by omitting the id, and that signal used to be
     // ignored: every pending note was marked synced regardless, so the exact
     // case the outbox exists for — an offline edit that lost a race — was the
     // one that silently discarded the edit.
-    final accepted = {for (final m in push.merged) m.id: m.rev};
+    final accepted = {for (final m in merged) m.id: m.rev};
     for (final note in pendingNotes) {
       final rev = accepted[note.id];
       if (rev == null) continue; // rejected — stays pending, retried next cycle
@@ -93,8 +107,8 @@ class SyncClient implements SyncPort {
     // Fold this device's tag ids into the server's canonical ones before the
     // pull, so the note↔tag joins arriving below resolve against rows that
     // exist locally.
-    if (push.tagRemap.isNotEmpty) repo.applyTagRemap(push.tagRemap);
-    final remapped = {for (final entry in push.tagRemap) entry.clientId};
+    if (tagRemap.isNotEmpty) repo.applyTagRemap(tagRemap);
+    final remapped = {for (final entry in tagRemap) entry.clientId};
     repo.markTagsSynced([
       for (final tag in pendingTags)
         if (!remapped.contains(tag.id)) tag.id,
@@ -124,9 +138,41 @@ class SyncClient implements SyncPort {
     return SyncResult(
       pushed: accepted.length,
       pulled: pulled,
-      mergedIds: push.merged.map((m) => m.id).toList(),
-      mediaDeduped: push.mediaDeduped,
+      mergedIds: merged.map((m) => m.id).toList(),
+      mediaDeduped: mediaDeduped,
     );
+  }
+
+  Future<PushResponse> _push({
+    required List<Note> notes,
+    required List<Tag> tags,
+  }) async {
+    final pushBody = {
+      'device_id': deviceId,
+      'tags': tags.map((t) => t.toJson()).toList(),
+      'notes': notes.map(_notePayload).toList(),
+    };
+    final pushRes = await _http.post(
+      Uri.parse('$baseUrl/sync/push'),
+      headers: _headers,
+      body: jsonEncode(pushBody),
+    );
+    if (pushRes.statusCode >= 300) {
+      throw StateError(
+        'sync push failed: ${pushRes.statusCode} ${pushRes.body}',
+      );
+    }
+    return PushResponse.fromJson(
+      jsonDecode(pushRes.body) as Map<String, dynamic>,
+    );
+  }
+
+  static List<List<T>> _chunked<T>(List<T> items, int size) {
+    if (items.isEmpty) return const [];
+    return [
+      for (var i = 0; i < items.length; i += size)
+        items.sublist(i, i + size > items.length ? items.length : i + size),
+    ];
   }
 
   Future<PullPage> _pull() async {
