@@ -15,6 +15,7 @@
 library;
 
 // Domain models.
+export 'models/memory_record.dart';
 export 'models/note.dart';
 export 'models/note_embedding.dart';
 export 'models/search_filters.dart';
@@ -25,6 +26,7 @@ export 'ids.dart';
 
 // Ports: the contracts the app and the data layer agree on.
 export 'ports/media_picker.dart';
+export 'ports/memory_repository.dart';
 export 'ports/note_repository.dart';
 export 'ports/sync_port.dart';
 
@@ -32,7 +34,13 @@ export 'ports/sync_port.dart';
 export 'ai/ai_adapter.dart';
 export 'ai/ai_adapter_binding.dart';
 export 'ai/ai_capabilities.dart';
+export 'ai/entitlement.dart';
 export 'ai/enrichment_service.dart';
+export 'ai/import/context_import_draft.dart';
 export 'ai/on_device_ai_adapter.dart';
+export 'ai/tools/nex_tool_registry.dart';
+export 'ai/tools/tool_call.dart';
+export 'ai/tools/tool_definition.dart';
+export 'ai/tools/tool_executor.dart';
 export 'capture/capture_service.dart';
 export 'sync/field_aware_merger.dart';

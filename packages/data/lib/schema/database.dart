@@ -132,6 +132,29 @@ CREATE TABLE IF NOT EXISTS nex_meta (
   value TEXT NOT NULL
 );
 ''');
+
+    // Local memory/profile store (09-ai.md — Phase 2, ADR-029). Shaped like
+    // `notes` (id, timestamps, device_id, rev, soft-delete — ADR-006) so it
+    // can ride the same sync machinery later without a schema redesign.
+    db.execute('''
+CREATE TABLE IF NOT EXISTS memory_records (
+  id TEXT PRIMARY KEY NOT NULL,
+  kind TEXT NOT NULL,
+  key TEXT,
+  value_text TEXT NOT NULL,
+  source TEXT NOT NULL,
+  confidence REAL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  device_id TEXT NOT NULL,
+  rev INTEGER NOT NULL
+);
+''');
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_memory_records_kind ON memory_records(kind);',
+    );
+
     _seedStarterTags();
   }
 

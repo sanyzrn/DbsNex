@@ -241,6 +241,15 @@ class NexPreferences extends ChangeNotifier {
     relatedNotes: _prefs.getBool('ai.related') ?? true,
   );
 
+  /// Personal-assistant tier (09-ai.md — Free vs. Paid Boundary, ADR-030).
+  /// No payment processor exists yet, so this defaults to `free` and nothing
+  /// in the app currently offers a way to change it — it exists so the
+  /// gating hook (`GatedToolExecutor`) has somewhere real to read from.
+  AiEntitlement get aiEntitlement => AiEntitlement.values.firstWhere(
+    (e) => e.name == _prefs.getString('ai.entitlement'),
+    orElse: () => AiEntitlement.free,
+  );
+
   Future<void> _setBool(String key, bool value) async {
     await _prefs.setBool(key, value);
     notifyListeners();
@@ -276,6 +285,11 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setCloudAiOptIn(bool value) =>
       _setBool('ai.cloud_opt_in', value);
+
+  Future<void> setAiEntitlement(AiEntitlement value) async {
+    await _prefs.setString('ai.entitlement', value.name);
+    notifyListeners();
+  }
 
   Future<void> setDisplayName(String? value) async {
     final trimmed = value?.trim() ?? '';

@@ -12,6 +12,9 @@ library;
 /// reverse.
 export 'package:nex_core/nex_core.dart'
     show
+        MemoryKind,
+        MemoryRecord,
+        MemorySource,
         Note,
         NoteEmbedding,
         NoteType,
@@ -25,6 +28,7 @@ export 'package:nex_core/nex_core.dart'
         sha256OfFile;
 
 export 'repositories/library_maintenance.dart';
+export 'repositories/memory_repository.dart';
 export 'repositories/note_repository.dart';
 export 'schema/database.dart';
 export 'sync_client/sync_client.dart';
