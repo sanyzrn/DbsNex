@@ -553,6 +553,18 @@ jobs:
             exit 1
           fi
 
+      # The deletion step below assumes this exact shape when it strips the
+      # dependency with sed — checked here so a repin (a git/hosted source
+      # instead of the local path) or reformatting fails loudly instead of
+      # leaving that sed a silent no-op.
+      - name: Assert apps/client's nex_ai dependency is still the local path
+        run: |
+          if ! grep -A1 '^  nex_ai:$' apps/client/pubspec.yaml \
+              | grep -q '^    path: \.\./\.\./packages/ai$'; then
+            echo "::error::apps/client's nex_ai dependency must stay 'path: ../../packages/ai' (09-ai.md, ADR-031)"
+            exit 1
+          fi
+
       - name: Delete packages/ai and its two integration points in apps/client
         run: |
           rm -rf packages/ai

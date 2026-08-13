@@ -5,6 +5,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/nex_toast.dart';
 
 /// Phase 1 general-purpose local chat (09-ai.md). Session-only — nothing
 /// here is persisted, and it never touches the note database: memory and
@@ -25,7 +26,10 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scroll = ScrollController();
   bool _sending = false;
 
-  bool get _available => ChatAdapterBinding.instance is! NullChatAdapter;
+  // The binding is set once at process startup (the composition root in
+  // main.dart / main_ai.dart) and never changes over this screen's
+  // lifetime — computed once here rather than re-checked on every build.
+  final _available = ChatAdapterBinding.instance is! NullChatAdapter;
 
   @override
   void dispose() {
@@ -34,9 +38,17 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  /// Null covers both "no adapter bound" and "the bound adapter's call
+  /// threw" — [ChatAdapter.sendMessage]'s own contract treats unavailable
+  /// as "not an error" (same as every `AIAdapter` method), so a thrown
+  /// exception is folded into that same not-an-error path here rather than
+  /// leaving [_sending] stuck forever, the way `EnrichmentService` already
+  /// swallows its own adapter calls' exceptions.
   Future<void> _send() async {
     final text = _input.text.trim();
     if (text.isEmpty || _sending) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _messages.add(ChatMessage(role: ChatRole.user, content: text));
       _input.clear();
@@ -44,19 +56,28 @@ class _ChatScreenState extends State<ChatScreen> {
     });
     _scrollToEnd();
 
-    final call = ChatAdapterBinding.instance.sendMessage(
-      withScopeCeiling(_messages),
-    );
-    final response = call == null ? null : await call;
+    ChatResponse? response;
+    try {
+      final call = ChatAdapterBinding.instance.sendMessage(
+        withScopeCeiling(_messages),
+      );
+      response = call == null ? null : await call;
+    } catch (_) {
+      response = null;
+    }
+
     if (!mounted) return;
     setState(() {
       _sending = false;
       if (response != null) {
         _messages.add(
-          ChatMessage(role: ChatRole.assistant, content: response.content),
+          ChatMessage(role: ChatRole.assistant, content: response!.content),
         );
       }
     });
+    if (response == null) {
+      messenger.showSnackBar(nexToast(content: Text(l10n.operationFailed)));
+    }
     _scrollToEnd();
   }
 
