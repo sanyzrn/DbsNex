@@ -225,7 +225,10 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze --fatal-infos
       - run: flutter test
-      - run: flutter build apk --debug
+      # --flavor is required once flavorDimensions is defined (ADR-031);
+      # "standard" is the AI-free default, matching what this job always
+      # built before flavors existed.
+      - run: flutter build apk --debug --flavor standard
 
   client-windows:
     name: apps/client (Windows desktop build + platform tests)
@@ -520,6 +523,13 @@ jobs:
   # made it close to a tautology: every AI contract the client consumes lives in
   # packages/core and cannot be deleted. It now asserts the real invariant and
   # rebuilds the whole downstream graph.
+  #
+  # ADR-031 added one deliberate exception: apps/client/lib/main_ai.dart (the
+  # "ai" Android flavor's entry point) imports package:nex_ai/ directly, and
+  # apps/client/pubspec.yaml lists nex_ai so that file compiles. Proving
+  # deletability now means proving the *standard* flavor survives deleting
+  # packages/ai, which needs main_ai.dart and the pubspec dependency line
+  # removed too — both would otherwise reference the now-deleted package.
   ai-deletion-proof:
     name: packages/ai deletion proof (downstream graph still builds)
     runs-on: ubuntu-latest
@@ -535,19 +545,19 @@ jobs:
           cache: true
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
 
-      - name: Assert nothing outside packages/ai imports nex_ai
+      - name: Assert nex_ai is only imported by packages/ai and the ai-flavor entry point
         run: |
-          if grep -Rn --include='*.dart' "package:nex_ai/" apps packages --exclude-dir=ai; then
-            echo "::error::only packages/ai may import package:nex_ai (09-ai.md)"
-            exit 1
-          fi
-          if grep -q 'nex_ai' apps/client/pubspec.yaml; then
-            echo "::error::apps/client must not list nex_ai (09-ai.md)"
+          if grep -Rn --include='*.dart' "package:nex_ai/" apps packages --exclude-dir=ai \
+              | grep -v '^apps/client/lib/main_ai\.dart:' | grep -q .; then
+            echo "::error::only packages/ai and apps/client/lib/main_ai.dart may import package:nex_ai (09-ai.md, ADR-031)"
             exit 1
           fi
 
-      - name: Delete packages/ai
-        run: rm -rf packages/ai
+      - name: Delete packages/ai and its two integration points in apps/client
+        run: |
+          rm -rf packages/ai
+          rm -f apps/client/lib/main_ai.dart
+          sed -i '/^  nex_ai:$/,+1d' apps/client/pubspec.yaml
 
       # Resolve and analyze only. The claim being proved is that the graph
       # still *compiles* without packages/ai; re-running every suite and

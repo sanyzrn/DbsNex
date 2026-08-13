@@ -315,6 +315,16 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 
 ---
 
+## ADR-031 — Local AI ships as an Android build flavor of `apps/client`, not a separate app
+
+- **Context:** [ADR-029](#adr-029--tool-calling-contract-and-local-memory-schema-live-in-packagescore-not-packagesai) put the tool-calling contract and memory schema in `packages/core` so they survive `packages/ai` being deleted, but left open how a real on-device chat implementation — which *does* need `packages/ai`/`llama_cpp_dart` — ever gets bound into a shippable app, given `apps/client` must never depend on `nex_ai` (Phase 0, [`09-ai.md`](./09-ai.md#phase-0--feasibility-done)). Two shapes were on the table: a wholly separate app/build target bundling `nex_core`+`nex_ai`, or an Android build-flavor split within `apps/client` itself.
+- **Decision:** `apps/client` gains a second Android product flavor, `"ai"`, alongside the existing default (renamed `"standard"`), under one new flavor dimension `"distribution"`. Only `apps/client/lib/main_ai.dart` — the `"ai"` flavor's Dart entry point — may import `package:nex_ai/` outside `packages/ai` itself, and `apps/client/pubspec.yaml` lists `nex_ai` for that one reason. The `ai-deletion-proof` CI job's invariant changes from "delete `packages/ai`, the graph still resolves" to "delete `packages/ai` *and* its two integration points in `apps/client`" (the entry-point file, the pubspec dependency line) — three coupled, scripted edits instead of one `rm -rf`, but still a real, CI-enforced guarantee rather than a comment. `main_ai.dart` currently binds a placeholder `ChatAdapter` (`PlaceholderLocalChatAdapter`, in `packages/ai`) that proves the wiring compiles without pretending a real model exists.
+- **Rationale:** A single Flutter app with two Android flavors keeps one codebase, one release process, and one place for the large majority of shared UI/logic — the AI-specific surface is a small, contained addition (one entry point, one dependency line, one Gradle block), not a second app to maintain in parallel indefinitely. Distributing the `"ai"` flavor to Cafe Bazaar/Myket and `"standard"` to Play (eventually) was already the plan's shape before this ADR (Phase 0); flavors formalize that split at the build level instead of requiring a second repository, pubspec, and CI pipeline.
+- **Alternatives Considered:** A wholly separate app under `apps/` bundling `nex_core`+`nex_ai` — rejected for now as more infrastructure (its own pubspec, CI jobs, release process) than the current placeholder-stage work justifies; revisit if the two flavors' UI/behavior ever diverge enough that sharing one codebase stops paying for itself.
+- **Status:** Accepted. See [`09-ai.md`](./09-ai.md#phase-1--local-chat-core-free) for the flavor/entry-point details. The `"ai"` flavor is not yet built in any CI job — deferred until real functionality sits behind the placeholder.
+
+---
+
 ## Decision-Making Heuristic
 
 When facing a new choice, run it through the product's filter:
