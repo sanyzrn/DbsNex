@@ -295,6 +295,26 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 
 ---
 
+## ADR-029 — Tool-calling contract and local memory schema live in `packages/core`, not `packages/ai`
+
+- **Context:** [`09-ai.md`](./09-ai.md#offline-local-model-track) phases in a tool-calling contract (letting a local chat model invoke Nex's own capabilities) and a local memory/profile schema for the paid "personal assistant" tier. `packages/ai` is deletable by design — a CI job (`ai-deletion-proof`) deletes it wholesale and rebuilds the graph, proving AI is truly optional (see [Architectural Boundary](./09-ai.md#architectural-boundary)). Putting the tool-calling contract or the memory schema inside `packages/ai` would mean a user's saved memory records, and the very ability to define what a "tool" is, vanish along with the AI package — even though both are meaningful, inspectable domain data/contracts with no dependency on any model actually running.
+- **Decision:** `ToolDefinition`/`ToolCall`/`ToolResult`/`NexToolRegistry`/`ToolExecutor`, the `AiEntitlement` gating hook, and the `MemoryRecord` model plus `MemoryRepository` port all live in `packages/core` (with the SQLite implementation of the repository in `packages/data`, alongside `SqliteNoteRepository`). Only the code that actually drives a model through the contract (the agent/chat loop) belongs in `packages/ai` or, per the existing `CloudAIAdapter` precedent, `apps/client`.
+- **Rationale:** This is the same precedent `AIAdapter` and `AiCapabilities` already set by living in `packages/core/lib/ai/` rather than `packages/ai` — the *contract* and the *data* survive AI-package deletion; only a concrete model-backed implementation doesn't. A user should be able to view, edit, or delete their memory records, and the app should still know what "create a note" means as a callable action, with `packages/ai` absent — exactly as notes and tags already work today with AI off.
+- **Alternatives Considered:** Put the contract and schema inside `packages/ai` alongside the runtime that will eventually drive them — rejected, breaks the deletability guarantee the whole architecture is built around and makes memory records an AI-package concern instead of a Core domain concept.
+- **Status:** Accepted. Scaffolding lands ahead of the chat loop that will use it, per [`09-ai.md`](./09-ai.md#phase-2--personal-assistant-foundations-paid-built-modular-now).
+
+---
+
+## ADR-030 — Free/paid boundary for the personal-assistant tier, gated by a structural entitlement hook
+
+- **Context:** The offline local-AI track's product vision splits into two tiers: general chat (free, for everyone) and a "personal assistant" layer — persistent memory, behavioral learning, task execution, deep tool-calling into Nex's own capabilities, and cross-AI context import — intended as paid/subscription. No entitlement, plan, or tier concept exists anywhere in the codebase today (client or backend), and a full payment/subscription system is explicitly not being built yet — only its structural hook needs to exist so the paid features can be gated correctly from the moment they're implemented, rather than retrofitted later.
+- **Decision:** Add `AiEntitlement` (`free` / `personalAssistant`) and an `AiEntitlementProvider` interface to `packages/core/lib/ai/entitlement.dart`, defaulting everywhere to a `StaticEntitlementProvider` returning `free`. Every tool call in the [tool-calling contract](#adr-029--tool-calling-contract-and-local-memory-schema-live-in-packagescore-not-packagesai) declares `requiresEntitlement`, and `GatedToolExecutor` checks it before dispatch. No store/billing integration is wired up — `AiEntitlementProvider` is the seam a real subscription check replaces later without touching the tool-calling code that depends on it.
+- **Rationale:** Building the gate now, even trivially, means every tool added during Phase 2 is correctly gated from its first commit rather than needing an audit later to find ungated paid features. Defaulting to `free` follows the same safe-default pattern already established by `NullAIAdapter` and `AiCapabilities.allOff` — nothing paid is ever accidentally on.
+- **Alternatives Considered:** Defer any gating concept until real payment integration exists — rejected, because it risks paid features shipping ungated during Phase 2 and needing a retrofit; (2) Reuse `AiCapabilities` for this — rejected, `AiCapabilities` is an orthogonal on/off toggle per already-free capability, not a paid/free boundary, and conflating them would make a user's personal preference toggle double as a billing gate.
+- **Status:** Accepted. See [`09-ai.md`](./09-ai.md#free-vs-paid-boundary) for the full free/paid feature table.
+
+---
+
 ## Decision-Making Heuristic
 
 When facing a new choice, run it through the product's filter:
