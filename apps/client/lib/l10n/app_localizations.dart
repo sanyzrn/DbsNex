@@ -1862,6 +1862,42 @@ abstract class AppLocalizations {
   /// **'Results are worked out quietly in the background and kept with the note. Nothing interrupts you — a summary or a suggested tag appears only when you open the note and ask for it.'**
   String get intelligenceQuietNote;
 
+  /// Chat screen title and its Settings row title
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get chat;
+
+  /// Settings row subtitle for Chat
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Nex\'s built-in assistant'**
+  String get chatSubtitle;
+
+  /// Shown when no ChatAdapter is bound (Phase 1)
+  ///
+  /// In en, this message translates to:
+  /// **'Local chat isn\'t available on this build yet.'**
+  String get chatUnavailable;
+
+  /// Shown above the message field before the first message
+  ///
+  /// In en, this message translates to:
+  /// **'Ask anything — Nex answers on this device, with no internet needed.'**
+  String get chatEmptyHint;
+
+  /// Chat text field placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Message…'**
+  String get chatInputHint;
+
+  /// Send button tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get chatSendTooltip;
+
   /// Heading above the capability switches
   ///
   /// In en, this message translates to:

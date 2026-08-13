@@ -1074,6 +1074,25 @@ class AppLocalizationsFa extends AppLocalizations {
       'نتیجه‌ها بی‌سروصدا در پس‌زمینه آماده و کنار یادداشت نگه داشته می‌شوند. چیزی مزاحمتان نمی‌شود — خلاصه یا برچسب پیشنهادی فقط وقتی یادداشت را باز کنید و بخواهید دیده می‌شود.';
 
   @override
+  String get chat => 'چت';
+
+  @override
+  String get chatSubtitle => 'از دستیار داخلی Nex بپرس';
+
+  @override
+  String get chatUnavailable => 'چت محلی هنوز روی این نسخه در دسترس نیست.';
+
+  @override
+  String get chatEmptyHint =>
+      'هر چیزی بپرس — Nex همین‌جا روی گوشی، بدون نیاز به اینترنت جواب می‌دهد.';
+
+  @override
+  String get chatInputHint => 'پیام…';
+
+  @override
+  String get chatSendTooltip => 'ارسال';
+
+  @override
   String get automatic => 'خودکار انجام می‌شود';
 
   @override

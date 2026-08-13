@@ -977,6 +977,30 @@
   "@intelligenceQuietNote": {
     "description": "Explains the quiet, on-demand behaviour"
   },
+  "chat": "Chat",
+  "@chat": {
+    "description": "Chat screen title and its Settings row title"
+  },
+  "chatSubtitle": "Ask Nex's built-in assistant",
+  "@chatSubtitle": {
+    "description": "Settings row subtitle for Chat"
+  },
+  "chatUnavailable": "Local chat isn't available on this build yet.",
+  "@chatUnavailable": {
+    "description": "Shown when no ChatAdapter is bound (Phase 1)"
+  },
+  "chatEmptyHint": "Ask anything — Nex answers on this device, with no internet needed.",
+  "@chatEmptyHint": {
+    "description": "Shown above the message field before the first message"
+  },
+  "chatInputHint": "Message…",
+  "@chatInputHint": {
+    "description": "Chat text field placeholder"
+  },
+  "chatSendTooltip": "Send",
+  "@chatSendTooltip": {
+    "description": "Send button tooltip"
+  },
   "automatic": "Worked out automatically",
   "@automatic": {
     "description": "Heading above the capability switches"
