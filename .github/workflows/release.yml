@@ -257,12 +257,13 @@ jobs:
     # They are not broken — the updater simply finds no .exe asset and reports
     # no update available — but they stay on whatever version they have.
     #
-    # Re-enabling takes three edits, all of which this job's absence would
-    # otherwise fail silently:
+    # Re-enabling takes two edits:
     #   1. delete this `if:` line
-    #   2. add build-windows back to publish-release's `needs:`
-    #   3. restore the two `windows-installer/*.exe` lines in that job (the
-    #      checksum loop and the release `files:` list)
+    #   2. add build-windows back to publish-release's `needs:` — a skipped
+    #      dependency skips its dependents, so leaving it out is what keeps
+    #      the publish running while this is paused
+    # The installer itself needs no wiring: publish-release stages assets by
+    # extension, so a .exe artifact is picked up as soon as one exists.
     if: false
     # Same pin as CI: windows-latest is Visual Studio 2026 since June 2026, and
     # Flutter 3.35.5 does not recognise it. A release must not build on an image
@@ -374,9 +375,33 @@ jobs:
           cat RELEASE_NOTES.md
 
       - uses: actions/download-artifact@v8
+        with:
+          # Somewhere known, rather than over the checked-out tree.
+          path: artifacts
 
-      - name: List artifacts
-        run: find . -type f -printf '%p %s bytes\n'
+      # Collect by extension instead of trusting download-artifact's layout.
+      #
+      # This step had no `with:` at all and the two below globbed
+      # `android/*.aab`, which assumed each artifact lands in a directory
+      # named after itself. That was v4's behaviour; under v8 the files
+      # arrived somewhere else, so the globs matched nothing, sha256sum was
+      # handed its own unexpanded pattern, and the release died one step from
+      # publishing after a nine-minute build. The layout is the action's to
+      # change; the extensions are ours.
+      #
+      # It also means the Windows installer needs no wiring of its own: when
+      # build-windows comes back its .exe is collected here like anything
+      # else.
+      - name: Stage release assets
+        run: |
+          mkdir -p dist
+          find artifacts -type f \
+            \( -name '*.aab' -o -name '*.apk' -o -name '*.exe' \) \
+            -exec mv -t dist/ {} +
+          ls -l dist
+          # Publishing a release with no assets is worse than not publishing:
+          # the updater would offer a version it cannot download.
+          test -n "$(ls -A dist)"
 
       # The in-app updater downloads over a plain HTTPS GET with no signature
       # on the file itself — a hash it can check the download against closes
@@ -386,11 +411,11 @@ jobs:
       # since that is what the client matches against `SHA256SUMS` by.
       - name: Generate SHA-256 checksums
         run: |
-          # windows-installer/*.exe is omitted while Windows is paused: with
-          # no such artifact the glob would not expand, and sha256sum would be
-          # handed the literal pattern and fail the release.
+          # Whatever the staging step collected, named by basename — which is
+          # what GitHub publishes each asset as, and so what the client
+          # matches against.
           : > SHA256SUMS
-          for f in android/*.aab android/*.apk; do
+          for f in dist/*; do
             sha256sum "$f" | awk -v name="$(basename "$f")" '{ print $1, name }' >> SHA256SUMS
           done
           cat SHA256SUMS
@@ -421,10 +446,8 @@ jobs:
           # test tag does not look like a production release.
           draft: ${{ github.event_name == 'workflow_dispatch' }}
           body_path: RELEASE_NOTES.md
-          # windows-installer/*.exe omitted while Windows is paused.
           files: |
-            android/*.aab
-            android/*.apk
+            dist/*
             SHA256SUMS
 
       # The artifacts were only ever a hand-off between jobs of this run; the
