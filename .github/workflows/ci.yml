@@ -1,8 +1,25 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
+  # Deliberately no `push: branches: [main]`.
+  #
+  # Every merge used to verify the same tree twice: once as a pull request,
+  # then again on main a second later. Measured, that was half of all the
+  # minutes this repository spends — roughly 23 of the 46 billed per merged
+  # pull request — to re-check code that had just been checked.
+  #
+  # It is safe to drop because both ends are still covered. A `pull_request`
+  # run checks out `refs/pull/N/merge`, the merge result, not the branch tip
+  # — so what is verified is what main will become. And release.yml calls
+  # this entire workflow through its `verify` job before it builds anything,
+  # so nothing reaches a release without a full pass over the exact tree
+  # being released.
+  #
+  # What it does cost: main is no longer verified at the moment of merging.
+  # If two pull requests each pass against an older main and then interleave,
+  # the combination is first checked at release time rather than merge time.
+  # With merges going in one at a time that window is small, and the failure
+  # surfaces before anything ships rather than after.
   pull_request:
   # Callable from release.yml so a tag cannot ship unverified code.
   workflow_call:
@@ -37,6 +54,11 @@ jobs:
       dart: ${{ steps.filter.outputs.dart }}
       backend: ${{ steps.filter.outputs.backend }}
       desktop: ${{ steps.filter.outputs.desktop }}
+      # Narrower than `dart`: whether the Gradle build itself could have
+      # changed. A pure Dart edit cannot break the APK build in a way
+      # `flutter analyze` does not already catch, and that build is four of
+      # the nine minutes client-android costs.
+      android: ${{ steps.filter.outputs.android }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -51,6 +73,7 @@ jobs:
               echo "dart=true"
               echo "backend=true"
               echo "desktop=true"
+              echo "android=true"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -78,6 +101,7 @@ jobs:
               echo "dart=true"
               echo "backend=true"
               echo "desktop=true"
+              echo "android=true"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -92,20 +116,28 @@ jobs:
               echo "dart=true"
               echo "backend=true"
               echo "desktop=true"
+              echo "android=true"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          DART=false; BACKEND=false; DESKTOP=false
+          DART=false; BACKEND=false; DESKTOP=false; ANDROID=false
           match '^(apps/client|packages)/' && DART=true
           match '^apps/backend/' && BACKEND=true
           # The sync contract spans both sides, so either one re-runs it.
           match '^(apps/client/windows|apps/client/ios|apps/client/macos)/' && DESKTOP=true
           [ "$DART" = true ] && DESKTOP=true
+          # Only what the Gradle build actually reads. The android/ tree is
+          # obvious; every pubspec is here too because adding or bumping a
+          # dependency can pull in a native plugin, which is exactly the kind
+          # of break that compiles fine and fails at assemble time.
+          match '^apps/client/android/' && ANDROID=true
+          match '(^|/)pubspec\.yaml$' && ANDROID=true
           {
             echo "dart=$DART"
             echo "backend=$BACKEND"
             echo "desktop=$DESKTOP"
+            echo "android=$ANDROID"
           } >> "$GITHUB_OUTPUT"
 
   dart-packages:
@@ -232,7 +264,15 @@ jobs:
       # --flavor is required once flavorDimensions is defined (ADR-031);
       # "standard" is the AI-free default, matching what this job always
       # built before flavors existed.
+      #
+      # Only when the Gradle build could actually have changed — see the
+      # `android` output on the changes job. analyze and test above already
+      # cover a pure Dart edit; what this step catches is the manifest, the
+      # Gradle config and native plugin wiring, none of which a Dart-only
+      # change touches. Always true for a release (workflow_call), where the
+      # real signed build has to be preceded by a full check.
       - run: flutter build apk --debug --flavor standard
+        if: needs.changes.outputs.android == 'true'
 
   client-windows:
     name: apps/client (Windows desktop build + platform tests)
