@@ -312,31 +312,34 @@ jobs:
       # this release.
       - name: Extract this release's changelog section
         run: |
-          # Match on what a *release* section looks like, not on "the first
-          # '## ' heading". CHANGELOG.md opens with a "How this file is used"
-          # section written for contributors, which is itself a '## ' heading —
-          # so the naive first-heading read published that preamble as the
-          # release body and sailed straight past the Unreleased guard below,
-          # since the heading it compared was never the release one. The app's
-          # own parser already skips that section (changelog_panel.dart); this
-          # is the same rule, expressed as "a release section is titled either
-          # Unreleased or vX.Y.Z" so any future prose section is skipped too.
-          heading=$(grep -m1 -E '^## (Unreleased|v[0-9])' CHANGELOG.md || true)
-          if [ -z "$heading" ]; then
-            echo "::error::CHANGELOG.md has no release section ('## Unreleased' or '## vX.Y.Z') to publish."
+          # Take the section named after the tag being released, rather than
+          # whichever section happens to sit at the top of the file.
+          #
+          # Position is the wrong key on both ends. CHANGELOG.md opens with a
+          # "How this file is used" section written for contributors, which is
+          # itself a '## ' heading — so reading "the first '## ' heading"
+          # published that preamble as the release body, and sailed past the
+          # Unreleased guard, because the heading it compared was never a
+          # release heading. And the file's own convention keeps a fresh
+          # "## Unreleased" on top for the next cycle, so "first release-shaped
+          # heading" would then match that empty section on every subsequent
+          # release and refuse to publish anything.
+          #
+          # The tag is unambiguous and already resolved, so ask for it by name.
+          # This also turns "shipped a version nobody wrote release notes for"
+          # into a failure rather than something you notice after publishing.
+          want="## ${{ needs.version.outputs.tag }}"
+          if ! grep -qxF "$want" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '$want' section. Rename '## Unreleased' to it in the commit that cuts this release (see that file's own 'How this file is used')."
             exit 1
           fi
-          if [ "$heading" = "## Unreleased" ]; then
-            echo "::error::CHANGELOG.md's top section is still 'Unreleased' — rename it to ${{ needs.version.outputs.tag }} in the commit that cuts this release."
-            exit 1
-          fi
-          awk -v want="$heading" '
+          awk -v want="$want" '
             $0 == want { found = 1; next }
             found && /^## / { exit }
             found { print }
           ' CHANGELOG.md > RELEASE_NOTES.md
           if [ ! -s RELEASE_NOTES.md ]; then
-            echo "::error::CHANGELOG.md's '$heading' section is empty — nothing to publish."
+            echo "::error::CHANGELOG.md's '$want' section is empty — nothing to publish."
             exit 1
           fi
           cat RELEASE_NOTES.md

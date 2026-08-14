@@ -51,10 +51,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // A real, specific bullet from the file's current "Unreleased" section —
+      // A real, specific bullet from the file's newest released section —
       // proves the asset actually loaded and parsed, not just that the panel
       // rendered without crashing.
-      expect(find.text('Latest changes'), findsOneWidget);
+      //
+      // The heading is the released version, not "Latest changes": once a
+      // release is cut, "## Unreleased" is left empty at the top of the file
+      // for the next cycle, and a section with no bullets is dropped by
+      // parseChangelogSections rather than rendered as an empty heading.
+      expect(find.text('Version v0.6.0'), findsOneWidget);
+      expect(find.text('Latest changes'), findsNothing);
       expect(
         find.text('Toasts pop in instead of just fading.'),
         findsOneWidget,
