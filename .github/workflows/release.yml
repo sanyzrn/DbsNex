@@ -122,10 +122,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # 21, not 17, and only as the JDK Gradle itself runs on — the app's
+      # bytecode target is pinned to 17 in android/app/build.gradle.kts
+      # (compileOptions + jvmTarget) and does not move with this, so the
+      # shipped artifact is unchanged.
+      #
+      # Android Lint is compiled against Java 21 and calls List.removeLast(),
+      # which only exists from 21 (SequencedCollection). On 17 it dies with
+      # NoSuchMethodError mid-analysis, failing lintVitalAnalyzeRelease and
+      # with it the whole release build. That task runs on release builds
+      # only, which is why CI stayed green on its debug build while every
+      # release failed here.
       - uses: actions/setup-java@v5.6.0
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - uses: subosito/flutter-action@v2
         with:

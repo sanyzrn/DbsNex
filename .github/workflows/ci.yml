@@ -212,10 +212,14 @@ jobs:
         working-directory: apps/client
     steps:
       - uses: actions/checkout@v7
+      # Kept identical to release.yml's Android job on purpose — see the note
+      # there. This job builds debug, where lint does not run, so 17 worked
+      # here while every release build died in lintVitalAnalyzeRelease; a CI
+      # that does not match the release toolchain cannot catch that.
       - uses: actions/setup-java@v5.6.0
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
       - uses: subosito/flutter-action@v2
         with:
           flutter-version-file: .fvmrc
