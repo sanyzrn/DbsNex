@@ -15,6 +15,7 @@ import '../platform/nex_services.dart';
 import '../platform/update_service.dart';
 import 'about_screen.dart';
 import 'backup_screen.dart';
+import 'chat_screen.dart';
 import 'intelligence_screen.dart';
 import 'update_sheet.dart';
 
@@ -256,6 +257,25 @@ class SettingsSheet extends StatelessWidget {
                         title: l10n.swipeActions,
                         footnote: l10n.swipeActionsHint,
                         children: [_SwipeMapping(preferences: preferences)],
+                      ),
+                      _Section(
+                        icon: Icons.chat_bubble_outline,
+                        title: l10n.chat,
+                        children: [
+                          ListTile(
+                            contentPadding: _rowPadding,
+                            leading: const Icon(Icons.chat_bubble_outline),
+                            title: Text(l10n.chat),
+                            subtitle: Text(l10n.chatSubtitle),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => const ChatScreen(),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       _Section(
                         icon: Icons.auto_awesome_outlined,

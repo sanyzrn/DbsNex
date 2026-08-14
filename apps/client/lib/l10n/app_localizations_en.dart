@@ -1075,6 +1075,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'Results are worked out quietly in the background and kept with the note. Nothing interrupts you — a summary or a suggested tag appears only when you open the note and ask for it.';
 
   @override
+  String get chat => 'Chat';
+
+  @override
+  String get chatSubtitle => 'Ask Nex\'s built-in assistant';
+
+  @override
+  String get chatUnavailable =>
+      'Local chat isn\'t available on this build yet.';
+
+  @override
+  String get chatEmptyHint =>
+      'Ask anything — Nex answers on this device, with no internet needed.';
+
+  @override
+  String get chatInputHint => 'Message…';
+
+  @override
+  String get chatSendTooltip => 'Send';
+
+  @override
   String get automatic => 'Worked out automatically';
 
   @override

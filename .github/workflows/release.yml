@@ -189,32 +189,38 @@ jobs:
 
       - name: Build App Bundle (Play) and split APKs (direct download)
         run: |
-          flutter build appbundle --release \
+          # --flavor standard: required once flavorDimensions is defined
+          # (ADR-031) — this release pipeline ships the AI-free flavor only,
+          # same as it always has. The "ai" flavor has no release process yet.
+          flutter build appbundle --release --flavor standard \
             --build-name=${{ needs.version.outputs.base }} \
             --build-number=${{ needs.version.outputs.code }}
-          flutter build apk --release --split-per-abi \
+          flutter build apk --release --flavor standard --split-per-abi \
             --build-name=${{ needs.version.outputs.base }} \
             --build-number=${{ needs.version.outputs.code }}
           # The universal APK is what the in-app updater downloads: it cannot
           # know the device's ABI before the download, and picking the wrong
           # split installs nothing. Bigger, but it is the one asset that is
           # always correct.
-          flutter build apk --release \
+          flutter build apk --release --flavor standard \
             --build-name=${{ needs.version.outputs.base }} \
             --build-number=${{ needs.version.outputs.code }}
 
       - name: Collect release assets
         run: |
           mkdir -p dist
-          cp build/app/outputs/bundle/release/app-release.aab \
+          # Flavor-qualified output paths (ADR-031): Gradle nests these under
+          # standardRelease/ and the Flutter tool inserts "-standard-" into
+          # every flutter-apk filename once a flavor is set.
+          cp build/app/outputs/bundle/standardRelease/app-standard-release.aab \
             "dist/Nex-${{ needs.version.outputs.version }}.aab"
           for abi in armeabi-v7a arm64-v8a x86_64; do
-            src="build/app/outputs/flutter-apk/app-$abi-release.apk"
+            src="build/app/outputs/flutter-apk/app-standard-$abi-release.apk"
             [ -f "$src" ] && cp "$src" "dist/Nex-${{ needs.version.outputs.version }}-$abi.apk"
           done
           # The updater matches this asset by the "-universal.apk" suffix, so
           # the name is a contract, not a label.
-          cp build/app/outputs/flutter-apk/app-release.apk \
+          cp build/app/outputs/flutter-apk/app-standard-release.apk \
             "dist/Nex-${{ needs.version.outputs.version }}-universal.apk"
           ls -la dist
 
