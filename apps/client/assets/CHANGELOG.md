@@ -7,10 +7,17 @@ someone using the app.
 
 ## How this file is used
 
-The top section (the first `## ` heading, whatever it is titled) is exactly
-what `release.yml` publishes as the GitHub Release body — and exactly what
-the in-app update sheet then shows. That is the whole mechanism: no separate
-changelog service, no template rendered at request time.
+The topmost *release* section — the first `## ` heading titled either
+`Unreleased` or `vX.Y.Z` — is exactly what `release.yml` publishes as the
+GitHub Release body, and exactly what the in-app update sheet then shows.
+That is the whole mechanism: no separate changelog service, no template
+rendered at request time.
+
+This section, being prose rather than a release, is skipped by both readers.
+That is worth stating precisely, because it once was not: the workflow used
+to take "the first `## ` heading, whatever it is titled", which is this one —
+so it published these instructions as the release notes and never saw the
+`Unreleased` heading its own guard was checking for.
 
 Working convention:
 
@@ -21,8 +28,9 @@ Working convention:
 - When cutting a release, rename `## Unreleased` to `## vX.Y.Z` (matching
   the tag about to be pushed) and start a fresh `## Unreleased` above it for
   whatever comes next.
-- `release.yml` refuses to publish if the top section is still literally
-  titled `Unreleased` — that heading has to be renamed first, every time.
+- `release.yml` refuses to publish if the topmost release section is still
+  literally titled `Unreleased` — that heading has to be renamed first,
+  every time.
 
 ## Unreleased
 
