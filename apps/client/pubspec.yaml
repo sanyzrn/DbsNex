@@ -41,6 +41,11 @@ dependencies:
   # Endorses the Windows implementation. Without it every playback call throws
   # MissingPluginException on a first-class v1 target.
   just_audio_windows: ^0.2.2
+  # Only imported by lib/main_ai.dart, the "ai" Android flavor's entry
+  # point (ADR-031). Every other file in this app must not import
+  # package:nex_ai/ — CI's ai-deletion-proof job enforces this.
+  nex_ai:
+    path: ../../packages/ai
   # Declared explicitly: the app is the composition root and owns the SQLite
   # database. It used to arrive silently through nex_core's re-export.
   nex_core:

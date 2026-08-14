@@ -51,6 +51,23 @@ android {
         versionName = flutter.versionName
     }
 
+    // 09-ai.md / ADR-031: "ai" is the only flavor whose entry point
+    // (lib/main_ai.dart) may depend on nex_ai. CI's ai-deletion-proof job
+    // enforces that nothing else does, and that deleting packages/ai plus
+    // its two apps/client integration points still leaves "standard"
+    // building. applicationIdSuffix lets both install side by side.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("standard") {
+            dimension = "distribution"
+        }
+        create("ai") {
+            dimension = "distribution"
+            applicationIdSuffix = ".ai"
+            versionNameSuffix = "-ai"
+        }
+    }
+
     signingConfigs {
         if (keyFile.exists()) {
             create("release") {
