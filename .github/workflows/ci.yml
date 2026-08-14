@@ -212,10 +212,14 @@ jobs:
         working-directory: apps/client
     steps:
       - uses: actions/checkout@v7
+      # Kept identical to release.yml's Android job on purpose — see the note
+      # there. This job builds debug, where lint does not run, so 17 worked
+      # here while every release build died in lintVitalAnalyzeRelease; a CI
+      # that does not match the release toolchain cannot catch that.
       - uses: actions/setup-java@v5.6.0
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
       - uses: subosito/flutter-action@v2
         with:
           flutter-version-file: .fvmrc
@@ -233,6 +237,20 @@ jobs:
   client-windows:
     name: apps/client (Windows desktop build + platform tests)
     needs: changes
+    # PAUSED — Android-only focus.
+    #
+    # Windows runners bill at 2x and this is the longest job in the matrix, so
+    # it was the single biggest draw on a 2,000-minute monthly allowance that
+    # has run out twice. It is also the flakiest: the Flutter SDK download in
+    # flutter-action fails intermittently with curl exit 35 (SSL connect),
+    # which fails the whole run without any code being wrong.
+    #
+    # What this costs while paused: nothing verifies the Windows build or the
+    # Windows-only platform tests, so desktop regressions land unnoticed.
+    # To re-enable, restore the previous condition in place of `false` on the
+    # `if:` below — "CI green" already accepts a skipped job:
+    #   if: needs.changes.outputs.desktop == 'true'
+    #
     # Not windows-latest. That label moved to Visual Studio 2026 in June 2026,
     # and Flutter 3.35.5 — which .fvmrc pins — predates it: its Visual Studio
     # detection does not recognise VS 2026, so it falls back to its oldest known
@@ -244,7 +262,7 @@ jobs:
     # this Flutter does recognise. Revisit when the Flutter pin moves forward.
     runs-on: windows-2022
     timeout-minutes: 40
-    if: needs.changes.outputs.desktop == 'true'
+    if: false
     defaults:
       run:
         working-directory: apps/client
@@ -274,8 +292,20 @@ jobs:
     name: apps/client (iOS compile check, no signing)
     runs-on: macos-14
     timeout-minutes: 45
-    # Only on push — macOS minutes are billed at 10x.
-    if: github.event_name == 'push' || github.event_name == 'workflow_call'
+    # PAUSED — Android-only focus.
+    #
+    # macOS runners bill at 10x, which made this the most expensive minute of
+    # the matrix even though it only ever ran on push. There is no iOS release
+    # process yet, so this was catching drift in a target nothing ships.
+    #
+    # What this costs while paused: ios/ can silently drift out of buildable
+    # shape again — its Podfile, deployment target and plugin registrations
+    # are exactly what this job existed to keep honest. Expect to fix some
+    # accumulated drift whenever iOS comes back.
+    #
+    # To re-enable, restore the previous condition in place of `false`:
+    #   if: github.event_name == 'push' || github.event_name == 'workflow_call'
+    if: false
     defaults:
       run:
         working-directory: apps/client

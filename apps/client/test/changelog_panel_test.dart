@@ -59,7 +59,7 @@ void main() {
       // release is cut, "## Unreleased" is left empty at the top of the file
       // for the next cycle, and a section with no bullets is dropped by
       // parseChangelogSections rather than rendered as an empty heading.
-      expect(find.text('Version v0.6.0'), findsOneWidget);
+      expect(find.text('Version v0.9.0'), findsOneWidget);
       expect(find.text('Latest changes'), findsNothing);
       expect(
         find.text('Toasts pop in instead of just fading.'),

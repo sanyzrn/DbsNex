@@ -122,10 +122,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # 21, not 17, and only as the JDK Gradle itself runs on — the app's
+      # bytecode target is pinned to 17 in android/app/build.gradle.kts
+      # (compileOptions + jvmTarget) and does not move with this, so the
+      # shipped artifact is unchanged.
+      #
+      # Android Lint is compiled against Java 21 and calls List.removeLast(),
+      # which only exists from 21 (SequencedCollection). On 17 it dies with
+      # NoSuchMethodError mid-analysis, failing lintVitalAnalyzeRelease and
+      # with it the whole release build. That task runs on release builds
+      # only, which is why CI stayed green on its debug build while every
+      # release failed here.
       - uses: actions/setup-java@v5.6.0
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - uses: subosito/flutter-action@v2
         with:
@@ -239,6 +250,20 @@ jobs:
   build-windows:
     name: Windows Inno Setup installer
     needs: [version, verify]
+    # PAUSED — Android-only focus. See the matching note in ci.yml.
+    #
+    # What this costs while paused: releases carry no Windows installer, so
+    # anyone already running the Windows build stops being offered updates.
+    # They are not broken — the updater simply finds no .exe asset and reports
+    # no update available — but they stay on whatever version they have.
+    #
+    # Re-enabling takes three edits, all of which this job's absence would
+    # otherwise fail silently:
+    #   1. delete this `if:` line
+    #   2. add build-windows back to publish-release's `needs:`
+    #   3. restore the two `windows-installer/*.exe` lines in that job (the
+    #      checksum loop and the release `files:` list)
+    if: false
     # Same pin as CI: windows-latest is Visual Studio 2026 since June 2026, and
     # Flutter 3.35.5 does not recognise it. A release must not build on an image
     # the verification pipeline never used.
@@ -299,7 +324,11 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs: [version, build-android, build-windows]
+    # build-windows is deliberately absent while it is paused: a skipped job
+    # in `needs` skips its dependents too, which would silently skip the
+    # publish and produce a release run that "succeeds" without releasing
+    # anything. Add it back when Windows returns.
+    needs: [version, build-android]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -357,11 +386,17 @@ jobs:
       # since that is what the client matches against `SHA256SUMS` by.
       - name: Generate SHA-256 checksums
         run: |
+          # windows-installer/*.exe is omitted while Windows is paused: with
+          # no such artifact the glob would not expand, and sha256sum would be
+          # handed the literal pattern and fail the release.
           : > SHA256SUMS
-          for f in android/*.aab android/*.apk windows-installer/*.exe; do
+          for f in android/*.aab android/*.apk; do
             sha256sum "$f" | awk -v name="$(basename "$f")" '{ print $1, name }' >> SHA256SUMS
           done
           cat SHA256SUMS
+          # A release whose checksum file is empty would let the client accept
+          # anything; fail loudly instead.
+          test -s SHA256SUMS
 
       - name: Create GitHub Release
         # Third-party actions are pinned by commit SHA: this job holds
@@ -386,10 +421,10 @@ jobs:
           # test tag does not look like a production release.
           draft: ${{ github.event_name == 'workflow_dispatch' }}
           body_path: RELEASE_NOTES.md
+          # windows-installer/*.exe omitted while Windows is paused.
           files: |
             android/*.aab
             android/*.apk
-            windows-installer/*.exe
             SHA256SUMS
 
       # The artifacts were only ever a hand-off between jobs of this run; the
