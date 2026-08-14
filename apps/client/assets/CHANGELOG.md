@@ -34,7 +34,7 @@ Working convention:
 
 ## Unreleased
 
-## v0.9.0
+## v0.9.1
 
 - Settings' swipe-action picker now looks like the rest of Settings, not a
   system pop-up menu.
