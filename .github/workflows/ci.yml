@@ -237,6 +237,19 @@ jobs:
   client-windows:
     name: apps/client (Windows desktop build + platform tests)
     needs: changes
+    # PAUSED — Android-only focus.
+    #
+    # Windows runners bill at 2x and this is the longest job in the matrix, so
+    # it was the single biggest draw on a 2,000-minute monthly allowance that
+    # has run out twice. It is also the flakiest: the Flutter SDK download in
+    # flutter-action fails intermittently with curl exit 35 (SSL connect),
+    # which fails the whole run without any code being wrong.
+    #
+    # What this costs while paused: nothing verifies the Windows build or the
+    # Windows-only platform tests, so desktop regressions land unnoticed.
+    # Re-enable by deleting this one `if:` line — nothing else references it,
+    # and "CI green" already accepts a skipped job.
+    if: false
     # Not windows-latest. That label moved to Visual Studio 2026 in June 2026,
     # and Flutter 3.35.5 — which .fvmrc pins — predates it: its Visual Studio
     # detection does not recognise VS 2026, so it falls back to its oldest known
@@ -278,8 +291,20 @@ jobs:
     name: apps/client (iOS compile check, no signing)
     runs-on: macos-14
     timeout-minutes: 45
-    # Only on push — macOS minutes are billed at 10x.
-    if: github.event_name == 'push' || github.event_name == 'workflow_call'
+    # PAUSED — Android-only focus.
+    #
+    # macOS runners bill at 10x, which made this the most expensive minute of
+    # the matrix even though it only ever ran on push. There is no iOS release
+    # process yet, so this was catching drift in a target nothing ships.
+    #
+    # What this costs while paused: ios/ can silently drift out of buildable
+    # shape again — its Podfile, deployment target and plugin registrations
+    # are exactly what this job existed to keep honest. Expect to fix some
+    # accumulated drift whenever iOS comes back.
+    #
+    # To re-enable, restore the previous condition in place of `false`:
+    #   if: github.event_name == 'push' || github.event_name == 'workflow_call'
+    if: false
     defaults:
       run:
         working-directory: apps/client

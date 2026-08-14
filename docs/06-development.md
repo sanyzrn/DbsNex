@@ -192,7 +192,9 @@ Two rules the numbers have to obey:
 **Rename the changelog heading before you tag.** [`CHANGELOG.md`](../CHANGELOG.md)'s top section — whatever it is titled — is published as-is as both the GitHub Release body and the in-app update sheet's content. As part of the same merge to `main` that you are about to tag, rename its `## Unreleased` heading to `## vX.Y.Z` matching the tag, and start a fresh `## Unreleased` above it. The release workflow refuses to publish if the top heading is still literally `Unreleased`.
 
 `version:` in `apps/client/pubspec.yaml` stays as the local development default, kept in step with `lib/app_version.dart` by `version_test.dart`. Releases overwrite both from the tag, so a stale value there can no longer block or mislabel a release.
-The workflow builds a signed Android App Bundle plus split APKs and a Windows Inno Setup installer, and attaches them all to the GitHub Release. Every build waits on the full CI suite first — tags do not match branches, so without that gate a tag would ship straight to a public release without ever running analyze or the tests.
+The workflow builds a signed Android App Bundle plus split APKs and attaches them to the GitHub Release. Every build waits on the full CI suite first — tags do not match branches, so without that gate a tag would ship straight to a public release without ever running analyze or the tests.
+
+**Android only, for now.** The Windows installer and the iOS compile check are paused — Windows runners bill at 2x and macOS at 10x, and between them they were most of a monthly Actions allowance that ran out twice. Each paused job carries an `if: false` and a comment saying what its absence costs and exactly how to bring it back; the Windows one also lists the three edits `publish-release` needs, because none of them fail loudly on their own. While this holds, existing Windows users are not offered updates: the updater finds no `.exe` asset and reports no update available, so they stay on the version they have.
 
 **One-time signing setup** (never commit the keystore):
 
