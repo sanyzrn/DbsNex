@@ -247,9 +247,10 @@ jobs:
     #
     # What this costs while paused: nothing verifies the Windows build or the
     # Windows-only platform tests, so desktop regressions land unnoticed.
-    # Re-enable by deleting this one `if:` line — nothing else references it,
-    # and "CI green" already accepts a skipped job.
-    if: false
+    # To re-enable, restore the previous condition in place of `false` on the
+    # `if:` below — "CI green" already accepts a skipped job:
+    #   if: needs.changes.outputs.desktop == 'true'
+    #
     # Not windows-latest. That label moved to Visual Studio 2026 in June 2026,
     # and Flutter 3.35.5 — which .fvmrc pins — predates it: its Visual Studio
     # detection does not recognise VS 2026, so it falls back to its oldest known
@@ -261,7 +262,7 @@ jobs:
     # this Flutter does recognise. Revisit when the Flutter pin moves forward.
     runs-on: windows-2022
     timeout-minutes: 40
-    if: needs.changes.outputs.desktop == 'true'
+    if: false
     defaults:
       run:
         working-directory: apps/client
