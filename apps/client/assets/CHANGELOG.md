@@ -7,17 +7,17 @@ someone using the app.
 
 ## How this file is used
 
-The topmost *release* section — the first `## ` heading titled either
-`Unreleased` or `vX.Y.Z` — is exactly what `release.yml` publishes as the
-GitHub Release body, and exactly what the in-app update sheet then shows.
-That is the whole mechanism: no separate changelog service, no template
-rendered at request time.
+The section named after the tag being released — `## vX.Y.Z` — is exactly
+what `release.yml` publishes as the GitHub Release body, and exactly what
+the in-app update sheet then shows. That is the whole mechanism: no separate
+changelog service, no template rendered at request time.
 
-This section, being prose rather than a release, is skipped by both readers.
-That is worth stating precisely, because it once was not: the workflow used
-to take "the first `## ` heading, whatever it is titled", which is this one —
-so it published these instructions as the release notes and never saw the
-`Unreleased` heading its own guard was checking for.
+It is looked up *by name*, not by position, which is what lets the fresh
+`## Unreleased` below sit above the newest release without being mistaken
+for it. Position was tried and is wrong at both ends: this prose section is
+itself a `## ` heading, so "the first `## ` heading" published these
+instructions as the release notes; and "the first release-shaped heading"
+would match the empty `## Unreleased` on every release after the first.
 
 Working convention:
 
@@ -28,11 +28,13 @@ Working convention:
 - When cutting a release, rename `## Unreleased` to `## vX.Y.Z` (matching
   the tag about to be pushed) and start a fresh `## Unreleased` above it for
   whatever comes next.
-- `release.yml` refuses to publish if the topmost release section is still
-  literally titled `Unreleased` — that heading has to be renamed first,
-  every time.
+- `release.yml` refuses to publish a tag that has no section of its own, so
+  forgetting to rename `## Unreleased` fails the release instead of shipping
+  a version with someone else's notes — or none at all.
 
 ## Unreleased
+
+## v0.6.0
 
 - Settings' swipe-action picker now looks like the rest of Settings, not a
   system pop-up menu.
