@@ -1,4 +1,3 @@
-import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:test/test.dart';
 

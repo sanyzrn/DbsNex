@@ -306,16 +306,33 @@ jobs:
       # this release.
       - name: Extract this release's changelog section
         run: |
-          heading=$(grep -m1 '^## ' CHANGELOG.md || true)
+          # Match on what a *release* section looks like, not on "the first
+          # '## ' heading". CHANGELOG.md opens with a "How this file is used"
+          # section written for contributors, which is itself a '## ' heading —
+          # so the naive first-heading read published that preamble as the
+          # release body and sailed straight past the Unreleased guard below,
+          # since the heading it compared was never the release one. The app's
+          # own parser already skips that section (changelog_panel.dart); this
+          # is the same rule, expressed as "a release section is titled either
+          # Unreleased or vX.Y.Z" so any future prose section is skipped too.
+          heading=$(grep -m1 -E '^## (Unreleased|v[0-9])' CHANGELOG.md || true)
           if [ -z "$heading" ]; then
-            echo "::error::CHANGELOG.md has no '## ' section to publish."
+            echo "::error::CHANGELOG.md has no release section ('## Unreleased' or '## vX.Y.Z') to publish."
             exit 1
           fi
           if [ "$heading" = "## Unreleased" ]; then
             echo "::error::CHANGELOG.md's top section is still 'Unreleased' — rename it to ${{ needs.version.outputs.tag }} in the commit that cuts this release."
             exit 1
           fi
-          awk '/^## /{if (found) exit; found=1; next} found' CHANGELOG.md > RELEASE_NOTES.md
+          awk -v want="$heading" '
+            $0 == want { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "::error::CHANGELOG.md's '$heading' section is empty — nothing to publish."
+            exit 1
+          fi
           cat RELEASE_NOTES.md
 
       - uses: actions/download-artifact@v8
