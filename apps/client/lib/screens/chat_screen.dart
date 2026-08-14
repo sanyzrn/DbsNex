@@ -71,7 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _sending = false;
       if (response != null) {
         _messages.add(
-          ChatMessage(role: ChatRole.assistant, content: response!.content),
+          ChatMessage(role: ChatRole.assistant, content: response.content),
         );
       }
     });

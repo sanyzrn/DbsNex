@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart' show runApp;
+// nex_ai re-exports the Core AI contracts this file binds, so importing
+// nex_core alongside it is redundant.
 import 'package:nex_ai/nex_ai.dart';
-import 'package:nex_core/nex_core.dart';
 
 import 'bootstrap_host.dart';
 import 'entry_bootstrap.dart';
