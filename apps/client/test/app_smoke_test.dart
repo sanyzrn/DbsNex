@@ -120,7 +120,12 @@ void main() {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
-    expect(find.text('Nex'), findsOneWidget);
+    // The app bar carries the mark rather than a text title now — the
+    // greeting it used to share the bar with is a header in the list below.
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.byType(Image)),
+      findsOneWidget,
+    );
     expect(find.byIcon(Icons.add), findsOneWidget);
     expect(find.text('Save'), findsNothing);
   });
@@ -1028,26 +1033,66 @@ void main() {
     },
   );
 
-  testWidgets('a name turns the timeline title into a greeting', (
+  testWidgets('a name turns the timeline header into a greeting', (
     tester,
   ) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
-    expect(find.text('Nex'), findsOneWidget);
+    await tester.pumpAndSettle();
+    // No name and no AI provider means no header at all: the search field is
+    // the first thing in the list.
+    expect(find.textContaining('Sany'), findsNothing);
 
     await preferences.setDisplayName('  Sany  ');
     await tester.pumpAndSettle();
 
-    // Trimmed, and only ever shown here — never sent anywhere.
+    // Trimmed, and only ever shown here — never sent anywhere, including to
+    // the AI provider that writes the line beside it.
     expect(preferences.displayName, 'Sany');
     expect(find.textContaining('Sany'), findsOneWidget);
-    expect(find.text('Nex'), findsNothing);
 
     await preferences.setDisplayName('');
     await tester.pumpAndSettle();
     expect(preferences.displayName, isNull);
-    expect(find.text('Nex'), findsOneWidget);
+    expect(find.textContaining('Sany'), findsNothing);
+  });
+
+  testWidgets('the greeting takes at most two words of a longer name', (
+    tester,
+  ) async {
+    await preferences.setDisplayName('Sany   Karimi Nezhad');
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    // Stored in full — the profile row has room for it. Only the greeting,
+    // which shares a line with a mark, is cut.
+    expect(preferences.displayName, 'Sany   Karimi Nezhad');
+    expect(find.textContaining('Sany Karimi'), findsOneWidget);
+    expect(find.textContaining('Nezhad'), findsNothing);
+  });
+
+  testWidgets('tapping the greeting re-rolls it when there is no AI', (
+    tester,
+  ) async {
+    await preferences.setDisplayName('Sany');
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    String greeting() =>
+        tester.widget<Text>(find.textContaining('Sany').first).data!;
+    final before = greeting();
+
+    await tester.tap(find.textContaining('Sany').first);
+    await tester.pumpAndSettle();
+
+    // The refresh never lands on the phrasing already showing — a button that
+    // does nothing one time in three reads as broken.
+    expect(greeting(), isNot(before));
   });
 
   testWidgets('the greeting mark trails the words, in either direction', (
@@ -1065,11 +1110,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final words = tester.getRect(find.textContaining('Sany'));
-      // The mark is the one Text in the title that is not the greeting.
+      // The mark is the one Text in the header that is not the greeting.
       final mark = tester.getRect(
         find
             .descendant(
-              of: find.byType(AppBar),
+              of: find.byKey(const ValueKey('timeline-header')),
               matching: find.byWidgetPredicate(
                 (w) => w is Text && w.data != null && !w.data!.contains('Sany'),
               ),

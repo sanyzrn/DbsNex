@@ -1952,17 +1952,77 @@ abstract class AppLocalizations {
   /// **'Transcription, summaries, tags'**
   String get intelligenceOpen;
 
-  /// Small chip next to the timeline greeting that reopens the collapsed AI day summary
+  /// Header of the AI day summary card on the timeline
   ///
   /// In en, this message translates to:
-  /// **'AI Summary'**
-  String get aiDaySummaryChip;
+  /// **'Daily Digest'**
+  String get aiDaySummaryTitle;
 
   /// Screen-reader label for the AI-generated day summary panel on the timeline
   ///
   /// In en, this message translates to:
   /// **'Today\'s summary'**
   String get aiDaySummarySemanticLabel;
+
+  /// Shown in the day summary card when no summary could be generated
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to sum up yet.'**
+  String get aiDaySummaryEmpty;
+
+  /// Tooltip on the day summary card's refresh button
+  ///
+  /// In en, this message translates to:
+  /// **'Write a new summary'**
+  String get aiDaySummaryRefresh;
+
+  /// Tooltip on the day summary card's chevron while the card is open
+  ///
+  /// In en, this message translates to:
+  /// **'Hide the summary'**
+  String get aiDaySummaryCollapse;
+
+  /// Tooltip on the day summary card's chevron while the card is collapsed
+  ///
+  /// In en, this message translates to:
+  /// **'Show the summary'**
+  String get aiDaySummaryExpand;
+
+  /// Screen-reader label for the tappable AI-generated headline at the top of the timeline
+  ///
+  /// In en, this message translates to:
+  /// **'Tap for a new line'**
+  String get aiHeadlineRefresh;
+
+  /// Settings row choosing which language the AI writes in
+  ///
+  /// In en, this message translates to:
+  /// **'AI output language'**
+  String get aiOutputLanguage;
+
+  /// Explanation under the AI output language setting
+  ///
+  /// In en, this message translates to:
+  /// **'The language summaries and suggestions come back in'**
+  String get aiOutputLanguageSubtitle;
+
+  /// AI output language option: follow whatever language the note is written in
+  ///
+  /// In en, this message translates to:
+  /// **'Match my notes'**
+  String get aiOutputLanguageAuto;
+
+  /// AI output language option: always English
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get aiOutputLanguageEnglish;
+
+  /// AI output language option: always Persian
+  ///
+  /// In en, this message translates to:
+  /// **'Persian'**
+  String get aiOutputLanguagePersian;
 }
 
 class _AppLocalizationsDelegate

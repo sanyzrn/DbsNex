@@ -137,6 +137,47 @@ class AiProviderConfig {
   );
 }
 
+/// Which language the model is told to answer in.
+///
+/// Separate from the app's own locale on purpose. Someone can read the
+/// interface in English and still want summaries of their Persian notes in
+/// Persian — and, more often here, the reverse: Persian notes summarised in
+/// Persian while the UI stays English. [auto] is the behaviour the app always
+/// had, and stays the default.
+enum AiOutputLanguage {
+  auto('auto'),
+  english('en'),
+  persian('fa');
+
+  const AiOutputLanguage(this.wireName);
+
+  /// What gets persisted. The enum's own `name` would do it today, but it is
+  /// a Dart identifier first and a storage key second; pinning the string
+  /// means renaming a case later cannot silently reset everyone's choice.
+  final String wireName;
+
+  static AiOutputLanguage fromWire(String? value) => switch (value) {
+    'en' => AiOutputLanguage.english,
+    'fa' => AiOutputLanguage.persian,
+    _ => AiOutputLanguage.auto,
+  };
+
+  /// The sentence appended to every system prompt.
+  ///
+  /// Named languages rather than locale codes: models follow "Reply in
+  /// Persian (فارسی)" far more reliably than "Reply in fa", and naming the
+  /// language in itself makes the instruction legible to the model in the
+  /// script it is being asked to produce.
+  String get promptRule => switch (this) {
+    AiOutputLanguage.auto =>
+      'Reply in the same language the notes are written in.',
+    AiOutputLanguage.english =>
+      'Reply in English, whatever language the notes are written in.',
+    AiOutputLanguage.persian =>
+      'Reply in Persian (فارسی), whatever language the notes are written in.',
+  };
+}
+
 /// The outcome of a connection test, in the user's terms.
 @immutable
 class AiTestResult {
@@ -149,11 +190,19 @@ class AiTestResult {
 
 /// Talks to a configured provider over its HTTP API.
 class CloudAIAdapter implements AIAdapter {
-  CloudAIAdapter({required this.config, http.Client? client})
-    : _client = client ?? http.Client(),
-      _ownsClient = client == null;
+  CloudAIAdapter({
+    required this.config,
+    this.outputLanguage = AiOutputLanguage.auto,
+    http.Client? client,
+  }) : _client = client ?? http.Client(),
+       _ownsClient = client == null;
 
   final AiProviderConfig config;
+
+  /// Which language every generated string comes back in. Defaults to the
+  /// behaviour that predates the setting, so a caller that has no opinion —
+  /// every test, and the connection check — is unaffected.
+  final AiOutputLanguage outputLanguage;
   final http.Client _client;
   final bool _ownsClient;
 
@@ -452,7 +501,7 @@ class CloudAIAdapter implements AIAdapter {
   Future<List<TagSuggestion>> _suggestTags(String text) async {
     final reply = await _complete(
       'You label notes. Reply with 1-4 short tag names, comma separated, '
-      'nothing else. Use the language the note is written in.',
+      'nothing else. ${outputLanguage.promptRule}',
       text,
       maxTokens: 60,
     );
@@ -473,35 +522,88 @@ class CloudAIAdapter implements AIAdapter {
 
   Future<Summary> _summarize(String text) async {
     final reply = await _complete(
-      'Summarise the note in one sentence, shorter than the original, '
-      'in the language it is written in. Reply with the sentence only.',
+      'Summarise the note in one sentence, shorter than the original. '
+      'Reply with the sentence only. ${outputLanguage.promptRule}',
       text,
       maxTokens: 200,
     );
     return Summary(text: reply?.trim() ?? '');
   }
 
-  /// A warm, one-paragraph recap of what someone has been capturing lately.
+  /// A warm, two-sentence recap of what someone has been capturing lately.
   ///
   /// Not part of [AIAdapter]: every other capability there takes one [Note],
   /// because enrichment is a per-note pipeline. This is the one place in the
   /// app that wants "here is a handful of recent notes, say something about
   /// them" rather than "extract something from this one" — it belongs to the
   /// timeline's own daily-summary panel, not to the note-scoped contract.
+  ///
+  /// The word budget is stated in the prompt *and* enforced on the way out by
+  /// [_clamped]: models treat "at most 30 words" as a suggestion, and the
+  /// panel this lands in is a card with two lines of room. A recap that
+  /// overflows it is worse than a shorter one.
   Future<String?> digest(String recentNotesText) async {
     if (!config.isUsable || recentNotesText.trim().isEmpty) return null;
     final reply = await _complete(
       'You write the short recap a notes app shows someone when they open '
       "it: warm, a little funny, never corporate. You're given a handful of "
-      'their recent notes. Write 2-3 sentences that greet them and touch on '
-      "what they've been capturing, as if a friend skimmed it and is glad to "
-      'see them. Reply in the same language the notes are written in. Reply '
-      'with the recap only — no heading, no bullet points, no quotes around '
-      'it.',
+      'their recent notes. Write ONE or TWO short sentences — at most 30 '
+      "words in total — touching on what they've been capturing. No preamble, "
+      'no heading, no bullet points, no quotes, no emoji. Reply with the '
+      'recap only. ${outputLanguage.promptRule}',
       recentNotesText,
-      maxTokens: 400,
+      maxTokens: 160,
     );
-    return reply?.trim();
+    return _clamped(reply, 30);
+  }
+
+  /// The one-line headline over the timeline: a mood, not a summary.
+  ///
+  /// Deliberately a different call from [digest] rather than a longer prompt
+  /// on the same one. This is a *title* — it sits at display size, wraps to at
+  /// most two lines, and is regenerated whenever the user taps it, so it has
+  /// to come back short every single time. Asking one prompt for both a title
+  /// and a recap reliably produced a paragraph for each.
+  ///
+  /// The reader's name is deliberately *not* part of this. `displayName` has
+  /// never left the device and does not start now for a decoration — the name
+  /// is rendered beside this line by the app itself, where it costs nothing.
+  Future<String?> headline(String recentNotesText) async {
+    if (!config.isUsable) return null;
+    final reply = await _complete(
+      'You write the single line a notes app shows across the top of its home '
+      'screen when it opens. One sentence, at most 9 words, ending with one '
+      'emoji that fits it. Evocative and warm — a mood tied to the time of '
+      'day and, loosely, to what they have been noting. Never a summary, '
+      'never a question, never an instruction, never a heading, no quotes, '
+      'never address anyone by name. Reply with the line only. '
+      '${outputLanguage.promptRule}',
+      recentNotesText.trim().isEmpty
+          ? 'They have not written anything yet. The local time is '
+                '${DateTime.now().hour}:00.'
+          : 'The local time is ${DateTime.now().hour}:00. Their recent '
+                'notes:\n$recentNotesText',
+      maxTokens: 60,
+    );
+    return _clamped(reply, 12);
+  }
+
+  /// Trims a reply to [maxWords], cutting at a sentence end when one is near
+  /// enough and simply dropping the tail otherwise.
+  ///
+  /// Returns null for an empty reply so callers can treat "the model said
+  /// nothing" and "there is no provider" the same way.
+  static String? _clamped(String? reply, int maxWords) {
+    final text = reply?.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (text == null || text.isEmpty) return null;
+    final words = text.split(' ');
+    if (words.length <= maxWords) return text;
+    final cut = words.take(maxWords).join(' ');
+    // Prefer ending where the model ended a sentence, rather than mid-clause
+    // with an ellipsis — but only if that does not throw most of it away.
+    final stop = cut.lastIndexOf(RegExp(r'[.!?…؟۔]'));
+    if (stop > cut.length ~/ 2) return cut.substring(0, stop + 1);
+    return '$cut…';
   }
 
   @override

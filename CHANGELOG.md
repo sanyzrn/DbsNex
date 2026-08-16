@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+- The top of the home screen is a real header now: a short line written for
+  you, your greeting above it, and the daily summary in a card under both.
+  Tap the line for a different one.
+- The daily summary card keeps its own refresh and collapse buttons, so it
+  folds away and comes back from the same place instead of from the app bar.
+- Added a setting for which language Nex writes in — follow your notes,
+  English, or Persian — separate from the language of the app itself.
+
 ## v0.9.1
 
 - Settings' swipe-action picker now looks like the rest of Settings, not a

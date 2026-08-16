@@ -221,6 +221,20 @@ class NexPreferences extends ChangeNotifier {
     return value == null || value.isEmpty ? null : value;
   }
 
+  /// [displayName] cut to its first two words, for the places that render it
+  /// inside a line of running text.
+  ///
+  /// Someone who types their full name gets it back in full on the profile
+  /// row, where there is room for it, and gets "Saeed Karimi" in the timeline
+  /// greeting, where a third and fourth word push the line onto a second row
+  /// and knock the headline below it out of place.
+  String? get shortDisplayName {
+    final value = displayName;
+    if (value == null) return null;
+    final words = value.split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+    return words.take(2).join(' ');
+  }
+
   Locale? get locale {
     final code = _prefs.getString('appearance.locale');
     return code == null || code == 'system' ? null : Locale(code);
@@ -409,6 +423,27 @@ class NexPreferences extends ChangeNotifier {
     model: _prefs.getString('ai.model.${provider.wireName}') ?? '',
   );
 
+  /// Which language the model answers in — independent of [locale].
+  ///
+  /// Not folded into [AiProviderConfig]: that is per-provider storage, and
+  /// this is one global choice. Putting it there would have meant writing the
+  /// same value under every provider's namespace and picking a winner when
+  /// they disagreed.
+  AiOutputLanguage get aiOutputLanguage =>
+      AiOutputLanguage.fromWire(_prefs.getString('ai.outputLanguage'));
+
+  Future<void> setAiOutputLanguage(AiOutputLanguage value) async {
+    await _prefs.setString('ai.outputLanguage', value.wireName);
+    // The two cached AI strings on the timeline were written in the old
+    // language; leaving them would show the setting as having done nothing
+    // until tomorrow.
+    await _prefs.remove('ai.daySummary.text');
+    await _prefs.remove('ai.daySummary.date');
+    await _prefs.remove('ai.headline.text');
+    await _prefs.remove('ai.headline.date');
+    notifyListeners();
+  }
+
   Future<void> setAiProvider(AiProviderConfig config) async {
     final wireName = config.provider.wireName;
     final key = 'ai.key.$wireName';
@@ -444,5 +479,19 @@ class NexPreferences extends ChangeNotifier {
   }) async {
     await _prefs.setString('ai.daySummary.text', text);
     await _prefs.setString('ai.daySummary.date', dateKey);
+  }
+
+  /// The timeline's one-line headline, cached the same way and for the same
+  /// reason as the recap above. Tapping the line asks for a new one, which is
+  /// what makes this a cache rather than a daily lock.
+  String? get aiHeadlineText => _prefs.getString('ai.headline.text');
+  String? get aiHeadlineDate => _prefs.getString('ai.headline.date');
+
+  Future<void> setAiHeadline({
+    required String text,
+    required String dateKey,
+  }) async {
+    await _prefs.setString('ai.headline.text', text);
+    await _prefs.setString('ai.headline.date', dateKey);
   }
 }

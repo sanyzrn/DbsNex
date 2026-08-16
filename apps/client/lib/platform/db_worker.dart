@@ -649,7 +649,12 @@ class NexDbWorker implements NexDb {
             // heuristics rather than to nothing: tag hints keep working.
             enrichment.updateAdapter(
               config.isUsable
-                  ? CloudAIAdapter(config: config)
+                  ? CloudAIAdapter(
+                      config: config,
+                      outputLanguage: AiOutputLanguage.fromWire(
+                        raw['outputLanguage'],
+                      ),
+                    )
                   : const OnDeviceAIAdapter(),
             );
           }),

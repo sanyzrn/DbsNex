@@ -1124,8 +1124,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intelligenceOpen => 'Transcription, summaries, tags';
 
   @override
-  String get aiDaySummaryChip => 'AI Summary';
+  String get aiDaySummaryTitle => 'Daily Digest';
 
   @override
   String get aiDaySummarySemanticLabel => 'Today\'s summary';
+
+  @override
+  String get aiDaySummaryEmpty => 'Nothing to sum up yet.';
+
+  @override
+  String get aiDaySummaryRefresh => 'Write a new summary';
+
+  @override
+  String get aiDaySummaryCollapse => 'Hide the summary';
+
+  @override
+  String get aiDaySummaryExpand => 'Show the summary';
+
+  @override
+  String get aiHeadlineRefresh => 'Tap for a new line';
+
+  @override
+  String get aiOutputLanguage => 'AI output language';
+
+  @override
+  String get aiOutputLanguageSubtitle =>
+      'The language summaries and suggestions come back in';
+
+  @override
+  String get aiOutputLanguageAuto => 'Match my notes';
+
+  @override
+  String get aiOutputLanguageEnglish => 'English';
+
+  @override
+  String get aiOutputLanguagePersian => 'Persian';
 }

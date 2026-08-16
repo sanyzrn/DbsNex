@@ -1123,8 +1123,39 @@ class AppLocalizationsFa extends AppLocalizations {
   String get intelligenceOpen => 'رونویسی، خلاصه، برچسب';
 
   @override
-  String get aiDaySummaryChip => 'خلاصه هوشمند';
+  String get aiDaySummaryTitle => 'خلاصه هوشمند';
 
   @override
   String get aiDaySummarySemanticLabel => 'خلاصه امروز';
+
+  @override
+  String get aiDaySummaryEmpty => 'هنوز چیزی برای خلاصه کردن نیست.';
+
+  @override
+  String get aiDaySummaryRefresh => 'نوشتن خلاصه تازه';
+
+  @override
+  String get aiDaySummaryCollapse => 'بستن خلاصه';
+
+  @override
+  String get aiDaySummaryExpand => 'نمایش خلاصه';
+
+  @override
+  String get aiHeadlineRefresh => 'برای جمله‌ای تازه لمس کنید';
+
+  @override
+  String get aiOutputLanguage => 'زبان خروجی هوش مصنوعی';
+
+  @override
+  String get aiOutputLanguageSubtitle =>
+      'زبانی که خلاصه‌ها و پیشنهادها با آن نوشته می‌شوند';
+
+  @override
+  String get aiOutputLanguageAuto => 'هم‌زبان با یادداشت‌هایم';
+
+  @override
+  String get aiOutputLanguageEnglish => 'انگلیسی';
+
+  @override
+  String get aiOutputLanguagePersian => 'فارسی';
 }

@@ -166,6 +166,10 @@ class NexServices {
         'apiKey': ai.apiKey,
         'baseUrl': ai.baseUrl,
         'model': ai.model,
+        // Not part of AiProviderConfig — see `aiOutputLanguage` — but it has
+        // to reach the isolate that builds the adapter, and this is the one
+        // message that already carries everything else the adapter needs.
+        'outputLanguage': preferences.aiOutputLanguage.wireName,
       }),
     );
     // Turning it on has to mean something for the notes that are already here.

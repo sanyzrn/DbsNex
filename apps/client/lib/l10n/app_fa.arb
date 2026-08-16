@@ -503,12 +503,52 @@
   "@intelligenceOpen": {
     "description": "Settings row that opens the intelligence screen"
   },
-  "aiDaySummaryChip": "خلاصه هوشمند",
-  "@aiDaySummaryChip": {
-    "description": "Small chip next to the timeline greeting that reopens the collapsed AI day summary"
+  "aiDaySummaryTitle": "خلاصه هوشمند",
+  "@aiDaySummaryTitle": {
+    "description": "Header of the AI day summary card on the timeline"
   },
   "aiDaySummarySemanticLabel": "خلاصه امروز",
   "@aiDaySummarySemanticLabel": {
     "description": "Screen-reader label for the AI-generated day summary panel on the timeline"
+  },
+  "aiDaySummaryEmpty": "هنوز چیزی برای خلاصه کردن نیست.",
+  "@aiDaySummaryEmpty": {
+    "description": "Shown in the day summary card when no summary could be generated"
+  },
+  "aiDaySummaryRefresh": "نوشتن خلاصه تازه",
+  "@aiDaySummaryRefresh": {
+    "description": "Tooltip on the day summary card's refresh button"
+  },
+  "aiDaySummaryCollapse": "بستن خلاصه",
+  "@aiDaySummaryCollapse": {
+    "description": "Tooltip on the day summary card's chevron while the card is open"
+  },
+  "aiDaySummaryExpand": "نمایش خلاصه",
+  "@aiDaySummaryExpand": {
+    "description": "Tooltip on the day summary card's chevron while the card is collapsed"
+  },
+  "aiHeadlineRefresh": "برای جمله‌ای تازه لمس کنید",
+  "@aiHeadlineRefresh": {
+    "description": "Screen-reader label for the tappable AI-generated headline at the top of the timeline"
+  },
+  "aiOutputLanguage": "زبان خروجی هوش مصنوعی",
+  "@aiOutputLanguage": {
+    "description": "Settings row choosing which language the AI writes in"
+  },
+  "aiOutputLanguageSubtitle": "زبانی که خلاصه‌ها و پیشنهادها با آن نوشته می‌شوند",
+  "@aiOutputLanguageSubtitle": {
+    "description": "Explanation under the AI output language setting"
+  },
+  "aiOutputLanguageAuto": "هم‌زبان با یادداشت‌هایم",
+  "@aiOutputLanguageAuto": {
+    "description": "AI output language option: follow whatever language the note is written in"
+  },
+  "aiOutputLanguageEnglish": "انگلیسی",
+  "@aiOutputLanguageEnglish": {
+    "description": "AI output language option: always English"
+  },
+  "aiOutputLanguagePersian": "فارسی",
+  "@aiOutputLanguagePersian": {
+    "description": "AI output language option: always Persian"
   }
 }
