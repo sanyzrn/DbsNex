@@ -99,6 +99,10 @@
   "shareDiagnosticsBody": "A local log of the last few crashes, in case something breaks. Nothing is sent anywhere unless you choose to share it here.",
   "noDiagnosticsYet": "Nothing to share yet",
   "openSourceLicenses": "Open-source licences",
+  "theme": "Theme",
+  "@theme": {
+    "description": "Settings row that opens the light/dark/system picker"
+  },
   "themeLight": "Light",
   "themeDark": "Dark",
   "themeSystem": "System",

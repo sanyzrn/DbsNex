@@ -64,6 +64,10 @@
   "shareDiagnosticsBody": "ثبت محلی چند خطای آخر، برای وقتی چیزی خراب شد. چیزی به هیچ‌جا فرستاده نمی‌شود مگر خودتان اینجا اشتراک بگذارید.",
   "noDiagnosticsYet": "چیزی برای اشتراک‌گذاری نیست",
   "openSourceLicenses": "پروانه‌های متن‌باز",
+  "theme": "پوسته",
+  "@theme": {
+    "description": "Settings row that opens the light/dark/system picker"
+  },
   "themeLight": "روشن",
   "themeDark": "تیره",
   "themeSystem": "مثل سیستم",

@@ -232,6 +232,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get openSourceLicenses => 'پروانه‌های متن‌باز';
 
   @override
+  String get theme => 'پوسته';
+
+  @override
   String get themeLight => 'روشن';
 
   @override

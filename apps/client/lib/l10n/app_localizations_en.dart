@@ -232,6 +232,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openSourceLicenses => 'Open-source licences';
 
   @override
+  String get theme => 'Theme';
+
+  @override
   String get themeLight => 'Light';
 
   @override

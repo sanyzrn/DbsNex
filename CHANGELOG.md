@@ -39,6 +39,11 @@ Working convention:
   Tap the line for a different one.
 - The daily summary card keeps its own refresh and collapse buttons, so it
   folds away and comes back from the same place instead of from the app bar.
+- Settings is one line per setting now, with what it is set to beside it.
+  Every picker still opens — from the row that names it — instead of all of
+  them sitting open at once.
+- Your name sits at the top of Settings as a profile card rather than in a
+  section of its own halfway down.
 - Added a setting for which language Nex writes in — follow your notes,
   English, or Persian — separate from the language of the app itself.
 

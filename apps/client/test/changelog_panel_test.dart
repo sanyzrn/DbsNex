@@ -55,12 +55,13 @@ void main() {
       // proves the asset actually loaded and parsed, not just that the panel
       // rendered without crashing.
       //
-      // The heading is the released version, not "Latest changes": once a
-      // release is cut, "## Unreleased" is left empty at the top of the file
-      // for the next cycle, and a section with no bullets is dropped by
-      // parseChangelogSections rather than rendered as an empty heading.
+      // Both headings, because both sections have bullets right now: work has
+      // landed since v0.9.1 was cut, so "## Unreleased" is populated again and
+      // renders as "Latest changes" above it. Immediately after a release it
+      // is empty instead, and parseChangelogSections drops it rather than
+      // rendering a heading with nothing under it — which is why the released
+      // section is the one asserted by name.
       expect(find.text('Version v0.9.1'), findsOneWidget);
-      expect(find.text('Latest changes'), findsNothing);
       expect(
         find.text('Toasts pop in instead of just fading.'),
         findsOneWidget,

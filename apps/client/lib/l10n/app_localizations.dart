@@ -482,6 +482,12 @@ abstract class AppLocalizations {
   /// **'Open-source licences'**
   String get openSourceLicenses;
 
+  /// Settings row that opens the light/dark/system picker
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get theme;
+
   /// No description provided for @themeLight.
   ///
   /// In en, this message translates to:
