@@ -153,10 +153,10 @@ void main() {
   );
 
   testWidgets('the preview wraps to two lines and stops there', (tester) async {
-    // Two, not one: one line was enough to tell cards apart and not enough
-    // to tell you what a note said. The card grew to fit — see
-    // nexCardPreviewLines, which nexCardHeight is derived from — rather
-    // than the second line coming out of the timestamp's room.
+    // Two, not one: one line was enough to tell cards apart and not enough to
+    // tell you what a note said. The card did not have to grow for it — the
+    // second line fits in the height the leading glyph already reserved, once
+    // the timestamp stops sitting underneath.
     await heightOf(
       tester,
       note(
@@ -172,9 +172,13 @@ void main() {
     expect(rect.height, closeTo(48, 1));
   });
 
-  testWidgets('the preview and its timestamp are centred as a pair', (
+  testWidgets('the timestamp sits between the glyph and the preview', (
     tester,
   ) async {
+    // It used to be stacked under the preview, which is what forced the card
+    // taller the moment the preview took two lines — height spent on the least
+    // important thing on the card. Beside the glyph it costs nothing
+    // vertically, and it doubles as the gap holding the text off the glyph.
     final now = DateTime.now();
     await tester.pumpWidget(
       MaterialApp(
@@ -199,9 +203,61 @@ void main() {
     );
 
     final card = tester.getRect(find.byType(NoteCard));
-    final preview = tester.getRect(find.text('one line'));
+    final glyph = tester.getRect(find.byIcon(nexNoteTypeIcon('text')).first);
     final time = tester.getRect(find.text('now'));
+    final preview = tester.getRect(find.text('one line'));
 
-    expect((preview.top + time.bottom) / 2, closeTo(card.center.dy, 1));
+    // Glyph, then time, then text — in that order across the card.
+    expect(time.left, greaterThan(glyph.right));
+    expect(preview.left, greaterThan(time.right));
+    // All three on one centre line.
+    expect(time.center.dy, closeTo(card.center.dy, 1));
+    expect(preview.center.dy, closeTo(card.center.dy, 1));
+  });
+
+  testWidgets('two lines of preview cost the card no extra height', (
+    tester,
+  ) async {
+    // The regression this guards: the preview went to two lines and the card
+    // grew to fit both them and a timestamp stacked underneath. Two lines of
+    // bodyLarge come to exactly what the leading glyph already reserved, so
+    // the card's height never had to move.
+    final height = await heightOf(
+      tester,
+      note(
+        'a note long enough to wrap onto a second line and then keep going '
+        'well past the end of it, so the preview is truncated',
+      ),
+    );
+
+    expect(height, nexCardHeight + nexCardInsets.vertical);
+    expect(nexCardHeight, nexCardLeadingSize + NexSpacing.cardInset * 2);
+  });
+
+  testWidgets('a card grows only when larger text actually needs it', (
+    tester,
+  ) async {
+    // The one case where the card must move: someone has turned the text size
+    // up, two preview lines outgrow the glyph, and a fixed box would clip
+    // them. Anything at or below the default is left exactly where it was.
+    Future<double> at(double scale) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+            child: Scaffold(
+              body: SizedBox(width: 400, child: NoteCard(note: note('x'))),
+            ),
+          ),
+        ),
+      );
+      return tester.getSize(find.byType(NoteCard)).height;
+    }
+
+    final normal = await at(1);
+    expect(normal, nexCardHeight + nexCardInsets.vertical);
+    // Smaller text does not shrink it below the glyph it still has to hold.
+    expect(await at(0.8), normal);
+    expect(await at(1.4), greaterThan(normal));
   });
 }

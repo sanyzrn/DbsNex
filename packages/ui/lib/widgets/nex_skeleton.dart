@@ -114,9 +114,11 @@ class _NexSkeletonState extends State<NexSkeleton>
 
 /// A timeline card that has not arrived yet.
 ///
-/// Built to the real card's dimensions — [nexCardHeight] inside
+/// Built to the real card's dimensions — [nexCardHeightFor] inside
 /// [nexCardInsets], with the leading disc where the leading disc goes — so the
-/// list does not reflow when the notes land on top of it.
+/// list does not reflow when the notes land on top of it. The height has to go
+/// through the same context-aware helper the card does, or a reader with the
+/// text turned up gets a jump the moment the real cards arrive.
 class NexCardSkeleton extends StatelessWidget {
   const NexCardSkeleton({super.key});
 
@@ -126,7 +128,7 @@ class NexCardSkeleton extends StatelessWidget {
     return Padding(
       padding: nexCardInsets,
       child: SizedBox(
-        height: nexCardHeight,
+        height: nexCardHeightFor(context),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: scheme.surfaceContainerLowest,

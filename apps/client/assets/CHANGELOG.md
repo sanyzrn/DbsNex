@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+- Timeline cards are back to their original height. The two-line preview
+  stayed; the time a note was last touched moved next to its icon, which
+  is what was taking the room.
+
 ## v0.9.2
 
 - Timeline cards show two lines of a note instead of one.
