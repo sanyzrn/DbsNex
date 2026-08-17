@@ -1234,18 +1234,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get openLink => 'باز کردن لینک';
 
   @override
-  String get noteTitle => 'عنوان';
-
-  @override
-  String get addTitle => 'افزودن عنوان';
-
-  @override
-  String get editTitle => 'ویرایش عنوان';
-
-  @override
-  String get titleHint => 'اختیاری — خالی بگذارید تا عنوانی نباشد';
-
-  @override
   String checklistProgress(int done, int total) {
     return '$done از $total';
   }

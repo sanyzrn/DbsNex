@@ -175,6 +175,14 @@ abstract final class NexRadius {
   static const lg = 20.0;
   static const xl = 28.0;
 
+  /// What a pill-shaped control 48dp tall actually comes out at.
+  ///
+  /// The search field is a [StadiumBorder], so its corners are half its
+  /// height. Anything too tall to be a stadium itself — the daily digest card
+  /// — matches that curvature by using this number directly, rather than by
+  /// becoming a stadium and bowing its sides out.
+  static const pill = nexMinTapTarget / 2;
+
   /// The radius a shape nested [inset] inside a [outer]-radius shape needs in
   /// order to look concentric with it.
   static double inside(double outer, double inset) =>

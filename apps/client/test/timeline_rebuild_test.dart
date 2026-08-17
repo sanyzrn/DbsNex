@@ -631,30 +631,45 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
   });
 
-  testWidgets('pulling the timeline down refreshes it', (tester) async {
-    for (var i = 0; i < 12; i++) {
-      await services.captureText('note $i');
-    }
+  testWidgets('coming back to the app re-reads the library', (tester) async {
+    // This replaces pull-to-refresh, which was removed because it had nothing
+    // left to do: every capture path re-fires the timeline stream itself, so
+    // the list can only be stale if something wrote a note while this screen
+    // was not running. Resuming is exactly when that is true — and exactly
+    // when nobody would think to pull.
+    await services.captureText('before');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('before'), findsOneWidget);
+
+    // Written without telling the screen — what the home-screen widget or a
+    // share target does while the app is in the background.
+    await services.captureText('arrived while you were away');
+    await tester.pumpAndSettle();
+    expect(find.text('arrived while you were away'), findsNothing);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(find.text('arrived while you were away'), findsOneWidget);
+  });
+
+  testWidgets('the timeline offers no pull-to-refresh', (tester) async {
+    // A gesture that re-reads data which is already current does nothing, and
+    // this screen's own history is the argument: the pull used to be "reveal
+    // the search field" and was replaced precisely because it never revealed
+    // anything.
+    await services.captureText('a note');
     await services.refreshTimeline();
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
 
-    final list = find.byType(CustomScrollView);
-    // The field is simply there, at the top, whatever the scroll is doing.
-    expect(find.byType(TextField), findsOneWidget);
-
-    // A note created behind the screen's back — the situation the gesture is
-    // for. Nothing has told the timeline about it.
-    await services.captureText('arrived while you were away');
-    await tester.pumpAndSettle();
-
-    await tester.fling(list, const Offset(0, 300), 1000);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(RefreshIndicator), findsOneWidget);
-    expect(find.text('arrived while you were away'), findsOneWidget);
+    expect(find.byType(RefreshIndicator), findsNothing);
   });
 
   testWidgets('scrolling toward the bottom loads notes past the first 200', (

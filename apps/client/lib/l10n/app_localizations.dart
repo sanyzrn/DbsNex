@@ -2156,30 +2156,6 @@ abstract class AppLocalizations {
   /// **'Open link'**
   String get openLink;
 
-  /// The optional headline on a note
-  ///
-  /// In en, this message translates to:
-  /// **'Title'**
-  String get noteTitle;
-
-  /// Detail-sheet action on a note that has no title yet
-  ///
-  /// In en, this message translates to:
-  /// **'Add a title'**
-  String get addTitle;
-
-  /// Detail-sheet action on a note that already has a title
-  ///
-  /// In en, this message translates to:
-  /// **'Edit title'**
-  String get editTitle;
-
-  /// Placeholder in the title field
-  ///
-  /// In en, this message translates to:
-  /// **'Optional — leave empty for none'**
-  String get titleHint;
-
   /// How many checklist items are ticked
   ///
   /// In en, this message translates to:

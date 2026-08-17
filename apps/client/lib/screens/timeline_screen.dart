@@ -1185,74 +1185,79 @@ class TimelineScreenState extends State<TimelineScreen> {
               // things that belong to each other, visibly unaligned.
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 760),
-                child: RefreshIndicator(
-                  onRefresh: _refresh,
-                  edgeOffset: nexSearchHeaderExtent,
-                  child: CustomScrollView(
-                    controller: _scroll,
-                    // Always scrollable, so the pull works on a short list too —
-                    // a refresh gesture that only exists once you have enough
-                    // notes to scroll is a refresh gesture nobody finds.
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      // The headline and the recap card, above the search
-                      // field. Both collapse to nothing rather than leaving
-                      // the list, the same reason the two headers below do.
-                      SliverToBoxAdapter(
-                        key: const ValueKey('timeline-header'),
-                        child: AnimatedSize(
-                          duration: NexMotion.slow,
-                          curve: NexMotion.curve,
-                          alignment: Alignment.topCenter,
-                          child: _searching
-                              ? const SizedBox.shrink()
-                              : _header(l10n),
-                        ),
+                // No pull-to-refresh. There is nothing left for it to do:
+                // the timeline is a broadcast stream that every mutation path
+                // already re-fires, the filter row reloads on the same event,
+                // and "Sync now" lives in Settings where a sync server is
+                // configured in the first place. A pull that re-reads data
+                // which is already current is a gesture that does nothing —
+                // and this screen's own history says why that is worse than
+                // no gesture: the pull used to be "reveal the search field",
+                // and it was replaced precisely because it never revealed
+                // anything.
+                child: CustomScrollView(
+                  controller: _scroll,
+                  // Always scrollable, so a short list still bounces rather
+                  // than feeling locked.
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    // The headline and the recap card, above the search
+                    // field. Both collapse to nothing rather than leaving
+                    // the list, the same reason the two headers below do.
+                    SliverToBoxAdapter(
+                      key: const ValueKey('timeline-header'),
+                      child: AnimatedSize(
+                        duration: NexMotion.slow,
+                        curve: NexMotion.curve,
+                        alignment: Alignment.topCenter,
+                        child: _searching
+                            ? const SizedBox.shrink()
+                            : _header(l10n),
                       ),
-                      // Both headers are always in the list, keyed, and collapse
-                      // to zero extent rather than leaving it. A sliver list that
-                      // changes length while another sliver changes its pinning
-                      // leaves the viewport painting a child it never laid out.
-                      SliverPersistentHeader(
-                        key: const ValueKey('search-header'),
-                        delegate: SearchFieldHeader(
-                          controller: _search.query,
-                          focusNode: _searchFocus,
-                          searching: _searching,
-                          onTap: () => unawaited(revealSearch()),
-                          onChanged: (_) => _search.schedule(),
-                          onClear: _exitSearch,
-                        ),
+                    ),
+                    // Both headers are always in the list, keyed, and collapse
+                    // to zero extent rather than leaving it. A sliver list that
+                    // changes length while another sliver changes its pinning
+                    // leaves the viewport painting a child it never laid out.
+                    SliverPersistentHeader(
+                      key: const ValueKey('search-header'),
+                      delegate: SearchFieldHeader(
+                        controller: _search.query,
+                        focusNode: _searchFocus,
+                        searching: _searching,
+                        onTap: () => unawaited(revealSearch()),
+                        onChanged: (_) => _search.schedule(),
+                        onClear: _exitSearch,
                       ),
-                      SliverPersistentHeader(
-                        key: const ValueKey('filter-header'),
-                        pinned: true,
-                        delegate: _FilterRowHeader(
-                          visible: !_searching,
-                          child: TagFilterRow(
-                            tags: filterTags,
-                            selectedTagId: selectedTagId,
-                            allLabel: l10n.all,
-                            leading: _TypeFilterButton(
-                              selected: selectedType,
-                              onPressed: () => unawaited(_pickType()),
-                            ),
-                            onSelected: (value) => unawaited(_selectTag(value)),
+                    ),
+                    SliverPersistentHeader(
+                      key: const ValueKey('filter-header'),
+                      pinned: true,
+                      delegate: _FilterRowHeader(
+                        visible: !_searching,
+                        child: TagFilterRow(
+                          tags: filterTags,
+                          selectedTagId: selectedTagId,
+                          allLabel: l10n.all,
+                          leading: _TypeFilterButton(
+                            selected: selectedType,
+                            onPressed: () => unawaited(_pickType()),
                           ),
+                          onSelected: (value) => unawaited(_selectTag(value)),
                         ),
                       ),
-                      ..._bodySlivers(l10n),
-                      // The capture button floats over the list, and on a
-                      // device with a three-button navigation bar the system's
-                      // own bar sits under that — the last card has to clear
-                      // both, or it cannot be read or tapped.
-                      SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: nexFabClearance + nexBottomInset(context),
-                        ),
+                    ),
+                    ..._bodySlivers(l10n),
+                    // The capture button floats over the list, and on a
+                    // device with a three-button navigation bar the system's
+                    // own bar sits under that — the last card has to clear
+                    // both, or it cannot be read or tapped.
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: nexFabClearance + nexBottomInset(context),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1640,7 +1645,10 @@ class _AiDaySummaryPanel extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(NexRadius.lg),
+          // The search field's curvature, not the card radius used elsewhere.
+          // These two sit directly above one another and were visibly a step
+          // apart — 20 against the field's 24.
+          borderRadius: BorderRadius.circular(NexRadius.pill),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

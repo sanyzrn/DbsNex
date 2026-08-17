@@ -43,6 +43,13 @@ Working convention:
 - The daily summary reads right-to-left when it is written in Persian.
 - The logo in the corner lost the grey tile behind it; it was not a
   button, so it should not have looked like one.
+- Naming a note by hand is gone again. Nex is not a filing app, and a
+  capture is meant to be finished the moment it exists. Links still show
+  the page's own name, which is what that was ever really for.
+- The daily summary card and the search field are the same roundness now.
+- Pull-to-refresh is gone from the timeline; it had nothing left to do.
+  Coming back to the app re-reads your notes instead, which covers the
+  one case the pull was there for.
 
 ## v0.9.2
 

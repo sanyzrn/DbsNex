@@ -1173,22 +1173,6 @@
   "@openLink": {
       "description": "Action that opens a link note in the browser"
   },
-  "noteTitle": "Title",
-  "@noteTitle": {
-      "description": "The optional headline on a note"
-  },
-  "addTitle": "Add a title",
-  "@addTitle": {
-      "description": "Detail-sheet action on a note that has no title yet"
-  },
-  "editTitle": "Edit title",
-  "@editTitle": {
-      "description": "Detail-sheet action on a note that already has a title"
-  },
-  "titleHint": "Optional — leave empty for none",
-  "@titleHint": {
-      "description": "Placeholder in the title field"
-  },
   "checklistProgress": "{done} of {total}",
   "@checklistProgress": {
       "description": "How many checklist items are ticked",

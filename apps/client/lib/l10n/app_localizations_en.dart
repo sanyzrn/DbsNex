@@ -1234,18 +1234,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openLink => 'Open link';
 
   @override
-  String get noteTitle => 'Title';
-
-  @override
-  String get addTitle => 'Add a title';
-
-  @override
-  String get editTitle => 'Edit title';
-
-  @override
-  String get titleHint => 'Optional — leave empty for none';
-
-  @override
   String checklistProgress(int done, int total) {
     return '$done of $total';
   }

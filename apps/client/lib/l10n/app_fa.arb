@@ -639,22 +639,6 @@
   "@openLink": {
       "description": "Action that opens a link note in the browser"
   },
-  "noteTitle": "عنوان",
-  "@noteTitle": {
-      "description": "The optional headline on a note"
-  },
-  "addTitle": "افزودن عنوان",
-  "@addTitle": {
-      "description": "Detail-sheet action on a note that has no title yet"
-  },
-  "editTitle": "ویرایش عنوان",
-  "@editTitle": {
-      "description": "Detail-sheet action on a note that already has a title"
-  },
-  "titleHint": "اختیاری — خالی بگذارید تا عنوانی نباشد",
-  "@titleHint": {
-      "description": "Placeholder in the title field"
-  },
   "checklistProgress": "{done} از {total}",
   "@checklistProgress": {
       "description": "How many checklist items are ticked",

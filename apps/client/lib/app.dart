@@ -61,6 +61,13 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       unawaited(_updates.maybeCheck());
       unawaited(_feedback.flushPending());
+      // Re-read the library on the way back in. This is what pull-to-refresh
+      // was standing in for, and it is strictly better at the job: every
+      // capture path already re-fires the timeline stream itself, so the only
+      // way the list can be stale is that something wrote a note while this
+      // screen was not running — and coming back is exactly when that is
+      // true, and exactly when a user would not think to pull.
+      unawaited(widget.services.refreshTimeline());
     }
   }
 
