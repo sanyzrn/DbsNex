@@ -118,6 +118,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Kept in step here rather than read at each call site: every widget that
+    // buzzes would otherwise need preferences in scope to answer a question
+    // the whole app answers the same way. This rebuilds on every preference
+    // change, which is exactly when the answer can move.
+    nexHapticsEnabled = widget.preferences.haptics;
     final prefs = widget.preferences;
     // Persian is set in Vazirmatn, everything else in Inter. Following the
     // chosen locale rather than the note's own script is deliberate: this is

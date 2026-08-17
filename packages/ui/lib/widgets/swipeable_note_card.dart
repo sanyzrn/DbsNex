@@ -5,7 +5,8 @@ import 'package:flutter/physics.dart';
 // neither it nor SemanticsAction, so the swipe actions had no accessible
 // equivalent and the file did not compile.
 import 'package:flutter/semantics.dart';
-import 'package:flutter/services.dart';
+
+import '../tokens/nex_haptics.dart';
 import '../tokens/nex_tokens.dart';
 
 enum NexSwipeAction { delete, addTag }
@@ -301,11 +302,11 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
       action == NexSwipeAction.delete ? widget.deleteLabel : widget.addTagLabel;
 
   void _tick() {
-    if (widget.haptics) HapticFeedback.selectionClick();
+    if (widget.haptics) nexTick();
   }
 
   void _run(NexSwipeAction action) {
-    if (widget.haptics) HapticFeedback.mediumImpact();
+    if (widget.haptics) nexThud();
     _close();
     action == NexSwipeAction.delete ? widget.onDelete() : widget.onAddTag();
   }

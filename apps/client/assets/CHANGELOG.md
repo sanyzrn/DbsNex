@@ -34,6 +34,25 @@ Working convention:
 
 ## Unreleased
 
+- The daily summary card is one control now: tap anywhere on it to fold it
+  away or open it again. Open, it keeps a refresh button; closed, it does
+  not — there is nothing on screen for a refresh to change, and the chevron
+  was a second control for what the card already does.
+- The greeting and the line the AI writes are one line instead of two.
+- Nex greets you in the language you wrote your own name in, whatever the
+  app's language is set to. "Good morning, سعید" and "صبح بخیر, Sany" are
+  both sentences nobody writes.
+- The app buzzes where it should: swipes, pickers, opening a note, the
+  summary's refresh — and a small tick as the list scrolls under your
+  finger. All of it follows the Haptics switch in Settings, which was
+  already there and was reaching almost none of this.
+- Your website and repository links in About open when tapped. They were
+  copying, which made the copy button beside them look like it did nothing
+  different.
+- Sync is no longer offered in Settings. The server exists and the app can
+  talk to it, but there is no way to pair a device from inside the app yet —
+  the row asked for a URL and a token nobody has a way to get. It comes back
+  when pairing does.
 - The assistant can look through your whole library, not just the last
   handful of notes. When it needs one it does not have, it searches for it
   and answers from what it finds.

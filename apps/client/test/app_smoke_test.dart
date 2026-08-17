@@ -1308,28 +1308,35 @@ void main() {
     // language of the *notes*, which is not always the language of the
     // interface, and a Persian sentence laid out left-to-right puts its full
     // stop at the wrong end.
-    for (final locale in ['en', 'fa']) {
+    // Driven by the *name*, not the interface language: the greeting is
+    // written in whatever language the user wrote their own name in, so a
+    // Persian name gets a Persian sentence — and a right-to-left one — even
+    // while the app is in English.
+    for (final (locale, name, script) in [
+      ('fa', 'Sany', 'ltr'),
+      ('en', 'سعید', 'rtl'),
+    ]) {
       await preferences.setLocale(locale);
-      await preferences.setDisplayName('Sany');
+      await preferences.setDisplayName(name);
       await tester.pumpWidget(
         NexApp(services: services, preferences: preferences),
       );
       await tester.pumpAndSettle();
 
-      final words = tester.getRect(find.textContaining('Sany'));
+      final words = tester.getRect(find.textContaining(name));
       // The mark is the one Text in the header that is not the greeting.
       final mark = tester.getRect(
         find
             .descendant(
               of: find.byKey(const ValueKey('timeline-header')),
               matching: find.byWidgetPredicate(
-                (w) => w is Text && w.data != null && !w.data!.contains('Sany'),
+                (w) => w is Text && w.data != null && !w.data!.contains(name),
               ),
             )
             .first,
       );
 
-      if (locale == 'fa') {
+      if (script == 'rtl') {
         expect(
           mark.center.dx,
           lessThan(words.center.dx),

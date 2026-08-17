@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
@@ -240,6 +241,9 @@ class _LinkTile extends StatelessWidget {
     leading: Icon(icon),
     title: Text(title),
     subtitle: Text(subtitle),
+    // Tap opens it; the copy button copies it. Both were copying, which made
+    // the row look broken to anyone who tapped a link expecting a link — and
+    // left the icon beside it apparently doing nothing different.
     trailing: IconButton(
       tooltip: copyTooltip,
       icon: const Icon(Icons.copy),
@@ -250,6 +254,14 @@ class _LinkTile extends StatelessWidget {
       },
     ),
     onTap: () async {
+      final opened = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      ).catchError((_) => false);
+      if (opened || !context.mounted) return;
+      // No browser, or the platform refused. Falling back to the clipboard
+      // means the address is still in reach rather than the tap doing
+      // nothing at all.
       await Clipboard.setData(ClipboardData(text: url));
       if (!context.mounted) return;
       nexShowBanner(context, message: copiedLabel);
