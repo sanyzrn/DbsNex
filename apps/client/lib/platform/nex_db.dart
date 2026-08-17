@@ -24,6 +24,12 @@ abstract interface class NexDb {
 
   Future<Note?> captureText(String content);
 
+  /// Null when the list is empty, the same as an empty text capture.
+  Future<Note?> captureChecklist(List<ChecklistItem> items);
+
+  /// Null when what was pasted is not a usable URL.
+  Future<Note?> captureLink(String url);
+
   Future<Note> captureVoice({
     required String mediaUri,
     required Uint8List mediaBytes,
@@ -49,6 +55,14 @@ abstract interface class NexDb {
   Future<void> undelete(String id);
 
   Future<void> setCaption(String id, String caption);
+
+  /// Null or empty clears the title.
+  Future<void> setTitle(String id, String? title);
+
+  /// Fetched link metadata. A null field is left alone rather than cleared.
+  Future<void> setLinkMetadata(String id, {String? title, String? excerpt});
+
+  Future<void> toggleChecklistItem(String id, int index);
 
   Future<void> pinNote(String id);
 

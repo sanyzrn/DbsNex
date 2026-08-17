@@ -208,6 +208,11 @@ class NexServices {
 
   Future<Note?> captureText(String content) => worker.captureText(content);
 
+  Future<Note?> captureChecklist(List<ChecklistItem> items) =>
+      worker.captureChecklist(items);
+
+  Future<Note?> captureLink(String url) => worker.captureLink(url);
+
   Future<Note> captureVoice({
     required String mediaUri,
     required Uint8List mediaBytes,
@@ -244,6 +249,14 @@ class NexServices {
 
   Future<void> setCaption(String id, String caption) =>
       worker.setCaption(id, caption);
+
+  Future<void> setTitle(String id, String? title) => worker.setTitle(id, title);
+
+  Future<void> setLinkMetadata(String id, {String? title, String? excerpt}) =>
+      worker.setLinkMetadata(id, title: title, excerpt: excerpt);
+
+  Future<void> toggleChecklistItem(String id, int index) =>
+      worker.toggleChecklistItem(id, index);
 
   /// Pins [id], releasing whatever else was pinned — at most one note is
   /// ever pinned at a time.

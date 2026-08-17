@@ -82,6 +82,14 @@ class InProcessDb implements NexDb {
       _capture.submitTextCapture(content);
 
   @override
+  Future<Note?> captureChecklist(List<ChecklistItem> items) async =>
+      _capture.submitChecklistCapture(items);
+
+  @override
+  Future<Note?> captureLink(String url) async =>
+      _capture.submitLinkCapture(url);
+
+  @override
   Future<Note> captureVoice({
     required String mediaUri,
     required Uint8List mediaBytes,
@@ -125,6 +133,21 @@ class InProcessDb implements NexDb {
   @override
   Future<void> setCaption(String id, String caption) async =>
       _repo.setCaption(id, caption);
+
+  @override
+  Future<void> setTitle(String id, String? title) async =>
+      _repo.setTitle(id, title);
+
+  @override
+  Future<void> setLinkMetadata(
+    String id, {
+    String? title,
+    String? excerpt,
+  }) async => _repo.setLinkMetadata(id, title: title, excerpt: excerpt);
+
+  @override
+  Future<void> toggleChecklistItem(String id, int index) async =>
+      _repo.toggleChecklistItem(id, index);
 
   @override
   Future<void> pinNote(String id) async => _repo.pinNote(id);

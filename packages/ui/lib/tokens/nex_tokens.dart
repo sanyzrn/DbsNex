@@ -633,6 +633,8 @@ IconData nexNoteTypeIcon(String? wireName) => switch (wireName) {
   'voice' => Icons.graphic_eq_outlined,
   'photo' => Icons.image_outlined,
   'file' => Icons.insert_drive_file_outlined,
+  'checklist' => Icons.checklist_rtl_outlined,
+  'link' => Icons.link_outlined,
   _ => Icons.all_inclusive_outlined,
 };
 

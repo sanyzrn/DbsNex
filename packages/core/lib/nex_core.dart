@@ -16,6 +16,7 @@ library;
 
 // Domain models.
 export 'models/checklist.dart';
+export 'models/link_url.dart';
 export 'models/memory_record.dart';
 export 'models/note.dart';
 export 'models/note_embedding.dart';
