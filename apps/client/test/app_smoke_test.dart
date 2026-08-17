@@ -17,6 +17,7 @@ import 'package:nex_client/platform/os_capture_bridge.dart';
 import 'package:nex_client/screens/intelligence_screen.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
+import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/choice_cards.dart';
 import 'package:nex_client/widgets/tag_color_picker.dart';
@@ -1176,6 +1177,71 @@ void main() {
     // does nothing one time in three reads as broken.
     expect(greeting(), isNot(before));
   });
+
+  testWidgets(
+    'holding the capture button opens the assistant, tapping does not',
+    (tester) async {
+      // The assistant has no button of its own: capture and "ask about what I
+      // captured" are the same intent at different lengths, and this screen has
+      // one primary action rather than two.
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      // A plain tap is still a capture, unchanged.
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      expect(find.byType(CaptureSheet), findsOneWidget);
+      // The sheet's own submit button, which closes it — scoped to the sheet
+      // because the FAB behind it carries the same tooltip.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(CaptureSheet),
+          matching: find.byTooltip('Capture'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Held, with no provider configured: the glow runs — it tracks the finger
+      // and cannot know the outcome in advance — but nothing opens, because a
+      // chat that can only answer "unavailable" is not worth the trip.
+      expect(AiChatSheet.availableFor(preferences), isFalse);
+      final press = await tester.startGesture(
+        tester.getCenter(find.byIcon(Icons.add)),
+      );
+      // A frame to let the hold's ticker start before any time is advanced —
+      // pumping 600ms straight away elapses it all before the first tick, and
+      // the hold never progresses at all.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      await press.up();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AiChatSheet), findsNothing);
+      expect(find.byType(CaptureSheet), findsNothing);
+
+      // With a provider behind it, the same hold opens the sheet.
+      await preferences.setAiEnabled(true);
+      await preferences.setAiProvider(
+        const AiProviderConfig(provider: AiProvider.openai, apiKey: 'sk-test'),
+      );
+      await tester.pumpAndSettle();
+      expect(AiChatSheet.availableFor(preferences), isTrue);
+
+      final hold = await tester.startGesture(
+        tester.getCenter(find.byIcon(Icons.add)),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      await hold.up();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AiChatSheet), findsOneWidget);
+      // Held, not tapped — the capture sheet must not have opened underneath.
+      expect(find.byType(CaptureSheet), findsNothing);
+    },
+  );
 
   testWidgets('the greeting is centred, not aligned to one edge', (
     tester,

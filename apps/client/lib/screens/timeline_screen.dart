@@ -18,6 +18,7 @@ import '../platform/nex_services.dart';
 import '../platform/note_search.dart';
 import '../platform/os_capture_bridge.dart';
 import '../platform/update_service.dart';
+import '../widgets/ai_chat_sheet.dart';
 import '../widgets/capture_sheet.dart';
 import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/card_strings.dart';
@@ -278,6 +279,17 @@ class TimelineScreenState extends State<TimelineScreen> {
       // one time in three reads as a broken button.
       _greetingVariant = (_greetingVariant + 1 + math.Random().nextInt(2)) % 3;
     });
+  }
+
+  /// Opens the assistant, held rather than tapped — see the capture button.
+  ///
+  /// Silent when nothing is configured: the glow still ran, because it tracks
+  /// the finger and cannot know the outcome in advance, but nothing opens. A
+  /// sheet that can only say "unavailable" is not worth the trip.
+  void _openAssistant() {
+    if (!AiChatSheet.availableFor(widget.preferences)) return;
+    HapticFeedback.mediumImpact();
+    unawaited(AiChatSheet.show(context, preferences: widget.preferences));
   }
 
   void _toggleAiSummary() {
@@ -1112,6 +1124,7 @@ class TimelineScreenState extends State<TimelineScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         // The greeting used to live here, squeezed between the mark and the
@@ -1270,10 +1283,27 @@ class TimelineScreenState extends State<TimelineScreen> {
       // did — open a fresh note, unrelated to whatever was just searched.
       floatingActionButton: _searching
           ? null
-          : FloatingActionButton(
-              onPressed: openCapture,
-              tooltip: l10n.capture,
-              child: const Icon(Icons.add, size: 32),
+          // Hold the capture button to reach the assistant. It earns the
+          // gesture rather than a second button on the same screen: capture
+          // and "ask about what I captured" are the same intent at different
+          // lengths, and this screen has one primary action, not two.
+          //
+          // Only when there is a provider to answer — a long press that opens
+          // a chat which cannot reply is worse than one that does nothing.
+          : NexLongPressGlow(
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.tertiary,
+                theme.colorScheme.secondary,
+                theme.colorScheme.primary,
+              ],
+              onHoldStart: _tick,
+              onTriggered: _openAssistant,
+              child: FloatingActionButton(
+                onPressed: openCapture,
+                tooltip: l10n.capture,
+                child: const Icon(Icons.add, size: 32),
+              ),
             ),
     );
   }

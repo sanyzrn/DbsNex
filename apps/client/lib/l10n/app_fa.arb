@@ -654,5 +654,33 @@
   "readingLink": "در حال خواندن صفحه…",
   "@readingLink": {
       "description": "Shown while a link's title and description are being fetched"
+  },
+  "chatGreeting": "امروز چه کمکی از من برمی‌آید؟",
+  "@chatGreeting": {
+    "description": "Heading in the assistant sheet before anything is typed"
+  },
+  "chatHint": "چیزی بنویسید…",
+  "@chatHint": {
+    "description": "Placeholder in the assistant's input field"
+  },
+  "chatSend": "فرستادن",
+  "@chatSend": {
+    "description": "Tooltip on the assistant's send button"
+  },
+  "chatFailed": "پاسخی نیامد. سرویس را در تنظیمات بررسی کنید یا دوباره تلاش کنید.",
+  "@chatFailed": {
+    "description": "Shown in the assistant thread when a reply does not arrive"
+  },
+  "chatPromptSummarise": "خلاصه کن این هفته چه ثبت کردم",
+  "@chatPromptSummarise": {
+    "description": "Suggested opening prompt"
+  },
+  "chatPromptPlan": "از یادداشت‌هایم یک فهرست کار بساز",
+  "@chatPromptPlan": {
+    "description": "Suggested opening prompt"
+  },
+  "chatPromptIdeas": "بگو چه چیزی را دارم فراموش می‌کنم",
+  "@chatPromptIdeas": {
+    "description": "Suggested opening prompt"
   }
 }

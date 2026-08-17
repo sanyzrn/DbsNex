@@ -588,6 +588,88 @@ class CloudAIAdapter implements AIAdapter {
     return _clamped(reply, 12);
   }
 
+  /// A real multi-turn exchange, normalised across all three wire shapes.
+  ///
+  /// Not built on [_complete]: that takes exactly one user turn, which is the
+  /// right shape for every enrichment call and the wrong one for a
+  /// conversation. Flattening a history into a single prompt with "User:" and
+  /// "Assistant:" prefixes was the cheap alternative and it is a bad one —
+  /// the model stops being able to tell its own previous words from the
+  /// user's, and starts answering the transcript instead of the person.
+  ///
+  /// Returns null on anything that is not a 200, the same as every other call
+  /// here: an unreachable provider is "no answer", not an exception to catch.
+  Future<String?> chat(List<ChatMessage> history, {int maxTokens = 800}) async {
+    if (!config.isUsable || history.isEmpty) return null;
+    final system =
+        'You are the assistant inside Nex, a notes app. Be brief and '
+        'concrete — a few sentences unless asked for more, no preamble, no '
+        'restating the question. ${outputLanguage.promptRule}';
+    final turns = [
+      for (final message in history)
+        if (message.role != ChatRole.system) message,
+    ];
+
+    final body = switch (config.provider.format) {
+      AiWireFormat.anthropic => {
+        'model': config.resolvedModel,
+        'max_tokens': maxTokens,
+        'system': system,
+        'messages': [
+          for (final turn in turns)
+            {
+              'role': turn.role == ChatRole.assistant ? 'assistant' : 'user',
+              'content': turn.content,
+            },
+        ],
+      },
+      // Gemini calls the assistant "model", and carries the system prompt
+      // outside the turn list rather than as the first turn.
+      AiWireFormat.gemini => {
+        'systemInstruction': {
+          'parts': [
+            {'text': system},
+          ],
+        },
+        'contents': [
+          for (final turn in turns)
+            {
+              'role': turn.role == ChatRole.assistant ? 'model' : 'user',
+              'parts': [
+                {'text': turn.content},
+              ],
+            },
+        ],
+        'generationConfig': {'maxOutputTokens': maxTokens},
+      },
+      AiWireFormat.openai => {
+        'model': config.resolvedModel,
+        'max_tokens': maxTokens,
+        'messages': [
+          {'role': 'system', 'content': system},
+          for (final turn in turns)
+            {
+              'role': turn.role == ChatRole.assistant ? 'assistant' : 'user',
+              'content': turn.content,
+            },
+        ],
+      },
+    };
+
+    final response = await _client
+        .post(_chatUri, headers: _headers, body: jsonEncode(body))
+        .timeout(_textTimeout);
+    if (response.statusCode != 200) {
+      _lastFailure = (
+        status: response.statusCode,
+        message: _extractError(response.body),
+      );
+      return null;
+    }
+    _lastFailure = null;
+    return _extractText(response.body)?.trim();
+  }
+
   /// Trims a reply to [maxWords], cutting at a sentence end when one is near
   /// enough and simply dropping the tail otherwise.
   ///

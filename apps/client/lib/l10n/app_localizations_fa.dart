@@ -1240,4 +1240,26 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get readingLink => 'در حال خواندن صفحه…';
+
+  @override
+  String get chatGreeting => 'امروز چه کمکی از من برمی‌آید؟';
+
+  @override
+  String get chatHint => 'چیزی بنویسید…';
+
+  @override
+  String get chatSend => 'فرستادن';
+
+  @override
+  String get chatFailed =>
+      'پاسخی نیامد. سرویس را در تنظیمات بررسی کنید یا دوباره تلاش کنید.';
+
+  @override
+  String get chatPromptSummarise => 'خلاصه کن این هفته چه ثبت کردم';
+
+  @override
+  String get chatPromptPlan => 'از یادداشت‌هایم یک فهرست کار بساز';
+
+  @override
+  String get chatPromptIdeas => 'بگو چه چیزی را دارم فراموش می‌کنم';
 }

@@ -50,6 +50,11 @@ Working convention:
 - Pull-to-refresh is gone from the timeline; it had nothing left to do.
   Coming back to the app re-reads your notes instead, which covers the
   one case the pull was there for.
+- Hold the capture button to ask the assistant something. The screen lights
+  up around its edge while you hold, and the chat opens as a small panel at
+  the bottom that you can drag up to full screen. It uses the AI provider
+  you set up in Settings, and answers in the language you chose there; with
+  no provider configured, the hold does nothing.
 
 ## v0.9.2
 

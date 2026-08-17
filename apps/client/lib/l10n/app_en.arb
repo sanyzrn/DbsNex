@@ -1188,5 +1188,33 @@
   "readingLink": "Reading the page…",
   "@readingLink": {
       "description": "Shown while a link's title and description are being fetched"
+  },
+  "chatGreeting": "How can I help you today?",
+  "@chatGreeting": {
+    "description": "Heading in the assistant sheet before anything is typed"
+  },
+  "chatHint": "Enter a prompt here",
+  "@chatHint": {
+    "description": "Placeholder in the assistant's input field"
+  },
+  "chatSend": "Send",
+  "@chatSend": {
+    "description": "Tooltip on the assistant's send button"
+  },
+  "chatFailed": "No answer came back. Check the provider in Settings, or try again.",
+  "@chatFailed": {
+    "description": "Shown in the assistant thread when a reply does not arrive"
+  },
+  "chatPromptSummarise": "Summarise what I captured this week",
+  "@chatPromptSummarise": {
+    "description": "Suggested opening prompt"
+  },
+  "chatPromptPlan": "Turn my notes into a to-do list",
+  "@chatPromptPlan": {
+    "description": "Suggested opening prompt"
+  },
+  "chatPromptIdeas": "Suggest what I might be forgetting",
+  "@chatPromptIdeas": {
+    "description": "Suggested opening prompt"
   }
 }

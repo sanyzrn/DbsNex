@@ -1240,4 +1240,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readingLink => 'Reading the page…';
+
+  @override
+  String get chatGreeting => 'How can I help you today?';
+
+  @override
+  String get chatHint => 'Enter a prompt here';
+
+  @override
+  String get chatSend => 'Send';
+
+  @override
+  String get chatFailed =>
+      'No answer came back. Check the provider in Settings, or try again.';
+
+  @override
+  String get chatPromptSummarise => 'Summarise what I captured this week';
+
+  @override
+  String get chatPromptPlan => 'Turn my notes into a to-do list';
+
+  @override
+  String get chatPromptIdeas => 'Suggest what I might be forgetting';
 }

@@ -2167,6 +2167,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reading the page…'**
   String get readingLink;
+
+  /// Heading in the assistant sheet before anything is typed
+  ///
+  /// In en, this message translates to:
+  /// **'How can I help you today?'**
+  String get chatGreeting;
+
+  /// Placeholder in the assistant's input field
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a prompt here'**
+  String get chatHint;
+
+  /// Tooltip on the assistant's send button
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get chatSend;
+
+  /// Shown in the assistant thread when a reply does not arrive
+  ///
+  /// In en, this message translates to:
+  /// **'No answer came back. Check the provider in Settings, or try again.'**
+  String get chatFailed;
+
+  /// Suggested opening prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Summarise what I captured this week'**
+  String get chatPromptSummarise;
+
+  /// Suggested opening prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Turn my notes into a to-do list'**
+  String get chatPromptPlan;
+
+  /// Suggested opening prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest what I might be forgetting'**
+  String get chatPromptIdeas;
 }
 
 class _AppLocalizationsDelegate
