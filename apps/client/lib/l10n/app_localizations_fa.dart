@@ -1168,6 +1168,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get onboardingNext => 'بعدی';
 
   @override
+  String get onboardingSkip => 'رد کردن';
+
+  @override
   String get onboardingBack => 'قبلی';
 
   @override

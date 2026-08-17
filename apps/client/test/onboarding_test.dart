@@ -113,6 +113,28 @@ void main() {
     expect(find.byType(OnboardingScreen), findsNothing);
   });
 
+  testWidgets('Skip jumps to the setup page, it does not skip setup', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
+
+    // Skip means "I have read enough", not "do not ask me": the name is
+    // required either way, so it lands on the last page rather than finishing.
+    expect(find.text('A few quick choices'), findsOneWidget);
+    expect(find.text('Skip'), findsNothing);
+    expect(preferences.onboardingComplete, isFalse);
+  });
+
   testWidgets('the setup page applies each choice as it is made', (
     tester,
   ) async {

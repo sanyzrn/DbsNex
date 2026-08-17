@@ -2036,6 +2036,12 @@ abstract class AppLocalizations {
   /// **'Next'**
   String get onboardingNext;
 
+  /// Onboarding button that jumps ahead to the setup page
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get onboardingSkip;
+
   /// Onboarding button that returns to the previous page
   ///
   /// In en, this message translates to:

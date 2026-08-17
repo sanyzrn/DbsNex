@@ -77,6 +77,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _back() =>
       _pages.previousPage(duration: NexMotion.standard, curve: NexMotion.curve);
 
+  /// Jumps to the setup page rather than finishing. Skip means "I have read
+  /// enough", not "do not ask me" — the name is required either way, and a
+  /// Skip that lands on an app that has not been told it would be a worse
+  /// first minute than the four pages it saved.
+  Future<void> _skip() => _pages.animateToPage(
+    _pageCount - 1,
+    duration: NexMotion.slow,
+    curve: NexMotion.curve,
+  );
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -88,13 +98,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             constraints: const BoxConstraints(maxWidth: 560),
             child: Column(
               children: [
+                // Back on the left, Skip on the right, matching the reference
+                // screens. Skip lands on the setup page rather than finishing:
+                // the name is required, so there is nothing here to skip past
+                // except the reading.
+                SizedBox(
+                  height: nexMinTapTarget,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: NexSpacing.sm,
+                    ),
+                    child: Row(
+                      children: [
+                        if (_page > 0)
+                          IconButton(
+                            onPressed: () => unawaited(_back()),
+                            tooltip: l10n.onboardingBack,
+                            icon: const Icon(Icons.arrow_back),
+                          ),
+                        const Spacer(),
+                        if (!_onSetup)
+                          TextButton(
+                            onPressed: () => unawaited(_skip()),
+                            child: Text(l10n.onboardingSkip),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: PageView(
                     controller: _pages,
                     onPageChanged: (value) => setState(() => _page = value),
                     children: [
                       _Page(
-                        icon: Icons.auto_stories_outlined,
+                        // The mark, not a glyph, on the one page whose job is
+                        // to say which app this is.
+                        art: Image.asset(
+                          theme.brightness == Brightness.dark
+                              ? 'assets/branding/text_logo_dark.png'
+                              : 'assets/branding/text_logo_light.png',
+                          width: 168,
+                          semanticLabel: 'Nex',
+                        ),
                         title: l10n.onboardingWelcomeTitle,
                         body: l10n.onboardingWelcomeBody,
                       ),
@@ -128,45 +174,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     NexSpacing.lg,
                     NexSpacing.lg,
                   ),
-                  child: Row(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Holds its width whether or not it is showing, so the
-                      // primary button does not shift sideways between pages.
-                      SizedBox(
-                        width: 88,
-                        child: _page == 0
-                            ? null
-                            : Align(
-                                alignment: AlignmentDirectional.centerStart,
-                                child: TextButton(
-                                  onPressed: () => unawaited(_back()),
-                                  child: Text(l10n.onboardingBack),
-                                ),
-                              ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (var i = 0; i < _pageCount; i++)
+                            _Dot(active: i == _page),
+                        ],
                       ),
-                      Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            for (var i = 0; i < _pageCount; i++)
-                              _Dot(active: i == _page),
-                          ],
-                        ),
-                      ),
+                      const SizedBox(height: NexSpacing.md),
+                      // Full width, and the only button on the row. It is the
+                      // one thing to do on every page, so it gets the whole
+                      // line rather than sharing it with the dots.
                       SizedBox(
-                        width: 88,
-                        child: Align(
-                          alignment: AlignmentDirectional.centerEnd,
-                          child: FilledButton(
-                            onPressed: () => unawaited(_advance()),
-                            child: Text(
-                              _onSetup
-                                  ? l10n.onboardingStart
-                                  : l10n.onboardingNext,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelLarge,
-                            ),
+                        width: double.infinity,
+                        height: 52,
+                        child: FilledButton.icon(
+                          onPressed: () => unawaited(_advance()),
+                          icon: Icon(
+                            _onSetup ? Icons.check : Icons.arrow_forward,
+                            size: 20,
+                          ),
+                          iconAlignment: IconAlignment.end,
+                          label: Text(
+                            _onSetup
+                                ? l10n.onboardingStart
+                                : l10n.onboardingNext,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall,
                           ),
                         ),
                       ),
@@ -184,9 +222,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
 /// One of the four pages that only say something.
 class _Page extends StatelessWidget {
-  const _Page({required this.icon, required this.title, required this.body});
+  const _Page({required this.title, required this.body, this.icon, this.art})
+    : assert(
+        icon != null || art != null,
+        'a page needs something to lead with',
+      );
 
-  final IconData icon;
+  /// The usual case: one glyph in a tinted circle.
+  final IconData? icon;
+
+  /// Replaces [icon] where a page has something better to lead with — the
+  /// wordmark on the welcome page.
+  final Widget? art;
+
   final String title;
   final String body;
 
@@ -199,16 +247,17 @@ class _Page extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(height: NexSpacing.xl),
-          Container(
-            width: 88,
-            height: 88,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: theme.colorScheme.surfaceContainerHighest,
-            ),
-            child: Icon(icon, size: 40, color: theme.colorScheme.primary),
-          ),
+          art ??
+              Container(
+                width: 88,
+                height: 88,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.surfaceContainerHighest,
+                ),
+                child: Icon(icon, size: 40, color: theme.colorScheme.primary),
+              ),
           const SizedBox(height: NexSpacing.xl),
           Text(
             title,

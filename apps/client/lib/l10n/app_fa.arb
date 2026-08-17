@@ -559,6 +559,10 @@
   "@onboardingNext": {
     "description": "Onboarding button that advances to the next page"
   },
+  "onboardingSkip": "رد کردن",
+  "@onboardingSkip": {
+    "description": "Onboarding button that jumps ahead to the setup page"
+  },
   "onboardingBack": "قبلی",
   "@onboardingBack": {
     "description": "Onboarding button that returns to the previous page"

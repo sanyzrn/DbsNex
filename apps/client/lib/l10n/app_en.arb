@@ -1093,6 +1093,10 @@
   "@onboardingNext": {
     "description": "Onboarding button that advances to the next page"
   },
+  "onboardingSkip": "Skip",
+  "@onboardingSkip": {
+    "description": "Onboarding button that jumps ahead to the setup page"
+  },
   "onboardingBack": "Back",
   "@onboardingBack": {
     "description": "Onboarding button that returns to the previous page"
