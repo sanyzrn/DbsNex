@@ -1330,5 +1330,41 @@
   "assistantConfirmSetting": "Change this setting?",
   "@assistantConfirmSetting": {
     "description": "Confirmation for an assistant-proposed settings change"
+  },
+  "remind": "Remind",
+  "@remind": {
+    "description": "Note action that sets a reminder"
+  },
+  "remindLater": "In an hour",
+  "@remindLater": {
+    "description": "Reminder in one hour"
+  },
+  "remindEvening": "This evening",
+  "@remindEvening": {
+    "description": "Reminder at 8pm today"
+  },
+  "remindTomorrow": "Tomorrow morning",
+  "@remindTomorrow": {
+    "description": "Reminder at 9am tomorrow"
+  },
+  "remindNextWeek": "Next week",
+  "@remindNextWeek": {
+    "description": "Reminder in seven days"
+  },
+  "remindPick": "Pick a time…",
+  "@remindPick": {
+    "description": "Opens a date and time picker"
+  },
+  "remindClear": "Remove reminder",
+  "@remindClear": {
+    "description": "Clears the note's reminder"
+  },
+  "remindSet": "Reminder set",
+  "@remindSet": {
+    "description": "Confirmation after setting a reminder"
+  },
+  "remindDenied": "Nex needs permission to send notifications.",
+  "@remindDenied": {
+    "description": "Shown when notification permission is refused"
   }
 }

@@ -706,5 +706,14 @@
   "assistantConfirmMerge": "این یادداشت‌ها را یکی کنم؟",
   "assistantConfirmChecklist": "این را به چک‌لیست تبدیل کنم؟",
   "assistantConfirmCheck": "این آیتم را تیک بزنم؟",
-  "assistantConfirmSetting": "این تنظیم را عوض کنم؟"
+  "assistantConfirmSetting": "این تنظیم را عوض کنم؟",
+  "remind": "یادآوری",
+  "remindLater": "یک ساعت دیگر",
+  "remindEvening": "امشب",
+  "remindTomorrow": "فردا صبح",
+  "remindNextWeek": "هفته بعد",
+  "remindPick": "انتخاب زمان…",
+  "remindClear": "حذف یادآوری",
+  "remindSet": "یادآوری تنظیم شد",
+  "remindDenied": "برای ارسال اعلان، اجازه لازم است."
 }

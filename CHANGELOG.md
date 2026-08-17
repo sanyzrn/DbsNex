@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+- Notes can have a reminder. Open a note, tap Remind, and pick — in an hour,
+  this evening, tomorrow morning, next week, or a time of your own. Nex
+  brings the note back up as a notification at that time.
+- Your reminders survive a reinstall, a restore from a backup and a reboot:
+  the time is kept on the note itself and the alarms are rebuilt from your
+  notes every time the app starts.
 - The daily summary card is one control now: tap anywhere on it to fold it
   away or open it again. Open, it keeps a refresh button; closed, it does
   not — there is nothing on screen for a refresh to change, and the chevron

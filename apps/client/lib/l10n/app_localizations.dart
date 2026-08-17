@@ -2347,6 +2347,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Change this setting?'**
   String get assistantConfirmSetting;
+
+  /// Note action that sets a reminder
+  ///
+  /// In en, this message translates to:
+  /// **'Remind'**
+  String get remind;
+
+  /// Reminder in one hour
+  ///
+  /// In en, this message translates to:
+  /// **'In an hour'**
+  String get remindLater;
+
+  /// Reminder at 8pm today
+  ///
+  /// In en, this message translates to:
+  /// **'This evening'**
+  String get remindEvening;
+
+  /// Reminder at 9am tomorrow
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow morning'**
+  String get remindTomorrow;
+
+  /// Reminder in seven days
+  ///
+  /// In en, this message translates to:
+  /// **'Next week'**
+  String get remindNextWeek;
+
+  /// Opens a date and time picker
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a time…'**
+  String get remindPick;
+
+  /// Clears the note's reminder
+  ///
+  /// In en, this message translates to:
+  /// **'Remove reminder'**
+  String get remindClear;
+
+  /// Confirmation after setting a reminder
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder set'**
+  String get remindSet;
+
+  /// Shown when notification permission is refused
+  ///
+  /// In en, this message translates to:
+  /// **'Nex needs permission to send notifications.'**
+  String get remindDenied;
 }
 
 class _AppLocalizationsDelegate

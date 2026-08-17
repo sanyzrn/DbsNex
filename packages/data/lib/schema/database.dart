@@ -100,6 +100,11 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     // User-authored caption (optional, post-capture) + share/file MIME.
     _addColumnIfMissing('notes', 'caption', 'TEXT');
     _addColumnIfMissing('notes', 'mime_type', 'TEXT');
+    // When this note wants to be brought back up. Deliberately on the note
+    // rather than in a table of its own: one note has at most one reminder,
+    // and a join to answer "does this card show a bell" would be paid on
+    // every timeline read.
+    _addColumnIfMissing('notes', 'due_at', 'TEXT');
 
     // Local-only organisation: at most one pinned note, and a manual
     // position set by dragging in Rearrange mode. Neither is synced or
@@ -252,6 +257,11 @@ CREATE TABLE notes_rebuilt (
   summary_text TEXT,
   caption TEXT,
   mime_type TEXT,
+  -- Every column `_addColumnIfMissing` adds above has to appear here too:
+  -- the copy below is generated from the *live* table's columns, so a column
+  -- added to notes and forgotten here makes the rebuild fail on exactly the
+  -- databases it exists to migrate.
+  due_at TEXT,
   pinned_at TEXT,
   sort_order INTEGER,
   title TEXT,

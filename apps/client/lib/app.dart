@@ -54,6 +54,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // app is, in practice, also when a phone that regained signal while
     // backgrounded gets noticed.
     unawaited(_feedback.flushPending());
+    // Alarms are not durable and notes are. A reinstall, a restore from
+    // backup, or an OS that dropped its alarm list all leave reminders that
+    // exist on the note and nowhere else — so every launch puts them back
+    // from the library, which is the only copy that survives.
+    unawaited(widget.services.restoreReminders());
   }
 
   @override
@@ -61,6 +66,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       unawaited(_updates.maybeCheck());
       unawaited(_feedback.flushPending());
+      // Alarms are not durable and notes are. A reinstall, a restore from
+      // backup, or an OS that dropped its alarm list all leave reminders that
+      // exist on the note and nowhere else — so every launch puts them back
+      // from the library, which is the only copy that survives.
+      unawaited(widget.services.restoreReminders());
       // Re-read the library on the way back in. This is what pull-to-refresh
       // was standing in for, and it is strictly better at the job: every
       // capture path already re-fires the timeline stream itself, so the only

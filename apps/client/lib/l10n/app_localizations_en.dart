@@ -1330,4 +1330,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantConfirmSetting => 'Change this setting?';
+
+  @override
+  String get remind => 'Remind';
+
+  @override
+  String get remindLater => 'In an hour';
+
+  @override
+  String get remindEvening => 'This evening';
+
+  @override
+  String get remindTomorrow => 'Tomorrow morning';
+
+  @override
+  String get remindNextWeek => 'Next week';
+
+  @override
+  String get remindPick => 'Pick a time…';
+
+  @override
+  String get remindClear => 'Remove reminder';
+
+  @override
+  String get remindSet => 'Reminder set';
+
+  @override
+  String get remindDenied => 'Nex needs permission to send notifications.';
 }

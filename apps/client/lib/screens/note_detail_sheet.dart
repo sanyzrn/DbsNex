@@ -18,6 +18,7 @@ import '../platform/sharing.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/reminders.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/tag_picker.dart';
 
@@ -331,6 +332,110 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     await widget.services.refreshTimeline();
     await _reload();
   }
+
+  /// The reminder menu: four times someone actually means, and a picker.
+  ///
+  /// Quick choices rather than a date picker first. "Tomorrow morning" is
+  /// what people say, and making them assemble it out of a calendar and a
+  /// clock to say it is the reason reminder features go unused.
+  Future<void> _pickReminder() async {
+    final note = _note;
+    if (note == null) return;
+    final l10n = AppLocalizations.of(context);
+    final now = DateTime.now();
+    final choices = <(String, DateTime?)>[
+      (l10n.remindLater, now.add(const Duration(hours: 1))),
+      (
+        l10n.remindEvening,
+        DateTime(now.year, now.month, now.day, 20).isAfter(now)
+            ? DateTime(now.year, now.month, now.day, 20)
+            // Past eight already: "this evening" can only mean tomorrow's.
+            : DateTime(now.year, now.month, now.day + 1, 20),
+      ),
+      (l10n.remindTomorrow, DateTime(now.year, now.month, now.day + 1, 9)),
+      (l10n.remindNextWeek, DateTime(now.year, now.month, now.day + 7, 9)),
+    ];
+
+    final picked = await showModalBottomSheet<DateTime?>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (label, at) in choices)
+              ListTile(
+                leading: const Icon(Icons.schedule),
+                title: Text(label),
+                onTap: () => Navigator.pop(sheetContext, at),
+              ),
+            ListTile(
+              leading: const Icon(Icons.event),
+              title: Text(l10n.remindPick),
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: sheetContext,
+                  firstDate: now,
+                  lastDate: now.add(const Duration(days: 365 * 5)),
+                  initialDate: now.add(const Duration(days: 1)),
+                );
+                if (date == null || !sheetContext.mounted) return;
+                final time = await showTimePicker(
+                  context: sheetContext,
+                  initialTime: const TimeOfDay(hour: 9, minute: 0),
+                );
+                if (!sheetContext.mounted) return;
+                Navigator.pop(
+                  sheetContext,
+                  DateTime(
+                    date.year,
+                    date.month,
+                    date.day,
+                    time?.hour ?? 9,
+                    time?.minute ?? 0,
+                  ),
+                );
+              },
+            ),
+            if (note.dueAt != null)
+              ListTile(
+                leading: const Icon(Icons.notifications_off_outlined),
+                title: Text(l10n.remindClear),
+                // Null is a real answer here, so the sheet has to be able to
+                // tell "cleared" from "dismissed" — which is what the flag
+                // below is for.
+                onTap: () => Navigator.pop(sheetContext, _clearReminder),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+
+    if (identical(picked, _clearReminder)) {
+      await widget.services.setDueAt(note.id, null);
+      await _reload();
+      return;
+    }
+
+    // Asked for at the moment it is needed, not on first launch: a permission
+    // prompt before anyone has seen what the app does is the reliable way to
+    // be refused.
+    final allowed = await widget.services.reminders.requestPermission();
+    if (!mounted) return;
+    if (!allowed) {
+      nexShowBanner(context, message: l10n.remindDenied);
+      return;
+    }
+    await widget.services.setDueAt(note.id, picked.toUtc());
+    if (!mounted) return;
+    nexShowBanner(context, message: l10n.remindSet);
+    await _reload();
+  }
+
+  /// A sentinel meaning "take the reminder away", told apart from a dismissed
+  /// sheet by identity rather than by value.
+  static final _clearReminder = DateTime.utc(1970);
 
   Future<void> _showDetails() async {
     final note = _note;
@@ -975,6 +1080,14 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             focus: note,
                           ),
                         ),
+                      ),
+                    if (NexReminders.supported)
+                      _DetailAction(
+                        icon: note.dueAt == null
+                            ? Icons.notifications_none
+                            : Icons.notifications_active,
+                        label: l10n.remind,
+                        onPressed: _pickReminder,
                       ),
                     _DetailAction(
                       icon: Icons.auto_awesome_outlined,

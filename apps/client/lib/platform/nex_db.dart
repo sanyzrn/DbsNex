@@ -97,6 +97,10 @@ abstract interface class NexDb {
 
   Future<void> setTagColor({required String tagId, String? color});
 
+  Future<void> setDueAt(String noteId, DateTime? when);
+
+  Future<List<Note>> upcomingReminders({int limit});
+
   Future<void> backup(String backupDir, {required String mediaDir});
 
   Future<String> exportArchive({

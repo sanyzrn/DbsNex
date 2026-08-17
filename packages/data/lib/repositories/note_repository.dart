@@ -815,6 +815,34 @@ ON CONFLICT(note_id) DO UPDATE SET
   }
 
   @override
+  void setDueAt(String noteId, DateTime? when) {
+    db.execute(
+      // Not a rev bump and not an updated_at touch: a reminder is a thing
+      // the user asked the app to do, not an edit to what the note says, and
+      // re-sorting the timeline because someone set an alarm would move a
+      // note they were not writing to.
+      'UPDATE notes SET due_at = ? WHERE id = ?',
+      [when?.toUtc().toIso8601String(), noteId],
+    );
+  }
+
+  @override
+  List<Note> listUpcomingReminders({int limit = 200}) {
+    final rows = db.select(
+      '''
+SELECT * FROM notes
+WHERE deleted_at IS NULL AND due_at IS NOT NULL AND due_at > ?
+ORDER BY due_at ASC
+LIMIT ?
+''',
+      [DateTime.now().toUtc().toIso8601String(), limit],
+    );
+    return rows
+        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
+        .toList();
+  }
+
+  @override
   List<Note> listNeedingEmbedding({int limit = 25}) {
     // Anything with words in it: a note's own text, a caption, a transcript,
     // an OCR read, or a link's headline. A photo with nothing derived from it

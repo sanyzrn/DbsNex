@@ -1331,4 +1331,31 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get assistantConfirmSetting => 'این تنظیم را عوض کنم؟';
+
+  @override
+  String get remind => 'یادآوری';
+
+  @override
+  String get remindLater => 'یک ساعت دیگر';
+
+  @override
+  String get remindEvening => 'امشب';
+
+  @override
+  String get remindTomorrow => 'فردا صبح';
+
+  @override
+  String get remindNextWeek => 'هفته بعد';
+
+  @override
+  String get remindPick => 'انتخاب زمان…';
+
+  @override
+  String get remindClear => 'حذف یادآوری';
+
+  @override
+  String get remindSet => 'یادآوری تنظیم شد';
+
+  @override
+  String get remindDenied => 'برای ارسال اعلان، اجازه لازم است.';
 }
