@@ -700,5 +700,7 @@
       }
     }
   },
-  "askAboutNote": "بپرس"
+  "askAboutNote": "بپرس",
+  "saveSearch": "ذخیره این جست‌وجو",
+  "savedSearches": "ذخیره‌شده"
 }

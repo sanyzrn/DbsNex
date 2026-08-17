@@ -1312,4 +1312,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get askAboutNote => 'Ask';
+
+  @override
+  String get saveSearch => 'Save this search';
+
+  @override
+  String get savedSearches => 'Saved';
 }

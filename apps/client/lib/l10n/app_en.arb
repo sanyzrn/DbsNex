@@ -1306,5 +1306,13 @@
   "askAboutNote": "Ask",
   "@askAboutNote": {
     "description": "Opens the assistant with this one note as its subject"
+  },
+  "saveSearch": "Save this search",
+  "@saveSearch": {
+    "description": "Keeps the current search for later"
+  },
+  "savedSearches": "Saved",
+  "@savedSearches": {
+    "description": "Heading above the list of kept searches"
   }
 }

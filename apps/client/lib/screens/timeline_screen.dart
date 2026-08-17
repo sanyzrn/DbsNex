@@ -1327,6 +1327,11 @@ class TimelineScreenState extends State<TimelineScreen> {
       return searchResultSlivers(
         context: context,
         search: _search,
+        preferences: widget.preferences,
+        onUseSaved: (query) {
+          _search.query.text = query;
+          _search.run();
+        },
         onOpen: (note) => unawaited(_openNote(note)),
       );
     }

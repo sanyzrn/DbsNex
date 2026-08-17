@@ -41,7 +41,9 @@ Working convention:
   quietly found nothing. The backlog is worked through now.
 - The search box takes `tag:` and `type:` — `tag:work type:link cooler`.
   Quotes hold a phrase or a tag with a space together: `tag:"to read"`.
-  These combine with the filter chips rather than replacing them.
+  These combine with the filter chips rather than replacing them. A search
+  you want back can be kept — it appears as a chip on the empty search
+  screen, which is the one moment it is useful.
 - A note's detail sheet has an Ask button: the assistant, about that one
   note. It reads the note's transcript or the text found in a photo too, so
   you can ask about a recording or a picture, not only about typed notes.

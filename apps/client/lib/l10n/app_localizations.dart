@@ -2311,6 +2311,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask'**
   String get askAboutNote;
+
+  /// Keeps the current search for later
+  ///
+  /// In en, this message translates to:
+  /// **'Save this search'**
+  String get saveSearch;
+
+  /// Heading above the list of kept searches
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get savedSearches;
 }
 
 class _AppLocalizationsDelegate

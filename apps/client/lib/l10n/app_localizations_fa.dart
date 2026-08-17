@@ -1313,4 +1313,10 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get askAboutNote => 'بپرس';
+
+  @override
+  String get saveSearch => 'ذخیره این جست‌وجو';
+
+  @override
+  String get savedSearches => 'ذخیره‌شده';
 }

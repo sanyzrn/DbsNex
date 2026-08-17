@@ -546,6 +546,43 @@ class NexPreferences extends ChangeNotifier {
   /// better.
   static const aiNotesContextChoices = [0, 10, 20, 50];
 
+  /* --------------------------------------------------------- Saved searches */
+
+  /// Searches the user asked to keep, newest first.
+  ///
+  /// Plain strings, because that is exactly what a search is now that `tag:`
+  /// and `type:` are part of the box: one line captures the terms and the
+  /// filters together, survives a tag being renamed as gracefully as anything
+  /// could, and needs no schema.
+  List<String> get savedSearches =>
+      _prefs.getStringList('search.saved') ?? const [];
+
+  static const maxSavedSearches = 12;
+
+  Future<void> saveSearch(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    final updated = <String>[
+      trimmed,
+      for (final saved in savedSearches)
+        if (saved != trimmed) saved,
+    ];
+    await _prefs.setStringList(
+      'search.saved',
+      updated.take(maxSavedSearches).toList(),
+    );
+    notifyListeners();
+  }
+
+  Future<void> removeSavedSearch(String query) async {
+    final remaining = [
+      for (final saved in savedSearches)
+        if (saved != query) saved,
+    ];
+    await _prefs.setStringList('search.saved', remaining);
+    notifyListeners();
+  }
+
   /* --------------------------------------------------------- AI day summary */
 
   /// The timeline's daily AI recap, cached against the date it was written
