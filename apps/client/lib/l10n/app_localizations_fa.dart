@@ -51,11 +51,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get filters => 'فیلترها';
 
   @override
-  String filtersCount(int count) {
-    return 'فیلترها ($count)';
-  }
-
-  @override
   String get date => 'تاریخ';
 
   @override
@@ -163,9 +158,6 @@ class AppLocalizationsFa extends AppLocalizations {
       'برچسب فقط از روی یادداشت‌ها برداشته می‌شود؛ خود یادداشت‌ها حذف نمی‌شوند.';
 
   @override
-  String get recentlyDeleted => 'حذف‌شده‌های اخیر';
-
-  @override
   String get recentlyDeletedEmpty => 'چیزی به‌تازگی حذف نشده.';
 
   @override
@@ -185,10 +177,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get intelligence => 'هوش مصنوعی';
-
-  @override
-  String get intelligenceLocal =>
-      'تا وقتی هوش ابری خاموش است، همه‌چیز روی همین دستگاه پردازش می‌شود.';
 
   @override
   String get about => 'دربارهٔ Nex';
@@ -247,10 +235,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get comfortMode => 'حالت آسایش';
 
   @override
-  String get comfortModeSubtitle =>
-      'کنتراست کمتر و رنگ‌های گرم‌تر؛ جدا از روشن یا تیره بودن پوسته';
-
-  @override
   String get accentColorSetting => 'رنگ تاکید';
 
   @override
@@ -284,12 +268,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get languageSystem => 'مثل سیستم';
-
-  @override
-  String get languageEnglish => 'انگلیسی';
-
-  @override
-  String get languagePersian => 'فارسی';
 
   @override
   String get storage => 'فضای ذخیره‌سازی';
@@ -346,13 +324,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get relatedNotes => 'یادداشت‌های مرتبط';
-
-  @override
-  String get cloudAi => 'هوش ابری (اختیاری)';
-
-  @override
-  String get cloudAiSubtitle =>
-      'پیش‌فرض خاموش است؛ ثبت و جست‌وجو بدون آن هم کار می‌کنند.';
 
   @override
   String get sync => 'همگام‌سازی';
@@ -502,9 +473,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String similarity(String score) {
     return 'شباهت $score';
   }
-
-  @override
-  String get moreOptions => 'گزینه‌های بیشتر';
 
   @override
   String get copied => 'کپی شد';
@@ -1237,9 +1205,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String checklistProgress(int done, int total) {
     return '$done از $total';
   }
-
-  @override
-  String get readingLink => 'در حال خواندن صفحه…';
 
   @override
   String get chatGreeting => 'امروز چه کمکی از من برمی‌آید؟';

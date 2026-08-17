@@ -174,6 +174,88 @@ void main() {
       expect(recap, 'Busy week, three grocery lists!');
     });
 
+    group('token soup is dropped rather than shown', () {
+      CloudAIAdapter adapterReplying(String content) => CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.openai,
+          apiKey: 'secret',
+        ),
+        client: MockClient(
+          // Bytes, not a string, and with no charset on the content type —
+          // what OpenRouter and friends actually send. `http.Response(String)`
+          // would encode it as latin1 and throw on the first Persian
+          // character, which is the same assumption the adapter used to make
+          // when reading the reply back.
+          (_) async => http.Response.bytes(
+            utf8.encode(
+              jsonEncode({
+                'choices': [
+                  {
+                    'message': {'content': content},
+                  },
+                ],
+              }),
+            ),
+            200,
+            headers: const {'content-type': 'application/json'},
+          ),
+        ),
+      );
+
+      // Verbatim from a free-tier model on a real device: three scripts, a
+      // word repeating, and no sentence anywhere in it. Shown as the app's
+      // own voice across the top of the home screen, it reads as the app
+      // being broken.
+      test('a reply in three scripts with a repeat is refused', () {
+        expect(
+          adapterReplying(
+            'veritableهایWhitehall veritableഇഇഇ toutes toutes to',
+          ).headline('a note'),
+          completion(isNull),
+        );
+      });
+
+      test('a stuck decoder is refused', () {
+        expect(
+          adapterReplying('The morning is quiet ᅳᅳᅳᅳᅳ 🌤').headline('a note'),
+          completion(isNull),
+        );
+      });
+
+      test('the same word three times is refused', () {
+        expect(
+          adapterReplying(
+            'Notes about notes about notes today 📝',
+          ).headline('a note'),
+          completion(isNull),
+        );
+      });
+
+      // The filter is not a taste test. A dull line, a line carrying an
+      // English brand name inside Persian, and a line with one emoji all
+      // have to survive it.
+      // The same helper proves the decode: a Persian reply arriving under a
+      // charset-less content type comes back as itself, not as mojibake.
+      test('ordinary lines survive', () {
+        expect(
+          adapterReplying('A quiet morning over a full page 🌤').headline('x'),
+          completion('A quiet morning over a full page 🌤'),
+        );
+        expect(
+          adapterReplying(
+            'صبح آرام است و دفترت پر از Whitehall ☕',
+          ).headline('x'),
+          completion('صبح آرام است و دفترت پر از Whitehall ☕'),
+        );
+        expect(
+          adapterReplying(
+            'You planned a trip and fixed the cooler.',
+          ).digest('x'),
+          completion('You planned a trip and fixed the cooler.'),
+        );
+      });
+    });
+
     test('digest is unavailable without a usable config or without notes', () {
       var called = false;
       final adapter = CloudAIAdapter(

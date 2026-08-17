@@ -18,7 +18,6 @@ import '../widgets/nex_dialog.dart';
 import '../platform/nex_services.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/tag_picker.dart';
-import '../utils/nex_bidi.dart';
 
 /// What the sheet reports back when it closes.
 ///
@@ -292,8 +291,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               maxLines: null,
               minLines: 3,
               keyboardType: TextInputType.multiline,
-              textDirection: nexTextDirection(controller.text),
-              textAlign: nexTextAlign(controller.text),
+              textDirection: nexDirectionOf(controller.text),
+              textAlign: TextAlign.start,
               // See the same field in capture_sheet.dart: BoxWidthStyle.max
               // (the default) paints a double-tap word selection out to the
               // end of the line on Persian text.
@@ -429,8 +428,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               controller: controller,
               autofocus: true,
               maxLines: 3,
-              textDirection: nexTextDirection(controller.text),
-              textAlign: nexTextAlign(controller.text),
+              textDirection: nexDirectionOf(controller.text),
+              textAlign: TextAlign.start,
               selectionWidthStyle: BoxWidthStyle.tight,
               decoration: InputDecoration(hintText: l10n.captionHint),
               onChanged: (_) => setDialogState(() {}),

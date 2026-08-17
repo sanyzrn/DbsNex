@@ -48,8 +48,20 @@ class AiChatSheet extends StatefulWidget {
 
 class _AiChatSheetState extends State<AiChatSheet> {
   final _input = TextEditingController();
-  final _scroll = ScrollController();
   final _turns = <ChatMessage>[];
+
+  /// One adapter — and so one HTTP connection — for the whole conversation,
+  /// rather than one per message. Every turn goes to the same host, and
+  /// building a fresh client each time threw away the connection just before
+  /// the next question needed it.
+  /// Built in initState rather than lazily: a sheet opened and closed without
+  /// a question would otherwise construct its client inside dispose, purely to
+  /// close it again.
+  late final CloudAIAdapter _adapter;
+
+  /// The scroll controller [DraggableScrollableSheet] handed down, kept so
+  /// the thread can be scrolled to the bottom from outside the builder.
+  ScrollController? _scroll;
 
   bool _sending = false;
 
@@ -59,9 +71,18 @@ class _AiChatSheetState extends State<AiChatSheet> {
   String? _failure;
 
   @override
+  void initState() {
+    super.initState();
+    _adapter = CloudAIAdapter(
+      config: widget.preferences.aiProvider,
+      outputLanguage: widget.preferences.aiOutputLanguage,
+    );
+  }
+
+  @override
   void dispose() {
     _input.dispose();
-    _scroll.dispose();
+    _adapter.close();
     super.dispose();
   }
 
@@ -78,17 +99,11 @@ class _AiChatSheetState extends State<AiChatSheet> {
     });
     _toBottom();
 
-    final adapter = CloudAIAdapter(
-      config: widget.preferences.aiProvider,
-      outputLanguage: widget.preferences.aiOutputLanguage,
-    );
     String? reply;
     try {
-      reply = await adapter.chat(List.of(_turns));
+      reply = await _adapter.chat(List.of(_turns));
     } catch (_) {
       reply = null;
-    } finally {
-      adapter.close();
     }
     if (!mounted) return;
 
@@ -107,9 +122,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// have grown before there is anywhere new to scroll to.
   void _toBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scroll.hasClients) return;
-      _scroll.animateTo(
-        _scroll.position.maxScrollExtent,
+      final scroll = _scroll;
+      if (scroll == null || !scroll.hasClients) return;
+      scroll.animateTo(
+        scroll.position.maxScrollExtent,
         duration: NexMotion.standard,
         curve: NexMotion.curve,
       );
@@ -130,71 +146,78 @@ class _AiChatSheetState extends State<AiChatSheet> {
       snap: true,
       snapSizes: const [0.55],
       expand: false,
-      builder: (context, sheetScroll) => DecoratedBox(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(NexRadius.xl),
+      builder: (context, sheetScroll) {
+        _scroll = sheetScroll;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(NexRadius.xl),
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            // The drag handle doubles as the affordance for "this gets
-            // bigger" — it is the only thing suggesting the sheet moves.
-            Padding(
-              padding: const EdgeInsets.only(top: NexSpacing.sm),
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(NexRadius.xs),
+          child: Column(
+            children: [
+              // The drag handle doubles as the affordance for "this gets
+              // bigger" — it is the only thing suggesting the sheet moves.
+              Padding(
+                padding: const EdgeInsets.only(top: NexSpacing.sm),
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(NexRadius.xs),
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                NexSpacing.md,
-                NexSpacing.sm,
-                NexSpacing.sm,
-                0,
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: l10n.cancel,
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _turns.isEmpty && _failure == null
-                  ? _Suggestions(
-                      // The sheet's own scrollable has to be the one
-                      // DraggableScrollableSheet handed down, or dragging the
-                      // body does not resize the sheet.
-                      controller: sheetScroll,
-                      onPick: (text) => unawaited(_send(text)),
-                    )
-                  : _Thread(
-                      controller: _scroll,
-                      turns: _turns,
-                      sending: _sending,
-                      failure: _failure,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  NexSpacing.md,
+                  NexSpacing.sm,
+                  NexSpacing.sm,
+                  0,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: l10n.cancel,
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
                     ),
-            ),
-            _Composer(
-              controller: _input,
-              sending: _sending,
-              onSend: () => unawaited(_send(_input.text)),
-            ),
-          ],
-        ),
-      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _turns.isEmpty && _failure == null
+                    ? _Suggestions(
+                        // The sheet's own scrollable has to be the one
+                        // DraggableScrollableSheet handed down, or dragging the
+                        // body does not resize the sheet.
+                        controller: sheetScroll,
+                        onPick: (text) => unawaited(_send(text)),
+                      )
+                    : _Thread(
+                        // Same controller as the suggestions above: the thread
+                        // has to be the sheet's own scrollable too, or dragging
+                        // it up stops resizing the sheet the moment the first
+                        // message lands.
+                        controller: sheetScroll,
+                        turns: _turns,
+                        sending: _sending,
+                        failure: _failure,
+                      ),
+              ),
+              _Composer(
+                controller: _input,
+                sending: _sending,
+                onSend: () => unawaited(_send(_input.text)),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -1240,6 +1240,27 @@ void main() {
       expect(find.byType(AiChatSheet), findsOneWidget);
       // Held, not tapped — the capture sheet must not have opened underneath.
       expect(find.byType(CaptureSheet), findsNothing);
+
+      // The body scrolls the sheet itself in both of its states. A thread on
+      // a controller of its own still scrolls, so nothing looks broken — the
+      // sheet just stops growing when you drag it, which is the one gesture
+      // the whole design rests on.
+      ScrollController? bodyController() => tester
+          .widget<ListView>(
+            find.descendant(
+              of: find.byType(AiChatSheet),
+              matching: find.byType(ListView),
+            ),
+          )
+          .controller;
+      final beforeSending = bodyController();
+
+      // No provider is reachable from a test, so this resolves to the failure
+      // line — which is enough to swap the suggestions out for the thread.
+      await tester.tap(find.byIcon(Icons.summarize_outlined));
+      await tester.pumpAndSettle();
+
+      expect(bodyController(), same(beforeSending));
     },
   );
 

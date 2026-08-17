@@ -6,7 +6,6 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
-import '../utils/nex_bidi.dart';
 
 class CaptureSheet extends StatefulWidget {
   const CaptureSheet({
@@ -137,8 +136,13 @@ class _CaptureSheetState extends State<CaptureSheet> {
                   autofocus: true,
                   minLines: 3,
                   maxLines: null,
-                  textDirection: nexTextDirection(controller.text),
-                  textAlign: nexTextAlign(controller.text),
+                  // Null while the field is empty, which leaves the ambient
+                  // direction in place — that is what puts the placeholder at
+                  // the right edge in Persian instead of the left. Once there
+                  // is text it follows the script being typed, so `start` is
+                  // the correct end in either language.
+                  textDirection: nexDirectionOf(controller.text),
+                  textAlign: TextAlign.start,
                   // Default is BoxWidthStyle.max, which pads a selection's highlight
                   // out to the far edge of its line on Persian text — double-tapping
                   // a word painted a bar running to the end of the line, empty space

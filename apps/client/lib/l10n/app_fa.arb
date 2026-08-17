@@ -14,7 +14,6 @@
   "file": "فایل",
   "text": "متن",
   "filters": "فیلترها",
-  "filtersCount": "فیلترها ({count})",
   "date": "تاریخ",
   "clear": "پاک کردن",
   "resultCount": "{count, plural, =0{نتیجه‌ای پیدا نشد} =1{یک نتیجه} other{{count} نتیجه}}",
@@ -43,7 +42,6 @@
   "renameTag": "تغییر نام برچسب",
   "deleteTag": "برچسب حذف شود؟",
   "deleteTagBody": "برچسب فقط از روی یادداشت‌ها برداشته می‌شود؛ خود یادداشت‌ها حذف نمی‌شوند.",
-  "recentlyDeleted": "حذف‌شده‌های اخیر",
   "recentlyDeletedEmpty": "چیزی به‌تازگی حذف نشده.",
   "appearance": "ظاهر",
   "language": "زبان",
@@ -51,7 +49,6 @@
   "reduceMotion": "کم‌کردن انیمیشن‌ها",
   "haptics": "لرزش هنگام ثبت",
   "intelligence": "هوش مصنوعی",
-  "intelligenceLocal": "تا وقتی هوش ابری خاموش است، همه‌چیز روی همین دستگاه پردازش می‌شود.",
   "about": "دربارهٔ Nex",
   "localFirstTitle": "ذخیره روی همین دستگاه",
   "localFirstBody": "یادداشت‌های شما روی همین دستگاه، در {path} نگهداری می‌شوند",
@@ -72,7 +69,6 @@
   "themeDark": "تیره",
   "themeSystem": "مثل سیستم",
   "comfortMode": "حالت آسایش",
-  "comfortModeSubtitle": "کنتراست کمتر و رنگ‌های گرم‌تر؛ جدا از روشن یا تیره بودن پوسته",
   "accentColorSetting": "رنگ تاکید",
   "accentColorSettingSubtitle": "رنگ نشانگر، حلقهٔ فوکوس و حالت‌های فعال را در سراسر اپ تغییر می‌دهد",
   "accentColorPickerTitle": "رنگ تاکید",
@@ -84,8 +80,6 @@
   "enterSubmitsCapture": "اینتر یادداشت را ثبت کند",
   "enterSubmitsCaptureSubtitle": "در حالت خاموش، اینتر خط جدید شروع می‌کند. Shift+Enter در هر دو حالت همیشه خط جدید می‌سازد.",
   "languageSystem": "مثل سیستم",
-  "languageEnglish": "انگلیسی",
-  "languagePersian": "فارسی",
   "storage": "فضای ذخیره‌سازی",
   "storageUsed": "{size} روی این دستگاه اشغال شده",
   "stopRecording": "پایان ضبط",
@@ -103,8 +97,6 @@
   "semanticSearch": "جست‌وجوی معنایی",
   "summarization": "خلاصه‌سازی",
   "relatedNotes": "یادداشت‌های مرتبط",
-  "cloudAi": "هوش ابری (اختیاری)",
-  "cloudAiSubtitle": "پیش‌فرض خاموش است؛ ثبت و جست‌وجو بدون آن هم کار می‌کنند.",
   "sync": "همگام‌سازی",
   "syncNow": "همگام‌سازی همین حالا",
   "syncComplete": "همگام‌سازی انجام شد",
@@ -238,10 +230,6 @@
         "type": "String"
       }
     }
-  },
-  "moreOptions": "گزینه‌های بیشتر",
-  "@moreOptions": {
-    "description": "Opens the detail sheet's overflow menu"
   },
   "copied": "کپی شد",
   "@copied": {
@@ -650,10 +638,6 @@
               "type": "int"
           }
       }
-  },
-  "readingLink": "در حال خواندن صفحه…",
-  "@readingLink": {
-      "description": "Shown while a link's title and description are being fetched"
   },
   "chatGreeting": "امروز چه کمکی از من برمی‌آید؟",
   "@chatGreeting": {

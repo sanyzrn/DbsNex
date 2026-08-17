@@ -50,6 +50,21 @@ Working convention:
 - Pull-to-refresh is gone from the timeline; it had nothing left to do.
   Coming back to the app re-reads your notes instead, which covers the
   one case the pull was there for.
+- The generated line under the greeting is set at the daily summary's size
+  now, instead of at headline size. It is a flourish, not a title.
+- The capture box's placeholder sits at the right edge in Persian, where it
+  belongs, instead of the left.
+- The AI service screen stopped mirroring itself in Persian. Keys, endpoints,
+  model names and provider names are Latin text and now read left to right;
+  the Persian explanations around them are unchanged.
+- The daily summary and the line above it are written to a better brief:
+  warmer, drier, and about the actual thing you wrote rather than the
+  category it falls into.
+- A reply that is not a sentence — several scripts deep, words repeating,
+  the shape small free models fail into — is now discarded rather than shown
+  as the app's own voice. You get the previous line and a tap to try again.
+- Fixed replies arriving as mojibake from providers that send UTF-8 without
+  saying so. This affected Persian output specifically.
 - Hold the capture button to ask the assistant something. The screen lights
   up around its edge while you hold, and the chat opens as a small panel at
   the bottom that you can drag up to full screen. It uses the AI provider

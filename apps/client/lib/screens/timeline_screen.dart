@@ -1030,6 +1030,11 @@ class TimelineScreenState extends State<TimelineScreen> {
       fontWeight: FontWeight.w600,
       height: 1.25,
     );
+    // The generated line is written at the daily recap's size and weight, not
+    // at display size. It is a flourish, not a title: set large and bold it
+    // was the loudest thing on a screen whose subject is the notes below it,
+    // and a model's turn of phrase does not earn that.
+    final generatedStyle = theme.textTheme.bodyMedium?.copyWith(height: 1.35);
     // The generated line has a slot as soon as there is a provider: it is a
     // skeleton first and text second, rather than appearing from nowhere and
     // pushing the card down once the request lands.
@@ -1084,7 +1089,7 @@ class TimelineScreenState extends State<TimelineScreen> {
                     _HeadlineText(
                       text: _aiHeadlineText,
                       loading: _aiHeadlineLoading,
-                      style: headlineStyle,
+                      style: generatedStyle,
                     ),
                   ],
                 ],
@@ -1586,10 +1591,12 @@ class _HeadlineText extends StatelessWidget {
       return loading
           ? const Column(
               crossAxisAlignment: CrossAxisAlignment.center,
+              // Sized to the line it stands in for, so the header does not
+              // shrink by a few pixels the moment the text lands.
               children: [
-                NexSkeleton(height: 22, width: 240),
+                NexSkeleton(height: 16, width: 220),
                 SizedBox(height: NexSpacing.xs),
-                NexSkeleton(height: 22, width: 160),
+                NexSkeleton(height: 16, width: 140),
               ],
             )
           : const SizedBox.shrink();

@@ -351,12 +351,12 @@ class CloudAIAdapter implements AIAdapter {
     if (response.statusCode != 200) {
       _lastFailure = (
         status: response.statusCode,
-        message: _extractError(response.body),
+        message: _extractError(_bodyText(response)),
       );
       return null;
     }
     _lastFailure = null;
-    return _extractText(response.body);
+    return _extractText(_bodyText(response));
   }
 
   /// The provider's own explanation, whichever shape it arrived in.
@@ -546,15 +546,19 @@ class CloudAIAdapter implements AIAdapter {
     if (!config.isUsable || recentNotesText.trim().isEmpty) return null;
     final reply = await _complete(
       'You write the short recap a notes app shows someone when they open '
-      "it: warm, a little funny, never corporate. You're given a handful of "
-      'their recent notes. Write ONE or TWO short sentences — at most 30 '
-      "words in total — touching on what they've been capturing. No preamble, "
-      'no heading, no bullet points, no quotes, no emoji. Reply with the '
-      'recap only. ${outputLanguage.promptRule}',
+      "it. You're given a handful of their recent notes. Write ONE or TWO "
+      'short sentences, at most 30 words in total, that show you actually '
+      'read them: name the real thing they wrote about, not the category it '
+      'belongs to — "the cooler and the plane tickets", not "errands and '
+      'travel plans". The tone is a friend reading over their shoulder: dry, '
+      'warm, occasionally funny. Never motivational, never corporate, never '
+      'flattering, no advice, no questions. No preamble, no heading, no '
+      'bullet points, no quotes, no emoji. Write in one language only. '
+      'Reply with the recap only. ${outputLanguage.promptRule}',
       recentNotesText,
       maxTokens: 160,
     );
-    return _clamped(reply, 30);
+    return _plausible(_clamped(reply, 30));
   }
 
   /// The one-line headline over the timeline: a mood, not a summary.
@@ -573,11 +577,13 @@ class CloudAIAdapter implements AIAdapter {
     final reply = await _complete(
       'You write the single line a notes app shows across the top of its home '
       'screen when it opens. One sentence, at most 9 words, ending with one '
-      'emoji that fits it. Evocative and warm — a mood tied to the time of '
-      'day and, loosely, to what they have been noting. Never a summary, '
-      'never a question, never an instruction, never a heading, no quotes, '
-      'never address anyone by name. Reply with the line only. '
-      '${outputLanguage.promptRule}',
+      'emoji that fits it. It is a mood, not a report: a small noticing tied '
+      'to the hour and — lightly — to what they have been writing down. Warm '
+      'and a little playful, the way a good friend opens a conversation. '
+      'Never a summary, never advice, never a question, never an instruction, '
+      'never a heading, never a greeting, no quotes, never address anyone by '
+      'name. Use ordinary words, write in one language only, and never repeat '
+      'a word. Reply with the line only. ${outputLanguage.promptRule}',
       recentNotesText.trim().isEmpty
           ? 'They have not written anything yet. The local time is '
                 '${DateTime.now().hour}:00.'
@@ -585,7 +591,7 @@ class CloudAIAdapter implements AIAdapter {
                 'notes:\n$recentNotesText',
       maxTokens: 60,
     );
-    return _clamped(reply, 12);
+    return _plausible(_clamped(reply, 12));
   }
 
   /// A real multi-turn exchange, normalised across all three wire shapes.
@@ -662,13 +668,24 @@ class CloudAIAdapter implements AIAdapter {
     if (response.statusCode != 200) {
       _lastFailure = (
         status: response.statusCode,
-        message: _extractError(response.body),
+        message: _extractError(_bodyText(response)),
       );
       return null;
     }
     _lastFailure = null;
-    return _extractText(response.body)?.trim();
+    return _extractText(_bodyText(response))?.trim();
   }
+
+  /// The response body, decoded as UTF-8 whatever the provider said.
+  ///
+  /// `http.Response.body` follows the charset in the Content-Type header and
+  /// falls back to latin1 when there is none, which is the letter of the HTTP
+  /// spec and wrong for every provider here: they all send UTF-8, and several
+  /// send it under a bare `application/json`. A Persian reply then came back
+  /// as mojibake — from a request that succeeded, so nothing anywhere
+  /// reported a failure.
+  static String _bodyText(http.Response response) =>
+      utf8.decode(response.bodyBytes, allowMalformed: true);
 
   /// Trims a reply to [maxWords], cutting at a sentence end when one is near
   /// enough and simply dropping the tail otherwise.
@@ -686,6 +703,80 @@ class CloudAIAdapter implements AIAdapter {
     final stop = cut.lastIndexOf(RegExp(r'[.!?…؟۔]'));
     if (stop > cut.length ~/ 2) return cut.substring(0, stop + 1);
     return '$cut…';
+  }
+
+  /// Drops a reply that is not a sentence at all.
+  ///
+  /// The two decorative lines — the headline and the daily recap — are the
+  /// only places in the app where a model's raw words are shown as the app's
+  /// own voice, with nothing around them to make a bad one legible as a bad
+  /// one. Small free-tier models fail here in a particular way: not a wrong
+  /// answer but token soup, several scripts deep, words repeating, no
+  /// sentence anywhere in it. Seen on screen it reads as the app being
+  /// broken rather than the model being cheap.
+  ///
+  /// Showing nothing is strictly better: the greeting stays, the card says it
+  /// has nothing yet, and a tap tries again. So anything failing these tests
+  /// is discarded rather than displayed.
+  ///
+  /// Deliberately blunt. These are not quality judgements — a dull line
+  /// passes, and should: taste is what the prompt is for. This only catches
+  /// output that no sentence in any language looks like.
+  static String? _plausible(String? reply) {
+    final text = reply?.trim();
+    if (text == null || text.isEmpty) return null;
+
+    // The same character four times over: a stuck decoder, never writing.
+    if (RegExp(r'(.)\1{3,}').hasMatch(text)) return null;
+
+    var latin = 0;
+    var arabic = 0;
+    var foreign = 0;
+    for (final rune in text.runes) {
+      switch (rune) {
+        case >= 0x0041 && <= 0x005A:
+        case >= 0x0061 && <= 0x007A:
+        case >= 0x00C0 && <= 0x024F:
+          latin++;
+        case >= 0x0600 && <= 0x06FF:
+        case >= 0x0750 && <= 0x077F:
+        case >= 0xFB50 && <= 0xFDFF:
+        case >= 0xFE70 && <= 0xFEFF:
+          arabic++;
+        // Every other script with letters in it. One of these turning up in
+        // a line meant to be English or Persian is not a loanword, it is the
+        // decoder having lost its place.
+        case >= 0x0370 && <= 0x05FF:
+        case >= 0x0900 && <= 0x109F:
+        case >= 0x1100 && <= 0x11FF:
+        case >= 0x2E80 && <= 0x9FFF:
+        case >= 0xAC00 && <= 0xD7AF:
+          foreign++;
+        default:
+          break;
+      }
+    }
+    if (latin + arabic + foreign == 0) return null;
+    if (foreign > 1) return null;
+
+    // A word repeating is the other shape these failures take — "toutes
+    // toutes to". Two mentions is ordinary language; three of the same word
+    // in a line this short is not.
+    final words = [
+      for (final word in text.toLowerCase().split(RegExp(r'[\s,.:;!?…]+')))
+        if (word.length > 2) word,
+    ];
+    if (words.any((word) => word.length > 30)) return null;
+    final counts = <String, int>{};
+    for (final word in words) {
+      final seen = (counts[word] ?? 0) + 1;
+      if (seen > 2) return null;
+      counts[word] = seen;
+    }
+    for (var i = 1; i < words.length; i++) {
+      if (words[i] == words[i - 1]) return null;
+    }
+    return text;
   }
 
   @override
@@ -783,7 +874,7 @@ class CloudAIAdapter implements AIAdapter {
           )
           .timeout(_textTimeout);
       if (response.statusCode != 200) return const Vector([]);
-      final decoded = jsonDecode(response.body);
+      final decoded = jsonDecode(_bodyText(response));
       // Spelled out rather than chained: `cond ? a?['b'] : c` puts a `?[` where
       // the parser is still expecting the ternary's true branch.
       if (decoded is! Map) return const Vector([]);
@@ -801,7 +892,7 @@ class CloudAIAdapter implements AIAdapter {
         )
         .timeout(_textTimeout);
     if (response.statusCode != 200) return const Vector([]);
-    final decoded = jsonDecode(response.body);
+    final decoded = jsonDecode(_bodyText(response));
     if (decoded is! Map<String, dynamic>) return const Vector([]);
     final data = decoded['data'];
     if (data is! List || data.isEmpty) return const Vector([]);
