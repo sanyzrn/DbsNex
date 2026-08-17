@@ -1177,12 +1177,50 @@ void main() {
     expect(greeting(), isNot(before));
   });
 
+  testWidgets('the greeting is centred, not aligned to one edge', (
+    tester,
+  ) async {
+    await preferences.setDisplayName('Sany');
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    // The header's own key is on a sliver, which has no box to measure — the
+    // scroll view it lives in is the nearest thing that does, and the header
+    // is laid out to its full width.
+    final column = tester.getRect(find.byType(CustomScrollView));
+    final words = tester.getRect(find.textContaining('Sany'));
+    final mark = tester.getRect(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('timeline-header')),
+            matching: find.byWidgetPredicate(
+              (w) => w is Text && w.data != null && !w.data!.contains('Sany'),
+            ),
+          )
+          .first,
+    );
+
+    // The whole line — words and mark together — is what is centred, so the
+    // words alone sit a little left of centre by exactly the mark's width.
+    // Left-aligned, the greeting and the generated line under it read as two
+    // separate starts stacked on each other rather than as one block.
+    expect(words.expandToInclude(mark).center.dx, closeTo(column.center.dx, 2));
+  });
+
   testWidgets('the greeting mark trails the words, in either direction', (
     tester,
   ) async {
     // It used to be baked into the front of the string, which put it at the
     // start — the right edge in Persian, the left in English. Separating it
     // out lets the Row place it at the trailing end in both.
+    //
+    // The Row takes its direction from the greeting's own text now, not from
+    // the ambient locale: the strings the AI writes beside it follow the
+    // language of the *notes*, which is not always the language of the
+    // interface, and a Persian sentence laid out left-to-right puts its full
+    // stop at the wrong end.
     for (final locale in ['en', 'fa']) {
       await preferences.setLocale(locale);
       await preferences.setDisplayName('Sany');

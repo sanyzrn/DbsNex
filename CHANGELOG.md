@@ -37,6 +37,12 @@ Working convention:
 - Timeline cards are back to their original height. The two-line preview
   stayed; the time a note was last touched moved next to its icon, which
   is what was taking the room.
+- The greeting and the line under it are centred, and both now follow the
+  language they are written in — a Persian line no longer came out with
+  its full stop at the wrong end.
+- The daily summary reads right-to-left when it is written in Persian.
+- The logo in the corner lost the grey tile behind it; it was not a
+  button, so it should not have looked like one.
 
 ## v0.9.2
 

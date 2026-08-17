@@ -1031,7 +1031,11 @@ class TimelineScreenState extends State<TimelineScreen> {
         0,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // Stretch, so the tappable text block spans the column and the
+        // centring inside it has something to centre against — sized to its
+        // own content it would sit at one edge no matter how it aligned its
+        // children. The card below wants the full width anyway.
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           NexTappable(
             onTap: _refreshHeadline,
@@ -1045,7 +1049,10 @@ class TimelineScreenState extends State<TimelineScreen> {
                 vertical: NexSpacing.sm,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                // Centred, both lines. Left-aligned they read as two separate
+                // starts stacked on each other; centred they read as one
+                // block, which is what they are.
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if (greeting != null)
                     _GreetingLine(
@@ -1460,33 +1467,22 @@ class _GreetingGlyphState extends State<_GreetingGlyph>
 
 /// The app's own mark, in the corner the app bar used to spend on a title.
 ///
-/// A tile rather than a bare image: at 28px the logo alone reads as debris in
-/// the status-bar area, and the rounded ground gives it the same footprint as
-/// the two icon buttons opposite it, so the bar's two ends balance.
+/// Bare, on no ground of its own. It had a rounded tile behind it to match the
+/// footprint of the two icon buttons opposite — but those are tap targets and
+/// this is not, so the tile was claiming an affordance the mark does not have,
+/// and it read as a fourth button that does nothing.
 class _WordmarkTile extends StatelessWidget {
   const _WordmarkTile();
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: 34,
-      height: 34,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(NexRadius.md),
-      ),
-      child: Image.asset(
-        theme.brightness == Brightness.dark
-            ? 'assets/branding/logo_dark.png'
-            : 'assets/branding/logo_white.png',
-        width: 20,
-        height: 20,
-        semanticLabel: 'Nex',
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Image.asset(
+    Theme.of(context).brightness == Brightness.dark
+        ? 'assets/branding/logo_dark.png'
+        : 'assets/branding/logo_white.png',
+    width: 28,
+    height: 28,
+    semanticLabel: 'Nex',
+  );
 }
 
 /// "Good evening, Saeed ☀️" — the text and its animated mark on one line.
@@ -1504,6 +1500,13 @@ class _GreetingLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
+    // Centred with the headline under it, so the two read as one block
+    // rather than as a label and a separate line that happen to be adjacent.
+    mainAxisAlignment: MainAxisAlignment.center,
+    // The greeting's own language decides which end the mark sits at. This
+    // string is localised, so in Persian it is RTL text inside an interface
+    // that may still be in English — and the Row is what places the glyph.
+    textDirection: nexDirectionOf(text),
     children: [
       Flexible(
         child: Text(
@@ -1511,6 +1514,7 @@ class _GreetingLine extends StatelessWidget {
           style: style,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
         ),
       ),
       const SizedBox(width: NexSpacing.xs),
@@ -1546,7 +1550,7 @@ class _HeadlineText extends StatelessWidget {
     if (value == null) {
       return loading
           ? const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 NexSkeleton(height: 22, width: 240),
                 SizedBox(height: NexSpacing.xs),
@@ -1567,6 +1571,12 @@ class _HeadlineText extends StatelessWidget {
           style: style,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          // The generated line follows the language it was written in, not
+          // the interface's. Without this a Persian line rendered inside an
+          // English UI resolves as left-to-right, which puts its full stop
+          // at the wrong end of the sentence.
+          textDirection: nexDirectionOf(value),
         ),
       ),
     );
@@ -1707,11 +1717,27 @@ class _AiDaySummaryPanel extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
+              textAlign: TextAlign.start,
+              textDirection: nexDirectionOf(emptyLabel),
             );
     }
     return Opacity(
       opacity: loading ? 0.45 : 1,
-      child: Text(value, style: theme.textTheme.bodyMedium),
+      child: SizedBox(
+        // Full width, so a Persian recap reaches the right edge rather than
+        // hugging whichever edge its first character happens to start at.
+        width: double.infinity,
+        child: Text(
+          value,
+          style: theme.textTheme.bodyMedium,
+          // The recap is written in the language of the notes, which is not
+          // necessarily the language of the interface around it — so it takes
+          // its direction from itself, and `start` then means the right edge
+          // in Persian and the left in English.
+          textDirection: nexDirectionOf(value),
+          textAlign: TextAlign.start,
+        ),
+      ),
     );
   }
 }
