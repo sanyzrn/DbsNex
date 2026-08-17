@@ -95,7 +95,28 @@ jobs:
           # github.run_number is scoped to the workflow FILE: renaming or
           # recreating release.yml resets it to 1. Play requires versionCode to
           # increase strictly and forever, so it must come from the version.
-          CODE=$(( MA * 1000000 + MI * 1000 + PA ))
+          #
+          # The x10000 spacing is not decoration — it is what keeps an in-place
+          # update installable. Flutter adds an ABI offset to the versionCode of
+          # every --split-per-abi APK (arm32 +1000, arm64 +2000, x86_64 +4000)
+          # so that Play can tell the variants apart. Under the old
+          # MA*1e6+MI*1e3+PA scheme consecutive versions were one apart, so a
+          # split APK outranked the *next* several versions' universal APK:
+          # v0.7.8-arm64 shipped as 9008, and v0.9.1-universal as 9001, which
+          # Android refuses to install over it as a downgrade. That is exactly
+          # what happened, and why 0.9.1 could only be installed by uninstalling
+          # first. Ten thousand per patch release clears the 4000 ceiling with
+          # room to spare, so any later version's universal APK still outranks
+          # any earlier version's split.
+          #
+          # It also has to clear every code already installed in the wild. The
+          # highest ever published is 11008 (v0.7.8, x86_64); the smallest this
+          # can now produce is 9020000.
+          if [ "$MI" -gt 99 ] || [ "$PA" -gt 99 ]; then
+            echo "::error::minor and patch must each stay under 100 — the versionCode scheme packs them two digits wide."
+            exit 1
+          fi
+          CODE=$(( (MA * 10000 + MI * 100 + PA) * 10000 ))
           {
             echo "version=$VERSION"
             echo "base=$BASE"
@@ -225,15 +246,27 @@ jobs:
           # every flutter-apk filename once a flavor is set.
           cp build/app/outputs/bundle/standardRelease/app-standard-release.aab \
             "dist/Nex-${{ needs.version.outputs.version }}.aab"
+          # ABI first, flavor second. The Flutter tool has two different naming
+          # helpers — `_apkFilesFor` builds app-<flavor>-<abi>-<mode>.apk for
+          # Gradle's own outputs/apk/ tree, and `listApkPaths` builds
+          # app-<abi>-<flavor>-<mode>.apk for the flutter-apk/ directory this
+          # step reads. Guessing the first order here matched nothing, and
+          # because the copy was guarded by `[ -f ]` it failed silently: v0.9.1
+          # published a universal APK and no splits at all, with a green build.
+          # No guard now — a missing artifact fails the release.
           for abi in armeabi-v7a arm64-v8a x86_64; do
-            src="build/app/outputs/flutter-apk/app-standard-$abi-release.apk"
-            [ -f "$src" ] && cp "$src" "dist/Nex-${{ needs.version.outputs.version }}-$abi.apk"
+            cp "build/app/outputs/flutter-apk/app-$abi-standard-release.apk" \
+              "dist/Nex-${{ needs.version.outputs.version }}-$abi.apk"
           done
           # The updater matches this asset by the "-universal.apk" suffix, so
           # the name is a contract, not a label.
           cp build/app/outputs/flutter-apk/app-standard-release.apk \
             "dist/Nex-${{ needs.version.outputs.version }}-universal.apk"
           ls -la dist
+          # The bundle, three splits, the universal APK. Asserted rather than
+          # assumed: shipping a release that is quietly missing the split the
+          # updater asks for is how an update stops being installable at all.
+          test "$(ls dist | wc -l)" -eq 5
 
       - uses: actions/upload-artifact@v7
         with:
