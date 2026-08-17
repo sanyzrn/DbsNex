@@ -356,8 +356,8 @@ class NexDbWorker implements NexDb {
   /* ------------------------------------------------------ backup / export */
 
   @override
-  Future<void> backup(String backupDir) =>
-      _send<void>(_DbCommand.backup, {'dir': backupDir});
+  Future<void> backup(String backupDir, {required String mediaDir}) =>
+      _send<void>(_DbCommand.backup, {'dir': backupDir, 'mediaDir': mediaDir});
 
   @override
   Future<String> exportArchive({
@@ -635,7 +635,10 @@ class NexDbWorker implements NexDb {
               color: arg('color') as String?,
             ),
           ),
-          _DbCommand.backup => repo.backup(arg('dir')! as String),
+          _DbCommand.backup => repo.backup(
+            arg('dir')! as String,
+            mediaDir: arg('mediaDir')! as String,
+          ),
           _DbCommand.exportArchive => (await repo.exportArchive(
             outputPath: arg('outputPath')! as String,
             mediaRoot: arg('mediaRoot')! as String,

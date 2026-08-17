@@ -97,7 +97,7 @@ abstract interface class NexDb {
 
   Future<void> setTagColor({required String tagId, String? color});
 
-  Future<void> backup(String backupDir);
+  Future<void> backup(String backupDir, {required String mediaDir});
 
   Future<String> exportArchive({
     required String outputPath,

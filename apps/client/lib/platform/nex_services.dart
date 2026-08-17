@@ -405,7 +405,7 @@ class NexServices {
       // note, not to twelve hours after the app was first opened.
       final anything = await worker.timeline(limit: 1);
       if (anything.isEmpty) return false;
-      await worker.backup(backupDir);
+      await worker.backup(backupDir, mediaDir: mediaDir);
       await _backupPolicy.markDone();
       return true;
     } catch (_) {
@@ -444,7 +444,7 @@ class NexServices {
 
   /// Takes a backup right now, outside the once-a-day policy.
   Future<void> backupNow() async {
-    await worker.backup(backupDir);
+    await worker.backup(backupDir, mediaDir: mediaDir);
     await _backupPolicy.markDone();
   }
 
@@ -485,7 +485,7 @@ class NexServices {
         dir
             .listSync()
             .whereType<File>()
-            .where((f) => f.path.endsWith('.sqlite'))
+            .where((f) => NexBackupArchive.isBackupFile(f.path))
             .toList()
           ..sort((a, b) => b.path.compareTo(a.path));
     return entries;
@@ -511,7 +511,11 @@ class NexServices {
   @useResult
   Future<RestartRequired> restoreBackup(File backup) async {
     await _closeOnce();
-    NexDatabase.restoreFromBackup(liveDbPath: dbPath, backupFile: backup.path);
+    NexBackupArchive.restore(
+      liveDbPath: dbPath,
+      mediaDir: mediaDir,
+      backupFile: backup.path,
+    );
     return const RestartRequired();
   }
 

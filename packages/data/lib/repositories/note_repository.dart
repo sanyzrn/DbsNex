@@ -7,6 +7,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
+import '../schema/backup_archive.dart';
 import '../schema/database.dart';
 
 /// Suggested starter tags (FR-3.3) — offered, never enforced.
@@ -1102,7 +1103,18 @@ WHERE id = ?
         as Map<String, dynamic>;
   }
 
-  File backup(String backupDir) => _db.createBackup(backupDir);
+  /// Writes a complete backup — the database and every media file.
+  ///
+  /// [mediaDir] is required rather than optional: making it optional is how
+  /// the media came to be left out of a backup in the first place, and a
+  /// caller that genuinely has no media can pass a directory that does not
+  /// exist.
+  File backup(String backupDir, {required String mediaDir}) =>
+      NexBackupArchive.create(
+        database: _db,
+        mediaDir: mediaDir,
+        backupDir: backupDir,
+      );
 
   void _bumpNote(String noteId) {
     final now = DateTime.now().toUtc().toIso8601String();

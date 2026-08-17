@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+- Backups now contain your photos, voice recordings and attached files. They
+  never did: a backup was the database and nothing else, so restoring on a
+  new phone brought back every note with every picture missing — and said
+  nothing, because the notes were all there. Backups written from now on are
+  `.nexbak` files, which are ordinary zips: your notes can be pulled out of
+  one with any unzip tool, without this app. Older `.sqlite` backups still
+  restore, and restoring one leaves the files on your device alone.
 - The assistant remembers your conversations. The history button in its
   header lists them, reopens one where it left off, and deletes any or all
   of them. Nothing is sent anywhere — they are kept on this device.

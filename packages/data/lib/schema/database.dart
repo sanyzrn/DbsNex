@@ -355,6 +355,27 @@ CREATE TABLE notes_rebuilt (
     restoring.renameSync(liveDbPath);
   }
 
+  /// Throws unless [dbPath] is a database worth restoring.
+  ///
+  /// Exposed for [NexBackupArchive], which validates the copy it unpacked
+  /// from a zip before letting it near the live files — the same check this
+  /// class already made for a bare `.sqlite` backup, and there is no reason
+  /// the newer format should get a weaker one.
+  static void assertRestorable(String dbPath) {
+    final file = File(dbPath);
+    if (!file.existsSync()) throw StateError('Missing database: $dbPath');
+    if (file.lengthSync() == 0) throw StateError('Empty database: $dbPath');
+    try {
+      _assertSqliteIntegrity(dbPath);
+    } catch (e) {
+      // One failure type for every way a backup can be unusable. Opening a
+      // file that is not a database at all throws SqliteException from deep
+      // inside the driver, and a caller deciding whether to abort a restore
+      // should not have to know that.
+      throw StateError('Backup failed integrity check: $e');
+    }
+  }
+
   /// Opens [dbPath] read-only and requires `PRAGMA integrity_check` → `ok`.
   static void _assertSqliteIntegrity(String dbPath) {
     Database? probe;
