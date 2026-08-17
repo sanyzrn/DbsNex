@@ -289,7 +289,14 @@ class TimelineScreenState extends State<TimelineScreen> {
   void _openAssistant() {
     if (!AiChatSheet.availableFor(widget.preferences)) return;
     HapticFeedback.mediumImpact();
-    unawaited(AiChatSheet.show(context, preferences: widget.preferences));
+    unawaited(
+      AiChatSheet.show(
+        context,
+        preferences: widget.preferences,
+        services: widget.services,
+        history: widget.preferences.chatHistory,
+      ),
+    );
   }
 
   void _toggleAiSummary() {

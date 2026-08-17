@@ -15,7 +15,7 @@ import '../platform/nex_services.dart';
 import '../platform/update_service.dart';
 import 'about_screen.dart';
 import 'backup_screen.dart';
-import 'chat_screen.dart';
+import 'assistant_screen.dart';
 import 'intelligence_screen.dart';
 import 'update_sheet.dart';
 
@@ -178,11 +178,13 @@ class SettingsSheet extends StatelessWidget {
         ),
         _Row(
           icon: Icons.chat_bubble_outline,
-          title: l10n.chat,
-          value: l10n.chatSubtitle,
+          title: l10n.assistant,
+          value: l10n.assistantSubtitle,
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(builder: (_) => const ChatScreen()),
+            MaterialPageRoute<void>(
+              builder: (_) => AssistantScreen(preferences: preferences),
+            ),
           ),
         ),
       ],

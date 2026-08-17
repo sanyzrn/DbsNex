@@ -34,6 +34,25 @@ Working convention:
 
 ## Unreleased
 
+- The assistant remembers your conversations. The history button in its
+  header lists them, reopens one where it left off, and deletes any or all
+  of them. Nothing is sent anywhere — they are kept on this device.
+- The assistant has settings of its own, under Settings › Assistant:
+  how creative it is, how long its answers may be, how many recent notes it
+  can see, and whether it stays inside your notes or answers anything.
+- It can now write to your notes: create one, rewrite one, delete one, or
+  change its tags. It never does any of that on its own — it asks, you see
+  exactly what it would do, and it happens only when you press the button.
+- The assistant's send button no longer sits under the phone's own
+  navigation buttons.
+- Your own messages in the chat are readable again — the text and the bubble
+  behind it were being coloured independently.
+- The light around the screen while you hold the capture button is softer and
+  moves as it builds, and it fades as the chat opens instead of blinking out.
+- The Chat row in Settings used to open a chat that answered "unavailable" to
+  everything on every published build. It opens the assistant's settings now,
+  and there is one chat in the app: hold the capture button.
+
 ## v0.9.3
 
 - Timeline cards are back to their original height. The two-line preview

@@ -1,12 +1,18 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/ai_provider.dart';
+import '../platform/assistant_actions.dart';
+import '../platform/chat_history.dart';
 import '../platform/nex_preferences.dart';
+import '../platform/nex_services.dart';
+import 'card_strings.dart';
 
 /// The assistant, reached by holding the capture button.
 ///
@@ -22,9 +28,34 @@ import '../platform/nex_preferences.dart';
 /// configured, through the same [CloudAIAdapter] the timeline's headline and
 /// digest already use, and honours the same output-language setting.
 class AiChatSheet extends StatefulWidget {
-  const AiChatSheet({super.key, required this.preferences});
+  const AiChatSheet({
+    super.key,
+    required this.preferences,
+    required this.services,
+    required this.history,
+    this.resume,
+    this.client,
+  });
 
   final NexPreferences preferences;
+
+  /// The notes themselves — read for the context the assistant answers from,
+  /// and written by the actions it asks for.
+  final NexServices services;
+
+  final ChatHistory history;
+
+  /// A saved conversation to carry on with, or null for a new one.
+  final ChatThread? resume;
+
+  /// Stands in for the network in tests.
+  ///
+  /// A seam rather than a mock of the whole sheet: what has to be provable
+  /// here is that a model asking to delete a note does not delete it, and
+  /// that is only provable by putting a real reply in and watching what the
+  /// library does — which needs a reply this side of the network.
+  @visibleForTesting
+  final http.Client? client;
 
   /// Whether there is a provider behind this at all. The caller checks before
   /// opening, so nobody is shown a chat that cannot answer.
@@ -34,12 +65,22 @@ class AiChatSheet extends StatefulWidget {
   static Future<void> show(
     BuildContext context, {
     required NexPreferences preferences,
+    required NexServices services,
+    required ChatHistory history,
+    ChatThread? resume,
+    http.Client? client,
   }) => showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => AiChatSheet(preferences: preferences),
+    builder: (_) => AiChatSheet(
+      preferences: preferences,
+      services: services,
+      history: history,
+      resume: resume,
+      client: client,
+    ),
   );
 
   @override
@@ -65,6 +106,24 @@ class _AiChatSheetState extends State<AiChatSheet> {
 
   bool _sending = false;
 
+  /// The identity of this conversation in [ChatHistory]. Fixed for the life
+  /// of the sheet, so every save replaces the same thread rather than filling
+  /// the list with one entry per exchange.
+  late final String _threadId;
+
+  /// The user's recent notes, formatted once when the sheet opens.
+  ///
+  /// Not refreshed per message: the conversation is about the notes as they
+  /// were when it started, and re-reading the library between turns would
+  /// silently change what earlier answers were based on.
+  String _notesContext = '';
+
+  /// The action the assistant last asked for, waiting on the user.
+  AssistantAction? _pending;
+
+  /// What the last confirmed action did, in one line.
+  String? _actionResult;
+
   /// Set when a reply does not arrive, and cleared by the next attempt. Shown
   /// in the thread rather than as a toast: the failure belongs to the message
   /// it answers, and a toast would be gone before it is read.
@@ -73,11 +132,57 @@ class _AiChatSheetState extends State<AiChatSheet> {
   @override
   void initState() {
     super.initState();
+    final resumed = widget.resume;
+    _threadId =
+        resumed?.id ?? DateTime.now().microsecondsSinceEpoch.toRadixString(36);
+    if (resumed != null) _turns.addAll(resumed.messages);
     _adapter = CloudAIAdapter(
       config: widget.preferences.aiProvider,
       outputLanguage: widget.preferences.aiOutputLanguage,
+      client: widget.client,
     );
+    unawaited(_loadNotesContext());
   }
+
+  /// Reads the recent notes the assistant is allowed to see.
+  ///
+  /// Bounded by the user's own setting, and each note reduced to one line
+  /// with its id in front — the id is what makes "delete that one" possible
+  /// to act on without the model guessing which note was meant.
+  Future<void> _loadNotesContext() async {
+    final count = widget.preferences.aiNotesContextCount;
+    if (count == 0) return;
+    List<Note> notes;
+    try {
+      notes = await widget.services.timeline(limit: count);
+    } catch (_) {
+      return;
+    }
+    final lines = <String>[];
+    for (final note in notes) {
+      final text = (note.displayText ?? '').trim().replaceAll(
+        RegExp(r'\s+'),
+        ' ',
+      );
+      if (text.isEmpty) continue;
+      lines.add(
+        '[${note.id}] ${text.length > 200 ? '${text.substring(0, 200)}…' : text}',
+      );
+    }
+    if (!mounted) return;
+    setState(() => _notesContext = lines.join('\n'));
+  }
+
+  AiChatOptions get _options => AiChatOptions(
+    creativity: widget.preferences.aiCreativity,
+    length: widget.preferences.aiAnswerLength,
+    notesOnly: widget.preferences.aiNotesOnly,
+    notesContext: _notesContext,
+    // Acting needs ids to act on. With no notes in context every id the model
+    // could produce would be invented, which is the one thing the prompt
+    // tells it not to do.
+    canAct: _notesContext.isNotEmpty,
+  );
 
   @override
   void dispose() {
@@ -95,13 +200,15 @@ class _AiChatSheetState extends State<AiChatSheet> {
       _turns.add(ChatMessage(role: ChatRole.user, content: trimmed));
       _sending = true;
       _failure = null;
+      _pending = null;
+      _actionResult = null;
       _input.clear();
     });
     _toBottom();
 
     String? reply;
     try {
-      reply = await _adapter.chat(List.of(_turns));
+      reply = await _adapter.chat(List.of(_turns), options: _options);
     } catch (_) {
       reply = null;
     }
@@ -111,11 +218,105 @@ class _AiChatSheetState extends State<AiChatSheet> {
       _sending = false;
       if (reply == null || reply.isEmpty) {
         _failure = l10n.chatFailed;
-      } else {
-        _turns.add(ChatMessage(role: ChatRole.assistant, content: reply));
+        return;
+      }
+      final action = parseAssistantAction(reply);
+      _pending = action;
+      // A reply that is only an action block has no prose worth showing —
+      // the confirmation card says what it is in the user's own language,
+      // and the raw JSON underneath it would be noise. A reply carrying both
+      // keeps the words and drops the block.
+      final prose = action == null ? reply : withoutActionBlock(reply);
+      if (prose.isNotEmpty) {
+        _turns.add(ChatMessage(role: ChatRole.assistant, content: prose));
       }
     });
+    _persist();
     _toBottom();
+  }
+
+  /// Writes the conversation after every exchange. Fire-and-forget: a thread
+  /// that fails to save is not worth interrupting the conversation over.
+  void _persist() => unawaited(widget.history.save(_threadId, _turns));
+
+  /// Carries out what the user just confirmed.
+  ///
+  /// Everything here goes through [NexServices], the same path the UI itself
+  /// uses — so an assistant edit is indistinguishable from a hand edit, syncs
+  /// like one, and lands in Recently Deleted like one.
+  Future<void> _runPending() async {
+    final action = _pending;
+    if (action == null) return;
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _pending = null;
+      _sending = true;
+    });
+    var ok = true;
+    try {
+      switch (action.kind) {
+        case AssistantActionKind.create:
+          await widget.services.captureText(action.text!);
+        case AssistantActionKind.edit:
+          await widget.services.updateNote(action.noteId!, action.text!);
+        case AssistantActionKind.delete:
+          await widget.services.deleteNote(action.noteId!);
+        case AssistantActionKind.tag:
+          await _applyTags(action);
+      }
+    } catch (_) {
+      ok = false;
+    }
+    await widget.services.refreshTimeline();
+    if (!mounted) return;
+    setState(() {
+      _sending = false;
+      _actionResult = ok
+          ? l10n.assistantActionDone
+          : l10n.assistantActionFailed;
+    });
+    // The library moved, so the context the rest of this conversation is
+    // answering from is now stale.
+    unawaited(_loadNotesContext());
+    _toBottom();
+  }
+
+  /// Swaps this sheet for a saved conversation, or a fresh one.
+  ///
+  /// Replaces rather than stacks: two assistant sheets on top of each other
+  /// is two conversations both claiming to be the one on screen, and the one
+  /// underneath would keep saving itself over the one above.
+  Future<void> _openHistory() async {
+    final chosen = await ChatHistorySheet.show(
+      context,
+      history: widget.history,
+    );
+    if (chosen == null || !mounted) return;
+    Navigator.pop(context);
+    await AiChatSheet.show(
+      context,
+      preferences: widget.preferences,
+      services: widget.services,
+      history: widget.history,
+      resume: chosen.thread,
+    );
+  }
+
+  Future<void> _applyTags(AssistantAction action) async {
+    final existing = await widget.services.listTags();
+    for (final name in action.removeTags) {
+      final match = existing.where(
+        (tag) => tag.name.toLowerCase() == name.toLowerCase(),
+      );
+      if (match.isEmpty) continue;
+      await widget.services.removeTag(
+        noteId: action.noteId!,
+        tagId: match.first.id,
+      );
+    }
+    for (final name in action.addTags) {
+      await widget.services.addTag(noteId: action.noteId!, name: name);
+    }
   }
 
   /// After the frame that added the message, not before it — the list has to
@@ -182,6 +383,11 @@ class _AiChatSheetState extends State<AiChatSheet> {
                     Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
                     const Spacer(),
                     IconButton(
+                      tooltip: l10n.chatHistory,
+                      onPressed: _openHistory,
+                      icon: const Icon(Icons.history),
+                    ),
+                    IconButton(
                       tooltip: l10n.cancel,
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.close),
@@ -209,6 +415,29 @@ class _AiChatSheetState extends State<AiChatSheet> {
                         failure: _failure,
                       ),
               ),
+              if (_pending case final action?)
+                _ActionCard(
+                  action: action,
+                  onApply: () => unawaited(_runPending()),
+                  onDismiss: () => setState(() => _pending = null),
+                ),
+              if (_actionResult case final result?)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.md,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 18,
+                        color: theme.colorScheme.secondary,
+                      ),
+                      const SizedBox(width: NexSpacing.sm),
+                      Text(result, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ),
               _Composer(
                 controller: _input,
                 sending: _sending,
@@ -353,7 +582,15 @@ class _Thread extends StatelessWidget {
             ),
             child: Text(
               turn.content,
-              style: theme.textTheme.bodyMedium,
+              // The on-colour that belongs to the container behind it. Left
+              // at the default the user's own words were onSurface on
+              // primaryContainer — a pairing nothing guarantees the contrast
+              // of, and in practice barely readable in the light theme.
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: mine
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.onSurface,
+              ),
               // Either side may be in either language — the assistant answers
               // in whatever the output-language setting asks for.
               textDirection: nexDirectionOf(turn.content),
@@ -380,12 +617,22 @@ class _Composer extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // The larger of the keyboard and the system bar, never their sum: the
+    // keyboard covers the navigation bar while it is up, so adding both
+    // floats the composer a nav-bar's height above the keyboard. With
+    // neither — `useSafeArea` deliberately leaves the bottom edge to the
+    // sheet — the send button sat under the on-screen buttons on any phone
+    // that still has them.
+    final bottom = math.max(
+      MediaQuery.viewInsetsOf(context).bottom,
+      nexBottomInset(context),
+    );
     return Padding(
       padding: EdgeInsets.fromLTRB(
         NexSpacing.md,
         NexSpacing.sm,
         NexSpacing.md,
-        NexSpacing.md + MediaQuery.viewInsetsOf(context).bottom,
+        NexSpacing.md + bottom,
       ),
       child: Row(
         children: [
@@ -418,6 +665,225 @@ class _Composer extends StatelessWidget {
             icon: const Icon(Icons.arrow_upward),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// What the assistant has asked to do, and the button that lets it.
+///
+/// Nothing the assistant proposes happens without this card being answered.
+/// It says the action in the user's own language rather than showing the
+/// JSON: "Move this note to Recently Deleted?" is a question someone can
+/// answer, and `{"action":"delete"}` is not.
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
+    required this.action,
+    required this.onApply,
+    required this.onDismiss,
+  });
+
+  final AssistantAction action;
+  final VoidCallback onApply;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final destructive = action.kind == AssistantActionKind.delete;
+    final question = switch (action.kind) {
+      AssistantActionKind.create => l10n.assistantConfirmCreate,
+      AssistantActionKind.edit => l10n.assistantConfirmEdit,
+      AssistantActionKind.delete => l10n.assistantConfirmDelete,
+      AssistantActionKind.tag => l10n.assistantConfirmTags,
+    };
+    // What the action would actually do, in the user's own words where there
+    // are any — a confirmation that does not show the text being written is
+    // asking someone to approve something they cannot see.
+    final detail = switch (action.kind) {
+      AssistantActionKind.create ||
+      AssistantActionKind.edit => action.text ?? '',
+      AssistantActionKind.tag => [
+        for (final tag in action.addTags) '+$tag',
+        for (final tag in action.removeTags) '−$tag',
+      ].join('  '),
+      AssistantActionKind.delete => '',
+    };
+    final accent = destructive
+        ? theme.colorScheme.error
+        : theme.colorScheme.primary;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        NexSpacing.md,
+        0,
+        NexSpacing.md,
+        NexSpacing.sm,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(NexSpacing.md),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(NexRadius.lg),
+          border: Border.all(color: accent.withValues(alpha: 0.5)),
+          color: accent.withValues(alpha: 0.06),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              question,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (detail.isNotEmpty) ...[
+              const SizedBox(height: NexSpacing.xs),
+              Text(
+                detail,
+                style: theme.textTheme.bodySmall,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                textDirection: nexDirectionOf(detail),
+                textAlign: TextAlign.start,
+              ),
+            ],
+            const SizedBox(height: NexSpacing.sm),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(onPressed: onDismiss, child: Text(l10n.cancel)),
+                const SizedBox(width: NexSpacing.sm),
+                FilledButton(
+                  onPressed: onApply,
+                  style: destructive
+                      ? FilledButton.styleFrom(backgroundColor: accent)
+                      : null,
+                  child: Text(l10n.assistantApply),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What the history button opens: every saved conversation, newest first.
+///
+/// Returns the thread to reopen, wrapped — a bare `ChatThread?` cannot tell
+/// "the user picked nothing" from "the user asked for a new conversation",
+/// and those do opposite things.
+@immutable
+class ChatHistoryChoice {
+  const ChatHistoryChoice(this.thread);
+
+  /// Null means: start a fresh conversation.
+  final ChatThread? thread;
+}
+
+class ChatHistorySheet extends StatefulWidget {
+  const ChatHistorySheet({super.key, required this.history});
+
+  final ChatHistory history;
+
+  static Future<ChatHistoryChoice?> show(
+    BuildContext context, {
+    required ChatHistory history,
+  }) => showModalBottomSheet<ChatHistoryChoice>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) => ChatHistorySheet(history: history),
+  );
+
+  @override
+  State<ChatHistorySheet> createState() => _ChatHistorySheetState();
+}
+
+class _ChatHistorySheetState extends State<ChatHistorySheet> {
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final threads = widget.history.threads;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: nexBottomInset(context)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add_comment_outlined),
+              title: Text(l10n.chatNewConversation),
+              onTap: () =>
+                  Navigator.pop(context, const ChatHistoryChoice(null)),
+            ),
+            const Divider(height: 1),
+            if (threads.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(NexSpacing.xl),
+                child: Text(
+                  l10n.chatHistoryEmpty,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: threads.length,
+                  itemBuilder: (context, index) {
+                    final thread = threads[index];
+                    return ListTile(
+                      title: Text(
+                        thread.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textDirection: nexDirectionOf(thread.title),
+                      ),
+                      // The same words the timeline cards use for "2h", so
+                      // the two places that show an age agree.
+                      subtitle: Text(
+                        nexCardStrings(
+                          context,
+                        ).relativeTime(nexRelativeTimeOf(thread.updatedAt)),
+                      ),
+                      trailing: IconButton(
+                        tooltip: l10n.delete,
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: () async {
+                          await widget.history.remove(thread.id);
+                          if (mounted) setState(() {});
+                        },
+                      ),
+                      onTap: () =>
+                          Navigator.pop(context, ChatHistoryChoice(thread)),
+                    );
+                  },
+                ),
+              ),
+            if (threads.isNotEmpty) ...[
+              const Divider(height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_sweep_outlined,
+                  color: theme.colorScheme.error,
+                ),
+                title: Text(
+                  l10n.chatClearHistory,
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+                onTap: () async {
+                  await widget.history.clear();
+                  if (mounted) setState(() {});
+                },
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

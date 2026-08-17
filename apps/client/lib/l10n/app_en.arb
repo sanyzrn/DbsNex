@@ -1193,5 +1193,114 @@
   "chatPromptIdeas": "Suggest what I might be forgetting",
   "@chatPromptIdeas": {
     "description": "Suggested opening prompt"
+  },
+  "assistantActionDone": "Done.",
+  "@assistantActionDone": {
+    "description": "Shown after the assistant's confirmed action succeeds"
+  },
+  "assistantActionFailed": "That didn't work.",
+  "@assistantActionFailed": {
+    "description": "Shown when the assistant's confirmed action fails"
+  },
+  "assistantConfirmCreate": "Save this as a new note?",
+  "@assistantConfirmCreate": {
+    "description": "Confirmation for an assistant-proposed new note"
+  },
+  "assistantConfirmEdit": "Replace this note's text?",
+  "@assistantConfirmEdit": {
+    "description": "Confirmation for an assistant-proposed edit"
+  },
+  "assistantConfirmDelete": "Move this note to Recently Deleted?",
+  "@assistantConfirmDelete": {
+    "description": "Confirmation for an assistant-proposed delete"
+  },
+  "assistantConfirmTags": "Change this note's tags?",
+  "@assistantConfirmTags": {
+    "description": "Confirmation for an assistant-proposed tag change"
+  },
+  "assistantApply": "Do it",
+  "@assistantApply": {
+    "description": "Button that carries out the assistant's proposed action"
+  },
+  "chatHistory": "Conversations",
+  "@chatHistory": {
+    "description": "Title of the saved assistant conversations list"
+  },
+  "chatHistoryEmpty": "No saved conversations yet.",
+  "@chatHistoryEmpty": {
+    "description": "Empty state for the conversation list"
+  },
+  "chatNewConversation": "New conversation",
+  "@chatNewConversation": {
+    "description": "Starts a fresh assistant conversation"
+  },
+  "chatClearHistory": "Delete all conversations",
+  "@chatClearHistory": {
+    "description": "Clears the assistant's saved history"
+  },
+  "assistant": "Assistant",
+  "@assistant": {
+    "description": "Settings row opening the assistant's own settings"
+  },
+  "assistantSubtitle": "Creativity, answer length, and what it can see",
+  "@assistantSubtitle": {
+    "description": "Subtitle of the assistant settings row"
+  },
+  "assistantCreativity": "Creativity",
+  "@assistantCreativity": {
+    "description": "How far the assistant may wander from the plainest answer"
+  },
+  "assistantCreativityPrecise": "Precise",
+  "@assistantCreativityPrecise": {
+    "description": "Lowest creativity setting"
+  },
+  "assistantCreativityBalanced": "Balanced",
+  "@assistantCreativityBalanced": {
+    "description": "Middle creativity setting"
+  },
+  "assistantCreativityInventive": "Inventive",
+  "@assistantCreativityInventive": {
+    "description": "Highest creativity setting"
+  },
+  "assistantLength": "Answer length",
+  "@assistantLength": {
+    "description": "How long the assistant's answers may be"
+  },
+  "assistantLengthBrief": "Brief",
+  "@assistantLengthBrief": {
+    "description": "Shortest answer length"
+  },
+  "assistantLengthStandard": "Standard",
+  "@assistantLengthStandard": {
+    "description": "Middle answer length"
+  },
+  "assistantLengthFull": "Full",
+  "@assistantLengthFull": {
+    "description": "Longest answer length"
+  },
+  "assistantScope": "Stay in my notes",
+  "@assistantScope": {
+    "description": "Switch limiting the assistant to the notes and the app"
+  },
+  "assistantScopeSubtitle": "Off, it will answer anything — including things it is bad at.",
+  "@assistantScopeSubtitle": {
+    "description": "Explains the notes-only switch"
+  },
+  "assistantContext": "Notes it can see",
+  "@assistantContext": {
+    "description": "How many recent notes are sent with each question"
+  },
+  "assistantContextNone": "None",
+  "@assistantContextNone": {
+    "description": "Zero notes shared with the assistant"
+  },
+  "assistantContextCount": "Last {count}",
+  "@assistantContextCount": {
+    "description": "How many recent notes are shared",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -44,9 +45,15 @@ class _EdgeGlowPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Eased so the last third of the hold is where most of the brightness
-    // arrives — a linear ramp reads as "loading", this reads as "waking up".
-    final t = Curves.easeOutCubic.transform(progress.clamp(0.0, 1.0));
+    // Eased twice over. `easeOutSine` does the visible work — it opens
+    // immediately and then keeps almost the whole hold at gentle, even
+    // brightening, where the old cubic put a lurch in the first sixth and
+    // then crawled. The width and the blur ride a slower curve than the
+    // brightness below, which is what stops the ring from appearing at full
+    // thickness the instant a finger lands.
+    final p = progress.clamp(0.0, 1.0);
+    final t = Curves.easeOutSine.transform(p);
+    final spread = Curves.easeInOutCubic.transform(p);
 
     // The screen's own corner radius is unknowable, so this uses a generous
     // one: too round on a square-cornered phone is far less noticeable than
@@ -59,33 +66,31 @@ class _EdgeGlowPainter extends CustomPainter {
     );
 
     final sweep = SweepGradient(
-      // Starts at the bottom, under the capture button the press began on.
-      transform: const GradientRotation(math.pi / 2),
+      // Starts at the bottom, under the capture button the press began on,
+      // and turns as the hold builds. A fixed gradient reads as a picture of
+      // a glow; a moving one reads as light, and it costs nothing — the
+      // rotation comes off the same value that is already animating, so
+      // there is no second ticker driving it.
+      transform: GradientRotation(math.pi / 2 + spread * math.pi * 0.55),
       colors: [...colors, colors.first],
     ).createShader(rect);
 
-    // Two passes: a wide soft bloom that reads as light spilling inward, and
-    // a tighter bright line that gives it an edge to belong to. One pass on
-    // its own is either a smudge or a hairline.
-    canvas
-      ..drawRRect(
-        rrect,
-        Paint()
-          ..shader = sweep
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 26 * t
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 18 * t)
-          ..color = Colors.white.withValues(alpha: 0.55 * t),
-      )
-      ..drawRRect(
-        rrect,
-        Paint()
-          ..shader = sweep
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.5 * t
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2.5 * t)
-          ..color = Colors.white.withValues(alpha: 0.9 * t),
-      );
+    // Three passes, softest first. Two was enough to read as a glow but not
+    // to read as a soft one: the bloom's own edge was visible, because
+    // nothing was wider and dimmer than it to hide behind.
+    void ring(double width, double blur, double alpha) => canvas.drawRRect(
+      rrect,
+      Paint()
+        ..shader = sweep
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, math.max(blur, 0.1))
+        ..color = Colors.white.withValues(alpha: alpha),
+    );
+
+    ring(54 * spread, 34 * spread, 0.22 * t);
+    ring(22 * spread, 16 * spread, 0.42 * t);
+    ring(2.5 + 1.5 * spread, 2 + spread, 0.85 * t);
   }
 
   @override
@@ -137,6 +142,11 @@ class NexLongPressGlowState extends State<NexLongPressGlow>
 
   OverlayEntry? _glow;
 
+  /// Set once a hold has completed, cleared when the next one starts. Lifting
+  /// the finger after the trigger has already fired must not turn the gentle
+  /// hand-off fade into the fast abandon-the-press one.
+  bool _handedOff = false;
+
   @override
   void initState() {
     super.initState();
@@ -151,11 +161,26 @@ class NexLongPressGlowState extends State<NexLongPressGlow>
 
   void _onStatus(AnimationStatus status) {
     if (status != AnimationStatus.completed) return;
-    _remove();
+    _handedOff = true;
     widget.onTriggered();
+    // Faded out rather than cut. The sheet the trigger opens takes a moment
+    // to rise, and removing the light on the same frame left a visible blink
+    // between the two — the glow gone, the sheet not yet there. Slower than
+    // the abandon-the-press reverse for the same reason: this one is a
+    // hand-off, not a cancellation.
+    unawaited(
+      _hold
+          .animateBack(
+            0,
+            duration: const Duration(milliseconds: 340),
+            curve: Curves.easeOutCubic,
+          )
+          .whenComplete(_remove),
+    );
   }
 
   void _start() {
+    _handedOff = false;
     widget.onHoldStart?.call();
     if (MediaQuery.disableAnimationsOf(context)) {
       // No paint, but the hold still has to be a hold — firing instantly
@@ -170,6 +195,7 @@ class NexLongPressGlowState extends State<NexLongPressGlow>
   }
 
   void _cancel() {
+    if (_handedOff) return;
     _hold.reverse().whenComplete(() {
       if (_hold.value == 0) _remove();
     });

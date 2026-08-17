@@ -2149,6 +2149,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Suggest what I might be forgetting'**
   String get chatPromptIdeas;
+
+  /// Shown after the assistant's confirmed action succeeds
+  ///
+  /// In en, this message translates to:
+  /// **'Done.'**
+  String get assistantActionDone;
+
+  /// Shown when the assistant's confirmed action fails
+  ///
+  /// In en, this message translates to:
+  /// **'That didn\'t work.'**
+  String get assistantActionFailed;
+
+  /// Confirmation for an assistant-proposed new note
+  ///
+  /// In en, this message translates to:
+  /// **'Save this as a new note?'**
+  String get assistantConfirmCreate;
+
+  /// Confirmation for an assistant-proposed edit
+  ///
+  /// In en, this message translates to:
+  /// **'Replace this note\'s text?'**
+  String get assistantConfirmEdit;
+
+  /// Confirmation for an assistant-proposed delete
+  ///
+  /// In en, this message translates to:
+  /// **'Move this note to Recently Deleted?'**
+  String get assistantConfirmDelete;
+
+  /// Confirmation for an assistant-proposed tag change
+  ///
+  /// In en, this message translates to:
+  /// **'Change this note\'s tags?'**
+  String get assistantConfirmTags;
+
+  /// Button that carries out the assistant's proposed action
+  ///
+  /// In en, this message translates to:
+  /// **'Do it'**
+  String get assistantApply;
+
+  /// Title of the saved assistant conversations list
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations'**
+  String get chatHistory;
+
+  /// Empty state for the conversation list
+  ///
+  /// In en, this message translates to:
+  /// **'No saved conversations yet.'**
+  String get chatHistoryEmpty;
+
+  /// Starts a fresh assistant conversation
+  ///
+  /// In en, this message translates to:
+  /// **'New conversation'**
+  String get chatNewConversation;
+
+  /// Clears the assistant's saved history
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all conversations'**
+  String get chatClearHistory;
+
+  /// Settings row opening the assistant's own settings
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant'**
+  String get assistant;
+
+  /// Subtitle of the assistant settings row
+  ///
+  /// In en, this message translates to:
+  /// **'Creativity, answer length, and what it can see'**
+  String get assistantSubtitle;
+
+  /// How far the assistant may wander from the plainest answer
+  ///
+  /// In en, this message translates to:
+  /// **'Creativity'**
+  String get assistantCreativity;
+
+  /// Lowest creativity setting
+  ///
+  /// In en, this message translates to:
+  /// **'Precise'**
+  String get assistantCreativityPrecise;
+
+  /// Middle creativity setting
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get assistantCreativityBalanced;
+
+  /// Highest creativity setting
+  ///
+  /// In en, this message translates to:
+  /// **'Inventive'**
+  String get assistantCreativityInventive;
+
+  /// How long the assistant's answers may be
+  ///
+  /// In en, this message translates to:
+  /// **'Answer length'**
+  String get assistantLength;
+
+  /// Shortest answer length
+  ///
+  /// In en, this message translates to:
+  /// **'Brief'**
+  String get assistantLengthBrief;
+
+  /// Middle answer length
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get assistantLengthStandard;
+
+  /// Longest answer length
+  ///
+  /// In en, this message translates to:
+  /// **'Full'**
+  String get assistantLengthFull;
+
+  /// Switch limiting the assistant to the notes and the app
+  ///
+  /// In en, this message translates to:
+  /// **'Stay in my notes'**
+  String get assistantScope;
+
+  /// Explains the notes-only switch
+  ///
+  /// In en, this message translates to:
+  /// **'Off, it will answer anything — including things it is bad at.'**
+  String get assistantScopeSubtitle;
+
+  /// How many recent notes are sent with each question
+  ///
+  /// In en, this message translates to:
+  /// **'Notes it can see'**
+  String get assistantContext;
+
+  /// Zero notes shared with the assistant
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get assistantContextNone;
+
+  /// How many recent notes are shared
+  ///
+  /// In en, this message translates to:
+  /// **'Last {count}'**
+  String assistantContextCount(int count);
 }
 
 class _AppLocalizationsDelegate
