@@ -61,7 +61,7 @@ void main() {
       // is empty instead, and parseChangelogSections drops it rather than
       // rendering a heading with nothing under it — which is why the released
       // section is the one asserted by name.
-      expect(find.text('Version v0.9.1'), findsOneWidget);
+      expect(find.text('Version v0.9.2'), findsOneWidget);
       expect(
         find.text('Toasts pop in instead of just fading.'),
         findsOneWidget,
