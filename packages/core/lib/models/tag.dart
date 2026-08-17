@@ -13,11 +13,11 @@ class Tag {
   final DateTime createdAt;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'name': name,
-        'color': color,
-        'created_at': createdAt.toUtc().toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'color': color,
+    'created_at': createdAt.toUtc().toIso8601String(),
+  };
 
   factory Tag.fromRow(Map<String, Object?> row) {
     return Tag(

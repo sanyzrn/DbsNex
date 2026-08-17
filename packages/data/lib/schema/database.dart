@@ -40,7 +40,13 @@ class NexDatabase {
     db.execute('''
 CREATE TABLE IF NOT EXISTS notes (
   id TEXT PRIMARY KEY NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('text', 'voice', 'photo', 'file')),
+  -- No CHECK on the type. It used to enumerate the four types v1 shipped,
+  -- which meant adding a fifth was a table rebuild rather than an enum case
+  -- — and SQLite cannot drop a CHECK in place, so the constraint outlived
+  -- every schema change on databases that already existed. `NoteType.fromWire`
+  -- throws on an unknown value, in one place, in the language the rest of the
+  -- validation lives in. See [_dropLegacyTypeCheck].
+  type TEXT NOT NULL,
   content TEXT,
   media_uri TEXT,
   media_hash TEXT,
@@ -100,6 +106,16 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     // exported (see Note.pinnedAt / Note.sortOrder).
     _addColumnIfMissing('notes', 'pinned_at', 'TEXT');
     _addColumnIfMissing('notes', 'sort_order', 'INTEGER');
+
+    // An optional headline, on any note. Deliberately not asked for at
+    // capture — see `Note.title`.
+    _addColumnIfMissing('notes', 'title', 'TEXT');
+    // A link note's own description, read off the page it points at. The
+    // machine-derived text field for links, the way transcript_text is for
+    // voice and ocr_text is for photos.
+    _addColumnIfMissing('notes', 'link_excerpt', 'TEXT');
+
+    _dropLegacyTypeCheck();
 
     // Tags get the outbox notes have always had.
     //
@@ -183,6 +199,83 @@ CREATE TABLE IF NOT EXISTS memory_records (
       "INSERT OR REPLACE INTO nex_meta (key, value) VALUES ('starter_tags_seeded', ?)",
       [now],
     );
+  }
+
+  /// Rebuilds `notes` once, to shed the `CHECK (type IN (...))` that v1's
+  /// schema pinned to the four types it happened to ship with.
+  ///
+  /// SQLite cannot drop a constraint in place, and `CREATE TABLE IF NOT
+  /// EXISTS` does not touch a table that already exists — so on every database
+  /// created before this, inserting a checklist or a link would fail the
+  /// constraint no matter what the Dart side believed. This is the documented
+  /// twelve-step table rebuild, narrowed to what actually applies here.
+  ///
+  /// It runs at most once: the marker is the constraint itself, so a database
+  /// that has already been through it (or was created after) is left alone.
+  void _dropLegacyTypeCheck() {
+    final schema = db.select(
+      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'notes'",
+    );
+    if (schema.isEmpty) return;
+    final sql = schema.first['sql'] as String? ?? '';
+    if (!sql.contains('CHECK (type IN')) return;
+
+    // Every column the table has right now, in its own order — including the
+    // ones added by _addColumnIfMissing above, which is why this runs last.
+    final columns = [
+      for (final row in db.select('PRAGMA table_info(notes)'))
+        row['name']! as String,
+    ];
+    final columnList = columns.join(', ');
+
+    // Foreign keys off for the swap: note_tags points at notes(id), and the
+    // rows have to survive the table being dropped out from under them.
+    db.execute('PRAGMA foreign_keys = OFF;');
+    db.execute('BEGIN;');
+    try {
+      db.execute('''
+CREATE TABLE notes_rebuilt (
+  id TEXT PRIMARY KEY NOT NULL,
+  type TEXT NOT NULL,
+  content TEXT,
+  media_uri TEXT,
+  media_hash TEXT,
+  duration_ms INTEGER,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  device_id TEXT NOT NULL,
+  rev INTEGER NOT NULL,
+  sync_state TEXT NOT NULL CHECK (sync_state IN ('pending', 'synced', 'conflict')),
+  transcript_text TEXT,
+  ocr_text TEXT,
+  summary_text TEXT,
+  caption TEXT,
+  mime_type TEXT,
+  pinned_at TEXT,
+  sort_order INTEGER,
+  title TEXT,
+  link_excerpt TEXT
+);
+''');
+      db.execute(
+        'INSERT INTO notes_rebuilt ($columnList) SELECT $columnList FROM notes',
+      );
+      db.execute('DROP TABLE notes;');
+      db.execute('ALTER TABLE notes_rebuilt RENAME TO notes;');
+      db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at DESC);',
+      );
+      db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_notes_deleted_at ON notes(deleted_at);',
+      );
+      db.execute('COMMIT;');
+    } catch (_) {
+      db.execute('ROLLBACK;');
+      rethrow;
+    } finally {
+      db.execute('PRAGMA foreign_keys = ON;');
+    }
   }
 
   void _addColumnIfMissing(String table, String column, String type) {

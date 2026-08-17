@@ -80,8 +80,8 @@ class SqliteNoteRepository implements NoteRepository {
 INSERT INTO notes (
   id, type, content, media_uri, media_hash, duration_ms,
   created_at, updated_at, deleted_at, device_id, rev, sync_state,
-  caption, mime_type
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  caption, title, link_excerpt, mime_type
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ''',
       [
         note.id,
@@ -97,6 +97,8 @@ INSERT INTO notes (
         note.rev,
         note.syncState.wireName,
         note.caption,
+        note.title,
+        note.linkExcerpt,
         note.mimeType,
       ],
     );
@@ -715,6 +717,75 @@ WHERE id = ? AND deleted_at IS NULL
     }
   }
 
+  /// The note's optional headline. Empty clears it, so the same control both
+  /// names a note and un-names it.
+  void setTitle(String noteId, String? title) {
+    final now = DateTime.now().toUtc().toIso8601String();
+    final trimmed = title?.trim();
+    final value = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+    db.execute(
+      '''
+UPDATE notes
+SET title = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
+    ${localDeviceId != null ? ', device_id = ?' : ''}
+WHERE id = ? AND deleted_at IS NULL
+''',
+      [value, now, if (localDeviceId != null) localDeviceId, noteId],
+    );
+    _reindex(noteId);
+  }
+
+  /// A link note's fetched metadata, written together because they arrive
+  /// together and either both apply or neither does.
+  ///
+  /// Not a user edit: the revision is bumped so the change syncs, but a null
+  /// argument leaves that field alone rather than clearing it — a page that
+  /// stops answering should not erase what was read from it the first time.
+  void setLinkMetadata(String noteId, {String? title, String? excerpt}) {
+    if (title == null && excerpt == null) return;
+    final now = DateTime.now().toUtc().toIso8601String();
+    db.execute(
+      '''
+UPDATE notes
+SET title = COALESCE(?, title),
+    link_excerpt = COALESCE(?, link_excerpt),
+    updated_at = ?, rev = rev + 1, sync_state = 'pending'
+WHERE id = ? AND deleted_at IS NULL
+''',
+      [title?.trim(), excerpt?.trim(), now, noteId],
+    );
+    _reindex(noteId);
+  }
+
+  /// Ticks or unticks one line of a checklist, by position.
+  ///
+  /// Read-modify-write on the note's own `content`, which is where a
+  /// checklist's items live (see `models/checklist.dart`) — so this rides the
+  /// same revision, sync and search machinery as editing any other note body,
+  /// with nothing checklist-shaped in the storage layer at all.
+  ///
+  /// Silently does nothing for an index that is no longer there: a stale tap
+  /// from a list that changed underneath is not an error worth surfacing.
+  void toggleChecklistItem(String noteId, int index) {
+    final note = getById(noteId);
+    if (note == null || note.type != NoteType.checklist) return;
+    final items = [...note.checklistItems];
+    if (index < 0 || index >= items.length) return;
+    items[index] = items[index].toggled();
+    updateContent(noteId, formatChecklist(items));
+  }
+
+  /// Re-derives this note's search row from whatever it now holds.
+  void _reindex(String noteId) {
+    final note = getById(noteId);
+    final searchable = note?.searchableDerivedText;
+    if (searchable != null && searchable.isNotEmpty) {
+      _upsertFts(noteId, searchable);
+    } else {
+      db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+    }
+  }
+
   @override
   void setEmbedding(String noteId, List<double> values) {
     final json = '[${values.join(',')}]';
@@ -969,8 +1040,16 @@ LIMIT ?
             (tag as Map<String, dynamic>)['id']! as String,
         ],
       );
-      // applyRemoteNote carries no captions, transcripts or summaries — they
-      // are not part of the sync wire — so they are written back here.
+      // applyRemoteNote carries no captions, transcripts, summaries, titles
+      // or link excerpts — none of them are part of the sync wire — so they
+      // are written back here.
+      //
+      // Titles and link excerpts are on that list deliberately, alongside the
+      // caption they most resemble. What *does* cross the wire is `content`,
+      // which is where a checklist keeps its items and a link keeps its URL —
+      // so both of those new types sync as completely as a text note does,
+      // and it is only the annotation on top that stays local until the wire
+      // grows a field for it.
       _restoreEnrichment(note);
       imported++;
     }
@@ -982,6 +1061,8 @@ LIMIT ?
         note.transcriptText == null &&
         note.ocrText == null &&
         note.summaryText == null &&
+        note.title == null &&
+        note.linkExcerpt == null &&
         note.mimeType == null) {
       return;
     }
@@ -989,7 +1070,7 @@ LIMIT ?
       '''
 UPDATE notes
 SET caption = ?, transcript_text = ?, ocr_text = ?, summary_text = ?,
-    mime_type = ?
+    title = ?, link_excerpt = ?, mime_type = ?
 WHERE id = ?
 ''',
       [
@@ -997,6 +1078,8 @@ WHERE id = ?
         note.transcriptText,
         note.ocrText,
         note.summaryText,
+        note.title,
+        note.linkExcerpt,
         note.mimeType,
         note.id,
       ],
@@ -1074,6 +1157,13 @@ WHERE id = ?
       ..writeln('tags: [${note.tags.map((t) => t.name).join(', ')}]')
       ..writeln('---')
       ..writeln();
+    // As a heading rather than another frontmatter key: a title is the one
+    // piece of this the reader of an exported file is meant to see.
+    if (note.title != null) {
+      buffer
+        ..writeln('# ${note.title}')
+        ..writeln();
+    }
     switch (note.type) {
       case NoteType.text:
         buffer.writeln(note.content ?? '');
@@ -1100,6 +1190,24 @@ WHERE id = ?
         buffer.writeln('_File attachment_');
         if (note.mediaUri != null) {
           buffer.writeln('File: ${p.basename(note.mediaUri!)}');
+        }
+      // Written out as the markdown task list it already is, so an exported
+      // checklist opens as a working checklist in any markdown editor rather
+      // than as a description of one.
+      case NoteType.checklist:
+        buffer.writeln(note.content ?? '');
+      case NoteType.link:
+        final url = note.linkUrl;
+        if (url != null) buffer.writeln('<$url>');
+        if (note.linkExcerpt != null) {
+          buffer
+            ..writeln()
+            ..writeln(note.linkExcerpt);
+        }
+        if (note.summaryText != null) {
+          buffer
+            ..writeln()
+            ..writeln('Summary: ${note.summaryText}');
         }
     }
     return buffer.toString();

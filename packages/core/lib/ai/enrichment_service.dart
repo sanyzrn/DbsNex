@@ -225,6 +225,9 @@ class EnrichmentService {
     _repo.setEmbedding(note.id, vector.values);
   }
 
+  /// What a note means, for embedding. Deliberately not [Note.displayText] —
+  /// that answers "what does the card show", which a title takes over, and an
+  /// embedding wants the substance rather than the label.
   String _searchableText(Note note) {
     switch (note.type) {
       case NoteType.text:
@@ -235,6 +238,18 @@ class EnrichmentService {
         return note.ocrText ?? '';
       case NoteType.file:
         return note.content ?? '';
+      // The items without their markers: a list of things to do is about the
+      // things, not about which of them happen to be ticked right now.
+      case NoteType.checklist:
+        return note.checklistItems.map((item) => item.text).join('\n');
+      // What the page is about, never the URL — a bare URL embeds as
+      // punctuation and drags every link note toward every other one.
+      case NoteType.link:
+        return [
+          note.title,
+          note.linkExcerpt,
+          note.summaryText,
+        ].whereType<String>().where((s) => s.trim().isNotEmpty).join('\n');
     }
   }
 
