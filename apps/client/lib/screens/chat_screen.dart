@@ -5,7 +5,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
-import '../widgets/nex_toast.dart';
+import '../widgets/nex_banner.dart';
 
 /// Phase 1 general-purpose local chat (09-ai.md). Session-only — nothing
 /// here is persisted, and it never touches the note database: memory and
@@ -47,7 +47,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _send() async {
     final text = _input.text.trim();
     if (text.isEmpty || _sending) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final banner = NexBannerHost.of(context);
     final l10n = AppLocalizations.of(context);
     setState(() {
       _messages.add(ChatMessage(role: ChatRole.user, content: text));
@@ -76,7 +76,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
     if (response == null) {
-      messenger.showSnackBar(nexToast(content: Text(l10n.operationFailed)));
+      banner?.show(message: l10n.operationFailed);
     }
     _scrollToEnd();
   }

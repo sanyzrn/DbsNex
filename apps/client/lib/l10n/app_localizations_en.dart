@@ -232,6 +232,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openSourceLicenses => 'Open-source licences';
 
   @override
+  String get theme => 'Theme';
+
+  @override
   String get themeLight => 'Light';
 
   @override
@@ -405,6 +408,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'voice': 'Voice',
       'photo': 'Photo',
       'file': 'File',
+      'checklist': 'Checklist',
+      'link': 'Link',
       'other': 'Note',
     });
     return '$_temp0';
@@ -1124,8 +1129,127 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intelligenceOpen => 'Transcription, summaries, tags';
 
   @override
-  String get aiDaySummaryChip => 'AI Summary';
+  String get aiDaySummaryTitle => 'Daily Digest';
 
   @override
   String get aiDaySummarySemanticLabel => 'Today\'s summary';
+
+  @override
+  String get aiDaySummaryEmpty => 'Nothing to sum up yet.';
+
+  @override
+  String get aiDaySummaryRefresh => 'Write a new summary';
+
+  @override
+  String get aiDaySummaryCollapse => 'Hide the summary';
+
+  @override
+  String get aiDaySummaryExpand => 'Show the summary';
+
+  @override
+  String get aiHeadlineRefresh => 'Tap for a new line';
+
+  @override
+  String get aiOutputLanguage => 'AI output language';
+
+  @override
+  String get aiOutputLanguageSubtitle =>
+      'The language summaries and suggestions come back in';
+
+  @override
+  String get aiOutputLanguageAuto => 'Match my notes';
+
+  @override
+  String get aiOutputLanguageEnglish => 'English';
+
+  @override
+  String get aiOutputLanguagePersian => 'Persian';
+
+  @override
+  String get onboardingNext => 'Next';
+
+  @override
+  String get onboardingSkip => 'Skip';
+
+  @override
+  String get onboardingBack => 'Back';
+
+  @override
+  String get onboardingStart => 'Start using Nex';
+
+  @override
+  String get onboardingWelcomeTitle => 'Somewhere to put it down';
+
+  @override
+  String get onboardingWelcomeBody =>
+      'Anything you put in Nex is kept. Nothing else is asked of you — no account, no inbox to clear, nothing to keep up with.';
+
+  @override
+  String get onboardingCaptureTitle => 'There is no Save button';
+
+  @override
+  String get onboardingCaptureBody =>
+      'Type it, say it, or photograph it. A note is yours the moment you make it, and it goes to the top of one list — no folders to file it into first.';
+
+  @override
+  String get onboardingIntelligenceTitle => 'It can read what you capture';
+
+  @override
+  String get onboardingIntelligenceBody =>
+      'Voice becomes text, photos give up their words, and tags suggest themselves. This part is off until you add a provider in Settings — everything else works without it.';
+
+  @override
+  String get onboardingSilenceTitle => 'It will never interrupt you';
+
+  @override
+  String get onboardingSilenceBody =>
+      'No notifications, no badges, no reminders, no streaks. Your notes stay on this device unless you set up syncing yourself.';
+
+  @override
+  String get onboardingSetupTitle => 'A few quick choices';
+
+  @override
+  String get onboardingSetupBody =>
+      'All of these live in Settings afterwards, and none of them are permanent.';
+
+  @override
+  String get onboardingNameRequired => 'Nex needs something to call you.';
+
+  @override
+  String get checklist => 'Checklist';
+
+  @override
+  String get link => 'Link';
+
+  @override
+  String get checklistHint => 'An item, one per line';
+
+  @override
+  String get linkHint => 'Paste a link';
+
+  @override
+  String get linkNotValid => 'That does not look like a link.';
+
+  @override
+  String get openLink => 'Open link';
+
+  @override
+  String get noteTitle => 'Title';
+
+  @override
+  String get addTitle => 'Add a title';
+
+  @override
+  String get editTitle => 'Edit title';
+
+  @override
+  String get titleHint => 'Optional — leave empty for none';
+
+  @override
+  String checklistProgress(int done, int total) {
+    return '$done of $total';
+  }
+
+  @override
+  String get readingLink => 'Reading the page…';
 }

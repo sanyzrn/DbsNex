@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
+import 'package:nex_client/platform/ai_provider.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
@@ -60,6 +61,11 @@ void main() {
     tmp = Directory.systemTemp.createTempSync('nex_client_');
     services = await _testServices(tmp);
     preferences = await NexPreferences.load();
+    // Every one of these tests starts from an empty preference store, which
+    // is exactly what a first-ever launch looks like — so without this they
+    // would all open on the onboarding screen instead of the timeline.
+    // Onboarding has its own test file.
+    await preferences.completeOnboarding();
   });
 
   tearDown(() async {
@@ -120,7 +126,12 @@ void main() {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
-    expect(find.text('Nex'), findsOneWidget);
+    // The app bar carries the mark rather than a text title now — the
+    // greeting it used to share the bar with is a header in the list below.
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.byType(Image)),
+      findsOneWidget,
+    );
     expect(find.byIcon(Icons.add), findsOneWidget);
     expect(find.text('Save'), findsNothing);
   });
@@ -680,7 +691,7 @@ void main() {
     expect(app.theme!.scaffoldBackgroundColor, NexColors.bgPrimaryLightComfort);
   });
 
-  testWidgets('Settings sheet exposes swipe + Appearance + Comfort', (
+  testWidgets('Settings lists one row per setting, values and all', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -688,22 +699,87 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
+
+    // The pickers are behind their rows now, so what the list shows is the
+    // name of each setting and what it is currently set to. Nothing is
+    // expanded: the cards that used to fill two and a half screens of scroll
+    // before the first switch are not on screen at all.
     expect(find.text('Swipe actions'), findsOneWidget);
     expect(find.text('Comfort Mode'), findsOneWidget);
     expect(find.text('Appearance'), findsOneWidget);
-    expect(find.text('Light'), findsOneWidget);
-    expect(find.text('Dark'), findsOneWidget);
-    // Scoped to the theme control: the language picker also offers a "System"
-    // option, so an unscoped finder matches both.
+    expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Text & UI size'), findsOneWidget);
+    expect(find.byType(NexChoiceCards<ThemeMode>), findsNothing);
+    expect(find.byType(NexChoiceCards<double>), findsNothing);
+
+    // The current value sits under each name — the whole reason a collapsed
+    // row is not a step backwards from an expanded picker.
+    expect(find.text('System'), findsWidgets);
+    expect(find.text('Default'), findsOneWidget);
+  });
+
+  testWidgets('a settings row opens its picker, and the pick sticks', (
+    tester,
+  ) async {
+    // Settings is a long list on a short test surface, and a scroll view
+    // only mounts what is within reach.
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+
+    expect(preferences.themeMode, ThemeMode.system);
+    await tester.tap(find.text('Theme'));
+    await tester.pumpAndSettle();
+
+    // Same cards as before, previews and all — only where they live moved.
+    expect(find.byType(NexChoiceCards<ThemeMode>), findsOneWidget);
+    await tester.tap(find.text('Dark'));
+    await tester.pumpAndSettle();
+
+    expect(preferences.themeMode, ThemeMode.dark);
+    // Closed on selection, and the row it came from now reads back the pick
+    // rather than the value it opened with.
+    expect(find.byType(NexChoiceCards<ThemeMode>), findsNothing);
     expect(
       find.descendant(
-        of: find.byType(NexChoiceCards<ThemeMode>),
-        matching: find.text('System'),
+        of: find.widgetWithText(ListTile, 'Theme'),
+        matching: find.text('Dark'),
       ),
       findsOneWidget,
     );
-    expect(find.text('Text & UI size'), findsOneWidget);
-    expect(find.byType(NexChoiceCards<double>), findsOneWidget);
+  });
+
+  testWidgets('the AI output language is its own setting, not the app locale', (
+    tester,
+  ) async {
+    // Settings is a long list on a short test surface, and a scroll view
+    // only mounts what is within reach.
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+
+    expect(preferences.aiOutputLanguage, AiOutputLanguage.auto);
+    await tester.tap(find.text('AI output language'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Persian'));
+    await tester.pumpAndSettle();
+
+    expect(preferences.aiOutputLanguage, AiOutputLanguage.persian);
+    // The interface itself is untouched: someone reading Nex in English can
+    // still want their Persian notes summarised in Persian.
+    expect(preferences.locale, isNull);
   });
 
   testWidgets('picking an accent colour recolours the resolved theme', (
@@ -749,8 +825,8 @@ void main() {
   ) async {
     // The picker used to be a raw PopupMenuButton — Flutter's stock dropdown
     // chrome, nothing like the cards every other choice in Settings uses.
-    // The swipe-actions section sits below the fold on the default test
-    // surface, and a scroll view only mounts what is within reach.
+    // The swipe-actions row sits below the fold on the default test surface,
+    // and a scroll view only mounts what is within reach.
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -760,8 +836,12 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Swipe actions'));
+    await tester.pumpAndSettle();
 
     expect(find.byType(PopupMenuButton<SwipeAction>), findsNothing);
+    // Both edges in the one sheet: this is the only picker that is two
+    // choices rather than one, so it stays open across both.
     expect(find.byType(NexChoiceCards<SwipeAction>), findsNWidgets(2));
 
     expect(preferences.leadingAction, SwipeAction.addTag);
@@ -837,14 +917,23 @@ void main() {
   testWidgets('the language picker shows every language in its own script', (
     tester,
   ) async {
+    // Settings is a long list on a short test surface, and a scroll view
+    // only mounts what is within reach.
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
 
-    // Not a dropdown: all three are on screen, and each is labelled the way a
-    // speaker of that language would recognise it.
+    await tester.tap(find.text('Language'));
+    await tester.pumpAndSettle();
+
+    // Not a dropdown: all three are on screen at once, and each is labelled
+    // the way a speaker of that language would recognise it.
     final picker = find.byType(NexChoiceCards<String>);
     expect(picker, findsOneWidget);
     expect(
@@ -852,8 +941,6 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.ensureVisible(find.text('فارسی'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('فارسی'));
     await tester.pumpAndSettle();
 
@@ -1028,26 +1115,66 @@ void main() {
     },
   );
 
-  testWidgets('a name turns the timeline title into a greeting', (
+  testWidgets('a name turns the timeline header into a greeting', (
     tester,
   ) async {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
-    expect(find.text('Nex'), findsOneWidget);
+    await tester.pumpAndSettle();
+    // No name and no AI provider means no header at all: the search field is
+    // the first thing in the list.
+    expect(find.textContaining('Sany'), findsNothing);
 
     await preferences.setDisplayName('  Sany  ');
     await tester.pumpAndSettle();
 
-    // Trimmed, and only ever shown here — never sent anywhere.
+    // Trimmed, and only ever shown here — never sent anywhere, including to
+    // the AI provider that writes the line beside it.
     expect(preferences.displayName, 'Sany');
     expect(find.textContaining('Sany'), findsOneWidget);
-    expect(find.text('Nex'), findsNothing);
 
     await preferences.setDisplayName('');
     await tester.pumpAndSettle();
     expect(preferences.displayName, isNull);
-    expect(find.text('Nex'), findsOneWidget);
+    expect(find.textContaining('Sany'), findsNothing);
+  });
+
+  testWidgets('the greeting takes at most two words of a longer name', (
+    tester,
+  ) async {
+    await preferences.setDisplayName('Sany   Karimi Nezhad');
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    // Stored in full — the profile row has room for it. Only the greeting,
+    // which shares a line with a mark, is cut.
+    expect(preferences.displayName, 'Sany   Karimi Nezhad');
+    expect(find.textContaining('Sany Karimi'), findsOneWidget);
+    expect(find.textContaining('Nezhad'), findsNothing);
+  });
+
+  testWidgets('tapping the greeting re-rolls it when there is no AI', (
+    tester,
+  ) async {
+    await preferences.setDisplayName('Sany');
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    String greeting() =>
+        tester.widget<Text>(find.textContaining('Sany').first).data!;
+    final before = greeting();
+
+    await tester.tap(find.textContaining('Sany').first);
+    await tester.pumpAndSettle();
+
+    // The refresh never lands on the phrasing already showing — a button that
+    // does nothing one time in three reads as broken.
+    expect(greeting(), isNot(before));
   });
 
   testWidgets('the greeting mark trails the words, in either direction', (
@@ -1065,11 +1192,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final words = tester.getRect(find.textContaining('Sany'));
-      // The mark is the one Text in the title that is not the greeting.
+      // The mark is the one Text in the header that is not the greeting.
       final mark = tester.getRect(
         find
             .descendant(
-              of: find.byType(AppBar),
+              of: find.byKey(const ValueKey('timeline-header')),
               matching: find.byWidgetPredicate(
                 (w) => w is Text && w.data != null && !w.data!.contains('Sany'),
               ),

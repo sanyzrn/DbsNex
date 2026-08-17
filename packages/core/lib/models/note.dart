@@ -1,11 +1,20 @@
+import 'checklist.dart';
 import 'tag.dart';
 
 /// Note types. Generic `file` ships in Phase 2 (ADR-008 deferred out of v1).
+///
+/// `checklist` and `link` are text notes with a shape. Neither carries media,
+/// and both keep everything they know in [Note.content] — a checklist as
+/// markdown task lines, a link as the bare URL — which is what lets search,
+/// sync, export and merge treat them as the ordinary text they are underneath.
+/// The database no longer constrains this set; [fromWire] is the one gate.
 enum NoteType {
   text,
   voice,
   photo,
-  file;
+  file,
+  checklist,
+  link;
 
   String get wireName => name;
 
@@ -51,6 +60,8 @@ class Note {
     this.ocrText,
     this.summaryText,
     this.caption,
+    this.title,
+    this.linkExcerpt,
     this.mimeType,
     required this.createdAt,
     required this.updatedAt,
@@ -75,6 +86,22 @@ class Note {
 
   /// Optional user-authored description on photo/voice/file (never at capture).
   final String? caption;
+
+  /// An optional headline, on a note of any type.
+  ///
+  /// Deliberately not asked for at capture. Nex's whole promise is that a
+  /// capture is finished the moment it exists, and a title field on the way in
+  /// is a blank someone feels obliged to fill — which is the Save button back
+  /// under another name. It is offered from the detail sheet afterwards, and
+  /// on a link note it arrives pre-filled with the page's own title.
+  final String? title;
+
+  /// A linked page's own description, read off the page.
+  ///
+  /// The machine-derived text field for links, the way [transcriptText] is for
+  /// voice and [ocrText] is for photos — never user-authored, never the same
+  /// thing as [summaryText], which is what an AI provider made of the page.
+  final String? linkExcerpt;
 
   /// MIME type from share-intent / file pick when known.
   final String? mimeType;
@@ -105,17 +132,37 @@ class Note {
   /// Display filename for file notes (stored in [content]).
   String? get originalFilename => type == NoteType.file ? content : null;
 
+  /// A link note's target, or null on every other type.
+  String? get linkUrl => type == NoteType.link ? content?.trim() : null;
+
+  /// A checklist note's items, parsed out of [content].
+  ///
+  /// Empty for every other type, so a caller can ask without checking first.
+  List<ChecklistItem> get checklistItems =>
+      type == NoteType.checklist ? parseChecklist(content) : const [];
+
   /// Text used for keyword search — original body or AI-derived text.
   String? get searchableDerivedText {
     switch (type) {
       case NoteType.text:
-        return content;
+        return _joinSearchable([title, content]);
       case NoteType.voice:
-        return _joinSearchable([transcriptText, caption]);
+        return _joinSearchable([title, transcriptText, caption]);
       case NoteType.photo:
-        return _joinSearchable([ocrText, caption]);
+        return _joinSearchable([title, ocrText, caption]);
       case NoteType.file:
-        return _joinSearchable([content, caption]);
+        return _joinSearchable([title, content, caption]);
+      // The markers are stripped: searching for "milk" should find a ticked
+      // item, and nobody searches for "[x]".
+      case NoteType.checklist:
+        return _joinSearchable([
+          title,
+          for (final item in checklistItems) item.text,
+        ]);
+      // The URL is searchable too — looking a bookmark up by its domain is
+      // the most obvious way to go back to one.
+      case NoteType.link:
+        return _joinSearchable([title, content, linkExcerpt, caption]);
     }
   }
 
@@ -136,7 +183,12 @@ class Note {
   /// reading on screen rather than sitting next to it. The transcript or OCR
   /// text stays reachable (and searchable) behind its own small copy icon;
   /// it just stops being the headline once someone has written one.
+  ///
+  /// A [title] outranks all of it. Someone who bothered to name a note named
+  /// it because the first line was not what they wanted to see in the list.
   String? get displayText {
+    final named = title?.trim();
+    if (named != null && named.isNotEmpty) return named;
     switch (type) {
       case NoteType.text:
         return content;
@@ -146,6 +198,16 @@ class Note {
         return _firstNonEmpty([caption, ocrText]);
       case NoteType.file:
         return _firstNonEmpty([caption, content]);
+      // The items themselves, in order, on one line — the card renders its own
+      // ticked/unticked view, and this is what search results and screen
+      // readers get.
+      case NoteType.checklist:
+        final items = checklistItems;
+        return items.isEmpty
+            ? null
+            : items.map((item) => item.text).join(' · ');
+      case NoteType.link:
+        return _firstNonEmpty([caption, linkExcerpt, content]);
     }
   }
 
@@ -167,6 +229,9 @@ class Note {
     String? summaryText,
     String? caption,
     bool clearCaption = false,
+    String? title,
+    bool clearTitle = false,
+    String? linkExcerpt,
     String? mimeType,
     DateTime? updatedAt,
     DateTime? deletedAt,
@@ -186,6 +251,8 @@ class Note {
       ocrText: ocrText ?? this.ocrText,
       summaryText: summaryText ?? this.summaryText,
       caption: clearCaption ? null : (caption ?? this.caption),
+      title: clearTitle ? null : (title ?? this.title),
+      linkExcerpt: linkExcerpt ?? this.linkExcerpt,
       mimeType: mimeType ?? this.mimeType,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -208,6 +275,8 @@ class Note {
     'ocr_text': ocrText,
     'summary_text': summaryText,
     'caption': caption,
+    'title': title,
+    'link_excerpt': linkExcerpt,
     'mime_type': mimeType,
     'created_at': createdAt.toUtc().toIso8601String(),
     'updated_at': updatedAt.toUtc().toIso8601String(),
@@ -230,6 +299,8 @@ class Note {
       ocrText: row['ocr_text'] as String?,
       summaryText: row['summary_text'] as String?,
       caption: row['caption'] as String?,
+      title: row['title'] as String?,
+      linkExcerpt: row['link_excerpt'] as String?,
       mimeType: row['mime_type'] as String?,
       createdAt: DateTime.parse(row['created_at']! as String).toUtc(),
       updatedAt: DateTime.parse(row['updated_at']! as String).toUtc(),

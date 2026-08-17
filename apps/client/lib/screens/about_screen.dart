@@ -9,7 +9,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/sharing.dart';
 import '../widgets/feedback_sheet.dart';
-import '../widgets/nex_toast.dart';
+import '../widgets/nex_banner.dart';
 import 'update_sheet.dart';
 
 const _websiteUrl = 'https://SaeedZarrini.ir';
@@ -144,11 +144,7 @@ class AboutScreen extends StatelessWidget {
               final log = await NexCrashLog.open();
               if (!log.file.existsSync()) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    nexToast(content: Text(l10n.noDiagnosticsYet)),
-                  );
+                nexShowBanner(context, message: l10n.noDiagnosticsYet);
                 return;
               }
               await nexSendFileOut(
@@ -250,17 +246,13 @@ class _LinkTile extends StatelessWidget {
       onPressed: () async {
         await Clipboard.setData(ClipboardData(text: url));
         if (!context.mounted) return;
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(nexToast(content: Text(copiedLabel)));
+        nexShowBanner(context, message: copiedLabel);
       },
     ),
     onTap: () async {
       await Clipboard.setData(ClipboardData(text: url));
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(nexToast(content: Text(copiedLabel)));
+      nexShowBanner(context, message: copiedLabel);
     },
   );
 }

@@ -189,7 +189,11 @@ The tag must be `vMAJOR.MINOR.PATCH`, optionally with a pre-release suffix (`v0.
 Two rules the numbers have to obey:
 
 - **Tag `main` after the work is merged, not before.** A tag names a commit; tagging the branch or an older `main` releases whatever was on that commit.
-- **Never reuse or go backwards.** `versionCode` is `major×1000000 + minor×1000 + patch`, so `0.2.1` is `2001`. Google Play requires it to increase strictly and forever, and Android refuses to install an APK whose `versionCode` is lower than the installed one.
+- **Never reuse or go backwards.** `versionCode` is `(major×10000 + minor×100 + patch) × 10000`, so `0.9.2` is `9020000`. Google Play requires it to increase strictly and forever, and Android refuses to install an APK whose `versionCode` is lower than the installed one. Minor and patch each have to stay under 100; the version job rejects the tag otherwise.
+
+  **Why the ×10000.** Flutter adds an ABI offset to every `--split-per-abi` APK — arm32 +1000, arm64 +2000, x86_64 +4000 — so Play can tell the variants apart. Under the previous `major×1000000 + minor×1000 + patch` scheme consecutive releases were one apart, which put a split APK *above* the next several versions' universal APK. That is not theoretical: `v0.7.8-arm64-v8a` shipped as `9008` and `v0.9.1-universal` as `9001`, so anyone who had 0.7.8 could not install 0.9.1 at all without uninstalling first. Ten thousand per patch release clears the 4000 ceiling, so a later version's universal APK always outranks an earlier version's split.
+
+  What made it possible to ship at all was a second bug in the same release: the `Collect release assets` step looked for the split APKs under `app-<flavor>-<abi>-release.apk` when the flutter-apk directory names them `app-<abi>-<flavor>-release.apk`, and the copy was guarded with `[ -f ]`, so all three splits were skipped without failing the build. Both the path and the guard are fixed, and the step now asserts it staged exactly five files.
 
 **Rename the changelog heading before you tag.** [`CHANGELOG.md`](../CHANGELOG.md)'s top section — whatever it is titled — is published as-is as both the GitHub Release body and the in-app update sheet's content. As part of the same merge to `main` that you are about to tag, rename its `## Unreleased` heading to `## vX.Y.Z` matching the tag, and start a fresh `## Unreleased` above it. The release workflow refuses to publish if the top heading is still literally `Unreleased`.
 

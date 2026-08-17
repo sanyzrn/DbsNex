@@ -7,7 +7,7 @@ import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/nex_dialog.dart';
-import '../widgets/nex_toast.dart';
+import '../widgets/nex_banner.dart';
 import '../widgets/tag_color_picker.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
@@ -28,10 +28,20 @@ String _swipeLabel(AppLocalizations l10n, SwipeAction action) =>
 
 /// The v1 preference surface.
 ///
-/// Still one sheet rather than a nested settings app, but the preferences are
-/// grouped into labelled cards instead of a single flat run of tiles — the
-/// sheet had grown past twenty controls with nothing but bare text headings to
-/// separate them, and it opened flush against the status bar.
+/// One sheet, grouped into labelled cards. What changed, and why:
+///
+/// Every choice used to be spelled out inline — three theme cards, four text
+/// sizes, three languages, two swipe mappings, all expanded, all at once. It
+/// was legible in isolation and unusable in aggregate: roughly two and a half
+/// screens of picker before the first ordinary switch, and no way to see the
+/// shape of Settings at all. The pickers themselves were not the problem, so
+/// they are not gone — each one now sits behind the row that names it, and
+/// opens as its own small sheet, previews and all. The list you scroll is one
+/// line per setting with its current value beside it.
+///
+/// The profile card at the top is the one addition rather than a move. The
+/// name had a section to itself, which is a lot of furniture for one field,
+/// and being a section put it in the middle of the run rather than above it.
 class SettingsSheet extends StatelessWidget {
   const SettingsSheet({
     super.key,
@@ -87,293 +97,392 @@ class SettingsSheet extends StatelessWidget {
             ),
             Flexible(
               child: _DismissOnOverscroll(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(
-                    NexSpacing.md,
-                    0,
-                    NexSpacing.md,
-                    NexSpacing.lg,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _Section(
-                        icon: Icons.palette_outlined,
-                        title: l10n.appearance,
-                        children: [
-                          _Inset(
-                            child: NexChoiceCards<ThemeMode>(
-                              haptics: preferences.haptics,
-                              selected: preferences.themeMode,
-                              onSelected: preferences.setThemeMode,
-                              choices: [
-                                NexChoice(
-                                  value: ThemeMode.light,
-                                  label: l10n.themeLight,
-                                  preview: NexThemeSwatch(
-                                    mode: ThemeMode.light,
-                                    comfort: preferences.comfortMode,
-                                  ),
-                                ),
-                                NexChoice(
-                                  value: ThemeMode.dark,
-                                  label: l10n.themeDark,
-                                  preview: NexThemeSwatch(
-                                    mode: ThemeMode.dark,
-                                    comfort: preferences.comfortMode,
-                                  ),
-                                ),
-                                NexChoice(
-                                  value: ThemeMode.system,
-                                  label: l10n.themeSystem,
-                                  preview: NexThemeSwatch(
-                                    mode: ThemeMode.system,
-                                    comfort: preferences.comfortMode,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SwitchListTile(
-                            contentPadding: _rowPadding,
-                            secondary: const Icon(Icons.wb_twilight_outlined),
-                            title: Text(l10n.comfortMode),
-                            subtitle: Text(l10n.comfortModeSubtitle),
-                            value: preferences.comfortMode,
-                            onChanged: preferences.setComfortMode,
-                          ),
-                          _SubHeading(
-                            icon: Icons.format_size,
-                            label: l10n.uiScale,
-                          ),
-                          _Inset(
-                            child: NexChoiceCards<double>(
-                              haptics: preferences.haptics,
-                              selected: preferences.uiScale,
-                              onSelected: preferences.setUiScale,
-                              choices: [
-                                NexChoice(
-                                  value: 0.9,
-                                  label: l10n.uiScaleSmall,
-                                  preview: const _TextSizePreview(fontSize: 14),
-                                ),
-                                NexChoice(
-                                  value: 1.0,
-                                  label: l10n.uiScaleDefault,
-                                  preview: const _TextSizePreview(fontSize: 18),
-                                ),
-                                NexChoice(
-                                  value: 1.15,
-                                  label: l10n.uiScaleLarge,
-                                  preview: const _TextSizePreview(fontSize: 22),
-                                ),
-                                NexChoice(
-                                  value: 1.3,
-                                  label: l10n.uiScaleLarger,
-                                  preview: const _TextSizePreview(fontSize: 26),
-                                ),
-                              ],
-                            ),
-                          ),
-                          _SubHeading(
-                            icon: Icons.translate,
-                            label: l10n.language,
-                          ),
-                          _Inset(
-                            child: NexChoiceCards<String>(
-                              haptics: preferences.haptics,
-                              selected:
-                                  preferences.locale?.languageCode ?? 'system',
-                              onSelected: preferences.setLocale,
-                              choices: [
-                                NexChoice(
-                                  value: 'system',
-                                  label: l10n.languageSystem,
-                                  preview: const NexScriptSample(
-                                    icon: Icons.phone_iphone_outlined,
-                                  ),
-                                ),
-                                // Each language in its own script: recognising
-                                // your own alphabet does not require reading the
-                                // language the app is currently in.
-                                const NexChoice(
-                                  value: 'en',
-                                  label: 'English',
-                                  preview: NexScriptSample(sample: 'Aa'),
-                                ),
-                                const NexChoice(
-                                  value: 'fa',
-                                  label: 'فارسی',
-                                  preview: NexScriptSample(sample: 'اَ'),
-                                ),
-                              ],
-                            ),
-                          ),
-                          _AccentColorRow(preferences: preferences),
-                        ],
-                      ),
-                      _Section(
-                        icon: Icons.person_outline,
-                        title: l10n.yourName,
-                        footnote: l10n.yourNameHint,
-                        children: [_NameRow(preferences: preferences)],
-                      ),
-                      _Section(
-                        icon: Icons.edit_note_outlined,
-                        title: l10n.capture,
-                        children: [
-                          SwitchListTile(
-                            contentPadding: _rowPadding,
-                            secondary: const Icon(Icons.keyboard_return),
-                            title: Text(l10n.enterSubmitsCapture),
-                            subtitle: Text(l10n.enterSubmitsCaptureSubtitle),
-                            value: preferences.enterSubmitsCapture,
-                            onChanged: preferences.setEnterSubmitsCapture,
-                          ),
-                        ],
-                      ),
-                      _Section(
-                        icon: Icons.accessibility_new_outlined,
-                        title: l10n.accessibility,
-                        children: [
-                          SwitchListTile(
-                            contentPadding: _rowPadding,
-                            secondary: const Icon(Icons.animation_outlined),
-                            title: Text(l10n.reduceMotion),
-                            value: preferences.reduceMotion,
-                            onChanged: preferences.setReduceMotion,
-                          ),
-                          SwitchListTile(
-                            contentPadding: _rowPadding,
-                            secondary: const Icon(Icons.vibration),
-                            title: Text(l10n.haptics),
-                            value: preferences.haptics,
-                            onChanged: preferences.setHaptics,
-                          ),
-                        ],
-                      ),
-                      _Section(
-                        icon: Icons.swipe_outlined,
-                        title: l10n.swipeActions,
-                        footnote: l10n.swipeActionsHint,
-                        children: [_SwipeMapping(preferences: preferences)],
-                      ),
-                      _Section(
-                        icon: Icons.chat_bubble_outline,
-                        title: l10n.chat,
-                        children: [
-                          ListTile(
-                            contentPadding: _rowPadding,
-                            leading: const Icon(Icons.chat_bubble_outline),
-                            title: Text(l10n.chat),
-                            subtitle: Text(l10n.chatSubtitle),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute<void>(
-                                builder: (_) => const ChatScreen(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      _Section(
-                        icon: Icons.auto_awesome_outlined,
-                        title: l10n.intelligence,
-                        children: [
-                          ListTile(
-                            contentPadding: _rowPadding,
-                            leading: const Icon(Icons.auto_awesome_outlined),
-                            title: Text(l10n.intelligenceOpen),
-                            subtitle: Text(
-                              preferences.aiEnabled
-                                  ? preferences.aiProvider.provider.label
-                                  : l10n.intelligenceOff,
-                            ),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute<void>(
-                                builder: (_) => IntelligenceScreen(
-                                  services: services,
-                                  preferences: preferences,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      _Section(
-                        icon: Icons.backup_outlined,
-                        title: l10n.dataAndBackup,
-                        children: [
-                          FutureBuilder<List<File>>(
-                            future: services.listBackups(),
-                            builder: (context, snapshot) => ListTile(
-                              contentPadding: _rowPadding,
-                              leading: const Icon(Icons.import_export),
-                              title: Text(l10n.exportTitle),
-                              subtitle: Text(
-                                l10n.backupCount(snapshot.data?.length ?? 0),
-                              ),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute<void>(
-                                  builder: (_) => BackupScreen(
-                                    services: services,
-                                    preferences: preferences,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          _SyncRow(
-                            services: services,
-                            preferences: preferences,
-                          ),
-                        ],
-                      ),
-                      _Section(
-                        icon: Icons.info_outline,
-                        title: l10n.about,
-                        children: [
-                          _UpdateRow(
-                            updates: updates,
-                            preferences: preferences,
-                          ),
-                          SwitchListTile(
-                            contentPadding: _rowPadding,
-                            secondary: const Icon(Icons.update_outlined),
-                            title: Text(l10n.autoUpdateCheck),
-                            subtitle: Text(l10n.autoUpdateCheckHint),
-                            value: preferences.autoUpdateCheck,
-                            onChanged: preferences.setAutoUpdateCheck,
-                          ),
-                          ListTile(
-                            contentPadding: _rowPadding,
-                            leading: const Icon(Icons.auto_stories_outlined),
-                            title: Text(l10n.about),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute<void>(
-                                builder: (_) => AboutScreen(
-                                  services: services,
-                                  preferences: preferences,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                // Every picker writes through `preferences`, which notifies —
+                // without this the row that opened one would still show the
+                // old value when the picker closed, since the sheet itself is
+                // stateless and nothing else rebuilds it.
+                child: ListenableBuilder(
+                  listenable: preferences,
+                  builder: (context, _) => SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(
+                      NexSpacing.md,
+                      0,
+                      NexSpacing.md,
+                      NexSpacing.lg,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: _groups(context, l10n),
+                    ),
                   ),
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  List<Widget> _groups(BuildContext context, AppLocalizations l10n) => [
+    _ProfileCard(preferences: preferences),
+    _Section(
+      title: l10n.intelligence,
+      children: [
+        _Row(
+          icon: Icons.auto_awesome_outlined,
+          title: l10n.intelligenceOpen,
+          value: preferences.aiEnabled
+              ? preferences.aiProvider.provider.label
+              : l10n.intelligenceOff,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => IntelligenceScreen(
+                services: services,
+                preferences: preferences,
+              ),
+            ),
+          ),
+        ),
+        _Row(
+          icon: Icons.g_translate_outlined,
+          title: l10n.aiOutputLanguage,
+          value: _aiLanguageLabel(l10n, preferences.aiOutputLanguage),
+          onTap: () => unawaited(
+            _pick<AiOutputLanguage>(
+              context: context,
+              title: l10n.aiOutputLanguage,
+              footnote: l10n.aiOutputLanguageSubtitle,
+              selected: preferences.aiOutputLanguage,
+              onSelected: preferences.setAiOutputLanguage,
+              choices: [
+                NexChoice(
+                  value: AiOutputLanguage.auto,
+                  label: l10n.aiOutputLanguageAuto,
+                  preview: const NexScriptSample(icon: Icons.auto_awesome),
+                ),
+                NexChoice(
+                  value: AiOutputLanguage.english,
+                  label: l10n.aiOutputLanguageEnglish,
+                  preview: const NexScriptSample(sample: 'Aa'),
+                ),
+                NexChoice(
+                  value: AiOutputLanguage.persian,
+                  label: l10n.aiOutputLanguagePersian,
+                  preview: const NexScriptSample(sample: 'اَ'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        _Row(
+          icon: Icons.chat_bubble_outline,
+          title: l10n.chat,
+          value: l10n.chatSubtitle,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(builder: (_) => const ChatScreen()),
+          ),
+        ),
+      ],
+    ),
+    _Section(
+      title: l10n.appearance,
+      children: [
+        _Row(
+          icon: Icons.translate,
+          title: l10n.language,
+          value: switch (preferences.locale?.languageCode) {
+            'en' => 'English',
+            'fa' => 'فارسی',
+            _ => l10n.languageSystem,
+          },
+          onTap: () => unawaited(
+            _pick<String>(
+              context: context,
+              title: l10n.language,
+              selected: preferences.locale?.languageCode ?? 'system',
+              onSelected: preferences.setLocale,
+              choices: [
+                NexChoice(
+                  value: 'system',
+                  label: l10n.languageSystem,
+                  preview: const NexScriptSample(
+                    icon: Icons.phone_iphone_outlined,
+                  ),
+                ),
+                // Each language in its own script: recognising your own
+                // alphabet does not require reading the language the app is
+                // currently in.
+                const NexChoice(
+                  value: 'en',
+                  label: 'English',
+                  preview: NexScriptSample(sample: 'Aa'),
+                ),
+                const NexChoice(
+                  value: 'fa',
+                  label: 'فارسی',
+                  preview: NexScriptSample(sample: 'اَ'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        _Row(
+          icon: Icons.dark_mode_outlined,
+          title: l10n.theme,
+          value: switch (preferences.themeMode) {
+            ThemeMode.light => l10n.themeLight,
+            ThemeMode.dark => l10n.themeDark,
+            ThemeMode.system => l10n.themeSystem,
+          },
+          onTap: () => unawaited(
+            _pick<ThemeMode>(
+              context: context,
+              title: l10n.theme,
+              selected: preferences.themeMode,
+              onSelected: preferences.setThemeMode,
+              choices: [
+                NexChoice(
+                  value: ThemeMode.light,
+                  label: l10n.themeLight,
+                  preview: NexThemeSwatch(
+                    mode: ThemeMode.light,
+                    comfort: preferences.comfortMode,
+                  ),
+                ),
+                NexChoice(
+                  value: ThemeMode.dark,
+                  label: l10n.themeDark,
+                  preview: NexThemeSwatch(
+                    mode: ThemeMode.dark,
+                    comfort: preferences.comfortMode,
+                  ),
+                ),
+                NexChoice(
+                  value: ThemeMode.system,
+                  label: l10n.themeSystem,
+                  preview: NexThemeSwatch(
+                    mode: ThemeMode.system,
+                    comfort: preferences.comfortMode,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        _AccentColorRow(preferences: preferences),
+        _Row(
+          icon: Icons.format_size,
+          title: l10n.uiScale,
+          value: switch (preferences.uiScale) {
+            < 1.0 => l10n.uiScaleSmall,
+            < 1.1 => l10n.uiScaleDefault,
+            < 1.25 => l10n.uiScaleLarge,
+            _ => l10n.uiScaleLarger,
+          },
+          onTap: () => unawaited(
+            _pick<double>(
+              context: context,
+              title: l10n.uiScale,
+              selected: preferences.uiScale,
+              onSelected: preferences.setUiScale,
+              choices: [
+                NexChoice(
+                  value: 0.9,
+                  label: l10n.uiScaleSmall,
+                  preview: const _TextSizePreview(fontSize: 14),
+                ),
+                NexChoice(
+                  value: 1.0,
+                  label: l10n.uiScaleDefault,
+                  preview: const _TextSizePreview(fontSize: 18),
+                ),
+                NexChoice(
+                  value: 1.15,
+                  label: l10n.uiScaleLarge,
+                  preview: const _TextSizePreview(fontSize: 22),
+                ),
+                NexChoice(
+                  value: 1.3,
+                  label: l10n.uiScaleLarger,
+                  preview: const _TextSizePreview(fontSize: 26),
+                ),
+              ],
+            ),
+          ),
+        ),
+        _SwitchRow(
+          icon: Icons.wb_twilight_outlined,
+          title: l10n.comfortMode,
+          value: preferences.comfortMode,
+          onChanged: preferences.setComfortMode,
+        ),
+      ],
+    ),
+    _Section(
+      title: l10n.capture,
+      children: [
+        _SwitchRow(
+          icon: Icons.keyboard_return,
+          title: l10n.enterSubmitsCapture,
+          subtitle: l10n.enterSubmitsCaptureSubtitle,
+          value: preferences.enterSubmitsCapture,
+          onChanged: preferences.setEnterSubmitsCapture,
+        ),
+        _Row(
+          icon: Icons.swipe_outlined,
+          title: l10n.swipeActions,
+          value:
+              '${_swipeLabel(l10n, preferences.leadingAction)} · '
+              '${_swipeLabel(l10n, preferences.trailingAction)}',
+          onTap: () => unawaited(
+            nexShowSheet<void>(
+              context: context,
+              builder: (_) => _PickerSheet(
+                title: l10n.swipeActions,
+                footnote: l10n.swipeActionsHint,
+                // The one picker that is two choices rather than one, so it
+                // keeps its own widget and stays open across both.
+                child: _SwipeMapping(preferences: preferences),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+    _Section(
+      title: l10n.accessibility,
+      children: [
+        _SwitchRow(
+          icon: Icons.animation_outlined,
+          title: l10n.reduceMotion,
+          value: preferences.reduceMotion,
+          onChanged: preferences.setReduceMotion,
+        ),
+        _SwitchRow(
+          icon: Icons.vibration,
+          title: l10n.haptics,
+          value: preferences.haptics,
+          onChanged: preferences.setHaptics,
+        ),
+      ],
+    ),
+    _Section(
+      title: l10n.dataAndBackup,
+      children: [
+        FutureBuilder<List<File>>(
+          future: services.listBackups(),
+          builder: (context, snapshot) => _Row(
+            icon: Icons.import_export,
+            title: l10n.exportTitle,
+            value: l10n.backupCount(snapshot.data?.length ?? 0),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    BackupScreen(services: services, preferences: preferences),
+              ),
+            ),
+          ),
+        ),
+        _SyncRow(services: services, preferences: preferences),
+      ],
+    ),
+    _Section(
+      title: l10n.about,
+      children: [
+        _UpdateRow(updates: updates, preferences: preferences),
+        _SwitchRow(
+          icon: Icons.update_outlined,
+          title: l10n.autoUpdateCheck,
+          subtitle: l10n.autoUpdateCheckHint,
+          value: preferences.autoUpdateCheck,
+          onChanged: preferences.setAutoUpdateCheck,
+        ),
+        _Row(
+          icon: Icons.auto_stories_outlined,
+          title: l10n.about,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) =>
+                  AboutScreen(services: services, preferences: preferences),
+            ),
+          ),
+        ),
+      ],
+    ),
+  ];
+}
+
+String _aiLanguageLabel(AppLocalizations l10n, AiOutputLanguage value) =>
+    switch (value) {
+      AiOutputLanguage.auto => l10n.aiOutputLanguageAuto,
+      AiOutputLanguage.english => l10n.aiOutputLanguageEnglish,
+      AiOutputLanguage.persian => l10n.aiOutputLanguagePersian,
+    };
+
+/// Opens one setting's choices as their own sheet, and applies the pick.
+///
+/// The cards themselves are unchanged — this is the same [NexChoiceCards]
+/// that used to sit inline, previews and all. Only where it lives moved.
+/// Closing on selection rather than offering a Save button: there is one
+/// choice, it takes effect immediately, and a picker that stays open after
+/// you have picked invites a second look for a confirmation that never comes.
+Future<void> _pick<T>({
+  required BuildContext context,
+  required String title,
+  required T selected,
+  required List<NexChoice<T>> choices,
+  required ValueChanged<T> onSelected,
+  String? footnote,
+}) async {
+  final picked = await nexShowSheet<T>(
+    context: context,
+    builder: (sheetContext) => _PickerSheet(
+      title: title,
+      footnote: footnote,
+      child: NexChoiceCards<T>(
+        selected: selected,
+        choices: choices,
+        onSelected: (value) => Navigator.pop(sheetContext, value),
+      ),
+    ),
+  );
+  if (picked != null) onSelected(picked);
+}
+
+/// The frame every setting's picker sheet shares.
+class _PickerSheet extends StatelessWidget {
+  const _PickerSheet({required this.title, required this.child, this.footnote});
+
+  final String title;
+  final Widget child;
+  final String? footnote;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return NexSheetBody(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(title, style: theme.textTheme.titleMedium),
+          const SizedBox(height: NexSpacing.md),
+          child,
+          if (footnote != null) ...[
+            const SizedBox(height: NexSpacing.md),
+            Text(
+              footnote!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -435,18 +544,15 @@ class _DismissOnOverscrollState extends State<_DismissOnOverscroll> {
 }
 
 /// One labelled group of preferences, drawn as a card.
+///
+/// The label lost the icon it used to carry. With every row inside the card
+/// now leading with an icon tile of its own, a seventh icon floating above
+/// them was the one that meant least and drew the most.
 class _Section extends StatelessWidget {
-  const _Section({
-    required this.icon,
-    required this.title,
-    required this.children,
-    this.footnote,
-  });
+  const _Section({required this.title, required this.children});
 
-  final IconData icon;
   final String title;
   final List<Widget> children;
-  final String? footnote;
 
   @override
   Widget build(BuildContext context) {
@@ -458,20 +564,15 @@ class _Section extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsetsDirectional.only(
-              start: NexSpacing.xs,
+              start: NexSpacing.sm,
               bottom: NexSpacing.sm,
             ),
-            child: Row(
-              children: [
-                Icon(icon, size: 16, color: theme.colorScheme.secondary),
-                const SizedBox(width: NexSpacing.sm),
-                Text(
-                  title,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
+            child: Text(
+              title,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                letterSpacing: 0.3,
+              ),
             ),
           ),
           DecoratedBox(
@@ -485,21 +586,16 @@ class _Section extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   for (var i = 0; i < children.length; i++) ...[
-                    // None before the first row, and none right after a
-                    // _SubHeading — a subheading is a caption for the row
-                    // that follows it, not a control of its own, so a
-                    // divider there only separated a label from the one
-                    // thing it was labelling. That showed up as a stray
-                    // extra line under "Language", directly above the
-                    // picker it introduces.
-                    if (i > 0 && children[i - 1] is! _SubHeading)
+                    if (i > 0)
                       // The quiet token, now that the section has no outline
                       // around it: `outline` is for a boundary you can act on,
                       // and at full strength with nothing enclosing it these
-                      // read as the loudest thing in Settings.
+                      // read as the loudest thing in Settings. Indented past
+                      // the icon tiles so the run of rows reads as a column of
+                      // labels rather than a stack of boxes.
                       Divider(
                         height: 1,
-                        indent: NexSpacing.md,
+                        indent: _dividerIndent,
                         endIndent: NexSpacing.md,
                         color: theme.colorScheme.outlineVariant,
                       ),
@@ -509,15 +605,209 @@ class _Section extends StatelessWidget {
               ),
             ),
           ),
-          if (footnote != null)
-            Padding(
-              padding: const EdgeInsetsDirectional.only(
-                start: NexSpacing.xs,
-                top: NexSpacing.sm,
-              ),
-              child: Text(footnote!, style: theme.textTheme.bodySmall),
-            ),
         ],
+      ),
+    );
+  }
+}
+
+/// Where a divider starts: past the icon tile, level with the row's title.
+const _dividerIndent = NexSpacing.md + _iconTileSize + NexSpacing.md;
+const _iconTileSize = 36.0;
+
+/// A row's leading mark, on its own rounded ground.
+///
+/// A bare icon at the start of a row is the Material default and reads as
+/// decoration hanging off the text. Sitting each one on a tile of the same
+/// size turns the left edge into a column — which is the single change that
+/// makes a long settings list scan as a list rather than as paragraphs.
+class _IconTile extends StatelessWidget {
+  const _IconTile(this.icon, {this.badge = false});
+
+  final IconData icon;
+
+  /// Draws the same dot the settings gear carries — see [_UpdateRow].
+  final bool badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: _iconTileSize,
+          height: _iconTileSize,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(NexRadius.md),
+          ),
+          child: Icon(icon, size: 20, color: scheme.onSurfaceVariant),
+        ),
+        if (badge)
+          const PositionedDirectional(top: -2, end: -2, child: NexBadgeDot()),
+      ],
+    );
+  }
+}
+
+/// One tappable setting: mark, name, current value, chevron.
+class _Row extends StatelessWidget {
+  const _Row({
+    required this.icon,
+    required this.title,
+    this.value,
+    this.trailing,
+    this.badge = false,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+
+  /// What the setting is currently set to, under its name. Null for the rows
+  /// that only open something and have no state to report.
+  final String? value;
+
+  /// Replaces the chevron — the sync row puts a button here.
+  final Widget? trailing;
+  final bool badge;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    contentPadding: _rowPadding,
+    leading: _IconTile(icon, badge: badge),
+    title: Text(title),
+    subtitle: value == null ? null : Text(value!),
+    trailing: trailing ?? const Icon(Icons.chevron_right),
+    onTap: onTap,
+  );
+}
+
+/// One setting that is simply on or off.
+class _SwitchRow extends StatelessWidget {
+  const _SwitchRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => SwitchListTile(
+    contentPadding: _rowPadding,
+    secondary: _IconTile(icon),
+    title: Text(title),
+    subtitle: subtitle == null ? null : Text(subtitle!),
+    value: value,
+    onChanged: onChanged,
+  );
+}
+
+/// The name, above the settings rather than among them.
+///
+/// It had a section of its own — a labelled card holding one field — which is
+/// both more furniture than one text input needs and, being a section, put it
+/// somewhere in the middle of the run. As a header it reads as whose settings
+/// these are, which is what a name at the top of a settings screen means
+/// everywhere else.
+///
+/// Stateful for the same reason the row it replaces was: the sheet does not
+/// rebuild itself on a name change from the dialog it opens.
+class _ProfileCard extends StatefulWidget {
+  const _ProfileCard({required this.preferences});
+
+  final NexPreferences preferences;
+
+  @override
+  State<_ProfileCard> createState() => _ProfileCardState();
+}
+
+class _ProfileCardState extends State<_ProfileCard> {
+  Future<void> _edit() async {
+    final saved = await editDisplayName(context, widget.preferences);
+    if (saved && mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final name = widget.preferences.displayName;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: NexSpacing.lg),
+      child: Material(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => unawaited(_edit()),
+          child: Padding(
+            padding: const EdgeInsets.all(NexSpacing.md),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: theme.colorScheme.surfaceContainerHigh,
+                  ),
+                  child: name == null
+                      // No name is not a blank circle: the placeholder says
+                      // what tapping would do.
+                      ? Icon(
+                          Icons.person_outline,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        )
+                      : Text(
+                          // `characters` rather than `[0]`: a Persian name's
+                          // first letter, and any emoji, is more than one code
+                          // unit, and slicing one in half renders as a box.
+                          name.characters.first.toUpperCase(),
+                          style: theme.textTheme.titleLarge,
+                        ),
+                ),
+                const SizedBox(width: NexSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name ?? l10n.yourName,
+                        style: theme.textTheme.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.yourNameHint,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.edit_outlined,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -600,19 +890,15 @@ class _SyncRowState extends State<_SyncRow> {
 
   Future<void> _syncNow() async {
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final banner = NexBannerHost.of(context);
     setState(() => _busy = true);
     try {
       final result = await widget.services.syncNow();
-      messenger.showSnackBar(
-        nexToast(
-          content: Text(
-            '${l10n.syncComplete} · ${result.pushed}↑ ${result.pulled}↓',
-          ),
-        ),
+      banner?.show(
+        message: '${l10n.syncComplete} · ${result.pushed}↑ ${result.pulled}↓',
       );
     } catch (_) {
-      messenger.showSnackBar(nexToast(content: Text(l10n.operationFailed)));
+      banner?.show(message: l10n.operationFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -622,14 +908,13 @@ class _SyncRowState extends State<_SyncRow> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final server = widget.preferences.syncBaseUrl;
-    return ListTile(
-      contentPadding: _rowPadding,
-      leading: const Icon(Icons.sync),
-      title: Text(l10n.sync),
-      subtitle: Text(server ?? l10n.syncNotConfigured),
+    return _Row(
+      icon: Icons.sync,
+      title: l10n.sync,
+      value: server ?? l10n.syncNotConfigured,
       onTap: _configure,
       trailing: server == null
-          ? const Icon(Icons.chevron_right)
+          ? null
           : TextButton(
               onPressed: _busy ? null : () => unawaited(_syncNow()),
               child: Text(l10n.syncNow),
@@ -638,110 +923,47 @@ class _SyncRowState extends State<_SyncRow> {
   }
 }
 
-/// A label inside a section card, for a control that is not a list tile.
+/// Asks for the name the app greets you by, and stores it.
 ///
-/// The theme and language pickers are both card rows, and without this the
-/// second one would sit under the first with nothing saying what it chooses.
-class _SubHeading extends StatelessWidget {
-  const _SubHeading({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(
-        start: NexSpacing.md,
-        end: NexSpacing.md,
-        top: NexSpacing.contentGap,
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: theme.colorScheme.secondary),
-          const SizedBox(width: NexSpacing.sm),
-          Text(label, style: theme.textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-/// The name the app greets you by.
-///
-/// Stateful because the settings sheet is not: without this the row would
-/// still show the old name until the sheet was closed and reopened.
-class _NameRow extends StatefulWidget {
-  const _NameRow({required this.preferences});
-
-  final NexPreferences preferences;
-
-  @override
-  State<_NameRow> createState() => _NameRowState();
-}
-
-class _NameRowState extends State<_NameRow> {
-  Future<void> _edit() async {
-    final l10n = AppLocalizations.of(context);
-    final controller = TextEditingController(
-      text: widget.preferences.displayName ?? '',
-    );
-    final saved = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.yourName),
-        content: NexDialogBody(
-          child: TextField(
-            controller: controller,
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(hintText: l10n.yourNamePlaceholder),
-            onSubmitted: (value) => Navigator.pop(context, value),
-          ),
+/// Returns whether anything was saved, so a caller that draws the name can
+/// repaint. Shared rather than private to the profile card: onboarding asks
+/// the same question, and asking it twice in two different dialogs is how the
+/// two drift apart.
+Future<bool> editDisplayName(
+  BuildContext context,
+  NexPreferences preferences,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final controller = TextEditingController(text: preferences.displayName ?? '');
+  final saved = await showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l10n.yourName),
+      content: NexDialogBody(
+        child: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(hintText: l10n.yourNamePlaceholder),
+          onSubmitted: (value) => Navigator.pop(context, value),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: Text(l10n.save),
-          ),
-        ],
       ),
-    );
-    controller.dispose();
-    if (saved == null) return;
-    await widget.preferences.setDisplayName(saved);
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final name = widget.preferences.displayName;
-    final l10n = AppLocalizations.of(context);
-    return ListTile(
-      contentPadding: _rowPadding,
-      leading: const Icon(Icons.waving_hand_outlined),
-      title: Text(name ?? l10n.yourName),
-      subtitle: Text(name == null ? l10n.yourNamePlaceholder : l10n.edit),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: _edit,
-    );
-  }
-}
-
-/// Padding for controls that are not list tiles, so they line up with them.
-class _Inset extends StatelessWidget {
-  const _Inset({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) =>
-      Padding(padding: const EdgeInsets.all(NexSpacing.md), child: child);
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, controller.text),
+          child: Text(l10n.save),
+        ),
+      ],
+    ),
+  );
+  controller.dispose();
+  if (saved == null) return false;
+  await preferences.setDisplayName(saved);
+  return true;
 }
 
 /// The FR-2.7 swipe mapping.
@@ -788,32 +1010,35 @@ class _SwipeMappingState extends State<_SwipeMapping> {
           preview: _SwipeActionPreview(action: action),
         ),
     ];
+    Widget edge(IconData icon, String label) => Padding(
+      padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Theme.of(context).colorScheme.secondary),
+          const SizedBox(width: NexSpacing.sm),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _SubHeading(
-          icon: rtl ? Icons.arrow_back : Icons.arrow_forward,
-          label: l10n.swipeLeading,
+        edge(rtl ? Icons.arrow_back : Icons.arrow_forward, l10n.swipeLeading),
+        NexChoiceCards<SwipeAction>(
+          haptics: widget.preferences.haptics,
+          selected: widget.preferences.leadingAction,
+          onSelected: (action) => _select(isLeading: true, action: action),
+          choices: choices,
         ),
-        _Inset(
-          child: NexChoiceCards<SwipeAction>(
-            haptics: widget.preferences.haptics,
-            selected: widget.preferences.leadingAction,
-            onSelected: (action) => _select(isLeading: true, action: action),
-            choices: choices,
-          ),
-        ),
-        _SubHeading(
-          icon: rtl ? Icons.arrow_forward : Icons.arrow_back,
-          label: l10n.swipeTrailing,
-        ),
-        _Inset(
-          child: NexChoiceCards<SwipeAction>(
-            haptics: widget.preferences.haptics,
-            selected: widget.preferences.trailingAction,
-            onSelected: (action) => _select(isLeading: false, action: action),
-            choices: choices,
-          ),
+        const SizedBox(height: NexSpacing.md),
+        edge(rtl ? Icons.arrow_forward : Icons.arrow_back, l10n.swipeTrailing),
+        NexChoiceCards<SwipeAction>(
+          haptics: widget.preferences.haptics,
+          selected: widget.preferences.trailingAction,
+          onSelected: (action) => _select(isLeading: false, action: action),
+          choices: choices,
         ),
       ],
     );
@@ -867,7 +1092,7 @@ class _AccentColorRow extends StatelessWidget {
 
   final NexPreferences preferences;
 
-  Future<void> _pick(BuildContext context) async {
+  Future<void> _pickColor(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
     final result = await TagColorPicker.show(
       context,
@@ -891,11 +1116,12 @@ class _AccentColorRow extends StatelessWidget {
     final theme = Theme.of(context);
     final swatch =
         nexParseTagColor(preferences.accentSeed) ?? NexColors.accentLight;
-    return ListTile(
-      contentPadding: _rowPadding,
-      leading: const Icon(Icons.color_lens_outlined),
-      title: Text(l10n.accentColorSetting),
-      subtitle: Text(l10n.accentColorSettingSubtitle),
+    return _Row(
+      icon: Icons.color_lens_outlined,
+      title: l10n.accentColorSetting,
+      // The swatch says which colour better than any name would, so the row
+      // spends its subtitle on what the colour actually reaches instead.
+      value: l10n.accentColorSettingSubtitle,
       trailing: Container(
         width: 24,
         height: 24,
@@ -905,7 +1131,7 @@ class _AccentColorRow extends StatelessWidget {
           border: Border.all(color: theme.colorScheme.outline),
         ),
       ),
-      onTap: () => unawaited(_pick(context)),
+      onTap: () => unawaited(_pickColor(context)),
     );
   }
 }
@@ -948,30 +1174,18 @@ class _UpdateRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final service = updates;
     Widget row({required bool waiting, String? version, bool ready = false}) =>
-        ListTile(
-          contentPadding: _rowPadding,
-          leading: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              const Icon(Icons.system_update_outlined),
-              if (waiting)
-                const PositionedDirectional(
-                  top: -2,
-                  end: -2,
-                  child: NexBadgeDot(),
-                ),
-            ],
-          ),
-          title: Text(l10n.checkForUpdate),
-          subtitle: Text(switch ((waiting, version)) {
+        _Row(
+          icon: Icons.system_update_outlined,
+          badge: waiting,
+          title: l10n.checkForUpdate,
+          value: switch ((waiting, version)) {
             // Saying it is already downloaded is the point of downloading it
             // early: the next tap is an install, not a wait.
             (true, final v?) when ready =>
               '${l10n.updateAvailable(v)} · ${l10n.updateReady}',
             (true, final v?) => l10n.updateAvailable(v),
             _ => l10n.installedVersion(nexAppVersion),
-          }),
-          trailing: const Icon(Icons.chevron_right),
+          },
           onTap: () => UpdateSheet.show(
             context,
             haptics: preferences.haptics,

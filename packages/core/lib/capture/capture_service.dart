@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 
 import '../ids.dart';
+import '../models/checklist.dart';
+import '../models/link_url.dart';
 import '../models/note.dart';
 import '../models/search_filters.dart';
 import '../models/tag.dart';
@@ -23,6 +25,51 @@ class CaptureService {
         id: newUuidV7(),
         type: NoteType.text,
         content: trimmed,
+        createdAt: now,
+        updatedAt: now,
+        deviceId: deviceId,
+        rev: 1,
+        syncState: SyncState.pending,
+      ),
+    );
+  }
+
+  /// Persist a checklist. Empty → null (discard), the same as text.
+  ///
+  /// Takes items rather than a formatted body so the caller never has to know
+  /// the on-disk format — [formatChecklist] is the only place that writes it.
+  Note? submitChecklistCapture(List<ChecklistItem> items) {
+    final body = formatChecklist(items);
+    if (body.isEmpty) return null;
+    final now = DateTime.now().toUtc();
+    return _repo.insert(
+      Note(
+        id: newUuidV7(),
+        type: NoteType.checklist,
+        content: body,
+        createdAt: now,
+        updatedAt: now,
+        deviceId: deviceId,
+        rev: 1,
+        syncState: SyncState.pending,
+      ),
+    );
+  }
+
+  /// Persist a link. Anything that is not a usable URL → null (discard).
+  ///
+  /// The URL is normalised on the way in — a bare `example.com/x` becomes
+  /// `https://example.com/x` — because that is what people paste and what a
+  /// share sheet hands over, and a note that cannot be opened is not a link.
+  Note? submitLinkCapture(String url) {
+    final normalised = normaliseUrl(url);
+    if (normalised == null) return null;
+    final now = DateTime.now().toUtc();
+    return _repo.insert(
+      Note(
+        id: newUuidV7(),
+        type: NoteType.link,
+        content: normalised,
         createdAt: now,
         updatedAt: now,
         deviceId: deviceId,

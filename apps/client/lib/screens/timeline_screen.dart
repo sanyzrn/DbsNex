@@ -12,18 +12,19 @@ import '../feature_flags.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/ai_provider.dart';
 import '../platform/capture_failure.dart';
+import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/note_search.dart';
 import '../platform/os_capture_bridge.dart';
 import '../platform/update_service.dart';
-import 'package:nex_data/nex_data.dart';
 import '../widgets/capture_sheet.dart';
+import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/commit_receipt.dart';
 import '../widgets/empty_timeline.dart';
 import '../widgets/nex_dialog.dart';
-import '../widgets/nex_toast.dart';
+import '../widgets/nex_banner.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/search_field_header.dart';
 import '../widgets/search_results.dart';
@@ -100,20 +101,32 @@ class TimelineScreenState extends State<TimelineScreen> {
   );
   final FocusNode _searchFocus = FocusNode();
 
-  /// Which of the three greetings this run of the app gets.
-  final int _greetingVariant = math.Random().nextInt(3);
+  /// Which of the three fallback greetings is showing. Re-rolled, not fixed,
+  /// because tapping the headline refreshes it — see [_refreshHeadline]. With
+  /// no AI provider that re-roll *is* the refresh.
+  int _greetingVariant = math.Random().nextInt(3);
   bool _searching = false;
 
-  /// The AI-generated recap shown near the greeting — see [_loadAiSummary].
+  /// The AI-generated recap under the headline — see [_loadAiSummary].
   String? _aiSummaryText;
   bool _aiSummaryLoading = false;
 
-  /// Starts expanded and latches shut on the first real scroll. Reopening
-  /// (see [_reopenAiSummary]) puts it back exactly here — there is no
-  /// "half-open" state, matching how it behaved the first time.
+  /// The AI-generated line across the top — see [_loadAiHeadline].
+  String? _aiHeadlineText;
+  bool _aiHeadlineLoading = false;
+
+  /// Collapsed hides the recap's *body*; the card's header row, and with it
+  /// the chevron that reopens it, stays on screen either way. It used to
+  /// collapse to nothing and reopen from a chip in the app bar — a control
+  /// nowhere near the thing it controlled.
   bool _aiSummaryCollapsed = false;
 
-  /// Requesting the recap is a cold-launch thing, not a per-note-change
+  /// The first real scroll collapses the card on its own, once. Touching the
+  /// chevron takes that over: an explicit open should not be undone by the
+  /// scroll that follows it.
+  bool _aiSummaryToggledByUser = false;
+
+  /// Requesting either string is a cold-launch thing, not a per-note-change
   /// thing — without this latch, every capture re-firing [timelineStream]
   /// would ask the provider again.
   bool _aiSummaryRequested = false;
@@ -142,6 +155,7 @@ class TimelineScreenState extends State<TimelineScreen> {
       if (!_aiSummaryRequested && value.isNotEmpty) {
         _aiSummaryRequested = true;
         unawaited(_loadAiSummary());
+        unawaited(_loadAiHeadline());
       }
     });
     _search.addListener(_onSearchChanged);
@@ -150,17 +164,36 @@ class TimelineScreenState extends State<TimelineScreen> {
     unawaited(_loadFilterTags());
   }
 
+  /// True when there is a provider configured to generate anything at all.
+  /// The whole header — headline and card both — is absent otherwise, rather
+  /// than showing empty chrome for a feature that is switched off.
+  bool get _aiHeaderAvailable =>
+      widget.preferences.aiEnabled && widget.preferences.aiProvider.isUsable;
+
+  /// Builds an adapter with the user's chosen output language applied.
+  ///
+  /// Every call site here closes it; the caller owning the lifetime is why
+  /// this is a factory and not a field.
+  CloudAIAdapter _aiAdapter() => CloudAIAdapter(
+    config: widget.preferences.aiProvider,
+    outputLanguage: widget.preferences.aiOutputLanguage,
+  );
+
   /// Fetches (or restores) today's recap. Called once, the first time the
   /// timeline stream delivers any notes — see [_aiSummaryRequested].
   ///
   /// Silently does nothing when AI is off or unconfigured: this panel is
   /// additive chrome, never a reason to show an error on the app's home
-  /// screen. A failed or empty reply leaves it absent the same way.
-  Future<void> _loadAiSummary() async {
+  /// screen. A failed or empty reply leaves the card's empty line showing.
+  ///
+  /// [force] skips the cache — it is what the card's refresh button does.
+  /// Without it, tapping refresh on a day whose text was already stored would
+  /// have re-read the same string and looked broken.
+  Future<void> _loadAiSummary({bool force = false}) async {
     final prefs = widget.preferences;
-    if (!prefs.aiEnabled || !prefs.aiProvider.isUsable) return;
+    if (!_aiHeaderAvailable) return;
     final today = _aiSummaryDateKey();
-    if (prefs.aiDaySummaryDate == today) {
+    if (!force && prefs.aiDaySummaryDate == today) {
       final cached = prefs.aiDaySummaryText;
       if (mounted && cached != null && cached.isNotEmpty) {
         setState(() => _aiSummaryText = cached);
@@ -170,7 +203,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     final source = _aiSummarySource();
     if (source.isEmpty) return;
     if (mounted) setState(() => _aiSummaryLoading = true);
-    final adapter = CloudAIAdapter(config: prefs.aiProvider);
+    final adapter = _aiAdapter();
     String? text;
     try {
       text = await adapter.digest(source);
@@ -182,11 +215,77 @@ class TimelineScreenState extends State<TimelineScreen> {
     if (!mounted) return;
     setState(() {
       _aiSummaryLoading = false;
-      _aiSummaryText = text;
+      // A failed refresh keeps whatever was already on screen. Blanking a
+      // recap that is still perfectly readable because the network dropped
+      // would be the tap actively destroying something.
+      if (text != null && text.isNotEmpty) _aiSummaryText = text;
     });
     if (text != null && text.isNotEmpty) {
       unawaited(prefs.setAiDaySummary(text: text, dateKey: today));
     }
+  }
+
+  /// The headline over the timeline. Same shape as [_loadAiSummary] — cached
+  /// per day, forced by a tap on the line itself.
+  Future<void> _loadAiHeadline({bool force = false}) async {
+    final prefs = widget.preferences;
+    if (!_aiHeaderAvailable) return;
+    final today = _aiSummaryDateKey();
+    if (!force && prefs.aiHeadlineDate == today) {
+      final cached = prefs.aiHeadlineText;
+      if (mounted && cached != null && cached.isNotEmpty) {
+        setState(() => _aiHeadlineText = cached);
+      }
+      return;
+    }
+    if (mounted) setState(() => _aiHeadlineLoading = true);
+    final adapter = _aiAdapter();
+    String? text;
+    try {
+      // Unlike the recap, an empty library is not a reason to skip this: the
+      // line is a mood, and "you have not written anything yet" is a mood the
+      // prompt handles on its own.
+      text = await adapter.headline(_aiSummarySource());
+    } catch (_) {
+      text = null;
+    } finally {
+      adapter.close();
+    }
+    if (!mounted) return;
+    setState(() {
+      _aiHeadlineLoading = false;
+      if (text != null && text.isNotEmpty) _aiHeadlineText = text;
+    });
+    if (text != null && text.isNotEmpty) {
+      unawaited(prefs.setAiHeadline(text: text, dateKey: today));
+    }
+  }
+
+  /// Tapping the headline asks for a new one.
+  ///
+  /// With no provider configured there is still something to refresh — the
+  /// local greeting has three phrasings per time of day, and re-rolling one
+  /// is what the same tap does. A tap target that does nothing on half the
+  /// installs would be worse than not having it.
+  void _refreshHeadline() {
+    _tick();
+    if (_aiHeaderAvailable) {
+      unawaited(_loadAiHeadline(force: true));
+      return;
+    }
+    setState(() {
+      // Never the one already showing: a refresh that lands on the same words
+      // one time in three reads as a broken button.
+      _greetingVariant = (_greetingVariant + 1 + math.Random().nextInt(2)) % 3;
+    });
+  }
+
+  void _toggleAiSummary() {
+    _tick();
+    setState(() {
+      _aiSummaryToggledByUser = true;
+      _aiSummaryCollapsed = !_aiSummaryCollapsed;
+    });
   }
 
   String _aiSummaryDateKey() {
@@ -207,15 +306,15 @@ class TimelineScreenState extends State<TimelineScreen> {
     return lines.join('\n');
   }
 
-  /// Collapses the panel on the first real scroll, the way the Figma
-  /// redesign asked for. One-way: once collapsed, further scrolling does
-  /// nothing until [_reopenAiSummary] is tapped.
+  /// Collapses the card's body on the first real scroll, the way the Figma
+  /// redesign asked for — reading a note is not the moment for a recap.
+  ///
+  /// Gives way to the chevron entirely: once the user has worked the control
+  /// by hand, scrolling stops having an opinion about it.
   void _onAiSummaryScroll() {
-    if (_aiSummaryCollapsed) return;
+    if (_aiSummaryCollapsed || _aiSummaryToggledByUser) return;
     if (_scroll.offset > 4) setState(() => _aiSummaryCollapsed = true);
   }
-
-  void _reopenAiSummary() => setState(() => _aiSummaryCollapsed = false);
 
   void _onSearchChanged() {
     if (mounted) setState(() {});
@@ -299,7 +398,7 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// is reported without taking the local reload down with it: the notes on
   /// this device are the point, and they reloaded either way.
   Future<void> _refresh() async {
-    final messenger = ScaffoldMessenger.of(context);
+    final banner = NexBannerHost.of(context);
     final l10n = AppLocalizations.of(context);
     await Future.wait([widget.services.refreshTimeline(), _loadFilterTags()]);
     if (widget.preferences.syncBaseUrl == null) return;
@@ -307,9 +406,7 @@ class TimelineScreenState extends State<TimelineScreen> {
       await widget.services.syncNow();
     } catch (_) {
       if (!mounted) return;
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(nexToast(content: Text(l10n.operationFailed)));
+      banner?.show(message: l10n.operationFailed, kind: NexBannerKind.failed);
     }
   }
 
@@ -444,9 +541,105 @@ class TimelineScreenState extends State<TimelineScreen> {
           Navigator.pop(sheetContext);
           captureFile();
         },
+        onChecklist: () {
+          Navigator.pop(sheetContext);
+          unawaited(captureChecklist());
+        },
+        onLink: () {
+          Navigator.pop(sheetContext);
+          unawaited(captureLink());
+        },
       ),
     );
     widget.services.refreshTimeline();
+  }
+
+  /// Opens the checklist sheet and commits whatever came back.
+  ///
+  /// Same shape as every other capture path here: the sheet decides *what*,
+  /// this decides that it is kept. A dismissed sheet returns null and nothing
+  /// is written — the one place in Nex where a capture can be abandoned, and
+  /// only because nothing was committed in the first place.
+  Future<void> captureChecklist() async {
+    final items = await nexShowSheet<List<ChecklistItem>>(
+      context: context,
+      builder: (_) => ChecklistCaptureSheet(preferences: widget.preferences),
+    );
+    if (items == null || items.isEmpty) return;
+    final note = await widget.services.captureChecklist(items);
+    if (note != null) _landed(note.id);
+    await widget.services.refreshTimeline();
+  }
+
+  Future<void> captureLink() async {
+    final url = await nexShowSheet<String>(
+      context: context,
+      builder: (_) => LinkCaptureSheet(preferences: widget.preferences),
+    );
+    if (url == null) return;
+    final note = await widget.services.captureLink(url);
+    if (note != null) {
+      _landed(note.id);
+      // The page is read after the note exists, never before: a bookmark is
+      // saved the moment you ask for it, and the title and description are an
+      // improvement that arrives late or not at all.
+      unawaited(_readLink(note.id, url));
+    }
+    await widget.services.refreshTimeline();
+  }
+
+  void _landed(String id) {
+    if (!mounted) return;
+    setState(() => landedId = id);
+    if (widget.preferences.haptics) HapticFeedback.lightImpact();
+  }
+
+  /// Reads the page a link note points at, and asks the provider to summarise
+  /// it if one is configured.
+  ///
+  /// Never awaited by the capture path and never able to fail it: the note is
+  /// already saved by the time this runs, and every outcome here — offline, a
+  /// 404, a page with no title, no AI provider — leaves a link note that still
+  /// opens. The two halves are independent, so a page that reads fine but
+  /// cannot be summarised still gets its title.
+  Future<void> _readLink(String noteId, String url) async {
+    final reader = LinkReader();
+    LinkPreview preview;
+    try {
+      preview = await reader.read(url);
+    } finally {
+      reader.close();
+    }
+    if (!preview.isEmpty) {
+      await widget.services.setLinkMetadata(
+        noteId,
+        title: preview.title,
+        excerpt: preview.excerpt,
+      );
+      if (mounted) await widget.services.refreshTimeline();
+    }
+
+    if (!_aiHeaderAvailable) return;
+    // The page's own words are what gets summarised, never the URL — a bare
+    // address tells a model nothing, and sending one would spend a request to
+    // be told so.
+    final source = [
+      preview.title,
+      preview.excerpt,
+    ].whereType<String>().join('\n');
+    if (source.trim().isEmpty) return;
+    final adapter = _aiAdapter();
+    try {
+      final summary = await adapter.digest(source);
+      if (summary != null && summary.isNotEmpty) {
+        await widget.services.summarizeInto(noteId, summary);
+        if (mounted) await widget.services.refreshTimeline();
+      }
+    } catch (_) {
+      // A bookmark that could not be summarised is still a bookmark.
+    } finally {
+      adapter.close();
+    }
   }
 
   Future<void> capturePhoto(ImageSource source) async {
@@ -485,22 +678,19 @@ class TimelineScreenState extends State<TimelineScreen> {
 
   void _reportCaptureFailure(CaptureFailure failure, ImageSource source) {
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        nexToast(
-          content: Text(switch (failure) {
-            CaptureFailure.permission => l10n.captureFailedPermission,
-            CaptureFailure.storage => l10n.captureFailedStorage,
-            CaptureFailure.unreadable => l10n.captureFailedUnreadable,
-            CaptureFailure.unknown => l10n.captureFailed,
-          }),
-          action: SnackBarAction(
-            label: l10n.retry,
-            onPressed: () => unawaited(capturePhoto(source)),
-          ),
-        ),
-      );
+    nexShowBanner(
+      context,
+      kind: NexBannerKind.failed,
+      haptics: widget.preferences.haptics,
+      message: switch (failure) {
+        CaptureFailure.permission => l10n.captureFailedPermission,
+        CaptureFailure.storage => l10n.captureFailedStorage,
+        CaptureFailure.unreadable => l10n.captureFailedUnreadable,
+        CaptureFailure.unknown => l10n.captureFailed,
+      },
+      actionLabel: l10n.retry,
+      onAction: () => unawaited(capturePhoto(source)),
+    );
   }
 
   Future<void> captureVoice() async {
@@ -587,36 +777,17 @@ class TimelineScreenState extends State<TimelineScreen> {
     await widget.services.deleteNote(note.id);
     await widget.services.refreshTimeline();
     if (!mounted) return;
-    final theme = Theme.of(context);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        nexToast(
-          // Shape, colour, inset and elevation all come from `snackBarTheme` now,
-          // so this and the other nine toasts in the app are one capsule rather
-          // than one hand-styled banner and nine framework defaults.
-          duration: const Duration(seconds: 5),
-          content: Row(
-            children: [
-              Icon(
-                Icons.delete_outline,
-                size: 20,
-                color: theme.colorScheme.onInverseSurface,
-              ),
-              const SizedBox(width: NexSpacing.md),
-              Expanded(child: Text(l10n.noteDeleted)),
-            ],
-          ),
-          action: SnackBarAction(
-            label: l10n.undo,
-            onPressed: () async {
-              _tick();
-              await widget.services.undelete(note.id);
-              await widget.services.refreshTimeline();
-            },
-          ),
-        ),
-      );
+    nexShowBanner(
+      context,
+      message: l10n.noteDeleted,
+      haptics: widget.preferences.haptics,
+      actionLabel: l10n.undo,
+      onAction: () async {
+        _tick();
+        await widget.services.undelete(note.id);
+        await widget.services.refreshTimeline();
+      },
+    );
   }
 
   void _onReorderStart(int index) {
@@ -779,19 +950,20 @@ class TimelineScreenState extends State<TimelineScreen> {
     );
   }
 
-  /// "Nex", or a greeting if the user told the app their name.
+  /// "Good evening, Saeed", and the mark that goes after it — or null when
+  /// the user never told the app a name.
   ///
-  /// Decoration, deliberately kept to the one place the app already had a
-  /// title. It says nothing, asks nothing and never appears outside the app —
-  /// a greeting is not an engagement loop as long as it never leaves here.
+  /// Decoration, and it never leaves the device: the name is not sent with a
+  /// sync, and not sent to the AI provider either — the generated headline
+  /// beside this line is deliberately written without it.
   ///
-  /// Three phrasings per time of day, with a mark in front. Fixed for the life
-  /// of this screen rather than re-rolled on every build: the greeting is a
-  /// title, and a title that changes while you are reading it is a bug, not a
-  /// flourish. Opening the app again is what gets you a different one.
-  /// The greeting, and the mark that goes after it — or null for neither.
+  /// Three phrasings per time of day. Re-rolled only when the headline is
+  /// tapped, never on an ordinary rebuild: a title that changes while you are
+  /// reading it is a bug, not a flourish.
   (String, String)? _greeting(AppLocalizations l10n) {
-    final name = widget.preferences.displayName;
+    // Two words at most — a full name pushes this onto a second line and
+    // shoves the headline under it out of place.
+    final name = widget.preferences.shortDisplayName;
     if (name == null) return null;
     final v = _greetingVariant;
     final (glyphs, text) = switch (DateTime.now().hour) {
@@ -823,40 +995,124 @@ class TimelineScreenState extends State<TimelineScreen> {
     return (text[v](name), glyphs[v]);
   }
 
+  /// Everything above the search field: the greeting, the generated headline,
+  /// and the recap card.
+  ///
+  /// Which of those appear depends on what is configured, and the four cases
+  /// are the whole design:
+  ///
+  /// - nothing set up at all — no header, just the search field, as before;
+  /// - a name but no AI — the greeting *is* the headline, at headline size,
+  ///   and tapping it re-rolls the phrasing;
+  /// - AI but no name — the generated line alone;
+  /// - both — the greeting small above, the generated line large below.
+  ///
+  /// The whole text block is one tap target rather than two: they read as one
+  /// paragraph, and a refresh that only fires on the second of two adjacent
+  /// lines is a refresh people report as broken.
+  Widget _header(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final greeting = _greeting(l10n);
+    if (greeting == null && !_aiHeaderAvailable) return const SizedBox.shrink();
+    final headlineStyle = theme.textTheme.headlineSmall?.copyWith(
+      fontWeight: FontWeight.w600,
+      height: 1.25,
+    );
+    // The generated line has a slot as soon as there is a provider: it is a
+    // skeleton first and text second, rather than appearing from nowhere and
+    // pushing the card down once the request lands.
+    final hasHeadlineSlot = _aiHeaderAvailable;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        NexSpacing.md,
+        NexSpacing.sm,
+        NexSpacing.md,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          NexTappable(
+            onTap: _refreshHeadline,
+            semanticLabel: l10n.aiHeadlineRefresh,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(NexRadius.lg),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: NexSpacing.xs,
+                vertical: NexSpacing.sm,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (greeting != null)
+                    _GreetingLine(
+                      text: greeting.$1,
+                      glyph: greeting.$2,
+                      // Demoted to a label when there is a generated line to
+                      // be the headline, promoted to being the headline when
+                      // there is not.
+                      style: hasHeadlineSlot
+                          ? theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            )
+                          : headlineStyle,
+                    ),
+                  if (hasHeadlineSlot) ...[
+                    if (greeting != null) const SizedBox(height: NexSpacing.xs),
+                    _HeadlineText(
+                      text: _aiHeadlineText,
+                      loading: _aiHeadlineLoading,
+                      style: headlineStyle,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          if (_aiHeaderAvailable) ...[
+            const SizedBox(height: NexSpacing.sm),
+            _AiDaySummaryPanel(
+              title: l10n.aiDaySummaryTitle,
+              loading: _aiSummaryLoading,
+              text: _aiSummaryText,
+              emptyLabel: l10n.aiDaySummaryEmpty,
+              collapsed: _aiSummaryCollapsed,
+              semanticLabel: l10n.aiDaySummarySemanticLabel,
+              refreshTooltip: l10n.aiDaySummaryRefresh,
+              toggleTooltip: _aiSummaryCollapsed
+                  ? l10n.aiDaySummaryExpand
+                  : l10n.aiDaySummaryCollapse,
+              // Disabled mid-request rather than queueing a second one: two
+              // in flight means whichever finishes last wins, which is not
+              // necessarily the one the last tap asked for.
+              onRefresh: _aiSummaryLoading
+                  ? null
+                  : () {
+                      _tick();
+                      unawaited(_loadAiSummary(force: true));
+                    },
+              onToggle: _toggleAiSummary,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: switch (_greeting(l10n)) {
-                null => Text(l10n.appTitle, overflow: TextOverflow.ellipsis),
-                (final text, final glyph) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(text, overflow: TextOverflow.ellipsis),
-                    ),
-                    const SizedBox(width: NexSpacing.sm),
-                    _GreetingGlyph(glyph),
-                  ],
-                ),
-              },
-            ),
-            // Only once there is something cached to reopen — collapsing
-            // never leaves the chip pointing at nothing.
-            if (_aiSummaryCollapsed && _aiSummaryText != null) ...[
-              const SizedBox(width: NexSpacing.sm),
-              _AiSummaryChip(
-                label: l10n.aiDaySummaryChip,
-                onTap: _reopenAiSummary,
-              ),
-            ],
-          ],
-        ),
+        // The greeting used to live here, squeezed between the mark and the
+        // two action icons. It is a header now, at header size, in the list
+        // below — which is what it always wanted to be, and what left the bar
+        // free to be the small quiet strip it is here.
+        titleSpacing: NexSpacing.md,
+        title: const _WordmarkTile(),
         actions: [
           // Content lives here, preferences live behind the gear. Trash and
           // Tags were reachable only through Settings, and neither is a
@@ -932,34 +1188,18 @@ class TimelineScreenState extends State<TimelineScreen> {
                     // notes to scroll is a refresh gesture nobody finds.
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
-                      // Above the search field, matching the Nex_ui redesign:
-                      // collapses to nothing rather than leaving the list, the
-                      // same reason the two headers below do.
+                      // The headline and the recap card, above the search
+                      // field. Both collapse to nothing rather than leaving
+                      // the list, the same reason the two headers below do.
                       SliverToBoxAdapter(
-                        key: const ValueKey('ai-summary-panel'),
+                        key: const ValueKey('timeline-header'),
                         child: AnimatedSize(
                           duration: NexMotion.slow,
                           curve: NexMotion.curve,
                           alignment: Alignment.topCenter,
-                          child:
-                              _searching ||
-                                  _aiSummaryCollapsed ||
-                                  (!_aiSummaryLoading && _aiSummaryText == null)
+                          child: _searching
                               ? const SizedBox.shrink()
-                              : Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    NexSpacing.md,
-                                    NexSpacing.sm,
-                                    NexSpacing.md,
-                                    0,
-                                  ),
-                                  child: _AiDaySummaryPanel(
-                                    loading: _aiSummaryLoading,
-                                    text: _aiSummaryText,
-                                    semanticLabel:
-                                        l10n.aiDaySummarySemanticLabel,
-                                  ),
-                                ),
+                              : _header(l10n),
                         ),
                       ),
                       // Both headers are always in the list, keyed, and collapse
@@ -1218,50 +1458,129 @@ class _GreetingGlyphState extends State<_GreetingGlyph>
   );
 }
 
-/// The small pill next to the greeting that reopens a collapsed day summary.
+/// The app's own mark, in the corner the app bar used to spend on a title.
 ///
-/// Icon-and-label rather than icon-only: it is the only way back to the
-/// panel once it has collapsed, so it has to read as a button with a
-/// purpose at a glance, not be decoded from a bare glyph.
-class _AiSummaryChip extends StatelessWidget {
-  const _AiSummaryChip({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
+/// A tile rather than a bare image: at 28px the logo alone reads as debris in
+/// the status-bar area, and the rounded ground gives it the same footprint as
+/// the two icon buttons opposite it, so the bar's two ends balance.
+class _WordmarkTile extends StatelessWidget {
+  const _WordmarkTile();
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return NexTappable(
-      onTap: onTap,
-      semanticLabel: label,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(NexRadius.xl),
+    final theme = Theme.of(context);
+    return Container(
+      width: 34,
+      height: 34,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(NexRadius.md),
       ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: NexSpacing.sm,
-          vertical: NexSpacing.xs,
+      child: Image.asset(
+        theme.brightness == Brightness.dark
+            ? 'assets/branding/logo_dark.png'
+            : 'assets/branding/logo_white.png',
+        width: 20,
+        height: 20,
+        semanticLabel: 'Nex',
+      ),
+    );
+  }
+}
+
+/// "Good evening, Saeed ☀️" — the text and its animated mark on one line.
+class _GreetingLine extends StatelessWidget {
+  const _GreetingLine({
+    required this.text,
+    required this.glyph,
+    required this.style,
+  });
+
+  final String text;
+  final String glyph;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Flexible(
+        child: Text(
+          text,
+          style: style,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        decoration: BoxDecoration(
-          border: Border.all(color: scheme.outline),
-          borderRadius: BorderRadius.circular(NexRadius.xl),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(width: NexSpacing.xs),
-            Icon(Icons.auto_awesome, size: 16, color: scheme.onSurfaceVariant),
-          ],
+      ),
+      const SizedBox(width: NexSpacing.xs),
+      // The mark takes the line's own size: at label size beside a headline
+      // it would otherwise stay at body size and sit visibly too large.
+      DefaultTextStyle.merge(style: style, child: _GreetingGlyph(glyph)),
+    ],
+  );
+}
+
+/// The generated line across the top: a skeleton until the first one lands,
+/// then the line itself, cross-fading whenever a tap replaces it.
+///
+/// Two lines at most, hard. The prompt asks for nine words and the adapter
+/// clamps to twelve, but a model that ignores both must not be able to push
+/// the search field off the screen.
+class _HeadlineText extends StatelessWidget {
+  const _HeadlineText({
+    required this.text,
+    required this.loading,
+    required this.style,
+  });
+
+  final String? text;
+  final bool loading;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = text;
+    // Loading with text already there keeps the text: a refresh should read
+    // as the line being replaced, not as it being taken away and given back.
+    if (value == null) {
+      return loading
+          ? const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                NexSkeleton(height: 22, width: 240),
+                SizedBox(height: NexSpacing.xs),
+                NexSkeleton(height: 22, width: 160),
+              ],
+            )
+          : const SizedBox.shrink();
+    }
+    return AnimatedSwitcher(
+      duration: NexMotion.standard,
+      child: Opacity(
+        // Dimmed rather than replaced while the next one is in flight —
+        // the only visible sign that the tap did anything.
+        key: ValueKey(value),
+        opacity: loading ? 0.45 : 1,
+        child: Text(
+          value,
+          style: style,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
   }
 }
 
-/// The expanded AI recap card: two shimmer lines while the request is in
-/// flight, the recap itself once it lands.
+/// The AI recap card: a header row that is always there, and a body that the
+/// chevron folds away.
+///
+/// Collapsing used to remove the card outright and leave a chip in the app bar
+/// as the way back — a control nowhere near the thing it controlled, and one
+/// that only existed once there was cached text to point at. The header row
+/// stays put now, so the chevron that closed it is the chevron that reopens
+/// it, in the same place, always.
 ///
 /// No dashed border, unlike the Nex_ui mock: that reads there as "content
 /// goes here" — a Figma placeholder convention for an empty slot, not a
@@ -1269,39 +1588,130 @@ class _AiSummaryChip extends StatelessWidget {
 /// elevated surface in the app is drawn.
 class _AiDaySummaryPanel extends StatelessWidget {
   const _AiDaySummaryPanel({
+    required this.title,
     required this.loading,
     required this.text,
+    required this.emptyLabel,
+    required this.collapsed,
     required this.semanticLabel,
+    required this.refreshTooltip,
+    required this.toggleTooltip,
+    required this.onRefresh,
+    required this.onToggle,
   });
 
+  final String title;
   final bool loading;
   final String? text;
+  final String emptyLabel;
+  final bool collapsed;
   final String semanticLabel;
+  final String refreshTooltip;
+  final String toggleTooltip;
+
+  /// Null while a request is already in flight — see the call site.
+  final VoidCallback? onRefresh;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Semantics(
       container: true,
       label: semanticLabel,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(NexSpacing.cardInset),
+        padding: const EdgeInsets.fromLTRB(
+          NexSpacing.cardInset,
+          NexSpacing.xs,
+          NexSpacing.xs,
+          NexSpacing.xs,
+        ),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(NexRadius.lg),
         ),
-        child: loading
-            ? const Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  NexSkeleton(height: 16),
-                  SizedBox(height: NexSpacing.xs),
-                  NexSkeleton(height: 16),
-                ],
-              )
-            : Text(text ?? '', style: Theme.of(context).textTheme.bodyMedium),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
+                const SizedBox(width: NexSpacing.sm),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  tooltip: refreshTooltip,
+                  onPressed: onRefresh,
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.refresh, size: 20),
+                ),
+                IconButton(
+                  tooltip: toggleTooltip,
+                  onPressed: onToggle,
+                  visualDensity: VisualDensity.compact,
+                  icon: AnimatedRotation(
+                    // Down points at the body it would reveal; up points at
+                    // the header it would fold into.
+                    turns: collapsed ? 0 : 0.5,
+                    duration: NexMotion.standard,
+                    curve: NexMotion.curve,
+                    child: const Icon(Icons.keyboard_arrow_down, size: 22),
+                  ),
+                ),
+              ],
+            ),
+            AnimatedSize(
+              duration: NexMotion.slow,
+              curve: NexMotion.curve,
+              alignment: Alignment.topCenter,
+              child: collapsed
+                  ? const SizedBox(width: double.infinity)
+                  : Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        0,
+                        NexSpacing.xs,
+                        NexSpacing.sm,
+                        NexSpacing.sm,
+                      ),
+                      child: _summaryBody(theme),
+                    ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _summaryBody(ThemeData theme) {
+    final value = text;
+    if (value == null) {
+      return loading
+          ? const Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                NexSkeleton(height: 16),
+                SizedBox(height: NexSpacing.xs),
+                NexSkeleton(height: 16),
+              ],
+            )
+          : Text(
+              emptyLabel,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            );
+    }
+    return Opacity(
+      opacity: loading ? 0.45 : 1,
+      child: Text(value, style: theme.textTheme.bodyMedium),
     );
   }
 }

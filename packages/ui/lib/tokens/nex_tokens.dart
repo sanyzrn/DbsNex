@@ -227,13 +227,25 @@ const nexCardInsets = EdgeInsets.symmetric(
 /// noticeably down against the rest of its layout, from the 56dp this used
 /// to be. It is never its own tap target (the whole card is, via the
 /// [InkWell] in `_CardBody`), so nothing here is bound by [nexMinTapTarget].
-/// It is bound by something else, though: `nexCardHeight` derives the
-/// card's whole height from this number, and the preview line plus the
-/// relative-time line stacked beside it need 46dp between them at minimum
-/// (24 + 4 + 18, from the bodyLarge/bodySmall line heights and the gap
-/// between them) — going smaller than that overflows the text column this
-/// box sits next to.
+/// It is never its own tap target (the whole card is, via the [InkWell] in
+/// `_CardBody`), so nothing here is bound by [nexMinTapTarget].
 const nexCardLeadingSize = 48.0;
+
+/// How many lines of the note's own words a card shows.
+///
+/// Two. One was enough to tell cards apart and not enough to tell you what a
+/// note *said* — a captured thought is usually a sentence, and a sentence is
+/// usually wider than a phone.
+const nexCardPreviewLines = 2;
+
+/// The text column beside the leading glyph: the preview, then the gap, then
+/// the relative time.
+///
+/// Spelled out rather than measured at runtime, because [nexCardHeight] is a
+/// constant and the column has to be known to fit inside it. The numbers are
+/// the theme's own line heights — bodyLarge 24, bodySmall 18 — and the gap is
+/// [NexSpacing.xs]. Changing either type style means changing these.
+const _nexCardTextColumn = 24.0 * nexCardPreviewLines + NexSpacing.xs + 18.0;
 
 /// One height for every card in the timeline.
 ///
@@ -242,12 +254,15 @@ const nexCardLeadingSize = 48.0;
 /// single line — the list came out ragged, with no relationship between a
 /// card's height and anything the reader cares about.
 ///
-/// Derived rather than chosen: the leading glyph sits in equal insets above and
-/// below, and everything else fits inside that. It used to be 120, which left
-/// the glyph with 16 above it and 48 below — the card looked top-weighted
-/// because it was. The date and the tag *names* have moved off the card since,
-/// which is what freed the room.
-const nexCardHeight = nexCardLeadingSize + NexSpacing.cardInset * 2;
+/// Derived rather than chosen: whichever is taller of the leading glyph and
+/// the text column beside it, in equal insets above and below. The glyph used
+/// to be the binding side; with a two-line preview the text column is, at 70
+/// against the glyph's 48.
+const nexCardHeight =
+    (_nexCardTextColumn > nexCardLeadingSize
+        ? _nexCardTextColumn
+        : nexCardLeadingSize) +
+    NexSpacing.cardInset * 2;
 
 /// The typeface used everywhere except in Persian.
 ///
@@ -618,6 +633,8 @@ IconData nexNoteTypeIcon(String? wireName) => switch (wireName) {
   'voice' => Icons.graphic_eq_outlined,
   'photo' => Icons.image_outlined,
   'file' => Icons.insert_drive_file_outlined,
+  'checklist' => Icons.checklist_rtl_outlined,
+  'link' => Icons.link_outlined,
   _ => Icons.all_inclusive_outlined,
 };
 

@@ -232,6 +232,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get openSourceLicenses => 'پروانه‌های متن‌باز';
 
   @override
+  String get theme => 'پوسته';
+
+  @override
   String get themeLight => 'روشن';
 
   @override
@@ -405,6 +408,8 @@ class AppLocalizationsFa extends AppLocalizations {
       'voice': 'صدا',
       'photo': 'عکس',
       'file': 'فایل',
+      'checklist': 'چک‌لیست',
+      'link': 'لینک',
       'other': 'یادداشت',
     });
     return '$_temp0';
@@ -1123,8 +1128,128 @@ class AppLocalizationsFa extends AppLocalizations {
   String get intelligenceOpen => 'رونویسی، خلاصه، برچسب';
 
   @override
-  String get aiDaySummaryChip => 'خلاصه هوشمند';
+  String get aiDaySummaryTitle => 'خلاصه هوشمند';
 
   @override
   String get aiDaySummarySemanticLabel => 'خلاصه امروز';
+
+  @override
+  String get aiDaySummaryEmpty => 'هنوز چیزی برای خلاصه کردن نیست.';
+
+  @override
+  String get aiDaySummaryRefresh => 'نوشتن خلاصه تازه';
+
+  @override
+  String get aiDaySummaryCollapse => 'بستن خلاصه';
+
+  @override
+  String get aiDaySummaryExpand => 'نمایش خلاصه';
+
+  @override
+  String get aiHeadlineRefresh => 'برای جمله‌ای تازه لمس کنید';
+
+  @override
+  String get aiOutputLanguage => 'زبان خروجی هوش مصنوعی';
+
+  @override
+  String get aiOutputLanguageSubtitle =>
+      'زبانی که خلاصه‌ها و پیشنهادها با آن نوشته می‌شوند';
+
+  @override
+  String get aiOutputLanguageAuto => 'هم‌زبان با یادداشت‌هایم';
+
+  @override
+  String get aiOutputLanguageEnglish => 'انگلیسی';
+
+  @override
+  String get aiOutputLanguagePersian => 'فارسی';
+
+  @override
+  String get onboardingNext => 'بعدی';
+
+  @override
+  String get onboardingSkip => 'رد کردن';
+
+  @override
+  String get onboardingBack => 'قبلی';
+
+  @override
+  String get onboardingStart => 'شروع کنیم';
+
+  @override
+  String get onboardingWelcomeTitle => 'جایی برای زمین گذاشتن';
+
+  @override
+  String get onboardingWelcomeBody =>
+      'هر چیزی در Nex بگذارید، می‌ماند. چیز دیگری از شما خواسته نمی‌شود — نه حسابی، نه صندوقی که باید خالیش کنید.';
+
+  @override
+  String get onboardingCaptureTitle => 'دکمهٔ ذخیره‌ای در کار نیست';
+
+  @override
+  String get onboardingCaptureBody =>
+      'بنویسید، بگویید یا عکس بگیرید. یادداشت همان لحظه که می‌سازید مال شماست و بالای همان یک فهرست می‌نشیند — لازم نیست اول جایی برایش دسته‌بندی کنید.';
+
+  @override
+  String get onboardingIntelligenceTitle =>
+      'می‌تواند آنچه ثبت می‌کنید را بخواند';
+
+  @override
+  String get onboardingIntelligenceBody =>
+      'صدا متن می‌شود، متن داخل عکس‌ها درمی‌آید و برچسب‌ها خودشان پیشنهاد می‌شوند. تا وقتی در تنظیمات سرویسی اضافه نکنید خاموش است — بقیهٔ اپ بدون آن هم کار می‌کند.';
+
+  @override
+  String get onboardingSilenceTitle => 'هیچ‌وقت مزاحمتان نمی‌شود';
+
+  @override
+  String get onboardingSilenceBody =>
+      'نه اعلانی، نه نشانی، نه یادآوری و نه زنجیرهٔ روزانه. یادداشت‌هایتان روی همین دستگاه می‌مانند، مگر خودتان همگام‌سازی را راه بیندازید.';
+
+  @override
+  String get onboardingSetupTitle => 'چند انتخاب کوتاه';
+
+  @override
+  String get onboardingSetupBody =>
+      'همهٔ این‌ها بعداً در تنظیمات هستند و هیچ‌کدام همیشگی نیست.';
+
+  @override
+  String get onboardingNameRequired => 'Nex باید بداند شما را چه صدا کند.';
+
+  @override
+  String get checklist => 'چک‌لیست';
+
+  @override
+  String get link => 'لینک';
+
+  @override
+  String get checklistHint => 'هر خط یک مورد';
+
+  @override
+  String get linkHint => 'لینک را بچسبانید';
+
+  @override
+  String get linkNotValid => 'این شبیه لینک نیست.';
+
+  @override
+  String get openLink => 'باز کردن لینک';
+
+  @override
+  String get noteTitle => 'عنوان';
+
+  @override
+  String get addTitle => 'افزودن عنوان';
+
+  @override
+  String get editTitle => 'ویرایش عنوان';
+
+  @override
+  String get titleHint => 'اختیاری — خالی بگذارید تا عنوانی نباشد';
+
+  @override
+  String checklistProgress(int done, int total) {
+    return '$done از $total';
+  }
+
+  @override
+  String get readingLink => 'در حال خواندن صفحه…';
 }

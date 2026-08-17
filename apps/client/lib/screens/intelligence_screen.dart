@@ -8,7 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
-import '../widgets/nex_toast.dart';
+import '../widgets/nex_banner.dart';
 import 'ai_provider_screen.dart';
 
 /// Everything the intelligence layer can do, behind one switch.
@@ -83,12 +83,12 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
   /// key should be retryable without toggling the whole thing off and on.
   Future<void> _catchUp() async {
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final banner = NexBannerHost.of(context);
     setState(() => _backfilling = true);
     final done = await widget.services.backfillEnrichment();
     if (!mounted) return;
     setState(() => _backfilling = false);
-    messenger.showSnackBar(nexToast(content: Text(l10n.catchUpDone(done))));
+    banner?.show(message: l10n.catchUpDone(done));
   }
 
   Future<void> _setCapabilities(AiCapabilities capabilities) async {

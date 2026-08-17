@@ -9,13 +9,14 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/file_opener.dart';
 import '../platform/sharing.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/nex_services.dart';
-import '../widgets/nex_toast.dart';
+import '../widgets/nex_banner.dart';
 import '../widgets/tag_picker.dart';
 import '../utils/nex_bidi.dart';
 
@@ -158,9 +159,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   String? _copyableText(Note note) => note.displayText;
 
   void _toast(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(nexToast(content: Text(message)));
+    nexShowBanner(context, message: message);
   }
 
   Future<void> _copyText() async {
@@ -211,6 +210,86 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final result = await nexOpenFile(uri, mimeType: note?.mimeType);
     if (!mounted) return;
     if (result != FileOpenOutcome.opened) _toast(l10n.cannotOpen);
+  }
+
+  /// Opens a link note in whatever handles the web on this device.
+  ///
+  /// `externalApplication` rather than an in-app view: a bookmark is a
+  /// promise to hand you back to the page, and a stripped-down web view
+  /// without your session, your extensions or your history is not that page.
+  Future<void> _openLink() async {
+    final url = _note?.linkUrl;
+    if (url == null) return;
+    final l10n = AppLocalizations.of(context);
+    final opened = await launchUrl(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    ).catchError((Object _) => false);
+    if (!mounted) return;
+    if (!opened) _toast(l10n.cannotOpen);
+  }
+
+  /// Ticks one line of a checklist and re-reads the note.
+  ///
+  /// Straight through to the repository, which rewrites the note's content —
+  /// there is no local list being edited here, so nothing can drift out of
+  /// step with what is stored.
+  Future<void> _toggleItem(int index) async {
+    final note = _note;
+    if (note == null) return;
+    await widget.services.toggleChecklistItem(note.id, index);
+    await _reload();
+  }
+
+  /// The note's optional headline. Empty clears it, so the one control both
+  /// names a note and un-names it.
+  Future<void> _editTitle() async {
+    final note = _note;
+    if (note == null) return;
+    final l10n = AppLocalizations.of(context);
+    // No TextEditingController, unlike the body editor above. This dialog is
+    // one short line, and a controller here has to outlive the dialog's exit
+    // animation — which is still building the field it belongs to — so
+    // disposing it on the way out threw "used after being disposed" on the
+    // next frame. TextFormField's own initialValue needs no lifetime at all.
+    var draft = note.title ?? '';
+    final value = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.noteTitle),
+        content: NexDialogBody(
+          child: StatefulBuilder(
+            builder: (context, setDialogState) => TextFormField(
+              initialValue: note.title ?? '',
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              // Re-evaluated per keystroke, the same as every other field in
+              // this app: a Persian title in an English-locale app would
+              // otherwise render against the interface's direction.
+              textDirection: nexTextDirection(draft),
+              textAlign: nexTextAlign(draft),
+              selectionWidthStyle: BoxWidthStyle.tight,
+              onChanged: (v) => setDialogState(() => draft = v),
+              decoration: InputDecoration(hintText: l10n.titleHint),
+              onFieldSubmitted: (v) => Navigator.pop(ctx, v),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, draft),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    if (value == null) return;
+    await widget.services.setTitle(note.id, value);
+    await _reload();
   }
 
   /// Shares the media itself for a file, photo or voice note, and the body for
@@ -635,7 +714,16 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                     ],
                   ),
                   const SizedBox(height: NexSpacing.sm),
-                  if (note.type == NoteType.text)
+                  if (note.type == NoteType.checklist)
+                    // The one place a checklist is interactive. On the card it
+                    // is a picture of a list; here it is the list.
+                    _ChecklistBody(
+                      items: note.checklistItems,
+                      onToggle: (index) => unawaited(_toggleItem(index)),
+                    )
+                  else if (note.type == NoteType.link)
+                    _LinkBody(note: note, onOpen: _openLink)
+                  else if (note.type == NoteType.text)
                     // Only the body turns. The "Text" label, the action row and the
                     // rest of the sheet keep the interface's direction.
                     NexBodyText(
@@ -885,6 +973,21 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         label: l10n.edit,
                         onPressed: _editContent,
                       ),
+                    if (note.type == NoteType.link)
+                      _DetailAction(
+                        icon: Icons.open_in_new,
+                        label: l10n.openLink,
+                        onPressed: _openLink,
+                      ),
+                    // Every type, not just text: a title is the one thing that
+                    // makes a voice note or a photo findable by name later.
+                    _DetailAction(
+                      icon: Icons.title,
+                      label: note.title == null
+                          ? l10n.addTitle
+                          : l10n.editTitle,
+                      onPressed: _editTitle,
+                    ),
                     // Tag and caption both already have their own add/edit
                     // affordance further up the sheet — see the tag chip row
                     // and the caption row above. Repeating them here just
@@ -1177,6 +1280,151 @@ class _DetailAction extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A checklist, where ticking is the point.
+///
+/// Rows in their stored order here, unlike the card, which floats what is
+/// still to do to the top: on the card you want the next thing, in the sheet
+/// you want the list you wrote.
+class _ChecklistBody extends StatelessWidget {
+  const _ChecklistBody({required this.items, required this.onToggle});
+
+  final List<ChecklistItem> items;
+  final ValueChanged<int> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final progress = checklistProgress(items);
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (progress.total > 0)
+          Padding(
+            padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+            child: Text(
+              l10n.checklistProgress(progress.done, progress.total),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        for (var i = 0; i < items.length; i++)
+          InkWell(
+            onTap: () => onToggle(i),
+            borderRadius: BorderRadius.circular(NexRadius.sm),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: NexSpacing.xs),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // A real checkbox, sized to the text beside it. The whole row
+                  // is the target, so this is the mark rather than the control.
+                  Icon(
+                    items[i].done
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    size: 22,
+                    color: items[i].done
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: NexSpacing.sm),
+                  Expanded(
+                    child: NexBodyText(
+                      items[i].text,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        decoration: items[i].done
+                            ? TextDecoration.lineThrough
+                            : null,
+                        color: items[i].done
+                            ? theme.colorScheme.onSurfaceVariant
+                            : null,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// A link note: the page's description if one was read, then the address
+/// itself as the row that opens it.
+class _LinkBody extends StatelessWidget {
+  const _LinkBody({required this.note, required this.onOpen});
+
+  final Note note;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final url = note.linkUrl ?? '';
+    final host = urlHost(url);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (note.linkExcerpt != null) ...[
+          NexBodyText(
+            note.linkExcerpt!,
+            style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
+          ),
+          const SizedBox(height: NexSpacing.md),
+        ],
+        InkWell(
+          onTap: onOpen,
+          borderRadius: BorderRadius.circular(NexRadius.md),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(NexSpacing.md),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(NexRadius.md),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.public, size: 18, color: theme.colorScheme.primary),
+                const SizedBox(width: NexSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (host != null)
+                        Text(host, style: theme.textTheme.titleSmall),
+                      // The full address under the host, so it is possible to
+                      // see where a link actually goes before following it.
+                      Text(
+                        url,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.open_in_new,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

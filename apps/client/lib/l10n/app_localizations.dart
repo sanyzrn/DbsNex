@@ -482,6 +482,12 @@ abstract class AppLocalizations {
   /// **'Open-source licences'**
   String get openSourceLicenses;
 
+  /// Settings row that opens the light/dark/system picker
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get theme;
+
   /// No description provided for @themeLight.
   ///
   /// In en, this message translates to:
@@ -773,7 +779,7 @@ abstract class AppLocalizations {
   /// No description provided for @noteType.
   ///
   /// In en, this message translates to:
-  /// **'{type, select, text{Text} voice{Voice} photo{Photo} file{File} other{Note}}'**
+  /// **'{type, select, text{Text} voice{Voice} photo{Photo} file{File} checklist{Checklist} link{Link} other{Note}}'**
   String noteType(String type);
 
   /// Confirm button on the inline add-tag dialog
@@ -1952,17 +1958,239 @@ abstract class AppLocalizations {
   /// **'Transcription, summaries, tags'**
   String get intelligenceOpen;
 
-  /// Small chip next to the timeline greeting that reopens the collapsed AI day summary
+  /// Header of the AI day summary card on the timeline
   ///
   /// In en, this message translates to:
-  /// **'AI Summary'**
-  String get aiDaySummaryChip;
+  /// **'Daily Digest'**
+  String get aiDaySummaryTitle;
 
   /// Screen-reader label for the AI-generated day summary panel on the timeline
   ///
   /// In en, this message translates to:
   /// **'Today\'s summary'**
   String get aiDaySummarySemanticLabel;
+
+  /// Shown in the day summary card when no summary could be generated
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to sum up yet.'**
+  String get aiDaySummaryEmpty;
+
+  /// Tooltip on the day summary card's refresh button
+  ///
+  /// In en, this message translates to:
+  /// **'Write a new summary'**
+  String get aiDaySummaryRefresh;
+
+  /// Tooltip on the day summary card's chevron while the card is open
+  ///
+  /// In en, this message translates to:
+  /// **'Hide the summary'**
+  String get aiDaySummaryCollapse;
+
+  /// Tooltip on the day summary card's chevron while the card is collapsed
+  ///
+  /// In en, this message translates to:
+  /// **'Show the summary'**
+  String get aiDaySummaryExpand;
+
+  /// Screen-reader label for the tappable AI-generated headline at the top of the timeline
+  ///
+  /// In en, this message translates to:
+  /// **'Tap for a new line'**
+  String get aiHeadlineRefresh;
+
+  /// Settings row choosing which language the AI writes in
+  ///
+  /// In en, this message translates to:
+  /// **'AI output language'**
+  String get aiOutputLanguage;
+
+  /// Explanation under the AI output language setting
+  ///
+  /// In en, this message translates to:
+  /// **'The language summaries and suggestions come back in'**
+  String get aiOutputLanguageSubtitle;
+
+  /// AI output language option: follow whatever language the note is written in
+  ///
+  /// In en, this message translates to:
+  /// **'Match my notes'**
+  String get aiOutputLanguageAuto;
+
+  /// AI output language option: always English
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get aiOutputLanguageEnglish;
+
+  /// AI output language option: always Persian
+  ///
+  /// In en, this message translates to:
+  /// **'Persian'**
+  String get aiOutputLanguagePersian;
+
+  /// Onboarding button that advances to the next page
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get onboardingNext;
+
+  /// Onboarding button that jumps ahead to the setup page
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get onboardingSkip;
+
+  /// Onboarding button that returns to the previous page
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get onboardingBack;
+
+  /// Onboarding button on the last page that finishes setup
+  ///
+  /// In en, this message translates to:
+  /// **'Start using Nex'**
+  String get onboardingStart;
+
+  /// Onboarding page 1 heading
+  ///
+  /// In en, this message translates to:
+  /// **'Somewhere to put it down'**
+  String get onboardingWelcomeTitle;
+
+  /// Onboarding page 1 body
+  ///
+  /// In en, this message translates to:
+  /// **'Anything you put in Nex is kept. Nothing else is asked of you — no account, no inbox to clear, nothing to keep up with.'**
+  String get onboardingWelcomeBody;
+
+  /// Onboarding page 2 heading
+  ///
+  /// In en, this message translates to:
+  /// **'There is no Save button'**
+  String get onboardingCaptureTitle;
+
+  /// Onboarding page 2 body
+  ///
+  /// In en, this message translates to:
+  /// **'Type it, say it, or photograph it. A note is yours the moment you make it, and it goes to the top of one list — no folders to file it into first.'**
+  String get onboardingCaptureBody;
+
+  /// Onboarding page 3 heading
+  ///
+  /// In en, this message translates to:
+  /// **'It can read what you capture'**
+  String get onboardingIntelligenceTitle;
+
+  /// Onboarding page 3 body
+  ///
+  /// In en, this message translates to:
+  /// **'Voice becomes text, photos give up their words, and tags suggest themselves. This part is off until you add a provider in Settings — everything else works without it.'**
+  String get onboardingIntelligenceBody;
+
+  /// Onboarding page 4 heading
+  ///
+  /// In en, this message translates to:
+  /// **'It will never interrupt you'**
+  String get onboardingSilenceTitle;
+
+  /// Onboarding page 4 body
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications, no badges, no reminders, no streaks. Your notes stay on this device unless you set up syncing yourself.'**
+  String get onboardingSilenceBody;
+
+  /// Onboarding page 5 heading
+  ///
+  /// In en, this message translates to:
+  /// **'A few quick choices'**
+  String get onboardingSetupTitle;
+
+  /// Onboarding page 5 body
+  ///
+  /// In en, this message translates to:
+  /// **'All of these live in Settings afterwards, and none of them are permanent.'**
+  String get onboardingSetupBody;
+
+  /// Validation message under the required name field on the last onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Nex needs something to call you.'**
+  String get onboardingNameRequired;
+
+  /// Capture type: a list of tickable items
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist'**
+  String get checklist;
+
+  /// Capture type: a saved web address
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get link;
+
+  /// Placeholder in the checklist capture field
+  ///
+  /// In en, this message translates to:
+  /// **'An item, one per line'**
+  String get checklistHint;
+
+  /// Placeholder in the link capture field
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a link'**
+  String get linkHint;
+
+  /// Shown when pasted text cannot be read as a URL
+  ///
+  /// In en, this message translates to:
+  /// **'That does not look like a link.'**
+  String get linkNotValid;
+
+  /// Action that opens a link note in the browser
+  ///
+  /// In en, this message translates to:
+  /// **'Open link'**
+  String get openLink;
+
+  /// The optional headline on a note
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get noteTitle;
+
+  /// Detail-sheet action on a note that has no title yet
+  ///
+  /// In en, this message translates to:
+  /// **'Add a title'**
+  String get addTitle;
+
+  /// Detail-sheet action on a note that already has a title
+  ///
+  /// In en, this message translates to:
+  /// **'Edit title'**
+  String get editTitle;
+
+  /// Placeholder in the title field
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — leave empty for none'**
+  String get titleHint;
+
+  /// How many checklist items are ticked
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total}'**
+  String checklistProgress(int done, int total);
+
+  /// Shown while a link's title and description are being fetched
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the page…'**
+  String get readingLink;
 }
 
 class _AppLocalizationsDelegate

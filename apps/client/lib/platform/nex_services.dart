@@ -166,6 +166,10 @@ class NexServices {
         'apiKey': ai.apiKey,
         'baseUrl': ai.baseUrl,
         'model': ai.model,
+        // Not part of AiProviderConfig — see `aiOutputLanguage` — but it has
+        // to reach the isolate that builds the adapter, and this is the one
+        // message that already carries everything else the adapter needs.
+        'outputLanguage': preferences.aiOutputLanguage.wireName,
       }),
     );
     // Turning it on has to mean something for the notes that are already here.
@@ -204,6 +208,11 @@ class NexServices {
 
   Future<Note?> captureText(String content) => worker.captureText(content);
 
+  Future<Note?> captureChecklist(List<ChecklistItem> items) =>
+      worker.captureChecklist(items);
+
+  Future<Note?> captureLink(String url) => worker.captureLink(url);
+
   Future<Note> captureVoice({
     required String mediaUri,
     required Uint8List mediaBytes,
@@ -240,6 +249,17 @@ class NexServices {
 
   Future<void> setCaption(String id, String caption) =>
       worker.setCaption(id, caption);
+
+  Future<void> setTitle(String id, String? title) => worker.setTitle(id, title);
+
+  Future<void> summarizeInto(String id, String summary) =>
+      worker.setSummaryText(id, summary);
+
+  Future<void> setLinkMetadata(String id, {String? title, String? excerpt}) =>
+      worker.setLinkMetadata(id, title: title, excerpt: excerpt);
+
+  Future<void> toggleChecklistItem(String id, int index) =>
+      worker.toggleChecklistItem(id, index);
 
   /// Pins [id], releasing whatever else was pinned — at most one note is
   /// ever pinned at a time.
@@ -364,14 +384,33 @@ class NexServices {
   Future<void> _maybeBackupInBackground() async {
     await Future<void>.delayed(const Duration(seconds: 5));
     if (_closed) return;
+    await backupIfDue();
+  }
 
+  /// The decision itself, without the launch delay in front of it. Returns
+  /// whether a backup was actually written.
+  ///
+  /// Split out from [_maybeBackupInBackground] so it can be exercised without
+  /// a test having to wait five real seconds for it.
+  @visibleForTesting
+  Future<bool> backupIfDue() async {
     try {
-      if (await _backupPolicy.isDue()) {
-        await worker.backup(backupDir);
-        await _backupPolicy.markDone();
-      }
+      if (!await _backupPolicy.isDue()) return false;
+      // Nothing worth protecting yet. The policy is due the first time it is
+      // ever asked — which is right, a new library should not wait twelve
+      // hours for its first backup — but on a brand-new install that lands
+      // five seconds in, on an empty database, and Settings then greets a
+      // first-time user with "1 backup" holding nothing at all. The clock is
+      // deliberately left unmarked too: the first backup belongs to the first
+      // note, not to twelve hours after the app was first opened.
+      final anything = await worker.timeline(limit: 1);
+      if (anything.isEmpty) return false;
+      await worker.backup(backupDir);
+      await _backupPolicy.markDone();
+      return true;
     } catch (_) {
       // Fail open — never block or crash the app on backup.
+      return false;
     }
   }
 

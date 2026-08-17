@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
 import '../l10n/app_localizations.dart';
-import '../widgets/nex_toast.dart';
+import '../widgets/nex_banner.dart';
 import 'photo_annotate_screen.dart';
 
 /// Runs off the UI thread: a full-resolution camera photo is large enough
@@ -106,9 +106,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
         Navigator.of(context).pop(annotated ?? croppedImage);
       case CropFailure(:final cause):
         setState(() => _cropping = false);
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(nexToast(content: Text('$cause')));
+        nexShowBanner(context, message: '$cause');
     }
   }
 

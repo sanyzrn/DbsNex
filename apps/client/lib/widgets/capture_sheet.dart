@@ -17,6 +17,8 @@ class CaptureSheet extends StatefulWidget {
     required this.onCamera,
     required this.onGallery,
     required this.onFile,
+    required this.onChecklist,
+    required this.onLink,
     this.onCommitted,
   });
   final NexServices services;
@@ -25,6 +27,8 @@ class CaptureSheet extends StatefulWidget {
   final VoidCallback onCamera;
   final VoidCallback onGallery;
   final VoidCallback onFile;
+  final VoidCallback onChecklist;
+  final VoidCallback onLink;
   final ValueChanged<String>? onCommitted;
   @override
   State<CaptureSheet> createState() => _CaptureSheetState();
@@ -171,6 +175,12 @@ class _CaptureSheetState extends State<CaptureSheet> {
                   widget.onGallery,
                 ),
                 _Action(Icons.attach_file, l10n.file, widget.onFile),
+                _Action(
+                  Icons.checklist_rtl_outlined,
+                  l10n.checklist,
+                  widget.onChecklist,
+                ),
+                _Action(Icons.link_outlined, l10n.link, widget.onLink),
                 IconButton.filled(
                   constraints: const BoxConstraints.tightFor(
                     width: 44,

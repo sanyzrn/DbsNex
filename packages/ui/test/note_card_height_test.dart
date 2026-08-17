@@ -152,26 +152,25 @@ void main() {
     },
   );
 
-  testWidgets(
-    'the preview never wraps to a second line — the timestamp below it '
-    'owns that room instead',
-    (tester) async {
-      // maxLines: 1 now, not 2 — a two-line preview left no room for the
-      // relative-time line under it without growing every card.
-      await heightOf(
-        tester,
-        note(
-          'a note that is long enough to take two lines in the card '
-          'preview and therefore wraps, if it were still allowed to',
-        ),
-      );
-      final rect = tester.getRect(
-        find.textContaining('a note that is long enough'),
-      );
-      // One line of bodyLarge (24px), not two.
-      expect(rect.height, closeTo(24, 1));
-    },
-  );
+  testWidgets('the preview wraps to two lines and stops there', (tester) async {
+    // Two, not one: one line was enough to tell cards apart and not enough
+    // to tell you what a note said. The card grew to fit — see
+    // nexCardPreviewLines, which nexCardHeight is derived from — rather
+    // than the second line coming out of the timestamp's room.
+    await heightOf(
+      tester,
+      note(
+        'a note that is long enough to take two lines in the card '
+        'preview and therefore wraps, and then keeps going well past '
+        'the end of the second line so that it has to be truncated',
+      ),
+    );
+    final rect = tester.getRect(
+      find.textContaining('a note that is long enough'),
+    );
+    // Two lines of bodyLarge (24px each), and no third.
+    expect(rect.height, closeTo(48, 1));
+  });
 
   testWidgets('the preview and its timestamp are centred as a pair', (
     tester,

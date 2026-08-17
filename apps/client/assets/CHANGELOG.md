@@ -34,6 +34,36 @@ Working convention:
 
 ## Unreleased
 
+- Timeline cards show two lines of a note instead of one.
+- Fixed a brand-new install already listing a backup — of an empty library.
+- Fixed the last update refusing to install over the previous version. Both
+  causes are gone: releases stopped shipping the per-architecture APKs at
+  all, and the version numbering let an older build outrank a newer one.
+- Messages arrive from the top of the screen now, as a rounded banner with a
+  small vibration, instead of a bar at the bottom. Tap it or flick it up to
+  send it away early.
+- Any note can be given a title now, from its detail sheet. A named note
+  shows its name in the list, and is still searchable by what is inside it.
+- Added checklists. Write one item per line, and tick them off later — a
+  checklist exports as a real markdown checklist too.
+- Added link captures. Paste a link and Nex reads the page's own title and
+  description, and summarises it if you have an AI provider set up.
+- A first launch now opens with a short introduction to what Nex is, ending
+  with your name, theme, language, and the language Nex writes in. It appears
+  once, and never for an install that already has notes in it.
+- The top of the home screen is a real header now: a short line written for
+  you, your greeting above it, and the daily summary in a card under both.
+  Tap the line for a different one.
+- The daily summary card keeps its own refresh and collapse buttons, so it
+  folds away and comes back from the same place instead of from the app bar.
+- Settings is one line per setting now, with what it is set to beside it.
+  Every picker still opens — from the row that names it — instead of all of
+  them sitting open at once.
+- Your name sits at the top of Settings as a profile card rather than in a
+  section of its own halfway down.
+- Added a setting for which language Nex writes in — follow your notes,
+  English, or Persian — separate from the language of the app itself.
+
 ## v0.9.1
 
 - Settings' swipe-action picker now looks like the rest of Settings, not a

@@ -26,6 +26,8 @@ enum _DbCommand {
   search,
   getById,
   captureText,
+  captureChecklist,
+  captureLink,
   captureVoice,
   capturePhoto,
   captureFile,
@@ -33,6 +35,10 @@ enum _DbCommand {
   deleteNote,
   undelete,
   setCaption,
+  setTitle,
+  setSummaryText,
+  setLinkMetadata,
+  toggleChecklistItem,
   pinNote,
   unpinNote,
   pinnedNoteId,
@@ -221,6 +227,19 @@ class NexDbWorker implements NexDb {
       _send<Note?>(_DbCommand.captureText, {'content': content});
 
   @override
+  Future<Note?> captureChecklist(List<ChecklistItem> items) =>
+      _send<Note?>(_DbCommand.captureChecklist, {
+        // Sent as the on-disk text rather than as objects: the isolate port
+        // takes primitives, and formatChecklist is already the one place that
+        // knows the format.
+        'body': formatChecklist(items),
+      });
+
+  @override
+  Future<Note?> captureLink(String url) =>
+      _send<Note?>(_DbCommand.captureLink, {'url': url});
+
+  @override
   Future<Note> captureVoice({
     required String mediaUri,
     required Uint8List mediaBytes,
@@ -270,6 +289,26 @@ class NexDbWorker implements NexDb {
   @override
   Future<void> setCaption(String id, String caption) =>
       _send<void>(_DbCommand.setCaption, {'id': id, 'caption': caption});
+
+  @override
+  Future<void> setTitle(String id, String? title) =>
+      _send<void>(_DbCommand.setTitle, {'id': id, 'title': title});
+
+  @override
+  Future<void> setSummaryText(String id, String text) =>
+      _send<void>(_DbCommand.setSummaryText, {'id': id, 'text': text});
+
+  @override
+  Future<void> setLinkMetadata(String id, {String? title, String? excerpt}) =>
+      _send<void>(_DbCommand.setLinkMetadata, {
+        'id': id,
+        'title': title,
+        'excerpt': excerpt,
+      });
+
+  @override
+  Future<void> toggleChecklistItem(String id, int index) =>
+      _send<void>(_DbCommand.toggleChecklistItem, {'id': id, 'index': index});
 
   @override
   Future<void> pinNote(String id) =>
@@ -502,6 +541,12 @@ class NexDbWorker implements NexDb {
           _DbCommand.captureText => capture.submitTextCapture(
             arg('content')! as String,
           ),
+          _DbCommand.captureChecklist => capture.submitChecklistCapture(
+            parseChecklist(arg('body')! as String),
+          ),
+          _DbCommand.captureLink => capture.submitLinkCapture(
+            arg('url')! as String,
+          ),
           _DbCommand.captureVoice => capture.submitVoiceCapture(
             mediaUri: arg('mediaUri')! as String,
             mediaBytes: arg('mediaBytes')! as Uint8List,
@@ -533,6 +578,28 @@ class NexDbWorker implements NexDb {
             () => repo.setCaption(
               arg('id')! as String,
               arg('caption')! as String,
+            ),
+          ),
+          _DbCommand.setTitle => _voided(
+            () => repo.setTitle(arg('id')! as String, arg('title') as String?),
+          ),
+          _DbCommand.setSummaryText => _voided(
+            () => repo.setSummaryText(
+              arg('id')! as String,
+              arg('text')! as String,
+            ),
+          ),
+          _DbCommand.setLinkMetadata => _voided(
+            () => repo.setLinkMetadata(
+              arg('id')! as String,
+              title: arg('title') as String?,
+              excerpt: arg('excerpt') as String?,
+            ),
+          ),
+          _DbCommand.toggleChecklistItem => _voided(
+            () => repo.toggleChecklistItem(
+              arg('id')! as String,
+              arg('index')! as int,
             ),
           ),
           _DbCommand.pinNote => _voided(
@@ -649,7 +716,12 @@ class NexDbWorker implements NexDb {
             // heuristics rather than to nothing: tag hints keep working.
             enrichment.updateAdapter(
               config.isUsable
-                  ? CloudAIAdapter(config: config)
+                  ? CloudAIAdapter(
+                      config: config,
+                      outputLanguage: AiOutputLanguage.fromWire(
+                        raw['outputLanguage'],
+                      ),
+                    )
                   : const OnDeviceAIAdapter(),
             );
           }),

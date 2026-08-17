@@ -39,6 +39,11 @@ void main() {
       backupDir: p.join(tmp.path, 'backups'),
     );
     preferences = await NexPreferences.load();
+    // Every one of these tests starts from an empty preference store, which
+    // is exactly what a first-ever launch looks like — so without this they
+    // would all open on the onboarding screen instead of the timeline.
+    // Onboarding has its own test file.
+    await preferences.completeOnboarding();
     // The storage figure is measured by walking directories, which is real
     // async I/O and so never resolves inside flutter_test's fake-async zone —
     // its skeleton stays up for the whole test. A repeating shimmer means

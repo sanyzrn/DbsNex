@@ -64,6 +64,10 @@
   "shareDiagnosticsBody": "ثبت محلی چند خطای آخر، برای وقتی چیزی خراب شد. چیزی به هیچ‌جا فرستاده نمی‌شود مگر خودتان اینجا اشتراک بگذارید.",
   "noDiagnosticsYet": "چیزی برای اشتراک‌گذاری نیست",
   "openSourceLicenses": "پروانه‌های متن‌باز",
+  "theme": "پوسته",
+  "@theme": {
+    "description": "Settings row that opens the light/dark/system picker"
+  },
   "themeLight": "روشن",
   "themeDark": "تیره",
   "themeSystem": "مثل سیستم",
@@ -112,7 +116,7 @@
   "deleteBackupBody": "این فایل پشتیبان روی دستگاه حذف می‌شود و برگشت‌پذیر نیست.",
   "backupCount": "{count, plural, =0{بدون پشتیبان} =1{یک پشتیبان} other{{count} پشتیبان}}",
   "operationFailed": "این کار انجام نشد. یادداشت‌های قبلی شما دست‌نخورده ماندند.",
-  "noteType": "{type, select, text{متن} voice{صدا} photo{عکس} file{فایل} other{یادداشت}}",
+  "noteType": "{type, select, text{متن} voice{صدا} photo{عکس} file{فایل} checklist{چک‌لیست} link{لینک} other{یادداشت}}",
   "addAction": "افزودن",
   "@addAction": {
     "description": "Confirm button on the inline add-tag dialog"
@@ -503,12 +507,168 @@
   "@intelligenceOpen": {
     "description": "Settings row that opens the intelligence screen"
   },
-  "aiDaySummaryChip": "خلاصه هوشمند",
-  "@aiDaySummaryChip": {
-    "description": "Small chip next to the timeline greeting that reopens the collapsed AI day summary"
+  "aiDaySummaryTitle": "خلاصه هوشمند",
+  "@aiDaySummaryTitle": {
+    "description": "Header of the AI day summary card on the timeline"
   },
   "aiDaySummarySemanticLabel": "خلاصه امروز",
   "@aiDaySummarySemanticLabel": {
     "description": "Screen-reader label for the AI-generated day summary panel on the timeline"
+  },
+  "aiDaySummaryEmpty": "هنوز چیزی برای خلاصه کردن نیست.",
+  "@aiDaySummaryEmpty": {
+    "description": "Shown in the day summary card when no summary could be generated"
+  },
+  "aiDaySummaryRefresh": "نوشتن خلاصه تازه",
+  "@aiDaySummaryRefresh": {
+    "description": "Tooltip on the day summary card's refresh button"
+  },
+  "aiDaySummaryCollapse": "بستن خلاصه",
+  "@aiDaySummaryCollapse": {
+    "description": "Tooltip on the day summary card's chevron while the card is open"
+  },
+  "aiDaySummaryExpand": "نمایش خلاصه",
+  "@aiDaySummaryExpand": {
+    "description": "Tooltip on the day summary card's chevron while the card is collapsed"
+  },
+  "aiHeadlineRefresh": "برای جمله‌ای تازه لمس کنید",
+  "@aiHeadlineRefresh": {
+    "description": "Screen-reader label for the tappable AI-generated headline at the top of the timeline"
+  },
+  "aiOutputLanguage": "زبان خروجی هوش مصنوعی",
+  "@aiOutputLanguage": {
+    "description": "Settings row choosing which language the AI writes in"
+  },
+  "aiOutputLanguageSubtitle": "زبانی که خلاصه‌ها و پیشنهادها با آن نوشته می‌شوند",
+  "@aiOutputLanguageSubtitle": {
+    "description": "Explanation under the AI output language setting"
+  },
+  "aiOutputLanguageAuto": "هم‌زبان با یادداشت‌هایم",
+  "@aiOutputLanguageAuto": {
+    "description": "AI output language option: follow whatever language the note is written in"
+  },
+  "aiOutputLanguageEnglish": "انگلیسی",
+  "@aiOutputLanguageEnglish": {
+    "description": "AI output language option: always English"
+  },
+  "aiOutputLanguagePersian": "فارسی",
+  "@aiOutputLanguagePersian": {
+    "description": "AI output language option: always Persian"
+  },
+  "onboardingNext": "بعدی",
+  "@onboardingNext": {
+    "description": "Onboarding button that advances to the next page"
+  },
+  "onboardingSkip": "رد کردن",
+  "@onboardingSkip": {
+    "description": "Onboarding button that jumps ahead to the setup page"
+  },
+  "onboardingBack": "قبلی",
+  "@onboardingBack": {
+    "description": "Onboarding button that returns to the previous page"
+  },
+  "onboardingStart": "شروع کنیم",
+  "@onboardingStart": {
+    "description": "Onboarding button on the last page that finishes setup"
+  },
+  "onboardingWelcomeTitle": "جایی برای زمین گذاشتن",
+  "@onboardingWelcomeTitle": {
+    "description": "Onboarding page 1 heading"
+  },
+  "onboardingWelcomeBody": "هر چیزی در Nex بگذارید، می‌ماند. چیز دیگری از شما خواسته نمی‌شود — نه حسابی، نه صندوقی که باید خالیش کنید.",
+  "@onboardingWelcomeBody": {
+    "description": "Onboarding page 1 body"
+  },
+  "onboardingCaptureTitle": "دکمهٔ ذخیره‌ای در کار نیست",
+  "@onboardingCaptureTitle": {
+    "description": "Onboarding page 2 heading"
+  },
+  "onboardingCaptureBody": "بنویسید، بگویید یا عکس بگیرید. یادداشت همان لحظه که می‌سازید مال شماست و بالای همان یک فهرست می‌نشیند — لازم نیست اول جایی برایش دسته‌بندی کنید.",
+  "@onboardingCaptureBody": {
+    "description": "Onboarding page 2 body"
+  },
+  "onboardingIntelligenceTitle": "می‌تواند آنچه ثبت می‌کنید را بخواند",
+  "@onboardingIntelligenceTitle": {
+    "description": "Onboarding page 3 heading"
+  },
+  "onboardingIntelligenceBody": "صدا متن می‌شود، متن داخل عکس‌ها درمی‌آید و برچسب‌ها خودشان پیشنهاد می‌شوند. تا وقتی در تنظیمات سرویسی اضافه نکنید خاموش است — بقیهٔ اپ بدون آن هم کار می‌کند.",
+  "@onboardingIntelligenceBody": {
+    "description": "Onboarding page 3 body"
+  },
+  "onboardingSilenceTitle": "هیچ‌وقت مزاحمتان نمی‌شود",
+  "@onboardingSilenceTitle": {
+    "description": "Onboarding page 4 heading"
+  },
+  "onboardingSilenceBody": "نه اعلانی، نه نشانی، نه یادآوری و نه زنجیرهٔ روزانه. یادداشت‌هایتان روی همین دستگاه می‌مانند، مگر خودتان همگام‌سازی را راه بیندازید.",
+  "@onboardingSilenceBody": {
+    "description": "Onboarding page 4 body"
+  },
+  "onboardingSetupTitle": "چند انتخاب کوتاه",
+  "@onboardingSetupTitle": {
+    "description": "Onboarding page 5 heading"
+  },
+  "onboardingSetupBody": "همهٔ این‌ها بعداً در تنظیمات هستند و هیچ‌کدام همیشگی نیست.",
+  "@onboardingSetupBody": {
+    "description": "Onboarding page 5 body"
+  },
+  "onboardingNameRequired": "Nex باید بداند شما را چه صدا کند.",
+  "@onboardingNameRequired": {
+    "description": "Validation message under the required name field on the last onboarding page"
+  },
+  "checklist": "چک‌لیست",
+  "@checklist": {
+      "description": "Capture type: a list of tickable items"
+  },
+  "link": "لینک",
+  "@link": {
+      "description": "Capture type: a saved web address"
+  },
+  "checklistHint": "هر خط یک مورد",
+  "@checklistHint": {
+      "description": "Placeholder in the checklist capture field"
+  },
+  "linkHint": "لینک را بچسبانید",
+  "@linkHint": {
+      "description": "Placeholder in the link capture field"
+  },
+  "linkNotValid": "این شبیه لینک نیست.",
+  "@linkNotValid": {
+      "description": "Shown when pasted text cannot be read as a URL"
+  },
+  "openLink": "باز کردن لینک",
+  "@openLink": {
+      "description": "Action that opens a link note in the browser"
+  },
+  "noteTitle": "عنوان",
+  "@noteTitle": {
+      "description": "The optional headline on a note"
+  },
+  "addTitle": "افزودن عنوان",
+  "@addTitle": {
+      "description": "Detail-sheet action on a note that has no title yet"
+  },
+  "editTitle": "ویرایش عنوان",
+  "@editTitle": {
+      "description": "Detail-sheet action on a note that already has a title"
+  },
+  "titleHint": "اختیاری — خالی بگذارید تا عنوانی نباشد",
+  "@titleHint": {
+      "description": "Placeholder in the title field"
+  },
+  "checklistProgress": "{done} از {total}",
+  "@checklistProgress": {
+      "description": "How many checklist items are ticked",
+      "placeholders": {
+          "done": {
+              "type": "int"
+          },
+          "total": {
+              "type": "int"
+          }
+      }
+  },
+  "readingLink": "در حال خواندن صفحه…",
+  "@readingLink": {
+      "description": "Shown while a link's title and description are being fetched"
   }
 }
