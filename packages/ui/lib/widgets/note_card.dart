@@ -283,11 +283,11 @@ class _Preview extends StatelessWidget {
       width: double.infinity,
       child: Text(
         text,
-        // One line, not two: the card's fixed height budgets exactly enough
-        // room for this plus the relative-time line below it. Growing the
-        // card to fit both a two-line preview and a timestamp would have
-        // made every card taller for a line most previews do not need.
-        maxLines: 1,
+        // Two lines — see [nexCardPreviewLines], which the card's fixed
+        // height is derived from. One line was enough to tell cards apart
+        // and not enough to tell you what a note said: a captured thought is
+        // usually a sentence, and a sentence is usually wider than a phone.
+        maxLines: nexCardPreviewLines,
         overflow: TextOverflow.ellipsis,
         textDirection: direction,
         textAlign: direction == TextDirection.rtl

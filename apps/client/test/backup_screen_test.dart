@@ -45,6 +45,26 @@ void main() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
+  test('a brand-new install does not back up an empty library', () async {
+    // Reported as "there is already a backup on a fresh install". There was:
+    // the throttle is due the first time it is ever asked, so five seconds
+    // after a first launch the app wrote a backup of a database with nothing
+    // in it, and Settings then said "1 backup" to someone who had not written
+    // a single note.
+    expect(await services.backupIfDue(), isFalse);
+    expect(await services.listBackups(), isEmpty);
+
+    // And the clock is not marked by that refusal, so the first real note is
+    // backed up immediately rather than twelve hours after launch.
+    await services.captureText('the first thought');
+    expect(await services.backupIfDue(), isTrue);
+    expect(await services.listBackups(), hasLength(1));
+
+    // Still throttled after that — one note is not a reason to back up twice.
+    expect(await services.backupIfDue(), isFalse);
+    expect(await services.listBackups(), hasLength(1));
+  });
+
   testWidgets('a local backup can be deleted, with confirmation', (
     tester,
   ) async {

@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+- Timeline cards show two lines of a note instead of one.
+- Fixed a brand-new install already listing a backup — of an empty library.
+- Fixed the last update refusing to install over the previous version. Both
+  causes are gone: releases stopped shipping the per-architecture APKs at
+  all, and the version numbering let an older build outrank a newer one.
 - A first launch now opens with a short introduction to what Nex is, ending
   with your name, theme, language, and the language Nex writes in. It appears
   once, and never for an install that already has notes in it.
