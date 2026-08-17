@@ -153,6 +153,51 @@ void main() {
     expect(find.text('That does not look like a link.'), findsOneWidget);
   });
 
+  testWidgets('the detail sheet ticks an item and names a note', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final note = (await services.captureChecklist(const [
+      ChecklistItem(text: 'milk', done: false),
+      ChecklistItem(text: 'bread', done: false),
+    ]))!;
+    await services.refreshTimeline();
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('milk').first);
+    await tester.pumpAndSettle();
+
+    // On the card the rows are a picture of the list; in the sheet they are
+    // the list, and this is where ticking happens.
+    expect(find.text('0 of 2'), findsOneWidget);
+    await tester.tap(find.text('milk').last);
+    await tester.pumpAndSettle();
+
+    expect((await services.getById(note.id))!.checklistItems.first.done, true);
+    expect(find.text('1 of 2'), findsOneWidget);
+
+    // A title, on a checklist — every type gets one, since a title is what
+    // makes a note findable by name later.
+    // The action strip scrolls horizontally — see _ActionRow — so the title
+    // action is past the right edge on a phone-width sheet.
+    await tester.ensureVisible(find.byIcon(Icons.title));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.title));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'Groceries');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save').last);
+    await tester.pumpAndSettle();
+
+    expect((await services.getById(note.id))!.title, 'Groceries');
+  });
+
   group('parseLinkPreview', () {
     test('prefers Open Graph, in either attribute order', () {
       const html = '''
