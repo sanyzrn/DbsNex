@@ -512,7 +512,11 @@ class _AiChatSheetState extends State<AiChatSheet> {
         if (mode != null) await widget.preferences.setThemeMode(mode);
       case 'language':
         if (value == 'en' || value == 'fa' || value == 'system') {
-          await widget.preferences.setLocale(value == 'system' ? '' : value!);
+          // 'system' verbatim, never an empty string: the getter reads
+          // anything that is not null or 'system' as a language code, so an
+          // empty value came back as Locale('') — a locale that matches no
+          // translation and is not the system default either.
+          await widget.preferences.setLocale(value!);
         }
       case 'ai_language':
         final language = switch (value) {

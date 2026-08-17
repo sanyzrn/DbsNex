@@ -483,9 +483,14 @@ class TimelineScreenState extends State<TimelineScreen> {
   bool _onScroll(ScrollNotification notification) {
     if (notification is! ScrollUpdateNotification) return false;
     final offset = notification.metrics.pixels;
-    if ((offset - _lastTickOffset).abs() < _scrollTickDistance) return false;
+    final travelled = (offset - _lastTickOffset).abs();
+    if (travelled < _scrollTickDistance) return false;
+    // A jump this large is not a finger — it is the list being replaced
+    // under one, which happens every time search opens or a filter changes.
+    // Re-anchor silently rather than buzzing at a scroll nobody performed.
+    final jumped = travelled > _scrollTickDistance * 8;
     _lastTickOffset = offset;
-    nexTick();
+    if (!jumped) nexTick();
     return false;
   }
 
@@ -1131,7 +1136,7 @@ class TimelineScreenState extends State<TimelineScreen> {
               onRefresh: _aiSummaryLoading
                   ? null
                   : () {
-                      _tick();
+                      nexBump();
                       unawaited(_loadAiSummary(force: true));
                     },
               onToggle: _toggleAiSummary,
