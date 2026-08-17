@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v0.9.2
+
 - Timeline cards show two lines of a note instead of one.
 - Fixed a brand-new install already listing a backup — of an empty library.
 - Fixed the last update refusing to install over the previous version. Both
