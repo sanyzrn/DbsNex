@@ -87,13 +87,17 @@ class Note {
   /// Optional user-authored description on photo/voice/file (never at capture).
   final String? caption;
 
-  /// An optional headline, on a note of any type.
+  /// A link note's own headline, read off the page it points at.
   ///
-  /// Deliberately not asked for at capture. Nex's whole promise is that a
-  /// capture is finished the moment it exists, and a title field on the way in
-  /// is a blank someone feels obliged to fill — which is the Save button back
-  /// under another name. It is offered from the detail sheet afterwards, and
-  /// on a link note it arrives pre-filled with the page's own title.
+  /// Was briefly offered as a user-editable title on every type, and taken
+  /// back out: naming a note is a filing habit, and this is not a filing app —
+  /// the point of Nex is that a capture is finished the moment it exists.
+  /// Nothing writes this but [NoteRepository.setLinkMetadata] now.
+  ///
+  /// The column stays, and so does its precedence in [displayText], because a
+  /// link's card is meant to show the page's name rather than its URL. A title
+  /// set by hand in the one version that offered it is still honoured — it is
+  /// simply no longer editable, and nothing new will set one.
   final String? title;
 
   /// A linked page's own description, read off the page.

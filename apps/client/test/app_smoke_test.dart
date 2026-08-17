@@ -17,6 +17,7 @@ import 'package:nex_client/platform/os_capture_bridge.dart';
 import 'package:nex_client/screens/intelligence_screen.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
+import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/choice_cards.dart';
 import 'package:nex_client/widgets/tag_color_picker.dart';
@@ -1177,12 +1178,136 @@ void main() {
     expect(greeting(), isNot(before));
   });
 
+  testWidgets(
+    'holding the capture button opens the assistant, tapping does not',
+    (tester) async {
+      // The assistant has no button of its own: capture and "ask about what I
+      // captured" are the same intent at different lengths, and this screen has
+      // one primary action rather than two.
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      // A plain tap is still a capture, unchanged.
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      expect(find.byType(CaptureSheet), findsOneWidget);
+      // The sheet's own submit button, which closes it — scoped to the sheet
+      // because the FAB behind it carries the same tooltip.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(CaptureSheet),
+          matching: find.byTooltip('Capture'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Held, with no provider configured: the glow runs — it tracks the finger
+      // and cannot know the outcome in advance — but nothing opens, because a
+      // chat that can only answer "unavailable" is not worth the trip.
+      expect(AiChatSheet.availableFor(preferences), isFalse);
+      final press = await tester.startGesture(
+        tester.getCenter(find.byIcon(Icons.add)),
+      );
+      // A frame to let the hold's ticker start before any time is advanced —
+      // pumping 600ms straight away elapses it all before the first tick, and
+      // the hold never progresses at all.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      await press.up();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AiChatSheet), findsNothing);
+      expect(find.byType(CaptureSheet), findsNothing);
+
+      // With a provider behind it, the same hold opens the sheet.
+      await preferences.setAiEnabled(true);
+      await preferences.setAiProvider(
+        const AiProviderConfig(provider: AiProvider.openai, apiKey: 'sk-test'),
+      );
+      await tester.pumpAndSettle();
+      expect(AiChatSheet.availableFor(preferences), isTrue);
+
+      final hold = await tester.startGesture(
+        tester.getCenter(find.byIcon(Icons.add)),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      await hold.up();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AiChatSheet), findsOneWidget);
+      // Held, not tapped — the capture sheet must not have opened underneath.
+      expect(find.byType(CaptureSheet), findsNothing);
+
+      // The body scrolls the sheet itself in both of its states. A thread on
+      // a controller of its own still scrolls, so nothing looks broken — the
+      // sheet just stops growing when you drag it, which is the one gesture
+      // the whole design rests on.
+      ScrollController? bodyController() => tester
+          .widget<ListView>(
+            find.descendant(
+              of: find.byType(AiChatSheet),
+              matching: find.byType(ListView),
+            ),
+          )
+          .controller;
+      final beforeSending = bodyController();
+
+      // No provider is reachable from a test, so this resolves to the failure
+      // line — which is enough to swap the suggestions out for the thread.
+      await tester.tap(find.byIcon(Icons.summarize_outlined));
+      await tester.pumpAndSettle();
+
+      expect(bodyController(), same(beforeSending));
+    },
+  );
+
+  testWidgets('the greeting is centred, not aligned to one edge', (
+    tester,
+  ) async {
+    await preferences.setDisplayName('Sany');
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    // The header's own key is on a sliver, which has no box to measure — the
+    // scroll view it lives in is the nearest thing that does, and the header
+    // is laid out to its full width.
+    final column = tester.getRect(find.byType(CustomScrollView));
+    final words = tester.getRect(find.textContaining('Sany'));
+    final mark = tester.getRect(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('timeline-header')),
+            matching: find.byWidgetPredicate(
+              (w) => w is Text && w.data != null && !w.data!.contains('Sany'),
+            ),
+          )
+          .first,
+    );
+
+    // The whole line — words and mark together — is what is centred, so the
+    // words alone sit a little left of centre by exactly the mark's width.
+    // Left-aligned, the greeting and the generated line under it read as two
+    // separate starts stacked on each other rather than as one block.
+    expect(words.expandToInclude(mark).center.dx, closeTo(column.center.dx, 2));
+  });
+
   testWidgets('the greeting mark trails the words, in either direction', (
     tester,
   ) async {
     // It used to be baked into the front of the string, which put it at the
     // start — the right edge in Persian, the left in English. Separating it
     // out lets the Row place it at the trailing end in both.
+    //
+    // The Row takes its direction from the greeting's own text now, not from
+    // the ambient locale: the strings the AI writes beside it follow the
+    // language of the *notes*, which is not always the language of the
+    // interface, and a Persian sentence laid out left-to-right puts its full
+    // stop at the wrong end.
     for (final locale in ['en', 'fa']) {
       await preferences.setLocale(locale);
       await preferences.setDisplayName('Sany');

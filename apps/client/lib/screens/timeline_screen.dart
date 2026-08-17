@@ -18,6 +18,7 @@ import '../platform/nex_services.dart';
 import '../platform/note_search.dart';
 import '../platform/os_capture_bridge.dart';
 import '../platform/update_service.dart';
+import '../widgets/ai_chat_sheet.dart';
 import '../widgets/capture_sheet.dart';
 import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/card_strings.dart';
@@ -278,6 +279,17 @@ class TimelineScreenState extends State<TimelineScreen> {
       // one time in three reads as a broken button.
       _greetingVariant = (_greetingVariant + 1 + math.Random().nextInt(2)) % 3;
     });
+  }
+
+  /// Opens the assistant, held rather than tapped — see the capture button.
+  ///
+  /// Silent when nothing is configured: the glow still ran, because it tracks
+  /// the finger and cannot know the outcome in advance, but nothing opens. A
+  /// sheet that can only say "unavailable" is not worth the trip.
+  void _openAssistant() {
+    if (!AiChatSheet.availableFor(widget.preferences)) return;
+    HapticFeedback.mediumImpact();
+    unawaited(AiChatSheet.show(context, preferences: widget.preferences));
   }
 
   void _toggleAiSummary() {
@@ -1018,6 +1030,11 @@ class TimelineScreenState extends State<TimelineScreen> {
       fontWeight: FontWeight.w600,
       height: 1.25,
     );
+    // The generated line is written at the daily recap's size and weight, not
+    // at display size. It is a flourish, not a title: set large and bold it
+    // was the loudest thing on a screen whose subject is the notes below it,
+    // and a model's turn of phrase does not earn that.
+    final generatedStyle = theme.textTheme.bodyMedium?.copyWith(height: 1.35);
     // The generated line has a slot as soon as there is a provider: it is a
     // skeleton first and text second, rather than appearing from nowhere and
     // pushing the card down once the request lands.
@@ -1031,7 +1048,11 @@ class TimelineScreenState extends State<TimelineScreen> {
         0,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // Stretch, so the tappable text block spans the column and the
+        // centring inside it has something to centre against — sized to its
+        // own content it would sit at one edge no matter how it aligned its
+        // children. The card below wants the full width anyway.
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           NexTappable(
             onTap: _refreshHeadline,
@@ -1045,7 +1066,10 @@ class TimelineScreenState extends State<TimelineScreen> {
                 vertical: NexSpacing.sm,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                // Centred, both lines. Left-aligned they read as two separate
+                // starts stacked on each other; centred they read as one
+                // block, which is what they are.
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if (greeting != null)
                     _GreetingLine(
@@ -1065,7 +1089,7 @@ class TimelineScreenState extends State<TimelineScreen> {
                     _HeadlineText(
                       text: _aiHeadlineText,
                       loading: _aiHeadlineLoading,
-                      style: headlineStyle,
+                      style: generatedStyle,
                     ),
                   ],
                 ],
@@ -1105,6 +1129,7 @@ class TimelineScreenState extends State<TimelineScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         // The greeting used to live here, squeezed between the mark and the
@@ -1178,74 +1203,79 @@ class TimelineScreenState extends State<TimelineScreen> {
               // things that belong to each other, visibly unaligned.
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 760),
-                child: RefreshIndicator(
-                  onRefresh: _refresh,
-                  edgeOffset: nexSearchHeaderExtent,
-                  child: CustomScrollView(
-                    controller: _scroll,
-                    // Always scrollable, so the pull works on a short list too —
-                    // a refresh gesture that only exists once you have enough
-                    // notes to scroll is a refresh gesture nobody finds.
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      // The headline and the recap card, above the search
-                      // field. Both collapse to nothing rather than leaving
-                      // the list, the same reason the two headers below do.
-                      SliverToBoxAdapter(
-                        key: const ValueKey('timeline-header'),
-                        child: AnimatedSize(
-                          duration: NexMotion.slow,
-                          curve: NexMotion.curve,
-                          alignment: Alignment.topCenter,
-                          child: _searching
-                              ? const SizedBox.shrink()
-                              : _header(l10n),
-                        ),
+                // No pull-to-refresh. There is nothing left for it to do:
+                // the timeline is a broadcast stream that every mutation path
+                // already re-fires, the filter row reloads on the same event,
+                // and "Sync now" lives in Settings where a sync server is
+                // configured in the first place. A pull that re-reads data
+                // which is already current is a gesture that does nothing —
+                // and this screen's own history says why that is worse than
+                // no gesture: the pull used to be "reveal the search field",
+                // and it was replaced precisely because it never revealed
+                // anything.
+                child: CustomScrollView(
+                  controller: _scroll,
+                  // Always scrollable, so a short list still bounces rather
+                  // than feeling locked.
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    // The headline and the recap card, above the search
+                    // field. Both collapse to nothing rather than leaving
+                    // the list, the same reason the two headers below do.
+                    SliverToBoxAdapter(
+                      key: const ValueKey('timeline-header'),
+                      child: AnimatedSize(
+                        duration: NexMotion.slow,
+                        curve: NexMotion.curve,
+                        alignment: Alignment.topCenter,
+                        child: _searching
+                            ? const SizedBox.shrink()
+                            : _header(l10n),
                       ),
-                      // Both headers are always in the list, keyed, and collapse
-                      // to zero extent rather than leaving it. A sliver list that
-                      // changes length while another sliver changes its pinning
-                      // leaves the viewport painting a child it never laid out.
-                      SliverPersistentHeader(
-                        key: const ValueKey('search-header'),
-                        delegate: SearchFieldHeader(
-                          controller: _search.query,
-                          focusNode: _searchFocus,
-                          searching: _searching,
-                          onTap: () => unawaited(revealSearch()),
-                          onChanged: (_) => _search.schedule(),
-                          onClear: _exitSearch,
-                        ),
+                    ),
+                    // Both headers are always in the list, keyed, and collapse
+                    // to zero extent rather than leaving it. A sliver list that
+                    // changes length while another sliver changes its pinning
+                    // leaves the viewport painting a child it never laid out.
+                    SliverPersistentHeader(
+                      key: const ValueKey('search-header'),
+                      delegate: SearchFieldHeader(
+                        controller: _search.query,
+                        focusNode: _searchFocus,
+                        searching: _searching,
+                        onTap: () => unawaited(revealSearch()),
+                        onChanged: (_) => _search.schedule(),
+                        onClear: _exitSearch,
                       ),
-                      SliverPersistentHeader(
-                        key: const ValueKey('filter-header'),
-                        pinned: true,
-                        delegate: _FilterRowHeader(
-                          visible: !_searching,
-                          child: TagFilterRow(
-                            tags: filterTags,
-                            selectedTagId: selectedTagId,
-                            allLabel: l10n.all,
-                            leading: _TypeFilterButton(
-                              selected: selectedType,
-                              onPressed: () => unawaited(_pickType()),
-                            ),
-                            onSelected: (value) => unawaited(_selectTag(value)),
+                    ),
+                    SliverPersistentHeader(
+                      key: const ValueKey('filter-header'),
+                      pinned: true,
+                      delegate: _FilterRowHeader(
+                        visible: !_searching,
+                        child: TagFilterRow(
+                          tags: filterTags,
+                          selectedTagId: selectedTagId,
+                          allLabel: l10n.all,
+                          leading: _TypeFilterButton(
+                            selected: selectedType,
+                            onPressed: () => unawaited(_pickType()),
                           ),
+                          onSelected: (value) => unawaited(_selectTag(value)),
                         ),
                       ),
-                      ..._bodySlivers(l10n),
-                      // The capture button floats over the list, and on a
-                      // device with a three-button navigation bar the system's
-                      // own bar sits under that — the last card has to clear
-                      // both, or it cannot be read or tapped.
-                      SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: nexFabClearance + nexBottomInset(context),
-                        ),
+                    ),
+                    ..._bodySlivers(l10n),
+                    // The capture button floats over the list, and on a
+                    // device with a three-button navigation bar the system's
+                    // own bar sits under that — the last card has to clear
+                    // both, or it cannot be read or tapped.
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: nexFabClearance + nexBottomInset(context),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1258,10 +1288,27 @@ class TimelineScreenState extends State<TimelineScreen> {
       // did — open a fresh note, unrelated to whatever was just searched.
       floatingActionButton: _searching
           ? null
-          : FloatingActionButton(
-              onPressed: openCapture,
-              tooltip: l10n.capture,
-              child: const Icon(Icons.add, size: 32),
+          // Hold the capture button to reach the assistant. It earns the
+          // gesture rather than a second button on the same screen: capture
+          // and "ask about what I captured" are the same intent at different
+          // lengths, and this screen has one primary action, not two.
+          //
+          // Only when there is a provider to answer — a long press that opens
+          // a chat which cannot reply is worse than one that does nothing.
+          : NexLongPressGlow(
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.tertiary,
+                theme.colorScheme.secondary,
+                theme.colorScheme.primary,
+              ],
+              onHoldStart: _tick,
+              onTriggered: _openAssistant,
+              child: FloatingActionButton(
+                onPressed: openCapture,
+                tooltip: l10n.capture,
+                child: const Icon(Icons.add, size: 32),
+              ),
             ),
     );
   }
@@ -1460,33 +1507,22 @@ class _GreetingGlyphState extends State<_GreetingGlyph>
 
 /// The app's own mark, in the corner the app bar used to spend on a title.
 ///
-/// A tile rather than a bare image: at 28px the logo alone reads as debris in
-/// the status-bar area, and the rounded ground gives it the same footprint as
-/// the two icon buttons opposite it, so the bar's two ends balance.
+/// Bare, on no ground of its own. It had a rounded tile behind it to match the
+/// footprint of the two icon buttons opposite — but those are tap targets and
+/// this is not, so the tile was claiming an affordance the mark does not have,
+/// and it read as a fourth button that does nothing.
 class _WordmarkTile extends StatelessWidget {
   const _WordmarkTile();
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: 34,
-      height: 34,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(NexRadius.md),
-      ),
-      child: Image.asset(
-        theme.brightness == Brightness.dark
-            ? 'assets/branding/logo_dark.png'
-            : 'assets/branding/logo_white.png',
-        width: 20,
-        height: 20,
-        semanticLabel: 'Nex',
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Image.asset(
+    Theme.of(context).brightness == Brightness.dark
+        ? 'assets/branding/logo_dark.png'
+        : 'assets/branding/logo_white.png',
+    width: 28,
+    height: 28,
+    semanticLabel: 'Nex',
+  );
 }
 
 /// "Good evening, Saeed ☀️" — the text and its animated mark on one line.
@@ -1504,6 +1540,13 @@ class _GreetingLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
+    // Centred with the headline under it, so the two read as one block
+    // rather than as a label and a separate line that happen to be adjacent.
+    mainAxisAlignment: MainAxisAlignment.center,
+    // The greeting's own language decides which end the mark sits at. This
+    // string is localised, so in Persian it is RTL text inside an interface
+    // that may still be in English — and the Row is what places the glyph.
+    textDirection: nexDirectionOf(text),
     children: [
       Flexible(
         child: Text(
@@ -1511,6 +1554,7 @@ class _GreetingLine extends StatelessWidget {
           style: style,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
         ),
       ),
       const SizedBox(width: NexSpacing.xs),
@@ -1546,11 +1590,13 @@ class _HeadlineText extends StatelessWidget {
     if (value == null) {
       return loading
           ? const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              // Sized to the line it stands in for, so the header does not
+              // shrink by a few pixels the moment the text lands.
               children: [
-                NexSkeleton(height: 22, width: 240),
+                NexSkeleton(height: 16, width: 220),
                 SizedBox(height: NexSpacing.xs),
-                NexSkeleton(height: 22, width: 160),
+                NexSkeleton(height: 16, width: 140),
               ],
             )
           : const SizedBox.shrink();
@@ -1567,6 +1613,12 @@ class _HeadlineText extends StatelessWidget {
           style: style,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          // The generated line follows the language it was written in, not
+          // the interface's. Without this a Persian line rendered inside an
+          // English UI resolves as left-to-right, which puts its full stop
+          // at the wrong end of the sentence.
+          textDirection: nexDirectionOf(value),
         ),
       ),
     );
@@ -1630,7 +1682,10 @@ class _AiDaySummaryPanel extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(NexRadius.lg),
+          // The search field's curvature, not the card radius used elsewhere.
+          // These two sit directly above one another and were visibly a step
+          // apart — 20 against the field's 24.
+          borderRadius: BorderRadius.circular(NexRadius.pill),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1707,11 +1762,27 @@ class _AiDaySummaryPanel extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
+              textAlign: TextAlign.start,
+              textDirection: nexDirectionOf(emptyLabel),
             );
     }
     return Opacity(
       opacity: loading ? 0.45 : 1,
-      child: Text(value, style: theme.textTheme.bodyMedium),
+      child: SizedBox(
+        // Full width, so a Persian recap reaches the right edge rather than
+        // hugging whichever edge its first character happens to start at.
+        width: double.infinity,
+        child: Text(
+          value,
+          style: theme.textTheme.bodyMedium,
+          // The recap is written in the language of the notes, which is not
+          // necessarily the language of the interface around it — so it takes
+          // its direction from itself, and `start` then means the right edge
+          // in Persian and the left in English.
+          textDirection: nexDirectionOf(value),
+          textAlign: TextAlign.start,
+        ),
+      ),
     );
   }
 }

@@ -34,6 +34,45 @@ Working convention:
 
 ## Unreleased
 
+## v0.9.3
+
+- Timeline cards are back to their original height. The two-line preview
+  stayed; the time a note was last touched moved next to its icon, which
+  is what was taking the room.
+- The greeting and the line under it are centred, and both now follow the
+  language they are written in — a Persian line no longer came out with
+  its full stop at the wrong end.
+- The daily summary reads right-to-left when it is written in Persian.
+- The logo in the corner lost the grey tile behind it; it was not a
+  button, so it should not have looked like one.
+- Naming a note by hand is gone again. Nex is not a filing app, and a
+  capture is meant to be finished the moment it exists. Links still show
+  the page's own name, which is what that was ever really for.
+- The daily summary card and the search field are the same roundness now.
+- Pull-to-refresh is gone from the timeline; it had nothing left to do.
+  Coming back to the app re-reads your notes instead, which covers the
+  one case the pull was there for.
+- The generated line under the greeting is set at the daily summary's size
+  now, instead of at headline size. It is a flourish, not a title.
+- The capture box's placeholder sits at the right edge in Persian, where it
+  belongs, instead of the left.
+- The AI service screen stopped mirroring itself in Persian. Keys, endpoints,
+  model names and provider names are Latin text and now read left to right;
+  the Persian explanations around them are unchanged.
+- The daily summary and the line above it are written to a better brief:
+  warmer, drier, and about the actual thing you wrote rather than the
+  category it falls into.
+- A reply that is not a sentence — several scripts deep, words repeating,
+  the shape small free models fail into — is now discarded rather than shown
+  as the app's own voice. You get the previous line and a tap to try again.
+- Fixed replies arriving as mojibake from providers that send UTF-8 without
+  saying so. This affected Persian output specifically.
+- Hold the capture button to ask the assistant something. The screen lights
+  up around its edge while you hold, and the chat opens as a small panel at
+  the bottom that you can drag up to full screen. It uses the AI provider
+  you set up in Settings, and answers in the language you chose there; with
+  no provider configured, the hold does nothing.
+
 ## v0.9.2
 
 - Timeline cards show two lines of a note instead of one.

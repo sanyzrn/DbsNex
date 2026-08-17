@@ -187,6 +187,13 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               obscureText: _obscure,
               autocorrect: false,
               enableSuggestions: false,
+              // Keys, endpoints and model ids are machine text, never prose.
+              // Left in the interface's direction they render right-to-left
+              // under a Persian UI: the caret starts at the wrong end, a
+              // pasted key reads back-to-front, and `https://…` puts its
+              // scheme on the right.
+              textDirection: TextDirection.ltr,
+              textAlign: TextAlign.left,
               decoration: InputDecoration(
                 labelText: l10n.apiKey,
                 border: const OutlineInputBorder(),
@@ -208,6 +215,8 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
                 controller: _baseUrl,
                 autocorrect: false,
                 keyboardType: TextInputType.url,
+                textDirection: TextDirection.ltr,
+                textAlign: TextAlign.left,
                 decoration: InputDecoration(
                   labelText: l10n.baseUrl,
                   hintText: 'https://…',
@@ -220,6 +229,8 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
             TextField(
               controller: _model,
               autocorrect: false,
+              textDirection: TextDirection.ltr,
+              textAlign: TextAlign.left,
               decoration: InputDecoration(
                 labelText: l10n.model,
                 hintText: needsEndpoint ? null : provider.defaultModel,
@@ -340,42 +351,62 @@ class _ProviderTile extends StatelessWidget {
                 ? accent.withValues(alpha: 0.08)
                 : theme.colorScheme.surfaceContainerHighest,
           ),
-          child: Row(
-            children: [
-              Icon(
-                provider == AiProvider.none
-                    ? Icons.phone_android_outlined
-                    : Icons.cloud_outlined,
-                size: 20,
-                color: selected ? accent : theme.colorScheme.secondary,
-              ),
-              const SizedBox(width: NexSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      provider.label,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: selected ? accent : theme.colorScheme.onSurface,
-                        fontWeight: selected
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                      ),
-                    ),
-                    if (subtitle.isNotEmpty)
-                      Text(subtitle, style: theme.textTheme.bodySmall),
-                  ],
+          // Laid out left-to-right whatever the interface language is. Every
+          // name and model id in this list is a Latin identifier, and
+          // mirroring the row put "gpt-4o-mini" at the right edge reading
+          // outward from the wrong end. Only the row turns — the Persian prose
+          // above and below it keeps the direction the language gives it.
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: Row(
+              children: [
+                Icon(
+                  provider == AiProvider.none
+                      ? Icons.phone_android_outlined
+                      : Icons.cloud_outlined,
+                  size: 20,
+                  color: selected ? accent : theme.colorScheme.secondary,
                 ),
-              ),
-              // A check that occupies its slot either way, so the rows do not
-              // shift sideways as the selection moves down the list.
-              Opacity(
-                opacity: selected ? 1 : 0,
-                child: Icon(Icons.check_circle, size: 20, color: accent),
-              ),
-            ],
+                const SizedBox(width: NexSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        provider.label,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: selected
+                              ? accent
+                              : theme.colorScheme.onSurface,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
+                      ),
+                      if (subtitle.isNotEmpty)
+                        Text(
+                          subtitle,
+                          style: theme.textTheme.bodySmall,
+                          // The one subtitle that is prose rather than a model
+                          // id is translated, so it shapes in its own
+                          // direction — while still starting at the same edge
+                          // as the name above it, which is what keeps the row
+                          // reading as one block.
+                          textDirection: nexDirectionOf(subtitle),
+                          textAlign: TextAlign.left,
+                        ),
+                    ],
+                  ),
+                ),
+                // A check that occupies its slot either way, so the rows do
+                // not shift sideways as the selection moves down the list.
+                Opacity(
+                  opacity: selected ? 1 : 0,
+                  child: Icon(Icons.check_circle, size: 20, color: accent),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -411,9 +442,21 @@ class _ResultBanner extends StatelessWidget {
           ),
           const SizedBox(width: NexSpacing.sm),
           Expanded(
-            child: Text(
-              result.success ? l10n.connectionOk(result.detail) : result.detail,
-              style: theme.textTheme.bodyMedium,
+            child: Builder(
+              builder: (context) {
+                final message = result.success
+                    ? l10n.connectionOk(result.detail)
+                    : result.detail;
+                return Text(
+                  message,
+                  style: theme.textTheme.bodyMedium,
+                  // A failure detail is usually the provider's own English
+                  // error, which does not belong right-aligned under a
+                  // Persian UI.
+                  textDirection: nexDirectionOf(message),
+                  textAlign: TextAlign.start,
+                );
+              },
             ),
           ),
         ],

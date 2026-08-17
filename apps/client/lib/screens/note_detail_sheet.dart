@@ -18,7 +18,6 @@ import '../widgets/nex_dialog.dart';
 import '../platform/nex_services.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/tag_picker.dart';
-import '../utils/nex_bidi.dart';
 
 /// What the sheet reports back when it closes.
 ///
@@ -243,55 +242,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
   /// The note's optional headline. Empty clears it, so the one control both
   /// names a note and un-names it.
-  Future<void> _editTitle() async {
-    final note = _note;
-    if (note == null) return;
-    final l10n = AppLocalizations.of(context);
-    // No TextEditingController, unlike the body editor above. This dialog is
-    // one short line, and a controller here has to outlive the dialog's exit
-    // animation — which is still building the field it belongs to — so
-    // disposing it on the way out threw "used after being disposed" on the
-    // next frame. TextFormField's own initialValue needs no lifetime at all.
-    var draft = note.title ?? '';
-    final value = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.noteTitle),
-        content: NexDialogBody(
-          child: StatefulBuilder(
-            builder: (context, setDialogState) => TextFormField(
-              initialValue: note.title ?? '',
-              autofocus: true,
-              textCapitalization: TextCapitalization.sentences,
-              // Re-evaluated per keystroke, the same as every other field in
-              // this app: a Persian title in an English-locale app would
-              // otherwise render against the interface's direction.
-              textDirection: nexTextDirection(draft),
-              textAlign: nexTextAlign(draft),
-              selectionWidthStyle: BoxWidthStyle.tight,
-              onChanged: (v) => setDialogState(() => draft = v),
-              decoration: InputDecoration(hintText: l10n.titleHint),
-              onFieldSubmitted: (v) => Navigator.pop(ctx, v),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, draft),
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
-    );
-    if (value == null) return;
-    await widget.services.setTitle(note.id, value);
-    await _reload();
-  }
-
   /// Shares the media itself for a file, photo or voice note, and the body for
   /// a text note — sharing a text note as a zero-byte attachment would be
   /// useless to whatever receives it.
@@ -341,8 +291,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               maxLines: null,
               minLines: 3,
               keyboardType: TextInputType.multiline,
-              textDirection: nexTextDirection(controller.text),
-              textAlign: nexTextAlign(controller.text),
+              textDirection: nexDirectionOf(controller.text),
+              textAlign: TextAlign.start,
               // See the same field in capture_sheet.dart: BoxWidthStyle.max
               // (the default) paints a double-tap word selection out to the
               // end of the line on Persian text.
@@ -478,8 +428,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               controller: controller,
               autofocus: true,
               maxLines: 3,
-              textDirection: nexTextDirection(controller.text),
-              textAlign: nexTextAlign(controller.text),
+              textDirection: nexDirectionOf(controller.text),
+              textAlign: TextAlign.start,
               selectionWidthStyle: BoxWidthStyle.tight,
               decoration: InputDecoration(hintText: l10n.captionHint),
               onChanged: (_) => setDialogState(() {}),
@@ -979,15 +929,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         label: l10n.openLink,
                         onPressed: _openLink,
                       ),
-                    // Every type, not just text: a title is the one thing that
-                    // makes a voice note or a photo findable by name later.
-                    _DetailAction(
-                      icon: Icons.title,
-                      label: note.title == null
-                          ? l10n.addTitle
-                          : l10n.editTitle,
-                      onPressed: _editTitle,
-                    ),
                     // Tag and caption both already have their own add/edit
                     // affordance further up the sheet — see the tag chip row
                     // and the caption row above. Repeating them here just

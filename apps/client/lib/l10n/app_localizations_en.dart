@@ -51,11 +51,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filters => 'Filters';
 
   @override
-  String filtersCount(int count) {
-    return 'Filters ($count)';
-  }
-
-  @override
   String get date => 'Date';
 
   @override
@@ -163,9 +158,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'This removes the tag from notes. It never deletes the notes themselves.';
 
   @override
-  String get recentlyDeleted => 'Recently Deleted';
-
-  @override
   String get recentlyDeletedEmpty => 'Nothing recently deleted.';
 
   @override
@@ -185,10 +177,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get intelligence => 'Intelligence';
-
-  @override
-  String get intelligenceLocal =>
-      'Runs on this device unless Cloud AI is enabled.';
 
   @override
   String get about => 'About Nex';
@@ -247,10 +235,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get comfortMode => 'Comfort Mode';
 
   @override
-  String get comfortModeSubtitle =>
-      'Lower contrast and warmer colors, independent of Light or Dark';
-
-  @override
   String get accentColorSetting => 'Accent color';
 
   @override
@@ -284,12 +268,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get languageSystem => 'System';
-
-  @override
-  String get languageEnglish => 'English';
-
-  @override
-  String get languagePersian => 'Persian';
 
   @override
   String get storage => 'Storage';
@@ -346,13 +324,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get relatedNotes => 'Related notes';
-
-  @override
-  String get cloudAi => 'Cloud AI (opt-in)';
-
-  @override
-  String get cloudAiSubtitle =>
-      'Off by default. Core capture always works without it.';
 
   @override
   String get sync => 'Sync';
@@ -502,9 +473,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String similarity(String score) {
     return 'Similarity $score';
   }
-
-  @override
-  String get moreOptions => 'More options';
 
   @override
   String get copied => 'Copied';
@@ -1234,22 +1202,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openLink => 'Open link';
 
   @override
-  String get noteTitle => 'Title';
-
-  @override
-  String get addTitle => 'Add a title';
-
-  @override
-  String get editTitle => 'Edit title';
-
-  @override
-  String get titleHint => 'Optional — leave empty for none';
-
-  @override
   String checklistProgress(int done, int total) {
     return '$done of $total';
   }
 
   @override
-  String get readingLink => 'Reading the page…';
+  String get chatGreeting => 'How can I help you today?';
+
+  @override
+  String get chatHint => 'Enter a prompt here';
+
+  @override
+  String get chatSend => 'Send';
+
+  @override
+  String get chatFailed =>
+      'No answer came back. Check the provider in Settings, or try again.';
+
+  @override
+  String get chatPromptSummarise => 'Summarise what I captured this week';
+
+  @override
+  String get chatPromptPlan => 'Turn my notes into a to-do list';
+
+  @override
+  String get chatPromptIdeas => 'Suggest what I might be forgetting';
 }

@@ -182,12 +182,6 @@ abstract class AppLocalizations {
   /// **'Filters'**
   String get filters;
 
-  /// No description provided for @filtersCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Filters ({count})'**
-  String filtersCount(int count);
-
   /// No description provided for @date.
   ///
   /// In en, this message translates to:
@@ -356,12 +350,6 @@ abstract class AppLocalizations {
   /// **'This removes the tag from notes. It never deletes the notes themselves.'**
   String get deleteTagBody;
 
-  /// No description provided for @recentlyDeleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Recently Deleted'**
-  String get recentlyDeleted;
-
   /// No description provided for @recentlyDeletedEmpty.
   ///
   /// In en, this message translates to:
@@ -403,12 +391,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Intelligence'**
   String get intelligence;
-
-  /// No description provided for @intelligenceLocal.
-  ///
-  /// In en, this message translates to:
-  /// **'Runs on this device unless Cloud AI is enabled.'**
-  String get intelligenceLocal;
 
   /// No description provided for @about.
   ///
@@ -512,12 +494,6 @@ abstract class AppLocalizations {
   /// **'Comfort Mode'**
   String get comfortMode;
 
-  /// No description provided for @comfortModeSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Lower contrast and warmer colors, independent of Light or Dark'**
-  String get comfortModeSubtitle;
-
   /// Settings row that opens the accent-colour picker
   ///
   /// In en, this message translates to:
@@ -583,18 +559,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'System'**
   String get languageSystem;
-
-  /// No description provided for @languageEnglish.
-  ///
-  /// In en, this message translates to:
-  /// **'English'**
-  String get languageEnglish;
-
-  /// No description provided for @languagePersian.
-  ///
-  /// In en, this message translates to:
-  /// **'Persian'**
-  String get languagePersian;
 
   /// No description provided for @storage.
   ///
@@ -697,18 +661,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Related notes'**
   String get relatedNotes;
-
-  /// No description provided for @cloudAi.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud AI (opt-in)'**
-  String get cloudAi;
-
-  /// No description provided for @cloudAiSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Off by default. Core capture always works without it.'**
-  String get cloudAiSubtitle;
 
   /// No description provided for @sync.
   ///
@@ -949,12 +901,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Similarity {score}'**
   String similarity(String score);
-
-  /// Opens the detail sheet's overflow menu
-  ///
-  /// In en, this message translates to:
-  /// **'More options'**
-  String get moreOptions;
 
   /// Toast after copying a note's text
   ///
@@ -2156,41 +2102,53 @@ abstract class AppLocalizations {
   /// **'Open link'**
   String get openLink;
 
-  /// The optional headline on a note
-  ///
-  /// In en, this message translates to:
-  /// **'Title'**
-  String get noteTitle;
-
-  /// Detail-sheet action on a note that has no title yet
-  ///
-  /// In en, this message translates to:
-  /// **'Add a title'**
-  String get addTitle;
-
-  /// Detail-sheet action on a note that already has a title
-  ///
-  /// In en, this message translates to:
-  /// **'Edit title'**
-  String get editTitle;
-
-  /// Placeholder in the title field
-  ///
-  /// In en, this message translates to:
-  /// **'Optional — leave empty for none'**
-  String get titleHint;
-
   /// How many checklist items are ticked
   ///
   /// In en, this message translates to:
   /// **'{done} of {total}'**
   String checklistProgress(int done, int total);
 
-  /// Shown while a link's title and description are being fetched
+  /// Heading in the assistant sheet before anything is typed
   ///
   /// In en, this message translates to:
-  /// **'Reading the page…'**
-  String get readingLink;
+  /// **'How can I help you today?'**
+  String get chatGreeting;
+
+  /// Placeholder in the assistant's input field
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a prompt here'**
+  String get chatHint;
+
+  /// Tooltip on the assistant's send button
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get chatSend;
+
+  /// Shown in the assistant thread when a reply does not arrive
+  ///
+  /// In en, this message translates to:
+  /// **'No answer came back. Check the provider in Settings, or try again.'**
+  String get chatFailed;
+
+  /// Suggested opening prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Summarise what I captured this week'**
+  String get chatPromptSummarise;
+
+  /// Suggested opening prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Turn my notes into a to-do list'**
+  String get chatPromptPlan;
+
+  /// Suggested opening prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest what I might be forgetting'**
+  String get chatPromptIdeas;
 }
 
 class _AppLocalizationsDelegate

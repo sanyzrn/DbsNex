@@ -75,8 +75,10 @@ class NoteCard extends StatelessWidget {
     return Padding(
       padding: nexCardInsets,
       child: SizedBox(
-        // Every card, the same height. See [nexCardHeight].
-        height: nexCardHeight,
+        // Every card, the same height. See [nexCardHeightFor] — which is
+        // [nexCardHeight] at the default text size, and only grows if someone
+        // has turned the text up past what the glyph's 48 can hold.
+        height: nexCardHeightFor(context),
         child: Semantics(
           button: onTap != null,
           label: _label(),
@@ -146,23 +148,19 @@ class _CardBody extends StatelessWidget {
             children: [
               _LeadingWithPin(note: note, strings: strings),
               const SizedBox(width: NexSpacing.contentGap),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    previewOverride ?? _Preview(note: note),
-                    const SizedBox(height: NexSpacing.xs),
-                    Text(
-                      strings.relativeTime(nexRelativeTimeOf(note.updatedAt)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
+              // Beside the glyph, not under the preview. Stacked, it was the
+              // one line that did not fit once the preview took two — and
+              // making the card taller to hold it spent height on the least
+              // important thing on the card. Here it costs nothing vertically,
+              // and it doubles as the gap that keeps the text off the glyph.
+              Text(
+                strings.relativeTime(nexRelativeTimeOf(note.updatedAt)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall,
               ),
+              const SizedBox(width: NexSpacing.contentGap),
+              Expanded(child: previewOverride ?? _Preview(note: note)),
             ],
           ),
         ),

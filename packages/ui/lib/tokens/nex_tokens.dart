@@ -175,6 +175,14 @@ abstract final class NexRadius {
   static const lg = 20.0;
   static const xl = 28.0;
 
+  /// What a pill-shaped control 48dp tall actually comes out at.
+  ///
+  /// The search field is a [StadiumBorder], so its corners are half its
+  /// height. Anything too tall to be a stadium itself — the daily digest card
+  /// — matches that curvature by using this number directly, rather than by
+  /// becoming a stadium and bowing its sides out.
+  static const pill = nexMinTapTarget / 2;
+
   /// The radius a shape nested [inset] inside a [outer]-radius shape needs in
   /// order to look concentric with it.
   static double inside(double outer, double inset) =>
@@ -238,31 +246,41 @@ const nexCardLeadingSize = 48.0;
 /// usually wider than a phone.
 const nexCardPreviewLines = 2;
 
-/// The text column beside the leading glyph: the preview, then the gap, then
-/// the relative time.
+/// One line of the preview, at the theme's bodyLarge line height.
 ///
-/// Spelled out rather than measured at runtime, because [nexCardHeight] is a
-/// constant and the column has to be known to fit inside it. The numbers are
-/// the theme's own line heights — bodyLarge 24, bodySmall 18 — and the gap is
-/// [NexSpacing.xs]. Changing either type style means changing these.
-const _nexCardTextColumn = 24.0 * nexCardPreviewLines + NexSpacing.xs + 18.0;
+/// A constant rather than a measurement, because the card's height has to be
+/// known before its text is laid out. Changing bodyLarge means changing this.
+const _nexCardPreviewLineHeight = 24.0;
 
-/// One height for every card in the timeline.
+/// One height for every card in the timeline, at the default text size.
 ///
 /// Cards used to size to their content, so a note carrying tags stood taller
 /// than one without and a note with two lines of text taller than one with a
 /// single line — the list came out ragged, with no relationship between a
 /// card's height and anything the reader cares about.
 ///
-/// Derived rather than chosen: whichever is taller of the leading glyph and
-/// the text column beside it, in equal insets above and below. The glyph used
-/// to be the binding side; with a two-line preview the text column is, at 70
-/// against the glyph's 48.
-const nexCardHeight =
-    (_nexCardTextColumn > nexCardLeadingSize
-        ? _nexCardTextColumn
-        : nexCardLeadingSize) +
-    NexSpacing.cardInset * 2;
+/// Two preview lines cost exactly what the leading glyph already did: 24
+/// twice, against the glyph's 48. So a two-line preview never had to make the
+/// card taller — and briefly did, because the relative time was stacked
+/// *under* the preview and that was the part which would not fit. Moving the
+/// time beside the glyph gave the text its full height back and the card its
+/// original size back.
+const nexCardHeight = nexCardLeadingSize + NexSpacing.cardInset * 2;
+
+/// [nexCardHeight], grown only as far as larger text actually needs.
+///
+/// At the default scale this is exactly [nexCardHeight] — two preview lines
+/// and the glyph both come to 48. Past that the lines outgrow the glyph and
+/// the card follows them, because the alternative is a fixed box clipping the
+/// text of whoever turned the size up. The app's own UI-scale setting composes
+/// with the system's and clamps at 1.9, so this can be asked for nearly twice
+/// the default.
+double nexCardHeightFor(BuildContext context) {
+  final lines =
+      MediaQuery.textScalerOf(context).scale(_nexCardPreviewLineHeight) *
+      nexCardPreviewLines;
+  return math.max(nexCardLeadingSize, lines) + NexSpacing.cardInset * 2;
+}
 
 /// The typeface used everywhere except in Persian.
 ///

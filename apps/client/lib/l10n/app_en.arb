@@ -14,14 +14,6 @@
   "file": "File",
   "text": "Text",
   "filters": "Filters",
-  "filtersCount": "Filters ({count})",
-  "@filtersCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "date": "Date",
   "clear": "Clear",
   "resultCount": "{count, plural, =0{No results} =1{1 result} other{{count} results}}",
@@ -71,7 +63,6 @@
   "renameTag": "Rename tag",
   "deleteTag": "Delete tag?",
   "deleteTagBody": "This removes the tag from notes. It never deletes the notes themselves.",
-  "recentlyDeleted": "Recently Deleted",
   "recentlyDeletedEmpty": "Nothing recently deleted.",
   "appearance": "Appearance",
   "language": "Language",
@@ -79,7 +70,6 @@
   "reduceMotion": "Reduce motion",
   "haptics": "Capture haptics",
   "intelligence": "Intelligence",
-  "intelligenceLocal": "Runs on this device unless Cloud AI is enabled.",
   "about": "About Nex",
   "localFirstTitle": "Stored locally",
   "localFirstBody": "Your notes are stored on this device at {path}",
@@ -107,7 +97,6 @@
   "themeDark": "Dark",
   "themeSystem": "System",
   "comfortMode": "Comfort Mode",
-  "comfortModeSubtitle": "Lower contrast and warmer colors, independent of Light or Dark",
   "accentColorSetting": "Accent color",
   "@accentColorSetting": {
     "description": "Settings row that opens the accent-colour picker"
@@ -128,8 +117,6 @@
   "enterSubmitsCapture": "Enter saves the note",
   "enterSubmitsCaptureSubtitle": "Off starts a new line instead. Shift+Enter always starts a new line either way.",
   "languageSystem": "System",
-  "languageEnglish": "English",
-  "languagePersian": "Persian",
   "storage": "Storage",
   "storageUsed": "{size} used locally",
   "@storageUsed": {
@@ -161,8 +148,6 @@
   "semanticSearch": "Semantic search",
   "summarization": "Summarization",
   "relatedNotes": "Related notes",
-  "cloudAi": "Cloud AI (opt-in)",
-  "cloudAiSubtitle": "Off by default. Core capture always works without it.",
   "sync": "Sync",
   "syncNow": "Sync now",
   "syncComplete": "Sync complete",
@@ -317,10 +302,6 @@
         "type": "String"
       }
     }
-  },
-  "moreOptions": "More options",
-  "@moreOptions": {
-    "description": "Opens the detail sheet's overflow menu"
   },
   "copied": "Copied",
   "@copied": {
@@ -1173,22 +1154,6 @@
   "@openLink": {
       "description": "Action that opens a link note in the browser"
   },
-  "noteTitle": "Title",
-  "@noteTitle": {
-      "description": "The optional headline on a note"
-  },
-  "addTitle": "Add a title",
-  "@addTitle": {
-      "description": "Detail-sheet action on a note that has no title yet"
-  },
-  "editTitle": "Edit title",
-  "@editTitle": {
-      "description": "Detail-sheet action on a note that already has a title"
-  },
-  "titleHint": "Optional — leave empty for none",
-  "@titleHint": {
-      "description": "Placeholder in the title field"
-  },
   "checklistProgress": "{done} of {total}",
   "@checklistProgress": {
       "description": "How many checklist items are ticked",
@@ -1201,8 +1166,32 @@
           }
       }
   },
-  "readingLink": "Reading the page…",
-  "@readingLink": {
-      "description": "Shown while a link's title and description are being fetched"
+  "chatGreeting": "How can I help you today?",
+  "@chatGreeting": {
+    "description": "Heading in the assistant sheet before anything is typed"
+  },
+  "chatHint": "Enter a prompt here",
+  "@chatHint": {
+    "description": "Placeholder in the assistant's input field"
+  },
+  "chatSend": "Send",
+  "@chatSend": {
+    "description": "Tooltip on the assistant's send button"
+  },
+  "chatFailed": "No answer came back. Check the provider in Settings, or try again.",
+  "@chatFailed": {
+    "description": "Shown in the assistant thread when a reply does not arrive"
+  },
+  "chatPromptSummarise": "Summarise what I captured this week",
+  "@chatPromptSummarise": {
+    "description": "Suggested opening prompt"
+  },
+  "chatPromptPlan": "Turn my notes into a to-do list",
+  "@chatPromptPlan": {
+    "description": "Suggested opening prompt"
+  },
+  "chatPromptIdeas": "Suggest what I might be forgetting",
+  "@chatPromptIdeas": {
+    "description": "Suggested opening prompt"
   }
 }
