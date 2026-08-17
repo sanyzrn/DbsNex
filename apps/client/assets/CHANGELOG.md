@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v0.9.4
+
 - A note with a reminder shows a small bell on its card, so you can see one
   is set without opening the note. It greys out once the time has passed.
 - Notes can have a reminder. Open a note, tap Remind, and pick — in an hour,
