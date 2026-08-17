@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/nex_banner.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
-import '../widgets/nex_toast.dart';
 
 /// Where the intelligence features get their answers from.
 ///
@@ -95,11 +95,10 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
     });
     // It said nothing at all before — no confirmation, no error, no change in
     // the button. There was no way to know whether the key had been kept.
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        nexToast(content: Text(AppLocalizations.of(context).aiProviderSaved)),
-      );
+    nexShowBanner(
+      context,
+      message: AppLocalizations.of(context).aiProviderSaved,
+    );
   }
 
   Future<void> _test() async {

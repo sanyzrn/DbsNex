@@ -11,7 +11,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../restart_scope.dart';
 import '../widgets/nex_dialog.dart';
-import '../widgets/nex_toast.dart';
+import '../widgets/nex_banner.dart';
 
 /// Everything about getting the library out of this device, and back in.
 ///
@@ -51,9 +51,7 @@ class _BackupScreenState extends State<BackupScreen> {
 
   void _say(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(nexToast(content: Text(message)));
+    nexShowBanner(context, message: message);
   }
 
   /// Runs [action], keeping the screen from starting a second one on top of it.

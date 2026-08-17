@@ -16,7 +16,7 @@ import '../platform/file_opener.dart';
 import '../platform/sharing.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/nex_services.dart';
-import '../widgets/nex_toast.dart';
+import '../widgets/nex_banner.dart';
 import '../widgets/tag_picker.dart';
 import '../utils/nex_bidi.dart';
 
@@ -159,9 +159,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   String? _copyableText(Note note) => note.displayText;
 
   void _toast(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(nexToast(content: Text(message)));
+    nexShowBanner(context, message: message);
   }
 
   Future<void> _copyText() async {

@@ -12,7 +12,7 @@ import 'platform/os_capture_bridge.dart';
 import 'platform/update_service.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/timeline_screen.dart';
-import 'widgets/nex_toast.dart';
+import 'widgets/nex_banner.dart';
 
 class NexApp extends StatefulWidget {
   const NexApp({
@@ -85,31 +85,14 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   /// fades on its own rather than anything that has to be dismissed.
   void _announceDownload() {
     if (!_updates.hasUnannouncedDownload) return;
-    final messenger = _messengerKey.currentState;
     final context = _messengerKey.currentContext;
-    if (messenger == null || context == null) return;
+    if (context == null) return;
     _updates.markAnnounced();
-    final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        nexToast(
-          duration: const Duration(seconds: 4),
-          content: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.download_done,
-                size: 20,
-                color: scheme.onInverseSurface,
-              ),
-              const SizedBox(width: NexSpacing.md),
-              Flexible(child: Text(l10n.updateDownloadedToast)),
-            ],
-          ),
-        ),
-      );
+    nexShowBanner(
+      context,
+      message: AppLocalizations.of(context).updateDownloadedToast,
+      haptics: widget.preferences.haptics,
+    );
   }
 
   /// What the device would pick when the user has not chosen a language.

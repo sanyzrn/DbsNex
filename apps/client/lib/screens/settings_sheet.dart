@@ -7,7 +7,7 @@ import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/nex_dialog.dart';
-import '../widgets/nex_toast.dart';
+import '../widgets/nex_banner.dart';
 import '../widgets/tag_color_picker.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
@@ -890,19 +890,15 @@ class _SyncRowState extends State<_SyncRow> {
 
   Future<void> _syncNow() async {
     final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final banner = NexBannerHost.of(context);
     setState(() => _busy = true);
     try {
       final result = await widget.services.syncNow();
-      messenger.showSnackBar(
-        nexToast(
-          content: Text(
-            '${l10n.syncComplete} · ${result.pushed}↑ ${result.pulled}↓',
-          ),
-        ),
+      banner?.show(
+        message: '${l10n.syncComplete} · ${result.pushed}↑ ${result.pulled}↓',
       );
     } catch (_) {
-      messenger.showSnackBar(nexToast(content: Text(l10n.operationFailed)));
+      banner?.show(message: l10n.operationFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

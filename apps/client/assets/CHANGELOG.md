@@ -39,6 +39,9 @@ Working convention:
 - Fixed the last update refusing to install over the previous version. Both
   causes are gone: releases stopped shipping the per-architecture APKs at
   all, and the version numbering let an older build outrank a newer one.
+- Messages arrive from the top of the screen now, as a rounded banner with a
+  small vibration, instead of a bar at the bottom. Tap it or flick it up to
+  send it away early.
 - Any note can be given a title now, from its detail sheet. A named note
   shows its name in the list, and is still searchable by what is inside it.
 - Added checklists. Write one item per line, and tick them off later — a

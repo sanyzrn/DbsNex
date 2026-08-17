@@ -24,7 +24,7 @@ import '../widgets/card_strings.dart';
 import '../widgets/commit_receipt.dart';
 import '../widgets/empty_timeline.dart';
 import '../widgets/nex_dialog.dart';
-import '../widgets/nex_toast.dart';
+import '../widgets/nex_banner.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/search_field_header.dart';
 import '../widgets/search_results.dart';
@@ -398,7 +398,7 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// is reported without taking the local reload down with it: the notes on
   /// this device are the point, and they reloaded either way.
   Future<void> _refresh() async {
-    final messenger = ScaffoldMessenger.of(context);
+    final banner = NexBannerHost.of(context);
     final l10n = AppLocalizations.of(context);
     await Future.wait([widget.services.refreshTimeline(), _loadFilterTags()]);
     if (widget.preferences.syncBaseUrl == null) return;
@@ -406,9 +406,7 @@ class TimelineScreenState extends State<TimelineScreen> {
       await widget.services.syncNow();
     } catch (_) {
       if (!mounted) return;
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(nexToast(content: Text(l10n.operationFailed)));
+      banner?.show(message: l10n.operationFailed, kind: NexBannerKind.failed);
     }
   }
 
@@ -680,22 +678,19 @@ class TimelineScreenState extends State<TimelineScreen> {
 
   void _reportCaptureFailure(CaptureFailure failure, ImageSource source) {
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        nexToast(
-          content: Text(switch (failure) {
-            CaptureFailure.permission => l10n.captureFailedPermission,
-            CaptureFailure.storage => l10n.captureFailedStorage,
-            CaptureFailure.unreadable => l10n.captureFailedUnreadable,
-            CaptureFailure.unknown => l10n.captureFailed,
-          }),
-          action: SnackBarAction(
-            label: l10n.retry,
-            onPressed: () => unawaited(capturePhoto(source)),
-          ),
-        ),
-      );
+    nexShowBanner(
+      context,
+      kind: NexBannerKind.failed,
+      haptics: widget.preferences.haptics,
+      message: switch (failure) {
+        CaptureFailure.permission => l10n.captureFailedPermission,
+        CaptureFailure.storage => l10n.captureFailedStorage,
+        CaptureFailure.unreadable => l10n.captureFailedUnreadable,
+        CaptureFailure.unknown => l10n.captureFailed,
+      },
+      actionLabel: l10n.retry,
+      onAction: () => unawaited(capturePhoto(source)),
+    );
   }
 
   Future<void> captureVoice() async {
@@ -782,36 +777,17 @@ class TimelineScreenState extends State<TimelineScreen> {
     await widget.services.deleteNote(note.id);
     await widget.services.refreshTimeline();
     if (!mounted) return;
-    final theme = Theme.of(context);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        nexToast(
-          // Shape, colour, inset and elevation all come from `snackBarTheme` now,
-          // so this and the other nine toasts in the app are one capsule rather
-          // than one hand-styled banner and nine framework defaults.
-          duration: const Duration(seconds: 5),
-          content: Row(
-            children: [
-              Icon(
-                Icons.delete_outline,
-                size: 20,
-                color: theme.colorScheme.onInverseSurface,
-              ),
-              const SizedBox(width: NexSpacing.md),
-              Expanded(child: Text(l10n.noteDeleted)),
-            ],
-          ),
-          action: SnackBarAction(
-            label: l10n.undo,
-            onPressed: () async {
-              _tick();
-              await widget.services.undelete(note.id);
-              await widget.services.refreshTimeline();
-            },
-          ),
-        ),
-      );
+    nexShowBanner(
+      context,
+      message: l10n.noteDeleted,
+      haptics: widget.preferences.haptics,
+      actionLabel: l10n.undo,
+      onAction: () async {
+        _tick();
+        await widget.services.undelete(note.id);
+        await widget.services.refreshTimeline();
+      },
+    );
   }
 
   void _onReorderStart(int index) {

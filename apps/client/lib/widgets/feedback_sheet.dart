@@ -5,7 +5,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/feedback_service.dart';
 import 'nex_dialog.dart';
-import 'nex_toast.dart';
+import 'nex_banner.dart';
 
 const _issuesUrl = 'https://github.com/sanyzrn/DbsNex/issues/new';
 
@@ -55,16 +55,12 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
     switch (outcome) {
       case FeedbackOutcome.sent:
         Navigator.pop(context);
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(nexToast(content: Text(l10n.feedbackSent)));
+        nexShowBanner(context, message: l10n.feedbackSent);
       case FeedbackOutcome.offline:
         await widget.service.preferences.setPendingFeedback(text);
         if (!mounted) return;
         Navigator.pop(context);
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(nexToast(content: Text(l10n.feedbackQueuedOffline)));
+        nexShowBanner(context, message: l10n.feedbackQueuedOffline);
       case FeedbackOutcome.failed:
       case FeedbackOutcome.unavailable:
         // Kept open, with the typed text still in the field: a failure here
