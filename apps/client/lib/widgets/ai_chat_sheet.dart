@@ -34,6 +34,7 @@ class AiChatSheet extends StatefulWidget {
     required this.services,
     required this.history,
     this.resume,
+    this.focus,
     this.client,
   });
 
@@ -47,6 +48,14 @@ class AiChatSheet extends StatefulWidget {
 
   /// A saved conversation to carry on with, or null for a new one.
   final ChatThread? resume;
+
+  /// One note to talk about, instead of the recent library.
+  ///
+  /// What "ask about this note" opens. The context becomes that note alone,
+  /// which is both what makes the answers specific and what keeps the
+  /// question cheap — there is no reason to send twenty notes to ask about
+  /// the one already on screen.
+  final Note? focus;
 
   /// Stands in for the network in tests.
   ///
@@ -68,6 +77,7 @@ class AiChatSheet extends StatefulWidget {
     required NexServices services,
     required ChatHistory history,
     ChatThread? resume,
+    Note? focus,
     http.Client? client,
   }) => showModalBottomSheet<void>(
     context: context,
@@ -79,6 +89,7 @@ class AiChatSheet extends StatefulWidget {
       services: services,
       history: history,
       resume: resume,
+      focus: focus,
       client: client,
     ),
   );
@@ -150,6 +161,12 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// with its id in front — the id is what makes "delete that one" possible
   /// to act on without the model guessing which note was meant.
   Future<void> _loadNotesContext() async {
+    final focused = widget.focus;
+    if (focused != null) {
+      final line = _contextLine(focused);
+      if (line != null && mounted) setState(() => _notesContext = line);
+      return;
+    }
     final count = widget.preferences.aiNotesContextCount;
     if (count == 0) return;
     List<Note> notes;
@@ -158,19 +175,38 @@ class _AiChatSheetState extends State<AiChatSheet> {
     } catch (_) {
       return;
     }
-    final lines = <String>[];
-    for (final note in notes) {
-      final text = (note.displayText ?? '').trim().replaceAll(
-        RegExp(r'\s+'),
-        ' ',
-      );
-      if (text.isEmpty) continue;
-      lines.add(
-        '[${note.id}] ${text.length > 200 ? '${text.substring(0, 200)}…' : text}',
-      );
-    }
+    final lines = <String>[
+      for (final note in notes)
+        if (_contextLine(note) case final line?) line,
+    ];
     if (!mounted) return;
     setState(() => _notesContext = lines.join('\n'));
+  }
+
+  /// One note as the assistant sees it: its id, then whatever words it has.
+  ///
+  /// The id goes first because it is what an action refers back to — without
+  /// one, "delete that one" can only be guessed at. The text is everything
+  /// the note carries in words rather than only what its card shows: a
+  /// photo's OCR read and a recording's transcript are the only way the
+  /// assistant knows those notes exist as anything but "a photo".
+  String? _contextLine(Note note) {
+    final text =
+        [
+              note.title,
+              note.content,
+              note.transcriptText,
+              note.ocrText,
+              note.linkExcerpt,
+            ]
+            .whereType<String>()
+            .map((part) => part.trim())
+            .where((part) => part.isNotEmpty)
+            .join(' — ')
+            .replaceAll(RegExp(r'\s+'), ' ');
+    if (text.isEmpty) return null;
+    final clipped = text.length > 400 ? '${text.substring(0, 400)}…' : text;
+    return '[${note.id}] ${note.type.wireName}: $clipped';
   }
 
   AiChatOptions get _options => AiChatOptions(

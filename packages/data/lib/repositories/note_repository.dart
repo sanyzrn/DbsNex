@@ -815,6 +815,34 @@ ON CONFLICT(note_id) DO UPDATE SET
   }
 
   @override
+  List<Note> listNeedingEmbedding({int limit = 25}) {
+    // Anything with words in it: a note's own text, a caption, a transcript,
+    // an OCR read, or a link's headline. A photo with nothing derived from it
+    // yet is excluded rather than embedded as an empty string — it will come
+    // back round once enrichment has read it.
+    final rows = db.select(
+      '''
+SELECT n.* FROM notes n
+LEFT JOIN note_embeddings e ON e.note_id = n.id
+WHERE n.deleted_at IS NULL
+  AND e.note_id IS NULL
+  AND (
+    COALESCE(TRIM(n.content), '') <> ''
+    OR COALESCE(TRIM(n.transcript_text), '') <> ''
+    OR COALESCE(TRIM(n.ocr_text), '') <> ''
+    OR COALESCE(TRIM(n.title), '') <> ''
+  )
+ORDER BY n.created_at DESC
+LIMIT ?
+''',
+      [limit],
+    );
+    return rows
+        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
+        .toList();
+  }
+
+  @override
   List<NoteEmbedding> listEmbeddings() {
     final rows = db.select('SELECT note_id, values_json FROM note_embeddings');
     return [

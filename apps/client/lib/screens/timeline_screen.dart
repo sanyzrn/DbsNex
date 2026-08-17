@@ -1434,8 +1434,11 @@ class TimelineScreenState extends State<TimelineScreen> {
   Future<void> _openNote(Note note) async {
     final result = await nexShowSheet<DetailResult>(
       context: context,
-      builder: (_) =>
-          NoteDetailSheet(services: widget.services, noteId: note.id),
+      builder: (_) => NoteDetailSheet(
+        services: widget.services,
+        preferences: widget.preferences,
+        noteId: note.id,
+      ),
     );
     if (result == DetailResult.deleted) await deleteWithUndo(note);
     await widget.services.refreshTimeline();

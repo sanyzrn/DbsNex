@@ -53,6 +53,16 @@ abstract interface class NoteRepository {
 
   List<NoteEmbedding> listEmbeddings();
 
+  /// Notes with text and no embedding yet, newest first.
+  ///
+  /// Separate from `listNeedingEnrichment`, which only ever returns media
+  /// waiting on a transcript or an OCR read. A text note needs nothing
+  /// derived from it — it is already its own text — so it never appeared
+  /// there, and the consequence was that a library written before a provider
+  /// was configured got no embeddings at all and semantic search silently
+  /// found nothing in it forever.
+  List<Note> listNeedingEmbedding({int limit});
+
   /// Notes the intelligence layer has never been able to read.
   ///
   /// Enrichment runs once, at capture. That leaves every note captured before

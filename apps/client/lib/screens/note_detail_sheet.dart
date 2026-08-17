@@ -12,9 +12,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/ai_chat_sheet.dart';
 import '../platform/file_opener.dart';
 import '../platform/sharing.dart';
 import '../widgets/nex_dialog.dart';
+import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/tag_picker.dart';
@@ -31,11 +33,20 @@ class NoteDetailSheet extends StatefulWidget {
     super.key,
     required this.services,
     required this.noteId,
+    this.preferences,
     this.focusAddTag = false,
   });
 
   final NexServices services;
   final String noteId;
+
+  /// Optional, and only for the Ask action.
+  ///
+  /// Nullable rather than required because this sheet is opened from several
+  /// places and none of the rest of it needs preferences — an argument added
+  /// to every call site for one conditional button would be worse than a
+  /// button that is simply absent where nobody wired it up.
+  final NexPreferences? preferences;
   final bool focusAddTag;
 
   @override
@@ -946,6 +957,25 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           ? null
                           : _togglePin,
                     ),
+                    // Only when there is a provider behind it. The
+                    // assistant's own rule everywhere else in the app: a
+                    // button that can only answer "unavailable" is worse than
+                    // no button.
+                    if (widget.preferences case final preferences?
+                        when AiChatSheet.availableFor(preferences))
+                      _DetailAction(
+                        icon: Icons.forum_outlined,
+                        label: l10n.askAboutNote,
+                        onPressed: () => unawaited(
+                          AiChatSheet.show(
+                            context,
+                            preferences: preferences,
+                            services: widget.services,
+                            history: preferences.chatHistory,
+                            focus: note,
+                          ),
+                        ),
+                      ),
                     _DetailAction(
                       icon: Icons.auto_awesome_outlined,
                       label: l10n.summarize,

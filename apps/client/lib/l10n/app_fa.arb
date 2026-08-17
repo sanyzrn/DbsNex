@@ -699,5 +699,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "askAboutNote": "بپرس"
 }

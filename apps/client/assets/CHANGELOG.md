@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+- Search by meaning now actually works on the notes you already had. Nex
+  could always find a note by what it means rather than the words in it —
+  but only for notes captured after you set up an AI provider. Everything
+  written before that was never indexed, and never would be, so the feature
+  quietly found nothing. The backlog is worked through now.
+- The search box takes `tag:` and `type:` — `tag:work type:link cooler`.
+  Quotes hold a phrase or a tag with a space together: `tag:"to read"`.
+  These combine with the filter chips rather than replacing them.
+- A note's detail sheet has an Ask button: the assistant, about that one
+  note. It reads the note's transcript or the text found in a photo too, so
+  you can ask about a recording or a picture, not only about typed notes.
 - Backups now contain your photos, voice recordings and attached files. They
   never did: a backup was the database and nothing else, so restoring on a
   new phone brought back every note with every picture missing — and said

@@ -78,6 +78,9 @@ class _FakeNoteRepository implements NoteRepository {
   List<NoteEmbedding> listEmbeddings() => [];
 
   @override
+  List<Note> listNeedingEmbedding({int limit = 25}) => [];
+
+  @override
   List<Note> listNeedingEnrichment({int limit = 50}) => [];
 }
 

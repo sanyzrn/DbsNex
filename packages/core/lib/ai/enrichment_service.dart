@@ -73,9 +73,10 @@ class EnrichmentService {
   ///
   /// Returns how many notes it managed to enrich.
   Future<int> backfill({int limit = 25}) async {
-    if (!_capabilities.transcription && !_capabilities.ocr) return 0;
+    final embedded = await _backfillEmbeddings(limit: limit);
+    if (!_capabilities.transcription && !_capabilities.ocr) return embedded;
     final pending = _repo.listNeedingEnrichment(limit: limit);
-    var done = 0;
+    var done = embedded;
     for (final note in pending) {
       try {
         await enrichNote(note.id);
@@ -87,6 +88,35 @@ class EnrichmentService {
           ? after?.transcriptText != null
           : after?.ocrText != null;
       if (!gained) break;
+      done++;
+    }
+    return done;
+  }
+
+  /// Embeds the notes that have text and no vector yet.
+  ///
+  /// Its own pass because the enrichment backlog is a different set: that one
+  /// is media waiting to be read, this one is everything waiting to be
+  /// findable by meaning. Written notes were in neither — they need nothing
+  /// derived, so they never appeared in the enrichment backlog, and nothing
+  /// else ever embedded them. A library captured before a provider existed
+  /// therefore had no vectors at all, and semantic search over it returned
+  /// nothing, forever, without ever looking wrong.
+  ///
+  /// Stops at the first failure, like the pass below and for the same reason:
+  /// a dead key or an exhausted quota answers every remaining note the same
+  /// way, and spending the quota to find that out twenty-five times is worse
+  /// than stopping.
+  Future<int> _backfillEmbeddings({required int limit}) async {
+    if (!_capabilities.semanticSearch && !_capabilities.relatedNotes) return 0;
+    var done = 0;
+    for (final note in _repo.listNeedingEmbedding(limit: limit)) {
+      try {
+        await _embed(note);
+      } catch (_) {
+        break;
+      }
+      if (_repo.getEmbedding(note.id) == null) break;
       done++;
     }
     return done;

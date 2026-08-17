@@ -21,6 +21,7 @@ export 'models/memory_record.dart';
 export 'models/note.dart';
 export 'models/note_embedding.dart';
 export 'models/search_filters.dart';
+export 'models/search_query.dart';
 export 'models/tag.dart';
 
 // Identity and content hashing.

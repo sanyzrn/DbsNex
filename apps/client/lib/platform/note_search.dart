@@ -47,6 +47,21 @@ class NoteSearchController extends ChangeNotifier {
   int get activeFilterCount =>
       tags.length + types.length + (range == null ? 0 : 1);
 
+  /// Stands in for a `tag:` nobody has ever used.
+  ///
+  /// An id that matches nothing, rather than dropping the term: searching for
+  /// a tag that does not exist has no results, and silently ignoring it would
+  /// show every note instead — the opposite of what was asked for.
+  static const _noSuchTag = '\u0000no-such-tag';
+
+  String? _tagIdNamed(String name) {
+    final wanted = name.trim().toLowerCase();
+    for (final tag in allTags) {
+      if (tag.name.toLowerCase() == wanted) return tag.id;
+    }
+    return null;
+  }
+
   Future<void> loadTags() async {
     allTags = await services.listTags();
     notifyListeners();
@@ -60,16 +75,24 @@ class NoteSearchController extends ChangeNotifier {
 
   Future<void> run() async {
     final current = ++_request;
+    // `tag:` and `type:` typed into the box mean the same as the chips above
+    // it, and combine with them rather than replacing them: someone who has
+    // tapped a tag and then types `type:link` wants both.
+    final typed = parseSearchQuery(query.text);
+    final typedTagIds = <String>[
+      for (final name in typed.tagNames)
+        if (_tagIdNamed(name) case final id?) id else _noSuchTag,
+    ];
     final found = await services.search(
       SearchFilters(
-        query: query.text,
-        tagIds: tags.toList(),
-        types: types.toList(),
+        query: typed.text,
+        tagIds: {...tags, ...typedTagIds}.toList(),
+        types: {...types, ...typed.types}.toList(),
         createdFrom: range?.start,
         createdTo: range?.end.add(const Duration(days: 1)),
       ),
     );
-    final trimmed = query.text.trim();
+    final trimmed = typed.text.trim();
     Note? close;
     List<Note> semantic = const [];
     if (found.isEmpty && trimmed.isNotEmpty) {

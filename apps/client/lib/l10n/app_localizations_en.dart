@@ -1309,4 +1309,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String assistantContextCount(int count) {
     return 'Last $count';
   }
+
+  @override
+  String get askAboutNote => 'Ask';
 }

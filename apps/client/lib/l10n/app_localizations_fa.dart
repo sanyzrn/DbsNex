@@ -1310,4 +1310,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String assistantContextCount(int count) {
     return '‏$count تای آخر';
   }
+
+  @override
+  String get askAboutNote => 'بپرس';
 }

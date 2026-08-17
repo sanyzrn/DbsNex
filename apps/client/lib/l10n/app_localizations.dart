@@ -2305,6 +2305,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Last {count}'**
   String assistantContextCount(int count);
+
+  /// Opens the assistant with this one note as its subject
+  ///
+  /// In en, this message translates to:
+  /// **'Ask'**
+  String get askAboutNote;
 }
 
 class _AppLocalizationsDelegate

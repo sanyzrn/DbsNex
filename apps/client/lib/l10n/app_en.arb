@@ -1302,5 +1302,9 @@
         "type": "int"
       }
     }
+  },
+  "askAboutNote": "Ask",
+  "@askAboutNote": {
+    "description": "Opens the assistant with this one note as its subject"
   }
 }
