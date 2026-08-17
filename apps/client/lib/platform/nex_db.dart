@@ -59,6 +59,11 @@ abstract interface class NexDb {
   /// Null or empty clears the title.
   Future<void> setTitle(String id, String? title);
 
+  /// The AI's read of a note, written straight in rather than derived from a
+  /// note the enrichment pipeline owns — a link's summary comes from the page
+  /// it points at, which only the UI isolate has fetched.
+  Future<void> setSummaryText(String id, String text);
+
   /// Fetched link metadata. A null field is left alone rather than cleared.
   Future<void> setLinkMetadata(String id, {String? title, String? excerpt});
 

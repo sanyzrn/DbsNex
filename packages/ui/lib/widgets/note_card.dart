@@ -275,6 +275,15 @@ class _Preview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A checklist and a link both have a shape worth showing at a glance, and
+    // both fit the same two lines every other card gets. Neither is
+    // interactive here: the card's own tap opens the note, and a checkbox
+    // inside a tappable card is a target inside a target.
+    if (note.type == NoteType.checklist && note.checklistItems.isNotEmpty) {
+      return _ChecklistPreview(items: note.checklistItems);
+    }
+    if (note.type == NoteType.link) return _LinkPreview(note: note);
+
     final text = note.displayText ?? note.type.name;
     final direction = nexDirectionOf(text);
     return SizedBox(
@@ -294,6 +303,171 @@ class _Preview extends StatelessWidget {
             ? TextAlign.right
             : TextAlign.start,
         style: Theme.of(context).textTheme.bodyLarge,
+      ),
+    );
+  }
+}
+
+/// The first two items of a checklist, ticked or not, plus what is left over.
+///
+/// Two, because that is what the card has room for — and the two that matter
+/// are the ones still to do, so unticked items come first regardless of where
+/// they sit in the list. A card showing "milk, bread" you have already bought
+/// is a card telling you nothing.
+class _ChecklistPreview extends StatelessWidget {
+  const _ChecklistPreview({required this.items});
+
+  final List<ChecklistItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final ordered = [
+      ...items.where((item) => !item.done),
+      ...items.where((item) => item.done),
+    ];
+    final shown = ordered.take(nexCardPreviewLines).toList();
+    final remaining = ordered.length - shown.length;
+
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final item in shown)
+            _ChecklistLine(
+              item: item,
+              // The last visible line carries the overflow count, so the
+              // card never grows a third row to say "+3 more".
+              trailing: item == shown.last && remaining > 0
+                  ? '+$remaining'
+                  : null,
+            ),
+          if (shown.length < nexCardPreviewLines)
+            // Holds the card's height steady when a list has one item, the
+            // same way a one-line text note reserves its second line.
+            SizedBox(height: 24.0 * (nexCardPreviewLines - shown.length)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChecklistLine extends StatelessWidget {
+  const _ChecklistLine({required this.item, this.trailing});
+
+  final ChecklistItem item;
+  final String? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final direction = nexDirectionOf(item.text);
+    return SizedBox(
+      height: 24,
+      child: Row(
+        children: [
+          Icon(
+            item.done
+                ? Icons.check_box_outlined
+                : Icons.check_box_outline_blank,
+            size: 16,
+            color: item.done ? scheme.primary : scheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: NexSpacing.sm),
+          Expanded(
+            child: Text(
+              item.text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textDirection: direction,
+              textAlign: direction == TextDirection.rtl
+                  ? TextAlign.right
+                  : TextAlign.start,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                // Struck through and dimmed rather than hidden: what you have
+                // already done is part of what the list says.
+                decoration: item.done ? TextDecoration.lineThrough : null,
+                color: item.done ? scheme.onSurfaceVariant : null,
+              ),
+            ),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: NexSpacing.sm),
+            Text(
+              trailing!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A link note: what the page is called, and which site it is on.
+///
+/// The host on its own line is the part that stops a list of bookmarks from
+/// being unreadable — titles repeat across a site, domains do not.
+class _LinkPreview extends StatelessWidget {
+  const _LinkPreview({required this.note});
+
+  final Note note;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final host = urlHost(note.linkUrl);
+    // Before the page has been read, the URL is the only thing there is to
+    // show — which is honest, and better than an empty card that looks broken.
+    final headline = note.displayText ?? note.linkUrl ?? '';
+    final direction = nexDirectionOf(headline);
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 24,
+            child: Text(
+              headline,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textDirection: direction,
+              textAlign: direction == TextDirection.rtl
+                  ? TextAlign.right
+                  : TextAlign.start,
+              style: theme.textTheme.bodyLarge,
+            ),
+          ),
+          SizedBox(
+            height: 24,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.public,
+                  size: 14,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: NexSpacing.xs),
+                Expanded(
+                  child: Text(
+                    host ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

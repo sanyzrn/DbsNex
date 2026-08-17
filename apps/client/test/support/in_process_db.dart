@@ -139,6 +139,10 @@ class InProcessDb implements NexDb {
       _repo.setTitle(id, title);
 
   @override
+  Future<void> setSummaryText(String id, String text) async =>
+      _repo.setSummaryText(id, text);
+
+  @override
   Future<void> setLinkMetadata(
     String id, {
     String? title,

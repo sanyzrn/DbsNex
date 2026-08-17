@@ -252,6 +252,9 @@ class NexServices {
 
   Future<void> setTitle(String id, String? title) => worker.setTitle(id, title);
 
+  Future<void> summarizeInto(String id, String summary) =>
+      worker.setSummaryText(id, summary);
+
   Future<void> setLinkMetadata(String id, {String? title, String? excerpt}) =>
       worker.setLinkMetadata(id, title: title, excerpt: excerpt);
 

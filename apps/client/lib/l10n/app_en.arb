@@ -188,7 +188,7 @@
     }
   },
   "operationFailed": "The operation failed. Your existing notes were not changed.",
-  "noteType": "{type, select, text{Text} voice{Voice} photo{Photo} file{File} other{Note}}",
+  "noteType": "{type, select, text{Text} voice{Voice} photo{Photo} file{File} checklist{Checklist} link{Link} other{Note}}",
   "@noteType": {
     "placeholders": {
       "type": {
@@ -1144,5 +1144,61 @@
   "onboardingNameRequired": "Nex needs something to call you.",
   "@onboardingNameRequired": {
     "description": "Validation message under the required name field on the last onboarding page"
+  },
+  "checklist": "Checklist",
+  "@checklist": {
+      "description": "Capture type: a list of tickable items"
+  },
+  "link": "Link",
+  "@link": {
+      "description": "Capture type: a saved web address"
+  },
+  "checklistHint": "An item, one per line",
+  "@checklistHint": {
+      "description": "Placeholder in the checklist capture field"
+  },
+  "linkHint": "Paste a link",
+  "@linkHint": {
+      "description": "Placeholder in the link capture field"
+  },
+  "linkNotValid": "That does not look like a link.",
+  "@linkNotValid": {
+      "description": "Shown when pasted text cannot be read as a URL"
+  },
+  "openLink": "Open link",
+  "@openLink": {
+      "description": "Action that opens a link note in the browser"
+  },
+  "noteTitle": "Title",
+  "@noteTitle": {
+      "description": "The optional headline on a note"
+  },
+  "addTitle": "Add a title",
+  "@addTitle": {
+      "description": "Detail-sheet action on a note that has no title yet"
+  },
+  "editTitle": "Edit title",
+  "@editTitle": {
+      "description": "Detail-sheet action on a note that already has a title"
+  },
+  "titleHint": "Optional — leave empty for none",
+  "@titleHint": {
+      "description": "Placeholder in the title field"
+  },
+  "checklistProgress": "{done} of {total}",
+  "@checklistProgress": {
+      "description": "How many checklist items are ticked",
+      "placeholders": {
+          "done": {
+              "type": "int"
+          },
+          "total": {
+              "type": "int"
+          }
+      }
+  },
+  "readingLink": "Reading the page…",
+  "@readingLink": {
+      "description": "Shown while a link's title and description are being fetched"
   }
 }

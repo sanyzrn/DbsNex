@@ -39,6 +39,10 @@ Working convention:
 - Fixed the last update refusing to install over the previous version. Both
   causes are gone: releases stopped shipping the per-architecture APKs at
   all, and the version numbering let an older build outrank a newer one.
+- Added checklists. Write one item per line, and tick them off later — a
+  checklist exports as a real markdown checklist too.
+- Added link captures. Paste a link and Nex reads the page's own title and
+  description, and summarises it if you have an AI provider set up.
 - A first launch now opens with a short introduction to what Nex is, ending
   with your name, theme, language, and the language Nex writes in. It appears
   once, and never for an install that already has notes in it.

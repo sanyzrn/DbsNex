@@ -779,7 +779,7 @@ abstract class AppLocalizations {
   /// No description provided for @noteType.
   ///
   /// In en, this message translates to:
-  /// **'{type, select, text{Text} voice{Voice} photo{Photo} file{File} other{Note}}'**
+  /// **'{type, select, text{Text} voice{Voice} photo{Photo} file{File} checklist{Checklist} link{Link} other{Note}}'**
   String noteType(String type);
 
   /// Confirm button on the inline add-tag dialog
@@ -2113,6 +2113,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nex needs something to call you.'**
   String get onboardingNameRequired;
+
+  /// Capture type: a list of tickable items
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist'**
+  String get checklist;
+
+  /// Capture type: a saved web address
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get link;
+
+  /// Placeholder in the checklist capture field
+  ///
+  /// In en, this message translates to:
+  /// **'An item, one per line'**
+  String get checklistHint;
+
+  /// Placeholder in the link capture field
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a link'**
+  String get linkHint;
+
+  /// Shown when pasted text cannot be read as a URL
+  ///
+  /// In en, this message translates to:
+  /// **'That does not look like a link.'**
+  String get linkNotValid;
+
+  /// Action that opens a link note in the browser
+  ///
+  /// In en, this message translates to:
+  /// **'Open link'**
+  String get openLink;
+
+  /// The optional headline on a note
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get noteTitle;
+
+  /// Detail-sheet action on a note that has no title yet
+  ///
+  /// In en, this message translates to:
+  /// **'Add a title'**
+  String get addTitle;
+
+  /// Detail-sheet action on a note that already has a title
+  ///
+  /// In en, this message translates to:
+  /// **'Edit title'**
+  String get editTitle;
+
+  /// Placeholder in the title field
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — leave empty for none'**
+  String get titleHint;
+
+  /// How many checklist items are ticked
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total}'**
+  String checklistProgress(int done, int total);
+
+  /// Shown while a link's title and description are being fetched
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the page…'**
+  String get readingLink;
 }
 
 class _AppLocalizationsDelegate

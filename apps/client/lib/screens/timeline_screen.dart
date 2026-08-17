@@ -12,13 +12,14 @@ import '../feature_flags.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/ai_provider.dart';
 import '../platform/capture_failure.dart';
+import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/note_search.dart';
 import '../platform/os_capture_bridge.dart';
 import '../platform/update_service.dart';
-import 'package:nex_data/nex_data.dart';
 import '../widgets/capture_sheet.dart';
+import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/commit_receipt.dart';
 import '../widgets/empty_timeline.dart';
@@ -542,9 +543,105 @@ class TimelineScreenState extends State<TimelineScreen> {
           Navigator.pop(sheetContext);
           captureFile();
         },
+        onChecklist: () {
+          Navigator.pop(sheetContext);
+          unawaited(captureChecklist());
+        },
+        onLink: () {
+          Navigator.pop(sheetContext);
+          unawaited(captureLink());
+        },
       ),
     );
     widget.services.refreshTimeline();
+  }
+
+  /// Opens the checklist sheet and commits whatever came back.
+  ///
+  /// Same shape as every other capture path here: the sheet decides *what*,
+  /// this decides that it is kept. A dismissed sheet returns null and nothing
+  /// is written — the one place in Nex where a capture can be abandoned, and
+  /// only because nothing was committed in the first place.
+  Future<void> captureChecklist() async {
+    final items = await nexShowSheet<List<ChecklistItem>>(
+      context: context,
+      builder: (_) => ChecklistCaptureSheet(preferences: widget.preferences),
+    );
+    if (items == null || items.isEmpty) return;
+    final note = await widget.services.captureChecklist(items);
+    if (note != null) _landed(note.id);
+    await widget.services.refreshTimeline();
+  }
+
+  Future<void> captureLink() async {
+    final url = await nexShowSheet<String>(
+      context: context,
+      builder: (_) => LinkCaptureSheet(preferences: widget.preferences),
+    );
+    if (url == null) return;
+    final note = await widget.services.captureLink(url);
+    if (note != null) {
+      _landed(note.id);
+      // The page is read after the note exists, never before: a bookmark is
+      // saved the moment you ask for it, and the title and description are an
+      // improvement that arrives late or not at all.
+      unawaited(_readLink(note.id, url));
+    }
+    await widget.services.refreshTimeline();
+  }
+
+  void _landed(String id) {
+    if (!mounted) return;
+    setState(() => landedId = id);
+    if (widget.preferences.haptics) HapticFeedback.lightImpact();
+  }
+
+  /// Reads the page a link note points at, and asks the provider to summarise
+  /// it if one is configured.
+  ///
+  /// Never awaited by the capture path and never able to fail it: the note is
+  /// already saved by the time this runs, and every outcome here — offline, a
+  /// 404, a page with no title, no AI provider — leaves a link note that still
+  /// opens. The two halves are independent, so a page that reads fine but
+  /// cannot be summarised still gets its title.
+  Future<void> _readLink(String noteId, String url) async {
+    final reader = LinkReader();
+    LinkPreview preview;
+    try {
+      preview = await reader.read(url);
+    } finally {
+      reader.close();
+    }
+    if (!preview.isEmpty) {
+      await widget.services.setLinkMetadata(
+        noteId,
+        title: preview.title,
+        excerpt: preview.excerpt,
+      );
+      if (mounted) await widget.services.refreshTimeline();
+    }
+
+    if (!_aiHeaderAvailable) return;
+    // The page's own words are what gets summarised, never the URL — a bare
+    // address tells a model nothing, and sending one would spend a request to
+    // be told so.
+    final source = [
+      preview.title,
+      preview.excerpt,
+    ].whereType<String>().join('\n');
+    if (source.trim().isEmpty) return;
+    final adapter = _aiAdapter();
+    try {
+      final summary = await adapter.digest(source);
+      if (summary != null && summary.isNotEmpty) {
+        await widget.services.summarizeInto(noteId, summary);
+        if (mounted) await widget.services.refreshTimeline();
+      }
+    } catch (_) {
+      // A bookmark that could not be summarised is still a bookmark.
+    } finally {
+      adapter.close();
+    }
   }
 
   Future<void> capturePhoto(ImageSource source) async {

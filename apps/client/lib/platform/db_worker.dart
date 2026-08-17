@@ -36,6 +36,7 @@ enum _DbCommand {
   undelete,
   setCaption,
   setTitle,
+  setSummaryText,
   setLinkMetadata,
   toggleChecklistItem,
   pinNote,
@@ -292,6 +293,10 @@ class NexDbWorker implements NexDb {
   @override
   Future<void> setTitle(String id, String? title) =>
       _send<void>(_DbCommand.setTitle, {'id': id, 'title': title});
+
+  @override
+  Future<void> setSummaryText(String id, String text) =>
+      _send<void>(_DbCommand.setSummaryText, {'id': id, 'text': text});
 
   @override
   Future<void> setLinkMetadata(String id, {String? title, String? excerpt}) =>
@@ -577,6 +582,12 @@ class NexDbWorker implements NexDb {
           ),
           _DbCommand.setTitle => _voided(
             () => repo.setTitle(arg('id')! as String, arg('title') as String?),
+          ),
+          _DbCommand.setSummaryText => _voided(
+            () => repo.setSummaryText(
+              arg('id')! as String,
+              arg('text')! as String,
+            ),
           ),
           _DbCommand.setLinkMetadata => _voided(
             () => repo.setLinkMetadata(

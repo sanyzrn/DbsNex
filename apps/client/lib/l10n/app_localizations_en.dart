@@ -408,6 +408,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'voice': 'Voice',
       'photo': 'Photo',
       'file': 'File',
+      'checklist': 'Checklist',
+      'link': 'Link',
       'other': 'Note',
     });
     return '$_temp0';
@@ -1209,4 +1211,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingNameRequired => 'Nex needs something to call you.';
+
+  @override
+  String get checklist => 'Checklist';
+
+  @override
+  String get link => 'Link';
+
+  @override
+  String get checklistHint => 'An item, one per line';
+
+  @override
+  String get linkHint => 'Paste a link';
+
+  @override
+  String get linkNotValid => 'That does not look like a link.';
+
+  @override
+  String get openLink => 'Open link';
+
+  @override
+  String get noteTitle => 'Title';
+
+  @override
+  String get addTitle => 'Add a title';
+
+  @override
+  String get editTitle => 'Edit title';
+
+  @override
+  String get titleHint => 'Optional — leave empty for none';
+
+  @override
+  String checklistProgress(int done, int total) {
+    return '$done of $total';
+  }
+
+  @override
+  String get readingLink => 'Reading the page…';
 }

@@ -408,6 +408,8 @@ class AppLocalizationsFa extends AppLocalizations {
       'voice': 'صدا',
       'photo': 'عکس',
       'file': 'فایل',
+      'checklist': 'چک‌لیست',
+      'link': 'لینک',
       'other': 'یادداشت',
     });
     return '$_temp0';
@@ -1209,4 +1211,42 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get onboardingNameRequired => 'Nex باید بداند شما را چه صدا کند.';
+
+  @override
+  String get checklist => 'چک‌لیست';
+
+  @override
+  String get link => 'لینک';
+
+  @override
+  String get checklistHint => 'هر خط یک مورد';
+
+  @override
+  String get linkHint => 'لینک را بچسبانید';
+
+  @override
+  String get linkNotValid => 'این شبیه لینک نیست.';
+
+  @override
+  String get openLink => 'باز کردن لینک';
+
+  @override
+  String get noteTitle => 'عنوان';
+
+  @override
+  String get addTitle => 'افزودن عنوان';
+
+  @override
+  String get editTitle => 'ویرایش عنوان';
+
+  @override
+  String get titleHint => 'اختیاری — خالی بگذارید تا عنوانی نباشد';
+
+  @override
+  String checklistProgress(int done, int total) {
+    return '$done از $total';
+  }
+
+  @override
+  String get readingLink => 'در حال خواندن صفحه…';
 }
