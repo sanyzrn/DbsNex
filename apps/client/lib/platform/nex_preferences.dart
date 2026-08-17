@@ -52,12 +52,33 @@ class NexPreferences extends ChangeNotifier {
   static const _kSyncBearerToken = 'sync.bearer_token';
   static const _kPendingFeedback = 'feedback.pending_message';
 
+  static const _kOnboardingComplete = 'onboarding.complete';
+
   static Future<NexPreferences> load() async {
     final prefs = await SharedPreferences.getInstance();
     await _migrateAiProviderStorage(prefs);
+    // Nobody who already has a library gets walked through an introduction to
+    // it. The store holding any key at all is exactly "this app has run
+    // before": `load()` is the first thing bootstrap does, ahead of the device
+    // id and every setting, so on a genuinely fresh install it is empty here.
+    if (!prefs.containsKey(_kOnboardingComplete) &&
+        prefs.getKeys().isNotEmpty) {
+      await prefs.setBool(_kOnboardingComplete, true);
+    }
     final preferences = NexPreferences._(prefs, const FlutterSecureStorage());
     await preferences._migrateAndHydrateApiKeys();
     return preferences;
+  }
+
+  /// Whether the first-run introduction has been through.
+  ///
+  /// The one preference that gates a whole screen rather than tuning one, so
+  /// it is written exactly once, by the last page of that screen.
+  bool get onboardingComplete => _prefs.getBool(_kOnboardingComplete) ?? false;
+
+  Future<void> completeOnboarding() async {
+    await _prefs.setBool(_kOnboardingComplete, true);
+    notifyListeners();
   }
 
   /// Moves each provider's key out of the plaintext slot [_migrateAiProviderStorage]

@@ -554,5 +554,61 @@
   "aiOutputLanguagePersian": "فارسی",
   "@aiOutputLanguagePersian": {
     "description": "AI output language option: always Persian"
+  },
+  "onboardingNext": "بعدی",
+  "@onboardingNext": {
+    "description": "Onboarding button that advances to the next page"
+  },
+  "onboardingBack": "قبلی",
+  "@onboardingBack": {
+    "description": "Onboarding button that returns to the previous page"
+  },
+  "onboardingStart": "شروع کنیم",
+  "@onboardingStart": {
+    "description": "Onboarding button on the last page that finishes setup"
+  },
+  "onboardingWelcomeTitle": "جایی برای زمین گذاشتن",
+  "@onboardingWelcomeTitle": {
+    "description": "Onboarding page 1 heading"
+  },
+  "onboardingWelcomeBody": "هر چیزی در Nex بگذارید، می‌ماند. چیز دیگری از شما خواسته نمی‌شود — نه حسابی، نه صندوقی که باید خالیش کنید.",
+  "@onboardingWelcomeBody": {
+    "description": "Onboarding page 1 body"
+  },
+  "onboardingCaptureTitle": "دکمهٔ ذخیره‌ای در کار نیست",
+  "@onboardingCaptureTitle": {
+    "description": "Onboarding page 2 heading"
+  },
+  "onboardingCaptureBody": "بنویسید، بگویید یا عکس بگیرید. یادداشت همان لحظه که می‌سازید مال شماست و بالای همان یک فهرست می‌نشیند — لازم نیست اول جایی برایش دسته‌بندی کنید.",
+  "@onboardingCaptureBody": {
+    "description": "Onboarding page 2 body"
+  },
+  "onboardingIntelligenceTitle": "می‌تواند آنچه ثبت می‌کنید را بخواند",
+  "@onboardingIntelligenceTitle": {
+    "description": "Onboarding page 3 heading"
+  },
+  "onboardingIntelligenceBody": "صدا متن می‌شود، متن داخل عکس‌ها درمی‌آید و برچسب‌ها خودشان پیشنهاد می‌شوند. تا وقتی در تنظیمات سرویسی اضافه نکنید خاموش است — بقیهٔ اپ بدون آن هم کار می‌کند.",
+  "@onboardingIntelligenceBody": {
+    "description": "Onboarding page 3 body"
+  },
+  "onboardingSilenceTitle": "هیچ‌وقت مزاحمتان نمی‌شود",
+  "@onboardingSilenceTitle": {
+    "description": "Onboarding page 4 heading"
+  },
+  "onboardingSilenceBody": "نه اعلانی، نه نشانی، نه یادآوری و نه زنجیرهٔ روزانه. یادداشت‌هایتان روی همین دستگاه می‌مانند، مگر خودتان همگام‌سازی را راه بیندازید.",
+  "@onboardingSilenceBody": {
+    "description": "Onboarding page 4 body"
+  },
+  "onboardingSetupTitle": "چند انتخاب کوتاه",
+  "@onboardingSetupTitle": {
+    "description": "Onboarding page 5 heading"
+  },
+  "onboardingSetupBody": "همهٔ این‌ها بعداً در تنظیمات هستند و هیچ‌کدام همیشگی نیست.",
+  "@onboardingSetupBody": {
+    "description": "Onboarding page 5 body"
+  },
+  "onboardingNameRequired": "Nex باید بداند شما را چه صدا کند.",
+  "@onboardingNameRequired": {
+    "description": "Validation message under the required name field on the last onboarding page"
   }
 }

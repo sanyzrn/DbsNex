@@ -10,6 +10,7 @@ import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/os_capture_bridge.dart';
 import 'platform/update_service.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/timeline_screen.dart';
 import 'widgets/nex_toast.dart';
 
@@ -209,13 +210,20 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
           ),
         );
       },
-      home: TimelineScreen(
-        key: timelineKey,
-        services: widget.services,
-        preferences: prefs,
-        osCapture: widget.osCapture,
-        updates: _updates,
-      ),
+      // Swapped rather than pushed: onboarding is not a screen you can come
+      // back from, and a route stacked over the timeline would leave the
+      // system back gesture skipping past it into an app that has not been
+      // told the user's name yet. Finishing writes the preference, which
+      // notifies, which rebuilds this — see [_refresh].
+      home: prefs.onboardingComplete
+          ? TimelineScreen(
+              key: timelineKey,
+              services: widget.services,
+              preferences: prefs,
+              osCapture: widget.osCapture,
+              updates: _updates,
+            )
+          : OnboardingScreen(preferences: prefs),
     );
   }
 }

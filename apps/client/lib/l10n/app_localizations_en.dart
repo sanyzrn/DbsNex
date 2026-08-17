@@ -1162,4 +1162,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiOutputLanguagePersian => 'Persian';
+
+  @override
+  String get onboardingNext => 'Next';
+
+  @override
+  String get onboardingBack => 'Back';
+
+  @override
+  String get onboardingStart => 'Start using Nex';
+
+  @override
+  String get onboardingWelcomeTitle => 'Somewhere to put it down';
+
+  @override
+  String get onboardingWelcomeBody =>
+      'Anything you put in Nex is kept. Nothing else is asked of you — no account, no inbox to clear, nothing to keep up with.';
+
+  @override
+  String get onboardingCaptureTitle => 'There is no Save button';
+
+  @override
+  String get onboardingCaptureBody =>
+      'Type it, say it, or photograph it. A note is yours the moment you make it, and it goes to the top of one list — no folders to file it into first.';
+
+  @override
+  String get onboardingIntelligenceTitle => 'It can read what you capture';
+
+  @override
+  String get onboardingIntelligenceBody =>
+      'Voice becomes text, photos give up their words, and tags suggest themselves. This part is off until you add a provider in Settings — everything else works without it.';
+
+  @override
+  String get onboardingSilenceTitle => 'It will never interrupt you';
+
+  @override
+  String get onboardingSilenceBody =>
+      'No notifications, no badges, no reminders, no streaks. Your notes stay on this device unless you set up syncing yourself.';
+
+  @override
+  String get onboardingSetupTitle => 'A few quick choices';
+
+  @override
+  String get onboardingSetupBody =>
+      'All of these live in Settings afterwards, and none of them are permanent.';
+
+  @override
+  String get onboardingNameRequired => 'Nex needs something to call you.';
 }

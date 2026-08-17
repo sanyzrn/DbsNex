@@ -2029,6 +2029,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Persian'**
   String get aiOutputLanguagePersian;
+
+  /// Onboarding button that advances to the next page
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get onboardingNext;
+
+  /// Onboarding button that returns to the previous page
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get onboardingBack;
+
+  /// Onboarding button on the last page that finishes setup
+  ///
+  /// In en, this message translates to:
+  /// **'Start using Nex'**
+  String get onboardingStart;
+
+  /// Onboarding page 1 heading
+  ///
+  /// In en, this message translates to:
+  /// **'Somewhere to put it down'**
+  String get onboardingWelcomeTitle;
+
+  /// Onboarding page 1 body
+  ///
+  /// In en, this message translates to:
+  /// **'Anything you put in Nex is kept. Nothing else is asked of you — no account, no inbox to clear, nothing to keep up with.'**
+  String get onboardingWelcomeBody;
+
+  /// Onboarding page 2 heading
+  ///
+  /// In en, this message translates to:
+  /// **'There is no Save button'**
+  String get onboardingCaptureTitle;
+
+  /// Onboarding page 2 body
+  ///
+  /// In en, this message translates to:
+  /// **'Type it, say it, or photograph it. A note is yours the moment you make it, and it goes to the top of one list — no folders to file it into first.'**
+  String get onboardingCaptureBody;
+
+  /// Onboarding page 3 heading
+  ///
+  /// In en, this message translates to:
+  /// **'It can read what you capture'**
+  String get onboardingIntelligenceTitle;
+
+  /// Onboarding page 3 body
+  ///
+  /// In en, this message translates to:
+  /// **'Voice becomes text, photos give up their words, and tags suggest themselves. This part is off until you add a provider in Settings — everything else works without it.'**
+  String get onboardingIntelligenceBody;
+
+  /// Onboarding page 4 heading
+  ///
+  /// In en, this message translates to:
+  /// **'It will never interrupt you'**
+  String get onboardingSilenceTitle;
+
+  /// Onboarding page 4 body
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications, no badges, no reminders, no streaks. Your notes stay on this device unless you set up syncing yourself.'**
+  String get onboardingSilenceBody;
+
+  /// Onboarding page 5 heading
+  ///
+  /// In en, this message translates to:
+  /// **'A few quick choices'**
+  String get onboardingSetupTitle;
+
+  /// Onboarding page 5 body
+  ///
+  /// In en, this message translates to:
+  /// **'All of these live in Settings afterwards, and none of them are permanent.'**
+  String get onboardingSetupBody;
+
+  /// Validation message under the required name field on the last onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Nex needs something to call you.'**
+  String get onboardingNameRequired;
 }
 
 class _AppLocalizationsDelegate

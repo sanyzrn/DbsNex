@@ -1088,5 +1088,61 @@
   "aiOutputLanguagePersian": "Persian",
   "@aiOutputLanguagePersian": {
     "description": "AI output language option: always Persian"
+  },
+  "onboardingNext": "Next",
+  "@onboardingNext": {
+    "description": "Onboarding button that advances to the next page"
+  },
+  "onboardingBack": "Back",
+  "@onboardingBack": {
+    "description": "Onboarding button that returns to the previous page"
+  },
+  "onboardingStart": "Start using Nex",
+  "@onboardingStart": {
+    "description": "Onboarding button on the last page that finishes setup"
+  },
+  "onboardingWelcomeTitle": "Somewhere to put it down",
+  "@onboardingWelcomeTitle": {
+    "description": "Onboarding page 1 heading"
+  },
+  "onboardingWelcomeBody": "Anything you put in Nex is kept. Nothing else is asked of you — no account, no inbox to clear, nothing to keep up with.",
+  "@onboardingWelcomeBody": {
+    "description": "Onboarding page 1 body"
+  },
+  "onboardingCaptureTitle": "There is no Save button",
+  "@onboardingCaptureTitle": {
+    "description": "Onboarding page 2 heading"
+  },
+  "onboardingCaptureBody": "Type it, say it, or photograph it. A note is yours the moment you make it, and it goes to the top of one list — no folders to file it into first.",
+  "@onboardingCaptureBody": {
+    "description": "Onboarding page 2 body"
+  },
+  "onboardingIntelligenceTitle": "It can read what you capture",
+  "@onboardingIntelligenceTitle": {
+    "description": "Onboarding page 3 heading"
+  },
+  "onboardingIntelligenceBody": "Voice becomes text, photos give up their words, and tags suggest themselves. This part is off until you add a provider in Settings — everything else works without it.",
+  "@onboardingIntelligenceBody": {
+    "description": "Onboarding page 3 body"
+  },
+  "onboardingSilenceTitle": "It will never interrupt you",
+  "@onboardingSilenceTitle": {
+    "description": "Onboarding page 4 heading"
+  },
+  "onboardingSilenceBody": "No notifications, no badges, no reminders, no streaks. Your notes stay on this device unless you set up syncing yourself.",
+  "@onboardingSilenceBody": {
+    "description": "Onboarding page 4 body"
+  },
+  "onboardingSetupTitle": "A few quick choices",
+  "@onboardingSetupTitle": {
+    "description": "Onboarding page 5 heading"
+  },
+  "onboardingSetupBody": "All of these live in Settings afterwards, and none of them are permanent.",
+  "@onboardingSetupBody": {
+    "description": "Onboarding page 5 body"
+  },
+  "onboardingNameRequired": "Nex needs something to call you.",
+  "@onboardingNameRequired": {
+    "description": "Validation message under the required name field on the last onboarding page"
   }
 }

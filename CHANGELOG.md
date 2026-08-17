@@ -34,6 +34,9 @@ Working convention:
 
 ## Unreleased
 
+- A first launch now opens with a short introduction to what Nex is, ending
+  with your name, theme, language, and the language Nex writes in. It appears
+  once, and never for an install that already has notes in it.
 - The top of the home screen is a real header now: a short line written for
   you, your greeting above it, and the daily summary in a card under both.
   Tap the line for a different one.
