@@ -1314,5 +1314,21 @@
   "savedSearches": "Saved",
   "@savedSearches": {
     "description": "Heading above the list of kept searches"
+  },
+  "assistantConfirmMerge": "Combine these notes into one?",
+  "@assistantConfirmMerge": {
+    "description": "Confirmation for merging notes"
+  },
+  "assistantConfirmChecklist": "Turn this into a checklist?",
+  "@assistantConfirmChecklist": {
+    "description": "Confirmation for converting a note to a checklist"
+  },
+  "assistantConfirmCheck": "Tick this item off?",
+  "@assistantConfirmCheck": {
+    "description": "Confirmation for ticking a checklist item"
+  },
+  "assistantConfirmSetting": "Change this setting?",
+  "@assistantConfirmSetting": {
+    "description": "Confirmation for an assistant-proposed settings change"
   }
 }

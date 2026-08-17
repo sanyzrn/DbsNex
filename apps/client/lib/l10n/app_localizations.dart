@@ -2323,6 +2323,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saved'**
   String get savedSearches;
+
+  /// Confirmation for merging notes
+  ///
+  /// In en, this message translates to:
+  /// **'Combine these notes into one?'**
+  String get assistantConfirmMerge;
+
+  /// Confirmation for converting a note to a checklist
+  ///
+  /// In en, this message translates to:
+  /// **'Turn this into a checklist?'**
+  String get assistantConfirmChecklist;
+
+  /// Confirmation for ticking a checklist item
+  ///
+  /// In en, this message translates to:
+  /// **'Tick this item off?'**
+  String get assistantConfirmCheck;
+
+  /// Confirmation for an assistant-proposed settings change
+  ///
+  /// In en, this message translates to:
+  /// **'Change this setting?'**
+  String get assistantConfirmSetting;
 }
 
 class _AppLocalizationsDelegate

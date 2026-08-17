@@ -702,5 +702,9 @@
   },
   "askAboutNote": "بپرس",
   "saveSearch": "ذخیره این جست‌وجو",
-  "savedSearches": "ذخیره‌شده"
+  "savedSearches": "ذخیره‌شده",
+  "assistantConfirmMerge": "این یادداشت‌ها را یکی کنم؟",
+  "assistantConfirmChecklist": "این را به چک‌لیست تبدیل کنم؟",
+  "assistantConfirmCheck": "این آیتم را تیک بزنم؟",
+  "assistantConfirmSetting": "این تنظیم را عوض کنم؟"
 }

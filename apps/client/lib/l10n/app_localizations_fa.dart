@@ -1319,4 +1319,16 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get savedSearches => 'ذخیره‌شده';
+
+  @override
+  String get assistantConfirmMerge => 'این یادداشت‌ها را یکی کنم؟';
+
+  @override
+  String get assistantConfirmChecklist => 'این را به چک‌لیست تبدیل کنم؟';
+
+  @override
+  String get assistantConfirmCheck => 'این آیتم را تیک بزنم؟';
+
+  @override
+  String get assistantConfirmSetting => 'این تنظیم را عوض کنم؟';
 }

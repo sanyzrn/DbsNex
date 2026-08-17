@@ -75,6 +75,88 @@ Sure, here you go:
       expect(action?.removeTags, ['home']);
     });
 
+    test('several blocks in one reply are all read, in order', () {
+      // A real request often is more than one change: "tag these two and
+      // delete the third" is three actions and one intention.
+      final actions = parseAssistantActions('''
+```nex
+{"action": "tag", "id": "a", "add": ["work"]}
+```
+```nex
+{"action": "delete", "id": "b"}
+```
+''');
+      expect(actions.map((a) => a.kind), [
+        AssistantActionKind.tag,
+        AssistantActionKind.delete,
+      ]);
+      expect(actions.last.noteId, 'b');
+    });
+
+    test('bare JSON with no fence still counts', () {
+      // Models drop the fence once the prompt has been in context a while.
+      // Refusing it would mean acting works for the first few messages of a
+      // conversation and then quietly stops.
+      final actions = parseAssistantActions('{"action":"delete","id":"a"}');
+      expect(actions.single.kind, AssistantActionKind.delete);
+    });
+
+    test('a search is a read, and marked as one', () {
+      final action = parseAssistantAction(
+        '{"action":"search","query":"cooler"}',
+      );
+      expect(action?.kind, AssistantActionKind.search);
+      expect(action?.text, 'cooler');
+      expect(action?.isRead, isTrue);
+      expect(
+        parseAssistantAction('{"action":"delete","id":"a"}')?.isRead,
+        isFalse,
+      );
+    });
+
+    test('a merge needs at least two notes', () {
+      expect(
+        parseAssistantAction('{"action":"merge","ids":["a"]}'),
+        isNull,
+        reason: 'merging one note is a rename with extra steps',
+      );
+      final action = parseAssistantAction(
+        '{"action":"merge","ids":["a","b"],"text":"both"}',
+      );
+      expect(action?.noteIds, ['a', 'b']);
+      expect(action?.text, 'both');
+    });
+
+    test('checklist conversion and ticking carry what they need', () {
+      expect(
+        parseAssistantAction('{"action":"to_checklist","id":"a"}')?.kind,
+        AssistantActionKind.toChecklist,
+      );
+      final tick = parseAssistantAction(
+        '{"action":"check","id":"a","index":2}',
+      );
+      expect(tick?.index, 2);
+      // Without an index there is no item to tick.
+      expect(parseAssistantAction('{"action":"check","id":"a"}'), isNull);
+    });
+
+    test('only the settings this app offered can be changed', () {
+      final ok = parseAssistantAction(
+        '{"action":"setting","key":"theme","value":"dark"}',
+      );
+      expect(ok?.settingKey, 'theme');
+      expect(ok?.settingValue, 'dark');
+      // The ones that must never move because a model read a sentence a
+      // certain way.
+      for (final key in ['api_key', 'sync_url', 'ai.key.openai', 'retention']) {
+        expect(
+          parseAssistantAction('{"action":"setting","key":"$key","value":"x"}'),
+          isNull,
+          reason: '$key is not the assistant\'s to change',
+        );
+      }
+    });
+
     test('prose around a block survives without the block', () {
       const reply =
           'Deleting that one.\n```nex\n{"action":"delete","id":"a"}\n```';
@@ -341,6 +423,171 @@ Sure, here you go:
 
       expect(find.text('You wrote about the cooler.'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Do it'), findsNothing);
+    });
+  });
+
+  group('the assistant can look past the notes it was given', () {
+    late Directory tmp;
+    late NexServices services;
+    late NexPreferences preferences;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      tmp = Directory.systemTemp.createTempSync('nex_lookup_');
+      final dbPath = p.join(tmp.path, 'nex.sqlite');
+      final mediaDir = p.join(tmp.path, 'media');
+      final backupDir = p.join(tmp.path, 'backups');
+      Directory(mediaDir).createSync(recursive: true);
+      Directory(backupDir).createSync(recursive: true);
+      services = NexServices.forTest(
+        worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
+        deviceId: 'test',
+        preferences: await NexPreferences.load(),
+        backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
+        dbPath: dbPath,
+        mediaDir: mediaDir,
+        backupDir: backupDir,
+      );
+      preferences = await NexPreferences.load();
+      await preferences.setAiEnabled(true);
+      await preferences.setAiProvider(
+        const AiProviderConfig(provider: AiProvider.openai, apiKey: 'k'),
+      );
+    });
+
+    tearDown(() async {
+      await services.dispose();
+      if (tmp.existsSync()) tmp.deleteSync(recursive: true);
+    });
+
+    testWidgets('a search is run for it, and the results come back', (
+      tester,
+    ) async {
+      await services.captureText('the cooler needs regassing');
+      await tester.pumpAndSettle();
+
+      // First reply asks to search; second answers using what came back.
+      final sent = <String>[];
+      var call = 0;
+      final client = MockClient((request) async {
+        sent.add(request.body);
+        call++;
+        final content = call == 1
+            ? '```nex\n{"action":"search","query":"cooler"}\n```'
+            : 'You wrote that the cooler needs regassing.';
+        return http.Response.bytes(
+          utf8.encode(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': content},
+                },
+              ],
+            }),
+          ),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => AiChatSheet.show(
+                    context,
+                    preferences: preferences,
+                    services: services,
+                    history: preferences.chatHistory,
+                    client: client,
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextField).last,
+        'what about the cooler?',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+
+      // Two requests: the question, then the same conversation with the
+      // findings appended.
+      expect(call, 2);
+      expect(sent.last, contains('regassing'));
+      // A search changes nothing, so it must not have produced a button.
+      expect(find.widgetWithText(FilledButton, 'Do it'), findsNothing);
+      expect(
+        find.text('You wrote that the cooler needs regassing.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('it cannot search forever', (tester) async {
+      await services.captureText('a note');
+      await tester.pumpAndSettle();
+
+      var call = 0;
+      final client = MockClient((_) async {
+        call++;
+        return http.Response.bytes(
+          utf8.encode(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {
+                    'content': '```nex\n{"action":"search","query":"x"}\n```',
+                  },
+                },
+              ],
+            }),
+          ),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => AiChatSheet.show(
+                    context,
+                    preferences: preferences,
+                    services: services,
+                    history: preferences.chatHistory,
+                    client: client,
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, 'find something');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+
+      // A model that only ever searches would otherwise spend the user's
+      // quota in a loop nobody asked for.
+      expect(call, lessThanOrEqualTo(3));
     });
   });
 }

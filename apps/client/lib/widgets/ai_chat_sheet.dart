@@ -129,8 +129,13 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// silently change what earlier answers were based on.
   String _notesContext = '';
 
-  /// The action the assistant last asked for, waiting on the user.
-  AssistantAction? _pending;
+  /// The actions the assistant last asked for, waiting on the user.
+  List<AssistantAction> _pending = const [];
+
+  /// How many times this exchange has let the assistant search and think
+  /// again. Bounded: a model that keeps searching instead of answering would
+  /// otherwise spend the user's quota in a loop nobody asked for.
+  int _searchRounds = 0;
 
   /// What the last confirmed action did, in one line.
   String? _actionResult;
@@ -236,8 +241,9 @@ class _AiChatSheetState extends State<AiChatSheet> {
       _turns.add(ChatMessage(role: ChatRole.user, content: trimmed));
       _sending = true;
       _failure = null;
-      _pending = null;
+      _pending = const [];
       _actionResult = null;
+      _searchRounds = 0;
       _input.clear();
     });
     _toBottom();
@@ -256,13 +262,91 @@ class _AiChatSheetState extends State<AiChatSheet> {
         _failure = l10n.chatFailed;
         return;
       }
-      final action = parseAssistantAction(reply);
-      _pending = action;
+      final actions = parseAssistantActions(reply);
+      _pending = [
+        for (final action in actions)
+          if (!action.isRead) action,
+      ];
       // A reply that is only an action block has no prose worth showing —
       // the confirmation card says what it is in the user's own language,
       // and the raw JSON underneath it would be noise. A reply carrying both
       // keeps the words and drops the block.
-      final prose = action == null ? reply : withoutActionBlock(reply);
+      final prose = actions.isEmpty ? reply : withoutActionBlock(reply);
+      if (prose.isNotEmpty) {
+        _turns.add(ChatMessage(role: ChatRole.assistant, content: prose));
+      }
+      _lookups = [
+        for (final action in actions)
+          if (action.isRead) action,
+      ];
+    });
+    _persist();
+    _toBottom();
+    if (_lookups.isNotEmpty) await _runLookups();
+  }
+
+  /// Searches the assistant asked for, and the answer it gets back.
+  List<AssistantAction> _lookups = const [];
+
+  /// Runs the assistant's own searches and hands it the results.
+  ///
+  /// This is what lets it know about a note that is not in the twenty it was
+  /// given: it asks, the app looks, and the exchange continues with the
+  /// findings in front of it. The results go in as a user turn because that
+  /// is the only role every one of the three wire formats agrees on for
+  /// something that is neither the system prompt nor the model's own words.
+  Future<void> _runLookups() async {
+    final queries = _lookups;
+    _lookups = const [];
+    if (_searchRounds >= 2 || queries.isEmpty) return;
+    _searchRounds++;
+
+    final findings = StringBuffer();
+    for (final lookup in queries) {
+      final query = lookup.text ?? '';
+      List<Note> found;
+      try {
+        final parsed = parseSearchQuery(query);
+        found = await widget.services.search(
+          SearchFilters(query: parsed.text, types: parsed.types),
+        );
+      } catch (_) {
+        found = const [];
+      }
+      findings.writeln('Results for "$query":');
+      if (found.isEmpty) {
+        findings.writeln('(nothing found)');
+      } else {
+        for (final note in found.take(10)) {
+          final line = _contextLine(note);
+          if (line != null) findings.writeln(line);
+        }
+      }
+    }
+    if (!mounted) return;
+
+    setState(() {
+      _sending = true;
+      _turns.add(
+        ChatMessage(role: ChatRole.user, content: findings.toString().trim()),
+      );
+    });
+    String? reply;
+    try {
+      reply = await _adapter.chat(List.of(_turns), options: _options);
+    } catch (_) {
+      reply = null;
+    }
+    if (!mounted) return;
+    setState(() {
+      _sending = false;
+      if (reply == null || reply.isEmpty) return;
+      final actions = parseAssistantActions(reply);
+      _pending = [
+        for (final action in actions)
+          if (!action.isRead) action,
+      ];
+      final prose = actions.isEmpty ? reply : withoutActionBlock(reply);
       if (prose.isNotEmpty) {
         _turns.add(ChatMessage(role: ChatRole.assistant, content: prose));
       }
@@ -281,24 +365,43 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// uses — so an assistant edit is indistinguishable from a hand edit, syncs
   /// like one, and lands in Recently Deleted like one.
   Future<void> _runPending() async {
-    final action = _pending;
-    if (action == null) return;
+    final actions = _pending;
+    if (actions.isEmpty) return;
     final l10n = AppLocalizations.of(context);
     setState(() {
-      _pending = null;
+      _pending = const [];
       _sending = true;
     });
     var ok = true;
     try {
-      switch (action.kind) {
-        case AssistantActionKind.create:
-          await widget.services.captureText(action.text!);
-        case AssistantActionKind.edit:
-          await widget.services.updateNote(action.noteId!, action.text!);
-        case AssistantActionKind.delete:
-          await widget.services.deleteNote(action.noteId!);
-        case AssistantActionKind.tag:
-          await _applyTags(action);
+      // In order, and stopping at the first failure. A half-applied set is
+      // worse than none of it: the user confirmed one intention, and leaving
+      // two of its three changes in place is a state nobody asked for and
+      // nobody can see.
+      for (final action in actions) {
+        switch (action.kind) {
+          case AssistantActionKind.create:
+            await widget.services.captureText(action.text!);
+          case AssistantActionKind.edit:
+            await widget.services.updateNote(action.noteId!, action.text!);
+          case AssistantActionKind.delete:
+            await widget.services.deleteNote(action.noteId!);
+          case AssistantActionKind.tag:
+            await _applyTags(action);
+          case AssistantActionKind.merge:
+            await _merge(action);
+          case AssistantActionKind.toChecklist:
+            await _toChecklist(action);
+          case AssistantActionKind.check:
+            await widget.services.toggleChecklistItem(
+              action.noteId!,
+              action.index!,
+            );
+          case AssistantActionKind.setting:
+            await _applySetting(action);
+          case AssistantActionKind.search:
+            break;
+        }
       }
     } catch (_) {
       ok = false;
@@ -336,6 +439,92 @@ class _AiChatSheetState extends State<AiChatSheet> {
       history: widget.history,
       resume: chosen.thread,
     );
+  }
+
+  /// Folds several notes into one and removes the originals.
+  ///
+  /// The merged text is the model's when it wrote one — that is the whole
+  /// value of asking it to merge rather than concatenating — and a plain join
+  /// when it did not, so the action never silently loses what was in the
+  /// notes. The originals go to Recently Deleted rather than being erased:
+  /// the one action here that destroys something the user cannot retype
+  /// deserves the same undo every other delete has.
+  Future<void> _merge(AssistantAction action) async {
+    final notes = <Note>[];
+    for (final id in action.noteIds) {
+      final note = await widget.services.getById(id);
+      if (note != null) notes.add(note);
+    }
+    if (notes.length < 2) return;
+    final text =
+        action.text ??
+        notes
+            .map((note) => (note.content ?? note.displayText ?? '').trim())
+            .where((part) => part.isNotEmpty)
+            .join('\n\n');
+    if (text.trim().isEmpty) return;
+    await widget.services.captureText(text);
+    for (final note in notes) {
+      await widget.services.deleteNote(note.id);
+    }
+  }
+
+  /// Rewrites a note as a checklist, one item per line.
+  ///
+  /// A new note and a deleted one rather than a type change in place: a
+  /// note's type is part of its identity in the timeline, in sync and in
+  /// export, and turning one into another is exactly the kind of edit that
+  /// should be undoable by pulling the original back out of the trash.
+  Future<void> _toChecklist(AssistantAction action) async {
+    final note = await widget.services.getById(action.noteId!);
+    if (note == null) return;
+    final source = action.text ?? note.content ?? note.displayText ?? '';
+    final items = [
+      for (final line in source.split('\n'))
+        if (line.trim().isNotEmpty)
+          ChecklistItem(
+            text: line.trim().replaceFirst(RegExp(r'^[-*]\s*'), ''),
+            done: false,
+          ),
+    ];
+    if (items.isEmpty) return;
+    await widget.services.captureChecklist(items);
+    await widget.services.deleteNote(note.id);
+  }
+
+  /// Applies one setting from the short list in [assistantSettableKeys].
+  ///
+  /// Every value is checked here as well as at parse time. The parser
+  /// guarantees the *key* is one this app offered; this guarantees the value
+  /// is one that key accepts, so a model writing `{"key":"theme","value":
+  /// "blue"}` changes nothing rather than storing a theme that does not
+  /// exist.
+  Future<void> _applySetting(AssistantAction action) async {
+    final value = action.settingValue;
+    switch (action.settingKey) {
+      case 'theme':
+        final mode = switch (value) {
+          'light' => ThemeMode.light,
+          'dark' => ThemeMode.dark,
+          'system' => ThemeMode.system,
+          _ => null,
+        };
+        if (mode != null) await widget.preferences.setThemeMode(mode);
+      case 'language':
+        if (value == 'en' || value == 'fa' || value == 'system') {
+          await widget.preferences.setLocale(value == 'system' ? '' : value!);
+        }
+      case 'ai_language':
+        final language = switch (value) {
+          'en' => AiOutputLanguage.english,
+          'fa' => AiOutputLanguage.persian,
+          'auto' => AiOutputLanguage.auto,
+          _ => null,
+        };
+        if (language != null) {
+          await widget.preferences.setAiOutputLanguage(language);
+        }
+    }
   }
 
   Future<void> _applyTags(AssistantAction action) async {
@@ -451,11 +640,11 @@ class _AiChatSheetState extends State<AiChatSheet> {
                         failure: _failure,
                       ),
               ),
-              if (_pending case final action?)
+              if (_pending.isNotEmpty)
                 _ActionCard(
-                  action: action,
+                  actions: _pending,
                   onApply: () => unawaited(_runPending()),
-                  onDismiss: () => setState(() => _pending = null),
+                  onDismiss: () => setState(() => _pending = const []),
                 ),
               if (_actionResult case final result?)
                 Padding(
@@ -714,38 +903,61 @@ class _Composer extends StatelessWidget {
 /// answer, and `{"action":"delete"}` is not.
 class _ActionCard extends StatelessWidget {
   const _ActionCard({
-    required this.action,
+    required this.actions,
     required this.onApply,
     required this.onDismiss,
   });
 
-  final AssistantAction action;
+  final List<AssistantAction> actions;
   final VoidCallback onApply;
   final VoidCallback onDismiss;
+
+  /// The one sentence for this action, in the user's language.
+  static String _question(AppLocalizations l10n, AssistantAction action) =>
+      switch (action.kind) {
+        AssistantActionKind.create => l10n.assistantConfirmCreate,
+        AssistantActionKind.edit => l10n.assistantConfirmEdit,
+        AssistantActionKind.delete => l10n.assistantConfirmDelete,
+        AssistantActionKind.tag => l10n.assistantConfirmTags,
+        AssistantActionKind.merge => l10n.assistantConfirmMerge,
+        AssistantActionKind.toChecklist => l10n.assistantConfirmChecklist,
+        AssistantActionKind.check => l10n.assistantConfirmCheck,
+        AssistantActionKind.setting => l10n.assistantConfirmSetting,
+        // Never shown: a search is carried out on arrival, not confirmed.
+        AssistantActionKind.search => '',
+      };
+
+  /// What the action would actually do, in the user's own words where there
+  /// are any — a confirmation that does not show the text being written is
+  /// asking someone to approve something they cannot see.
+  static String _detail(AssistantAction action) => switch (action.kind) {
+    AssistantActionKind.create ||
+    AssistantActionKind.edit ||
+    AssistantActionKind.merge ||
+    AssistantActionKind.toChecklist => action.text ?? '',
+    AssistantActionKind.tag => [
+      for (final tag in action.addTags) '+$tag',
+      for (final tag in action.removeTags) '−$tag',
+    ].join('  '),
+    AssistantActionKind.setting =>
+      '${action.settingKey} → ${action.settingValue}',
+    AssistantActionKind.delete ||
+    AssistantActionKind.check ||
+    AssistantActionKind.search => '',
+  };
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final destructive = action.kind == AssistantActionKind.delete;
-    final question = switch (action.kind) {
-      AssistantActionKind.create => l10n.assistantConfirmCreate,
-      AssistantActionKind.edit => l10n.assistantConfirmEdit,
-      AssistantActionKind.delete => l10n.assistantConfirmDelete,
-      AssistantActionKind.tag => l10n.assistantConfirmTags,
-    };
-    // What the action would actually do, in the user's own words where there
-    // are any — a confirmation that does not show the text being written is
-    // asking someone to approve something they cannot see.
-    final detail = switch (action.kind) {
-      AssistantActionKind.create ||
-      AssistantActionKind.edit => action.text ?? '',
-      AssistantActionKind.tag => [
-        for (final tag in action.addTags) '+$tag',
-        for (final tag in action.removeTags) '−$tag',
-      ].join('  '),
-      AssistantActionKind.delete => '',
-    };
+    // One destructive action in the set colours the whole card: the button
+    // applies all of them together, so the strongest consequence in the set
+    // is the one the button carries.
+    final destructive = actions.any(
+      (action) =>
+          action.kind == AssistantActionKind.delete ||
+          action.kind == AssistantActionKind.merge,
+    );
     final accent = destructive
         ? theme.colorScheme.error
         : theme.colorScheme.primary;
@@ -766,24 +978,28 @@ class _ActionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              question,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (detail.isNotEmpty) ...[
-              const SizedBox(height: NexSpacing.xs),
+            // Every action in the set, listed. A single button applying
+            // three changes the user was only shown one of is not consent.
+            for (final action in actions) ...[
               Text(
-                detail,
-                style: theme.textTheme.bodySmall,
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                textDirection: nexDirectionOf(detail),
-                textAlign: TextAlign.start,
+                _question(l10n, action),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+              if (_detail(action) case final detail when detail.isNotEmpty) ...[
+                const SizedBox(height: NexSpacing.xs),
+                Text(
+                  detail,
+                  style: theme.textTheme.bodySmall,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  textDirection: nexDirectionOf(detail),
+                  textAlign: TextAlign.start,
+                ),
+              ],
+              const SizedBox(height: NexSpacing.sm),
             ],
-            const SizedBox(height: NexSpacing.sm),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [

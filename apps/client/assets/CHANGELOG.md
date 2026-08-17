@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+- The assistant can look through your whole library, not just the last
+  handful of notes. When it needs one it does not have, it searches for it
+  and answers from what it finds.
+- It can do more than write and delete now: combine several notes into one,
+  turn a note into a checklist, tick an item off, and change your theme,
+  language or the language it writes in. Those four settings are the only
+  ones it can touch — never your API key, your sync server, or anything that
+  would be hard to undo.
+- When a request needs more than one change, it asks for all of them at once
+  and shows you every one before anything happens. It still never acts on
+  its own.
 - Search by meaning now actually works on the notes you already had. Nex
   could always find a note by what it means rather than the words in it —
   but only for notes captured after you set up an AI provider. Everything

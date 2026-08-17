@@ -1318,4 +1318,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedSearches => 'Saved';
+
+  @override
+  String get assistantConfirmMerge => 'Combine these notes into one?';
+
+  @override
+  String get assistantConfirmChecklist => 'Turn this into a checklist?';
+
+  @override
+  String get assistantConfirmCheck => 'Tick this item off?';
+
+  @override
+  String get assistantConfirmSetting => 'Change this setting?';
 }
