@@ -34,6 +34,85 @@ Working convention:
 
 ## Unreleased
 
+## v0.9.4
+
+- A note with a reminder shows a small bell on its card, so you can see one
+  is set without opening the note. It greys out once the time has passed.
+- Notes can have a reminder. Open a note, tap Remind, and pick — in an hour,
+  this evening, tomorrow morning, next week, or a time of your own. Nex
+  brings the note back up as a notification at that time.
+- Your reminders survive a reinstall, a restore from a backup and a reboot:
+  the time is kept on the note itself and the alarms are rebuilt from your
+  notes every time the app starts.
+- The daily summary card is one control now: tap anywhere on it to fold it
+  away or open it again. Open, it keeps a refresh button; closed, it does
+  not — there is nothing on screen for a refresh to change, and the chevron
+  was a second control for what the card already does.
+- The greeting and the line the AI writes are one line instead of two.
+- Nex greets you in the language you wrote your own name in, whatever the
+  app's language is set to. "Good morning, سعید" and "صبح بخیر, Sany" are
+  both sentences nobody writes.
+- The app buzzes where it should: swipes, pickers, opening a note, the
+  summary's refresh — and a small tick as the list scrolls under your
+  finger. All of it follows the Haptics switch in Settings, which was
+  already there and was reaching almost none of this.
+- Your website and repository links in About open when tapped. They were
+  copying, which made the copy button beside them look like it did nothing
+  different.
+- Sync is no longer offered in Settings. The server exists and the app can
+  talk to it, but there is no way to pair a device from inside the app yet —
+  the row asked for a URL and a token nobody has a way to get. It comes back
+  when pairing does.
+- The assistant can look through your whole library, not just the last
+  handful of notes. When it needs one it does not have, it searches for it
+  and answers from what it finds.
+- It can do more than write and delete now: combine several notes into one,
+  turn a note into a checklist, tick an item off, and change your theme,
+  language or the language it writes in. Those four settings are the only
+  ones it can touch — never your API key, your sync server, or anything that
+  would be hard to undo.
+- When a request needs more than one change, it asks for all of them at once
+  and shows you every one before anything happens. It still never acts on
+  its own.
+- Search by meaning now actually works on the notes you already had. Nex
+  could always find a note by what it means rather than the words in it —
+  but only for notes captured after you set up an AI provider. Everything
+  written before that was never indexed, and never would be, so the feature
+  quietly found nothing. The backlog is worked through now.
+- The search box takes `tag:` and `type:` — `tag:work type:link cooler`.
+  Quotes hold a phrase or a tag with a space together: `tag:"to read"`.
+  These combine with the filter chips rather than replacing them. A search
+  you want back can be kept — it appears as a chip on the empty search
+  screen, which is the one moment it is useful.
+- A note's detail sheet has an Ask button: the assistant, about that one
+  note. It reads the note's transcript or the text found in a photo too, so
+  you can ask about a recording or a picture, not only about typed notes.
+- Backups now contain your photos, voice recordings and attached files. They
+  never did: a backup was the database and nothing else, so restoring on a
+  new phone brought back every note with every picture missing — and said
+  nothing, because the notes were all there. Backups written from now on are
+  `.nexbak` files, which are ordinary zips: your notes can be pulled out of
+  one with any unzip tool, without this app. Older `.sqlite` backups still
+  restore, and restoring one leaves the files on your device alone.
+- The assistant remembers your conversations. The history button in its
+  header lists them, reopens one where it left off, and deletes any or all
+  of them. Nothing is sent anywhere — they are kept on this device.
+- The assistant has settings of its own, under Settings › Assistant:
+  how creative it is, how long its answers may be, how many recent notes it
+  can see, and whether it stays inside your notes or answers anything.
+- It can now write to your notes: create one, rewrite one, delete one, or
+  change its tags. It never does any of that on its own — it asks, you see
+  exactly what it would do, and it happens only when you press the button.
+- The assistant's send button no longer sits under the phone's own
+  navigation buttons.
+- Your own messages in the chat are readable again — the text and the bubble
+  behind it were being coloured independently.
+- The light around the screen while you hold the capture button is softer and
+  moves as it builds, and it fades as the chat opens instead of blinking out.
+- The Chat row in Settings used to open a chat that answered "unavailable" to
+  everything on every published build. It opens the assistant's settings now,
+  and there is one chat in the app: hold the capture button.
+
 ## v0.9.3
 
 - Timeline cards are back to their original height. The two-line preview

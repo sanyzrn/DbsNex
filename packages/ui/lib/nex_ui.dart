@@ -3,6 +3,7 @@ library;
 
 export 'tokens/nex_accent_palette.dart';
 export 'tokens/nex_relative_time.dart';
+export 'tokens/nex_haptics.dart';
 export 'tokens/nex_text_direction.dart';
 export 'tokens/nex_tokens.dart';
 export 'widgets/nex_empty_state.dart';

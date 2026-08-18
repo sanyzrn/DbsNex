@@ -13,6 +13,18 @@
     -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- Reminders. POST_NOTIFICATIONS is asked for at the moment a reminder
+         is first set, not at launch: a permission prompt before anyone has
+         seen what the app does is the reliable way to be refused.
+         RECEIVE_BOOT_COMPLETED lets the scheduled alarms survive a restart;
+         without it every reminder set before a reboot is silently lost. No
+         exact-alarm permission is requested — the reminders are scheduled
+         inexactly on purpose, since "some time around nine" is what a note
+         reminder means and exact alarms are a permission users are right to
+         refuse. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <!--
       Android 11 package visibility. Opening a note's file with the device's
       default handler resolves the receiving activity first, and without this
@@ -62,6 +74,20 @@
                 <data android:mimeType="*/*" />
             </intent-filter>
         </activity>
+        <!-- Re-registers the pending reminder alarms after a restart. The
+             plugin ships the receiver; it only has to be declared. Without
+             this the alarms are gone after every reboot, and the app has no
+             way to know it happened. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
         <receiver android:name=".CaptureWidgetProvider" android:exported="true" android:label="Nex Capture">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/capture_widget_info" />

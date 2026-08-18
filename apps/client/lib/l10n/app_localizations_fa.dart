@@ -1227,4 +1227,135 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get chatPromptIdeas => 'بگو چه چیزی را دارم فراموش می‌کنم';
+
+  @override
+  String get assistantActionDone => 'به‌انجام رسید.';
+
+  @override
+  String get assistantActionFailed => 'انجام نشد.';
+
+  @override
+  String get assistantConfirmCreate =>
+      'این را به‌عنوان یادداشت تازه ذخیره کنم؟';
+
+  @override
+  String get assistantConfirmEdit => 'متن این یادداشت را جایگزین کنم؟';
+
+  @override
+  String get assistantConfirmDelete =>
+      'این یادداشت را به حذف‌شده‌های اخیر ببرم؟';
+
+  @override
+  String get assistantConfirmTags => 'برچسب‌های این یادداشت را تغییر بدهم؟';
+
+  @override
+  String get assistantApply => 'انجام بده';
+
+  @override
+  String get chatHistory => 'گفت‌وگوها';
+
+  @override
+  String get chatHistoryEmpty => 'هنوز گفت‌وگویی ذخیره نشده.';
+
+  @override
+  String get chatNewConversation => 'گفت‌وگوی تازه';
+
+  @override
+  String get chatClearHistory => 'حذف همه گفت‌وگوها';
+
+  @override
+  String get assistant => 'دستیار';
+
+  @override
+  String get assistantSubtitle => 'خلاقیت، طول پاسخ و آنچه می‌بیند';
+
+  @override
+  String get assistantCreativity => 'خلاقیت';
+
+  @override
+  String get assistantCreativityPrecise => 'دقیق';
+
+  @override
+  String get assistantCreativityBalanced => 'متعادل';
+
+  @override
+  String get assistantCreativityInventive => 'خلاقانه';
+
+  @override
+  String get assistantLength => 'طول پاسخ';
+
+  @override
+  String get assistantLengthBrief => 'کوتاه';
+
+  @override
+  String get assistantLengthStandard => 'معمولی';
+
+  @override
+  String get assistantLengthFull => 'کامل';
+
+  @override
+  String get assistantScope => 'فقط درباره یادداشت‌هایم';
+
+  @override
+  String get assistantScopeSubtitle =>
+      'خاموش باشد به هر چیزی جواب می‌دهد، از جمله چیزهایی که در آن‌ها ضعیف است.';
+
+  @override
+  String get assistantContext => 'یادداشت‌هایی که می‌بیند';
+
+  @override
+  String get assistantContextNone => 'هیچ‌کدام';
+
+  @override
+  String assistantContextCount(int count) {
+    return '‏$count تای آخر';
+  }
+
+  @override
+  String get askAboutNote => 'بپرس';
+
+  @override
+  String get saveSearch => 'ذخیره این جست‌وجو';
+
+  @override
+  String get savedSearches => 'ذخیره‌شده';
+
+  @override
+  String get assistantConfirmMerge => 'این یادداشت‌ها را یکی کنم؟';
+
+  @override
+  String get assistantConfirmChecklist => 'این را به چک‌لیست تبدیل کنم؟';
+
+  @override
+  String get assistantConfirmCheck => 'این آیتم را تیک بزنم؟';
+
+  @override
+  String get assistantConfirmSetting => 'این تنظیم را عوض کنم؟';
+
+  @override
+  String get remind => 'یادآوری';
+
+  @override
+  String get remindLater => 'یک ساعت دیگر';
+
+  @override
+  String get remindEvening => 'امشب';
+
+  @override
+  String get remindTomorrow => 'فردا صبح';
+
+  @override
+  String get remindNextWeek => 'هفته بعد';
+
+  @override
+  String get remindPick => 'انتخاب زمان…';
+
+  @override
+  String get remindClear => 'حذف یادآوری';
+
+  @override
+  String get remindSet => 'یادآوری تنظیم شد';
+
+  @override
+  String get remindDenied => 'برای ارسال اعلان، اجازه لازم است.';
 }

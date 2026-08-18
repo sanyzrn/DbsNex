@@ -15,7 +15,7 @@ import '../platform/nex_services.dart';
 import '../platform/update_service.dart';
 import 'about_screen.dart';
 import 'backup_screen.dart';
-import 'chat_screen.dart';
+import 'assistant_screen.dart';
 import 'intelligence_screen.dart';
 import 'update_sheet.dart';
 
@@ -178,11 +178,13 @@ class SettingsSheet extends StatelessWidget {
         ),
         _Row(
           icon: Icons.chat_bubble_outline,
-          title: l10n.chat,
-          value: l10n.chatSubtitle,
+          title: l10n.assistant,
+          value: l10n.assistantSubtitle,
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(builder: (_) => const ChatScreen()),
+            MaterialPageRoute<void>(
+              builder: (_) => AssistantScreen(preferences: preferences),
+            ),
           ),
         ),
       ],
@@ -387,7 +389,11 @@ class SettingsSheet extends StatelessWidget {
             ),
           ),
         ),
-        _SyncRow(services: services, preferences: preferences),
+        // Sync is not offered here. The server exists and the client talks
+        // to it, but there is no pairing flow in the app — the row asked
+        // people to paste a base URL and a bearer token they have no way to
+        // obtain, which is a setting that can only be got wrong. The code
+        // stays; the row comes back when there is a way to pair.
       ],
     ),
     _Section(

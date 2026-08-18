@@ -666,5 +666,54 @@
   "chatPromptIdeas": "بگو چه چیزی را دارم فراموش می‌کنم",
   "@chatPromptIdeas": {
     "description": "Suggested opening prompt"
-  }
+  },
+  "assistantActionDone": "به‌انجام رسید.",
+  "assistantActionFailed": "انجام نشد.",
+  "assistantConfirmCreate": "این را به‌عنوان یادداشت تازه ذخیره کنم؟",
+  "assistantConfirmEdit": "متن این یادداشت را جایگزین کنم؟",
+  "assistantConfirmDelete": "این یادداشت را به حذف‌شده‌های اخیر ببرم؟",
+  "assistantConfirmTags": "برچسب‌های این یادداشت را تغییر بدهم؟",
+  "assistantApply": "انجام بده",
+  "chatHistory": "گفت‌وگوها",
+  "chatHistoryEmpty": "هنوز گفت‌وگویی ذخیره نشده.",
+  "chatNewConversation": "گفت‌وگوی تازه",
+  "chatClearHistory": "حذف همه گفت‌وگوها",
+  "assistant": "دستیار",
+  "assistantSubtitle": "خلاقیت، طول پاسخ و آنچه می‌بیند",
+  "assistantCreativity": "خلاقیت",
+  "assistantCreativityPrecise": "دقیق",
+  "assistantCreativityBalanced": "متعادل",
+  "assistantCreativityInventive": "خلاقانه",
+  "assistantLength": "طول پاسخ",
+  "assistantLengthBrief": "کوتاه",
+  "assistantLengthStandard": "معمولی",
+  "assistantLengthFull": "کامل",
+  "assistantScope": "فقط درباره یادداشت‌هایم",
+  "assistantScopeSubtitle": "خاموش باشد به هر چیزی جواب می‌دهد، از جمله چیزهایی که در آن‌ها ضعیف است.",
+  "assistantContext": "یادداشت‌هایی که می‌بیند",
+  "assistantContextNone": "هیچ‌کدام",
+  "assistantContextCount": "‏{count} تای آخر",
+  "@assistantContextCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "askAboutNote": "بپرس",
+  "saveSearch": "ذخیره این جست‌وجو",
+  "savedSearches": "ذخیره‌شده",
+  "assistantConfirmMerge": "این یادداشت‌ها را یکی کنم؟",
+  "assistantConfirmChecklist": "این را به چک‌لیست تبدیل کنم؟",
+  "assistantConfirmCheck": "این آیتم را تیک بزنم؟",
+  "assistantConfirmSetting": "این تنظیم را عوض کنم؟",
+  "remind": "یادآوری",
+  "remindLater": "یک ساعت دیگر",
+  "remindEvening": "امشب",
+  "remindTomorrow": "فردا صبح",
+  "remindNextWeek": "هفته بعد",
+  "remindPick": "انتخاب زمان…",
+  "remindClear": "حذف یادآوری",
+  "remindSet": "یادآوری تنظیم شد",
+  "remindDenied": "برای ارسال اعلان، اجازه لازم است."
 }

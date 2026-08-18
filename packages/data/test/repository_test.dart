@@ -373,15 +373,19 @@ void main() {
     test('restore recovers notes after simulated DB corruption', () {
       repo.insert(makeText('precious'));
       final backupDir = p.join(tmp.path, 'backups');
-      final backup = repo.backup(backupDir);
+      final backup = repo.backup(
+        backupDir,
+        mediaDir: p.join(tmp.path, 'media'),
+      );
       expect(backup.existsSync(), isTrue);
 
       // Simulate corruption: truncate live DB.
       db.close();
       File(p.join(tmp.path, 'nex.sqlite')).writeAsBytesSync([0, 1, 2]);
 
-      NexDatabase.restoreFromBackup(
+      NexBackupArchive.restore(
         liveDbPath: p.join(tmp.path, 'nex.sqlite'),
+        mediaDir: p.join(tmp.path, 'media'),
         backupFile: backup.path,
       );
       db = NexDatabase.open(p.join(tmp.path, 'nex.sqlite'));

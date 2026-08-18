@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform/nex_preferences.dart';
 import '../platform/note_search.dart';
 import 'card_strings.dart';
 import 'search_field_header.dart' show nexSearchTapGroup;
@@ -17,19 +20,70 @@ List<Widget> searchResultSlivers({
   required BuildContext context,
   required NoteSearchController search,
   required ValueChanged<Note> onOpen,
+  NexPreferences? preferences,
+  ValueChanged<String>? onUseSaved,
 }) {
   final l10n = AppLocalizations.of(context);
   final theme = Theme.of(context);
 
   if (search.query.text.trim().isEmpty && search.activeFilterCount == 0) {
+    final saved = preferences?.savedSearches ?? const <String>[];
     return [
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(NexSpacing.lg),
-          child: Text(l10n.searchStart, style: theme.textTheme.bodyMedium),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.searchStart, style: theme.textTheme.bodyMedium),
+              // Kept searches live here rather than behind a menu: the empty
+              // search screen is the one moment they are useful, and it is
+              // otherwise a screen with a sentence on it.
+              if (saved.isNotEmpty) ...[
+                const SizedBox(height: NexSpacing.lg),
+                Text(l10n.savedSearches, style: theme.textTheme.titleSmall),
+                const SizedBox(height: NexSpacing.sm),
+                Wrap(
+                  spacing: NexSpacing.sm,
+                  runSpacing: NexSpacing.sm,
+                  children: [
+                    for (final query in saved)
+                      InputChip(
+                        label: Text(query),
+                        onPressed: () => onUseSaved?.call(query),
+                        onDeleted: () =>
+                            unawaited(preferences!.removeSavedSearch(query)),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     ];
+  }
+
+  /// Offered above the results, and only when there is something to keep that
+  /// is not kept already — a button that saves what is already saved is a
+  /// button that teaches people it does nothing.
+  Widget? saveAction() {
+    final query = search.query.text.trim();
+    if (preferences == null || query.isEmpty) return null;
+    if (preferences.savedSearches.contains(query)) return null;
+    return SliverToBoxAdapter(
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+          child: TextButton.icon(
+            onPressed: () => unawaited(preferences.saveSearch(query)),
+            icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+            label: Text(l10n.saveSearch),
+          ),
+        ),
+      ),
+    );
   }
 
   if (!search.hasRun) {
@@ -111,6 +165,7 @@ List<Widget> searchResultSlivers({
   }
 
   return [
+    if (saveAction() case final action?) action,
     SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(

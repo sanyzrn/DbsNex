@@ -1227,4 +1227,134 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatPromptIdeas => 'Suggest what I might be forgetting';
+
+  @override
+  String get assistantActionDone => 'Done.';
+
+  @override
+  String get assistantActionFailed => 'That didn\'t work.';
+
+  @override
+  String get assistantConfirmCreate => 'Save this as a new note?';
+
+  @override
+  String get assistantConfirmEdit => 'Replace this note\'s text?';
+
+  @override
+  String get assistantConfirmDelete => 'Move this note to Recently Deleted?';
+
+  @override
+  String get assistantConfirmTags => 'Change this note\'s tags?';
+
+  @override
+  String get assistantApply => 'Do it';
+
+  @override
+  String get chatHistory => 'Conversations';
+
+  @override
+  String get chatHistoryEmpty => 'No saved conversations yet.';
+
+  @override
+  String get chatNewConversation => 'New conversation';
+
+  @override
+  String get chatClearHistory => 'Delete all conversations';
+
+  @override
+  String get assistant => 'Assistant';
+
+  @override
+  String get assistantSubtitle =>
+      'Creativity, answer length, and what it can see';
+
+  @override
+  String get assistantCreativity => 'Creativity';
+
+  @override
+  String get assistantCreativityPrecise => 'Precise';
+
+  @override
+  String get assistantCreativityBalanced => 'Balanced';
+
+  @override
+  String get assistantCreativityInventive => 'Inventive';
+
+  @override
+  String get assistantLength => 'Answer length';
+
+  @override
+  String get assistantLengthBrief => 'Brief';
+
+  @override
+  String get assistantLengthStandard => 'Standard';
+
+  @override
+  String get assistantLengthFull => 'Full';
+
+  @override
+  String get assistantScope => 'Stay in my notes';
+
+  @override
+  String get assistantScopeSubtitle =>
+      'Off, it will answer anything — including things it is bad at.';
+
+  @override
+  String get assistantContext => 'Notes it can see';
+
+  @override
+  String get assistantContextNone => 'None';
+
+  @override
+  String assistantContextCount(int count) {
+    return 'Last $count';
+  }
+
+  @override
+  String get askAboutNote => 'Ask';
+
+  @override
+  String get saveSearch => 'Save this search';
+
+  @override
+  String get savedSearches => 'Saved';
+
+  @override
+  String get assistantConfirmMerge => 'Combine these notes into one?';
+
+  @override
+  String get assistantConfirmChecklist => 'Turn this into a checklist?';
+
+  @override
+  String get assistantConfirmCheck => 'Tick this item off?';
+
+  @override
+  String get assistantConfirmSetting => 'Change this setting?';
+
+  @override
+  String get remind => 'Remind';
+
+  @override
+  String get remindLater => 'In an hour';
+
+  @override
+  String get remindEvening => 'This evening';
+
+  @override
+  String get remindTomorrow => 'Tomorrow morning';
+
+  @override
+  String get remindNextWeek => 'Next week';
+
+  @override
+  String get remindPick => 'Pick a time…';
+
+  @override
+  String get remindClear => 'Remove reminder';
+
+  @override
+  String get remindSet => 'Reminder set';
+
+  @override
+  String get remindDenied => 'Nex needs permission to send notifications.';
 }

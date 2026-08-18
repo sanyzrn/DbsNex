@@ -54,6 +54,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // app is, in practice, also when a phone that regained signal while
     // backgrounded gets noticed.
     unawaited(_feedback.flushPending());
+    // Alarms are not durable and notes are. A reinstall, a restore from
+    // backup, or an OS that dropped its alarm list all leave reminders that
+    // exist on the note and nowhere else — so every launch puts them back
+    // from the library, which is the only copy that survives.
+    unawaited(widget.services.restoreReminders());
   }
 
   @override
@@ -61,6 +66,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       unawaited(_updates.maybeCheck());
       unawaited(_feedback.flushPending());
+      // Alarms are not durable and notes are. A reinstall, a restore from
+      // backup, or an OS that dropped its alarm list all leave reminders that
+      // exist on the note and nowhere else — so every launch puts them back
+      // from the library, which is the only copy that survives.
+      unawaited(widget.services.restoreReminders());
       // Re-read the library on the way back in. This is what pull-to-refresh
       // was standing in for, and it is strictly better at the job: every
       // capture path already re-fires the timeline stream itself, so the only
@@ -118,6 +128,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Kept in step here rather than read at each call site: every widget that
+    // buzzes would otherwise need preferences in scope to answer a question
+    // the whole app answers the same way. This rebuilds on every preference
+    // change, which is exactly when the answer can move.
+    nexHapticsEnabled = widget.preferences.haptics;
     final prefs = widget.preferences;
     // Persian is set in Vazirmatn, everything else in Inter. Following the
     // chosen locale rather than the note's own script is deliberate: this is

@@ -4,6 +4,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ai_provider.dart';
+import 'chat_history.dart';
 import 'package:uuid/uuid.dart';
 
 /// The actions a swipe edge can be bound to.
@@ -478,6 +479,107 @@ class NexPreferences extends ChangeNotifier {
     }
     await _prefs.setString('ai.baseUrl.$wireName', config.baseUrl);
     await _prefs.setString('ai.model.$wireName', config.model);
+    notifyListeners();
+  }
+
+  /* ------------------------------------------------------------- Assistant */
+
+  /// Saved assistant conversations.
+  ///
+  /// Reached through here rather than constructed alongside this because it
+  /// is backed by the same preference store and needs nothing else — hanging
+  /// it off the object that already owns that store is one dependency to
+  /// thread through the widget tree instead of two. It is still its own
+  /// [ChangeNotifier]: the conversation list rebuilds when a thread is saved
+  /// or deleted, and nothing else in the app should rebuild for that.
+  late final ChatHistory chatHistory = ChatHistory(_prefs);
+
+  /// How far the assistant may wander from the plainest answer.
+  AiCreativity get aiCreativity =>
+      AiCreativity.fromWire(_prefs.getString('ai.creativity'));
+
+  Future<void> setAiCreativity(AiCreativity value) async {
+    await _prefs.setString('ai.creativity', value.wireName);
+    notifyListeners();
+  }
+
+  /// How long its answers are allowed to be.
+  AiAnswerLength get aiAnswerLength =>
+      AiAnswerLength.fromWire(_prefs.getString('ai.answerLength'));
+
+  Future<void> setAiAnswerLength(AiAnswerLength value) async {
+    await _prefs.setString('ai.answerLength', value.wireName);
+    notifyListeners();
+  }
+
+  /// Whether the assistant stays inside the user's notes and this app.
+  ///
+  /// Defaults to true, and the default is the point: this is a notes app's
+  /// assistant, and the first time someone opens it they should find
+  /// something that knows their notes rather than a general chatbot that
+  /// happens to live here.
+  bool get aiNotesOnly => _prefs.getBool('ai.notesOnly') ?? true;
+
+  Future<void> setAiNotesOnly(bool value) async {
+    await _prefs.setBool('ai.notesOnly', value);
+    notifyListeners();
+  }
+
+  /// How many recent notes are sent with each question.
+  ///
+  /// A privacy setting before it is a quality one. Every one of these leaves
+  /// the device and reaches whichever provider is configured, so the amount
+  /// is the user's to choose — and zero is a real choice, not a broken one:
+  /// the assistant still answers about the app itself.
+  int get aiNotesContextCount {
+    final stored = _prefs.getInt('ai.notesContext') ?? 20;
+    return aiNotesContextChoices.contains(stored) ? stored : 20;
+  }
+
+  Future<void> setAiNotesContextCount(int value) async {
+    await _prefs.setInt('ai.notesContext', value);
+    notifyListeners();
+  }
+
+  /// The offered sizes. Bounded rather than free-typed: past a few dozen
+  /// notes the prompt is mostly cost and the model's attention is worse, not
+  /// better.
+  static const aiNotesContextChoices = [0, 10, 20, 50];
+
+  /* --------------------------------------------------------- Saved searches */
+
+  /// Searches the user asked to keep, newest first.
+  ///
+  /// Plain strings, because that is exactly what a search is now that `tag:`
+  /// and `type:` are part of the box: one line captures the terms and the
+  /// filters together, survives a tag being renamed as gracefully as anything
+  /// could, and needs no schema.
+  List<String> get savedSearches =>
+      _prefs.getStringList('search.saved') ?? const [];
+
+  static const maxSavedSearches = 12;
+
+  Future<void> saveSearch(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    final updated = <String>[
+      trimmed,
+      for (final saved in savedSearches)
+        if (saved != trimmed) saved,
+    ];
+    await _prefs.setStringList(
+      'search.saved',
+      updated.take(maxSavedSearches).toList(),
+    );
+    notifyListeners();
+  }
+
+  Future<void> removeSavedSearch(String query) async {
+    final remaining = [
+      for (final saved in savedSearches)
+        if (saved != query) saved,
+    ];
+    await _prefs.setStringList('search.saved', remaining);
     notifyListeners();
   }
 

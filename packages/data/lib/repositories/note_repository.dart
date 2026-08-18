@@ -7,6 +7,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
+import '../schema/backup_archive.dart';
 import '../schema/database.dart';
 
 /// Suggested starter tags (FR-3.3) — offered, never enforced.
@@ -814,6 +815,62 @@ ON CONFLICT(note_id) DO UPDATE SET
   }
 
   @override
+  void setDueAt(String noteId, DateTime? when) {
+    db.execute(
+      // Not a rev bump and not an updated_at touch: a reminder is a thing
+      // the user asked the app to do, not an edit to what the note says, and
+      // re-sorting the timeline because someone set an alarm would move a
+      // note they were not writing to.
+      'UPDATE notes SET due_at = ? WHERE id = ?',
+      [when?.toUtc().toIso8601String(), noteId],
+    );
+  }
+
+  @override
+  List<Note> listUpcomingReminders({int limit = 200}) {
+    final rows = db.select(
+      '''
+SELECT * FROM notes
+WHERE deleted_at IS NULL AND due_at IS NOT NULL AND due_at > ?
+ORDER BY due_at ASC
+LIMIT ?
+''',
+      [DateTime.now().toUtc().toIso8601String(), limit],
+    );
+    return rows
+        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
+        .toList();
+  }
+
+  @override
+  List<Note> listNeedingEmbedding({int limit = 25}) {
+    // Anything with words in it: a note's own text, a caption, a transcript,
+    // an OCR read, or a link's headline. A photo with nothing derived from it
+    // yet is excluded rather than embedded as an empty string — it will come
+    // back round once enrichment has read it.
+    final rows = db.select(
+      '''
+SELECT n.* FROM notes n
+LEFT JOIN note_embeddings e ON e.note_id = n.id
+WHERE n.deleted_at IS NULL
+  AND e.note_id IS NULL
+  AND (
+    COALESCE(TRIM(n.content), '') <> ''
+    OR COALESCE(TRIM(n.transcript_text), '') <> ''
+    OR COALESCE(TRIM(n.ocr_text), '') <> ''
+    OR COALESCE(TRIM(n.title), '') <> ''
+  )
+ORDER BY n.created_at DESC
+LIMIT ?
+''',
+      [limit],
+    );
+    return rows
+        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
+        .toList();
+  }
+
+  @override
   List<NoteEmbedding> listEmbeddings() {
     final rows = db.select('SELECT note_id, values_json FROM note_embeddings');
     return [
@@ -1102,7 +1159,18 @@ WHERE id = ?
         as Map<String, dynamic>;
   }
 
-  File backup(String backupDir) => _db.createBackup(backupDir);
+  /// Writes a complete backup — the database and every media file.
+  ///
+  /// [mediaDir] is required rather than optional: making it optional is how
+  /// the media came to be left out of a backup in the first place, and a
+  /// caller that genuinely has no media can pass a directory that does not
+  /// exist.
+  File backup(String backupDir, {required String mediaDir}) =>
+      NexBackupArchive.create(
+        database: _db,
+        mediaDir: mediaDir,
+        backupDir: backupDir,
+      );
 
   void _bumpNote(String noteId) {
     final now = DateTime.now().toUtc().toIso8601String();

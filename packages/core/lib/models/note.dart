@@ -71,6 +71,7 @@ class Note {
     required this.syncState,
     this.tags = const [],
     this.pinnedAt,
+    this.dueAt,
     this.sortOrder,
   });
 
@@ -123,6 +124,14 @@ class Note {
   /// are how *this device* likes its own timeline arranged, not something
   /// that means anything to another device or survives a JSON export.
   final DateTime? pinnedAt;
+
+  /// When the app should bring this note back up, or null.
+  ///
+  /// Stored in UTC like every other instant here. The reminder itself is an
+  /// OS-scheduled notification — this is the record of what was asked for, so
+  /// a reinstall, a restore or a device that dropped its alarms can put them
+  /// back from the library rather than losing them silently.
+  final DateTime? dueAt;
 
   /// Manual position, set by dragging in Rearrange mode. Null means "not
   /// manually placed" — such notes sort by [updatedAt] ahead of any that
@@ -315,6 +324,9 @@ class Note {
       rev: row['rev']! as int,
       syncState: SyncState.fromWire(row['sync_state']! as String),
       tags: tags,
+      dueAt: (row['due_at'] as String?) != null
+          ? DateTime.parse(row['due_at']! as String).toUtc()
+          : null,
       pinnedAt: (row['pinned_at'] as String?) != null
           ? DateTime.parse(row['pinned_at']! as String).toUtc()
           : null,

@@ -18,6 +18,7 @@ import 'ai_provider.dart';
 import 'nex_db.dart';
 import 'media_picker_impl.dart';
 import 'nex_preferences.dart';
+import 'reminders.dart';
 
 /// Thrown when sync is invoked before the device has been paired with a server.
 class SyncNotConfigured implements Exception {
@@ -62,6 +63,12 @@ class NexServices {
   final String dbPath;
   final String mediaDir;
   final String backupDir;
+
+  /// The alarms behind the due dates. Owned here rather than passed in
+  /// because every path that can change a due date goes through this class,
+  /// and a reminder that is only scheduled by whichever screen happened to
+  /// set it is a reminder that is missed by the ones that did not.
+  final reminders = NexReminders();
 
   final BackupPolicy _backupPolicy;
   final NexPreferences _preferences;
@@ -245,6 +252,34 @@ class NexServices {
 
   Future<void> deleteNote(String id) => worker.deleteNote(id);
 
+  /// Sets or clears when a note should come back up, and moves the alarm to
+  /// match. Both halves or neither: a due date with no alarm behind it is a
+  /// reminder that never arrives, and an alarm with no due date is one that
+  /// cannot be seen or cancelled.
+  Future<void> setDueAt(String id, DateTime? when) async {
+    await worker.setDueAt(id, when);
+    final note = await worker.getById(id);
+    if (note == null) return;
+    if (when == null) {
+      await reminders.cancel(id);
+    } else {
+      await reminders.schedule(note);
+    }
+    await refreshTimeline();
+  }
+
+  /// Puts every pending alarm back from the library. Run at launch — an OS
+  /// alarm does not survive a reinstall or a restore, and the note does.
+  Future<void> restoreReminders() async {
+    if (!NexReminders.supported) return;
+    try {
+      await reminders.syncFromLibrary(await worker.upcomingReminders());
+    } catch (_) {
+      // A library that cannot be read here is a library the timeline will
+      // fail to read too, and that path already reports it.
+    }
+  }
+
   Future<void> undelete(String id) => worker.undelete(id);
 
   Future<void> setCaption(String id, String caption) =>
@@ -405,7 +440,7 @@ class NexServices {
       // note, not to twelve hours after the app was first opened.
       final anything = await worker.timeline(limit: 1);
       if (anything.isEmpty) return false;
-      await worker.backup(backupDir);
+      await worker.backup(backupDir, mediaDir: mediaDir);
       await _backupPolicy.markDone();
       return true;
     } catch (_) {
@@ -444,7 +479,7 @@ class NexServices {
 
   /// Takes a backup right now, outside the once-a-day policy.
   Future<void> backupNow() async {
-    await worker.backup(backupDir);
+    await worker.backup(backupDir, mediaDir: mediaDir);
     await _backupPolicy.markDone();
   }
 
@@ -485,7 +520,7 @@ class NexServices {
         dir
             .listSync()
             .whereType<File>()
-            .where((f) => f.path.endsWith('.sqlite'))
+            .where((f) => NexBackupArchive.isBackupFile(f.path))
             .toList()
           ..sort((a, b) => b.path.compareTo(a.path));
     return entries;
@@ -511,7 +546,11 @@ class NexServices {
   @useResult
   Future<RestartRequired> restoreBackup(File backup) async {
     await _closeOnce();
-    NexDatabase.restoreFromBackup(liveDbPath: dbPath, backupFile: backup.path);
+    NexBackupArchive.restore(
+      liveDbPath: dbPath,
+      mediaDir: mediaDir,
+      backupFile: backup.path,
+    );
     return const RestartRequired();
   }
 

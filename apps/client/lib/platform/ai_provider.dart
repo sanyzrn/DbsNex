@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 import 'package:nex_core/nex_core.dart';
 
+import 'assistant_actions.dart';
+
 /// The cloud services Nex can talk to.
 ///
 /// Three of them speak OpenAI's chat-completions shape and differ only in host,
@@ -176,6 +178,92 @@ enum AiOutputLanguage {
     AiOutputLanguage.persian =>
       'Reply in Persian (فارسی), whatever language the notes are written in.',
   };
+}
+
+/// How far the assistant is allowed to wander from the plainest answer.
+///
+/// Three named stops rather than a 0–2 slider. Temperature is a sampling
+/// parameter, not a personality dial, and a number with no units invites
+/// fiddling that mostly produces worse answers — the useful range for a
+/// notes assistant is narrow, and these are its ends and its middle.
+enum AiCreativity {
+  precise('precise', 0.15),
+  balanced('balanced', 0.7),
+  inventive('inventive', 1.05);
+
+  const AiCreativity(this.wireName, this.temperature);
+
+  final String wireName;
+  final double temperature;
+
+  static AiCreativity fromWire(String? value) => AiCreativity.values.firstWhere(
+    (candidate) => candidate.wireName == value,
+    orElse: () => AiCreativity.balanced,
+  );
+}
+
+/// How long an answer is allowed to be.
+///
+/// A token budget rather than a word count, because that is what the
+/// providers take — but it is also stated in the prompt, since a budget
+/// alone does not shorten an answer, it truncates one. The two together are
+/// what produce a short answer rather than a long answer cut off mid-word.
+enum AiAnswerLength {
+  brief('brief', 220, 'Answer in one or two sentences.'),
+  standard('standard', 700, 'Answer in a short paragraph at most.'),
+  full('full', 1800, 'Answer at whatever length the question needs.');
+
+  const AiAnswerLength(this.wireName, this.maxTokens, this.promptRule);
+
+  final String wireName;
+  final int maxTokens;
+  final String promptRule;
+
+  static AiAnswerLength fromWire(String? value) =>
+      AiAnswerLength.values.firstWhere(
+        (candidate) => candidate.wireName == value,
+        orElse: () => AiAnswerLength.standard,
+      );
+}
+
+/// Everything the assistant sheet decides about one exchange.
+///
+/// Grouped rather than passed as five parameters: they are read together,
+/// stored together, and every one of them is a user setting, so a caller that
+/// forgets one gets the app's default instead of the wire format's.
+@immutable
+class AiChatOptions {
+  const AiChatOptions({
+    this.creativity = AiCreativity.balanced,
+    this.length = AiAnswerLength.standard,
+    this.notesOnly = true,
+    this.notesContext = '',
+    this.canAct = false,
+  });
+
+  final AiCreativity creativity;
+  final AiAnswerLength length;
+
+  /// Whether the assistant stays inside the user's notes and the app itself.
+  ///
+  /// On by default. This is the assistant in a notes app, not a general
+  /// chatbot: a model answering trivia here is both off-topic and — on the
+  /// small free-tier models this app is usually pointed at — worse at it than
+  /// anything else the user could ask. Off, it answers anything.
+  final bool notesOnly;
+
+  /// The user's recent notes, already formatted, or empty.
+  ///
+  /// Never their whole library: a prompt is a network request to a third
+  /// party, and the amount of someone's writing that leaves the device is a
+  /// setting rather than an implementation detail.
+  final String notesContext;
+
+  /// Whether the assistant may ask to create, edit, delete or re-tag a note.
+  ///
+  /// "Ask" is the whole word: nothing it returns is applied without the user
+  /// pressing a button. See [assistantActionPrompt].
+  final bool canAct;
 }
 
 /// The outcome of a connection test, in the user's terms.
@@ -605,12 +693,52 @@ class CloudAIAdapter implements AIAdapter {
   ///
   /// Returns null on anything that is not a 200, the same as every other call
   /// here: an unreachable provider is "no answer", not an exception to catch.
-  Future<String?> chat(List<ChatMessage> history, {int maxTokens = 800}) async {
+  /// The instruction the assistant runs under, built from the user's own
+  /// settings.
+  ///
+  /// Public and pure so it can be read in a test without a network — the
+  /// scope rule in particular is a promise made to the user in Settings, and
+  /// a promise that is only checkable by asking a live model is not one.
+  @visibleForTesting
+  String chatSystemPrompt(AiChatOptions options) {
+    final parts = <String>[
+      'You are the assistant inside Nex, a notes app. Be concrete and plain: '
+          'no preamble, no restating the question, no offers to help further.',
+      options.length.promptRule,
+    ];
+    if (options.notesOnly) {
+      // Not a refusal. A model that answers "I cannot help with that" reads
+      // as broken rather than as focused, and the honest version of this
+      // boundary is short and says where the answer would have to come from.
+      parts.add(
+        "Answer only from the user's notes below and about using Nex itself. "
+        'If the answer is not in their notes, say so in one line instead of '
+        'inventing it. If asked something unrelated to their notes or to the '
+        'app, say in one line that you only help with what is in Nex, and '
+        'stop there.',
+      );
+    }
+    if (options.canAct) parts.add(assistantActionPrompt);
+    parts.add(outputLanguage.promptRule);
+    if (options.notesContext.trim().isNotEmpty) {
+      parts.add(
+        "The user's recent notes, most recent first:\n"
+        '${options.notesContext.trim()}',
+      );
+    } else if (options.notesOnly) {
+      parts.add('The user has no notes yet.');
+    }
+    return parts.join('\n\n');
+  }
+
+  Future<String?> chat(
+    List<ChatMessage> history, {
+    AiChatOptions options = const AiChatOptions(),
+  }) async {
     if (!config.isUsable || history.isEmpty) return null;
-    final system =
-        'You are the assistant inside Nex, a notes app. Be brief and '
-        'concrete — a few sentences unless asked for more, no preamble, no '
-        'restating the question. ${outputLanguage.promptRule}';
+    final system = chatSystemPrompt(options);
+    final maxTokens = options.length.maxTokens;
+    final temperature = options.creativity.temperature;
     final turns = [
       for (final message in history)
         if (message.role != ChatRole.system) message,
@@ -620,6 +748,7 @@ class CloudAIAdapter implements AIAdapter {
       AiWireFormat.anthropic => {
         'model': config.resolvedModel,
         'max_tokens': maxTokens,
+        'temperature': temperature,
         'system': system,
         'messages': [
           for (final turn in turns)
@@ -646,11 +775,15 @@ class CloudAIAdapter implements AIAdapter {
               ],
             },
         ],
-        'generationConfig': {'maxOutputTokens': maxTokens},
+        'generationConfig': {
+          'maxOutputTokens': maxTokens,
+          'temperature': temperature,
+        },
       },
       AiWireFormat.openai => {
         'model': config.resolvedModel,
         'max_tokens': maxTokens,
+        'temperature': temperature,
         'messages': [
           {'role': 'system', 'content': system},
           for (final turn in turns)

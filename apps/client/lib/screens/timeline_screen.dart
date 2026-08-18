@@ -289,7 +289,14 @@ class TimelineScreenState extends State<TimelineScreen> {
   void _openAssistant() {
     if (!AiChatSheet.availableFor(widget.preferences)) return;
     HapticFeedback.mediumImpact();
-    unawaited(AiChatSheet.show(context, preferences: widget.preferences));
+    unawaited(
+      AiChatSheet.show(
+        context,
+        preferences: widget.preferences,
+        services: widget.services,
+        history: widget.preferences.chatHistory,
+      ),
+    );
   }
 
   void _toggleAiSummary() {
@@ -461,8 +468,30 @@ class TimelineScreenState extends State<TimelineScreen> {
     await _selectType(chosen.type);
   }
 
-  void _tick() {
-    if (widget.preferences.haptics) HapticFeedback.selectionClick();
+  void _tick() => nexTick();
+
+  /// Where the list was when it last buzzed.
+  ///
+  /// A tick every [_scrollTickDistance] of travel, which is the trick the
+  /// Windscribe app uses and the reason its lists feel attached to the
+  /// finger. Distance rather than time: a slow drag should tick slowly and a
+  /// fling should tick fast, and only distance does both without any state
+  /// machine at all.
+  double _lastTickOffset = 0;
+  static const _scrollTickDistance = 64.0;
+
+  bool _onScroll(ScrollNotification notification) {
+    if (notification is! ScrollUpdateNotification) return false;
+    final offset = notification.metrics.pixels;
+    final travelled = (offset - _lastTickOffset).abs();
+    if (travelled < _scrollTickDistance) return false;
+    // A jump this large is not a finger — it is the list being replaced
+    // under one, which happens every time search opens or a filter changes.
+    // Re-anchor silently rather than buzzing at a scroll nobody performed.
+    final jumped = travelled > _scrollTickDistance * 8;
+    _lastTickOffset = offset;
+    if (!jumped) nexTick();
+    return false;
   }
 
   Future<void> _clearFilters() async {
@@ -972,11 +1001,18 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// Three phrasings per time of day. Re-rolled only when the headline is
   /// tapped, never on an ordinary rebuild: a title that changes while you are
   /// reading it is a bug, not a flourish.
-  (String, String)? _greeting(AppLocalizations l10n) {
+  (String, String)? _greeting(AppLocalizations interface) {
     // Two words at most — a full name pushes this onto a second line and
     // shoves the headline under it out of place.
     final name = widget.preferences.shortDisplayName;
     if (name == null) return null;
+    // Greeted in the language you wrote your own name in, whatever the
+    // interface is set to. "صبح بخیر, Sany" and "Good morning, سعید" are both
+    // sentences nobody writes, and the name is the one word here the app did
+    // not choose — so it is the one that decides.
+    final l10n = nexDirectionOf(name) == TextDirection.rtl
+        ? lookupAppLocalizations(const Locale('fa'))
+        : lookupAppLocalizations(const Locale('en'));
     final v = _greetingVariant;
     final (glyphs, text) = switch (DateTime.now().hour) {
       >= 5 && < 12 => (
@@ -1065,34 +1101,19 @@ class TimelineScreenState extends State<TimelineScreen> {
                 horizontal: NexSpacing.xs,
                 vertical: NexSpacing.sm,
               ),
-              child: Column(
-                // Centred, both lines. Left-aligned they read as two separate
-                // starts stacked on each other; centred they read as one
-                // block, which is what they are.
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (greeting != null)
-                    _GreetingLine(
-                      text: greeting.$1,
-                      glyph: greeting.$2,
-                      // Demoted to a label when there is a generated line to
-                      // be the headline, promoted to being the headline when
-                      // there is not.
-                      style: hasHeadlineSlot
-                          ? theme.textTheme.titleSmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            )
-                          : headlineStyle,
-                    ),
-                  if (hasHeadlineSlot) ...[
-                    if (greeting != null) const SizedBox(height: NexSpacing.xs),
-                    _HeadlineText(
-                      text: _aiHeadlineText,
-                      loading: _aiHeadlineLoading,
-                      style: generatedStyle,
-                    ),
-                  ],
-                ],
+              // One line, not two. Stacked, the greeting and the generated
+              // line read as a label with a caption under it — two starts on
+              // top of each other. Joined, they are what they always were:
+              // one sentence the app opens with.
+              child: _GreetingLine(
+                text: greeting == null
+                    ? ''
+                    : _aiHeadlineText == null
+                    ? greeting.$1
+                    : '${greeting.$1} — ${_aiHeadlineText!}',
+                glyph: greeting?.$2 ?? '',
+                loading: hasHeadlineSlot && _aiHeadlineLoading,
+                style: hasHeadlineSlot ? generatedStyle : headlineStyle,
               ),
             ),
           ),
@@ -1115,7 +1136,7 @@ class TimelineScreenState extends State<TimelineScreen> {
               onRefresh: _aiSummaryLoading
                   ? null
                   : () {
-                      _tick();
+                      nexBump();
                       unawaited(_loadAiSummary(force: true));
                     },
               onToggle: _toggleAiSummary,
@@ -1213,69 +1234,72 @@ class TimelineScreenState extends State<TimelineScreen> {
                 // no gesture: the pull used to be "reveal the search field",
                 // and it was replaced precisely because it never revealed
                 // anything.
-                child: CustomScrollView(
-                  controller: _scroll,
-                  // Always scrollable, so a short list still bounces rather
-                  // than feeling locked.
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    // The headline and the recap card, above the search
-                    // field. Both collapse to nothing rather than leaving
-                    // the list, the same reason the two headers below do.
-                    SliverToBoxAdapter(
-                      key: const ValueKey('timeline-header'),
-                      child: AnimatedSize(
-                        duration: NexMotion.slow,
-                        curve: NexMotion.curve,
-                        alignment: Alignment.topCenter,
-                        child: _searching
-                            ? const SizedBox.shrink()
-                            : _header(l10n),
-                      ),
-                    ),
-                    // Both headers are always in the list, keyed, and collapse
-                    // to zero extent rather than leaving it. A sliver list that
-                    // changes length while another sliver changes its pinning
-                    // leaves the viewport painting a child it never laid out.
-                    SliverPersistentHeader(
-                      key: const ValueKey('search-header'),
-                      delegate: SearchFieldHeader(
-                        controller: _search.query,
-                        focusNode: _searchFocus,
-                        searching: _searching,
-                        onTap: () => unawaited(revealSearch()),
-                        onChanged: (_) => _search.schedule(),
-                        onClear: _exitSearch,
-                      ),
-                    ),
-                    SliverPersistentHeader(
-                      key: const ValueKey('filter-header'),
-                      pinned: true,
-                      delegate: _FilterRowHeader(
-                        visible: !_searching,
-                        child: TagFilterRow(
-                          tags: filterTags,
-                          selectedTagId: selectedTagId,
-                          allLabel: l10n.all,
-                          leading: _TypeFilterButton(
-                            selected: selectedType,
-                            onPressed: () => unawaited(_pickType()),
-                          ),
-                          onSelected: (value) => unawaited(_selectTag(value)),
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: _onScroll,
+                  child: CustomScrollView(
+                    controller: _scroll,
+                    // Always scrollable, so a short list still bounces rather
+                    // than feeling locked.
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      // The headline and the recap card, above the search
+                      // field. Both collapse to nothing rather than leaving
+                      // the list, the same reason the two headers below do.
+                      SliverToBoxAdapter(
+                        key: const ValueKey('timeline-header'),
+                        child: AnimatedSize(
+                          duration: NexMotion.slow,
+                          curve: NexMotion.curve,
+                          alignment: Alignment.topCenter,
+                          child: _searching
+                              ? const SizedBox.shrink()
+                              : _header(l10n),
                         ),
                       ),
-                    ),
-                    ..._bodySlivers(l10n),
-                    // The capture button floats over the list, and on a
-                    // device with a three-button navigation bar the system's
-                    // own bar sits under that — the last card has to clear
-                    // both, or it cannot be read or tapped.
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: nexFabClearance + nexBottomInset(context),
+                      // Both headers are always in the list, keyed, and collapse
+                      // to zero extent rather than leaving it. A sliver list that
+                      // changes length while another sliver changes its pinning
+                      // leaves the viewport painting a child it never laid out.
+                      SliverPersistentHeader(
+                        key: const ValueKey('search-header'),
+                        delegate: SearchFieldHeader(
+                          controller: _search.query,
+                          focusNode: _searchFocus,
+                          searching: _searching,
+                          onTap: () => unawaited(revealSearch()),
+                          onChanged: (_) => _search.schedule(),
+                          onClear: _exitSearch,
+                        ),
                       ),
-                    ),
-                  ],
+                      SliverPersistentHeader(
+                        key: const ValueKey('filter-header'),
+                        pinned: true,
+                        delegate: _FilterRowHeader(
+                          visible: !_searching,
+                          child: TagFilterRow(
+                            tags: filterTags,
+                            selectedTagId: selectedTagId,
+                            allLabel: l10n.all,
+                            leading: _TypeFilterButton(
+                              selected: selectedType,
+                              onPressed: () => unawaited(_pickType()),
+                            ),
+                            onSelected: (value) => unawaited(_selectTag(value)),
+                          ),
+                        ),
+                      ),
+                      ..._bodySlivers(l10n),
+                      // The capture button floats over the list, and on a
+                      // device with a three-button navigation bar the system's
+                      // own bar sits under that — the last card has to clear
+                      // both, or it cannot be read or tapped.
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: nexFabClearance + nexBottomInset(context),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1320,6 +1344,11 @@ class TimelineScreenState extends State<TimelineScreen> {
       return searchResultSlivers(
         context: context,
         search: _search,
+        preferences: widget.preferences,
+        onUseSaved: (query) {
+          _search.query.text = query;
+          _search.run();
+        },
         onOpen: (note) => unawaited(_openNote(note)),
       );
     }
@@ -1427,8 +1456,11 @@ class TimelineScreenState extends State<TimelineScreen> {
   Future<void> _openNote(Note note) async {
     final result = await nexShowSheet<DetailResult>(
       context: context,
-      builder: (_) =>
-          NoteDetailSheet(services: widget.services, noteId: note.id),
+      builder: (_) => NoteDetailSheet(
+        services: widget.services,
+        preferences: widget.preferences,
+        noteId: note.id,
+      ),
     );
     if (result == DetailResult.deleted) await deleteWithUndo(note);
     await widget.services.refreshTimeline();
@@ -1531,94 +1563,57 @@ class _GreetingLine extends StatelessWidget {
     required this.text,
     required this.glyph,
     required this.style,
+    this.loading = false,
   });
 
   final String text;
   final String glyph;
   final TextStyle? style;
 
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    // Centred with the headline under it, so the two read as one block
-    // rather than as a label and a separate line that happen to be adjacent.
-    mainAxisAlignment: MainAxisAlignment.center,
-    // The greeting's own language decides which end the mark sits at. This
-    // string is localised, so in Persian it is RTL text inside an interface
-    // that may still be in English — and the Row is what places the glyph.
-    textDirection: nexDirectionOf(text),
-    children: [
-      Flexible(
-        child: Text(
-          text,
-          style: style,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-      ),
-      const SizedBox(width: NexSpacing.xs),
-      // The mark takes the line's own size: at label size beside a headline
-      // it would otherwise stay at body size and sit visibly too large.
-      DefaultTextStyle.merge(style: style, child: _GreetingGlyph(glyph)),
-    ],
-  );
-}
-
-/// The generated line across the top: a skeleton until the first one lands,
-/// then the line itself, cross-fading whenever a tap replaces it.
-///
-/// Two lines at most, hard. The prompt asks for nine words and the adapter
-/// clamps to twelve, but a model that ignores both must not be able to push
-/// the search field off the screen.
-class _HeadlineText extends StatelessWidget {
-  const _HeadlineText({
-    required this.text,
-    required this.loading,
-    required this.style,
-  });
-
-  final String? text;
+  /// The generated half is on its way. The greeting is already there, so the
+  /// line dims rather than disappearing — a refresh should read as the words
+  /// being replaced, not as them being taken away and given back.
   final bool loading;
-  final TextStyle? style;
 
   @override
   Widget build(BuildContext context) {
-    final value = text;
-    // Loading with text already there keeps the text: a refresh should read
-    // as the line being replaced, not as it being taken away and given back.
-    if (value == null) {
-      return loading
-          ? const Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              // Sized to the line it stands in for, so the header does not
-              // shrink by a few pixels the moment the text lands.
-              children: [
-                NexSkeleton(height: 16, width: 220),
-                SizedBox(height: NexSpacing.xs),
-                NexSkeleton(height: 16, width: 140),
-              ],
-            )
-          : const SizedBox.shrink();
-    }
+    if (text.isEmpty && !loading) return const SizedBox.shrink();
     return AnimatedSwitcher(
       duration: NexMotion.standard,
       child: Opacity(
-        // Dimmed rather than replaced while the next one is in flight —
-        // the only visible sign that the tap did anything.
-        key: ValueKey(value),
+        key: ValueKey(text),
         opacity: loading ? 0.45 : 1,
-        child: Text(
-          value,
-          style: style,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          // The generated line follows the language it was written in, not
-          // the interface's. Without this a Persian line rendered inside an
-          // English UI resolves as left-to-right, which puts its full stop
-          // at the wrong end of the sentence.
-          textDirection: nexDirectionOf(value),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          // The greeting's own language decides which end the mark sits at.
+          // This string is written in the language of the user's name, which
+          // is not necessarily the interface's — and the Row is what places
+          // the glyph.
+          textDirection: nexDirectionOf(text),
+          children: [
+            Flexible(
+              child: Text(
+                text,
+                style: style,
+                // Two, because the generated half joined on the end of a
+                // greeting is regularly longer than one line and cutting it
+                // mid-phrase reads as a bug.
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            if (glyph.isNotEmpty) ...[
+              const SizedBox(width: NexSpacing.xs),
+              // The mark takes the line's own size: left alone it stays at
+              // body size and sits visibly too large beside a small line.
+              DefaultTextStyle.merge(
+                style: style,
+                child: _GreetingGlyph(glyph),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -1672,74 +1667,79 @@ class _AiDaySummaryPanel extends StatelessWidget {
     return Semantics(
       container: true,
       label: semanticLabel,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(
-          NexSpacing.cardInset,
-          NexSpacing.xs,
-          NexSpacing.xs,
-          NexSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest,
-          // The search field's curvature, not the card radius used elsewhere.
-          // These two sit directly above one another and were visibly a step
-          // apart — 20 against the field's 24.
+      button: true,
+      // The whole card is the toggle. A chevron is a small target for a
+      // gesture with one meaning at any moment — open it, or fold it away —
+      // and every part of the card that is not the refresh button now does
+      // that. The chevron itself is gone: with the card doing the work it
+      // was a second control for the same thing.
+      child: NexTappable(
+        onTap: onToggle,
+        semanticLabel: toggleTooltip,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(NexRadius.pill),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
-                const SizedBox(width: NexSpacing.sm),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleSmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                IconButton(
-                  tooltip: refreshTooltip,
-                  onPressed: onRefresh,
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.refresh, size: 20),
-                ),
-                IconButton(
-                  tooltip: toggleTooltip,
-                  onPressed: onToggle,
-                  visualDensity: VisualDensity.compact,
-                  icon: AnimatedRotation(
-                    // Down points at the body it would reveal; up points at
-                    // the header it would fold into.
-                    turns: collapsed ? 0 : 0.5,
-                    duration: NexMotion.standard,
-                    curve: NexMotion.curve,
-                    child: const Icon(Icons.keyboard_arrow_down, size: 22),
-                  ),
-                ),
-              ],
-            ),
-            AnimatedSize(
-              duration: NexMotion.slow,
-              curve: NexMotion.curve,
-              alignment: Alignment.topCenter,
-              child: collapsed
-                  ? const SizedBox(width: double.infinity)
-                  : Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        0,
-                        NexSpacing.xs,
-                        NexSpacing.sm,
-                        NexSpacing.sm,
-                      ),
-                      child: _summaryBody(theme),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(
+            NexSpacing.cardInset,
+            NexSpacing.xs,
+            NexSpacing.xs,
+            NexSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest,
+            // The search field's curvature, not the card radius used
+            // elsewhere. These two sit directly above one another and were
+            // visibly a step apart — 20 against the field's 24.
+            borderRadius: BorderRadius.circular(NexRadius.pill),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
+                  const SizedBox(width: NexSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-            ),
-          ],
+                  ),
+                  // Refresh only while it is open, and it is then the only
+                  // button on the card: closed, there is nothing on screen for
+                  // a refresh to change, and a button that rewrites something
+                  // you cannot see is a button that does nothing you can tell.
+                  if (!collapsed)
+                    IconButton(
+                      tooltip: refreshTooltip,
+                      onPressed: onRefresh,
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.refresh, size: 20),
+                    ),
+                ],
+              ),
+              AnimatedSize(
+                duration: NexMotion.slow,
+                curve: NexMotion.curve,
+                alignment: Alignment.topCenter,
+                child: collapsed
+                    ? const SizedBox(width: double.infinity)
+                    : Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          0,
+                          NexSpacing.xs,
+                          NexSpacing.sm,
+                          NexSpacing.sm,
+                        ),
+                        child: _summaryBody(theme),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

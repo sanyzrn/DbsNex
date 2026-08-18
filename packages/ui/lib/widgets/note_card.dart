@@ -159,6 +159,21 @@ class _CardBody extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall,
               ),
+              // A note that asked to come back says so on the card. Without
+              // it a reminder is invisible until it fires, which means the
+              // only way to check one was set is to open the note.
+              if (note.dueAt != null) ...[
+                const SizedBox(width: NexSpacing.xs),
+                Icon(
+                  Icons.notifications_active_outlined,
+                  size: 14,
+                  color: note.dueAt!.isAfter(DateTime.now().toUtc())
+                      ? theme.colorScheme.primary
+                      // A lapsed reminder is not an alarm any more, so it
+                      // stops asking for attention in the accent colour.
+                      : theme.colorScheme.outline,
+                ),
+              ],
               const SizedBox(width: NexSpacing.contentGap),
               Expanded(child: previewOverride ?? _Preview(note: note)),
             ],

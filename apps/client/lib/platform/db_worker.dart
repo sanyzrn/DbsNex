@@ -49,6 +49,8 @@ enum _DbCommand {
   listTags,
   setTagColor,
   backup,
+  setDueAt,
+  upcomingReminders,
   exportArchive,
   importArchive,
   // Library maintenance (trash, tag manager, storage breakdown).
@@ -356,8 +358,19 @@ class NexDbWorker implements NexDb {
   /* ------------------------------------------------------ backup / export */
 
   @override
-  Future<void> backup(String backupDir) =>
-      _send<void>(_DbCommand.backup, {'dir': backupDir});
+  @override
+  Future<void> setDueAt(String noteId, DateTime? when) => _send<void>(
+    _DbCommand.setDueAt,
+    {'noteId': noteId, 'when': when?.toUtc().toIso8601String()},
+  );
+
+  @override
+  Future<List<Note>> upcomingReminders({int limit = 200}) =>
+      _send<List<Note>>(_DbCommand.upcomingReminders, {'limit': limit});
+
+  @override
+  Future<void> backup(String backupDir, {required String mediaDir}) =>
+      _send<void>(_DbCommand.backup, {'dir': backupDir, 'mediaDir': mediaDir});
 
   @override
   Future<String> exportArchive({
@@ -635,7 +648,22 @@ class NexDbWorker implements NexDb {
               color: arg('color') as String?,
             ),
           ),
-          _DbCommand.backup => repo.backup(arg('dir')! as String),
+          // `when` is a pattern guard keyword, so the variable it would
+          // otherwise be named cannot be spelled here.
+          _DbCommand.setDueAt => _voided(() {
+            final at = arg('when');
+            repo.setDueAt(
+              arg('noteId')! as String,
+              at is String ? DateTime.parse(at) : null,
+            );
+          }),
+          _DbCommand.upcomingReminders => repo.listUpcomingReminders(
+            limit: arg('limit')! as int,
+          ),
+          _DbCommand.backup => repo.backup(
+            arg('dir')! as String,
+            mediaDir: arg('mediaDir')! as String,
+          ),
           _DbCommand.exportArchive => (await repo.exportArchive(
             outputPath: arg('outputPath')! as String,
             mediaRoot: arg('mediaRoot')! as String,

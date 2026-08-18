@@ -53,6 +53,27 @@ abstract interface class NoteRepository {
 
   List<NoteEmbedding> listEmbeddings();
 
+  /// Notes with text and no embedding yet, newest first.
+  ///
+  /// Separate from `listNeedingEnrichment`, which only ever returns media
+  /// waiting on a transcript or an OCR read. A text note needs nothing
+  /// derived from it — it is already its own text — so it never appeared
+  /// there, and the consequence was that a library written before a provider
+  /// was configured got no embeddings at all and semantic search silently
+  /// found nothing in it forever.
+  List<Note> listNeedingEmbedding({int limit});
+
+  /// Sets or clears when a note should come back up.
+  void setDueAt(String noteId, DateTime? when);
+
+  /// Notes with a reminder still ahead of them, soonest first.
+  ///
+  /// What the app re-reads on launch to put the OS alarms back. An alarm is
+  /// not durable — a reinstall, a restore from backup, or an Android version
+  /// that drops exact alarms all lose them — and the note is, so the note is
+  /// the record and the alarm is a copy of it.
+  List<Note> listUpcomingReminders({int limit});
+
   /// Notes the intelligence layer has never been able to read.
   ///
   /// Enrichment runs once, at capture. That leaves every note captured before
