@@ -38,6 +38,12 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Required by flutter_local_notifications, which uses java.time on a
+        // minSdk of 24 where the platform does not have it. Without this the
+        // build fails at dexing with a message about the plugin's own class
+        // files rather than about this line, which is why it is worth naming
+        // the reason here.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -113,3 +119,12 @@ kotlin {
 }
 
 flutter { source = "../.." }
+
+dependencies {
+    // The desugaring runtime `isCoreLibraryDesugaringEnabled` above needs.
+    // Exactly the version flutter_local_notifications itself declares, so
+    // the resolved graph gains no new artifact — Gradle already had this one.
+    // Pinned rather than floating for the same reason it matters at all:
+    // this decides which JDK APIs exist at runtime on old devices.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
