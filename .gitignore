@@ -19,6 +19,9 @@ apps/client/android/.gradle/
 apps/client/windows/flutter/ephemeral/
 apps/client/.flutter-plugins
 apps/client/.flutter-plugins-dependencies
+# packages/ai wraps a platform plugin as of Phase 1, so the Flutter tool
+# generates this there too.
+packages/ai/.flutter-plugins-dependencies
 
 # Node / Backend
 node_modules/

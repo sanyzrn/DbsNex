@@ -1,5 +1,5 @@
 import 'package:nex_ai/nex_ai.dart';
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('PlaceholderLocalChatAdapter', () {

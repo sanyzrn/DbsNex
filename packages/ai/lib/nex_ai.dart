@@ -8,13 +8,19 @@
 /// re-exports them and is the home for future vendor/cloud adapters.
 ///
 /// One deliberate exception (ADR-031): `apps/client/lib/main_ai.dart`, the
-/// "ai" Android flavor's entry point, imports this package directly to bind
-/// [PlaceholderLocalChatAdapter]. CI's `ai-deletion-proof` job enforces that
-/// no other file outside this package does the same.
+/// "ai" Android flavor's entry point, imports this package directly to bind a
+/// [ChatAdapter]. CI's `ai-deletion-proof` job enforces that no other file
+/// outside this package does the same.
+///
+/// This package carries a Flutter dependency as of Phase 1 — [LiteRtChatAdapter]
+/// wraps a platform plugin, and on-device inference is inherently platform
+/// bound. That is why it moved out of CI's Dart-only matrix, which exists to
+/// prove `packages/core` and `packages/data` carry no Flutter dependency; this
+/// package never made that claim.
 library;
 
+export 'src/litert_chat_adapter.dart' show LiteRtChatAdapter;
 export 'src/local_chat_placeholder.dart' show PlaceholderLocalChatAdapter;
-export 'src/local_llm_bench_engine.dart' show BenchResult, NexLocalBenchEngine;
 
 export 'package:nex_core/nex_core.dart'
     show
@@ -32,10 +38,13 @@ export 'package:nex_core/nex_core.dart'
         ImageRef,
         NullAIAdapter,
         NullChatAdapter,
+        nexChatMaxResponseTokens,
+        nexChatScopeCeilingPrompt,
         OCRText,
         OnDeviceAIAdapter,
         SemanticHit,
         Summary,
         TagSuggestion,
         Transcript,
-        Vector;
+        Vector,
+        withScopeCeiling;

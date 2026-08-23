@@ -149,7 +149,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [core, data, ai]
+        package: [core, data]
     defaults:
       run:
         working-directory: packages/${{ matrix.package }}
@@ -167,6 +167,12 @@ jobs:
           restore-keys: pub-${{ runner.os }}-
       # Proves packages/core and packages/data carry zero Flutter dependency:
       # this job never installs Flutter.
+      #
+      # packages/ai used to be in this matrix and is not any more. Phase 1 gave
+      # it an on-device inference plugin (09-ai.md), so it carries Flutter now
+      # and `dart pub get` cannot resolve it. That costs nothing here: the
+      # claim this job exists to prove was always about core and data, and ai
+      # is checked by flutter-ai-package below.
       - run: dart pub get
       - run: dart analyze --fatal-infos
       - run: dart test
@@ -204,6 +210,29 @@ jobs:
             echo "::error::packages/core must not declare nex_data as a dependency"
             exit 1
           fi
+
+  flutter-ai-package:
+    name: packages/ai (analyze + test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: changes
+    if: needs.changes.outputs.dart == 'true'
+    defaults:
+      run:
+        working-directory: packages/ai
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+      # nex_data is a dev dependency here (enrichment_test drives a real
+      # repository), and it reaches package:sqlite3 through FFI.
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      - run: flutter pub get
+      - run: flutter analyze --fatal-infos
+      - run: flutter test
 
   flutter-ui-package:
     name: packages/ui (analyze + test + dependency closure)
@@ -671,6 +700,7 @@ jobs:
       - changes
       - dart-packages
       - core-boundary
+      - flutter-ai-package
       - flutter-ui-package
       - client-android
       - client-windows
