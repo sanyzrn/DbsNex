@@ -113,8 +113,8 @@ abstract final class NexModels {
     parts: [
       ModelPart(
         url:
-            'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm'
-            '/resolve/main/gemma-4-E2B-it-gpu.litertlm?download=true',
+            'https://github.com/sanyzrn/DbsNex-releases/releases/download'
+            '/model-gemma-4-e2b-gpu/gemma-4-E2B-it-gpu.litertlm',
         filename: 'gemma-4-E2B-it-gpu.litertlm.part-aa',
         // One part, so this is the digest of the whole file and [sha256] above
         // is the same string. Not redundant in general — for a split model the

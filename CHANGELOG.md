@@ -34,6 +34,26 @@ Working convention:
 
 ## Unreleased
 
+## v0.9.6
+
+- The assistant can run on your phone, with nothing sent anywhere. Settings ›
+  On-device model downloads Gemma 4 E2B once — about 2 GB, over Wi-Fi, and it
+  stays on the phone — and from then on the assistant answers with no internet
+  and no provider key. Ask it something on a plane and it answers.
+- The download survives a dropped connection. It resumes where it stopped
+  rather than starting the 2 GB again, checks the file against a known
+  fingerprint before using it, and tells you if your phone does not have room
+  before it begins instead of after. You can delete the model later from the
+  same screen and get the space back.
+- Google's terms for the model are shown and have to be accepted before the
+  download starts, not linked somewhere afterwards.
+- Phones that cannot run it say so plainly — 64-bit ARM only, which is nearly
+  every Android phone made since 2018 — instead of offering a 2 GB download
+  that would fail at the end.
+- Nothing else changes. The online assistant, your provider keys and every
+  other AI feature work exactly as before; the on-device model is an option
+  beside them, not a replacement.
+
 ## v0.9.5
 
 - Notes can be brought in from another app. Settings › Import notes takes the

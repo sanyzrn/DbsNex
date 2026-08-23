@@ -221,30 +221,53 @@ jobs:
 
       - name: Build App Bundle (Play) and split APKs (direct download)
         run: |
-          # --flavor standard: required once flavorDimensions is defined
-          # (ADR-031) — this release pipeline ships the AI-free flavor only,
-          # same as it always has. The "ai" flavor has no release process yet.
-          flutter build appbundle --release --flavor standard \
+          # --flavor ai, from v0.9.6 on. "ai" is the flavor people install:
+          # it is the whole app plus an on-device model they may or may not
+          # download, and it carries the same applicationId, so it updates over
+          # what is already on the phone. "standard" has not gone anywhere —
+          # CI still builds it and the deletion proof still guarantees it
+          # survives packages/ai being removed — it simply is not the artifact
+          # this pipeline publishes.
+          #
+          # --target is what makes it the ai flavor in fact rather than in
+          # name. The Gradle flavor decides packaging; lib/main_ai.dart is the
+          # only entry point that binds a real ChatAdapter (ADR-031), and
+          # omitting this would publish an "ai" APK with no AI in it.
+          flutter build appbundle --release --flavor ai \
+            --target lib/main_ai.dart \
             --build-name=${{ needs.version.outputs.base }} \
             --build-number=${{ needs.version.outputs.code }}
-          flutter build apk --release --flavor standard --split-per-abi \
+          flutter build apk --release --flavor ai --split-per-abi \
+            --target lib/main_ai.dart \
             --build-name=${{ needs.version.outputs.base }} \
             --build-number=${{ needs.version.outputs.code }}
           # The universal APK is what the in-app updater downloads: it cannot
           # know the device's ABI before the download, and picking the wrong
           # split installs nothing. Bigger, but it is the one asset that is
           # always correct.
-          flutter build apk --release --flavor standard \
+          flutter build apk --release --flavor ai \
+            --target lib/main_ai.dart \
             --build-name=${{ needs.version.outputs.base }} \
             --build-number=${{ needs.version.outputs.code }}
+
+          # LiteRT-LM's native code is arm64-only, so the 32-bit splits carry
+          # the app without the inference library. That is survivable and
+          # deliberate — LocalAi refuses the feature on any ABI outside
+          # _supportedAbis, so nothing on those devices ever asks the library
+          # to load — but it is worth printing rather than believing.
+          for abi in armeabi-v7a arm64-v8a x86_64; do
+            echo "== $abi"
+            unzip -l "build/app/outputs/flutter-apk/app-$abi-ai-release.apk" \
+              | grep -E 'lib/.*\.so$' | awk '{print $4}' | sort || true
+          done
 
       - name: Collect release assets
         run: |
           mkdir -p dist
           # Flavor-qualified output paths (ADR-031): Gradle nests these under
-          # standardRelease/ and the Flutter tool inserts "-standard-" into
-          # every flutter-apk filename once a flavor is set.
-          cp build/app/outputs/bundle/standardRelease/app-standard-release.aab \
+          # aiRelease/ and the Flutter tool inserts "-ai-" into every
+          # flutter-apk filename once a flavor is set.
+          cp build/app/outputs/bundle/aiRelease/app-ai-release.aab \
             "dist/Nex-${{ needs.version.outputs.version }}.aab"
           # ABI first, flavor second. The Flutter tool has two different naming
           # helpers — `_apkFilesFor` builds app-<flavor>-<abi>-<mode>.apk for
@@ -255,12 +278,12 @@ jobs:
           # published a universal APK and no splits at all, with a green build.
           # No guard now — a missing artifact fails the release.
           for abi in armeabi-v7a arm64-v8a x86_64; do
-            cp "build/app/outputs/flutter-apk/app-$abi-standard-release.apk" \
+            cp "build/app/outputs/flutter-apk/app-$abi-ai-release.apk" \
               "dist/Nex-${{ needs.version.outputs.version }}-$abi.apk"
           done
           # The updater matches this asset by the "-universal.apk" suffix, so
           # the name is a contract, not a label.
-          cp build/app/outputs/flutter-apk/app-standard-release.apk \
+          cp build/app/outputs/flutter-apk/app-ai-release.apk \
             "dist/Nex-${{ needs.version.outputs.version }}-universal.apk"
           ls -la dist
           # The bundle, three splits, the universal APK. Asserted rather than
