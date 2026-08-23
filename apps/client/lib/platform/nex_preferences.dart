@@ -54,6 +54,7 @@ class NexPreferences extends ChangeNotifier {
   static const _kPendingFeedback = 'feedback.pending_message';
 
   static const _kOnboardingComplete = 'onboarding.complete';
+  static const _kTourComplete = 'onboarding.tour_complete';
 
   static Future<NexPreferences> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -65,6 +66,10 @@ class NexPreferences extends ChangeNotifier {
     if (!prefs.containsKey(_kOnboardingComplete) &&
         prefs.getKeys().isNotEmpty) {
       await prefs.setBool(_kOnboardingComplete, true);
+      // And the tour with it. Someone upgrading into this version has been
+      // using these controls for months; pointing at them now would read as
+      // the app having forgotten who they are.
+      await prefs.setBool(_kTourComplete, true);
     }
     final preferences = NexPreferences._(prefs, const FlutterSecureStorage());
     await preferences._migrateAndHydrateApiKeys();
@@ -79,6 +84,23 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> completeOnboarding() async {
     await _prefs.setBool(_kOnboardingComplete, true);
+    notifyListeners();
+  }
+
+  /// Whether the walk-through over the timeline's own controls has been shown.
+  ///
+  /// Separate from [onboardingComplete] because they run at different moments
+  /// and mean different things: onboarding asks four questions before anyone
+  /// has seen the app, and this points at controls that only exist once the
+  /// timeline is on screen.
+  ///
+  /// The same "this app has run before" rule applies as above — an existing
+  /// install is not walked through a screen it has been using for months — so
+  /// [load] marks it seen for anyone who already had preferences.
+  bool get tourComplete => _prefs.getBool(_kTourComplete) ?? false;
+
+  Future<void> completeTour() async {
+    await _prefs.setBool(_kTourComplete, true);
     notifyListeners();
   }
 
@@ -525,6 +547,35 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// A standing instruction for the assistant, in the user's own words.
+  ///
+  /// Empty by default and empty when cleared — never null, so every caller
+  /// can trim and test it the same way. Capped at [aiInstructionMaxLength]
+  /// because it is prepended to every single request: a long one is paid for
+  /// in tokens on each message, and the models this app is usually pointed at
+  /// have small context windows to spend.
+  ///
+  /// Stays on the device apart from the requests it shapes — it is not synced
+  /// and not part of a backup's settings, the same as the API key beside it.
+  static const aiInstructionMaxLength = 300;
+
+  String get aiInstruction => _prefs.getString('ai.instruction') ?? '';
+
+  Future<void> setAiInstruction(String value) async {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      await _prefs.remove('ai.instruction');
+    } else {
+      await _prefs.setString(
+        'ai.instruction',
+        trimmed.length <= aiInstructionMaxLength
+            ? trimmed
+            : trimmed.substring(0, aiInstructionMaxLength),
+      );
+    }
+    notifyListeners();
+  }
+
   /// How many recent notes are sent with each question.
   ///
   /// A privacy setting before it is a quality one. Every one of these leaves
@@ -610,11 +661,25 @@ class NexPreferences extends ChangeNotifier {
   String? get aiHeadlineText => _prefs.getString('ai.headline.text');
   String? get aiHeadlineDate => _prefs.getString('ai.headline.date');
 
+  /// Which language the cached line was written in.
+  ///
+  /// The headline is joined onto the greeting as one sentence, and the
+  /// greeting follows the script of the user's own name — so a name changed
+  /// from Persian to Latin (or back) has to throw the cached line away, not
+  /// glue yesterday's Persian half onto today's English greeting.
+  String? get aiHeadlineLang => _prefs.getString('ai.headline.lang');
+
   Future<void> setAiHeadline({
     required String text,
     required String dateKey,
+    String? lang,
   }) async {
     await _prefs.setString('ai.headline.text', text);
     await _prefs.setString('ai.headline.date', dateKey);
+    if (lang == null) {
+      await _prefs.remove('ai.headline.lang');
+    } else {
+      await _prefs.setString('ai.headline.lang', lang);
+    }
   }
 }

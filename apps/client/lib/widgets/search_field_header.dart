@@ -29,7 +29,12 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
     required this.onTap,
     required this.onChanged,
     required this.onClear,
+    this.anchor,
   });
+
+  /// Attached to the field's own box, so the first-run tour can measure where
+  /// it actually is. Null everywhere the tour is not running.
+  final GlobalKey? anchor;
 
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -90,6 +95,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                 NexSpacing.sm,
               ),
               child: Material(
+                key: anchor,
                 color: scheme.surfaceContainerHighest,
                 shape: StadiumBorder(
                   side: BorderSide(

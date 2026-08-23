@@ -44,6 +44,7 @@ void main() {
     // would all open on the onboarding screen instead of the timeline.
     // Onboarding has its own test file.
     await preferences.completeOnboarding();
+    await preferences.completeTour();
     // The storage figure is measured by walking directories, which is real
     // async I/O and so never resolves inside flutter_test's fake-async zone —
     // its skeleton stays up for the whole test. A repeating shimmer means

@@ -1213,6 +1213,103 @@ class AppLocalizationsFa extends AppLocalizations {
   String get chatHint => 'چیزی بنویسید…';
 
   @override
+  String get foreignImportTitle => 'درون‌ریزی یادداشت‌ها';
+
+  @override
+  String get foreignImportSubtitle =>
+      'از گوگل کیپ، یا هر پوشه‌ای از فایل‌های ‏.md و ‏.txt';
+
+  @override
+  String get foreignImportWorking => 'دارم فایلت را می‌خوانم…';
+
+  @override
+  String foreignImportDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '‏$count یادداشت وارد شد.',
+      one: 'یک یادداشت وارد شد.',
+      zero: 'در آن فایل یادداشتی پیدا نشد.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get foreignImportUnreadable =>
+      'آن فایل خوانده نشد. همان ‏.zip دانلودشده، یا یک فایل ‏.json و ‏.md و ‏.txt را انتخاب کن.';
+
+  @override
+  String get tourNext => 'بعدی';
+
+  @override
+  String get tourDone => 'فهمیدم';
+
+  @override
+  String get tourSkip => 'بی‌خیال';
+
+  @override
+  String get tourCaptureTitle => 'همه چیز از اینجا شروع می‌شود';
+
+  @override
+  String get tourCaptureBody =>
+      'بزن تا بنویسی، یا صدا و عکس و فایل بگذاری. نگهش داری، به‌جایش با دستیار حرف می‌زنی.';
+
+  @override
+  String get tourSearchTitle => 'هر چیزی را پیدا کن';
+
+  @override
+  String get tourSearchBody =>
+      'با کلمه بگرد، یا با معنای یادداشت. ‏tag:work یا ‏type:link هم کار می‌کند.';
+
+  @override
+  String get tourLibraryTitle => 'برچسب‌ها و پاک‌شده‌ها';
+
+  @override
+  String get tourLibraryBody =>
+      'برچسب‌هایت اینجاست، و هر چیزی که پاک کرده‌ای هم — تا مدتی.';
+
+  @override
+  String get tourSettingsTitle => 'به سلیقه‌ی خودت';
+
+  @override
+  String get tourSettingsBody =>
+      'اسم، پوسته، زبان، پشتیبان‌گیری، و سرویس هوشی که خلاصه‌ها را می‌نویسد.';
+
+  @override
+  String get tourCardsTitle => 'یک نکته‌ی آخر';
+
+  @override
+  String get tourCardsBody =>
+      'یادداشت را از لبه‌ی چپ یا راستش بکش تا کارهای سریعش بیاید، و نگهش دار تا برش داری و جابه‌جایش کنی.';
+
+  @override
+  String get translate => 'ترجمه';
+
+  @override
+  String get translateTo => 'به';
+
+  @override
+  String get translateWorking => 'در حال ترجمه…';
+
+  @override
+  String get translateFailed => 'ترجمه برنگشت.';
+
+  @override
+  String get translateSaveAsNote => 'به‌عنوان یادداشت نگه دار';
+
+  @override
+  String get translateSaved => 'به‌عنوان یادداشت تازه ذخیره شد.';
+
+  @override
+  String get chatSpeak => 'گفتن';
+
+  @override
+  String get chatTranscribing => 'دارم صدایت را می‌خوانم…';
+
+  @override
+  String get chatTranscribeFailed => 'از آن ضبط چیزی درنیامد.';
+
+  @override
   String get chatSend => 'فرستادن';
 
   @override
@@ -1299,6 +1396,16 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get assistantScopeSubtitle =>
       'خاموش باشد به هر چیزی جواب می‌دهد، از جمله چیزهایی که در آن‌ها ضعیف است.';
+
+  @override
+  String get assistantInstruction => 'چطور جواب بدهد';
+
+  @override
+  String get assistantInstructionHint => 'کمی طنز در جواب‌ها باشد';
+
+  @override
+  String get assistantInstructionSubtitle =>
+      'یادداشت خودت به دستیار، که همراه هر سؤال فرستاده می‌شود. لحن را عوض می‌کند، نه اینکه چه کارهایی مجاز است.';
 
   @override
   String get assistantContext => 'یادداشت‌هایی که می‌بیند';

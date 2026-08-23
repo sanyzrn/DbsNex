@@ -17,6 +17,7 @@ import 'package:nex_client/widgets/commit_receipt.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
 import 'package:nex_client/widgets/empty_timeline.dart';
+import 'package:nex_client/widgets/first_run_tour.dart';
 
 import 'support/in_process_db.dart';
 
@@ -55,6 +56,7 @@ void main() {
     // would all open on the onboarding screen instead of the timeline.
     // Onboarding has its own test file.
     await preferences.completeOnboarding();
+    await preferences.completeTour();
   });
 
   tearDown(() async {
@@ -82,6 +84,50 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 400));
     expect(find.byType(NexCardSkeleton), findsNothing);
     expect(find.text('something already here'), findsOneWidget);
+  });
+
+  group('the first-run tour', () {
+    testWidgets('runs once and never again', (tester) async {
+      // Undone deliberately: `setUp` marks it seen so every other test in
+      // this file can tap things. This one is about the launch where it has
+      // not been seen.
+      SharedPreferences.setMockInitialValues({'onboarding.complete': true});
+      final fresh = await NexPreferences.load();
+      expect(fresh.tourComplete, isFalse);
+
+      await tester.pumpWidget(NexApp(services: services, preferences: fresh));
+      await tester.pumpAndSettle();
+      expect(find.byType(FirstRunTour), findsOneWidget);
+
+      // Skipping counts. Someone who leaves on step one has decided.
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+      expect(find.byType(FirstRunTour), findsNothing);
+      expect(fresh.tourComplete, isTrue);
+
+      // A relaunch on the same store does not bring it back.
+      final again = await NexPreferences.load();
+      await tester.pumpWidget(NexApp(services: services, preferences: again));
+      await tester.pumpAndSettle();
+      expect(find.byType(FirstRunTour), findsNothing);
+    });
+
+    testWidgets('an install that already has preferences never sees it', (
+      tester,
+    ) async {
+      // The upgrade case: a store with keys in it but no onboarding flag is
+      // someone who has been using the app, not a first launch.
+      SharedPreferences.setMockInitialValues({'appearance.comfort': false});
+      final upgraded = await NexPreferences.load();
+      expect(upgraded.onboardingComplete, isTrue);
+      expect(upgraded.tourComplete, isTrue);
+
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: upgraded),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(FirstRunTour), findsNothing);
+    });
   });
 
   testWidgets('a genuinely empty library still gets the onboarding screen', (

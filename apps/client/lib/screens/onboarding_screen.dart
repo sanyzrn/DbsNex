@@ -341,7 +341,6 @@ class _SetupPage extends StatelessWidget {
             const SizedBox(height: NexSpacing.lg),
             _Field(label: l10n.theme),
             NexChoiceCards<ThemeMode>(
-              haptics: preferences.haptics,
               selected: preferences.themeMode,
               onSelected: preferences.setThemeMode,
               choices: [
@@ -374,7 +373,6 @@ class _SetupPage extends StatelessWidget {
             const SizedBox(height: NexSpacing.lg),
             _Field(label: l10n.language),
             NexChoiceCards<String>(
-              haptics: preferences.haptics,
               selected: preferences.locale?.languageCode ?? 'system',
               onSelected: preferences.setLocale,
               choices: [
@@ -403,7 +401,6 @@ class _SetupPage extends StatelessWidget {
               hint: l10n.aiOutputLanguageSubtitle,
             ),
             NexChoiceCards<AiOutputLanguage>(
-              haptics: preferences.haptics,
               selected: preferences.aiOutputLanguage,
               onSelected: (value) =>
                   unawaited(preferences.setAiOutputLanguage(value)),

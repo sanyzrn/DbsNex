@@ -13,6 +13,7 @@ import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/update_service.dart';
+import '../platform/os_capture_bridge.dart';
 import 'about_screen.dart';
 import 'backup_screen.dart';
 import 'assistant_screen.dart';
@@ -284,6 +285,9 @@ class SettingsSheet extends StatelessWidget {
             < 1.25 => l10n.uiScaleLarge,
             _ => l10n.uiScaleLarger,
           },
+          // The four steps are unchanged, but the type ramp underneath them
+          // came down a step — so "Large" is roughly what "Default" used to
+          // be, which is where anyone who liked the old size should land.
           onTap: () => unawaited(
             _pick<double>(
               context: context,
@@ -294,22 +298,22 @@ class SettingsSheet extends StatelessWidget {
                 NexChoice(
                   value: 0.9,
                   label: l10n.uiScaleSmall,
-                  preview: const _TextSizePreview(fontSize: 14),
+                  preview: const _TextSizePreview(fontSize: 13),
                 ),
                 NexChoice(
                   value: 1.0,
                   label: l10n.uiScaleDefault,
-                  preview: const _TextSizePreview(fontSize: 18),
+                  preview: const _TextSizePreview(fontSize: 17),
                 ),
                 NexChoice(
                   value: 1.15,
                   label: l10n.uiScaleLarge,
-                  preview: const _TextSizePreview(fontSize: 22),
+                  preview: const _TextSizePreview(fontSize: 21),
                 ),
                 NexChoice(
                   value: 1.3,
                   label: l10n.uiScaleLarger,
-                  preview: const _TextSizePreview(fontSize: 26),
+                  preview: const _TextSizePreview(fontSize: 25),
                 ),
               ],
             ),
@@ -389,6 +393,7 @@ class SettingsSheet extends StatelessWidget {
             ),
           ),
         ),
+        _ImportRow(services: services, preferences: preferences),
         // Sync is not offered here. The server exists and the client talks
         // to it, but there is no pairing flow in the app — the row asked
         // people to paste a base URL and a bearer token they have no way to
@@ -688,7 +693,15 @@ class _Row extends StatelessWidget {
     title: Text(title),
     subtitle: value == null ? null : Text(value!),
     trailing: trailing ?? const Icon(Icons.chevron_right),
-    onTap: onTap,
+    // Here rather than at each call site: every row in this screen goes
+    // through this widget, and Settings was the one surface the Haptics
+    // switch could not be felt on — including on the switch itself.
+    onTap: onTap == null
+        ? null
+        : () {
+            nexTick();
+            onTap!();
+          },
   );
 }
 
@@ -715,7 +728,12 @@ class _SwitchRow extends StatelessWidget {
     title: Text(title),
     subtitle: subtitle == null ? null : Text(subtitle!),
     value: value,
-    onChanged: onChanged,
+    // A bump, not a tick: a switch is a thing changing state, not a
+    // selection moving across a set of options.
+    onChanged: (next) {
+      nexBump();
+      onChanged(next);
+    },
   );
 }
 
@@ -1033,7 +1051,6 @@ class _SwipeMappingState extends State<_SwipeMapping> {
       children: [
         edge(rtl ? Icons.arrow_back : Icons.arrow_forward, l10n.swipeLeading),
         NexChoiceCards<SwipeAction>(
-          haptics: widget.preferences.haptics,
           selected: widget.preferences.leadingAction,
           onSelected: (action) => _select(isLeading: true, action: action),
           choices: choices,
@@ -1041,7 +1058,6 @@ class _SwipeMappingState extends State<_SwipeMapping> {
         const SizedBox(height: NexSpacing.md),
         edge(rtl ? Icons.arrow_forward : Icons.arrow_back, l10n.swipeTrailing),
         NexChoiceCards<SwipeAction>(
-          haptics: widget.preferences.haptics,
           selected: widget.preferences.trailingAction,
           onSelected: (action) => _select(isLeading: false, action: action),
           choices: choices,
@@ -1083,6 +1099,76 @@ class _SwipeActionPreview extends StatelessWidget {
         color: color.withValues(alpha: 0.12),
       ),
       child: Icon(_swipeIcon(action), size: 20, color: color),
+    );
+  }
+}
+
+/// Reads another app's export into the library.
+///
+/// Lives beside Backup rather than in a screen of its own: an import is the
+/// same kind of act as a restore — a file goes in, notes come out — and a
+/// second screen for one button would be furniture.
+///
+/// Stateful only to hold "a file is being read". The read itself happens in
+/// the database isolate, which is why this can be a row rather than a progress
+/// screen: a Takeout export of years of notes does not block the frame.
+class _ImportRow extends StatefulWidget {
+  const _ImportRow({required this.services, required this.preferences});
+
+  final NexServices services;
+  final NexPreferences preferences;
+
+  @override
+  State<_ImportRow> createState() => _ImportRowState();
+}
+
+class _ImportRowState extends State<_ImportRow> {
+  bool _running = false;
+
+  Future<void> _import() async {
+    if (_running) return;
+    final picked = await OsCaptureBridge.pickFile();
+    if (picked == null || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final host = NexBannerHost.of(context);
+    setState(() => _running = true);
+    int count;
+    try {
+      count = await widget.services.importNotes(picked.path);
+    } catch (_) {
+      // Anything that goes wrong here is "that file was not an export",
+      // which is one message rather than a stack trace someone has to read.
+      count = -1;
+    }
+    if (mounted) setState(() => _running = false);
+    if (count > 0) {
+      widget.services.refreshTimeline();
+      nexBump();
+    }
+    host?.show(
+      message: count < 0
+          ? l10n.foreignImportUnreadable
+          : l10n.foreignImportDone(count),
+      kind: count < 0 ? NexBannerKind.failed : NexBannerKind.done,
+      haptics: widget.preferences.haptics,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _Row(
+      icon: Icons.download_outlined,
+      title: l10n.foreignImportTitle,
+      value: _running ? l10n.foreignImportWorking : l10n.foreignImportSubtitle,
+      trailing: _running
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : null,
+      onTap: _running ? null : () => unawaited(_import()),
     );
   }
 }

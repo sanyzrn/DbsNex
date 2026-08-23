@@ -1213,6 +1213,103 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatHint => 'Enter a prompt here';
 
   @override
+  String get foreignImportTitle => 'Import notes';
+
+  @override
+  String get foreignImportSubtitle =>
+      'From Google Keep, or any folder of .md and .txt files';
+
+  @override
+  String get foreignImportWorking => 'Reading your export…';
+
+  @override
+  String foreignImportDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes imported.',
+      one: '1 note imported.',
+      zero: 'No notes found in that file.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get foreignImportUnreadable =>
+      'Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.';
+
+  @override
+  String get tourNext => 'Next';
+
+  @override
+  String get tourDone => 'Got it';
+
+  @override
+  String get tourSkip => 'Skip';
+
+  @override
+  String get tourCaptureTitle => 'Everything starts here';
+
+  @override
+  String get tourCaptureBody =>
+      'Tap to write a note, or record, photograph and attach one. Hold it to ask the assistant instead.';
+
+  @override
+  String get tourSearchTitle => 'Find anything';
+
+  @override
+  String get tourSearchBody =>
+      'Search by word, or by what a note meant. Try tag:work or type:link to narrow it down.';
+
+  @override
+  String get tourLibraryTitle => 'Tags and deleted notes';
+
+  @override
+  String get tourLibraryBody =>
+      'Your tags live here, and so does anything you deleted — for a while.';
+
+  @override
+  String get tourSettingsTitle => 'Make it yours';
+
+  @override
+  String get tourSettingsBody =>
+      'Your name, theme, language, backups, and the AI provider that writes your summaries.';
+
+  @override
+  String get tourCardsTitle => 'One more thing';
+
+  @override
+  String get tourCardsBody =>
+      'Swipe a note from its left or right edge for its quick actions, and hold one to pick it up and move it.';
+
+  @override
+  String get translate => 'Translate';
+
+  @override
+  String get translateTo => 'Into';
+
+  @override
+  String get translateWorking => 'Translating…';
+
+  @override
+  String get translateFailed => 'The translation did not come back.';
+
+  @override
+  String get translateSaveAsNote => 'Keep as a note';
+
+  @override
+  String get translateSaved => 'Saved as a new note.';
+
+  @override
+  String get chatSpeak => 'Speak';
+
+  @override
+  String get chatTranscribing => 'Reading your recording…';
+
+  @override
+  String get chatTranscribeFailed => 'Nothing came back from that recording.';
+
+  @override
   String get chatSend => 'Send';
 
   @override
@@ -1298,6 +1395,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get assistantScopeSubtitle =>
       'Off, it will answer anything — including things it is bad at.';
+
+  @override
+  String get assistantInstruction => 'How it should answer';
+
+  @override
+  String get assistantInstructionHint => 'Answer with a bit of humour';
+
+  @override
+  String get assistantInstructionSubtitle =>
+      'Your own note to the assistant, sent with every question. It changes the tone, not what it is allowed to do.';
 
   @override
   String get assistantContext => 'Notes it can see';

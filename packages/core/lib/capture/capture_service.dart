@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import '../ids.dart';
+import '../import/note_import.dart';
 import '../models/checklist.dart';
 import '../models/link_url.dart';
 import '../models/note.dart';
@@ -149,6 +150,57 @@ class CaptureService {
         syncState: SyncState.pending,
       ),
     );
+  }
+
+  /// Writes a whole import in one go, keeping each note's own date.
+  ///
+  /// Not a loop over [submitTextCapture] from the caller's side, for two
+  /// reasons. The capture path stamps `DateTime.now()`, which would date a
+  /// decade of somebody's notes to the minute they moved apps and make the
+  /// timeline useless; and every note would be a separate hop across the
+  /// isolate port, so an import of two thousand notes would be two thousand
+  /// round trips plus one per tag.
+  ///
+  /// Everything else is the ordinary capture contract: new ids, revision 1,
+  /// pending sync. An imported note is a note this device wrote — it has no
+  /// history on any server, and pretending otherwise would push conflicts.
+  List<Note> importNotes(List<ImportedNote> imported) {
+    final written = <Note>[];
+    for (final source in imported) {
+      final body = source.text.trim();
+      if (body.isEmpty) continue;
+      // Falls back to now only where the export gave no date. Clamped to the
+      // present because a note dated in the future pins itself to the top of
+      // the timeline forever.
+      final now = DateTime.now().toUtc();
+      final at = source.createdAt == null || source.createdAt!.isAfter(now)
+          ? now
+          : source.createdAt!.toUtc();
+      final note = _repo.insert(
+        Note(
+          id: newUuidV7(),
+          type: source.type,
+          content: body,
+          title: source.title,
+          createdAt: at,
+          updatedAt: at,
+          deviceId: deviceId,
+          rev: 1,
+          syncState: SyncState.pending,
+        ),
+      );
+      for (final name in source.tags) {
+        final trimmed = name.trim();
+        if (trimmed.isEmpty) continue;
+        // `upsertTag` is what makes two notes carrying the same label share
+        // one tag rather than minting one each — and what makes a label that
+        // already exists in Nex merge with it instead of duplicating.
+        final tag = _repo.upsertTag(name: trimmed);
+        _repo.attachTag(noteId: note.id, tagId: tag.id);
+      }
+      written.add(note);
+    }
+    return written;
   }
 }
 

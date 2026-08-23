@@ -31,6 +31,7 @@ export 'repositories/library_maintenance.dart';
 export 'repositories/memory_repository.dart';
 export 'repositories/note_repository.dart';
 export 'schema/backup_archive.dart';
+export 'schema/import_archive.dart';
 export 'schema/database.dart';
 export 'sync_client/sync_client.dart';
 export 'sync_client/sync_wire.dart';

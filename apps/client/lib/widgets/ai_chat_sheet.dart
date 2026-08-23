@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:path/path.dart' as p;
+import 'package:record/record.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/ai_provider.dart';
@@ -13,6 +17,9 @@ import '../platform/chat_history.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import 'card_strings.dart';
+import 'nex_banner.dart';
+import 'nex_dialog.dart';
+import 'recording_sheet.dart';
 
 /// The assistant, reached by holding the capture button.
 ///
@@ -117,6 +124,13 @@ class _AiChatSheetState extends State<AiChatSheet> {
 
   bool _sending = false;
 
+  /// True from the moment the recording stops until the transcript is back.
+  ///
+  /// Separate from [_sending] on purpose: the composer is disabled for both,
+  /// but only this one is about a question that has not been asked yet, and
+  /// the line it puts on screen says so.
+  bool _transcribing = false;
+
   /// The identity of this conversation in [ChatHistory]. Fixed for the life
   /// of the sheet, so every save replaces the same thread rather than filling
   /// the list with one entry per exchange.
@@ -218,6 +232,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     creativity: widget.preferences.aiCreativity,
     length: widget.preferences.aiAnswerLength,
     notesOnly: widget.preferences.aiNotesOnly,
+    instruction: widget.preferences.aiInstruction,
     notesContext: _notesContext,
     // Acting needs ids to act on. With no notes in context every id the model
     // could produce would be invented, which is the one thing the prompt
@@ -230,6 +245,87 @@ class _AiChatSheetState extends State<AiChatSheet> {
     _input.dispose();
     _adapter.close();
     super.dispose();
+  }
+
+  /// Whether the microphone is worth offering at all.
+  ///
+  /// The transcript comes from the same provider the chat does, and two of the
+  /// four providers cannot hear audio. A mic button that always failed would
+  /// be worse than no mic button.
+  bool get _canSpeak =>
+      !kIsWeb &&
+      (Platform.isAndroid || Platform.isIOS) &&
+      widget.preferences.aiProvider.provider.hearsAudio;
+
+  /// Record a question instead of typing it.
+  ///
+  /// The transcript lands in the composer rather than being sent: speech
+  /// recognition on a free-tier model gets names and Persian word breaks
+  /// wrong often enough that sending unseen would mean arguing with the
+  /// assistant about a question nobody asked. One extra tap buys the chance
+  /// to fix it.
+  ///
+  /// The clip itself is temporary and deleted either way — this is a question,
+  /// not a note, and it has no business in the media directory that backups
+  /// and the library read from.
+  Future<void> _speak() async {
+    if (_sending || _transcribing) return;
+    final recorder = AudioRecorder();
+    if (!await recorder.hasPermission()) return recorder.dispose();
+    final file = File(
+      p.join(
+        Directory.systemTemp.path,
+        'nex-ask-${DateTime.now().millisecondsSinceEpoch}.m4a',
+      ),
+    );
+    await recorder.start(const RecordConfig(), path: file.path);
+    if (!mounted) {
+      await recorder.stop();
+      await recorder.dispose();
+      return;
+    }
+    final keep = await nexShowSheet<bool>(
+      context: context,
+      dismissible: false,
+      builder: (_) => RecordingSheet(recorder: recorder),
+    );
+    final recorded = await recorder.stop();
+    await recorder.dispose();
+    if (keep != true || recorded == null) {
+      if (file.existsSync()) file.deleteSync();
+      return;
+    }
+    if (mounted) setState(() => _transcribing = true);
+    String text = '';
+    try {
+      final transcript = await _adapter.transcribe(
+        AudioRef(mediaUri: recorded, bytes: await File(recorded).readAsBytes()),
+      );
+      text = transcript?.text.trim() ?? '';
+    } catch (_) {
+      text = '';
+    } finally {
+      // Deleted whatever happened, including on the throw: a failed request
+      // is the case where a stray recording would otherwise sit in temp with
+      // nothing left that knows about it.
+      if (file.existsSync()) file.deleteSync();
+    }
+    if (!mounted) return;
+    setState(() => _transcribing = false);
+    if (text.isEmpty) {
+      nexShowBanner(
+        context,
+        message: AppLocalizations.of(context).chatTranscribeFailed,
+        haptics: widget.preferences.haptics,
+      );
+      return;
+    }
+    nexBump();
+    // Appended, not replaced: someone who typed half a question and then
+    // spoke the rest meant both halves.
+    final existing = _input.text.trimRight();
+    _input.text = existing.isEmpty ? text : '$existing $text';
+    _input.selection = TextSelection.collapsed(offset: _input.text.length);
   }
 
   Future<void> _send(String text) async {
@@ -670,7 +766,9 @@ class _AiChatSheetState extends State<AiChatSheet> {
               _Composer(
                 controller: _input,
                 sending: _sending,
+                transcribing: _transcribing,
                 onSend: () => unawaited(_send(_input.text)),
+                onSpeak: _canSpeak ? () => unawaited(_speak()) : null,
               ),
             ],
           ),
@@ -835,12 +933,24 @@ class _Composer extends StatelessWidget {
   const _Composer({
     required this.controller,
     required this.sending,
+    required this.transcribing,
     required this.onSend,
+    required this.onSpeak,
   });
 
   final TextEditingController controller;
   final bool sending;
+
+  /// A recording is being turned into text. The composer says so rather than
+  /// simply going dead — a request over a network with no sign it is running
+  /// is the state people tap through twice.
+  final bool transcribing;
   final VoidCallback onSend;
+
+  /// Null where speech cannot work: a desktop build, or a provider that does
+  /// not hear audio. The button is then absent rather than disabled — there
+  /// is nothing the user could do to enable it from here.
+  final VoidCallback? onSpeak;
 
   @override
   Widget build(BuildContext context) {
@@ -865,15 +975,28 @@ class _Composer extends StatelessWidget {
       ),
       child: Row(
         children: [
+          if (onSpeak != null)
+            IconButton(
+              onPressed: sending || transcribing ? null : onSpeak,
+              tooltip: l10n.chatSpeak,
+              icon: transcribing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.mic_none),
+            ),
           Expanded(
             child: TextField(
               controller: controller,
+              enabled: !transcribing,
               minLines: 1,
               maxLines: 5,
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => onSend(),
               decoration: InputDecoration(
-                hintText: l10n.chatHint,
+                hintText: transcribing ? l10n.chatTranscribing : l10n.chatHint,
                 filled: true,
                 fillColor: theme.colorScheme.surfaceContainerHighest,
                 border: const OutlineInputBorder(
@@ -889,7 +1012,7 @@ class _Composer extends StatelessWidget {
           ),
           const SizedBox(width: NexSpacing.sm),
           IconButton.filled(
-            onPressed: sending ? null : onSend,
+            onPressed: sending || transcribing ? null : onSend,
             tooltip: l10n.chatSend,
             icon: const Icon(Icons.arrow_upward),
           ),

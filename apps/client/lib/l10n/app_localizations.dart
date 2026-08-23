@@ -2120,6 +2120,168 @@ abstract class AppLocalizations {
   /// **'Enter a prompt here'**
   String get chatHint;
 
+  /// Settings row that imports another app's export
+  ///
+  /// In en, this message translates to:
+  /// **'Import notes'**
+  String get foreignImportTitle;
+
+  /// Explains what the import row accepts
+  ///
+  /// In en, this message translates to:
+  /// **'From Google Keep, or any folder of .md and .txt files'**
+  String get foreignImportSubtitle;
+
+  /// Shown while an import is running
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your export…'**
+  String get foreignImportWorking;
+
+  /// How many notes an import brought in
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No notes found in that file.} =1{1 note imported.} other{{count} notes imported.}}'**
+  String foreignImportDone(int count);
+
+  /// Shown when a picked file held nothing importable
+  ///
+  /// In en, this message translates to:
+  /// **'Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.'**
+  String get foreignImportUnreadable;
+
+  /// Advances the first-run tour
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get tourNext;
+
+  /// Finishes the first-run tour
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get tourDone;
+
+  /// Leaves the first-run tour early
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get tourSkip;
+
+  /// Tour step pointing at the capture button
+  ///
+  /// In en, this message translates to:
+  /// **'Everything starts here'**
+  String get tourCaptureTitle;
+
+  /// Tour step body for the capture button
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to write a note, or record, photograph and attach one. Hold it to ask the assistant instead.'**
+  String get tourCaptureBody;
+
+  /// Tour step pointing at the search field
+  ///
+  /// In en, this message translates to:
+  /// **'Find anything'**
+  String get tourSearchTitle;
+
+  /// Tour step body for the search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search by word, or by what a note meant. Try tag:work or type:link to narrow it down.'**
+  String get tourSearchBody;
+
+  /// Tour step pointing at the library button
+  ///
+  /// In en, this message translates to:
+  /// **'Tags and deleted notes'**
+  String get tourLibraryTitle;
+
+  /// Tour step body for the library button
+  ///
+  /// In en, this message translates to:
+  /// **'Your tags live here, and so does anything you deleted — for a while.'**
+  String get tourLibraryBody;
+
+  /// Tour step pointing at the settings button
+  ///
+  /// In en, this message translates to:
+  /// **'Make it yours'**
+  String get tourSettingsTitle;
+
+  /// Tour step body for the settings button
+  ///
+  /// In en, this message translates to:
+  /// **'Your name, theme, language, backups, and the AI provider that writes your summaries.'**
+  String get tourSettingsBody;
+
+  /// Tour step about gestures on a note card
+  ///
+  /// In en, this message translates to:
+  /// **'One more thing'**
+  String get tourCardsTitle;
+
+  /// Tour step body about gestures on a note card
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe a note from its left or right edge for its quick actions, and hold one to pick it up and move it.'**
+  String get tourCardsBody;
+
+  /// Note action that translates the note's text
+  ///
+  /// In en, this message translates to:
+  /// **'Translate'**
+  String get translate;
+
+  /// Label above the target-language picker
+  ///
+  /// In en, this message translates to:
+  /// **'Into'**
+  String get translateTo;
+
+  /// Shown while a translation is in flight
+  ///
+  /// In en, this message translates to:
+  /// **'Translating…'**
+  String get translateWorking;
+
+  /// Shown when a translation request failed or returned nothing
+  ///
+  /// In en, this message translates to:
+  /// **'The translation did not come back.'**
+  String get translateFailed;
+
+  /// Button that saves the translation as a new note
+  ///
+  /// In en, this message translates to:
+  /// **'Keep as a note'**
+  String get translateSaveAsNote;
+
+  /// Confirmation after a translation is kept
+  ///
+  /// In en, this message translates to:
+  /// **'Saved as a new note.'**
+  String get translateSaved;
+
+  /// Tooltip on the chat's microphone button
+  ///
+  /// In en, this message translates to:
+  /// **'Speak'**
+  String get chatSpeak;
+
+  /// Shown while a chat recording is being turned into text
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your recording…'**
+  String get chatTranscribing;
+
+  /// Shown when a chat recording produced no text
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing came back from that recording.'**
+  String get chatTranscribeFailed;
+
   /// Tooltip on the assistant's send button
   ///
   /// In en, this message translates to:
@@ -2287,6 +2449,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Off, it will answer anything — including things it is bad at.'**
   String get assistantScopeSubtitle;
+
+  /// Free-text standing instruction for the assistant
+  ///
+  /// In en, this message translates to:
+  /// **'How it should answer'**
+  String get assistantInstruction;
+
+  /// Placeholder example for the assistant instruction field
+  ///
+  /// In en, this message translates to:
+  /// **'Answer with a bit of humour'**
+  String get assistantInstructionHint;
+
+  /// Explains the assistant instruction field
+  ///
+  /// In en, this message translates to:
+  /// **'Your own note to the assistant, sent with every question. It changes the tone, not what it is allowed to do.'**
+  String get assistantInstructionSubtitle;
 
   /// How many recent notes are sent with each question
   ///

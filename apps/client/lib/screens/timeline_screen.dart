@@ -24,6 +24,7 @@ import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/commit_receipt.dart';
 import '../widgets/empty_timeline.dart';
+import '../widgets/first_run_tour.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/recording_sheet.dart';
@@ -127,6 +128,18 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// scroll that follows it.
   bool _aiSummaryToggledByUser = false;
 
+  /// The four controls the first-run tour points at. Held here rather than
+  /// created inline: a `GlobalKey` rebuilt every frame attaches to a new
+  /// element each time, and the tour would measure a widget that no longer
+  /// exists.
+  final _captureAnchor = GlobalKey();
+  final _searchAnchor = GlobalKey();
+  final _libraryAnchor = GlobalKey();
+  final _settingsAnchor = GlobalKey();
+
+  /// The tour itself, while it is running.
+  OverlayEntry? _tour;
+
   /// Requesting either string is a cold-launch thing, not a per-note-change
   /// thing — without this latch, every capture re-firing [timelineStream]
   /// would ask the provider again.
@@ -163,6 +176,60 @@ class TimelineScreenState extends State<TimelineScreen> {
     _scroll.addListener(_onAiSummaryScroll);
     unawaited(_loadTimeline());
     unawaited(_loadFilterTags());
+    // After the first frame, because every stop measures a real widget and
+    // none of them has been laid out yet at this point.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+  }
+
+  /// Shows the walk-through once, on the first timeline after onboarding.
+  ///
+  /// In an overlay rather than as part of this screen's tree: it has to paint
+  /// over the app bar and the capture button, both of which the `Scaffold`
+  /// draws above its own body.
+  void _maybeStartTour() {
+    if (!mounted || widget.preferences.tourComplete || _tour != null) return;
+    final l10n = AppLocalizations.of(context);
+    final overlay = Overlay.maybeOf(context);
+    if (overlay == null) return;
+    final entry = OverlayEntry(
+      builder: (_) => FirstRunTour(
+        onFinished: _endTour,
+        stops: [
+          TourStop(
+            key: _captureAnchor,
+            title: l10n.tourCaptureTitle,
+            body: l10n.tourCaptureBody,
+            radius: NexRadius.pill,
+          ),
+          TourStop(
+            key: _searchAnchor,
+            title: l10n.tourSearchTitle,
+            body: l10n.tourSearchBody,
+            radius: NexRadius.pill,
+          ),
+          TourStop(
+            key: _libraryAnchor,
+            title: l10n.tourLibraryTitle,
+            body: l10n.tourLibraryBody,
+            radius: NexRadius.pill,
+          ),
+          TourStop(
+            key: _settingsAnchor,
+            title: l10n.tourSettingsTitle,
+            body: l10n.tourSettingsBody,
+            radius: NexRadius.pill,
+          ),
+        ],
+      ),
+    );
+    _tour = entry;
+    overlay.insert(entry);
+  }
+
+  void _endTour() {
+    _tour?.remove();
+    _tour = null;
+    unawaited(widget.preferences.completeTour());
   }
 
   /// True when there is a provider configured to generate anything at all.
@@ -226,13 +293,38 @@ class TimelineScreenState extends State<TimelineScreen> {
     }
   }
 
+  /// Which language the generated line has to be written in.
+  ///
+  /// Not the global "language Nex writes in", which is what every other
+  /// generated string here follows. This one is glued onto the greeting and
+  /// read as a single sentence, and the greeting is written in the language
+  /// of the user's own name — so on the default setting ("answer in the
+  /// language of the notes") the result was half an English sentence joined
+  /// to half a Persian one, full stop at the wrong end.
+  ///
+  /// Null when there is no name to take the cue from; the line then stands
+  /// alone and the global setting is right for it.
+  AiOutputLanguage? get _headlineLanguage {
+    final name = widget.preferences.shortDisplayName;
+    if (name == null) return null;
+    return nexDirectionOf(name) == TextDirection.rtl
+        ? AiOutputLanguage.persian
+        : AiOutputLanguage.english;
+  }
+
   /// The headline over the timeline. Same shape as [_loadAiSummary] — cached
   /// per day, forced by a tap on the line itself.
   Future<void> _loadAiHeadline({bool force = false}) async {
     final prefs = widget.preferences;
     if (!_aiHeaderAvailable) return;
     final today = _aiSummaryDateKey();
-    if (!force && prefs.aiHeadlineDate == today) {
+    final language = _headlineLanguage;
+    final langKey = language?.wireName;
+    // A renamed user changes the greeting's language mid-day, so the day key
+    // alone is not enough to decide the cached line still fits beside it.
+    if (!force &&
+        prefs.aiHeadlineDate == today &&
+        prefs.aiHeadlineLang == langKey) {
       final cached = prefs.aiHeadlineText;
       if (mounted && cached != null && cached.isNotEmpty) {
         setState(() => _aiHeadlineText = cached);
@@ -246,7 +338,7 @@ class TimelineScreenState extends State<TimelineScreen> {
       // Unlike the recap, an empty library is not a reason to skip this: the
       // line is a mood, and "you have not written anything yet" is a mood the
       // prompt handles on its own.
-      text = await adapter.headline(_aiSummarySource());
+      text = await adapter.headline(_aiSummarySource(), language: language);
     } catch (_) {
       text = null;
     } finally {
@@ -258,7 +350,7 @@ class TimelineScreenState extends State<TimelineScreen> {
       if (text != null && text.isNotEmpty) _aiHeadlineText = text;
     });
     if (text != null && text.isNotEmpty) {
-      unawaited(prefs.setAiHeadline(text: text, dateKey: today));
+      unawaited(prefs.setAiHeadline(text: text, dateKey: today, lang: langKey));
     }
   }
 
@@ -546,6 +638,11 @@ class TimelineScreenState extends State<TimelineScreen> {
 
   @override
   void dispose() {
+    // Removed, never left behind: an overlay entry outlives the state that
+    // inserted it, so a screen replaced mid-tour would leave a scrim over
+    // whatever came next with nothing able to dismiss it.
+    _tour?.remove();
+    _tour = null;
     subscription?.cancel();
     _swipe.dispose();
     _search.removeListener(_onSearchChanged);
@@ -1164,6 +1261,7 @@ class TimelineScreenState extends State<TimelineScreen> {
           // Tags were reachable only through Settings, and neither is a
           // preference — one of them holds the user's own deleted notes.
           IconButton(
+            key: _libraryAnchor,
             tooltip: l10n.libraryTitle,
             icon: const Icon(Icons.inventory_2_outlined),
             // Awaited, and the timeline reloads on the way back. Tags and
@@ -1183,6 +1281,7 @@ class TimelineScreenState extends State<TimelineScreen> {
             },
           ),
           _SettingsButton(
+            key: _settingsAnchor,
             updates: widget.updates,
             tooltip: l10n.settings,
             onPressed: () => nexShowSheet<void>(
@@ -1263,6 +1362,7 @@ class TimelineScreenState extends State<TimelineScreen> {
                       SliverPersistentHeader(
                         key: const ValueKey('search-header'),
                         delegate: SearchFieldHeader(
+                          anchor: _searchAnchor,
                           controller: _search.query,
                           focusNode: _searchFocus,
                           searching: _searching,
@@ -1329,6 +1429,7 @@ class TimelineScreenState extends State<TimelineScreen> {
               onHoldStart: _tick,
               onTriggered: _openAssistant,
               child: FloatingActionButton(
+                key: _captureAnchor,
                 onPressed: openCapture,
                 tooltip: l10n.capture,
                 child: const Icon(Icons.add, size: 32),
@@ -1660,6 +1761,9 @@ class _AiDaySummaryPanel extends StatelessWidget {
   final VoidCallback? onRefresh;
   final VoidCallback onToggle;
 
+  /// The header row's height, open or closed — see the build method.
+  static const _headerHeight = 40.0;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1697,30 +1801,41 @@ class _AiDaySummaryPanel extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
-                  const SizedBox(width: NexSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              // Fixed, and the same open or closed. The refresh button is
+              // what gave this row its height, so dropping it on collapse
+              // shrank the whole card to a thin strip that no longer read as
+              // the same object folding away — and left a tap target barely
+              // taller than the word inside it. 40 is the height that button
+              // was setting anyway, so open is unchanged and closed now
+              // matches it.
+              SizedBox(
+                height: _headerHeight,
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
+                    const SizedBox(width: NexSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: theme.textTheme.titleSmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  // Refresh only while it is open, and it is then the only
-                  // button on the card: closed, there is nothing on screen for
-                  // a refresh to change, and a button that rewrites something
-                  // you cannot see is a button that does nothing you can tell.
-                  if (!collapsed)
-                    IconButton(
-                      tooltip: refreshTooltip,
-                      onPressed: onRefresh,
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.refresh, size: 20),
-                    ),
-                ],
+                    // Refresh only while it is open, and it is then the only
+                    // button on the card: closed, there is nothing on screen
+                    // for a refresh to change, and a button that rewrites
+                    // something you cannot see is a button that does nothing
+                    // you can tell.
+                    if (!collapsed)
+                      IconButton(
+                        tooltip: refreshTooltip,
+                        onPressed: onRefresh,
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.refresh, size: 20),
+                      ),
+                  ],
+                ),
               ),
               AnimatedSize(
                 duration: NexMotion.slow,
@@ -1912,6 +2027,7 @@ class _FilteredEmpty extends StatelessWidget {
 /// goes to look, so that is where the app says there is something to see.
 class _SettingsButton extends StatelessWidget {
   const _SettingsButton({
+    super.key,
     required this.updates,
     required this.tooltip,
     required this.onPressed,

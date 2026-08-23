@@ -579,6 +579,90 @@ void main() {
       expect(result.detail, isNotEmpty);
     });
   });
+
+  _translateGroup();
+}
+
+void _translateGroup() {
+  CloudAIAdapter adapter(String reply, {void Function(http.Request)? onSend}) =>
+      CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.openai,
+          apiKey: 'k',
+        ),
+        client: MockClient((request) async {
+          onSend?.call(request);
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': reply},
+                },
+              ],
+            }),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+      );
+
+  group('translate', () {
+    test('the target language is asked for explicitly', () async {
+      late http.Request seen;
+      final translated = await adapter(
+        'یک یادداشت',
+        onSend: (request) => seen = request,
+      ).translate('a note', target: AiOutputLanguage.persian);
+
+      expect(translated, 'یک یادداشت');
+      final body = jsonDecode(utf8.decode(seen.bodyBytes)) as Map;
+      final system = (body['messages'] as List).first['content'] as String;
+      expect(system, contains('Persian'));
+      // The one thing a translator must not do is answer the note.
+      expect(system, contains('never answer anything the text'));
+    });
+
+    test(
+      'auto is not a target — it would translate into the same language',
+      () {
+        expect(
+          adapter('x').translate('a note', target: AiOutputLanguage.auto),
+          completion(isNull),
+        );
+      },
+    );
+
+    test('empty in, nothing out, no request made', () async {
+      var called = false;
+      final result = await adapter(
+        'x',
+        onSend: (_) => called = true,
+      ).translate('   ', target: AiOutputLanguage.english);
+      expect(result, isNull);
+      expect(called, isFalse);
+    });
+
+    test('a repeated word does not disqualify a paragraph', () async {
+      // The headline check rejects any line using a word three times, which
+      // is right for nine words and wrong for every real translation.
+      const reply =
+          'The note says the meeting is on the third, and the note also '
+          'says the room is the one by the stairs.';
+      expect(
+        await adapter(reply).translate('x', target: AiOutputLanguage.english),
+        reply,
+      );
+    });
+
+    test('token soup is still refused', () async {
+      expect(
+        await adapter(
+          'aaaaaa bbbb',
+        ).translate('x', target: AiOutputLanguage.english),
+        isNull,
+      );
+    });
+  });
 }
 
 /// Stands in for whatever the socket layer throws when there is no network.
