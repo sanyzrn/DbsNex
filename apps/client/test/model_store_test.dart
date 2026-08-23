@@ -16,7 +16,11 @@ final partA = utf8.encode('the first half of some weights');
 final partB = utf8.encode('and the second half of them');
 final whole = [...partA, ...partB];
 
-ModelRelease releaseFor({String? wholeDigest}) => ModelRelease(
+ModelRelease releaseFor({
+  String? wholeDigest,
+  String? partUrl,
+  String? partDigest,
+}) => ModelRelease(
   id: 'test-model',
   filename: 'model.litertlm',
   sizeBytes: whole.length,
@@ -25,9 +29,9 @@ ModelRelease releaseFor({String? wholeDigest}) => ModelRelease(
   sha256: wholeDigest ?? digestOf(whole),
   parts: [
     ModelPart(
-      url: 'https://example.invalid/model.part-aa',
+      url: partUrl ?? 'https://example.invalid/model.part-aa',
       filename: 'model.part-aa',
-      sha256: digestOf(partA),
+      sha256: partDigest ?? digestOf(partA),
     ),
     ModelPart(
       url: 'https://example.invalid/model.part-ab',
@@ -241,22 +245,42 @@ void main() {
   });
 
   group('what is offered before anything is downloaded', () {
-    test('an unpublished model is not installable', () {
-      // The shipped constant is a placeholder until the weights are uploaded.
-      // False here is what keeps the UI from offering a download that 404s.
-      expect(NexModelStore.installable(NexModels.gemma4E2B), isFalse);
+    test('a model missing a url or a digest is not installable', () {
+      // False here is what keeps the UI from offering a download that 404s or
+      // arrives unverified. Both halves are required, and each is checked
+      // separately because a half-filled constant is the realistic mistake.
       expect(NexModelStore.installable(releaseFor()), isTrue);
+      expect(NexModelStore.installable(releaseFor(partUrl: '')), isFalse);
+      expect(NexModelStore.installable(releaseFor(partDigest: '')), isFalse);
+      expect(NexModelStore.installable(releaseFor(wholeDigest: '')), isFalse);
     });
 
-    test('an unpublished model reports why, rather than a bare no', () async {
+    test('the shipped model is completely specified', () {
+      // Guards the constant itself. Publishing a model is an edit to four
+      // string literals by hand, and the failure mode is filling in three of
+      // them — which without this reads as "your device is unsupported".
+      final model = NexModels.gemma4E2B;
+      expect(NexModelStore.installable(model), isTrue);
+      expect(model.sizeBytes, greaterThan(0));
+      expect(model.licenseUrl, isNotEmpty);
+      expect(model.licenseNotice, isNotEmpty);
+      // A single asset, so the two digests describe the same bytes. If this
+      // ever splits again they must diverge, and this line should go.
+      expect(model.parts.single.sha256, model.sha256);
+      // Lower-case hex, because that is what `sha256.convert()` produces and
+      // the comparison in [NexModelStore] is a plain string equality. A digest
+      // pasted from PowerShell is upper-case and would fail every download
+      // after 2 GB had already been paid for.
+      expect(model.sha256, matches(RegExp(r'^[0-9a-f]{64}$')));
+    });
+
+    test('an unsupported host reports why, rather than a bare no', () async {
       final support = await LocalAi.check(NexModels.gemma4E2B);
+      // A test host is neither Android nor iOS, so this is the platform
+      // blocker. The point is that there is always a reason attached, never
+      // "unavailable" with nothing a person can act on.
       expect(support.supported, isFalse);
-      // On a test host the platform check fires first; either answer is a
-      // truthful reason and neither is "unavailable" with no explanation.
-      expect(
-        support.blocker,
-        anyOf(LocalAiBlocker.platform, LocalAiBlocker.notPublished),
-      );
+      expect(support.blocker, LocalAiBlocker.platform);
     });
 
     test(

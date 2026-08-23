@@ -78,9 +78,9 @@ class ModelRelease {
 
 /// The models this build knows how to install.
 ///
-/// Empty digests are a deliberate, visible placeholder: until they are filled
-/// in [NexModelStore.installable] reports false and no UI offers a download
-/// that would 404 or arrive unverified. Publishing a model is an edit here.
+/// A model with a URL and a digest is offered; one missing either is invisible,
+/// because [NexModelStore.installable] reports false and no UI offers a
+/// download that would 404 or arrive unverified. Publishing is an edit here.
 abstract final class NexModels {
   /// The GPU-targeted build of Gemma-4-E2B-it, 2.01 GB.
   ///
@@ -101,7 +101,7 @@ abstract final class NexModels {
   static const gemma4E2B = ModelRelease(
     id: 'gemma-4-e2b-it',
     filename: 'gemma-4-E2B-it-gpu.litertlm',
-    sizeBytes: 2010000000,
+    sizeBytes: 2008432640,
     // Gemma's terms, not the repository's apache-2.0 badge. That badge covers
     // the conversion, not the weights, and the weights are what is being
     // redistributed here.
@@ -109,7 +109,7 @@ abstract final class NexModels {
     licenseNotice:
         'Gemma is provided under and subject to the Gemma Terms of Use '
         'found at ai.google.dev/gemma/terms',
-    sha256: '',
+    sha256: 'a53a59001894c58e6bdb5b9b227709f91a2e3e556baa7d85acf9c55402ba5cf5',
     parts: [
       ModelPart(
         url:
@@ -120,7 +120,8 @@ abstract final class NexModels {
         // is the same string. Not redundant in general — for a split model the
         // two prove different things — and cheap enough to leave symmetrical
         // rather than special-casing the single-part shape.
-        sha256: '',
+        sha256:
+            'a53a59001894c58e6bdb5b9b227709f91a2e3e556baa7d85acf9c55402ba5cf5',
       ),
     ],
   );
