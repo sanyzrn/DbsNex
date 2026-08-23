@@ -69,8 +69,18 @@ android {
         }
         create("ai") {
             dimension = "distribution"
-            applicationIdSuffix = ".ai"
-            versionNameSuffix = "-ai"
+            // No applicationIdSuffix, deliberately, and this is a reversal of
+            // what ADR-031 originally wrote down. The suffix let both flavors
+            // sit on one phone, which is useful while developing and wrong for
+            // shipping: "ai" is the flavor people actually install, so a
+            // suffix would make it a *different app* from the one they already
+            // have — same icon, none of their notes, and an in-app updater
+            // offering an APK that cannot install over it, because Android
+            // refuses an update across applicationIds. That is the 0.9.1
+            // install failure again, by another route.
+            //
+            // What is given up is side-by-side installation, which the debug
+            // build type can restore for whoever needs it. Nothing does today.
         }
     }
 
