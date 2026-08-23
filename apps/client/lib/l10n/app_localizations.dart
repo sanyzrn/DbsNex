@@ -2234,6 +2234,18 @@ abstract class AppLocalizations {
   /// **'That is not this model — the file did not match the fingerprint.'**
   String get localModelWrongFile;
 
+  /// Model row state when installed
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded and ready on this phone'**
+  String get localModelManageInstalled;
+
+  /// Model row state when not installed
+  ///
+  /// In en, this message translates to:
+  /// **'Not downloaded yet — the assistant needs it to work offline'**
+  String get localModelManageMissing;
+
   /// Screen for downloading the local AI model
   ///
   /// In en, this message translates to:

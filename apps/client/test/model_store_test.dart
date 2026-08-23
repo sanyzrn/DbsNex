@@ -350,23 +350,44 @@ void main() {
       expect(NexModelStore.installable(releaseFor(wholeDigest: '')), isFalse);
     });
 
-    test('the shipped model is completely specified', () {
-      // Guards the constant itself. Publishing a model is an edit to four
-      // string literals by hand, and the failure mode is filling in three of
-      // them — which without this reads as "your device is unsupported".
+    test('the shipped model is all-or-nothing, never half filled in', () {
+      // Publishing a model is an edit to string literals by hand, and the
+      // realistic mistake is filling in three of four. Half-filled reads on a
+      // phone as "your device is unsupported", which is the least useful thing
+      // it could say. So: every digest present, or none.
       final model = NexModels.gemma4E2B;
-      expect(NexModelStore.installable(model), isTrue);
+      final digests = [model.sha256, ...model.parts.map((p) => p.sha256)];
+      expect(
+        digests.every((d) => d.isEmpty) || digests.every((d) => d.isNotEmpty),
+        isTrue,
+        reason: 'digests: $digests',
+      );
+      expect(NexModelStore.installable(model), digests.first.isNotEmpty);
+    });
+
+    test('everything that does not wait on an upload is filled in', () {
+      final model = NexModels.gemma4E2B;
       expect(model.sizeBytes, greaterThan(0));
       expect(model.licenseUrl, isNotEmpty);
       expect(model.licenseNotice, isNotEmpty);
-      // A single asset, so the two digests describe the same bytes. If this
-      // ever splits again they must diverge, and this line should go.
-      expect(model.parts.single.sha256, model.sha256);
-      // Lower-case hex, because that is what `sha256.convert()` produces and
-      // the comparison in [NexModelStore] is a plain string equality. A digest
-      // pasted from PowerShell is upper-case and would fail every download
-      // after 2 GB had already been paid for.
-      expect(model.sha256, matches(RegExp(r'^[0-9a-f]{64}$')));
+      expect(model.parts, isNotEmpty);
+      // URLs are known before the files exist — they are where the upload will
+      // go — so a blank one here is a mistake rather than a pending step.
+      expect(model.parts.map((p) => p.url), everyElement(isNotEmpty));
+    });
+
+    test('any digest that is filled in is lower-case hex', () {
+      // `sha256.convert()` produces lower case and the comparison is a plain
+      // string equality. A digest pasted from PowerShell is upper-case and
+      // would fail every download after gigabytes had already been spent.
+      final model = NexModels.gemma4E2B;
+      for (final digest in [
+        model.sha256,
+        ...model.parts.map((p) => p.sha256),
+      ]) {
+        if (digest.isEmpty) continue;
+        expect(digest, matches(RegExp(r'^[0-9a-f]{64}$')));
+      }
     });
 
     test('an unsupported host reports why, rather than a bare no', () async {

@@ -172,22 +172,79 @@ class LiteRtChatAdapter implements ChatAdapter {
     _sentThroughIndex = replay.length;
   }
 
+  /// A note on disk saying "a backend load is in progress".
+  ///
+  /// Loading a model is native work, and native work does not fail politely:
+  /// on the wrong file or the wrong driver it aborts the process, which no
+  /// `try` in Dart can catch. Without a record that survives the crash, the
+  /// next launch tries the same backend and dies the same way — the app
+  /// becomes unopenable by the one action the user most wants to repeat.
+  ///
+  /// So the attempt is written down *before* it happens and cleared after. A
+  /// marker found still sitting there on a later run means that backend took
+  /// the process with it, and it is skipped from then on.
+  File get _attemptMarker => File('$modelPath.loading');
+
+  Set<String> _crashedBackends() {
+    try {
+      if (!_attemptMarker.existsSync()) return const {};
+      return _attemptMarker
+          .readAsLinesSync()
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty)
+          .toSet();
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  void _recordAttempt(LiteLmBackend backend) {
+    try {
+      final known = _crashedBackends()..add(backend.name);
+      _attemptMarker.writeAsStringSync(known.join('\n'), flush: true);
+    } catch (_) {
+      // An unwritable directory costs the protection, not the feature.
+    }
+  }
+
+  void _clearAttempt(LiteLmBackend backend) {
+    try {
+      final left = _crashedBackends()..remove(backend.name);
+      if (left.isEmpty) {
+        if (_attemptMarker.existsSync()) _attemptMarker.deleteSync();
+      } else {
+        _attemptMarker.writeAsStringSync(left.join('\n'), flush: true);
+      }
+    } catch (_) {}
+  }
+
   Future<LiteLmEngine> _ensureEngine() async {
     final existing = _engine;
     if (existing != null) return existing;
 
+    final crashed = _crashedBackends();
     Object? lastFailure;
     for (final backend in _backends) {
+      if (crashed.contains(backend.name)) {
+        // Tried before and never came back. Skipping it is the difference
+        // between an app that starts and one that does not.
+        lastFailure = StateError('${backend.name} crashed on a previous load');
+        continue;
+      }
+      _recordAttempt(backend);
       try {
         final engine = await LiteLmEngine.create(
           LiteLmEngineConfig(modelPath: modelPath, backend: backend),
         );
+        _clearAttempt(backend);
         _engine = engine;
         return engine;
       } catch (error) {
         // A device that reports OpenCL and still fails to bring up the GPU
-        // backend is common enough to plan for rather than to surface. The
-        // loop moves on to CPU; only running out of backends is a real error.
+        // backend is common enough to plan for rather than to surface. A
+        // *caught* failure is not a crash, so the marker comes off: the
+        // backend behaved, it just could not load this file.
+        _clearAttempt(backend);
         lastFailure = error;
       }
     }

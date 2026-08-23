@@ -1290,6 +1290,13 @@ class AppLocalizationsFa extends AppLocalizations {
       'این فایل این مدل نیست — اثر انگشتش نخواند.';
 
   @override
+  String get localModelManageInstalled => 'دانلود شده و روی گوشی آماده است';
+
+  @override
+  String get localModelManageMissing =>
+      'هنوز دانلود نشده — دستیار برای کار آفلاین به آن نیاز دارد';
+
+  @override
   String get localModelTitle => 'مدل روی دستگاه';
 
   @override

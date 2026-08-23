@@ -1290,6 +1290,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'That is not this model — the file did not match the fingerprint.';
 
   @override
+  String get localModelManageInstalled => 'Downloaded and ready on this phone';
+
+  @override
+  String get localModelManageMissing =>
+      'Not downloaded yet — the assistant needs it to work offline';
+
+  @override
   String get localModelTitle => 'On-device model';
 
   @override

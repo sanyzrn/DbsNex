@@ -241,41 +241,57 @@ class _Page extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(NexSpacing.lg),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: NexSpacing.xl),
-          art ??
-              Container(
-                width: 88,
-                height: 88,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: theme.colorScheme.surfaceContainerHighest,
+    // LayoutBuilder, not a bare SingleChildScrollView. A Column inside a
+    // scroll view is laid out unbounded, so `mainAxisAlignment: center` had
+    // nothing to centre within and every page sat pinned to the top with the
+    // whole lower half empty. Giving the child a minimum height of the
+    // viewport is what makes centring mean something, while still letting the
+    // page scroll when the text is long or the type scale is large.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.all(NexSpacing.lg),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: constraints.maxHeight - NexSpacing.lg * 2,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              art ??
+                  Container(
+                    width: 88,
+                    height: 88,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: theme.colorScheme.surfaceContainerHighest,
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 40,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+              const SizedBox(height: NexSpacing.xl),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-                child: Icon(icon, size: 40, color: theme.colorScheme.primary),
               ),
-          const SizedBox(height: NexSpacing.xl),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+              const SizedBox(height: NexSpacing.md),
+              Text(
+                body,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: NexSpacing.md),
-          Text(
-            body,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              height: 1.5,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -473,7 +489,13 @@ class _Dot extends StatelessWidget {
       width: active ? 18 : 6,
       height: 6,
       decoration: BoxDecoration(
-        color: active ? scheme.primary : scheme.outlineVariant,
+        // Not outlineVariant. On the dark theme that token sits a few
+        // percent off the background, so four of the five dots were invisible
+        // and the indicator read as a single stray mark rather than as
+        // "you are one of five".
+        color: active
+            ? scheme.primary
+            : scheme.onSurfaceVariant.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(3),
       ),
     );
