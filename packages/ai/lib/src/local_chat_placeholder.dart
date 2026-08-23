@@ -9,6 +9,16 @@ import 'package:nex_core/nex_core.dart';
 class PlaceholderLocalChatAdapter implements ChatAdapter {
   const PlaceholderLocalChatAdapter();
 
+  /// Always true: it answers every message, just not with a model. Nothing
+  /// binds this any more — LiteRtChatAdapter replaced it — and it is kept
+  /// only because its test documents the contract's shape without needing a
+  /// 2 GB file.
+  @override
+  bool get available => true;
+
+  @override
+  Future<void>? warmUp() => null;
+
   @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) {
     return Future.value(

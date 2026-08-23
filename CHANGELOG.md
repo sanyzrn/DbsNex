@@ -40,11 +40,21 @@ Working convention:
   On-device model downloads Gemma 4 E2B once — about 2 GB, over Wi-Fi, and it
   stays on the phone — and from then on the assistant answers with no internet
   and no provider key. Ask it something on a plane and it answers.
-- The download survives a dropped connection. It resumes where it stopped
-  rather than starting the 2 GB again, checks the file against a known
-  fingerprint before using it, and tells you if your phone does not have room
-  before it begins instead of after. You can delete the model later from the
-  same screen and get the space back.
+- The download has Pause, Resume and Stop, and leaving the screen does not
+  touch it. Pause keeps everything that has arrived; Stop throws it away and
+  says so before it does. It shows how much has come down against how much
+  there is, in gigabytes rather than a percentage, because on a data plan that
+  is the number that matters.
+- It survives a dropped connection, resuming where it stopped rather than
+  starting the 2 GB again, checks the file against a known fingerprint before
+  using it, and tells you if your phone does not have room before it begins
+  instead of after. You can delete the model later and get the space back.
+- If you already have the model file on your phone, you can point Nex at it
+  instead of downloading it again. It is checked against the same fingerprint,
+  and your copy is left where it is.
+- The model is started up while you are still looking at the screen that
+  finished the download, and says so, rather than making your first question
+  wait for it with nothing on screen.
 - Google's terms for the model are shown and have to be accepted before the
   download starts, not linked somewhere afterwards.
 - Phones that cannot run it say so plainly — 64-bit ARM only, which is nearly

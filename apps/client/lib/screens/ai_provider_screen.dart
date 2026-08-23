@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
@@ -46,6 +47,13 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
   late final TextEditingController _model = TextEditingController(
     text: _config.model,
   );
+
+  /// Whether a downloaded model is behind the "on-device" option.
+  ///
+  /// Read from the binding at build time rather than stored: someone can
+  /// download or delete the model and come straight back here, and a value
+  /// captured in initState would describe a phone that no longer exists.
+  bool get _localModelReady => ChatAdapterBinding.instance.available;
 
   bool _obscure = true;
   bool _testing = false;
@@ -147,6 +155,18 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
         ),
         children: [
           Text(l10n.aiProviderIntro, style: theme.textTheme.bodyMedium),
+          // Said once, here, rather than discovered later by a mic button that
+          // does nothing: the local model reads and writes text and that is
+          // all it does.
+          if (_localModelReady) ...[
+            const SizedBox(height: NexSpacing.sm),
+            Text(
+              l10n.aiProviderLocalNote,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
           const SizedBox(height: NexSpacing.lg),
           // A list, not a dropdown. Six providers behind a popup menu meant the
           // one thing this screen is for was hidden behind a tap, and the menu
@@ -158,7 +178,14 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               provider: candidate,
               selected: candidate == provider,
               subtitle: candidate == AiProvider.none
-                  ? l10n.aiProviderNoneSubtitle
+                  // "On-device" used to mean the tag heuristics and nothing
+                  // else, and the copy said so. With a model downloaded it
+                  // means a real one, and a subtitle still promising less
+                  // than the phone can do is how someone concludes the two
+                  // gigabytes did nothing.
+                  ? (_localModelReady
+                        ? l10n.aiProviderNoneSubtitleLocal
+                        : l10n.aiProviderNoneSubtitle)
                   : candidate.defaultModel,
               onTap: () {
                 if (candidate == provider) return;

@@ -397,6 +397,19 @@ class UpdateChecker {
 ///
 /// Downloads to a temporary name and renames on completion, so an interrupted
 /// download can never be handed to the package installer as if it were whole.
+/// Thrown when a download stops because it was asked to, not because it broke.
+///
+/// Carries no message and is caught rather than shown: the `.part` file is
+/// intact, the bytes are banked, and the next call picks up where this left
+/// off. A paused download reported as "download failed" is how someone
+/// concludes the feature is broken and stops using it.
+class DownloadPaused implements Exception {
+  const DownloadPaused();
+
+  @override
+  String toString() => 'DownloadPaused';
+}
+
 class UpdateDownloader {
   UpdateDownloader({http.Client? client})
     : _client = client ?? http.Client(),
@@ -410,6 +423,19 @@ class UpdateDownloader {
     required Directory into,
     required String filename,
     void Function(double? progress)? onProgress,
+
+    /// Raw counters beside the fraction. A percentage is the wrong unit for a
+    /// two-gigabyte download on a metered connection: what someone needs to
+    /// decide whether to keep going is how much has arrived and how much is
+    /// left, in bytes they recognise.
+    void Function(int received, int? total)? onBytes,
+
+    /// Polled once per chunk. Returning true stops the download where it is
+    /// and throws [DownloadPaused] — the `.part` file stays on disk, so a
+    /// later call resumes by range rather than starting over. Distinct from a
+    /// failure on purpose: pausing is something the user asked for, and must
+    /// not be reported to them as an error.
+    bool Function()? isCancelled,
     // Null for a release published before SHA256SUMS existed, or when
     // fetching it failed — see UpdateChecker._fetchChecksum. Verification is
     // best-effort on top of the length check just below, not a replacement
@@ -483,11 +509,19 @@ class UpdateDownloader {
     final sink = partial.openWrite(mode: mode);
     try {
       await for (final chunk in response.stream) {
+        if (isCancelled != null && isCancelled()) {
+          // Flushed inside the finally below, so the bytes already read are on
+          // disk and count towards the resume. Throwing rather than returning
+          // keeps the verification and rename below unreachable for a file
+          // that is deliberately incomplete.
+          throw const DownloadPaused();
+        }
         sink.add(chunk);
         received += chunk.length;
         // Null when the server sends no Content-Length: the UI shows an
         // indeterminate bar rather than a fabricated percentage.
         onProgress?.call(total == null || total == 0 ? null : received / total);
+        onBytes?.call(received, total);
       }
       await sink.flush();
     } finally {

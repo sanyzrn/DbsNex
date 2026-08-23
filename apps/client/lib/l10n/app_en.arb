@@ -905,6 +905,14 @@
   "@testConnection": {
     "description": "Button that verifies the configuration"
   },
+  "aiProviderNoneSubtitleLocal": "Answers on this phone, from the model you downloaded.",
+  "@aiProviderNoneSubtitleLocal": {
+    "description": "Subtitle for the on-device option once a local model is installed."
+  },
+  "aiProviderLocalNote": "The model on your phone writes and reads text, so it covers the assistant, the daily recap and translation. It cannot hear a recording or read a photo — those still need a provider.",
+  "@aiProviderLocalNote": {
+    "description": "Explains what the local model does and does not cover."
+  },
   "aiProviderNoneSubtitle": "Runs on this device. No key needed.",
   "@aiProviderNoneSubtitle": {
     "description": "Second line on the \"no provider\" row of the provider list"
@@ -1187,6 +1195,36 @@
   },
   "foreignImportUnreadable": "Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.",
   "@foreignImportUnreadable": {"description": "Shown when a picked file held nothing importable"},
+  "localModelPause": "Pause",
+  "@localModelPause": {"description": "Pauses the download, keeping what has arrived"},
+  "localModelResume": "Resume",
+  "@localModelResume": {"description": "Continues a paused download"},
+  "localModelStop": "Stop",
+  "@localModelStop": {"description": "Stops the download and discards what has arrived"},
+  "localModelPaused": "Paused · {done} of {total}",
+  "@localModelPaused": {
+    "description": "Paused state with byte counts",
+    "placeholders": {"done": {"type": "String"}, "total": {"type": "String"}}
+  },
+  "localModelBytes": "{done} of {total}",
+  "@localModelBytes": {
+    "description": "Downloaded so far against the whole model",
+    "placeholders": {"done": {"type": "String"}, "total": {"type": "String"}}
+  },
+  "localModelLoading": "Starting the model up…",
+  "@localModelLoading": {"description": "Shown while the runtime loads the weights"},
+  "localModelStopTitle": "Stop the download?",
+  "@localModelStopTitle": {"description": "Confirm discarding a partial download"},
+  "localModelStopBody": "What has downloaded so far is thrown away, and starting again begins from the beginning. Pause keeps it instead.",
+  "@localModelStopBody": {"description": "Explains the cost of stopping rather than pausing"},
+  "localModelFromFile": "I already have the file",
+  "@localModelFromFile": {"description": "Install from a file on the device instead of downloading"},
+  "localModelFromFileHint": "Pick the model file if you have already downloaded it on this phone or copied it across. It is checked against the same fingerprint before it is used.",
+  "@localModelFromFileHint": {"description": "Explains the pick-a-file option"},
+  "localModelChecking": "Checking the file…",
+  "@localModelChecking": {"description": "Shown while a picked file is verified"},
+  "localModelWrongFile": "That is not this model — the file did not match the fingerprint.",
+  "@localModelWrongFile": {"description": "Picked file failed verification"},
   "localModelTitle": "On-device model",
   "@localModelTitle": {"description": "Screen for downloading the local AI model"},
   "localModelSubtitle": "Chat with no internet, once the model is downloaded",
@@ -1207,7 +1245,7 @@
   },
   "localModelJoining": "Putting the pieces together and checking them…",
   "@localModelJoining": {"description": "Shown while parts are joined and verified"},
-  "localModelKeepOpen": "You can leave this screen. Closing the app stops the download, and it picks up where it left off.",
+  "localModelKeepOpen": "You can leave this screen — the download keeps going. Closing the app stops it, and it picks up where it left off.",
   "@localModelKeepOpen": {"description": "What happens if the user navigates away"},
   "localModelReady": "The model is ready. Chat works offline now.",
   "@localModelReady": {"description": "Install finished"},

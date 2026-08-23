@@ -11,6 +11,33 @@
 /// exactly like `EnrichmentService` already does for `transcribe`/`ocr`.
 abstract class ChatAdapter {
   Future<ChatResponse>? sendMessage(List<ChatMessage> history);
+
+  /// Whether there is anything behind this adapter right now.
+  ///
+  /// Separate from [sendMessage] returning null because callers need the
+  /// answer *before* they build a UI, not after they have asked a question:
+  /// whether to offer the assistant at all, and whether "on-device" is a
+  /// working choice of provider or a dead end. Asking by sending a message
+  /// would mean running inference to find out.
+  ///
+  /// For a local model this is "the weights are on disk", which can change
+  /// while the app is running — a download finishing, or the model being
+  /// deleted — so it is a getter and not a field read once at startup.
+  bool get available;
+
+  /// Brings the model up before anything asks it a question, or null when
+  /// there is nothing to bring up.
+  ///
+  /// Loading is the expensive step for a local model — gigabytes off disk and
+  /// onto the GPU — and it otherwise happens inside the first message, where
+  /// it reads as the app having hung. Calling this lets the moment be shown
+  /// somewhere it makes sense, next to the download that just finished.
+  ///
+  /// Optional in both directions: an adapter with no load step returns null,
+  /// and no caller has to await it. A failure here is not an install failure —
+  /// the first message will surface it, where there is already a place to say
+  /// so.
+  Future<void>? warmUp() => null;
 }
 
 enum ChatRole { system, user, assistant }
@@ -36,6 +63,12 @@ class ChatResponse {
 /// on this platform/build). Mirrors [NullAIAdapter]'s role for [AIAdapter].
 class NullChatAdapter implements ChatAdapter {
   const NullChatAdapter();
+
+  @override
+  bool get available => false;
+
+  @override
+  Future<void>? warmUp() => null;
 
   @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) => null;

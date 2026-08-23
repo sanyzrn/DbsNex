@@ -236,7 +236,8 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// The whole header — headline and card both — is absent otherwise, rather
   /// than showing empty chrome for a feature that is switched off.
   bool get _aiHeaderAvailable =>
-      widget.preferences.aiEnabled && widget.preferences.aiProvider.isUsable;
+      widget.preferences.aiEnabled &&
+      aiTextAvailableWith(widget.preferences.aiProvider);
 
   /// Builds an adapter with the user's chosen output language applied.
   ///

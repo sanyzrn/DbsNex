@@ -76,7 +76,7 @@ class AiChatSheet extends StatefulWidget {
   /// Whether there is a provider behind this at all. The caller checks before
   /// opening, so nobody is shown a chat that cannot answer.
   static bool availableFor(NexPreferences preferences) =>
-      preferences.aiEnabled && preferences.aiProvider.isUsable;
+      preferences.aiEnabled && aiTextAvailableWith(preferences.aiProvider);
 
   static Future<void> show(
     BuildContext context, {

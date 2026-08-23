@@ -1001,6 +1001,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get testConnection => 'Test connection';
 
   @override
+  String get aiProviderNoneSubtitleLocal =>
+      'Answers on this phone, from the model you downloaded.';
+
+  @override
+  String get aiProviderLocalNote =>
+      'The model on your phone writes and reads text, so it covers the assistant, the daily recap and translation. It cannot hear a recording or read a photo — those still need a provider.';
+
+  @override
   String get aiProviderNoneSubtitle => 'Runs on this device. No key needed.';
 
   @override
@@ -1239,6 +1247,49 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.';
 
   @override
+  String get localModelPause => 'Pause';
+
+  @override
+  String get localModelResume => 'Resume';
+
+  @override
+  String get localModelStop => 'Stop';
+
+  @override
+  String localModelPaused(String done, String total) {
+    return 'Paused · $done of $total';
+  }
+
+  @override
+  String localModelBytes(String done, String total) {
+    return '$done of $total';
+  }
+
+  @override
+  String get localModelLoading => 'Starting the model up…';
+
+  @override
+  String get localModelStopTitle => 'Stop the download?';
+
+  @override
+  String get localModelStopBody =>
+      'What has downloaded so far is thrown away, and starting again begins from the beginning. Pause keeps it instead.';
+
+  @override
+  String get localModelFromFile => 'I already have the file';
+
+  @override
+  String get localModelFromFileHint =>
+      'Pick the model file if you have already downloaded it on this phone or copied it across. It is checked against the same fingerprint before it is used.';
+
+  @override
+  String get localModelChecking => 'Checking the file…';
+
+  @override
+  String get localModelWrongFile =>
+      'That is not this model — the file did not match the fingerprint.';
+
+  @override
   String get localModelTitle => 'On-device model';
 
   @override
@@ -1268,7 +1319,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get localModelKeepOpen =>
-      'You can leave this screen. Closing the app stops the download, and it picks up where it left off.';
+      'You can leave this screen — the download keeps going. Closing the app stops it, and it picks up where it left off.';
 
   @override
   String get localModelReady => 'The model is ready. Chat works offline now.';

@@ -133,6 +133,8 @@ class ModelInstallProgress {
     required this.partIndex,
     required this.partCount,
     required this.fraction,
+    this.receivedBytes = 0,
+    this.totalBytes,
     this.joining = false,
   });
 
@@ -142,6 +144,18 @@ class ModelInstallProgress {
   /// Overall completion across every part, 0–1, or null when a server declined
   /// to say how big its response is.
   final double? fraction;
+
+  /// Bytes on disk for this model so far, across every part.
+  ///
+  /// Shown beside the bar because a percentage is the wrong unit here. On a
+  /// metered connection the question is not "how far along" but "how much of
+  /// my data has this spent and how much is left", and only these two numbers
+  /// answer it.
+  final int receivedBytes;
+
+  /// The whole model's size, or null while no server has said. Falls back to
+  /// the release constant in the UI rather than showing nothing.
+  final int? totalBytes;
 
   /// True during the join-and-verify pass, which moves gigabytes on disk and
   /// reports no byte-level progress of its own.
@@ -166,11 +180,25 @@ class NexModelStore {
   /// need this path, and they must not each construct it — two nearly-equal
   /// strings would mean a model downloaded to one place and looked for in
   /// another, with nothing to show why.
+  /// Shared because the screen and the install controller must not each hold
+  /// their own. They used to: the screen closed its store on dispose, which
+  /// was correct until the download outlived the screen, and then closing it
+  /// would have cut the download's own client out from under it. Opening a
+  /// second one instead leaks an HTTP client per visit. One instance is
+  /// neither.
+  static NexModelStore? _shared;
+
   static Future<NexModelStore> open({http.Client? client}) async {
+    final existing = _shared;
+    // A caller that supplies its own client wants its own store — that is
+    // only tests, and they must not be handed the process-wide one.
+    if (existing != null && client == null) return existing;
     final support = await getApplicationSupportDirectory();
     final root = Directory(p.join(support.path, 'models'));
     await root.create(recursive: true);
-    return NexModelStore(root: root, client: client);
+    final store = NexModelStore(root: root, client: client);
+    if (client == null) _shared = store;
+    return store;
   }
 
   /// Where models live. A directory of Nex's own, not the media directory:
@@ -224,6 +252,11 @@ class NexModelStore {
   Future<File> install(
     ModelRelease model, {
     void Function(ModelInstallProgress progress)? onProgress,
+
+    /// Polled per chunk. See [UpdateDownloader.download] — true stops the
+    /// install and throws [DownloadPaused], leaving every downloaded byte
+    /// where it is so the next call resumes.
+    bool Function()? isCancelled,
   }) async {
     if (!installable(model)) {
       throw StateError('${model.id} has no published download yet');
@@ -235,6 +268,9 @@ class NexModelStore {
     await dir.create(recursive: true);
 
     final parts = <File>[];
+    // Bytes finished by whole parts, so a per-part counter can be added to it
+    // without either number having to know about the other.
+    var done = 0;
     for (var i = 0; i < model.parts.length; i++) {
       final part = model.parts[i];
       final onDisk = File(p.join(dir.path, part.filename));
@@ -243,21 +279,26 @@ class NexModelStore {
       // difference between resuming and starting over.
       if (onDisk.existsSync() && await _digestOf(onDisk) == part.sha256) {
         parts.add(onDisk);
+        done += onDisk.lengthSync();
         onProgress?.call(
           ModelInstallProgress(
             partIndex: i,
             partCount: model.parts.length,
             fraction: (i + 1) / model.parts.length,
+            receivedBytes: done,
+            totalBytes: model.sizeBytes,
           ),
         );
         continue;
       }
+      final finishedBefore = done;
       parts.add(
         await _downloader.download(
           url: part.url,
           into: dir,
           filename: part.filename,
           expectedSha256: part.sha256,
+          isCancelled: isCancelled,
           onProgress: (fraction) => onProgress?.call(
             ModelInstallProgress(
               partIndex: i,
@@ -265,10 +306,18 @@ class NexModelStore {
               fraction: fraction == null
                   ? null
                   : (i + fraction) / model.parts.length,
+              // Bytes banked by earlier parts plus this one's own count, so
+              // the figure never restarts at zero when a part boundary is
+              // crossed — which on a two-part model looked like the download
+              // having thrown away the first half.
+              receivedBytes: done,
+              totalBytes: model.sizeBytes,
             ),
           ),
+          onBytes: (received, _) => done = finishedBefore + received,
         ),
       );
+      done = finishedBefore + onDisk.lengthSync();
     }
 
     onProgress?.call(
@@ -276,6 +325,8 @@ class NexModelStore {
         partIndex: model.parts.length,
         partCount: model.parts.length,
         fraction: 1,
+        receivedBytes: done,
+        totalBytes: model.sizeBytes,
         joining: true,
       ),
     );
@@ -319,6 +370,53 @@ class NexModelStore {
         await part.delete();
       } catch (_) {}
     }
+    return target;
+  }
+
+  /// Installs from a file the user already has, instead of downloading it.
+  ///
+  /// The digest is what makes this safe to offer. Accepting an arbitrary file
+  /// someone picked and handing it to a native runtime would be a way to load
+  /// anything at all; checking it against the release constant first means the
+  /// only file this accepts is byte-for-byte the one it would have downloaded.
+  /// So the check is not an optimisation and is never skipped, even though it
+  /// means reading two gigabytes off local storage.
+  ///
+  /// Copied rather than moved: the file is the user's, sitting somewhere they
+  /// chose, and a feature that makes someone's download disappear from their
+  /// Downloads folder is not one they asked for. They can delete it themselves
+  /// once this reports success.
+  Future<File> installFromFile(
+    ModelRelease model,
+    File source, {
+    void Function(ModelInstallProgress progress)? onProgress,
+  }) async {
+    final target = fileFor(model);
+    if (target.existsSync()) return target;
+
+    onProgress?.call(
+      ModelInstallProgress(
+        partIndex: 0,
+        partCount: 1,
+        fraction: null,
+        totalBytes: model.sizeBytes,
+        joining: true,
+      ),
+    );
+    if (await _digestOf(source) != model.sha256) {
+      throw const FileSystemException(
+        'That file is not this model — its checksum does not match',
+      );
+    }
+
+    await _dirFor(model).create(recursive: true);
+    // Through a staging name for the same reason the join is: a copy
+    // interrupted halfway would otherwise leave a file of the right name and
+    // the wrong length, which isInstalled would call installed.
+    final staging = File('${target.path}.copying');
+    if (staging.existsSync()) await staging.delete();
+    await source.copy(staging.path);
+    await staging.rename(target.path);
     return target;
   }
 

@@ -288,16 +288,96 @@ class AiTestResult {
   final String detail;
 }
 
-/// Talks to a configured provider over its HTTP API.
+/// Whether the app can produce text right now, by either route.
+///
+/// The UI asks this instead of [AiProviderConfig.isUsable] wherever it is
+/// deciding whether to offer something. A phone with a downloaded model and no
+/// API key can write a recap, answer the assistant and translate a note, and a
+/// screen gated on `isUsable` alone hides all three from the person who just
+/// spent two gigabytes getting them.
+///
+/// Not used by the database worker, deliberately. Enrichment runs in its own
+/// isolate, and a binding is per-isolate — but the deeper reason is that
+/// enrichment happens on save, and capture must never wait on a model this
+/// large. Tag hints there stay with the fast heuristics.
+bool aiTextAvailableWith(AiProviderConfig config) =>
+    config.isUsable || ChatAdapterBinding.instance.available;
+
+/// Talks to a configured provider over its HTTP API — or, when there is no
+/// provider and a model has been downloaded, to that model on this phone.
+///
+/// The local path is not a second adapter. Every text feature in the app funnels
+/// through [_complete] or [chat], so routing at those two points gives the
+/// on-device model to all of them at once — the daily recap, the headline, tag
+/// suggestions, summaries, translation and the assistant — instead of five
+/// call sites each learning about it.
+///
+/// It reaches the model through `ChatAdapterBinding`, a `nex_core` port, and
+/// never through `packages/ai`. That is the whole point of the port: this file
+/// compiles unchanged in the standard flavor, where nothing binds an
+/// implementation and [ChatAdapter.available] is simply false (ADR-031).
+///
+/// What the local model deliberately does *not* serve: transcription, reading
+/// text out of an image, and embeddings. Those need a model that hears or sees,
+/// and this one only reads and writes text. They stay cloud-only and stay
+/// honestly unavailable, rather than being wired to something that would
+/// confidently invent a transcript.
 class CloudAIAdapter implements AIAdapter {
   CloudAIAdapter({
     required this.config,
     this.outputLanguage = AiOutputLanguage.auto,
     http.Client? client,
+    @visibleForTesting ChatAdapter? localModel,
   }) : _client = client ?? http.Client(),
-       _ownsClient = client == null;
+       _ownsClient = client == null,
+       _localOverride = localModel;
 
   final AiProviderConfig config;
+
+  /// Injected only by tests. Production reads the process-wide binding every
+  /// time rather than capturing it, because a model can finish downloading —
+  /// or be deleted — while an adapter built at app start is still alive.
+  final ChatAdapter? _localOverride;
+
+  ChatAdapter get _local => _localOverride ?? ChatAdapterBinding.instance;
+
+  /// Whether this adapter can answer at all, by either route.
+  ///
+  /// The UI asks this rather than `config.isUsable`: with a model on the phone
+  /// and no API key, the assistant works, and a screen that hid it would be
+  /// hiding a feature the user has already paid two gigabytes for.
+  bool get canAnswerText => config.isUsable || _local.available;
+
+  /// True when there is no provider but there is a model — the case where a
+  /// request should go to the phone instead of the network.
+  bool get _preferLocal => !config.isUsable && _local.available;
+
+  /// Runs one exchange against the on-device model.
+  ///
+  /// The system text becomes a [ChatRole.system] message rather than being
+  /// glued to the front of the user's words, because the adapter on the other
+  /// side maps that role onto LiteRT-LM's own system-instruction slot.
+  Future<String?> _completeLocally(String system, String user) async {
+    final pending = _local.sendMessage([
+      if (system.trim().isNotEmpty)
+        ChatMessage(role: ChatRole.system, content: system),
+      ChatMessage(role: ChatRole.user, content: user),
+    ]);
+    // Null before awaiting is the contract's way of saying "not available" —
+    // the model was deleted between the check above and here, for instance.
+    if (pending == null) return null;
+    try {
+      final reply = await pending;
+      final text = reply.content.trim();
+      return text.isEmpty ? null : text;
+    } catch (error) {
+      // A model that fails to load, or a backend that dies mid-answer. Treated
+      // exactly like a provider returning 500: null, and the caller shows what
+      // it shows when there is no answer.
+      _lastFailure = (status: 0, message: '$error');
+      return null;
+    }
+  }
 
   /// Which language every generated string comes back in. Defaults to the
   /// behaviour that predates the setting, so a caller that has no opinion —
@@ -372,7 +452,14 @@ class CloudAIAdapter implements AIAdapter {
     Uint8List? media,
     String? mediaMimeType,
   }) async {
-    if (!config.isUsable) return null;
+    if (!config.isUsable) {
+      // No provider. If a model is on the phone this still has an answer —
+      // unless the request carries an image, which is the one thing the local
+      // path cannot take, so that stays unavailable rather than silently
+      // dropping the picture and answering about nothing.
+      if (_preferLocal && media == null) return _completeLocally(system, user);
+      return null;
+    }
     final base64Media = media == null ? null : base64Encode(media);
 
     final body = switch (config.provider.format) {
@@ -594,7 +681,7 @@ class CloudAIAdapter implements AIAdapter {
   @override
   Future<List<TagSuggestion>>? suggestTags(Note note) {
     final text = _textOf(note);
-    if (!config.isUsable || text == null) return null;
+    if (!canAnswerText || text == null) return null;
     return _suggestTags(text);
   }
 
@@ -616,7 +703,7 @@ class CloudAIAdapter implements AIAdapter {
   @override
   Future<Summary>? summarize(Note note) {
     final text = _textOf(note);
-    if (!config.isUsable || text == null) return null;
+    if (!canAnswerText || text == null) return null;
     return _summarize(text);
   }
 
@@ -643,7 +730,7 @@ class CloudAIAdapter implements AIAdapter {
   /// panel this lands in is a card with two lines of room. A recap that
   /// overflows it is worse than a shorter one.
   Future<String?> digest(String recentNotesText) async {
-    if (!config.isUsable || recentNotesText.trim().isEmpty) return null;
+    if (!canAnswerText || recentNotesText.trim().isEmpty) return null;
     final reply = await _complete(
       'You write the short recap a notes app shows someone when they open '
       "it. You're given a handful of their recent notes. Write ONE or TWO "
@@ -676,7 +763,7 @@ class CloudAIAdapter implements AIAdapter {
     String recentNotesText, {
     AiOutputLanguage? language,
   }) async {
-    if (!config.isUsable) return null;
+    if (!canAnswerText) return null;
     final reply = await _complete(
       'You write the single line a notes app shows across the top of its home '
       'screen when it opens. One sentence, at most 9 words, ending with one '
@@ -725,7 +812,7 @@ class CloudAIAdapter implements AIAdapter {
     required AiOutputLanguage target,
   }) async {
     final source = text.trim();
-    if (!config.isUsable || source.isEmpty) return null;
+    if (!canAnswerText || source.isEmpty) return null;
     if (target == AiOutputLanguage.auto) return null;
     final reply = await _complete(
       'You are a translator. Translate the text you are given, whole, '
@@ -812,7 +899,29 @@ class CloudAIAdapter implements AIAdapter {
     List<ChatMessage> history, {
     AiChatOptions options = const AiChatOptions(),
   }) async {
-    if (!config.isUsable || history.isEmpty) return null;
+    if (history.isEmpty) return null;
+    if (!config.isUsable) {
+      if (!_preferLocal) return null;
+      // The transcript goes over whole, system prompt included: the adapter on
+      // the other side keeps one conversation alive across calls and only
+      // sends what it has not seen, so handing it everything costs nothing and
+      // is what lets it skip re-reading the thread on every message.
+      final system = chatSystemPrompt(options);
+      final pending = _local.sendMessage([
+        ChatMessage(role: ChatRole.system, content: system),
+        for (final message in history)
+          if (message.role != ChatRole.system) message,
+      ]);
+      if (pending == null) return null;
+      try {
+        final reply = await pending;
+        final text = reply.content.trim();
+        return text.isEmpty ? null : text;
+      } catch (error) {
+        _lastFailure = (status: 0, message: '$error');
+        return null;
+      }
+    }
     final system = chatSystemPrompt(options);
     final maxTokens = options.length.maxTokens;
     final temperature = options.creativity.temperature;

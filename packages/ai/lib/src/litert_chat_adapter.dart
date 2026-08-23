@@ -57,6 +57,7 @@ class LiteRtChatAdapter implements ChatAdapter {
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   /// Whether there is a model on disk to answer with.
+  @override
   bool get available =>
       supportedPlatform && modelPath.isNotEmpty && File(modelPath).existsSync();
 
@@ -67,6 +68,17 @@ class LiteRtChatAdapter implements ChatAdapter {
     if (preferGpu && !kIsWeb && Platform.isAndroid) LiteLmBackend.gpu,
     LiteLmBackend.cpu,
   ];
+
+  /// Loads the model now rather than inside the first question.
+  ///
+  /// Returns null when there is nothing to load — no weights on disk, or a
+  /// platform with no runtime — so a caller can tell "already warm" from
+  /// "there is a wait coming" without starting one.
+  @override
+  Future<void>? warmUp() {
+    if (!available || _engine != null) return null;
+    return _ensureEngine();
+  }
 
   @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) {

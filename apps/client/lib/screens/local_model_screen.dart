@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/local_ai_support.dart';
+import '../platform/model_install_controller.dart';
 import '../platform/model_store.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/nex_banner.dart';
@@ -17,6 +20,11 @@ import '../widgets/nex_banner.dart';
 /// reach every recipient and the use restrictions have to carry forward
 /// (09-ai.md). So acceptance is a gate before the first byte, not a link in a
 /// corner someone may never open.
+///
+/// The install itself belongs to [ModelInstallController], not to this widget.
+/// It used to live here, which meant a back gesture cancelled two gigabytes
+/// with no warning; this screen now watches something that keeps running when
+/// it is gone.
 class LocalModelScreen extends StatefulWidget {
   const LocalModelScreen({
     super.key,
@@ -32,22 +40,53 @@ class LocalModelScreen extends StatefulWidget {
 }
 
 class _LocalModelScreenState extends State<LocalModelScreen> {
+  final _install = ModelInstallController.instance;
+
   NexModelStore? _store;
   LocalAiSupport? _support;
-  ModelInstallProgress? _progress;
-  bool _installing = false;
   bool _accepted = false;
 
   @override
   void initState() {
     super.initState();
+    _install.addListener(_onInstallChanged);
     unawaited(_load());
   }
 
   @override
   void dispose() {
-    _store?.close();
+    _install.removeListener(_onInstallChanged);
+    // The store is not closed here any more. The controller may still be
+    // downloading through it after this screen is gone, which is the whole
+    // point of moving the install out.
     super.dispose();
+  }
+
+  void _onInstallChanged() {
+    if (!mounted) return;
+    setState(() {});
+    final l10n = AppLocalizations.of(context);
+    final host = NexBannerHost.of(context);
+    switch (_install.phase) {
+      case ModelInstallPhase.installed:
+        nexBump();
+        host?.show(
+          message: l10n.localModelReady,
+          haptics: widget.preferences.haptics,
+        );
+        _install.reset();
+      case ModelInstallPhase.failed:
+        host?.show(
+          message: _install.error is FileSystemException
+              ? l10n.localModelWrongFile
+              : l10n.localModelFailed,
+          kind: NexBannerKind.failed,
+          haptics: widget.preferences.haptics,
+        );
+        _install.reset();
+      case _:
+        break;
+    }
   }
 
   Future<void> _load() async {
@@ -61,14 +100,13 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
       try {
         store = await NexModelStore.open();
       } catch (_) {
-        // No support directory means nowhere to put 2.6 GB. Reported as an
+        // No support directory means nowhere to put 2 GB. Reported as an
         // ordinary blocker rather than left as a spinner: a screen that never
         // resolves is the one failure a user cannot even describe.
         store = null;
       }
     }
     if (!mounted) {
-      store?.close();
       return;
     }
     setState(() {
@@ -90,40 +128,48 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
     setState(() => _accepted = true);
   }
 
-  Future<void> _install() async {
+  void _start() {
     final store = _store;
-    if (store == null || _installing) return;
-    setState(() => _installing = true);
+    if (store == null) return;
+    unawaited(_install.start(store, widget.model));
+  }
+
+  Future<void> _pickFile() async {
+    final store = _store;
+    if (store == null) return;
+    // No extension filter. `.litertlm` is not a type Android's picker knows,
+    // and a filter it does not understand hides every file rather than
+    // narrowing them — the digest check is what actually rejects a wrong file.
+    final picked = await openFile();
+    if (picked == null) return;
+    await _install.installFrom(store, widget.model, File(picked.path));
+  }
+
+  Future<void> _confirmStop() async {
     final l10n = AppLocalizations.of(context);
-    final host = NexBannerHost.of(context);
-    try {
-      await store.install(
-        widget.model,
-        // Rebuilding on every chunk would be a setState per network read.
-        // The progress object is cheap; the frame it schedules is what costs,
-        // and Flutter coalesces those — so this stays simple rather than
-        // throttling something that does not need it yet.
-        onProgress: (progress) {
-          if (mounted) setState(() => _progress = progress);
-        },
-      );
-      if (!mounted) return;
-      nexBump();
-      host?.show(
-        message: l10n.localModelReady,
-        haptics: widget.preferences.haptics,
-      );
-    } catch (_) {
-      // Every failure here is recoverable and resumable — a dropped
-      // connection, a bad part, a full disk. One message and the button comes
-      // back, rather than an error someone has to interpret.
-      host?.show(
-        message: l10n.localModelFailed,
-        kind: NexBannerKind.failed,
-        haptics: widget.preferences.haptics,
-      );
-    } finally {
-      if (mounted) setState(() => _installing = false);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.localModelStopTitle),
+        content: Text(l10n.localModelStopBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.localModelStop),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    if (_install.phase == ModelInstallPhase.downloading) {
+      _install.stop();
+    } else {
+      final store = _store;
+      if (store != null) await _install.discard(store, widget.model);
     }
   }
 
@@ -203,20 +249,15 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
                     onAccept: () => unawaited(_accept()),
                   ),
                   const SizedBox(height: NexSpacing.lg),
-                  if (_installing)
-                    _Progress(progress: _progress)
-                  else
-                    FilledButton.icon(
-                      // Disabled until the terms are accepted. That order is
-                      // the licence condition, not a UX preference.
-                      onPressed: _accepted ? () => unawaited(_install()) : null,
-                      icon: const Icon(Icons.download_outlined),
-                      label: Text(
-                        l10n.localModelDownload(
-                          _gigabytes(widget.model.sizeBytes),
-                        ),
-                      ),
-                    ),
+                  _InstallControls(
+                    model: widget.model,
+                    install: _install,
+                    enabled: _accepted,
+                    onStart: _start,
+                    onPause: _install.pause,
+                    onStop: () => unawaited(_confirmStop()),
+                    onPickFile: () => unawaited(_pickFile()),
+                  ),
                 ],
               ],
             ),
@@ -224,7 +265,171 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
   }
 }
 
+/// Everything to do with starting, pausing and finishing an install.
+class _InstallControls extends StatelessWidget {
+  const _InstallControls({
+    required this.model,
+    required this.install,
+    required this.enabled,
+    required this.onStart,
+    required this.onPause,
+    required this.onStop,
+    required this.onPickFile,
+  });
+
+  final ModelRelease model;
+  final ModelInstallController install;
+
+  /// False until the licence is accepted. That order is the licence
+  /// condition, not a UX preference — and it gates the file picker too, since
+  /// installing from a file is the same distribution by another route.
+  final bool enabled;
+
+  final VoidCallback onStart;
+  final VoidCallback onPause;
+  final VoidCallback onStop;
+  final VoidCallback onPickFile;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final progress = install.progress;
+    final total = progress?.totalBytes ?? model.sizeBytes;
+
+    return switch (install.phase) {
+      ModelInstallPhase.downloading ||
+      ModelInstallPhase.joining ||
+      ModelInstallPhase.loading => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LinearProgressIndicator(
+            // Indeterminate while loading: the runtime reports nothing, and a
+            // bar frozen at 100% reads as a hang, which is the exact
+            // impression this phase exists to prevent.
+            value: install.phase == ModelInstallPhase.loading
+                ? null
+                : progress?.fraction,
+            minHeight: 4,
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          Text(switch (install.phase) {
+            ModelInstallPhase.loading => l10n.localModelLoading,
+            ModelInstallPhase.joining => l10n.localModelJoining,
+            _ when progress == null => l10n.localModelDownloading,
+            _ when model.parts.length > 1 => l10n.localModelDownloadingPart(
+              progress.partIndex + 1,
+              progress.partCount,
+            ),
+            _ => l10n.localModelDownloading,
+          }, style: theme.textTheme.bodySmall),
+          if (progress != null &&
+              install.phase == ModelInstallPhase.downloading)
+            Text(
+              l10n.localModelBytes(_size(progress.receivedBytes), _size(total)),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          const SizedBox(height: NexSpacing.md),
+          if (install.phase == ModelInstallPhase.downloading)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onPause,
+                    icon: const Icon(Icons.pause),
+                    label: Text(l10n.localModelPause),
+                  ),
+                ),
+                const SizedBox(width: NexSpacing.sm),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onStop,
+                    icon: const Icon(Icons.close),
+                    label: Text(l10n.localModelStop),
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: NexSpacing.sm),
+          Text(l10n.localModelKeepOpen, style: theme.textTheme.bodySmall),
+        ],
+      ),
+      ModelInstallPhase.paused => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LinearProgressIndicator(value: progress?.fraction, minHeight: 4),
+          const SizedBox(height: NexSpacing.sm),
+          Text(
+            l10n.localModelPaused(
+              _size(progress?.receivedBytes ?? 0),
+              _size(total),
+            ),
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: NexSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onStart,
+                  icon: const Icon(Icons.play_arrow),
+                  label: Text(l10n.localModelResume),
+                ),
+              ),
+              const SizedBox(width: NexSpacing.sm),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onStop,
+                  icon: const Icon(Icons.close),
+                  label: Text(l10n.localModelStop),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      _ => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FilledButton.icon(
+            onPressed: enabled ? onStart : null,
+            icon: const Icon(Icons.download_outlined),
+            label: Text(l10n.localModelDownload(_gigabytes(model.sizeBytes))),
+          ),
+          const SizedBox(height: NexSpacing.md),
+          // Offered beside the download rather than hidden behind a failure:
+          // someone who already has two gigabytes on their phone should not
+          // have to spend them again to find out this exists.
+          OutlinedButton.icon(
+            onPressed: enabled ? onPickFile : null,
+            icon: const Icon(Icons.folder_open_outlined),
+            label: Text(l10n.localModelFromFile),
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          Text(
+            l10n.localModelFromFileHint,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    };
+  }
+}
+
 String _gigabytes(int bytes) => (bytes / 1000000000).toStringAsFixed(1);
+
+/// Bytes as someone reads them on a data plan.
+String _size(int bytes) {
+  if (bytes >= 1000000000) {
+    return '${(bytes / 1000000000).toStringAsFixed(2)} GB';
+  }
+  if (bytes >= 1000000) return '${(bytes / 1000000).toStringAsFixed(0)} MB';
+  return '${(bytes / 1000).toStringAsFixed(0)} KB';
+}
 
 /// Why the device cannot have this, said plainly.
 class _Blocked extends StatelessWidget {
@@ -352,42 +557,6 @@ class _License extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Progress extends StatelessWidget {
-  const _Progress({required this.progress});
-
-  final ModelInstallProgress? progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final value = progress;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        LinearProgressIndicator(value: value?.fraction, minHeight: 4),
-        const SizedBox(height: NexSpacing.sm),
-        Text(
-          value == null
-              ? l10n.localModelDownloading
-              : value.joining
-              // Named separately because it is the one stage that reports no
-              // byte progress and moves gigabytes — a bar that sits at 100%
-              // in silence reads as a hang.
-              ? l10n.localModelJoining
-              : l10n.localModelDownloadingPart(
-                  value.partIndex + 1,
-                  value.partCount,
-                ),
-          style: theme.textTheme.bodySmall,
-        ),
-        const SizedBox(height: NexSpacing.sm),
-        Text(l10n.localModelKeepOpen, style: theme.textTheme.bodySmall),
-      ],
     );
   }
 }
