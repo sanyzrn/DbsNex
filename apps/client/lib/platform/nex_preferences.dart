@@ -87,6 +87,23 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Whether the terms for a downloadable model have been shown and agreed to.
+  ///
+  /// Keyed per model, not a single flag: accepting Gemma's terms says nothing
+  /// about a different model under a different licence, and the app is
+  /// expected to offer more than one eventually.
+  ///
+  /// Recorded because the licence requires the terms reach every recipient
+  /// before distribution, and a record of that is what makes it verifiable
+  /// rather than assumed — see 09-ai.md.
+  bool acceptedModelLicense(String modelId) =>
+      _prefs.getBool('ai.model.license.$modelId') ?? false;
+
+  Future<void> acceptModelLicense(String modelId) async {
+    await _prefs.setBool('ai.model.license.$modelId', true);
+    notifyListeners();
+  }
+
   /// Whether the walk-through over the timeline's own controls has been shown.
   ///
   /// Separate from [onboardingComplete] because they run at different moments

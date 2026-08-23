@@ -1239,6 +1239,87 @@ class AppLocalizationsFa extends AppLocalizations {
       'آن فایل خوانده نشد. همان ‏.zip دانلودشده، یا یک فایل ‏.json و ‏.md و ‏.txt را انتخاب کن.';
 
   @override
+  String get localModelTitle => 'مدل روی دستگاه';
+
+  @override
+  String get localModelSubtitle => 'چت بدون اینترنت، بعد از دانلود مدل';
+
+  @override
+  String get localModelExplained =>
+      'نکس می‌تواند یک مدل زبانی را روی همین گوشی اجرا کند، طوری که چت بدون اینترنت کار کند و هیچ‌چیزی که می‌نویسی از دستگاه بیرون نرود. حجمش زیاد است و تا وقتی خودت پاکش نکنی روی گوشی می‌ماند.';
+
+  @override
+  String localModelDownload(String size) {
+    return 'دانلود · ‏$size گیگابایت';
+  }
+
+  @override
+  String get localModelDownloading => 'در حال دانلود…';
+
+  @override
+  String localModelDownloadingPart(int index, int count) {
+    return 'دانلود تکه‌ی ‏$index از ‏$count';
+  }
+
+  @override
+  String get localModelJoining => 'در حال چسباندن تکه‌ها و بررسی‌شان…';
+
+  @override
+  String get localModelKeepOpen =>
+      'می‌توانی از این صفحه بیرون بروی. بستن اپ دانلود را متوقف می‌کند و دفعه‌ی بعد از همان‌جا ادامه می‌دهد.';
+
+  @override
+  String get localModelReady => 'مدل آماده است. چت حالا آفلاین کار می‌کند.';
+
+  @override
+  String get localModelFailed =>
+      'دانلود تمام نشد. دوباره بزن — از همان‌جایی که ماند ادامه می‌دهد.';
+
+  @override
+  String localModelInstalled(String size) {
+    return 'نصب‌شده · ‏$size گیگابایت روی این گوشی';
+  }
+
+  @override
+  String get localModelDelete => 'حذف مدل';
+
+  @override
+  String get localModelDeleteTitle => 'مدل حذف شود؟';
+
+  @override
+  String get localModelDeleteBody =>
+      'چت آفلاین تا وقتی دوباره دانلودش نکنی کار نمی‌کند. یادداشت‌هایت دست‌نخورده می‌مانند.';
+
+  @override
+  String get localModelDeleted => 'مدل حذف شد.';
+
+  @override
+  String get localModelLicenseTitle => 'قبل از دانلود';
+
+  @override
+  String get localModelLicenseRead => 'متن کامل شرایط';
+
+  @override
+  String get localModelLicenseAccept => 'این شرایط را خوانده‌ام و می‌پذیرم';
+
+  @override
+  String get localModelBlockedPlatform =>
+      'چت روی دستگاه فقط روی اندروید و آیفون کار می‌کند. این نسخه نمی‌تواند از آن استفاده کند.';
+
+  @override
+  String get localModelBlockedArchitecture =>
+      'پردازنده‌ی این گوشی از آن‌هایی نیست که مدل رویش اجرا می‌شود. به یک دستگاه ARM شصت‌وچهار بیتی نیاز دارد.';
+
+  @override
+  String localModelBlockedStorage(String size) {
+    return 'فضای کافی نیست. دانلود موقع نصب حدود ‏$size گیگابایت فضای خالی لازم دارد.';
+  }
+
+  @override
+  String get localModelBlockedUnpublished =>
+      'هنوز مدلی برای دانلود در این نسخه موجود نیست.';
+
+  @override
   String get tourNext => 'بعدی';
 
   @override
