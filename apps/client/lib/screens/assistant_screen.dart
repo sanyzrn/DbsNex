@@ -20,16 +20,47 @@ import '../widgets/choice_cards.dart';
 /// and Gemini actually expose to people rather than to developers. What is
 /// deliberately not here: top-p and penalties, which no user can predict the
 /// effect of and which interact badly with temperature; a model picker, which
-/// belongs to the provider screen and is already there; streaming, because
-/// nothing here streams; and a free-text system prompt, which is a good idea
-/// held back for its own release rather than smuggled in as a text field.
-class AssistantScreen extends StatelessWidget {
+/// belongs to the provider screen and is already there; and streaming,
+/// because nothing here streams.
+///
+/// The fifth setting — the standing instruction — is a free-text prompt, and
+/// the reason it is safe to offer is that it is not spliced in as a rule of
+/// the app's own: [AiChatOptions.instruction] is quoted, labelled as the
+/// user's preference, and placed above the lines that constrain what the
+/// assistant may actually do. Tone is theirs to set; the scope and the action
+/// protocol are not.
+class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key, required this.preferences});
 
   final NexPreferences preferences;
 
   @override
+  State<AssistantScreen> createState() => _AssistantScreenState();
+}
+
+class _AssistantScreenState extends State<AssistantScreen> {
+  late final TextEditingController _instruction = TextEditingController(
+    text: widget.preferences.aiInstruction,
+  );
+
+  @override
+  void dispose() {
+    _instruction.dispose();
+    super.dispose();
+  }
+
+  /// Saved as it is typed rather than behind a Save button.
+  ///
+  /// Every other control on this screen commits on the tap that changes it,
+  /// and a lone field that needed confirming would be the one setting people
+  /// lose by backing out of the screen. The write is to shared preferences —
+  /// cheap enough that a keystroke's worth of it is not worth debouncing.
+  void _saveInstruction(String value) =>
+      unawaited(widget.preferences.setAiInstruction(value));
+
+  @override
   Widget build(BuildContext context) {
+    final preferences = widget.preferences;
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return AnimatedBuilder(
@@ -92,6 +123,29 @@ class AssistantScreen extends StatelessWidget {
                   preview: const NexScriptSample(icon: Icons.notes),
                 ),
               ],
+            ),
+            const SizedBox(height: NexSpacing.lg),
+            Text(l10n.assistantInstruction, style: theme.textTheme.titleSmall),
+            const SizedBox(height: NexSpacing.sm),
+            TextField(
+              controller: _instruction,
+              onChanged: _saveInstruction,
+              maxLength: NexPreferences.aiInstructionMaxLength,
+              maxLines: 3,
+              minLines: 1,
+              textInputAction: TextInputAction.newline,
+              // The instruction is written in whichever language the user
+              // thinks in, which is not necessarily the interface's — so the
+              // field follows the text rather than the app.
+              textDirection: nexDirectionOf(_instruction.text),
+              decoration: InputDecoration(
+                hintText: l10n.assistantInstructionHint,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            Text(
+              l10n.assistantInstructionSubtitle,
+              style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: NexSpacing.lg),
             Text(l10n.assistantContext, style: theme.textTheme.titleSmall),

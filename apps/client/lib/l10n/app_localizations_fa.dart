@@ -1213,6 +1213,15 @@ class AppLocalizationsFa extends AppLocalizations {
   String get chatHint => 'چیزی بنویسید…';
 
   @override
+  String get chatSpeak => 'گفتن';
+
+  @override
+  String get chatTranscribing => 'دارم صدایت را می‌خوانم…';
+
+  @override
+  String get chatTranscribeFailed => 'از آن ضبط چیزی درنیامد.';
+
+  @override
   String get chatSend => 'فرستادن';
 
   @override
@@ -1299,6 +1308,16 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get assistantScopeSubtitle =>
       'خاموش باشد به هر چیزی جواب می‌دهد، از جمله چیزهایی که در آن‌ها ضعیف است.';
+
+  @override
+  String get assistantInstruction => 'چطور جواب بدهد';
+
+  @override
+  String get assistantInstructionHint => 'کمی طنز در جواب‌ها باشد';
+
+  @override
+  String get assistantInstructionSubtitle =>
+      'یادداشت خودت به دستیار، که همراه هر سؤال فرستاده می‌شود. لحن را عوض می‌کند، نه اینکه چه کارهایی مجاز است.';
 
   @override
   String get assistantContext => 'یادداشت‌هایی که می‌بیند';

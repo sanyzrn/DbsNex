@@ -284,6 +284,9 @@ class SettingsSheet extends StatelessWidget {
             < 1.25 => l10n.uiScaleLarge,
             _ => l10n.uiScaleLarger,
           },
+          // The four steps are unchanged, but the type ramp underneath them
+          // came down a step — so "Large" is roughly what "Default" used to
+          // be, which is where anyone who liked the old size should land.
           onTap: () => unawaited(
             _pick<double>(
               context: context,
@@ -294,22 +297,22 @@ class SettingsSheet extends StatelessWidget {
                 NexChoice(
                   value: 0.9,
                   label: l10n.uiScaleSmall,
-                  preview: const _TextSizePreview(fontSize: 14),
+                  preview: const _TextSizePreview(fontSize: 13),
                 ),
                 NexChoice(
                   value: 1.0,
                   label: l10n.uiScaleDefault,
-                  preview: const _TextSizePreview(fontSize: 18),
+                  preview: const _TextSizePreview(fontSize: 17),
                 ),
                 NexChoice(
                   value: 1.15,
                   label: l10n.uiScaleLarge,
-                  preview: const _TextSizePreview(fontSize: 22),
+                  preview: const _TextSizePreview(fontSize: 21),
                 ),
                 NexChoice(
                   value: 1.3,
                   label: l10n.uiScaleLarger,
-                  preview: const _TextSizePreview(fontSize: 26),
+                  preview: const _TextSizePreview(fontSize: 25),
                 ),
               ],
             ),
@@ -688,7 +691,15 @@ class _Row extends StatelessWidget {
     title: Text(title),
     subtitle: value == null ? null : Text(value!),
     trailing: trailing ?? const Icon(Icons.chevron_right),
-    onTap: onTap,
+    // Here rather than at each call site: every row in this screen goes
+    // through this widget, and Settings was the one surface the Haptics
+    // switch could not be felt on — including on the switch itself.
+    onTap: onTap == null
+        ? null
+        : () {
+            nexTick();
+            onTap!();
+          },
   );
 }
 
@@ -715,7 +726,12 @@ class _SwitchRow extends StatelessWidget {
     title: Text(title),
     subtitle: subtitle == null ? null : Text(subtitle!),
     value: value,
-    onChanged: onChanged,
+    // A bump, not a tick: a switch is a thing changing state, not a
+    // selection moving across a set of options.
+    onChanged: (next) {
+      nexBump();
+      onChanged(next);
+    },
   );
 }
 
@@ -1033,7 +1049,6 @@ class _SwipeMappingState extends State<_SwipeMapping> {
       children: [
         edge(rtl ? Icons.arrow_back : Icons.arrow_forward, l10n.swipeLeading),
         NexChoiceCards<SwipeAction>(
-          haptics: widget.preferences.haptics,
           selected: widget.preferences.leadingAction,
           onSelected: (action) => _select(isLeading: true, action: action),
           choices: choices,
@@ -1041,7 +1056,6 @@ class _SwipeMappingState extends State<_SwipeMapping> {
         const SizedBox(height: NexSpacing.md),
         edge(rtl ? Icons.arrow_forward : Icons.arrow_back, l10n.swipeTrailing),
         NexChoiceCards<SwipeAction>(
-          haptics: widget.preferences.haptics,
           selected: widget.preferences.trailingAction,
           onSelected: (action) => _select(isLeading: false, action: action),
           choices: choices,

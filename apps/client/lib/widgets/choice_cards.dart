@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 /// One option in a [NexChoiceCards] row.
@@ -32,13 +31,11 @@ class NexChoiceCards<T> extends StatelessWidget {
     required this.choices,
     required this.selected,
     required this.onSelected,
-    this.haptics = true,
   });
 
   final List<NexChoice<T>> choices;
   final T selected;
   final ValueChanged<T> onSelected;
-  final bool haptics;
 
   @override
   Widget build(BuildContext context) => IntrinsicHeight(
@@ -56,7 +53,7 @@ class NexChoiceCards<T> extends StatelessWidget {
               isSelected: choices[i].value == selected,
               onTap: () {
                 if (choices[i].value == selected) return;
-                if (haptics) HapticFeedback.selectionClick();
+                nexTick();
                 onSelected(choices[i].value);
               },
             ),

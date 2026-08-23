@@ -647,6 +647,9 @@
   "@chatHint": {
     "description": "Placeholder in the assistant's input field"
   },
+  "chatSpeak": "گفتن",
+  "chatTranscribing": "دارم صدایت را می‌خوانم…",
+  "chatTranscribeFailed": "از آن ضبط چیزی درنیامد.",
   "chatSend": "فرستادن",
   "@chatSend": {
     "description": "Tooltip on the assistant's send button"
@@ -690,6 +693,9 @@
   "assistantLengthFull": "کامل",
   "assistantScope": "فقط درباره یادداشت‌هایم",
   "assistantScopeSubtitle": "خاموش باشد به هر چیزی جواب می‌دهد، از جمله چیزهایی که در آن‌ها ضعیف است.",
+  "assistantInstruction": "چطور جواب بدهد",
+  "assistantInstructionHint": "کمی طنز در جواب‌ها باشد",
+  "assistantInstructionSubtitle": "یادداشت خودت به دستیار، که همراه هر سؤال فرستاده می‌شود. لحن را عوض می‌کند، نه اینکه چه کارهایی مجاز است.",
   "assistantContext": "یادداشت‌هایی که می‌بیند",
   "assistantContextNone": "هیچ‌کدام",
   "assistantContextCount": "‏{count} تای آخر",

@@ -466,8 +466,8 @@ ThemeData _theme({
       shape: const StadiumBorder(),
       backgroundColor: primary,
       contentTextStyle: _style(
-        size: 15,
-        lineHeight: 22,
+        size: 14,
+        lineHeight: 20,
         weight: FontWeight.w500,
         color: background,
       ),
@@ -522,6 +522,18 @@ TextStyle _style({
 
 /// All fifteen slots, so nothing falls through.
 ///
+/// The ramp sits one step below where it started, from body text upward —
+/// body at 14 rather than 15, and every heading scaled to match. The app was
+/// set large enough that a timeline card held two lines where three would fit
+/// and Settings ran past the fold sooner than it needed to. Anyone who
+/// preferred the old size gets it back from Settings › Text & UI size: one
+/// step up is very close to what this used to be.
+///
+/// The three smallest slots do not move. [bodySmall] is the caption floor for
+/// sustained secondary reading — every date, tag and storage figure in the app
+/// — and `scaffold_test.dart` holds it at 13 on purpose. A ramp that shrinks
+/// its own floor is not a smaller ramp, it is a less readable one.
+///
 /// Six were defined before, which left every button, chip and list-tile label
 /// in the app typeset by Material's defaults — a face and a letter-spacing
 /// chosen for Roboto, applied to whatever the platform happened to load. The
@@ -530,75 +542,77 @@ TextStyle _style({
 TextTheme _textTheme({required Color primary, required Color secondary}) =>
     TextTheme(
       displayLarge: _style(
-        size: 40,
-        lineHeight: 46,
+        size: 36,
+        lineHeight: 42,
         weight: FontWeight.w600,
         color: primary,
       ),
       displayMedium: _style(
-        size: 34,
-        lineHeight: 40,
+        size: 32,
+        lineHeight: 38,
         weight: FontWeight.w600,
         color: primary,
       ),
       displaySmall: _style(
-        size: 28,
-        lineHeight: 34,
+        size: 26,
+        lineHeight: 32,
         weight: FontWeight.w600,
         color: primary,
       ),
       headlineLarge: _style(
-        size: 34,
-        lineHeight: 40,
+        size: 32,
+        lineHeight: 38,
         weight: FontWeight.w600,
         color: primary,
       ),
       headlineMedium: _style(
-        size: 28,
-        lineHeight: 34,
+        size: 26,
+        lineHeight: 32,
         weight: FontWeight.w600,
         color: primary,
       ),
       headlineSmall: _style(
-        size: 24,
-        lineHeight: 30,
+        size: 22,
+        lineHeight: 28,
         weight: FontWeight.w600,
         color: primary,
       ),
       titleLarge: _style(
-        size: 24,
-        lineHeight: 30,
+        size: 22,
+        lineHeight: 28,
         weight: FontWeight.w600,
         color: primary,
       ),
-      // 20, not the old 17. A heading one point away from body text carries no
-      // size signal at all, so the hierarchy rested entirely on weight.
+      // Two points clear of [titleSmall] and four clear of body. A heading
+      // one point away from body text carries no size signal at all, so the
+      // hierarchy would rest entirely on weight.
       titleMedium: _style(
-        size: 20,
-        lineHeight: 26,
+        size: 18,
+        lineHeight: 24,
         weight: FontWeight.w600,
         color: primary,
       ),
       titleSmall: _style(
-        size: 17,
-        lineHeight: 24,
+        size: 16,
+        lineHeight: 22,
         weight: FontWeight.w600,
         color: primary,
       ),
       bodyLarge: _style(
-        size: 16,
-        lineHeight: 24,
-        weight: FontWeight.w400,
-        color: primary,
-      ),
-      bodyMedium: _style(
         size: 15,
         lineHeight: 22,
         weight: FontWeight.w400,
         color: primary,
       ),
-      // 13, not 12.5. Fractional sizes do not land on pixel boundaries, and
-      // this is the style every date, tag and storage figure is set in.
+      bodyMedium: _style(
+        size: 14,
+        lineHeight: 20,
+        weight: FontWeight.w400,
+        color: primary,
+      ),
+      // Whole points, never fractional: fractional sizes do not land on pixel
+      // boundaries, and this is the style every date, tag and storage figure
+      // is set in.
       bodySmall: _style(
         size: 13,
         lineHeight: 18,
@@ -606,8 +620,8 @@ TextTheme _textTheme({required Color primary, required Color secondary}) =>
         color: secondary,
       ),
       labelLarge: _style(
-        size: 14,
-        lineHeight: 20,
+        size: 13,
+        lineHeight: 19,
         weight: FontWeight.w600,
         color: primary,
       ),

@@ -1213,6 +1213,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatHint => 'Enter a prompt here';
 
   @override
+  String get chatSpeak => 'Speak';
+
+  @override
+  String get chatTranscribing => 'Reading your recording…';
+
+  @override
+  String get chatTranscribeFailed => 'Nothing came back from that recording.';
+
+  @override
   String get chatSend => 'Send';
 
   @override
@@ -1298,6 +1307,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get assistantScopeSubtitle =>
       'Off, it will answer anything — including things it is bad at.';
+
+  @override
+  String get assistantInstruction => 'How it should answer';
+
+  @override
+  String get assistantInstructionHint => 'Answer with a bit of humour';
+
+  @override
+  String get assistantInstructionSubtitle =>
+      'Your own note to the assistant, sent with every question. It changes the tone, not what it is allowed to do.';
 
   @override
   String get assistantContext => 'Notes it can see';

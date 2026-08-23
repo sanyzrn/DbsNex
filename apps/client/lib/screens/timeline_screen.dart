@@ -226,13 +226,38 @@ class TimelineScreenState extends State<TimelineScreen> {
     }
   }
 
+  /// Which language the generated line has to be written in.
+  ///
+  /// Not the global "language Nex writes in", which is what every other
+  /// generated string here follows. This one is glued onto the greeting and
+  /// read as a single sentence, and the greeting is written in the language
+  /// of the user's own name — so on the default setting ("answer in the
+  /// language of the notes") the result was half an English sentence joined
+  /// to half a Persian one, full stop at the wrong end.
+  ///
+  /// Null when there is no name to take the cue from; the line then stands
+  /// alone and the global setting is right for it.
+  AiOutputLanguage? get _headlineLanguage {
+    final name = widget.preferences.shortDisplayName;
+    if (name == null) return null;
+    return nexDirectionOf(name) == TextDirection.rtl
+        ? AiOutputLanguage.persian
+        : AiOutputLanguage.english;
+  }
+
   /// The headline over the timeline. Same shape as [_loadAiSummary] — cached
   /// per day, forced by a tap on the line itself.
   Future<void> _loadAiHeadline({bool force = false}) async {
     final prefs = widget.preferences;
     if (!_aiHeaderAvailable) return;
     final today = _aiSummaryDateKey();
-    if (!force && prefs.aiHeadlineDate == today) {
+    final language = _headlineLanguage;
+    final langKey = language?.wireName;
+    // A renamed user changes the greeting's language mid-day, so the day key
+    // alone is not enough to decide the cached line still fits beside it.
+    if (!force &&
+        prefs.aiHeadlineDate == today &&
+        prefs.aiHeadlineLang == langKey) {
       final cached = prefs.aiHeadlineText;
       if (mounted && cached != null && cached.isNotEmpty) {
         setState(() => _aiHeadlineText = cached);
@@ -246,7 +271,7 @@ class TimelineScreenState extends State<TimelineScreen> {
       // Unlike the recap, an empty library is not a reason to skip this: the
       // line is a mood, and "you have not written anything yet" is a mood the
       // prompt handles on its own.
-      text = await adapter.headline(_aiSummarySource());
+      text = await adapter.headline(_aiSummarySource(), language: language);
     } catch (_) {
       text = null;
     } finally {
@@ -258,7 +283,7 @@ class TimelineScreenState extends State<TimelineScreen> {
       if (text != null && text.isNotEmpty) _aiHeadlineText = text;
     });
     if (text != null && text.isNotEmpty) {
-      unawaited(prefs.setAiHeadline(text: text, dateKey: today));
+      unawaited(prefs.setAiHeadline(text: text, dateKey: today, lang: langKey));
     }
   }
 
@@ -1660,6 +1685,9 @@ class _AiDaySummaryPanel extends StatelessWidget {
   final VoidCallback? onRefresh;
   final VoidCallback onToggle;
 
+  /// The header row's height, open or closed — see the build method.
+  static const _headerHeight = 40.0;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1697,30 +1725,41 @@ class _AiDaySummaryPanel extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
-                  const SizedBox(width: NexSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              // Fixed, and the same open or closed. The refresh button is
+              // what gave this row its height, so dropping it on collapse
+              // shrank the whole card to a thin strip that no longer read as
+              // the same object folding away — and left a tap target barely
+              // taller than the word inside it. 40 is the height that button
+              // was setting anyway, so open is unchanged and closed now
+              // matches it.
+              SizedBox(
+                height: _headerHeight,
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
+                    const SizedBox(width: NexSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: theme.textTheme.titleSmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  // Refresh only while it is open, and it is then the only
-                  // button on the card: closed, there is nothing on screen for
-                  // a refresh to change, and a button that rewrites something
-                  // you cannot see is a button that does nothing you can tell.
-                  if (!collapsed)
-                    IconButton(
-                      tooltip: refreshTooltip,
-                      onPressed: onRefresh,
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.refresh, size: 20),
-                    ),
-                ],
+                    // Refresh only while it is open, and it is then the only
+                    // button on the card: closed, there is nothing on screen
+                    // for a refresh to change, and a button that rewrites
+                    // something you cannot see is a button that does nothing
+                    // you can tell.
+                    if (!collapsed)
+                      IconButton(
+                        tooltip: refreshTooltip,
+                        onPressed: onRefresh,
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.refresh, size: 20),
+                      ),
+                  ],
+                ),
               ),
               AnimatedSize(
                 duration: NexMotion.slow,

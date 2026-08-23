@@ -34,6 +34,24 @@ Working convention:
 
 ## Unreleased
 
+- Ask the assistant out loud. The microphone beside the chat box records your
+  question and puts what you said in the box — you read it before it is sent,
+  because a name heard wrong is an argument about a question nobody asked.
+- Tell the assistant how you want to be answered. Settings › Assistant has a
+  line of your own now — "answer with a bit of humour", "keep it short" — sent
+  with every question. It changes the tone, not what the assistant is allowed
+  to do.
+- Text across the app is a step smaller. A card holds what it should, and
+  Settings stops running past the fold. If you liked it as it was, Settings ›
+  Text & UI size, one step up, is very close.
+- Settings buzzes when you touch it. Every switch, row and picker in there was
+  the one part of the app the Haptics switch did not reach.
+- The greeting and the AI's line are one sentence in one language now — the
+  language you wrote your own name in. It was a Persian half glued to an
+  English half, full stop at the wrong end.
+- The daily summary card keeps its height when it is folded away, instead of
+  shrinking to a strip too thin to comfortably tap.
+
 ## v0.9.4
 
 - A note with a reminder shows a small bell on its card, so you can see one

@@ -2120,6 +2120,24 @@ abstract class AppLocalizations {
   /// **'Enter a prompt here'**
   String get chatHint;
 
+  /// Tooltip on the chat's microphone button
+  ///
+  /// In en, this message translates to:
+  /// **'Speak'**
+  String get chatSpeak;
+
+  /// Shown while a chat recording is being turned into text
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your recording…'**
+  String get chatTranscribing;
+
+  /// Shown when a chat recording produced no text
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing came back from that recording.'**
+  String get chatTranscribeFailed;
+
   /// Tooltip on the assistant's send button
   ///
   /// In en, this message translates to:
@@ -2287,6 +2305,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Off, it will answer anything — including things it is bad at.'**
   String get assistantScopeSubtitle;
+
+  /// Free-text standing instruction for the assistant
+  ///
+  /// In en, this message translates to:
+  /// **'How it should answer'**
+  String get assistantInstruction;
+
+  /// Placeholder example for the assistant instruction field
+  ///
+  /// In en, this message translates to:
+  /// **'Answer with a bit of humour'**
+  String get assistantInstructionHint;
+
+  /// Explains the assistant instruction field
+  ///
+  /// In en, this message translates to:
+  /// **'Your own note to the assistant, sent with every question. It changes the tone, not what it is allowed to do.'**
+  String get assistantInstructionSubtitle;
 
   /// How many recent notes are sent with each question
   ///

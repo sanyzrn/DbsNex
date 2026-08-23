@@ -1174,6 +1174,18 @@
   "@chatHint": {
     "description": "Placeholder in the assistant's input field"
   },
+  "chatSpeak": "Speak",
+  "@chatSpeak": {
+    "description": "Tooltip on the chat's microphone button"
+  },
+  "chatTranscribing": "Reading your recording…",
+  "@chatTranscribing": {
+    "description": "Shown while a chat recording is being turned into text"
+  },
+  "chatTranscribeFailed": "Nothing came back from that recording.",
+  "@chatTranscribeFailed": {
+    "description": "Shown when a chat recording produced no text"
+  },
   "chatSend": "Send",
   "@chatSend": {
     "description": "Tooltip on the assistant's send button"
@@ -1285,6 +1297,18 @@
   "assistantScopeSubtitle": "Off, it will answer anything — including things it is bad at.",
   "@assistantScopeSubtitle": {
     "description": "Explains the notes-only switch"
+  },
+  "assistantInstruction": "How it should answer",
+  "@assistantInstruction": {
+    "description": "Free-text standing instruction for the assistant"
+  },
+  "assistantInstructionHint": "Answer with a bit of humour",
+  "@assistantInstructionHint": {
+    "description": "Placeholder example for the assistant instruction field"
+  },
+  "assistantInstructionSubtitle": "Your own note to the assistant, sent with every question. It changes the tone, not what it is allowed to do.",
+  "@assistantInstructionSubtitle": {
+    "description": "Explains the assistant instruction field"
   },
   "assistantContext": "Notes it can see",
   "@assistantContext": {
