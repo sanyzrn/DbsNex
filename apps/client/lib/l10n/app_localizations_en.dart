@@ -1213,6 +1213,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatHint => 'Enter a prompt here';
 
   @override
+  String get foreignImportTitle => 'Import notes';
+
+  @override
+  String get foreignImportSubtitle =>
+      'From Google Keep, or any folder of .md and .txt files';
+
+  @override
+  String get foreignImportWorking => 'Reading your export…';
+
+  @override
+  String foreignImportDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes imported.',
+      one: '1 note imported.',
+      zero: 'No notes found in that file.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get foreignImportUnreadable =>
+      'Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.';
+
+  @override
   String get tourNext => 'Next';
 
   @override

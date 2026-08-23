@@ -27,6 +27,14 @@ abstract interface class NexDb {
   /// Null when the list is empty, the same as an empty text capture.
   Future<Note?> captureChecklist(List<ChecklistItem> items);
 
+  /// Reads another app's export at [path] and writes what it finds.
+  ///
+  /// Returns how many notes actually landed. Takes a path rather than parsed
+  /// notes because the whole job — unzipping, parsing, inserting — belongs on
+  /// the far side of the isolate port, and because notes are not primitives
+  /// the port could carry anyway.
+  Future<int> importNotes(String path);
+
   /// Null when what was pasted is not a usable URL.
   Future<Note?> captureLink(String url);
 

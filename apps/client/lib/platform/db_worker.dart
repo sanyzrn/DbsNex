@@ -27,6 +27,7 @@ enum _DbCommand {
   getById,
   captureText,
   captureChecklist,
+  importNotes,
   captureLink,
   captureVoice,
   capturePhoto,
@@ -236,6 +237,10 @@ class NexDbWorker implements NexDb {
         // knows the format.
         'body': formatChecklist(items),
       });
+
+  @override
+  Future<int> importNotes(String path) =>
+      _send<int>(_DbCommand.importNotes, {'path': path});
 
   @override
   Future<Note?> captureLink(String url) =>
@@ -557,6 +562,16 @@ class NexDbWorker implements NexDb {
           _DbCommand.captureChecklist => capture.submitChecklistCapture(
             parseChecklist(arg('body')! as String),
           ),
+          // Read *and* written inside the isolate. Unzipping a Takeout export
+          // and inserting a few thousand rows are both long enough to drop
+          // frames, and the point of this worker is that neither happens on
+          // the thread drawing the screen.
+          _DbCommand.importNotes =>
+            capture
+                .importNotes(
+                  NoteImportArchive.read(File(arg('path')! as String)).notes,
+                )
+                .length,
           _DbCommand.captureLink => capture.submitLinkCapture(
             arg('url')! as String,
           ),

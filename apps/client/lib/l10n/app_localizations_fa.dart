@@ -1213,6 +1213,32 @@ class AppLocalizationsFa extends AppLocalizations {
   String get chatHint => 'چیزی بنویسید…';
 
   @override
+  String get foreignImportTitle => 'درون‌ریزی یادداشت‌ها';
+
+  @override
+  String get foreignImportSubtitle =>
+      'از گوگل کیپ، یا هر پوشه‌ای از فایل‌های ‏.md و ‏.txt';
+
+  @override
+  String get foreignImportWorking => 'دارم فایلت را می‌خوانم…';
+
+  @override
+  String foreignImportDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '‏$count یادداشت وارد شد.',
+      one: 'یک یادداشت وارد شد.',
+      zero: 'در آن فایل یادداشتی پیدا نشد.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get foreignImportUnreadable =>
+      'آن فایل خوانده نشد. همان ‏.zip دانلودشده، یا یک فایل ‏.json و ‏.md و ‏.txt را انتخاب کن.';
+
+  @override
   String get tourNext => 'بعدی';
 
   @override

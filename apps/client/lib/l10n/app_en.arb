@@ -1174,6 +1174,19 @@
   "@chatHint": {
     "description": "Placeholder in the assistant's input field"
   },
+  "foreignImportTitle": "Import notes",
+  "@foreignImportTitle": {"description": "Settings row that imports another app's export"},
+  "foreignImportSubtitle": "From Google Keep, or any folder of .md and .txt files",
+  "@foreignImportSubtitle": {"description": "Explains what the import row accepts"},
+  "foreignImportWorking": "Reading your export…",
+  "@foreignImportWorking": {"description": "Shown while an import is running"},
+  "foreignImportDone": "{count, plural, =0{No notes found in that file.} =1{1 note imported.} other{{count} notes imported.}}",
+  "@foreignImportDone": {
+    "description": "How many notes an import brought in",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "foreignImportUnreadable": "Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.",
+  "@foreignImportUnreadable": {"description": "Shown when a picked file held nothing importable"},
   "tourNext": "Next",
   "@tourNext": {"description": "Advances the first-run tour"},
   "tourDone": "Got it",

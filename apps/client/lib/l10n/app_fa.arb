@@ -647,6 +647,14 @@
   "@chatHint": {
     "description": "Placeholder in the assistant's input field"
   },
+  "foreignImportTitle": "درون‌ریزی یادداشت‌ها",
+  "foreignImportSubtitle": "از گوگل کیپ، یا هر پوشه‌ای از فایل‌های ‏.md و ‏.txt",
+  "foreignImportWorking": "دارم فایلت را می‌خوانم…",
+  "foreignImportDone": "{count, plural, =0{در آن فایل یادداشتی پیدا نشد.} =1{یک یادداشت وارد شد.} other{‏{count} یادداشت وارد شد.}}",
+  "@foreignImportDone": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "foreignImportUnreadable": "آن فایل خوانده نشد. همان ‏.zip دانلودشده، یا یک فایل ‏.json و ‏.md و ‏.txt را انتخاب کن.",
   "tourNext": "بعدی",
   "tourDone": "فهمیدم",
   "tourSkip": "بی‌خیال",

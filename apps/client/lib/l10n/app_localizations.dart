@@ -2120,6 +2120,36 @@ abstract class AppLocalizations {
   /// **'Enter a prompt here'**
   String get chatHint;
 
+  /// Settings row that imports another app's export
+  ///
+  /// In en, this message translates to:
+  /// **'Import notes'**
+  String get foreignImportTitle;
+
+  /// Explains what the import row accepts
+  ///
+  /// In en, this message translates to:
+  /// **'From Google Keep, or any folder of .md and .txt files'**
+  String get foreignImportSubtitle;
+
+  /// Shown while an import is running
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your export…'**
+  String get foreignImportWorking;
+
+  /// How many notes an import brought in
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No notes found in that file.} =1{1 note imported.} other{{count} notes imported.}}'**
+  String foreignImportDone(int count);
+
+  /// Shown when a picked file held nothing importable
+  ///
+  /// In en, this message translates to:
+  /// **'Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.'**
+  String get foreignImportUnreadable;
+
   /// Advances the first-run tour
   ///
   /// In en, this message translates to:

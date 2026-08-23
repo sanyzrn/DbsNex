@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+- Notes can be brought in from another app. Settings › Import notes takes the
+  `.zip` Google Takeout gives you for Keep — labels become tags, lists become
+  checklists, and every note keeps the date it was actually written rather than
+  arriving all at once today. Notes you had already deleted in Keep stay
+  deleted. It also reads a folder of `.md` or `.txt` files, which is what every
+  other notes app exports, so this is not only about Keep.
 - Any note can be translated. Open it, tap Translate, and read it in the other
   language — a recording's transcript and the text read out of a photo too, not
   only what you typed. It does not touch the note: copy the translation, or

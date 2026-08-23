@@ -220,6 +220,9 @@ class NexServices {
 
   Future<Note?> captureLink(String url) => worker.captureLink(url);
 
+  /// Imports another app's export, and answers how many notes landed.
+  Future<int> importNotes(String path) => worker.importNotes(path);
+
   Future<Note> captureVoice({
     required String mediaUri,
     required Uint8List mediaBytes,

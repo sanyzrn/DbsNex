@@ -24,6 +24,9 @@ export 'models/search_filters.dart';
 export 'models/search_query.dart';
 export 'models/tag.dart';
 
+// Reading somebody else's export.
+export 'import/note_import.dart';
+
 // Identity and content hashing.
 export 'ids.dart';
 
