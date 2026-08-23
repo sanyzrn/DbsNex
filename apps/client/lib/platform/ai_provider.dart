@@ -444,6 +444,16 @@ class CloudAIAdapter implements AIAdapter {
   /// The adapter is constructed fresh for each test, so one field is enough.
   ({int status, String? message})? _lastFailure;
 
+  /// What went wrong on the last request, when it is worth repeating verbatim.
+  ///
+  /// Only for the local path, and only for a message the runtime produced
+  /// itself. A cloud failure already has [_describe] to turn a status code
+  /// into something someone can act on; a model that will not load has no
+  /// status code and no vocabulary but its own, and "no answer came back,
+  /// check the provider in Settings" is actively misleading advice to give
+  /// someone who chose to have no provider.
+  String? get localFailure => _preferLocal ? _lastFailure?.message : null;
+
   /// One turn, with optional inline media, normalised across all three shapes.
   Future<String?> _complete(
     String system,

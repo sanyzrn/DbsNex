@@ -2246,6 +2246,18 @@ abstract class AppLocalizations {
   /// **'Not downloaded yet — the assistant needs it to work offline'**
   String get localModelManageMissing;
 
+  /// Shown when the runtime cannot load the weights
+  ///
+  /// In en, this message translates to:
+  /// **'The model is downloaded but would not start on this phone.'**
+  String get localModelLoadFailed;
+
+  /// Label above the verbatim runtime error
+  ///
+  /// In en, this message translates to:
+  /// **'What the runtime reported:'**
+  String get localModelLoadFailedDetail;
+
   /// Screen for downloading the local AI model
   ///
   /// In en, this message translates to:

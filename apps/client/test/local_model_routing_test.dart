@@ -25,6 +25,24 @@ class _FakeLocalModel implements ChatAdapter {
   }
 }
 
+/// A local model that is present and cannot load — the case this whole
+/// diagnostic exists for.
+class _ExplodingLocalModel implements ChatAdapter {
+  _ExplodingLocalModel(this.message);
+
+  final String message;
+
+  @override
+  bool get available => true;
+
+  @override
+  Future<void>? warmUp() => Future.error(StateError(message));
+
+  @override
+  Future<ChatResponse>? sendMessage(List<ChatMessage> history) =>
+      Future.error(StateError(message));
+}
+
 /// Fails the test if anything reaches the network. Every case here has no
 /// provider configured, so a request leaving the device is the bug.
 http.Client get _noNetwork =>
@@ -105,6 +123,41 @@ void main() {
         expect(local.calls, isEmpty);
       },
     );
+  });
+
+  test('a model that will not load says so in its own words', () async {
+    // "No answer came back, check the provider in Settings" is advice that
+    // sends someone who chose to have no provider to the one screen that is
+    // already correct. The runtime's message is the only thing that
+    // distinguishes a wrong file from a device that cannot run it.
+    final adapter = CloudAIAdapter(
+      config: noProvider,
+      client: _noNetwork,
+      localModel: _ExplodingLocalModel('OpenCL init failed: no device'),
+    );
+
+    final reply = await adapter.chat(const [
+      ChatMessage(role: ChatRole.user, content: 'hello'),
+    ]);
+
+    expect(reply, isNull);
+    expect(adapter.localFailure, contains('OpenCL init failed'));
+  });
+
+  test('a cloud failure does not get reported as a local one', () async {
+    final adapter = CloudAIAdapter(
+      config: withProvider,
+      client: MockClient((request) async => http.Response('nope', 500)),
+      localModel: _FakeLocalModel(),
+    );
+
+    await adapter.chat(const [
+      ChatMessage(role: ChatRole.user, content: 'hello'),
+    ]);
+
+    // The cloud path has status codes and its own explanations; this string
+    // exists only for the runtime, which has neither.
+    expect(adapter.localFailure, isNull);
   });
 
   test('no model and no provider still answers nothing', () async {

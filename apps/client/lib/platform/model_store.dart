@@ -82,24 +82,27 @@ class ModelRelease {
 /// because [NexModelStore.installable] reports false and no UI offers a
 /// download that would 404 or arrive unverified. Publishing is an edit here.
 abstract final class NexModels {
-  /// Gemma-4-E2B-it, 2.58 GB, split in two because a GitHub release asset
-  /// caps at 2 GiB.
+  /// The GPU build of Gemma-4-E2B-it, 2.01 GB, one asset — **provisional**.
   ///
-  /// This is the file `flutter_litert_lm` itself curates and has run — and the
-  /// reason that matters is that the smaller `-gpu` variant was tried first
-  /// and does not work. It is a backend-specific artifact, it is not in the
-  /// plugin's tested set, and on a real phone loading it took the app down in
-  /// native code, where Dart has nothing to catch. It was chosen because it
-  /// fit under the asset cap without splitting, which is a packaging
-  /// convenience and not a reason to ship a model that does not load.
+  /// This is not the file to ship. `flutter_litert_lm` curates
+  /// `gemma-4-E2B-it.litertlm` (2,583,085,056 bytes) and not this one, and on a
+  /// real phone this one has not yet loaded. It stays here for now only because
+  /// it is already uploaded and the alternative is splitting and uploading
+  /// 2.58 GB before knowing whether the file is even the problem.
   ///
-  /// Digests are empty until the two parts are uploaded, which keeps
-  /// [NexModelStore.installable] false and the feature invisible rather than
-  /// broken.
+  /// It is worth being precise about what is unknown, because it decides what
+  /// to do next and the three answers point different ways: the file may be
+  /// the wrong format for whichever backend loads it, this phone may have no
+  /// working OpenCL path, or 2 GB of weights may simply not fit in memory
+  /// alongside the app. The load error is surfaced verbatim now rather than
+  /// collapsed into "no answer came back", so the next run says which.
+  ///
+  /// Swapping to the curated file is an edit to this constant: URL, filename,
+  /// size, and three digests across two parts.
   static const gemma4E2B = ModelRelease(
     id: 'gemma-4-e2b-it',
-    filename: 'gemma-4-E2B-it.litertlm',
-    sizeBytes: 2583085056,
+    filename: 'gemma-4-E2B-it-gpu.litertlm',
+    sizeBytes: 2008432640,
     // Gemma's terms, not the repository's apache-2.0 badge. That badge covers
     // the conversion, not the weights, and the weights are what is being
     // redistributed here.
@@ -107,21 +110,17 @@ abstract final class NexModels {
     licenseNotice:
         'Gemma is provided under and subject to the Gemma Terms of Use '
         'found at ai.google.dev/gemma/terms',
-    sha256: '',
+    // Verified against the hosted asset by streaming the whole file and
+    // hashing it, so a download failure here would not be a transfer problem.
+    sha256: 'a53a59001894c58e6bdb5b9b227709f91a2e3e556baa7d85acf9c55402ba5cf5',
     parts: [
       ModelPart(
         url:
             'https://github.com/sanyzrn/DbsNex-releases/releases/download'
-            '/model-gemma-4-e2b/gemma-4-E2B-it.litertlm.part-aa',
-        filename: 'gemma-4-E2B-it.litertlm.part-aa',
-        sha256: '',
-      ),
-      ModelPart(
-        url:
-            'https://github.com/sanyzrn/DbsNex-releases/releases/download'
-            '/model-gemma-4-e2b/gemma-4-E2B-it.litertlm.part-ab',
-        filename: 'gemma-4-E2B-it.litertlm.part-ab',
-        sha256: '',
+            '/model-gemma-4-e2b-gpu/gemma-4-E2B-it-gpu.litertlm',
+        filename: 'gemma-4-E2B-it-gpu.litertlm.part-aa',
+        sha256:
+            'a53a59001894c58e6bdb5b9b227709f91a2e3e556baa7d85acf9c55402ba5cf5',
       ),
     ],
   );

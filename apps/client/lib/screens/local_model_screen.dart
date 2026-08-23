@@ -237,12 +237,22 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
                     blocker: support.blocker ?? LocalAiBlocker.storage,
                     model: widget.model,
                   )
-                else if (store.isInstalled(widget.model))
+                else if (store.isInstalled(widget.model)) ...[
                   _Installed(
                     bytes: store.installedBytes(widget.model),
                     onDelete: () => unawaited(_delete()),
-                  )
-                else ...[
+                  ),
+                  // The one place the runtime's own words are shown. A model
+                  // that downloaded perfectly and then would not start is the
+                  // failure most likely to be mistaken for the app being
+                  // broken, and the three things that cause it — wrong file,
+                  // no OpenCL, not enough memory — are indistinguishable
+                  // without this string.
+                  if (_install.loadError case final failure?) ...[
+                    const SizedBox(height: NexSpacing.lg),
+                    _LoadFailure(detail: failure),
+                  ],
+                ] else ...[
                   _License(
                     model: widget.model,
                     accepted: _accepted,
@@ -429,6 +439,54 @@ String _size(int bytes) {
   }
   if (bytes >= 1000000) return '${(bytes / 1000000).toStringAsFixed(0)} MB';
   return '${(bytes / 1000).toStringAsFixed(0)} KB';
+}
+
+/// A model that is on the phone and will not start.
+class _LoadFailure extends StatelessWidget {
+  const _LoadFailure({required this.detail});
+
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(NexSpacing.md),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.localModelLoadFailed,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onErrorContainer,
+            ),
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          Text(
+            l10n.localModelLoadFailedDetail,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onErrorContainer,
+            ),
+          ),
+          const SizedBox(height: NexSpacing.xs),
+          // Selectable so it can be copied into a bug report. An error nobody
+          // can quote is an error nobody can fix.
+          SelectableText(
+            detail,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontFamily: 'monospace',
+              color: theme.colorScheme.onErrorContainer,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Why the device cannot have this, said plainly.
