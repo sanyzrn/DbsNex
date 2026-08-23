@@ -6,7 +6,9 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../widgets/nex_banner.dart';
+import 'local_model_screen.dart';
 import '../platform/ai_provider.dart';
+import '../platform/local_ai_support.dart';
 import '../platform/nex_preferences.dart';
 
 /// Where the intelligence features get their answers from.
@@ -206,6 +208,30 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               },
             ),
             const SizedBox(height: NexSpacing.sm),
+          ],
+          // Managing the downloaded model belongs here, beside choosing it.
+          // It used to be its own Settings row, which meant the switch that
+          // turns the on-device model on and the screen that puts one on the
+          // phone were in different places, and picking "On-device only"
+          // looked like it had done nothing.
+          if (LocalAi.flavorSupportsLocalModels &&
+              provider == AiProvider.none) ...[
+            const SizedBox(height: NexSpacing.sm),
+            _ManageModelRow(
+              installed: _localModelReady,
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        LocalModelScreen(preferences: widget.preferences),
+                  ),
+                );
+                // The model may have arrived or been deleted while that screen
+                // was open, and every label here depends on which.
+                if (mounted) setState(() {});
+              },
+            ),
           ],
           if (provider != AiProvider.none) ...[
             const SizedBox(height: NexSpacing.sm),
@@ -487,6 +513,68 @@ class _ResultBanner extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The way into downloading, replacing or removing the on-device model.
+class _ManageModelRow extends StatelessWidget {
+  const _ManageModelRow({required this.installed, required this.onTap});
+
+  final bool installed;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(NexRadius.lg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(NexSpacing.md),
+          child: Row(
+            children: [
+              Icon(
+                installed ? Icons.check_circle_outline : Icons.memory_outlined,
+                color: installed
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: NexSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.localModelTitle,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    Text(
+                      // Not "On-device only" repeated back. What someone needs
+                      // here is whether the phone actually has the model, which
+                      // is the difference between this option working and not.
+                      installed
+                          ? l10n.localModelManageInstalled
+                          : l10n.localModelManageMissing,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -76,6 +76,27 @@ jobs:
           } > android/key.properties
           test -s android/key.properties
 
+      # Without this the APK carries pubspec's placeholder 0.2.0, whose
+      # versionCode is far below the installed release's — and Android refuses
+      # an install that would go backwards. That is why the last test build
+      # could only be installed by deleting every copy of the app first. The
+      # version comes from the newest section of the CHANGELOG and uses
+      # release.yml's own formula, so a test build ranks exactly where the
+      # release it is testing will.
+      - name: Version this build like the release it is testing
+        id: version
+        run: |
+          BASE=$(grep -m1 -oE '^## v[0-9]+\.[0-9]+\.[0-9]+' ../../CHANGELOG.md | sed 's/^## v//')
+          if [ -z "$BASE" ]; then
+            echo "::error::no '## vX.Y.Z' section found in CHANGELOG.md"
+            exit 1
+          fi
+          IFS=. read -r MA MI PA <<< "$BASE"
+          CODE=$(( (MA * 10000 + MI * 100 + PA) * 10000 ))
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "building $BASE (versionCode $CODE)"
+
       - run: flutter pub get
 
       # --release, not --debug: the point is to measure how the model behaves,
@@ -96,7 +117,9 @@ jobs:
           flutter build apk --release \
             --flavor ai \
             --target lib/main_ai.dart \
-            --target-platform android-arm64
+            --target-platform android-arm64 \
+            --build-name=${{ steps.version.outputs.base }} \
+            --build-number=${{ steps.version.outputs.code }}
 
       # Flavor-qualified path, same wrinkle release.yml documents: Gradle nests
       # under aiRelease/ and the Flutter tool copies to flutter-apk/ with the

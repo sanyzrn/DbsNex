@@ -82,26 +82,24 @@ class ModelRelease {
 /// because [NexModelStore.installable] reports false and no UI offers a
 /// download that would 404 or arrive unverified. Publishing is an edit here.
 abstract final class NexModels {
-  /// The GPU-targeted build of Gemma-4-E2B-it, 2.01 GB.
+  /// Gemma-4-E2B-it, 2.58 GB, split in two because a GitHub release asset
+  /// caps at 2 GiB.
   ///
-  /// Two things about this constant are temporary and are marked as such.
+  /// This is the file `flutter_litert_lm` itself curates and has run — and the
+  /// reason that matters is that the smaller `-gpu` variant was tried first
+  /// and does not work. It is a backend-specific artifact, it is not in the
+  /// plugin's tested set, and on a real phone loading it took the app down in
+  /// native code, where Dart has nothing to catch. It was chosen because it
+  /// fit under the asset cap without splitting, which is a packaging
+  /// convenience and not a reason to ship a model that does not load.
   ///
-  /// The URL points at Hugging Face, which is where the weights already are.
-  /// That is a testing shortcut and cannot ship: HF is not reachable from Iran,
-  /// which is the audience this whole feature exists for. Before release the
-  /// URL becomes the self-hosted asset; nothing else about this changes, which
-  /// is the reason the URL was made a value in the first place.
-  ///
-  /// And it is the `-gpu` artifact rather than the general one the seven
-  /// Persian prompts were actually run against. It is smaller, needs no split,
-  /// and is the obvious thing to test first — but it is a backend-specific
-  /// build, so the adapter's CPU fallback may not be able to load it at
-  /// all. Whether a device with no working OpenCL path gets a slow answer or no
-  /// answer is exactly what the first install on real hardware settles.
+  /// Digests are empty until the two parts are uploaded, which keeps
+  /// [NexModelStore.installable] false and the feature invisible rather than
+  /// broken.
   static const gemma4E2B = ModelRelease(
     id: 'gemma-4-e2b-it',
-    filename: 'gemma-4-E2B-it-gpu.litertlm',
-    sizeBytes: 2008432640,
+    filename: 'gemma-4-E2B-it.litertlm',
+    sizeBytes: 2583085056,
     // Gemma's terms, not the repository's apache-2.0 badge. That badge covers
     // the conversion, not the weights, and the weights are what is being
     // redistributed here.
@@ -109,19 +107,21 @@ abstract final class NexModels {
     licenseNotice:
         'Gemma is provided under and subject to the Gemma Terms of Use '
         'found at ai.google.dev/gemma/terms',
-    sha256: 'a53a59001894c58e6bdb5b9b227709f91a2e3e556baa7d85acf9c55402ba5cf5',
+    sha256: '',
     parts: [
       ModelPart(
         url:
             'https://github.com/sanyzrn/DbsNex-releases/releases/download'
-            '/model-gemma-4-e2b-gpu/gemma-4-E2B-it-gpu.litertlm',
-        filename: 'gemma-4-E2B-it-gpu.litertlm.part-aa',
-        // One part, so this is the digest of the whole file and [sha256] above
-        // is the same string. Not redundant in general — for a split model the
-        // two prove different things — and cheap enough to leave symmetrical
-        // rather than special-casing the single-part shape.
-        sha256:
-            'a53a59001894c58e6bdb5b9b227709f91a2e3e556baa7d85acf9c55402ba5cf5',
+            '/model-gemma-4-e2b/gemma-4-E2B-it.litertlm.part-aa',
+        filename: 'gemma-4-E2B-it.litertlm.part-aa',
+        sha256: '',
+      ),
+      ModelPart(
+        url:
+            'https://github.com/sanyzrn/DbsNex-releases/releases/download'
+            '/model-gemma-4-e2b/gemma-4-E2B-it.litertlm.part-ab',
+        filename: 'gemma-4-E2B-it.litertlm.part-ab',
+        sha256: '',
       ),
     ],
   );

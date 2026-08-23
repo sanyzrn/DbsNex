@@ -11,7 +11,6 @@ import '../widgets/nex_banner.dart';
 import '../widgets/tag_color_picker.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
-import '../platform/local_ai_support.dart';
 import '../platform/nex_services.dart';
 import '../platform/update_service.dart';
 import '../platform/os_capture_bridge.dart';
@@ -19,7 +18,6 @@ import 'about_screen.dart';
 import 'backup_screen.dart';
 import 'assistant_screen.dart';
 import 'intelligence_screen.dart';
-import 'local_model_screen.dart';
 import 'update_sheet.dart';
 
 String _swipeLabel(AppLocalizations l10n, SwipeAction action) =>
@@ -179,21 +177,6 @@ class SettingsSheet extends StatelessWidget {
             ),
           ),
         ),
-        // Only in the "ai" flavor. The standard build has no local runtime, so
-        // offering a 2.6 GB download for a model nothing in it could load
-        // would be a button that wastes someone's data — see LocalAi.
-        if (LocalAi.flavorSupportsLocalModels)
-          _Row(
-            icon: Icons.memory_outlined,
-            title: l10n.localModelTitle,
-            value: l10n.localModelSubtitle,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (_) => LocalModelScreen(preferences: preferences),
-              ),
-            ),
-          ),
         _Row(
           icon: Icons.chat_bubble_outline,
           title: l10n.assistant,

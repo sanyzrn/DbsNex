@@ -60,6 +60,9 @@ Working convention:
 - Phones that cannot run it say so plainly — 64-bit ARM only, which is nearly
   every Android phone made since 2018 — instead of offering a 2 GB download
   that would fail at the end.
+- The welcome screens sit in the middle of the screen rather than pinned to
+  the top, and the little dots that show how far along you are can actually be
+  seen on a dark background.
 - Nothing else changes. The online assistant, your provider keys and every
   other AI feature work exactly as before; the on-device model is an option
   beside them, not a replacement.
