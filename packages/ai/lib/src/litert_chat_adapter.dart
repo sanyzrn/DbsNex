@@ -69,6 +69,17 @@ class LiteRtChatAdapter implements ChatAdapter {
     LiteLmBackend.cpu,
   ];
 
+  /// Loads the model now rather than inside the first question.
+  ///
+  /// Returns null when there is nothing to load — no weights on disk, or a
+  /// platform with no runtime — so a caller can tell "already warm" from
+  /// "there is a wait coming" without starting one.
+  @override
+  Future<void>? warmUp() {
+    if (!available || _engine != null) return null;
+    return _ensureEngine();
+  }
+
   @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) {
     // Null *before* awaiting, the convention every AIAdapter method follows:

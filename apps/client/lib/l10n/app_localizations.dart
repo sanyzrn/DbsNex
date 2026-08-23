@@ -2162,6 +2162,78 @@ abstract class AppLocalizations {
   /// **'Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.'**
   String get foreignImportUnreadable;
 
+  /// Pauses the download, keeping what has arrived
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get localModelPause;
+
+  /// Continues a paused download
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get localModelResume;
+
+  /// Stops the download and discards what has arrived
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get localModelStop;
+
+  /// Paused state with byte counts
+  ///
+  /// In en, this message translates to:
+  /// **'Paused · {done} of {total}'**
+  String localModelPaused(String done, String total);
+
+  /// Downloaded so far against the whole model
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total}'**
+  String localModelBytes(String done, String total);
+
+  /// Shown while the runtime loads the weights
+  ///
+  /// In en, this message translates to:
+  /// **'Starting the model up…'**
+  String get localModelLoading;
+
+  /// Confirm discarding a partial download
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the download?'**
+  String get localModelStopTitle;
+
+  /// Explains the cost of stopping rather than pausing
+  ///
+  /// In en, this message translates to:
+  /// **'What has downloaded so far is thrown away, and starting again begins from the beginning. Pause keeps it instead.'**
+  String get localModelStopBody;
+
+  /// Install from a file on the device instead of downloading
+  ///
+  /// In en, this message translates to:
+  /// **'I already have the file'**
+  String get localModelFromFile;
+
+  /// Explains the pick-a-file option
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the model file if you have already downloaded it on this phone or copied it across. It is checked against the same fingerprint before it is used.'**
+  String get localModelFromFileHint;
+
+  /// Shown while a picked file is verified
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the file…'**
+  String get localModelChecking;
+
+  /// Picked file failed verification
+  ///
+  /// In en, this message translates to:
+  /// **'That is not this model — the file did not match the fingerprint.'**
+  String get localModelWrongFile;
+
   /// Screen for downloading the local AI model
   ///
   /// In en, this message translates to:
@@ -2207,7 +2279,7 @@ abstract class AppLocalizations {
   /// What happens if the user navigates away
   ///
   /// In en, this message translates to:
-  /// **'You can leave this screen. Closing the app stops the download, and it picks up where it left off.'**
+  /// **'You can leave this screen — the download keeps going. Closing the app stops it, and it picks up where it left off.'**
   String get localModelKeepOpen;
 
   /// Install finished

@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:nex_client/platform/app_update.dart';
 import 'package:nex_client/platform/local_ai_support.dart';
 import 'package:nex_client/platform/model_store.dart';
 
@@ -241,6 +242,100 @@ void main() {
 
       expect(store.isInstalled(model), isFalse);
       expect(store.installedBytes(model), 0);
+    });
+  });
+
+  group('installing from a file the user already has', () {
+    test(
+      'a matching file is copied in and the original is left alone',
+      () async {
+        final model = releaseFor();
+        final source = File('${tmp.path}/somewhere-else.litertlm')
+          ..writeAsBytesSync(whole);
+        final store = storeWith(
+          MockClient((request) async => fail('nothing should be downloaded')),
+        );
+        addTearDown(store.close);
+
+        final file = await store.installFromFile(model, source);
+
+        expect(file.readAsBytesSync(), whole);
+        expect(store.isInstalled(model), isTrue);
+        // Copied, not moved. The file is the user's, sitting where they chose.
+        expect(source.existsSync(), isTrue);
+      },
+    );
+
+    test('a file that is not this model is refused', () async {
+      final model = releaseFor();
+      final source = File('${tmp.path}/something-else.bin')
+        ..writeAsBytesSync(utf8.encode('a completely different file'));
+      final store = storeWith(server());
+      addTearDown(store.close);
+
+      // The digest is the only thing standing between "pick a file" and
+      // handing an arbitrary file to a native runtime, so it is not optional
+      // and this is what holds it that way.
+      await expectLater(
+        store.installFromFile(model, source),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(store.isInstalled(model), isFalse);
+    });
+
+    test('nothing half-copied is left behind when it is refused', () async {
+      final model = releaseFor();
+      final source = File('${tmp.path}/wrong.bin')
+        ..writeAsBytesSync(utf8.encode('wrong'));
+      final store = storeWith(server());
+      addTearDown(store.close);
+
+      await expectLater(
+        store.installFromFile(model, source),
+        throwsA(isA<FileSystemException>()),
+      );
+      final dir = Directory('${tmp.path}/${model.id}');
+      expect(
+        dir.existsSync() ? dir.listSync() : const <FileSystemEntity>[],
+        isEmpty,
+      );
+    });
+  });
+
+  group('stopping a download', () {
+    test('a cancelled install throws DownloadPaused, not a failure', () async {
+      final model = releaseFor();
+      final store = storeWith(server());
+      addTearDown(store.close);
+
+      // Distinct from HttpException on purpose: a pause reported as "download
+      // failed" is how someone concludes the feature is broken.
+      await expectLater(
+        store.install(model, isCancelled: () => true),
+        throwsA(isA<DownloadPaused>()),
+      );
+      expect(store.isInstalled(model), isFalse);
+    });
+  });
+
+  group('progress in bytes', () {
+    test('reports bytes on disk against the model size', () async {
+      final model = releaseFor();
+      final store = storeWith(server());
+      addTearDown(store.close);
+      final seen = <ModelInstallProgress>[];
+
+      await store.install(model, onProgress: seen.add);
+
+      // A percentage is the wrong unit for two gigabytes on a data plan.
+      expect(seen.map((p) => p.totalBytes), everyElement(whole.length));
+      expect(seen.last.receivedBytes, whole.length);
+      // Never goes backwards across the part boundary — a counter that
+      // restarts at zero halfway looks like the first half was thrown away.
+      final counts = seen.map((p) => p.receivedBytes).toList();
+      for (var i = 1; i < counts.length; i++) {
+        expect(counts[i], greaterThanOrEqualTo(counts[i - 1]));
+      }
     });
   });
 

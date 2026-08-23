@@ -17,6 +17,9 @@ class PlaceholderLocalChatAdapter implements ChatAdapter {
   bool get available => true;
 
   @override
+  Future<void>? warmUp() => null;
+
+  @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) {
     return Future.value(
       const ChatResponse(

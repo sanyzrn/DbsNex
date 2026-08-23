@@ -24,6 +24,20 @@ abstract class ChatAdapter {
   /// while the app is running — a download finishing, or the model being
   /// deleted — so it is a getter and not a field read once at startup.
   bool get available;
+
+  /// Brings the model up before anything asks it a question, or null when
+  /// there is nothing to bring up.
+  ///
+  /// Loading is the expensive step for a local model — gigabytes off disk and
+  /// onto the GPU — and it otherwise happens inside the first message, where
+  /// it reads as the app having hung. Calling this lets the moment be shown
+  /// somewhere it makes sense, next to the download that just finished.
+  ///
+  /// Optional in both directions: an adapter with no load step returns null,
+  /// and no caller has to await it. A failure here is not an install failure —
+  /// the first message will surface it, where there is already a place to say
+  /// so.
+  Future<void>? warmUp() => null;
 }
 
 enum ChatRole { system, user, assistant }
@@ -52,6 +66,9 @@ class NullChatAdapter implements ChatAdapter {
 
   @override
   bool get available => false;
+
+  @override
+  Future<void>? warmUp() => null;
 
   @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) => null;

@@ -1247,6 +1247,49 @@ class AppLocalizationsFa extends AppLocalizations {
       'آن فایل خوانده نشد. همان ‏.zip دانلودشده، یا یک فایل ‏.json و ‏.md و ‏.txt را انتخاب کن.';
 
   @override
+  String get localModelPause => 'توقف موقت';
+
+  @override
+  String get localModelResume => 'ادامه';
+
+  @override
+  String get localModelStop => 'لغو';
+
+  @override
+  String localModelPaused(String done, String total) {
+    return 'متوقف شده · $done از $total';
+  }
+
+  @override
+  String localModelBytes(String done, String total) {
+    return '$done از $total';
+  }
+
+  @override
+  String get localModelLoading => 'در حال بالا آوردن مدل…';
+
+  @override
+  String get localModelStopTitle => 'دانلود لغو شود؟';
+
+  @override
+  String get localModelStopBody =>
+      'هرچه تا حالا دانلود شده دور ریخته می‌شود و شروع دوباره از صفر خواهد بود. «توقف موقت» آن را نگه می‌دارد.';
+
+  @override
+  String get localModelFromFile => 'فایل را از قبل دارم';
+
+  @override
+  String get localModelFromFileHint =>
+      'اگر فایل مدل را قبلاً روی همین گوشی دانلود یا کپی کرده‌ای، انتخابش کن. قبل از استفاده با همان اثر انگشت بررسی می‌شود.';
+
+  @override
+  String get localModelChecking => 'در حال بررسی فایل…';
+
+  @override
+  String get localModelWrongFile =>
+      'این فایل این مدل نیست — اثر انگشتش نخواند.';
+
+  @override
   String get localModelTitle => 'مدل روی دستگاه';
 
   @override
@@ -1274,7 +1317,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get localModelKeepOpen =>
-      'می‌توانی از این صفحه بیرون بروی. بستن اپ دانلود را متوقف می‌کند و دفعه‌ی بعد از همان‌جا ادامه می‌دهد.';
+      'می‌توانی از این صفحه بیرون بروی — دانلود ادامه پیدا می‌کند. بستن اپ متوقفش می‌کند و دفعهٔ بعد از همان‌جا ادامه می‌دهد.';
 
   @override
   String get localModelReady => 'مدل آماده است. چت حالا آفلاین کار می‌کند.';

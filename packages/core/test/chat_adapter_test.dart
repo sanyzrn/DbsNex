@@ -8,6 +8,9 @@ class _FakeChatAdapter implements ChatAdapter {
   bool get available => true;
 
   @override
+  Future<void>? warmUp() => null;
+
+  @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) {
     lastHistory = history;
     return Future.value(const ChatResponse(content: 'ok'));

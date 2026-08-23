@@ -6,19 +6,22 @@ import 'package:nex_core/nex_core.dart';
 
 /// Stands in for a downloaded model, and records what it was asked.
 class _FakeLocalModel implements ChatAdapter {
-  _FakeLocalModel({this.available = true, this.reply = 'a local answer'});
+  _FakeLocalModel({this.available = true});
 
   @override
   final bool available;
 
-  final String reply;
+  @override
+  Future<void>? warmUp() => null;
+
+  static const reply = 'a local answer';
   final calls = <List<ChatMessage>>[];
 
   @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) {
     if (!available) return null;
     calls.add(history);
-    return Future.value(ChatResponse(content: reply));
+    return Future.value(const ChatResponse(content: reply));
   }
 }
 
