@@ -130,6 +130,53 @@ void main() {
     });
   });
 
+  group('a model small enough not to be split', () {
+    // The shipped constant is one part, because the artifact fits under the
+    // 2 GiB asset cap. Nothing in [NexModelStore] special-cases that, and this
+    // is what holds it to that: a list of one joins, verifies and cleans up on
+    // the same path as a list of two.
+    ModelRelease single() => ModelRelease(
+      id: 'single-part-model',
+      filename: 'model.litertlm',
+      sizeBytes: whole.length,
+      licenseUrl: 'https://example.invalid/terms',
+      licenseNotice: 'Notice',
+      sha256: digestOf(whole),
+      parts: [
+        ModelPart(
+          url: 'https://example.invalid/model.whole',
+          filename: 'model.part-aa',
+          sha256: digestOf(whole),
+        ),
+      ],
+    );
+
+    test('installs from one part and leaves one file', () async {
+      final store = NexModelStore(
+        root: tmp,
+        client: MockClient((request) async => http.Response.bytes(whole, 200)),
+      );
+      addTearDown(store.close);
+
+      final file = await store.install(single());
+
+      expect(file.readAsBytesSync(), whole);
+      final left = file.parent
+          .listSync()
+          .whereType<File>()
+          .map((f) => f.uri.pathSegments.last)
+          .toList();
+      expect(left, ['model.litertlm']);
+    });
+
+    test('one part with a url and a digest is installable', () {
+      // [NexModelStore.installable] asks every part for both. A one-part
+      // release passing that is the reason publishing a small model needs no
+      // change to this file beyond the constant.
+      expect(NexModelStore.installable(single()), isTrue);
+    });
+  });
+
   group('verification', () {
     test('a part that arrives corrupt fails and is not kept', () async {
       final model = releaseFor();
