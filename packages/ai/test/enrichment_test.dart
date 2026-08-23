@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:nex_ai/nex_ai.dart';
 import 'package:nex_data/nex_data.dart';
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   late NexDatabase db;

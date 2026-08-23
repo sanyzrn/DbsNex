@@ -1,7 +1,8 @@
 name: nex_ai
 description: >-
-  Nex optional AI leaf (v3+). Re-exports Core AI contracts/adapters. Deleting
-  this package must leave core/data/client compiling (see docs/09-ai.md).
+  Nex optional AI leaf (v3+). Re-exports Core AI contracts/adapters and holds
+  the on-device chat implementation. Deleting this package must leave
+  core/data/client compiling (see docs/09-ai.md).
 publish_to: "none"
 version: 0.1.0
 
@@ -9,16 +10,29 @@ environment:
   sdk: ^3.9.0
 
 dependencies:
+  flutter:
+    sdk: flutter
   nex_core:
     path: ../core
-  # Phase 0 of the offline-AI roadmap (docs/09-ai.md): a local llama.cpp
-  # runtime, pinned to an exact pre-1.0 dev build rather than a caret range —
-  # this is a feasibility harness, not a shipped adapter, and the API is
-  # still moving under 0.9.x. Re-pin deliberately, don't let it float.
-  llama_cpp_dart: 0.9.0-dev.10
+  # LiteRT-LM, not llama.cpp. Phase 0 pinned llama_cpp_dart and every
+  # benchmark after it measured that runtime's CPU build — the same phone runs
+  # a larger model roughly ten times faster over OpenCL through this one. See
+  # 09-ai.md, "the benchmark measured the wrong runtime".
+  #
+  # This is the 0.3.x package rather than flutter_gemma, which is more mature
+  # but requires Dart >= 3.12 against the 3.9.2 this repo is pinned to. An SDK
+  # upgrade is its own project with its own risk on a shipping app, and it
+  # would block all of Phase 1 behind it. ChatAdapter is what makes that
+  # reversible: moving to flutter_gemma later is one file.
+  flutter_litert_lm: ^0.3.0
 
 dev_dependencies:
+  # flutter_test, not test: this package carries a Flutter dependency as of
+  # Phase 1, so it moved out of CI's Dart-only matrix. That matrix exists to
+  # prove packages/core and packages/data need no Flutter; nex_ai never made
+  # that claim, and on-device inference could not honour it.
+  flutter_test:
+    sdk: flutter
   lints: ^5.0.0
   nex_data:
     path: ../data
-  test: ^1.25.0
