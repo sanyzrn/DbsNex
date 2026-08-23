@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import 'app_update.dart';
 
@@ -136,6 +137,19 @@ class ModelInstallProgress {
 class NexModelStore {
   NexModelStore({required this.root, http.Client? client})
     : _downloader = UpdateDownloader(client: client);
+
+  /// Opens the store at the one directory the whole app agrees on.
+  ///
+  /// Both the "ai" flavor's entry point and the screen that manages downloads
+  /// need this path, and they must not each construct it — two nearly-equal
+  /// strings would mean a model downloaded to one place and looked for in
+  /// another, with nothing to show why.
+  static Future<NexModelStore> open({http.Client? client}) async {
+    final support = await getApplicationSupportDirectory();
+    final root = Directory(p.join(support.path, 'models'));
+    await root.create(recursive: true);
+    return NexModelStore(root: root, client: client);
+  }
 
   /// Where models live. A directory of Nex's own, not the media directory:
   /// these are not the user's files, they are replaceable and enormous, and

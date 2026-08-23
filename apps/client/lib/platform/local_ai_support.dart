@@ -42,6 +42,22 @@ class LocalAiSupport {
 /// mentioning it, particularly when the download is the expensive part and the
 /// failure only appears at the end of it.
 abstract final class LocalAi {
+  /// Whether this build has a local inference runtime behind it at all.
+  ///
+  /// Only `main_ai.dart` sets this — the "ai" flavor's entry point, and the
+  /// one file allowed to import the AI leaf package directly (ADR-031). The
+  /// standard flavor never does, so its Settings never offers a 2.6 GB
+  /// download for a model nothing in that build could load.
+  ///
+  /// A flag rather than a query against `ChatAdapterBinding` because the
+  /// answer is about the *build*, and `apps/client` must stay able to compile
+  /// with `packages/ai` deleted entirely.
+  ///
+  /// (The leaf's package name is deliberately not spelled out above: CI's
+  /// deletion proof greps every file outside that package for it, and cannot
+  /// tell a doc comment from an import.)
+  static bool flavorSupportsLocalModels = false;
+
   /// Headroom demanded beyond the model itself.
   ///
   /// The join writes the assembled file while the parts are still on disk, so

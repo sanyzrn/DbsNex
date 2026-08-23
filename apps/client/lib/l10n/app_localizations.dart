@@ -2150,6 +2150,138 @@ abstract class AppLocalizations {
   /// **'Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.'**
   String get foreignImportUnreadable;
 
+  /// Screen for downloading the local AI model
+  ///
+  /// In en, this message translates to:
+  /// **'On-device model'**
+  String get localModelTitle;
+
+  /// Settings row subtitle for the local model
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with no internet, once the model is downloaded'**
+  String get localModelSubtitle;
+
+  /// What the on-device model is
+  ///
+  /// In en, this message translates to:
+  /// **'Nex can run a language model on this phone, so chat works with no internet and nothing you type leaves the device. It is a large download and it stays on your phone until you remove it.'**
+  String get localModelExplained;
+
+  /// Button that starts the model download
+  ///
+  /// In en, this message translates to:
+  /// **'Download · {size} GB'**
+  String localModelDownload(String size);
+
+  /// Generic download progress label
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get localModelDownloading;
+
+  /// Which piece of the model is downloading
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading part {index} of {count}'**
+  String localModelDownloadingPart(int index, int count);
+
+  /// Shown while parts are joined and verified
+  ///
+  /// In en, this message translates to:
+  /// **'Putting the pieces together and checking them…'**
+  String get localModelJoining;
+
+  /// What happens if the user navigates away
+  ///
+  /// In en, this message translates to:
+  /// **'You can leave this screen. Closing the app stops the download, and it picks up where it left off.'**
+  String get localModelKeepOpen;
+
+  /// Install finished
+  ///
+  /// In en, this message translates to:
+  /// **'The model is ready. Chat works offline now.'**
+  String get localModelReady;
+
+  /// Install failed and is resumable
+  ///
+  /// In en, this message translates to:
+  /// **'That download did not finish. Try again — it carries on from where it stopped.'**
+  String get localModelFailed;
+
+  /// The model is present
+  ///
+  /// In en, this message translates to:
+  /// **'Installed · {size} GB on this phone'**
+  String localModelInstalled(String size);
+
+  /// Button that deletes the model
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the model'**
+  String get localModelDelete;
+
+  /// Delete confirmation title
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the model?'**
+  String get localModelDeleteTitle;
+
+  /// Delete confirmation body
+  ///
+  /// In en, this message translates to:
+  /// **'Offline chat stops working until you download it again. Your notes are not affected.'**
+  String get localModelDeleteBody;
+
+  /// Delete finished
+  ///
+  /// In en, this message translates to:
+  /// **'The model was removed.'**
+  String get localModelDeleted;
+
+  /// Heading above the model licence
+  ///
+  /// In en, this message translates to:
+  /// **'Before you download'**
+  String get localModelLicenseTitle;
+
+  /// Opens the model licence in a browser
+  ///
+  /// In en, this message translates to:
+  /// **'Read the full terms'**
+  String get localModelLicenseRead;
+
+  /// Licence acceptance checkbox
+  ///
+  /// In en, this message translates to:
+  /// **'I have read and accept these terms'**
+  String get localModelLicenseAccept;
+
+  /// Unsupported platform
+  ///
+  /// In en, this message translates to:
+  /// **'On-device chat runs on Android and iPhone. This build cannot use it.'**
+  String get localModelBlockedPlatform;
+
+  /// Unsupported CPU architecture
+  ///
+  /// In en, this message translates to:
+  /// **'This phone\'s processor is not one the model runs on. It needs a 64-bit ARM device.'**
+  String get localModelBlockedArchitecture;
+
+  /// Not enough storage
+  ///
+  /// In en, this message translates to:
+  /// **'There is not enough free space. The download needs about {size} GB free while it installs.'**
+  String localModelBlockedStorage(String size);
+
+  /// Model not published yet
+  ///
+  /// In en, this message translates to:
+  /// **'No model is available to download in this version yet.'**
+  String get localModelBlockedUnpublished;
+
   /// Advances the first-run tour
   ///
   /// In en, this message translates to:

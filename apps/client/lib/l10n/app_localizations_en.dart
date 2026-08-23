@@ -1239,6 +1239,89 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.';
 
   @override
+  String get localModelTitle => 'On-device model';
+
+  @override
+  String get localModelSubtitle =>
+      'Chat with no internet, once the model is downloaded';
+
+  @override
+  String get localModelExplained =>
+      'Nex can run a language model on this phone, so chat works with no internet and nothing you type leaves the device. It is a large download and it stays on your phone until you remove it.';
+
+  @override
+  String localModelDownload(String size) {
+    return 'Download · $size GB';
+  }
+
+  @override
+  String get localModelDownloading => 'Downloading…';
+
+  @override
+  String localModelDownloadingPart(int index, int count) {
+    return 'Downloading part $index of $count';
+  }
+
+  @override
+  String get localModelJoining =>
+      'Putting the pieces together and checking them…';
+
+  @override
+  String get localModelKeepOpen =>
+      'You can leave this screen. Closing the app stops the download, and it picks up where it left off.';
+
+  @override
+  String get localModelReady => 'The model is ready. Chat works offline now.';
+
+  @override
+  String get localModelFailed =>
+      'That download did not finish. Try again — it carries on from where it stopped.';
+
+  @override
+  String localModelInstalled(String size) {
+    return 'Installed · $size GB on this phone';
+  }
+
+  @override
+  String get localModelDelete => 'Remove the model';
+
+  @override
+  String get localModelDeleteTitle => 'Remove the model?';
+
+  @override
+  String get localModelDeleteBody =>
+      'Offline chat stops working until you download it again. Your notes are not affected.';
+
+  @override
+  String get localModelDeleted => 'The model was removed.';
+
+  @override
+  String get localModelLicenseTitle => 'Before you download';
+
+  @override
+  String get localModelLicenseRead => 'Read the full terms';
+
+  @override
+  String get localModelLicenseAccept => 'I have read and accept these terms';
+
+  @override
+  String get localModelBlockedPlatform =>
+      'On-device chat runs on Android and iPhone. This build cannot use it.';
+
+  @override
+  String get localModelBlockedArchitecture =>
+      'This phone\'s processor is not one the model runs on. It needs a 64-bit ARM device.';
+
+  @override
+  String localModelBlockedStorage(String size) {
+    return 'There is not enough free space. The download needs about $size GB free while it installs.';
+  }
+
+  @override
+  String get localModelBlockedUnpublished =>
+      'No model is available to download in this version yet.';
+
+  @override
   String get tourNext => 'Next';
 
   @override
