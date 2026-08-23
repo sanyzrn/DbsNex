@@ -10,9 +10,11 @@ import 'app_update.dart';
 
 /// One downloadable piece of a model.
 ///
-/// Models ship split because a GitHub release asset is capped at 2 GiB and
-/// `Gemma-4-E2B-it` is about 2.6 GB. A release accepts up to a thousand assets,
-/// so the cap shapes the packaging and nothing else.
+/// A model larger than 2 GiB ships split, because that is the cap on a single
+/// GitHub release asset; a release accepts up to a thousand of them, so the cap
+/// shapes the packaging and nothing else. A model that fits is one part, and
+/// nothing downstream distinguishes the two cases — [NexModelStore.install]
+/// joins and verifies a list of one exactly as it does a list of two.
 class ModelPart {
   const ModelPart({
     required this.url,
@@ -76,15 +78,33 @@ class ModelRelease {
 
 /// The models this build knows how to install.
 ///
-/// Empty URLs and digests are a deliberate, visible placeholder: the weights
-/// are uploaded by hand to the public releases repository, and until that
-/// happens [NexModelStore.installable] reports false and no UI offers a
-/// download that would 404. Filling these in is an edit to this constant.
+/// Empty digests are a deliberate, visible placeholder: until they are filled
+/// in [NexModelStore.installable] reports false and no UI offers a download
+/// that would 404 or arrive unverified. Publishing a model is an edit here.
 abstract final class NexModels {
+  /// The GPU-targeted build of Gemma-4-E2B-it, 2.01 GB.
+  ///
+  /// Two things about this constant are temporary and are marked as such.
+  ///
+  /// The URL points at Hugging Face, which is where the weights already are.
+  /// That is a testing shortcut and cannot ship: HF is not reachable from Iran,
+  /// which is the audience this whole feature exists for. Before release the
+  /// URL becomes the self-hosted asset; nothing else about this changes, which
+  /// is the reason the URL was made a value in the first place.
+  ///
+  /// And it is the `-gpu` artifact rather than the general one the seven
+  /// Persian prompts were actually run against. It is smaller, needs no split,
+  /// and is the obvious thing to test first — but it is a backend-specific
+  /// build, so the adapter's CPU fallback may not be able to load it at
+  /// all. Whether a device with no working OpenCL path gets a slow answer or no
+  /// answer is exactly what the first install on real hardware settles.
   static const gemma4E2B = ModelRelease(
     id: 'gemma-4-e2b-it',
-    filename: 'gemma-4-E2B-it.litertlm',
-    sizeBytes: 2600000000,
+    filename: 'gemma-4-E2B-it-gpu.litertlm',
+    sizeBytes: 2010000000,
+    // Gemma's terms, not the repository's apache-2.0 badge. That badge covers
+    // the conversion, not the weights, and the weights are what is being
+    // redistributed here.
     licenseUrl: 'https://ai.google.dev/gemma/terms',
     licenseNotice:
         'Gemma is provided under and subject to the Gemma Terms of Use '
@@ -92,13 +112,14 @@ abstract final class NexModels {
     sha256: '',
     parts: [
       ModelPart(
-        url: '',
-        filename: 'gemma-4-E2B-it.litertlm.part-aa',
-        sha256: '',
-      ),
-      ModelPart(
-        url: '',
-        filename: 'gemma-4-E2B-it.litertlm.part-ab',
+        url:
+            'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm'
+            '/resolve/main/gemma-4-E2B-it-gpu.litertlm?download=true',
+        filename: 'gemma-4-E2B-it-gpu.litertlm.part-aa',
+        // One part, so this is the digest of the whole file and [sha256] above
+        // is the same string. Not redundant in general — for a split model the
+        // two prove different things — and cheap enough to leave symmetrical
+        // rather than special-casing the single-part shape.
         sha256: '',
       ),
     ],
