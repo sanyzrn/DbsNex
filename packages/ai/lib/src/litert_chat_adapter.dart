@@ -57,6 +57,7 @@ class LiteRtChatAdapter implements ChatAdapter {
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   /// Whether there is a model on disk to answer with.
+  @override
   bool get available =>
       supportedPlatform && modelPath.isNotEmpty && File(modelPath).existsSync();
 

@@ -905,6 +905,14 @@
   "@testConnection": {
     "description": "Button that verifies the configuration"
   },
+  "aiProviderNoneSubtitleLocal": "Answers on this phone, from the model you downloaded.",
+  "@aiProviderNoneSubtitleLocal": {
+    "description": "Subtitle for the on-device option once a local model is installed."
+  },
+  "aiProviderLocalNote": "The model on your phone writes and reads text, so it covers the assistant, the daily recap and translation. It cannot hear a recording or read a photo — those still need a provider.",
+  "@aiProviderLocalNote": {
+    "description": "Explains what the local model does and does not cover."
+  },
   "aiProviderNoneSubtitle": "Runs on this device. No key needed.",
   "@aiProviderNoneSubtitle": {
     "description": "Second line on the \"no provider\" row of the provider list"

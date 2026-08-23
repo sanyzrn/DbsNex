@@ -76,7 +76,7 @@ class NexServices {
   /// Whether the intelligence layer is on and actually has a provider behind
   /// it. The UI asks so it does not offer a control that cannot do anything.
   bool get aiIsUsable =>
-      _preferences.aiEnabled && _preferences.aiProvider.isUsable;
+      _preferences.aiEnabled && aiTextAvailableWith(_preferences.aiProvider);
 
   final _timelineController = StreamController<List<Note>>.broadcast();
   Stream<List<Note>> get timelineStream => _timelineController.stream;

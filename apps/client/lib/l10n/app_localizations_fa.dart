@@ -999,6 +999,14 @@ class AppLocalizationsFa extends AppLocalizations {
   String get testConnection => 'تست اتصال';
 
   @override
+  String get aiProviderNoneSubtitleLocal =>
+      'روی همین گوشی جواب می‌دهد، با مدلی که دانلود کرده‌ای.';
+
+  @override
+  String get aiProviderLocalNote =>
+      'مدلی که روی گوشی‌ات هست متن می‌خواند و می‌نویسد، پس دستیار، خلاصهٔ روزانه و ترجمه را پوشش می‌دهد. صدا را نمی‌شنود و عکس را نمی‌خواند — آن‌ها هنوز به یک ارائه‌دهنده نیاز دارند.';
+
+  @override
   String get aiProviderNoneSubtitle =>
       'روی همین دستگاه اجرا می‌شود. کلید لازم ندارد.';
 

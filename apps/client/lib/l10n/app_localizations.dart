@@ -1736,6 +1736,18 @@ abstract class AppLocalizations {
   /// **'Test connection'**
   String get testConnection;
 
+  /// Subtitle for the on-device option once a local model is installed.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers on this phone, from the model you downloaded.'**
+  String get aiProviderNoneSubtitleLocal;
+
+  /// Explains what the local model does and does not cover.
+  ///
+  /// In en, this message translates to:
+  /// **'The model on your phone writes and reads text, so it covers the assistant, the daily recap and translation. It cannot hear a recording or read a photo — those still need a provider.'**
+  String get aiProviderLocalNote;
+
   /// Second line on the "no provider" row of the provider list
   ///
   /// In en, this message translates to:

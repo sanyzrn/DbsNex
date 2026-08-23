@@ -37,7 +37,7 @@ class TranslateSheet extends StatefulWidget {
 
   /// Whether there is a provider configured to do this at all.
   static bool availableFor(NexPreferences preferences) =>
-      preferences.aiEnabled && preferences.aiProvider.isUsable;
+      preferences.aiEnabled && aiTextAvailableWith(preferences.aiProvider);
 
   static Future<void> show(
     BuildContext context, {

@@ -1001,6 +1001,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get testConnection => 'Test connection';
 
   @override
+  String get aiProviderNoneSubtitleLocal =>
+      'Answers on this phone, from the model you downloaded.';
+
+  @override
+  String get aiProviderLocalNote =>
+      'The model on your phone writes and reads text, so it covers the assistant, the daily recap and translation. It cannot hear a recording or read a photo — those still need a provider.';
+
+  @override
   String get aiProviderNoneSubtitle => 'Runs on this device. No key needed.';
 
   @override

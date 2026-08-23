@@ -11,6 +11,19 @@
 /// exactly like `EnrichmentService` already does for `transcribe`/`ocr`.
 abstract class ChatAdapter {
   Future<ChatResponse>? sendMessage(List<ChatMessage> history);
+
+  /// Whether there is anything behind this adapter right now.
+  ///
+  /// Separate from [sendMessage] returning null because callers need the
+  /// answer *before* they build a UI, not after they have asked a question:
+  /// whether to offer the assistant at all, and whether "on-device" is a
+  /// working choice of provider or a dead end. Asking by sending a message
+  /// would mean running inference to find out.
+  ///
+  /// For a local model this is "the weights are on disk", which can change
+  /// while the app is running — a download finishing, or the model being
+  /// deleted — so it is a getter and not a field read once at startup.
+  bool get available;
 }
 
 enum ChatRole { system, user, assistant }
@@ -36,6 +49,9 @@ class ChatResponse {
 /// on this platform/build). Mirrors [NullAIAdapter]'s role for [AIAdapter].
 class NullChatAdapter implements ChatAdapter {
   const NullChatAdapter();
+
+  @override
+  bool get available => false;
 
   @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) => null;
