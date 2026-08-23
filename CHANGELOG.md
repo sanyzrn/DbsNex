@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v0.9.5
+
 - Notes can be brought in from another app. Settings › Import notes takes the
   `.zip` Google Takeout gives you for Keep — labels become tags, lists become
   checklists, and every note keeps the date it was actually written rather than
