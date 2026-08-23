@@ -67,6 +67,10 @@ void main() {
     // would all open on the onboarding screen instead of the timeline.
     // Onboarding has its own test file.
     await preferences.completeOnboarding();
+    // And the walk-through that follows it, for the same reason: it opens
+    // over the timeline's own controls, so without this every tap in this
+    // file would land on its scrim.
+    await preferences.completeTour();
   });
 
   tearDown(() async {

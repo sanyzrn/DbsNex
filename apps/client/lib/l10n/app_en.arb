@@ -1174,6 +1174,56 @@
   "@chatHint": {
     "description": "Placeholder in the assistant's input field"
   },
+  "tourNext": "Next",
+  "@tourNext": {"description": "Advances the first-run tour"},
+  "tourDone": "Got it",
+  "@tourDone": {"description": "Finishes the first-run tour"},
+  "tourSkip": "Skip",
+  "@tourSkip": {"description": "Leaves the first-run tour early"},
+  "tourCaptureTitle": "Everything starts here",
+  "@tourCaptureTitle": {"description": "Tour step pointing at the capture button"},
+  "tourCaptureBody": "Tap to write a note, or record, photograph and attach one. Hold it to ask the assistant instead.",
+  "@tourCaptureBody": {"description": "Tour step body for the capture button"},
+  "tourSearchTitle": "Find anything",
+  "@tourSearchTitle": {"description": "Tour step pointing at the search field"},
+  "tourSearchBody": "Search by word, or by what a note meant. Try tag:work or type:link to narrow it down.",
+  "@tourSearchBody": {"description": "Tour step body for the search field"},
+  "tourLibraryTitle": "Tags and deleted notes",
+  "@tourLibraryTitle": {"description": "Tour step pointing at the library button"},
+  "tourLibraryBody": "Your tags live here, and so does anything you deleted — for a while.",
+  "@tourLibraryBody": {"description": "Tour step body for the library button"},
+  "tourSettingsTitle": "Make it yours",
+  "@tourSettingsTitle": {"description": "Tour step pointing at the settings button"},
+  "tourSettingsBody": "Your name, theme, language, backups, and the AI provider that writes your summaries.",
+  "@tourSettingsBody": {"description": "Tour step body for the settings button"},
+  "tourCardsTitle": "One more thing",
+  "@tourCardsTitle": {"description": "Tour step about gestures on a note card"},
+  "tourCardsBody": "Swipe a note from its left or right edge for its quick actions, and hold one to pick it up and move it.",
+  "@tourCardsBody": {"description": "Tour step body about gestures on a note card"},
+  "translate": "Translate",
+  "@translate": {
+    "description": "Note action that translates the note's text"
+  },
+  "translateTo": "Into",
+  "@translateTo": {
+    "description": "Label above the target-language picker"
+  },
+  "translateWorking": "Translating…",
+  "@translateWorking": {
+    "description": "Shown while a translation is in flight"
+  },
+  "translateFailed": "The translation did not come back.",
+  "@translateFailed": {
+    "description": "Shown when a translation request failed or returned nothing"
+  },
+  "translateSaveAsNote": "Keep as a note",
+  "@translateSaveAsNote": {
+    "description": "Button that saves the translation as a new note"
+  },
+  "translateSaved": "Saved as a new note.",
+  "@translateSaved": {
+    "description": "Confirmation after a translation is kept"
+  },
   "chatSpeak": "Speak",
   "@chatSpeak": {
     "description": "Tooltip on the chat's microphone button"

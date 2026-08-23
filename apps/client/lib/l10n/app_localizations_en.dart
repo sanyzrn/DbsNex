@@ -1213,6 +1213,68 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatHint => 'Enter a prompt here';
 
   @override
+  String get tourNext => 'Next';
+
+  @override
+  String get tourDone => 'Got it';
+
+  @override
+  String get tourSkip => 'Skip';
+
+  @override
+  String get tourCaptureTitle => 'Everything starts here';
+
+  @override
+  String get tourCaptureBody =>
+      'Tap to write a note, or record, photograph and attach one. Hold it to ask the assistant instead.';
+
+  @override
+  String get tourSearchTitle => 'Find anything';
+
+  @override
+  String get tourSearchBody =>
+      'Search by word, or by what a note meant. Try tag:work or type:link to narrow it down.';
+
+  @override
+  String get tourLibraryTitle => 'Tags and deleted notes';
+
+  @override
+  String get tourLibraryBody =>
+      'Your tags live here, and so does anything you deleted — for a while.';
+
+  @override
+  String get tourSettingsTitle => 'Make it yours';
+
+  @override
+  String get tourSettingsBody =>
+      'Your name, theme, language, backups, and the AI provider that writes your summaries.';
+
+  @override
+  String get tourCardsTitle => 'One more thing';
+
+  @override
+  String get tourCardsBody =>
+      'Swipe a note from its left or right edge for its quick actions, and hold one to pick it up and move it.';
+
+  @override
+  String get translate => 'Translate';
+
+  @override
+  String get translateTo => 'Into';
+
+  @override
+  String get translateWorking => 'Translating…';
+
+  @override
+  String get translateFailed => 'The translation did not come back.';
+
+  @override
+  String get translateSaveAsNote => 'Keep as a note';
+
+  @override
+  String get translateSaved => 'Saved as a new note.';
+
+  @override
   String get chatSpeak => 'Speak';
 
   @override

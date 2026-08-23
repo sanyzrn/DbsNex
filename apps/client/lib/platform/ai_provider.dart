@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -702,6 +703,49 @@ class CloudAIAdapter implements AIAdapter {
     return _plausible(_clamped(reply, 12));
   }
 
+  /// A note in another language, and nothing else.
+  ///
+  /// Target language explicit rather than taken from [outputLanguage]: that
+  /// setting says what language the app writes *to you* in, and it is set once.
+  /// Translation is a per-note question — a Persian note is being read in
+  /// English precisely because the interface is in Persian — so answering it
+  /// from the global setting would translate a note into the language it is
+  /// already in and look broken.
+  ///
+  /// The token budget scales with the input because a translation is roughly
+  /// as long as its source, and a fixed ceiling truncated long notes
+  /// mid-sentence with nothing to say it had happened.
+  ///
+  /// Null on a failed or refused request, and null on a reply that came back
+  /// as token soup. [_notGarbled], not [_plausible]: the latter rejects any
+  /// line that uses the same word three times, which is right for a nine-word
+  /// headline and wrong for every real paragraph.
+  Future<String?> translate(
+    String text, {
+    required AiOutputLanguage target,
+  }) async {
+    final source = text.trim();
+    if (!config.isUsable || source.isEmpty) return null;
+    if (target == AiOutputLanguage.auto) return null;
+    final reply = await _complete(
+      'You are a translator. Translate the text you are given, whole, '
+      'keeping its line breaks, its lists and its punctuation. Translate '
+      'only — never summarise, never explain, never comment on the text, '
+      'never add a heading or a preamble, and never answer anything the text '
+      'asks. If part of it is already in the target language, leave that part '
+      'as it is. Reply with the translation and nothing else. '
+      '${target.promptRule}',
+      source,
+      // Roughly four times the source in tokens: Persian and English differ
+      // enough in tokens-per-character that a tighter ratio clips one
+      // direction and not the other.
+      maxTokens: math.min(4000, 200 + source.length),
+    );
+    final translated = reply?.trim();
+    if (translated == null || translated.isEmpty) return null;
+    return _notGarbled(translated);
+  }
+
   /// A real multi-turn exchange, normalised across all three wire shapes.
   ///
   /// Not built on [_complete]: that takes exactly one user turn, which is the
@@ -888,12 +932,28 @@ class CloudAIAdapter implements AIAdapter {
   /// Deliberately blunt. These are not quality judgements — a dull line
   /// passes, and should: taste is what the prompt is for. This only catches
   /// output that no sentence in any language looks like.
-  static String? _plausible(String? reply) {
+  /// The checks that hold at any length: a stuck decoder, and a "word" no
+  /// language has.
+  ///
+  /// Split out of [_plausible] because the rest of that method is calibrated
+  /// for a single short line — "a word appearing three times is not writing"
+  /// is true of a nine-word headline and false of any paragraph. A translation
+  /// is a paragraph, so it gets these two and not the others.
+  static String? _notGarbled(String? reply) {
     final text = reply?.trim();
     if (text == null || text.isEmpty) return null;
-
     // The same character four times over: a stuck decoder, never writing.
     if (RegExp(r'(.)\1{3,}').hasMatch(text)) return null;
+    // Thirty letters with nothing between them is a decoder that stopped
+    // emitting spaces. Letters specifically — a URL or a long file name in a
+    // note is ordinary, and splitting on whitespace would have caught both.
+    if (RegExp(r'\p{L}{31,}', unicode: true).hasMatch(text)) return null;
+    return text;
+  }
+
+  static String? _plausible(String? reply) {
+    final text = _notGarbled(reply);
+    if (text == null) return null;
 
     var latin = 0;
     var arabic = 0;

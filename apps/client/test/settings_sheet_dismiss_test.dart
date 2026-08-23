@@ -45,6 +45,7 @@ void main() {
     // would all open on the onboarding screen instead of the timeline.
     // Onboarding has its own test file.
     await preferences.completeOnboarding();
+    await preferences.completeTour();
     await preferences.setReduceMotion(true);
   });
 

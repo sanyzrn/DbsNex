@@ -54,6 +54,7 @@ class NexPreferences extends ChangeNotifier {
   static const _kPendingFeedback = 'feedback.pending_message';
 
   static const _kOnboardingComplete = 'onboarding.complete';
+  static const _kTourComplete = 'onboarding.tour_complete';
 
   static Future<NexPreferences> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -65,6 +66,10 @@ class NexPreferences extends ChangeNotifier {
     if (!prefs.containsKey(_kOnboardingComplete) &&
         prefs.getKeys().isNotEmpty) {
       await prefs.setBool(_kOnboardingComplete, true);
+      // And the tour with it. Someone upgrading into this version has been
+      // using these controls for months; pointing at them now would read as
+      // the app having forgotten who they are.
+      await prefs.setBool(_kTourComplete, true);
     }
     final preferences = NexPreferences._(prefs, const FlutterSecureStorage());
     await preferences._migrateAndHydrateApiKeys();
@@ -79,6 +84,23 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> completeOnboarding() async {
     await _prefs.setBool(_kOnboardingComplete, true);
+    notifyListeners();
+  }
+
+  /// Whether the walk-through over the timeline's own controls has been shown.
+  ///
+  /// Separate from [onboardingComplete] because they run at different moments
+  /// and mean different things: onboarding asks four questions before anyone
+  /// has seen the app, and this points at controls that only exist once the
+  /// timeline is on screen.
+  ///
+  /// The same "this app has run before" rule applies as above — an existing
+  /// install is not walked through a screen it has been using for months — so
+  /// [load] marks it seen for anyone who already had preferences.
+  bool get tourComplete => _prefs.getBool(_kTourComplete) ?? false;
+
+  Future<void> completeTour() async {
+    await _prefs.setBool(_kTourComplete, true);
     notifyListeners();
   }
 

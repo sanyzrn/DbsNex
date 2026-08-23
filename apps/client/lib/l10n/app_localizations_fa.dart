@@ -1213,6 +1213,68 @@ class AppLocalizationsFa extends AppLocalizations {
   String get chatHint => 'چیزی بنویسید…';
 
   @override
+  String get tourNext => 'بعدی';
+
+  @override
+  String get tourDone => 'فهمیدم';
+
+  @override
+  String get tourSkip => 'بی‌خیال';
+
+  @override
+  String get tourCaptureTitle => 'همه چیز از اینجا شروع می‌شود';
+
+  @override
+  String get tourCaptureBody =>
+      'بزن تا بنویسی، یا صدا و عکس و فایل بگذاری. نگهش داری، به‌جایش با دستیار حرف می‌زنی.';
+
+  @override
+  String get tourSearchTitle => 'هر چیزی را پیدا کن';
+
+  @override
+  String get tourSearchBody =>
+      'با کلمه بگرد، یا با معنای یادداشت. ‏tag:work یا ‏type:link هم کار می‌کند.';
+
+  @override
+  String get tourLibraryTitle => 'برچسب‌ها و پاک‌شده‌ها';
+
+  @override
+  String get tourLibraryBody =>
+      'برچسب‌هایت اینجاست، و هر چیزی که پاک کرده‌ای هم — تا مدتی.';
+
+  @override
+  String get tourSettingsTitle => 'به سلیقه‌ی خودت';
+
+  @override
+  String get tourSettingsBody =>
+      'اسم، پوسته، زبان، پشتیبان‌گیری، و سرویس هوشی که خلاصه‌ها را می‌نویسد.';
+
+  @override
+  String get tourCardsTitle => 'یک نکته‌ی آخر';
+
+  @override
+  String get tourCardsBody =>
+      'یادداشت را از لبه‌ی چپ یا راستش بکش تا کارهای سریعش بیاید، و نگهش دار تا برش داری و جابه‌جایش کنی.';
+
+  @override
+  String get translate => 'ترجمه';
+
+  @override
+  String get translateTo => 'به';
+
+  @override
+  String get translateWorking => 'در حال ترجمه…';
+
+  @override
+  String get translateFailed => 'ترجمه برنگشت.';
+
+  @override
+  String get translateSaveAsNote => 'به‌عنوان یادداشت نگه دار';
+
+  @override
+  String get translateSaved => 'به‌عنوان یادداشت تازه ذخیره شد.';
+
+  @override
   String get chatSpeak => 'گفتن';
 
   @override

@@ -21,6 +21,7 @@ import '../platform/nex_services.dart';
 import '../platform/reminders.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/tag_picker.dart';
+import '../widgets/translate_sheet.dart';
 
 /// What the sheet reports back when it closes.
 ///
@@ -168,6 +169,25 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   /// transcript/OCR text underneath it. That text keeps its own small copy
   /// icon in the AI panel (see [_copyDerivedText]).
   String? _copyableText(Note note) => note.displayText;
+
+  /// The note's own words, wherever they live.
+  ///
+  /// [Note.displayText] prefers a caption the user wrote, which is the right
+  /// answer for the card and the wrong one here: a photo captioned "receipt"
+  /// with a page of Persian read out of it has a page worth translating and a
+  /// one-word caption that is not.
+  String _translatableText(Note note) {
+    for (final candidate in [
+      note.content,
+      note.transcriptText,
+      note.ocrText,
+      note.displayText,
+    ]) {
+      final text = candidate?.trim() ?? '';
+      if (text.isNotEmpty) return text;
+    }
+    return '';
+  }
 
   void _toast(String message) {
     nexShowBanner(context, message: message);
@@ -1078,6 +1098,25 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             services: widget.services,
                             history: preferences.chatHistory,
                             focus: note,
+                          ),
+                        ),
+                      ),
+                    // The transcript and the extracted text count: a
+                    // recording in one language and a photographed sign in
+                    // another are exactly the notes someone needs this for,
+                    // and neither has typed content to offer.
+                    if (widget.preferences case final preferences?
+                        when TranslateSheet.availableFor(preferences) &&
+                            _translatableText(note).isNotEmpty)
+                      _DetailAction(
+                        icon: Icons.translate,
+                        label: l10n.translate,
+                        onPressed: () => unawaited(
+                          TranslateSheet.show(
+                            context,
+                            text: _translatableText(note),
+                            preferences: preferences,
+                            services: widget.services,
                           ),
                         ),
                       ),

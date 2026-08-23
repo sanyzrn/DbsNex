@@ -40,6 +40,7 @@ void main() {
     );
     preferences = await NexPreferences.load();
     await preferences.completeOnboarding();
+    await preferences.completeTour();
   });
 
   tearDown(() async {

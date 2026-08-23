@@ -24,6 +24,7 @@ import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/commit_receipt.dart';
 import '../widgets/empty_timeline.dart';
+import '../widgets/first_run_tour.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/recording_sheet.dart';
@@ -127,6 +128,18 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// scroll that follows it.
   bool _aiSummaryToggledByUser = false;
 
+  /// The four controls the first-run tour points at. Held here rather than
+  /// created inline: a `GlobalKey` rebuilt every frame attaches to a new
+  /// element each time, and the tour would measure a widget that no longer
+  /// exists.
+  final _captureAnchor = GlobalKey();
+  final _searchAnchor = GlobalKey();
+  final _libraryAnchor = GlobalKey();
+  final _settingsAnchor = GlobalKey();
+
+  /// The tour itself, while it is running.
+  OverlayEntry? _tour;
+
   /// Requesting either string is a cold-launch thing, not a per-note-change
   /// thing — without this latch, every capture re-firing [timelineStream]
   /// would ask the provider again.
@@ -163,6 +176,60 @@ class TimelineScreenState extends State<TimelineScreen> {
     _scroll.addListener(_onAiSummaryScroll);
     unawaited(_loadTimeline());
     unawaited(_loadFilterTags());
+    // After the first frame, because every stop measures a real widget and
+    // none of them has been laid out yet at this point.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+  }
+
+  /// Shows the walk-through once, on the first timeline after onboarding.
+  ///
+  /// In an overlay rather than as part of this screen's tree: it has to paint
+  /// over the app bar and the capture button, both of which the `Scaffold`
+  /// draws above its own body.
+  void _maybeStartTour() {
+    if (!mounted || widget.preferences.tourComplete || _tour != null) return;
+    final l10n = AppLocalizations.of(context);
+    final overlay = Overlay.maybeOf(context);
+    if (overlay == null) return;
+    final entry = OverlayEntry(
+      builder: (_) => FirstRunTour(
+        onFinished: _endTour,
+        stops: [
+          TourStop(
+            key: _captureAnchor,
+            title: l10n.tourCaptureTitle,
+            body: l10n.tourCaptureBody,
+            radius: NexRadius.pill,
+          ),
+          TourStop(
+            key: _searchAnchor,
+            title: l10n.tourSearchTitle,
+            body: l10n.tourSearchBody,
+            radius: NexRadius.pill,
+          ),
+          TourStop(
+            key: _libraryAnchor,
+            title: l10n.tourLibraryTitle,
+            body: l10n.tourLibraryBody,
+            radius: NexRadius.pill,
+          ),
+          TourStop(
+            key: _settingsAnchor,
+            title: l10n.tourSettingsTitle,
+            body: l10n.tourSettingsBody,
+            radius: NexRadius.pill,
+          ),
+        ],
+      ),
+    );
+    _tour = entry;
+    overlay.insert(entry);
+  }
+
+  void _endTour() {
+    _tour?.remove();
+    _tour = null;
+    unawaited(widget.preferences.completeTour());
   }
 
   /// True when there is a provider configured to generate anything at all.
@@ -571,6 +638,11 @@ class TimelineScreenState extends State<TimelineScreen> {
 
   @override
   void dispose() {
+    // Removed, never left behind: an overlay entry outlives the state that
+    // inserted it, so a screen replaced mid-tour would leave a scrim over
+    // whatever came next with nothing able to dismiss it.
+    _tour?.remove();
+    _tour = null;
     subscription?.cancel();
     _swipe.dispose();
     _search.removeListener(_onSearchChanged);
@@ -1189,6 +1261,7 @@ class TimelineScreenState extends State<TimelineScreen> {
           // Tags were reachable only through Settings, and neither is a
           // preference — one of them holds the user's own deleted notes.
           IconButton(
+            key: _libraryAnchor,
             tooltip: l10n.libraryTitle,
             icon: const Icon(Icons.inventory_2_outlined),
             // Awaited, and the timeline reloads on the way back. Tags and
@@ -1208,6 +1281,7 @@ class TimelineScreenState extends State<TimelineScreen> {
             },
           ),
           _SettingsButton(
+            key: _settingsAnchor,
             updates: widget.updates,
             tooltip: l10n.settings,
             onPressed: () => nexShowSheet<void>(
@@ -1288,6 +1362,7 @@ class TimelineScreenState extends State<TimelineScreen> {
                       SliverPersistentHeader(
                         key: const ValueKey('search-header'),
                         delegate: SearchFieldHeader(
+                          anchor: _searchAnchor,
                           controller: _search.query,
                           focusNode: _searchFocus,
                           searching: _searching,
@@ -1354,6 +1429,7 @@ class TimelineScreenState extends State<TimelineScreen> {
               onHoldStart: _tick,
               onTriggered: _openAssistant,
               child: FloatingActionButton(
+                key: _captureAnchor,
                 onPressed: openCapture,
                 tooltip: l10n.capture,
                 child: const Icon(Icons.add, size: 32),
@@ -1951,6 +2027,7 @@ class _FilteredEmpty extends StatelessWidget {
 /// goes to look, so that is where the app says there is something to see.
 class _SettingsButton extends StatelessWidget {
   const _SettingsButton({
+    super.key,
     required this.updates,
     required this.tooltip,
     required this.onPressed,

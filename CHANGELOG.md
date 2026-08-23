@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+- Any note can be translated. Open it, tap Translate, and read it in the other
+  language — a recording's transcript and the text read out of a photo too, not
+  only what you typed. It does not touch the note: copy the translation, or
+  keep it as a note of its own beside the original.
+- A first launch now walks you around the home screen once — what the button
+  does, what holding it does, and where your tags, deleted notes and settings
+  are. Skippable from the first step, and it never comes back.
 - Ask the assistant out loud. The microphone beside the chat box records your
   question and puts what you said in the box — you read it before it is sent,
   because a name heard wrong is an argument about a question nobody asked.
