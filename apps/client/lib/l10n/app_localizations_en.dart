@@ -1297,6 +1297,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Not downloaded yet — the assistant needs it to work offline';
 
   @override
+  String get localModelLoadFailed =>
+      'The model is downloaded but would not start on this phone.';
+
+  @override
+  String get localModelLoadFailedDetail => 'What the runtime reported:';
+
+  @override
   String get localModelTitle => 'On-device model';
 
   @override

@@ -1297,6 +1297,13 @@ class AppLocalizationsFa extends AppLocalizations {
       'هنوز دانلود نشده — دستیار برای کار آفلاین به آن نیاز دارد';
 
   @override
+  String get localModelLoadFailed =>
+      'مدل دانلود شده، ولی روی این گوشی بالا نیامد.';
+
+  @override
+  String get localModelLoadFailedDetail => 'چیزی که رانتایم گزارش کرد:';
+
+  @override
   String get localModelTitle => 'مدل روی دستگاه';
 
   @override

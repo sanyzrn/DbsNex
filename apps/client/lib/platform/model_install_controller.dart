@@ -85,6 +85,7 @@ class ModelInstallController extends ChangeNotifier {
     _stopRequested = false;
     _discardOnStop = false;
     _error = null;
+    _loadError = null;
     _set(ModelInstallPhase.downloading);
     try {
       await store.install(
@@ -129,8 +130,25 @@ class ModelInstallController extends ChangeNotifier {
     _set(ModelInstallPhase.loading);
     try {
       await pending;
-    } catch (_) {}
+      _loadError = null;
+    } catch (error) {
+      // Kept and shown, not swallowed. This used to be an empty catch on the
+      // reasoning that the first message would surface it anyway — but what
+      // the first message surfaces is "no answer came back", which is the same
+      // sentence for a wrong file, a device with no OpenCL, and a model too
+      // large for the memory it was given. Those three want different actions,
+      // and the runtime says which in this string.
+      _loadError = '$error';
+    }
   }
+
+  /// Why the model would not load, verbatim, or null when it did.
+  ///
+  /// Deliberately not translated. It is the runtime's own words about a
+  /// failure that is rare, technical, and only actionable by someone who can
+  /// read it — a localised paraphrase would lose the one detail that matters.
+  String? _loadError;
+  String? get loadError => _loadError;
 
   /// Stops and keeps what has arrived.
   void pause() {

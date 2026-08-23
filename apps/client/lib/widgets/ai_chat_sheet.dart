@@ -355,7 +355,13 @@ class _AiChatSheetState extends State<AiChatSheet> {
     setState(() {
       _sending = false;
       if (reply == null || reply.isEmpty) {
-        _failure = l10n.chatFailed;
+        // The runtime's own words when the model is what failed. Telling
+        // someone who deliberately has no provider to "check the provider in
+        // Settings" sends them to the one screen that is already correct.
+        final local = _adapter.localFailure;
+        _failure = local == null
+            ? l10n.chatFailed
+            : '${l10n.localModelLoadFailed}\n$local';
         return;
       }
       final actions = parseAssistantActions(reply);
