@@ -83,33 +83,33 @@ class ModelRelease {
 /// because [NexModelStore.installable] reports false and no UI offers a
 /// download that would 404 or arrive unverified. Publishing is an edit here.
 abstract final class NexModels {
-  /// Gemma-4-E2B-it, split across two release assets.
+  /// Gemma-4-E2B-it, 2,588,147,712 bytes, split across two release assets
+  /// because a single one caps at 2 GiB.
   ///
   /// The `-gpu` variant was tried first and is not usable: the runtime rejects
   /// it with `NOT_FOUND: TF_LITE_PREFILL_DECODE not found in the model`. It is
   /// a backend-specific artifact that does not carry the prefill/decode
   /// signature an engine needs, which is why `flutter_litert_lm` curates this
-  /// file and not that one. It was chosen because it fit under GitHub's 2 GiB
-  /// asset cap without splitting — a packaging convenience, and never a reason
-  /// to ship a model that cannot load.
+  /// file and not that one. It was picked because it fit under the cap without
+  /// splitting — a packaging convenience, and never a reason to ship a model
+  /// that cannot load.
   ///
-  /// Digests are empty, so [NexModelStore.installable] is false and nothing is
-  /// offered yet. Two of the three are already known and verified against the
-  /// hosted assets; the third waits on `part-ab` being re-uploaded, because the
-  /// first split was cut at a fixed offset taken from this file's *published*
-  /// size rather than from the file itself, and dropped whatever lay past it:
+  /// Every value below was verified against the hosted assets rather than
+  /// taken on trust: both parts were streamed and hashed, and their
+  /// concatenation reproduces [sha256] exactly. That check is worth the
+  /// bandwidth — the first upload of this file was split at an offset taken
+  /// from the model's *published* size, which is 5,062,656 bytes short of the
+  /// real one, so the two parts each hashed correctly and did not rejoin into
+  /// anything. Per-part digests alone would not have caught it.
   ///
-  ///   whole   181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
-  ///   part-aa 93330ce684caae1ac2e16f964b434f64bb8341149306516996d5a8bb52ac6a98
-  ///   part-ab (pending)
-  ///
-  /// [sizeBytes] is likewise the published figure and is a lower bound on the
-  /// real one. It feeds the "is there room" check and the download label, so
-  /// being slightly under is harmless; it is corrected along with the digests.
+  /// The parts are deliberately unequal. `part-aa` is the first
+  /// 1,291,542,528 bytes and `part-ab` is everything after it, whatever that
+  /// turns out to be, which is what stops a stale published size from
+  /// truncating the model again.
   static const gemma4E2B = ModelRelease(
     id: 'gemma-4-e2b-it',
     filename: 'gemma-4-E2B-it.litertlm',
-    sizeBytes: 2583085056,
+    sizeBytes: 2588147712,
     // Gemma's terms, not the repository's apache-2.0 badge. That badge covers
     // the conversion, not the weights, and the weights are what is being
     // redistributed here.
@@ -117,21 +117,23 @@ abstract final class NexModels {
     licenseNotice:
         'Gemma is provided under and subject to the Gemma Terms of Use '
         'found at ai.google.dev/gemma/terms',
-    sha256: '',
+    sha256: '181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c',
     parts: [
       ModelPart(
         url:
             'https://github.com/sanyzrn/DbsNex-releases/releases/download'
             '/Gemma4/gemma-4-E2B-it.litertlm.part-aa',
         filename: 'gemma-4-E2B-it.litertlm.part-aa',
-        sha256: '',
+        sha256:
+            '93330ce684caae1ac2e16f964b434f64bb8341149306516996d5a8bb52ac6a98',
       ),
       ModelPart(
         url:
             'https://github.com/sanyzrn/DbsNex-releases/releases/download'
             '/Gemma4/gemma-4-E2B-it.litertlm.part-ab',
         filename: 'gemma-4-E2B-it.litertlm.part-ab',
-        sha256: '',
+        sha256:
+            'd1f014f2896040f7b69928fb3a892295694f43a332889a1124ad3d5c50df31b1',
       ),
     ],
   );
