@@ -164,11 +164,20 @@ class CaptureService {
   /// Everything else is the ordinary capture contract: new ids, revision 1,
   /// pending sync. An imported note is a note this device wrote — it has no
   /// history on any server, and pretending otherwise would push conflicts.
-  List<Note> importNotes(List<ImportedNote> imported) {
+  /// [mediaFor] answers where an imported note's photo was written, for the
+  /// caller that could open the archive. Without it every note is text, which
+  /// is what this did before photos were brought across at all.
+  List<Note> importNotes(
+    List<ImportedNote> imported, {
+    String? Function(ImportedNote note)? mediaFor,
+  }) {
     final written = <Note>[];
     for (final source in imported) {
       final body = source.text.trim();
-      if (body.isEmpty) continue;
+      final media = mediaFor?.call(source);
+      // A note with no words used to be nothing to import. With a photo behind
+      // it, it is a photo — which is most of what people keep in Keep.
+      if (body.isEmpty && media == null) continue;
       // Falls back to now only where the export gave no date. Clamped to the
       // present because a note dated in the future pins itself to the top of
       // the timeline forever.
@@ -180,7 +189,11 @@ class CaptureService {
         Note(
           id: newUuidV7(),
           type: source.type,
+          // Kept even on a photo note. A Keep note is often a picture with a
+          // line under it, and dropping the line to fit our note types would
+          // lose the half the person actually wrote.
           content: body,
+          mediaUri: media,
           title: source.title,
           createdAt: at,
           updatedAt: at,

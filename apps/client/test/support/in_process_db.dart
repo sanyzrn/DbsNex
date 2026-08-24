@@ -86,8 +86,15 @@ class InProcessDb implements NexDb {
       _capture.submitChecklistCapture(items);
 
   @override
-  Future<int> importNotes(String path) async =>
-      _capture.importNotes(NoteImportArchive.read(File(path)).notes).length;
+  Future<int> importNotes(String path, {required String mediaDir}) async {
+    final read = NoteImportArchive.read(
+      File(path),
+      mediaInto: Directory(mediaDir),
+    );
+    return _capture
+        .importNotes(read.notes, mediaFor: NoteImportArchive.mediaPathFor)
+        .length;
+  }
 
   @override
   Future<Note?> captureLink(String url) async =>

@@ -239,8 +239,8 @@ class NexDbWorker implements NexDb {
       });
 
   @override
-  Future<int> importNotes(String path) =>
-      _send<int>(_DbCommand.importNotes, {'path': path});
+  Future<int> importNotes(String path, {required String mediaDir}) =>
+      _send<int>(_DbCommand.importNotes, {'path': path, 'mediaDir': mediaDir});
 
   @override
   Future<Note?> captureLink(String url) =>
@@ -522,6 +522,23 @@ class NexDbWorker implements NexDb {
     return null;
   }
 
+  /// Imports an export, writing its photos into [mediaDir] on the way.
+  ///
+  /// Split out of the command switch because it is three statements rather than
+  /// one expression, and because the media path is the whole reason photos now
+  /// come across at all — a reader with nowhere to put files still gets every
+  /// note's words and counts the photos as skipped.
+  static int _importNotes(
+    CaptureService capture,
+    File file,
+    Directory mediaDir,
+  ) {
+    final read = NoteImportArchive.read(file, mediaInto: mediaDir);
+    return capture
+        .importNotes(read.notes, mediaFor: NoteImportArchive.mediaPathFor)
+        .length;
+  }
+
   static void _entryPoint(_WorkerBoot boot) {
     final requests = ReceivePort();
     boot.sendPort.send(requests.sendPort);
@@ -562,16 +579,15 @@ class NexDbWorker implements NexDb {
           _DbCommand.captureChecklist => capture.submitChecklistCapture(
             parseChecklist(arg('body')! as String),
           ),
-          // Read *and* written inside the isolate. Unzipping a Takeout export
-          // and inserting a few thousand rows are both long enough to drop
-          // frames, and the point of this worker is that neither happens on
-          // the thread drawing the screen.
-          _DbCommand.importNotes =>
-            capture
-                .importNotes(
-                  NoteImportArchive.read(File(arg('path')! as String)).notes,
-                )
-                .length,
+          // Read *and* written inside the isolate. Unzipping a Takeout
+          // export, writing its photos out and inserting a few thousand rows
+          // are all long enough to drop frames, and the point of this worker
+          // is that none of it happens on the thread drawing the screen.
+          _DbCommand.importNotes => _importNotes(
+            capture,
+            File(arg('path')! as String),
+            Directory(arg('mediaDir')! as String),
+          ),
           _DbCommand.captureLink => capture.submitLinkCapture(
             arg('url')! as String,
           ),

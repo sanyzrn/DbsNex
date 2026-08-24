@@ -43,6 +43,11 @@ Working convention:
   setting an alarm does, instead of only "reminder set". And if the phone
   refuses the alarm outright, it says that too, rather than confirming
   something that will not happen.
+- Importing from Google Keep brings the photos across. It only ever read the
+  words: a note that was a picture with a line under it imported as the line,
+  and a note that was only a picture imported as nothing at all. Both are notes
+  now, with the photo. A picture the export did not actually carry is still
+  counted as skipped rather than quietly dropped.
 - The date and time pickers look like the phone's own again. Nex's text-size
   setting was being applied to them, and a dial laid out at fixed sizes does
   not survive that.
