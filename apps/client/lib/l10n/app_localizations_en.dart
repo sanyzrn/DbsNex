@@ -1276,20 +1276,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'What has downloaded so far is thrown away, and starting again begins from the beginning. Pause keeps it instead.';
 
   @override
-  String get localModelFromFile => 'I already have the file';
-
-  @override
-  String get localModelFromFileHint =>
-      'Pick the model file if you have already downloaded it on this phone or copied it across. It is checked against the same fingerprint before it is used.';
-
-  @override
-  String get localModelChecking => 'Checking the file…';
-
-  @override
-  String get localModelWrongFile =>
-      'That is not this model — the file did not match the fingerprint.';
-
-  @override
   String get localModelManageInstalled => 'Downloaded and ready on this phone';
 
   @override

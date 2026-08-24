@@ -1,7 +1,4 @@
 import 'dart:async';
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -77,9 +74,7 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
         _install.reset();
       case ModelInstallPhase.failed:
         host?.show(
-          message: _install.error is FileSystemException
-              ? l10n.localModelWrongFile
-              : l10n.localModelFailed,
+          message: l10n.localModelFailed,
           kind: NexBannerKind.failed,
           haptics: widget.preferences.haptics,
         );
@@ -132,26 +127,6 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
     final store = _store;
     if (store == null) return;
     unawaited(_install.start(store, widget.model));
-  }
-
-  Future<void> _pickFile() async {
-    final store = _store;
-    if (store == null) return;
-    // withReadStream, and this is the whole reason the picker was swapped.
-    // Asking Android for a *path* makes it read the entire document into
-    // memory and copy it to the cache first, which for a 2.5 GB model kills
-    // the app before any of this runs. A stream reads it once, straight into
-    // the hash and the file.
-    //
-    // No extension filter either: `.litertlm` is not a type Android knows,
-    // and a filter it does not understand hides every file rather than
-    // narrowing them. The digest is what rejects a wrong file.
-    final picked = await FilePicker.pickFiles(withReadStream: true);
-    final files = picked?.files ?? const [];
-    if (files.isEmpty) return;
-    final stream = files.first.readStream;
-    if (stream == null) return;
-    await _install.installFrom(store, widget.model, stream);
   }
 
   Future<void> _confirmStop() async {
@@ -275,7 +250,6 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
                     onStart: _start,
                     onPause: _install.pause,
                     onStop: () => unawaited(_confirmStop()),
-                    onPickFile: () => unawaited(_pickFile()),
                   ),
                 ],
               ],
@@ -293,7 +267,6 @@ class _InstallControls extends StatelessWidget {
     required this.onStart,
     required this.onPause,
     required this.onStop,
-    required this.onPickFile,
   });
 
   final ModelRelease model;
@@ -307,7 +280,6 @@ class _InstallControls extends StatelessWidget {
   final VoidCallback onStart;
   final VoidCallback onPause;
   final VoidCallback onStop;
-  final VoidCallback onPickFile;
 
   @override
   Widget build(BuildContext context) {
@@ -409,31 +381,10 @@ class _InstallControls extends StatelessWidget {
           ),
         ],
       ),
-      _ => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          FilledButton.icon(
-            onPressed: enabled ? onStart : null,
-            icon: const Icon(Icons.download_outlined),
-            label: Text(l10n.localModelDownload(_gigabytes(model.sizeBytes))),
-          ),
-          const SizedBox(height: NexSpacing.md),
-          // Offered beside the download rather than hidden behind a failure:
-          // someone who already has two gigabytes on their phone should not
-          // have to spend them again to find out this exists.
-          OutlinedButton.icon(
-            onPressed: enabled ? onPickFile : null,
-            icon: const Icon(Icons.folder_open_outlined),
-            label: Text(l10n.localModelFromFile),
-          ),
-          const SizedBox(height: NexSpacing.sm),
-          Text(
-            l10n.localModelFromFileHint,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+      _ => FilledButton.icon(
+        onPressed: enabled ? onStart : null,
+        icon: const Icon(Icons.download_outlined),
+        label: Text(l10n.localModelDownload(_gigabytes(model.sizeBytes))),
       ),
     };
   }

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -898,40 +899,55 @@ class _Thread extends StatelessWidget {
           alignment: mine
               ? AlignmentDirectional.centerEnd
               : AlignmentDirectional.centerStart,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: NexSpacing.sm),
-            padding: const EdgeInsets.symmetric(
-              horizontal: NexSpacing.md,
-              vertical: NexSpacing.sm,
-            ),
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.sizeOf(context).width * 0.78,
-            ),
-            decoration: BoxDecoration(
-              color: mine
-                  ? theme.colorScheme.primaryContainer
-                  : theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(NexRadius.lg),
-            ),
-            child: Text(
-              turn.content,
-              // The on-colour that belongs to the container behind it. Left
-              // at the default the user's own words were onSurface on
-              // primaryContainer — a pairing nothing guarantees the contrast
-              // of, and in practice barely readable in the light theme.
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: mine
-                    ? theme.colorScheme.onPrimaryContainer
-                    : theme.colorScheme.onSurface,
+          // Long-press to copy, rather than making the text selectable.
+          // Selection inside a scrolling thread fights the scroll gesture and
+          // hands someone a partial paste; what people actually want from a
+          // chat message is the whole of it.
+          child: GestureDetector(
+            onLongPress: () => unawaited(_copy(context, turn.content)),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: NexSpacing.sm),
+              padding: const EdgeInsets.symmetric(
+                horizontal: NexSpacing.md,
+                vertical: NexSpacing.sm,
               ),
-              // Either side may be in either language — the assistant answers
-              // in whatever the output-language setting asks for.
-              textDirection: nexDirectionOf(turn.content),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width * 0.78,
+              ),
+              decoration: BoxDecoration(
+                color: mine
+                    ? theme.colorScheme.primaryContainer
+                    : theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(NexRadius.lg),
+              ),
+              child: Text(
+                turn.content,
+                // The on-colour that belongs to the container behind it. Left
+                // at the default the user's own words were onSurface on
+                // primaryContainer — a pairing nothing guarantees the contrast
+                // of, and in practice barely readable in the light theme.
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: mine
+                      ? theme.colorScheme.onPrimaryContainer
+                      : theme.colorScheme.onSurface,
+                ),
+                // Either side may be in either language — the assistant
+                // answers in whatever the output-language setting asks for.
+                textDirection: nexDirectionOf(turn.content),
+              ),
             ),
           ),
         );
       },
     );
+  }
+
+  Future<void> _copy(BuildContext context, String text) async {
+    final l10n = AppLocalizations.of(context);
+    final host = NexBannerHost.of(context);
+    await Clipboard.setData(ClipboardData(text: text));
+    nexBump();
+    host?.show(message: l10n.copied);
   }
 }
 

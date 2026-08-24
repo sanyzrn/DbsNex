@@ -2210,30 +2210,6 @@ abstract class AppLocalizations {
   /// **'What has downloaded so far is thrown away, and starting again begins from the beginning. Pause keeps it instead.'**
   String get localModelStopBody;
 
-  /// Install from a file on the device instead of downloading
-  ///
-  /// In en, this message translates to:
-  /// **'I already have the file'**
-  String get localModelFromFile;
-
-  /// Explains the pick-a-file option
-  ///
-  /// In en, this message translates to:
-  /// **'Pick the model file if you have already downloaded it on this phone or copied it across. It is checked against the same fingerprint before it is used.'**
-  String get localModelFromFileHint;
-
-  /// Shown while a picked file is verified
-  ///
-  /// In en, this message translates to:
-  /// **'Checking the file…'**
-  String get localModelChecking;
-
-  /// Picked file failed verification
-  ///
-  /// In en, this message translates to:
-  /// **'That is not this model — the file did not match the fingerprint.'**
-  String get localModelWrongFile;
-
   /// Model row state when installed
   ///
   /// In en, this message translates to:
