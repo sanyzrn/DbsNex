@@ -20,6 +20,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/reminders.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/nex_time_picker.dart';
 import '../widgets/tag_picker.dart';
 import '../widgets/translate_sheet.dart';
 
@@ -393,16 +394,16 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               leading: const Icon(Icons.event),
               title: Text(l10n.remindPick),
               onTap: () async {
-                final date = await showDatePicker(
-                  context: sheetContext,
-                  firstDate: now,
-                  lastDate: now.add(const Duration(days: 365 * 5)),
-                  initialDate: now.add(const Duration(days: 1)),
+                final date = await nexPickDate(
+                  sheetContext,
+                  first: now,
+                  last: now.add(const Duration(days: 365 * 5)),
+                  initial: now.add(const Duration(days: 1)),
                 );
                 if (date == null || !sheetContext.mounted) return;
-                final time = await showTimePicker(
-                  context: sheetContext,
-                  initialTime: const TimeOfDay(hour: 9, minute: 0),
+                final time = await nexPickTime(
+                  sheetContext,
+                  initial: const TimeOfDay(hour: 9, minute: 0),
                 );
                 if (!sheetContext.mounted) return;
                 Navigator.pop(
@@ -449,8 +450,37 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     }
     await widget.services.setDueAt(note.id, picked.toUtc());
     if (!mounted) return;
-    nexShowBanner(context, message: l10n.remindSet);
+    // What an alarm clock says back. "Reminder set" alone is the same
+    // sentence whether the alarm lands in ten minutes or, because a date was
+    // mis-tapped, in ten months — and the second case is invisible until it
+    // never arrives.
+    final failure = widget.services.reminders.lastError;
+    nexShowBanner(
+      context,
+      message: failure != null
+          ? l10n.remindNotScheduled
+          : l10n.remindSetIn(_untilLabel(l10n, picked)),
+      kind: failure != null ? NexBannerKind.failed : NexBannerKind.done,
+    );
     await _reload();
+  }
+
+  /// How far off a reminder is, in the one unit that reads at that distance.
+  ///
+  /// Rounded up rather than down: a reminder 90 seconds away is "2 minutes",
+  /// not "1 minute" — the number people check against is when it *will* go
+  /// off, and undershooting reads as the app being wrong.
+  String _untilLabel(AppLocalizations l10n, DateTime when) {
+    final left = when.difference(DateTime.now());
+    if (left.inHours >= 24) {
+      return l10n.remindInDays((left.inHours / 24).ceil());
+    }
+    if (left.inMinutes >= 60) {
+      return l10n.remindInHours((left.inMinutes / 60).ceil());
+    }
+    return l10n.remindInMinutes(
+      left.inSeconds <= 0 ? 0 : (left.inSeconds / 60).ceil(),
+    );
   }
 
   /// A sentinel meaning "take the reminder away", told apart from a dismissed

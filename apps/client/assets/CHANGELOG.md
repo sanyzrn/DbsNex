@@ -34,6 +34,19 @@ Working convention:
 
 ## Unreleased
 
+- Reminders arrive on time. They were scheduled as approximate alarms, which
+  Android is free to defer for hours while the phone is idle — so a note due at
+  nine could turn up at lunchtime, or not that day. Nex now asks for the same
+  kind of alarm the clock app uses, and falls back to the old behaviour only if
+  the phone refuses.
+- Setting a reminder says how far off it is — "2 hours from now" — the way
+  setting an alarm does, instead of only "reminder set". And if the phone
+  refuses the alarm outright, it says that too, rather than confirming
+  something that will not happen.
+- The date and time pickers look like the phone's own again. Nex's text-size
+  setting was being applied to them, and a dial laid out at fixed sizes does
+  not survive that.
+
 ## v0.9.6
 
 - The assistant can run on your phone, with nothing sent anywhere. Settings ›

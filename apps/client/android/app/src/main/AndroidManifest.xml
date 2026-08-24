@@ -24,6 +24,13 @@
          refuse. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- A reminder that arrives whenever Android gets around to it is not a
+         reminder. Without this the only mode available is inexact, which Doze
+         defers by hours, so a note due at 09:00 turns up at lunchtime or not
+         that day. Declared, requested at the moment a reminder is first set,
+         and survivable if refused: NexReminders falls back to inexact rather
+         than dropping the feature. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!--
       Android 11 package visibility. Opening a note's file with the device's

@@ -33,6 +33,24 @@ class NexReminders {
 
   bool _ready = false;
 
+  /// Whether this phone will let Nex wake at an exact minute.
+  ///
+  /// Answered by the OS when permission is asked for, and re-asked on every
+  /// set — Android lets someone revoke it in Settings at any time, and a
+  /// cached yes from last week is how a reminder quietly becomes approximate.
+  bool _exactAlarms = false;
+
+  /// Exact when allowed, approximate when not.
+  ///
+  /// `inexactAllowWhileIdle` was the only mode this used, and it is the wrong
+  /// one for something a person calls a reminder: Android defers inexact
+  /// alarms under Doze, sometimes by hours, so a note due at 9 arrives at
+  /// lunchtime or not that day at all. `alarmClock` is the mode the clock app
+  /// itself uses and the only one Doze does not touch.
+  AndroidScheduleMode get _scheduleMode => _exactAlarms
+      ? AndroidScheduleMode.alarmClock
+      : AndroidScheduleMode.inexactAllowWhileIdle;
+
   /// Called with the note id when a reminder is tapped.
   void Function(String noteId)? onOpenNote;
 
@@ -67,10 +85,24 @@ class NexReminders {
     _ready = true;
   }
 
+  /// Whether the last schedule attempt failed, and what it said.
+  ///
+  /// Kept rather than swallowed. This used to be an empty catch, and the
+  /// result was a feature that silently did nothing: the note kept its due
+  /// date, the banner said the reminder was set, and no notification ever
+  /// arrived — with nothing anywhere to say why. A rare, technical string is
+  /// worth more than a confident lie.
+  String? lastError;
+
   /// Asks for permission, and answers whether it was given.
   ///
   /// Called when a reminder is actually being set, which is the only moment
   /// the request explains itself.
+  ///
+  /// Two permissions on Android, not one. Posting a notification is the
+  /// obvious one; being allowed to wake at an exact minute is the one that
+  /// decides whether "remind me at 9" means 9 or means somewhere after 9 —
+  /// see [_scheduleMode].
   Future<bool> requestPermission() async {
     if (!supported) return false;
     await initialise();
@@ -79,7 +111,15 @@ class NexReminders {
           .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
           >();
-      return await android?.requestNotificationsPermission() ?? false;
+      final posting = await android?.requestNotificationsPermission() ?? false;
+      // Asked for, not required. A refusal costs precision, not the feature:
+      // [_scheduleMode] falls back and the reminder still arrives, late.
+      try {
+        _exactAlarms = await android?.requestExactAlarmsPermission() ?? false;
+      } catch (_) {
+        _exactAlarms = false;
+      }
+      return posting;
     }
     final ios = _plugin
         .resolvePlatformSpecificImplementation<
@@ -117,13 +157,17 @@ class NexReminders {
           ),
           iOS: DarwinNotificationDetails(),
         ),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: _scheduleMode,
         payload: note.id,
       );
-    } catch (_) {
-      // Exact-alarm permission refused, too many pending alarms, a platform
-      // that changed its mind — none of these are worth an error in front of
-      // someone. The due date stays on the note either way.
+      lastError = null;
+    } catch (error) {
+      // Too many pending alarms, a platform that changed its mind, a channel
+      // that never registered. Still not an error thrown at someone mid-
+      // capture — the due date stays on the note either way — but no longer
+      // invisible: [lastError] is what the sheet reads before telling anyone
+      // their reminder is set.
+      lastError = '$error';
     }
   }
 

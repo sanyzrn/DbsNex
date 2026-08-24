@@ -795,6 +795,11 @@
   "remindNextWeek": "هفته بعد",
   "remindPick": "انتخاب زمان…",
   "remindClear": "حذف یادآوری",
+  "remindSetIn": "یادآور تنظیم شد — {when} دیگر",
+  "remindInDays": "{count, plural, =1{۱ روز} other{{count} روز}}",
+  "remindInHours": "{count, plural, =1{۱ ساعت} other{{count} ساعت}}",
+  "remindInMinutes": "{count, plural, =1{۱ دقیقه} other{{count} دقیقه}}",
+  "remindNotScheduled": "آن زمان روی یادداشت ذخیره شد، ولی این گوشی آلارمش را قبول نکرد.",
   "remindSet": "یادآوری تنظیم شد",
   "remindDenied": "برای ارسال اعلان، اجازه لازم است."
 }
