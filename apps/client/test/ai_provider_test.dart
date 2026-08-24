@@ -217,35 +217,34 @@ void main() {
 
       test('a stuck decoder is refused', () {
         expect(
-          adapterReplying('The morning is quiet ᅳᅳᅳᅳᅳ 🌤').headline('a note'),
+          adapterReplying('The morning quiet ᅳᅳᅳᅳᅳ').headline('a note'),
           completion(isNull),
         );
       });
 
       test('the same word three times is refused', () {
         expect(
-          adapterReplying(
-            'Notes about notes about notes today 📝',
-          ).headline('a note'),
+          adapterReplying('Notes about notes about notes').headline('a note'),
           completion(isNull),
         );
       });
 
-      // The filter is not a taste test. A dull line, a line carrying an
-      // English brand name inside Persian, and a line with one emoji all
-      // have to survive it.
+      // The filter is not a taste test. A dull phrase and a phrase carrying an
+      // English brand name inside Persian both have to survive it.
       // The same helper proves the decode: a Persian reply arriving under a
       // charset-less content type comes back as itself, not as mojibake.
-      test('ordinary lines survive', () {
+      //
+      // Short, because a headline is now a greeting *phrase* with a name to
+      // follow it rather than a sentence of its own — the app appends the
+      // name, which never leaves the device.
+      test('ordinary phrases survive', () {
         expect(
-          adapterReplying('A quiet morning over a full page 🌤').headline('x'),
-          completion('A quiet morning over a full page 🌤'),
+          adapterReplying('A quiet full page').headline('x'),
+          completion('A quiet full page'),
         );
         expect(
-          adapterReplying(
-            'صبح آرام است و دفترت پر از Whitehall ☕',
-          ).headline('x'),
-          completion('صبح آرام است و دفترت پر از Whitehall ☕'),
+          adapterReplying('صبح آرام دفتر Whitehall').headline('x'),
+          completion('صبح آرام دفتر Whitehall'),
         );
         expect(
           adapterReplying(

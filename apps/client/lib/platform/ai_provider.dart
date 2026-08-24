@@ -775,20 +775,24 @@ class CloudAIAdapter implements AIAdapter {
   }) async {
     if (!canAnswerText) return null;
     final reply = await _complete(
-      'You write the single line a notes app shows across the top of its home '
-      'screen when it opens. One sentence, at most 9 words, ending with one '
-      'emoji that fits it. It is a mood, not a report: a small noticing tied '
-      'to the hour and — lightly — to what they have been writing down. Warm '
-      'and a little playful, the way a good friend opens a conversation. '
-      'Never a summary, never advice, never a question, never an instruction, '
-      'never a heading, never a greeting, no quotes, never address anyone by '
-      'name. Use ordinary words, write in one language only, and never repeat '
-      'a word. Reply with the line only. '
-      // Overridable, unlike every other call here. This line is joined onto
-      // the greeting and shown as one sentence, and the greeting is written
-      // in the language of the user's own name — so left on `auto` ("answer
-      // in the language of the notes") it produced half an English sentence
-      // glued to half a Persian one, with the full stop at the wrong end.
+      'You write the greeting a notes app opens with. Not a sentence — a '
+      'short phrase of two to five words that a name can follow, the way '
+      '"Good morning" precedes one. It is a mood tied to the hour and, '
+      'lightly, to what they have been writing down. Warm and a little '
+      'playful. '
+      // No name in the prompt and none in the reply. The user's name never
+      // leaves this device — not to a provider, not to sync — so the app
+      // appends it to whatever comes back. That is also why this asks for a
+      // phrase rather than a sentence: a sentence has nowhere to put a name.
+      'Never include a name or any placeholder for one. No emoji, no quotes, '
+      'no full stop, no comma at the end, never a question, never advice, '
+      'never a summary. Use ordinary words and write in one language only. '
+      'Reply with the phrase only. '
+      // Overridable, unlike every other call here. The phrase is shown with
+      // the user's name after it, and the name is the one word the app did
+      // not choose — so its script decides the language. Left on `auto`
+      // ("answer in the language of the notes") this produced an English
+      // phrase in front of a Persian name.
       '${(language ?? outputLanguage).promptRule}',
       recentNotesText.trim().isEmpty
           ? 'They have not written anything yet. The local time is '
@@ -797,7 +801,7 @@ class CloudAIAdapter implements AIAdapter {
                 'notes:\n$recentNotesText',
       maxTokens: 60,
     );
-    return _plausible(_clamped(reply, 12));
+    return _plausible(_clamped(reply, 6));
   }
 
   /// A note in another language, and nothing else.
