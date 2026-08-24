@@ -752,6 +752,7 @@
   "assistantConfirmDelete": "این یادداشت را به حذف‌شده‌های اخیر ببرم؟",
   "assistantConfirmTags": "برچسب‌های این یادداشت را تغییر بدهم؟",
   "assistantApply": "انجام بده",
+  "chatAboutNote": "دربارهٔ: {note}",
   "chatHistory": "گفت‌وگوها",
   "chatHistoryEmpty": "هنوز گفت‌وگویی ذخیره نشده.",
   "chatNewConversation": "گفت‌وگوی تازه",

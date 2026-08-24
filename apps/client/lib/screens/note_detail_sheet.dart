@@ -1062,122 +1062,146 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _ActionRow(
-                  actions: [
-                    if (hasMedia)
+                  groups: [
+                    // The note itself: take it somewhere, or change it.
+                    [
+                      if (hasMedia)
+                        _DetailAction(
+                          icon: Icons.open_in_new,
+                          label: l10n.open,
+                          onPressed: _openExternally,
+                        ),
+                      // Absent on Windows rather than present and broken: the
+                      // platform has no share sheet this app can use, and an
+                      // action that does nothing teaches the wrong lesson.
+                      if (nexCanShare)
+                        _DetailAction(
+                          icon: Icons.ios_share,
+                          label: l10n.share,
+                          onPressed: _share,
+                        ),
                       _DetailAction(
-                        icon: Icons.open_in_new,
-                        label: l10n.open,
-                        onPressed: _openExternally,
+                        icon: Icons.copy_outlined,
+                        label: l10n.copy,
+                        onPressed: _copyText,
                       ),
-                    // Absent on Windows rather than present and broken: the
-                    // platform has no share sheet this app can use, and an
-                    // action that does nothing teaches the wrong lesson.
-                    if (nexCanShare)
+                      if (isText)
+                        _DetailAction(
+                          icon: Icons.edit_outlined,
+                          label: l10n.edit,
+                          onPressed: _editContent,
+                        ),
+                      if (note.type == NoteType.link)
+                        _DetailAction(
+                          icon: Icons.open_in_new,
+                          label: l10n.openLink,
+                          onPressed: _openLink,
+                        ),
+                    ],
+                    // Where it sits and when it comes back. Tag and caption
+                    // both already have their own affordance further up the
+                    // sheet — repeating them here duplicated an action that
+                    // was never out of reach.
+                    [
                       _DetailAction(
-                        icon: Icons.ios_share,
-                        label: l10n.share,
-                        onPressed: _share,
+                        icon: note.pinnedAt != null
+                            ? Icons.push_pin
+                            : Icons.push_pin_outlined,
+                        label: note.pinnedAt != null ? l10n.unpin : l10n.pin,
+                        // Only one note is ever pinned at a time (see
+                        // NoteRepository.pinNote); rather than silently
+                        // stealing the pin from whichever note holds it, the
+                        // action is simply off until that one is unpinned.
+                        onPressed:
+                            note.pinnedAt == null && _pinnedNoteId != null
+                            ? null
+                            : _togglePin,
                       ),
-                    _DetailAction(
-                      icon: Icons.copy_outlined,
-                      label: l10n.copy,
-                      onPressed: _copyText,
-                    ),
-                    if (isText)
-                      _DetailAction(
-                        icon: Icons.edit_outlined,
-                        label: l10n.edit,
-                        onPressed: _editContent,
-                      ),
-                    if (note.type == NoteType.link)
-                      _DetailAction(
-                        icon: Icons.open_in_new,
-                        label: l10n.openLink,
-                        onPressed: _openLink,
-                      ),
-                    // Tag and caption both already have their own add/edit
-                    // affordance further up the sheet — see the tag chip row
-                    // and the caption row above. Repeating them here just
-                    // duplicated an action that was never out of reach.
-                    _DetailAction(
-                      icon: note.pinnedAt != null
-                          ? Icons.push_pin
-                          : Icons.push_pin_outlined,
-                      label: note.pinnedAt != null ? l10n.unpin : l10n.pin,
-                      // Only one note is ever pinned at a time (see
-                      // NoteRepository.pinNote); rather than silently
-                      // stealing the pin from whichever note holds it, the
-                      // action is simply off until that one is unpinned.
-                      onPressed: note.pinnedAt == null && _pinnedNoteId != null
-                          ? null
-                          : _togglePin,
-                    ),
-                    // Only when there is a provider behind it. The
-                    // assistant's own rule everywhere else in the app: a
-                    // button that can only answer "unavailable" is worse than
-                    // no button.
-                    if (widget.preferences case final preferences?
-                        when AiChatSheet.availableFor(preferences))
-                      _DetailAction(
-                        icon: Icons.forum_outlined,
-                        label: l10n.askAboutNote,
-                        onPressed: () => unawaited(
-                          AiChatSheet.show(
-                            context,
-                            preferences: preferences,
-                            services: widget.services,
-                            history: preferences.chatHistory,
-                            focus: note,
+                      if (NexReminders.supported)
+                        _DetailAction(
+                          icon: note.dueAt == null
+                              ? Icons.notifications_none
+                              : Icons.notifications_active,
+                          label: l10n.remind,
+                          onPressed: _pickReminder,
+                        ),
+                    ],
+                    // The assistant. Tinted as a group and set off by the
+                    // divider, because "is this the AI one?" is a question no
+                    // single icon in a row of nine can answer on its own.
+                    [
+                      // Only when there is something behind it. The
+                      // assistant's own rule everywhere else in the app: a
+                      // button that can only answer "unavailable" is worse
+                      // than no button.
+                      if (widget.preferences case final preferences?
+                          when AiChatSheet.availableFor(preferences))
+                        _DetailAction(
+                          // The sparkle, which is what this app means by AI
+                          // everywhere else — on the chat sheet's own header
+                          // and on the daily recap. A speech bubble meant
+                          // "chat", and the report was that nobody could tell
+                          // it was the assistant.
+                          icon: Icons.auto_awesome,
+                          label: l10n.askAboutNote,
+                          accent: true,
+                          onPressed: () => unawaited(
+                            AiChatSheet.show(
+                              context,
+                              preferences: preferences,
+                              services: widget.services,
+                              history: preferences.chatHistory,
+                              focus: note,
+                            ),
                           ),
                         ),
-                      ),
-                    // The transcript and the extracted text count: a
-                    // recording in one language and a photographed sign in
-                    // another are exactly the notes someone needs this for,
-                    // and neither has typed content to offer.
-                    if (widget.preferences case final preferences?
-                        when TranslateSheet.availableFor(preferences) &&
-                            _translatableText(note).isNotEmpty)
-                      _DetailAction(
-                        icon: Icons.translate,
-                        label: l10n.translate,
-                        onPressed: () => unawaited(
-                          TranslateSheet.show(
-                            context,
-                            text: _translatableText(note),
-                            preferences: preferences,
-                            services: widget.services,
+                      // The transcript and the extracted text count: a
+                      // recording in one language and a photographed sign in
+                      // another are exactly the notes someone needs this for,
+                      // and neither has typed content to offer.
+                      if (widget.preferences case final preferences?
+                          when TranslateSheet.availableFor(preferences) &&
+                              _translatableText(note).isNotEmpty)
+                        _DetailAction(
+                          icon: Icons.translate,
+                          label: l10n.translate,
+                          accent: true,
+                          onPressed: () => unawaited(
+                            TranslateSheet.show(
+                              context,
+                              text: _translatableText(note),
+                              preferences: preferences,
+                              services: widget.services,
+                            ),
                           ),
                         ),
-                      ),
-                    if (NexReminders.supported)
                       _DetailAction(
-                        icon: note.dueAt == null
-                            ? Icons.notifications_none
-                            : Icons.notifications_active,
-                        label: l10n.remind,
-                        onPressed: _pickReminder,
+                        // Was the sparkle, which now belongs to the
+                        // assistant. This one says what it does.
+                        icon: Icons.summarize_outlined,
+                        label: l10n.summarize,
+                        accent: true,
+                        onPressed: () async {
+                          await widget.services.summarizeOnDemand(note.id);
+                          await _reload();
+                        },
                       ),
-                    _DetailAction(
-                      icon: Icons.auto_awesome_outlined,
-                      label: l10n.summarize,
-                      onPressed: () async {
-                        await widget.services.summarizeOnDemand(note.id);
-                        await _reload();
-                      },
-                    ),
-                    _DetailAction(
-                      icon: Icons.info_outline,
-                      label: l10n.details,
-                      onPressed: _showDetails,
-                    ),
-                    _DetailAction(
-                      icon: Icons.delete_outline,
-                      label: l10n.delete,
-                      destructive: true,
-                      onPressed: () =>
-                          Navigator.pop(context, DetailResult.deleted),
-                    ),
+                    ],
+                    // What the note is, and getting rid of it.
+                    [
+                      _DetailAction(
+                        icon: Icons.info_outline,
+                        label: l10n.details,
+                        onPressed: _showDetails,
+                      ),
+                      _DetailAction(
+                        icon: Icons.delete_outline,
+                        label: l10n.delete,
+                        destructive: true,
+                        onPressed: () =>
+                            Navigator.pop(context, DetailResult.deleted),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -1354,10 +1378,20 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto> {
 /// reason 48px is the floor everywhere else. A faded edge is the fix: it
 /// only ever hints that a scroll is possible, never claims one is not needed,
 /// which a same-width `Row` that just quietly clips its last icon does not.
+/// The action strip, in groups with a hairline between them.
+///
+/// One row, not two. A second row would read as two strips and costs vertical
+/// space in a sheet that is already competing with the note itself; a divider
+/// says the same thing — these belong together, those do not — in one pixel.
+///
+/// Groups are passed as a list of lists so an empty one disappears without
+/// leaving a divider stranded against the edge. Which actions are present
+/// depends on the note's type, the platform and whether AI is configured, so
+/// empty groups are the normal case rather than an edge one.
 class _ActionRow extends StatelessWidget {
-  const _ActionRow({required this.actions});
+  const _ActionRow({required this.groups});
 
-  final List<Widget> actions;
+  final List<List<Widget>> groups;
 
   @override
   Widget build(BuildContext context) {
@@ -1381,9 +1415,29 @@ class _ActionRow extends StatelessWidget {
       blendMode: BlendMode.dstIn,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: Row(children: actions),
+        child: Row(children: _withDividers(context)),
       ),
     );
+  }
+
+  List<Widget> _withDividers(BuildContext context) {
+    final filled = groups.where((group) => group.isNotEmpty).toList();
+    final theme = Theme.of(context);
+    return [
+      for (var i = 0; i < filled.length; i++) ...[
+        if (i > 0)
+          // Short of the icons' full height and dimmer than the outline
+          // token, because it is a seam and not a border. At full height and
+          // full contrast it cut the row into boxes.
+          Container(
+            width: 1,
+            height: 20,
+            margin: const EdgeInsets.symmetric(horizontal: NexSpacing.xs),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
+        ...filled[i],
+      ],
+    ];
   }
 }
 
@@ -1401,11 +1455,17 @@ class _DetailAction extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.destructive = false,
+    this.accent = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
+
+  /// The assistant's colour. What the row was missing was not a better glyph
+  /// for each AI action but a way to see that three of them are the same kind
+  /// of thing — a tint does that across the group where no single icon can.
+  final bool accent;
 
   /// Delete's own colour: the row is otherwise neutral, and this is the one
   /// action here that cannot be undone by repeating it.
@@ -1416,6 +1476,8 @@ class _DetailAction extends StatelessWidget {
     final theme = Theme.of(context);
     final color = onPressed == null
         ? theme.disabledColor
+        : accent
+        ? theme.colorScheme.primary
         : destructive
         ? theme.colorScheme.error
         : theme.colorScheme.onSurfaceVariant;

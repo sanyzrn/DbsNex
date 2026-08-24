@@ -2570,6 +2570,12 @@ abstract class AppLocalizations {
   /// **'Do it'**
   String get assistantApply;
 
+  /// Header line when the chat is scoped to one note
+  ///
+  /// In en, this message translates to:
+  /// **'About: {note}'**
+  String chatAboutNote(String note);
+
   /// Title of the saved assistant conversations list
   ///
   /// In en, this message translates to:

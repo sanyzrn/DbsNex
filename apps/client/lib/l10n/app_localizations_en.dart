@@ -1481,6 +1481,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantApply => 'Do it';
 
   @override
+  String chatAboutNote(String note) {
+    return 'About: $note';
+  }
+
+  @override
   String get chatHistory => 'Conversations';
 
   @override

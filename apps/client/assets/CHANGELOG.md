@@ -43,6 +43,12 @@ Working convention:
   setting an alarm does, instead of only "reminder set". And if the phone
   refuses the alarm outright, it says that too, rather than confirming
   something that will not happen.
+- The row of actions under a note is grouped now, with a hairline between
+  groups, and the assistant's three — ask, translate, summarise — sit together
+  in the accent colour. Asking about a note is the sparkle the rest of the app
+  uses for AI, instead of a speech bubble that could have meant anything.
+- Opening the assistant from a note says which note it is about. It always
+  answered from that one note; there was just no way to tell.
 - Importing from Google Keep brings the photos across. It only ever read the
   words: a note that was a picture with a line under it imported as the line,
   and a note that was only a picture imported as nothing at all. Both are notes

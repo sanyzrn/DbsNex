@@ -1481,6 +1481,11 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantApply => 'انجام بده';
 
   @override
+  String chatAboutNote(String note) {
+    return 'دربارهٔ: $note';
+  }
+
+  @override
   String get chatHistory => 'گفت‌وگوها';
 
   @override

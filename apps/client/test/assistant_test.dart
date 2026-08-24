@@ -371,6 +371,7 @@ Sure, here you go:
     Future<void> openSheet(
       WidgetTester tester, {
       required http.Client client,
+      Note? focus,
     }) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -386,6 +387,7 @@ Sure, here you go:
                     services: services,
                     history: preferences.chatHistory,
                     client: client,
+                    focus: focus,
                   ),
                   child: const Text('open'),
                 ),
@@ -397,6 +399,37 @@ Sure, here you go:
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
     }
+
+    testWidgets('a chat about one note says which note', (tester) async {
+      final now = DateTime.now().toUtc();
+      await openSheet(
+        tester,
+        client: MockClient((_) async => http.Response('{}', 200)),
+        focus: Note(
+          id: 'n-focus',
+          type: NoteType.text,
+          content: 'the whiteboard photo from the standup',
+          createdAt: now,
+          updatedAt: now,
+          deviceId: 'test',
+          rev: 1,
+          syncState: SyncState.pending,
+        ),
+      );
+
+      // Opened from a note, the sheet answers only from that note and can act
+      // on it. Without this line the same blank chat appeared whether it came
+      // from the capture button or from one note's own action row.
+      expect(find.textContaining('the whiteboard photo'), findsOneWidget);
+    });
+
+    testWidgets('a chat about nothing says nothing', (tester) async {
+      await openSheet(
+        tester,
+        client: MockClient((_) async => http.Response('{}', 200)),
+      );
+      expect(find.textContaining('About:'), findsNothing);
+    });
 
     testWidgets('a delete waits for the button, then does it', (tester) async {
       final note = (await services.captureText('the cooler is broken'))!;

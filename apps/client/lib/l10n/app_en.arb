@@ -1391,6 +1391,11 @@
   "@assistantApply": {
     "description": "Button that carries out the assistant's proposed action"
   },
+  "chatAboutNote": "About: {note}",
+  "@chatAboutNote": {
+    "description": "Header line when the chat is scoped to one note",
+    "placeholders": { "note": { "type": "String" } }
+  },
   "chatHistory": "Conversations",
   "@chatHistory": {
     "description": "Title of the saved assistant conversations list"
