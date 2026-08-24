@@ -38,6 +38,27 @@ subprojects {
     }
 }
 
+// Not every plugin package pins a JVM target for its Kotlin sources, so the
+// Kotlin compiler falls back to the JDK Gradle itself is running on — 21 here,
+// because Android Lint needs 21 — while AGP compiles that same module's Java at
+// 17. Gradle refuses the mismatch:
+//
+//   Execution failed for task ':file_picker:compileReleaseKotlin'
+//   Inconsistent JVM-target compatibility detected for tasks
+//   'compileReleaseJavaWithJavac' (17) and 'compileReleaseKotlin' (21).
+//
+// The app's own bytecode target is 17 and is not moving, so every subproject is
+// held to the same number instead of inheriting whichever JDK happens to be
+// running the build. Lazy on purpose: these tasks are registered later, when
+// each plugin's own script is evaluated.
+subprojects {
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        compilerOptions.jvmTarget.set(
+            org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17,
+        )
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:file_selector/file_selector.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -137,12 +137,21 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
   Future<void> _pickFile() async {
     final store = _store;
     if (store == null) return;
-    // No extension filter. `.litertlm` is not a type Android's picker knows,
+    // withReadStream, and this is the whole reason the picker was swapped.
+    // Asking Android for a *path* makes it read the entire document into
+    // memory and copy it to the cache first, which for a 2.5 GB model kills
+    // the app before any of this runs. A stream reads it once, straight into
+    // the hash and the file.
+    //
+    // No extension filter either: `.litertlm` is not a type Android knows,
     // and a filter it does not understand hides every file rather than
-    // narrowing them — the digest check is what actually rejects a wrong file.
-    final picked = await openFile();
-    if (picked == null) return;
-    await _install.installFrom(store, widget.model, File(picked.path));
+    // narrowing them. The digest is what rejects a wrong file.
+    final picked = await FilePicker.pickFiles(withReadStream: true);
+    final files = picked?.files ?? const [];
+    if (files.isEmpty) return;
+    final stream = files.first.readStream;
+    if (stream == null) return;
+    await _install.installFrom(store, widget.model, stream);
   }
 
   Future<void> _confirmStop() async {

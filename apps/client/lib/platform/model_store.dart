@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -82,27 +83,33 @@ class ModelRelease {
 /// because [NexModelStore.installable] reports false and no UI offers a
 /// download that would 404 or arrive unverified. Publishing is an edit here.
 abstract final class NexModels {
-  /// The GPU build of Gemma-4-E2B-it, 2.01 GB, one asset — **provisional**.
+  /// Gemma-4-E2B-it, split across two release assets.
   ///
-  /// This is not the file to ship. `flutter_litert_lm` curates
-  /// `gemma-4-E2B-it.litertlm` (2,583,085,056 bytes) and not this one, and on a
-  /// real phone this one has not yet loaded. It stays here for now only because
-  /// it is already uploaded and the alternative is splitting and uploading
-  /// 2.58 GB before knowing whether the file is even the problem.
+  /// The `-gpu` variant was tried first and is not usable: the runtime rejects
+  /// it with `NOT_FOUND: TF_LITE_PREFILL_DECODE not found in the model`. It is
+  /// a backend-specific artifact that does not carry the prefill/decode
+  /// signature an engine needs, which is why `flutter_litert_lm` curates this
+  /// file and not that one. It was chosen because it fit under GitHub's 2 GiB
+  /// asset cap without splitting — a packaging convenience, and never a reason
+  /// to ship a model that cannot load.
   ///
-  /// It is worth being precise about what is unknown, because it decides what
-  /// to do next and the three answers point different ways: the file may be
-  /// the wrong format for whichever backend loads it, this phone may have no
-  /// working OpenCL path, or 2 GB of weights may simply not fit in memory
-  /// alongside the app. The load error is surfaced verbatim now rather than
-  /// collapsed into "no answer came back", so the next run says which.
+  /// Digests are empty, so [NexModelStore.installable] is false and nothing is
+  /// offered yet. Two of the three are already known and verified against the
+  /// hosted assets; the third waits on `part-ab` being re-uploaded, because the
+  /// first split was cut at a fixed offset taken from this file's *published*
+  /// size rather than from the file itself, and dropped whatever lay past it:
   ///
-  /// Swapping to the curated file is an edit to this constant: URL, filename,
-  /// size, and three digests across two parts.
+  ///   whole   181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c
+  ///   part-aa 93330ce684caae1ac2e16f964b434f64bb8341149306516996d5a8bb52ac6a98
+  ///   part-ab (pending)
+  ///
+  /// [sizeBytes] is likewise the published figure and is a lower bound on the
+  /// real one. It feeds the "is there room" check and the download label, so
+  /// being slightly under is harmless; it is corrected along with the digests.
   static const gemma4E2B = ModelRelease(
     id: 'gemma-4-e2b-it',
-    filename: 'gemma-4-E2B-it-gpu.litertlm',
-    sizeBytes: 2008432640,
+    filename: 'gemma-4-E2B-it.litertlm',
+    sizeBytes: 2583085056,
     // Gemma's terms, not the repository's apache-2.0 badge. That badge covers
     // the conversion, not the weights, and the weights are what is being
     // redistributed here.
@@ -110,17 +117,21 @@ abstract final class NexModels {
     licenseNotice:
         'Gemma is provided under and subject to the Gemma Terms of Use '
         'found at ai.google.dev/gemma/terms',
-    // Verified against the hosted asset by streaming the whole file and
-    // hashing it, so a download failure here would not be a transfer problem.
-    sha256: 'a53a59001894c58e6bdb5b9b227709f91a2e3e556baa7d85acf9c55402ba5cf5',
+    sha256: '',
     parts: [
       ModelPart(
         url:
             'https://github.com/sanyzrn/DbsNex-releases/releases/download'
-            '/model-gemma-4-e2b-gpu/gemma-4-E2B-it-gpu.litertlm',
-        filename: 'gemma-4-E2B-it-gpu.litertlm.part-aa',
-        sha256:
-            'a53a59001894c58e6bdb5b9b227709f91a2e3e556baa7d85acf9c55402ba5cf5',
+            '/Gemma4/gemma-4-E2B-it.litertlm.part-aa',
+        filename: 'gemma-4-E2B-it.litertlm.part-aa',
+        sha256: '',
+      ),
+      ModelPart(
+        url:
+            'https://github.com/sanyzrn/DbsNex-releases/releases/download'
+            '/Gemma4/gemma-4-E2B-it.litertlm.part-ab',
+        filename: 'gemma-4-E2B-it.litertlm.part-ab',
+        sha256: '',
       ),
     ],
   );
@@ -372,52 +383,81 @@ class NexModelStore {
     return target;
   }
 
-  /// Installs from a file the user already has, instead of downloading it.
+  /// Installs from bytes the user already has, instead of downloading them.
   ///
-  /// The digest is what makes this safe to offer. Accepting an arbitrary file
-  /// someone picked and handing it to a native runtime would be a way to load
-  /// anything at all; checking it against the release constant first means the
-  /// only file this accepts is byte-for-byte the one it would have downloaded.
-  /// So the check is not an optimisation and is never skipped, even though it
-  /// means reading two gigabytes off local storage.
+  /// Takes a stream rather than a [File] on purpose, and the reason is not
+  /// taste. Android hands a picked document to an app as a `content://` URI,
+  /// and the obvious way to turn that into a path — `file_selector` — reads
+  /// the whole document into a Java `byte[]` sized from an `int` before
+  /// copying it to the cache. For a 2.5 GB model that either overflows the
+  /// int or exhausts the heap, and the app dies before this method is ever
+  /// reached. A stream never materialises the file twice and never sizes
+  /// anything by an int.
   ///
-  /// Copied rather than moved: the file is the user's, sitting somewhere they
-  /// chose, and a feature that makes someone's download disappear from their
-  /// Downloads folder is not one they asked for. They can delete it themselves
-  /// once this reports success.
-  Future<File> installFromFile(
+  /// The digest is what makes this safe to offer at all. Accepting arbitrary
+  /// bytes someone picked and handing them to a native runtime would be a way
+  /// to load anything; checking against the release constant first means the
+  /// only thing accepted is byte-for-byte what would have been downloaded. So
+  /// it is computed here, while writing, and the file is only put in place if
+  /// it matches — one pass over 2.5 GB rather than two.
+  Future<File> installFromStream(
     ModelRelease model,
-    File source, {
+    Stream<List<int>> source, {
     void Function(ModelInstallProgress progress)? onProgress,
   }) async {
     final target = fileFor(model);
     if (target.existsSync()) return target;
 
-    onProgress?.call(
-      ModelInstallProgress(
-        partIndex: 0,
-        partCount: 1,
-        fraction: null,
-        totalBytes: model.sizeBytes,
-        joining: true,
-      ),
-    );
-    if (await _digestOf(source) != model.sha256) {
+    await _dirFor(model).create(recursive: true);
+    // Through a staging name for the same reason the join is: an interrupted
+    // copy would otherwise leave a file of the right name and the wrong
+    // length, which isInstalled would call installed.
+    final staging = File('${target.path}.copying');
+    if (staging.existsSync()) await staging.delete();
+
+    final digest = AccumulatorSink<Digest>();
+    final hasher = sha256.startChunkedConversion(digest);
+    final sink = staging.openWrite();
+    var written = 0;
+    try {
+      await for (final chunk in source) {
+        hasher.add(chunk);
+        sink.add(chunk);
+        written += chunk.length;
+        onProgress?.call(
+          ModelInstallProgress(
+            partIndex: 0,
+            partCount: 1,
+            fraction: model.sizeBytes == 0
+                ? null
+                : (written / model.sizeBytes).clamp(0, 1),
+            receivedBytes: written,
+            totalBytes: model.sizeBytes,
+          ),
+        );
+      }
+      await sink.flush();
+    } finally {
+      await sink.close();
+      hasher.close();
+    }
+
+    if ('${digest.events.single}' != model.sha256) {
+      await staging.delete();
       throw const FileSystemException(
         'That file is not this model — its checksum does not match',
       );
     }
-
-    await _dirFor(model).create(recursive: true);
-    // Through a staging name for the same reason the join is: a copy
-    // interrupted halfway would otherwise leave a file of the right name and
-    // the wrong length, which isInstalled would call installed.
-    final staging = File('${target.path}.copying');
-    if (staging.existsSync()) await staging.delete();
-    await source.copy(staging.path);
     await staging.rename(target.path);
     return target;
   }
+
+  /// Convenience over [installFromStream] for a file with a real path.
+  Future<File> installFromFile(
+    ModelRelease model,
+    File source, {
+    void Function(ModelInstallProgress progress)? onProgress,
+  }) => installFromStream(model, source.openRead(), onProgress: onProgress);
 
   /// Removes a model and anything left over from installing it.
   Future<void> delete(ModelRelease model) async {
