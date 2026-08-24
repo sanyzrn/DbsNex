@@ -49,9 +49,6 @@ Working convention:
   starting the 2 GB again, checks the file against a known fingerprint before
   using it, and tells you if your phone does not have room before it begins
   instead of after. You can delete the model later and get the space back.
-- If you already have the model file on your phone, you can point Nex at it
-  instead of downloading it again. It is checked against the same fingerprint,
-  and your copy is left where it is.
 - The model is started up while you are still looking at the screen that
   finished the download, and says so, rather than making your first question
   wait for it with nothing on screen.
@@ -63,6 +60,7 @@ Working convention:
 - The welcome screens sit in the middle of the screen rather than pinned to
   the top, and the little dots that show how far along you are can actually be
   seen on a dark background.
+- Hold any message in the assistant to copy it.
 - Nothing else changes. The online assistant, your provider keys and every
   other AI feature work exactly as before; the on-device model is an option
   beside them, not a replacement.

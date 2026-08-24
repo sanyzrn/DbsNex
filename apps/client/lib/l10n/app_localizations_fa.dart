@@ -1276,20 +1276,6 @@ class AppLocalizationsFa extends AppLocalizations {
       'هرچه تا حالا دانلود شده دور ریخته می‌شود و شروع دوباره از صفر خواهد بود. «توقف موقت» آن را نگه می‌دارد.';
 
   @override
-  String get localModelFromFile => 'فایل را از قبل دارم';
-
-  @override
-  String get localModelFromFileHint =>
-      'اگر فایل مدل را قبلاً روی همین گوشی دانلود یا کپی کرده‌ای، انتخابش کن. قبل از استفاده با همان اثر انگشت بررسی می‌شود.';
-
-  @override
-  String get localModelChecking => 'در حال بررسی فایل…';
-
-  @override
-  String get localModelWrongFile =>
-      'این فایل این مدل نیست — اثر انگشتش نخواند.';
-
-  @override
   String get localModelManageInstalled => 'دانلود شده و روی گوشی آماده است';
 
   @override

@@ -168,40 +168,6 @@ class ModelInstallController extends ChangeNotifier {
     _stopRequested = true;
   }
 
-  /// Installs from a file the user picked instead of downloading one.
-  ///
-  /// Goes through the same phases as a download so the screen has one thing to
-  /// render: verifying two gigabytes off local storage is not instant, and a
-  /// button that appears to do nothing for a minute is the same bug as a
-  /// download with no bar.
-  Future<void> installFrom(
-    NexModelStore store,
-    ModelRelease model,
-    Stream<List<int>> source,
-  ) async {
-    if (isRunning) return;
-    _error = null;
-    _loadError = null;
-    // Reported as a download rather than a join: it moves gigabytes and has
-    // real byte progress, which is exactly what the download state renders.
-    _set(ModelInstallPhase.downloading);
-    try {
-      await store.installFromStream(
-        model,
-        source,
-        onProgress: (progress) {
-          _progress = progress;
-          notifyListeners();
-        },
-      );
-      await _warmUp();
-      _set(ModelInstallPhase.installed);
-    } catch (error) {
-      _error = error;
-      _set(ModelInstallPhase.failed);
-    }
-  }
-
   /// Throws away a paused or failed install.
   ///
   /// [stop] covers the running case by asking the download to end; this is the

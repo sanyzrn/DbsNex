@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -384,82 +383,6 @@ class NexModelStore {
     }
     return target;
   }
-
-  /// Installs from bytes the user already has, instead of downloading them.
-  ///
-  /// Takes a stream rather than a [File] on purpose, and the reason is not
-  /// taste. Android hands a picked document to an app as a `content://` URI,
-  /// and the obvious way to turn that into a path — `file_selector` — reads
-  /// the whole document into a Java `byte[]` sized from an `int` before
-  /// copying it to the cache. For a 2.5 GB model that either overflows the
-  /// int or exhausts the heap, and the app dies before this method is ever
-  /// reached. A stream never materialises the file twice and never sizes
-  /// anything by an int.
-  ///
-  /// The digest is what makes this safe to offer at all. Accepting arbitrary
-  /// bytes someone picked and handing them to a native runtime would be a way
-  /// to load anything; checking against the release constant first means the
-  /// only thing accepted is byte-for-byte what would have been downloaded. So
-  /// it is computed here, while writing, and the file is only put in place if
-  /// it matches — one pass over 2.5 GB rather than two.
-  Future<File> installFromStream(
-    ModelRelease model,
-    Stream<List<int>> source, {
-    void Function(ModelInstallProgress progress)? onProgress,
-  }) async {
-    final target = fileFor(model);
-    if (target.existsSync()) return target;
-
-    await _dirFor(model).create(recursive: true);
-    // Through a staging name for the same reason the join is: an interrupted
-    // copy would otherwise leave a file of the right name and the wrong
-    // length, which isInstalled would call installed.
-    final staging = File('${target.path}.copying');
-    if (staging.existsSync()) await staging.delete();
-
-    final digest = AccumulatorSink<Digest>();
-    final hasher = sha256.startChunkedConversion(digest);
-    final sink = staging.openWrite();
-    var written = 0;
-    try {
-      await for (final chunk in source) {
-        hasher.add(chunk);
-        sink.add(chunk);
-        written += chunk.length;
-        onProgress?.call(
-          ModelInstallProgress(
-            partIndex: 0,
-            partCount: 1,
-            fraction: model.sizeBytes == 0
-                ? null
-                : (written / model.sizeBytes).clamp(0, 1),
-            receivedBytes: written,
-            totalBytes: model.sizeBytes,
-          ),
-        );
-      }
-      await sink.flush();
-    } finally {
-      await sink.close();
-      hasher.close();
-    }
-
-    if ('${digest.events.single}' != model.sha256) {
-      await staging.delete();
-      throw const FileSystemException(
-        'That file is not this model — its checksum does not match',
-      );
-    }
-    await staging.rename(target.path);
-    return target;
-  }
-
-  /// Convenience over [installFromStream] for a file with a real path.
-  Future<File> installFromFile(
-    ModelRelease model,
-    File source, {
-    void Function(ModelInstallProgress progress)? onProgress,
-  }) => installFromStream(model, source.openRead(), onProgress: onProgress);
 
   /// Removes a model and anything left over from installing it.
   Future<void> delete(ModelRelease model) async {
