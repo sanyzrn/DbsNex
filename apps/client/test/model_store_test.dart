@@ -283,6 +283,44 @@ void main() {
       expect(store.isInstalled(model), isFalse);
     });
 
+    test('a stream is accepted without a file on disk at all', () async {
+      // The Android picker hands over a content:// document, not a path, and
+      // asking it for a path is what killed the app on a 2.5 GB model. This
+      // path never needs one.
+      final model = releaseFor();
+      final store = storeWith(
+        MockClient((request) async => fail('nothing should be downloaded')),
+      );
+      addTearDown(store.close);
+
+      final file = await store.installFromStream(
+        model,
+        Stream.fromIterable([partA, partB]),
+      );
+
+      expect(file.readAsBytesSync(), whole);
+      expect(store.isInstalled(model), isTrue);
+    });
+
+    test('the digest is computed while writing, not by re-reading', () async {
+      // One pass over the bytes. Two would mean reading 2.5 GB off storage
+      // twice for one install, and the stream cannot be replayed anyway.
+      final model = releaseFor();
+      final store = storeWith(server());
+      addTearDown(store.close);
+      var reads = 0;
+
+      await store.installFromStream(
+        model,
+        Stream.fromIterable([partA, partB]).map((chunk) {
+          reads++;
+          return chunk;
+        }),
+      );
+
+      expect(reads, 2);
+    });
+
     test('nothing half-copied is left behind when it is refused', () async {
       final model = releaseFor();
       final source = File('${tmp.path}/wrong.bin')

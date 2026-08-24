@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:nex_core/nex_core.dart';
@@ -178,13 +177,16 @@ class ModelInstallController extends ChangeNotifier {
   Future<void> installFrom(
     NexModelStore store,
     ModelRelease model,
-    File source,
+    Stream<List<int>> source,
   ) async {
     if (isRunning) return;
     _error = null;
-    _set(ModelInstallPhase.joining);
+    _loadError = null;
+    // Reported as a download rather than a join: it moves gigabytes and has
+    // real byte progress, which is exactly what the download state renders.
+    _set(ModelInstallPhase.downloading);
     try {
-      await store.installFromFile(
+      await store.installFromStream(
         model,
         source,
         onProgress: (progress) {
