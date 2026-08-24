@@ -33,7 +33,9 @@ abstract interface class NexDb {
   /// notes because the whole job — unzipping, parsing, inserting — belongs on
   /// the far side of the isolate port, and because notes are not primitives
   /// the port could carry anyway.
-  Future<int> importNotes(String path);
+  /// [mediaDir] is where an export's photos are written. Passed rather than
+  /// derived: the worker runs in its own isolate and has no path_provider.
+  Future<int> importNotes(String path, {required String mediaDir});
 
   /// Null when what was pasted is not a usable URL.
   Future<Note?> captureLink(String url);

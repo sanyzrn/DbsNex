@@ -16,11 +16,12 @@ class ImportedNote {
     this.tags = const [],
     this.createdAt,
     this.items = const [],
+    this.attachments = const [],
   });
 
-  /// Only ever [NoteType.text] or [NoteType.checklist]. Photos and recordings
-  /// in an export are files this cannot reach — see [NoteImport] on why they
-  /// are counted rather than silently dropped.
+  /// [NoteType.text] or [NoteType.checklist] here, and [NoteType.photo] once a
+  /// caller with a filesystem has resolved [attachments] — this layer parses
+  /// JSON and cannot open the files the JSON points at.
   final NoteType type;
 
   /// The note's body, already in Nex's own format — checklist lines included,
@@ -36,6 +37,25 @@ class ImportedNote {
   /// The checklist's items, for a caller that wants them typed rather than as
   /// markdown. Empty for a text note.
   final List<ChecklistItem> items;
+
+  /// Filenames the export said belong to this note, in the order it listed
+  /// them, or empty.
+  ///
+  /// Names, not bytes, and deliberately: a Keep export puts its photos beside
+  /// the JSON as ordinary files, and reading them needs an archive and a
+  /// filesystem — neither of which belongs in this package. A caller that has
+  /// both resolves these; one that does not still gets every note's words.
+  final List<String> attachments;
+
+  ImportedNote copyWith({NoteType? type, String? text}) => ImportedNote(
+    type: type ?? this.type,
+    text: text ?? this.text,
+    title: title,
+    tags: tags,
+    createdAt: createdAt,
+    items: items,
+    attachments: attachments,
+  );
 }
 
 /// What one import found, including what it could not bring across.
@@ -183,6 +203,14 @@ abstract final class NoteImport {
           (label['name'] as String).trim(),
     ]..removeWhere((tag) => tag.isEmpty);
     final createdAt = _keepTimestamp(decoded);
+    // Keep names each photo as a file sitting beside the JSON in the same
+    // export. Only the name is here; whether the file is really in the archive
+    // is a question for whoever can open one.
+    final attachments = <String>[
+      for (final item in (decoded['attachments'] as List? ?? const []))
+        if (item is Map && item['filePath'] is String)
+          (item['filePath'] as String).trim(),
+    ]..removeWhere((path) => path.isEmpty);
 
     final listContent = decoded['listContent'];
     if (listContent is List && listContent.isNotEmpty) {
@@ -194,7 +222,20 @@ abstract final class NoteImport {
               done: entry['isChecked'] == true,
             ),
       ]..removeWhere((item) => item.text.isEmpty);
-      if (items.isEmpty) return const _KeepOutcome.attachmentOnly();
+      if (items.isEmpty) {
+        return attachments.isEmpty
+            ? const _KeepOutcome.attachmentOnly()
+            : _KeepOutcome.note(
+                ImportedNote(
+                  type: NoteType.text,
+                  text: '',
+                  title: title == null || title.isEmpty ? null : title,
+                  tags: tags,
+                  createdAt: createdAt,
+                  attachments: attachments,
+                ),
+              );
+      }
       return _KeepOutcome.note(
         ImportedNote(
           type: NoteType.checklist,
@@ -203,6 +244,7 @@ abstract final class NoteImport {
           title: title == null || title.isEmpty ? null : title,
           tags: tags,
           createdAt: createdAt,
+          attachments: attachments,
         ),
       );
     }
@@ -219,10 +261,26 @@ abstract final class NoteImport {
             text: title,
             tags: tags,
             createdAt: createdAt,
+            attachments: attachments,
           ),
         );
       }
-      return const _KeepOutcome.attachmentOnly();
+      // Photos and nothing else. Once this was the whole of the
+      // `skippedAttachments` count; now it is a note with no words and a file
+      // beside it, and only an export whose photo is genuinely missing still
+      // counts as skipped — which is a decision the caller with the archive
+      // makes, not this one.
+      return attachments.isEmpty
+          ? const _KeepOutcome.attachmentOnly()
+          : _KeepOutcome.note(
+              ImportedNote(
+                type: NoteType.text,
+                text: '',
+                tags: tags,
+                createdAt: createdAt,
+                attachments: attachments,
+              ),
+            );
     }
     return _KeepOutcome.note(
       ImportedNote(
@@ -231,6 +289,7 @@ abstract final class NoteImport {
         title: title == null || title.isEmpty ? null : title,
         tags: tags,
         createdAt: createdAt,
+        attachments: attachments,
       ),
     );
   }

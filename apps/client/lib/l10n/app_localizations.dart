@@ -2570,6 +2570,12 @@ abstract class AppLocalizations {
   /// **'Do it'**
   String get assistantApply;
 
+  /// Header line when the chat is scoped to one note
+  ///
+  /// In en, this message translates to:
+  /// **'About: {note}'**
+  String chatAboutNote(String note);
+
   /// Title of the saved assistant conversations list
   ///
   /// In en, this message translates to:
@@ -2785,6 +2791,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove reminder'**
   String get remindClear;
+
+  /// Confirms a reminder and says how far off it is
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder set — {when} from now'**
+  String remindSetIn(String when);
+
+  /// No description provided for @remindInDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day} other{{count} days}}'**
+  String remindInDays(int count);
+
+  /// No description provided for @remindInHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 hour} other{{count} hours}}'**
+  String remindInHours(int count);
+
+  /// No description provided for @remindInMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 minute} other{{count} minutes}}'**
+  String remindInMinutes(int count);
+
+  /// Scheduling failed even though the due date was stored
+  ///
+  /// In en, this message translates to:
+  /// **'That time was saved on the note, but this phone would not take the alarm.'**
+  String get remindNotScheduled;
 
   /// Confirmation after setting a reminder
   ///

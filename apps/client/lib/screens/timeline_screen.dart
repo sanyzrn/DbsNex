@@ -1099,7 +1099,14 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// Three phrasings per time of day. Re-rolled only when the headline is
   /// tapped, never on an ordinary rebuild: a title that changes while you are
   /// reading it is a bug, not a flourish.
-  (String, String)? _greeting(AppLocalizations interface) {
+  /// The one line the app opens with.
+  ///
+  /// [aiPhrase] replaces the canned phrasing when a model wrote one; the name
+  /// is still appended here rather than sent anywhere. That split is the whole
+  /// design: the greeting is the only place the user's own name appears, and
+  /// it never leaves the device — not to a provider, not to sync. So the model
+  /// is asked for a phrase with a slot after it, and this puts the name in.
+  (String, String)? _greeting(AppLocalizations interface, {String? aiPhrase}) {
     // Two words at most — a full name pushes this onto a second line and
     // shoves the headline under it out of place.
     final name = widget.preferences.shortDisplayName;
@@ -1138,6 +1145,13 @@ class TimelineScreenState extends State<TimelineScreen> {
     // so it has to be its own widget. Kept out of the text also puts it at the
     // trailing end in both directions for free — a Row is directional, where a
     // string is not.
+    // A comma in the script the name is written in — the phrase came back in
+    // that language, so an ASCII comma in front of a Persian name is the same
+    // seam this used to have between two half-sentences.
+    if (aiPhrase != null && aiPhrase.isNotEmpty) {
+      final comma = nexDirectionOf(name) == TextDirection.rtl ? '،' : ',';
+      return ('$aiPhrase$comma $name', glyphs[v]);
+    }
     return (text[v](name), glyphs[v]);
   }
 
@@ -1158,7 +1172,7 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// lines is a refresh people report as broken.
   Widget _header(AppLocalizations l10n) {
     final theme = Theme.of(context);
-    final greeting = _greeting(l10n);
+    final greeting = _greeting(l10n, aiPhrase: _aiHeadlineText);
     if (greeting == null && !_aiHeaderAvailable) return const SizedBox.shrink();
     final headlineStyle = theme.textTheme.headlineSmall?.copyWith(
       fontWeight: FontWeight.w600,
@@ -1199,16 +1213,14 @@ class TimelineScreenState extends State<TimelineScreen> {
                 horizontal: NexSpacing.xs,
                 vertical: NexSpacing.sm,
               ),
-              // One line, not two. Stacked, the greeting and the generated
-              // line read as a label with a caption under it — two starts on
-              // top of each other. Joined, they are what they always were:
-              // one sentence the app opens with.
+              // One line, and now genuinely one. It used to be the greeting
+              // and a separate generated sentence joined by an em dash, which
+              // read as two openings competing — "The quiet hours, Saeed —
+              // Midnight code audits taste like stale glue." The model now
+              // writes the greeting itself and the name follows it, so there
+              // is one thought here instead of two.
               child: _GreetingLine(
-                text: greeting == null
-                    ? ''
-                    : _aiHeadlineText == null
-                    ? greeting.$1
-                    : '${greeting.$1} — ${_aiHeadlineText!}',
+                text: greeting?.$1 ?? _aiHeadlineText ?? '',
                 glyph: greeting?.$2 ?? '',
                 loading: hasHeadlineSlot && _aiHeadlineLoading,
                 style: hasHeadlineSlot ? generatedStyle : headlineStyle,

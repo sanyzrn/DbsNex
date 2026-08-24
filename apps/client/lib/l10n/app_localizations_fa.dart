@@ -1481,6 +1481,11 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantApply => 'انجام بده';
 
   @override
+  String chatAboutNote(String note) {
+    return 'دربارهٔ: $note';
+  }
+
+  @override
   String get chatHistory => 'گفت‌وگوها';
 
   @override
@@ -1591,6 +1596,48 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get remindClear => 'حذف یادآوری';
+
+  @override
+  String remindSetIn(String when) {
+    return 'یادآور تنظیم شد — $when دیگر';
+  }
+
+  @override
+  String remindInDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count روز',
+      one: '۱ روز',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String remindInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ساعت',
+      one: '۱ ساعت',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String remindInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count دقیقه',
+      one: '۱ دقیقه',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get remindNotScheduled =>
+      'آن زمان روی یادداشت ذخیره شد، ولی این گوشی آلارمش را قبول نکرد.';
 
   @override
   String get remindSet => 'یادآوری تنظیم شد';

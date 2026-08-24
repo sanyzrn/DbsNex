@@ -1391,6 +1391,11 @@
   "@assistantApply": {
     "description": "Button that carries out the assistant's proposed action"
   },
+  "chatAboutNote": "About: {note}",
+  "@chatAboutNote": {
+    "description": "Header line when the chat is scoped to one note",
+    "placeholders": { "note": { "type": "String" } }
+  },
   "chatHistory": "Conversations",
   "@chatHistory": {
     "description": "Title of the saved assistant conversations list"
@@ -1540,6 +1545,25 @@
   "@remindClear": {
     "description": "Clears the note's reminder"
   },
+  "remindSetIn": "Reminder set — {when} from now",
+  "@remindSetIn": {
+    "description": "Confirms a reminder and says how far off it is",
+    "placeholders": { "when": { "type": "String" } }
+  },
+  "remindInDays": "{count, plural, =1{1 day} other{{count} days}}",
+  "@remindInDays": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "remindInHours": "{count, plural, =1{1 hour} other{{count} hours}}",
+  "@remindInHours": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "remindInMinutes": "{count, plural, =1{1 minute} other{{count} minutes}}",
+  "@remindInMinutes": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "remindNotScheduled": "That time was saved on the note, but this phone would not take the alarm.",
+  "@remindNotScheduled": {"description": "Scheduling failed even though the due date was stored"},
   "remindSet": "Reminder set",
   "@remindSet": {
     "description": "Confirmation after setting a reminder"

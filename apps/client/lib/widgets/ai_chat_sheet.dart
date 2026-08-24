@@ -203,6 +203,26 @@ class _AiChatSheetState extends State<AiChatSheet> {
     setState(() => _notesContext = lines.join('\n'));
   }
 
+  /// The focused note in a few words, for the line that says what this chat is
+  /// about.
+  ///
+  /// Title first where there is one, then whatever the note carries in words —
+  /// a recording's transcript and a photo's extracted text included, because
+  /// those are exactly the notes with nothing typed on them and exactly the
+  /// ones someone opens this from.
+  String _focusLabel(Note note) {
+    final source = (note.title?.trim().isNotEmpty ?? false)
+        ? note.title!.trim()
+        : (note.content ?? note.transcriptText ?? note.ocrText ?? '').trim();
+    final line = source
+        .split('\n')
+        .firstWhere(
+          (candidate) => candidate.trim().isNotEmpty,
+          orElse: () => '',
+        );
+    return line.length <= 40 ? line : '${line.substring(0, 39)}…';
+  }
+
   /// One note as the assistant sees it: its id, then whatever words it has.
   ///
   /// The id goes first because it is what an action refers back to — without
@@ -713,7 +733,26 @@ class _AiChatSheetState extends State<AiChatSheet> {
                 child: Row(
                   children: [
                     Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
-                    const Spacer(),
+                    // Which note this is about, when it is about one. The
+                    // sheet already answers only from that note and can act
+                    // on it, and none of that was visible: the same blank
+                    // chat opened whether it had been reached from the
+                    // capture button or from one note's own action row.
+                    if (widget.focus case final note?) ...[
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.chatAboutNote(_focusLabel(note)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          textDirection: nexDirectionOf(_focusLabel(note)),
+                        ),
+                      ),
+                    ] else
+                      const Spacer(),
                     IconButton(
                       tooltip: l10n.chatHistory,
                       onPressed: _openHistory,

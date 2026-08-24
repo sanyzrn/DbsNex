@@ -1481,6 +1481,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantApply => 'Do it';
 
   @override
+  String chatAboutNote(String note) {
+    return 'About: $note';
+  }
+
+  @override
   String get chatHistory => 'Conversations';
 
   @override
@@ -1592,6 +1597,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remindClear => 'Remove reminder';
+
+  @override
+  String remindSetIn(String when) {
+    return 'Reminder set — $when from now';
+  }
+
+  @override
+  String remindInDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String remindInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hours',
+      one: '1 hour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String remindInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minutes',
+      one: '1 minute',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get remindNotScheduled =>
+      'That time was saved on the note, but this phone would not take the alarm.';
 
   @override
   String get remindSet => 'Reminder set';
