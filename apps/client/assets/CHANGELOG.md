@@ -37,7 +37,7 @@ Working convention:
 ## v0.9.6
 
 - The assistant can run on your phone, with nothing sent anywhere. Settings ›
-  On-device model downloads Gemma 4 E2B once — about 2 GB, over Wi-Fi, and it
+  On-device model downloads Gemma 4 E2B once — about 2.6 GB, over Wi-Fi, and it
   stays on the phone — and from then on the assistant answers with no internet
   and no provider key. Ask it something on a plane and it answers.
 - The download has Pause, Resume and Stop, and leaving the screen does not
@@ -46,7 +46,7 @@ Working convention:
   there is, in gigabytes rather than a percentage, because on a data plan that
   is the number that matters.
 - It survives a dropped connection, resuming where it stopped rather than
-  starting the 2 GB again, checks the file against a known fingerprint before
+  starting the 2.6 GB again, checks the file against a known fingerprint before
   using it, and tells you if your phone does not have room before it begins
   instead of after. You can delete the model later and get the space back.
 - The model is started up while you are still looking at the screen that
@@ -55,7 +55,7 @@ Working convention:
 - Google's terms for the model are shown and have to be accepted before the
   download starts, not linked somewhere afterwards.
 - Phones that cannot run it say so plainly — 64-bit ARM only, which is nearly
-  every Android phone made since 2018 — instead of offering a 2 GB download
+  every Android phone made since 2018 — instead of offering a 2.6 GB download
   that would fail at the end.
 - The welcome screens sit in the middle of the screen rather than pinned to
   the top, and the little dots that show how far along you are can actually be
