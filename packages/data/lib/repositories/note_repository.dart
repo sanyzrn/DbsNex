@@ -156,25 +156,6 @@ WHERE id = ? AND deleted_at IS NULL
     return rows.isEmpty ? null : rows.first['id'] as String;
   }
 
-  /// Stamps every note in [orderedIds] with its index as `sort_order`, in one
-  /// transaction — the whole set a Rearrange-mode drag was performed against,
-  /// not just the two notes that swapped places, so the rest of that list
-  /// keeps its relative order instead of falling back to recency mid-list.
-  void reorderNotes(List<String> orderedIds) {
-    db.execute('BEGIN IMMEDIATE');
-    try {
-      for (var i = 0; i < orderedIds.length; i++) {
-        db.execute('UPDATE notes SET sort_order = ? WHERE id = ?', [
-          i,
-          orderedIds[i],
-        ]);
-      }
-      db.execute('COMMIT');
-    } catch (_) {
-      db.execute('ROLLBACK');
-      rethrow;
-    }
-  }
 
   void softDelete(String noteId) {
     final now = DateTime.now().toUtc().toIso8601String();
@@ -241,11 +222,17 @@ WHERE id = ?
   /// filter chips / FR-4).
   @override
   List<Note> listTimeline({int limit = 50, int offset = 0, String? tagId}) {
+    // Pinned first, then newest. `sort_order` is deliberately absent: manual
+    // arrangement is gone, and the timeline is grouped by date on screen —
+    // Today, Yesterday, Last week — which only reads as a history if the rows
+    // under each heading actually belong to it. A hand-placed note would drop
+    // into whichever group it landed next to and make the heading a lie.
+    //
+    // The column stays. Dropping it means a migration on every existing
+    // database to remove something that now simply goes unread.
     const order = '''
 ORDER BY
   (pinned_at IS NOT NULL) DESC,
-  (sort_order IS NOT NULL) ASC,
-  sort_order ASC,
   updated_at DESC
 ''';
     final rows = tagId == null

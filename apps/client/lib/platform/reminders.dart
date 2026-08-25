@@ -31,6 +31,10 @@ class NexReminders {
   /// no idea which note it was about.
   static const _channelId = 'nex.reminders';
 
+  /// Separate from the note channel so the daily nudge can be silenced in
+  /// system settings without silencing the reminders someone set by hand.
+  static const _dailyChannelId = 'nex.daily';
+
   bool _ready = false;
 
   /// Whether this phone will let Nex wake at an exact minute.
@@ -169,6 +173,86 @@ class NexReminders {
       // their reminder is set.
       lastError = '$error';
     }
+  }
+
+  /// The one repeating notification: a nudge at a time the user picked.
+  ///
+  /// Its own id, outside the range note ids hash into by construction — a note
+  /// reminder is keyed on `noteId.hashCode`, and zero is not a hash any string
+  /// produces here. Sharing an id would mean scheduling one silently cancels
+  /// the other.
+  static const _dailyId = 0;
+
+  /// Schedules — or reschedules — the daily nudge.
+  ///
+  /// [body] is baked in at schedule time, and that is the whole design
+  /// constraint rather than a shortcut. A local notification fires while the
+  /// app is not running, so nothing can ask a model for a fresh sentence at
+  /// the moment it appears. The text is therefore whatever was true the last
+  /// time Nex was open, refreshed on every launch, and the repeat carries the
+  /// last one forward if the app is not opened for days. A slightly stale line
+  /// beats no notification, and beats a notification that promises a summary
+  /// and shows a spinner.
+  Future<void> scheduleDaily({
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+  }) async {
+    if (!supported) return;
+    await initialise();
+    await cancelDaily();
+
+    final now = tz.TZDateTime.now(tz.local);
+    var when = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+    // Today's slot has passed, so the next one is tomorrow's. Firing
+    // immediately would mean a "good morning" at four in the afternoon
+    // whenever someone changes the time.
+    if (!when.isAfter(now)) when = when.add(const Duration(days: 1));
+
+    try {
+      await _plugin.zonedSchedule(
+        id: _dailyId,
+        title: title,
+        body: body.isEmpty ? null : body,
+        scheduledDate: when,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _dailyChannelId,
+            'Daily nudge',
+            channelDescription: 'One reminder a day, at a time you chose',
+            importance: Importance.defaultImportance,
+            priority: Priority.defaultPriority,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        // Repeats at the same clock time every day, which is what keeps this
+        // arriving when the app is not opened for a week. Inexact is right
+        // here in a way it never was for a reminder: nobody sets a morning
+        // nudge to the minute, and an exact daily alarm spends a wakeup
+        // budget this does not need.
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+      lastError = null;
+    } catch (error) {
+      lastError = '$error';
+    }
+  }
+
+  Future<void> cancelDaily() async {
+    if (!supported) return;
+    await initialise();
+    try {
+      await _plugin.cancel(id: _dailyId);
+    } catch (_) {}
   }
 
   Future<void> cancel(String noteId) async {

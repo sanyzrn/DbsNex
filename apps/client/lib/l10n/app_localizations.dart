@@ -314,6 +314,48 @@ abstract class AppLocalizations {
   /// **'Merge'**
   String get merge;
 
+  /// Timeline section for the pinned note
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get timelineGroupPinned;
+
+  /// Timeline section for today
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get timelineGroupToday;
+
+  /// Timeline section for yesterday
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get timelineGroupYesterday;
+
+  /// Timeline section for the past seven days
+  ///
+  /// In en, this message translates to:
+  /// **'Last week'**
+  String get timelineGroupWeek;
+
+  /// Timeline section for the past month
+  ///
+  /// In en, this message translates to:
+  /// **'Last month'**
+  String get timelineGroupMonth;
+
+  /// Timeline section for everything before that
+  ///
+  /// In en, this message translates to:
+  /// **'Older'**
+  String get timelineGroupOlder;
+
+  /// How many notes a collapsed section holds
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note} other{{count} notes}}'**
+  String timelineGroupCount(int count);
+
   /// No description provided for @tags.
   ///
   /// In en, this message translates to:
@@ -2696,6 +2738,12 @@ abstract class AppLocalizations {
   /// **'Notes it can see'**
   String get assistantContext;
 
+  /// Warning under the assistant's context-size choice
+  ///
+  /// In en, this message translates to:
+  /// **'Sending 100 notes or more makes every question slower — the model reads all of them before it answers. On the on-device model it is very noticeable.'**
+  String get assistantContextSlow;
+
   /// Zero notes shared with the assistant
   ///
   /// In en, this message translates to:
@@ -2791,6 +2839,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove reminder'**
   String get remindClear;
+
+  /// Settings row for the once-a-day notification
+  ///
+  /// In en, this message translates to:
+  /// **'Daily nudge'**
+  String get nudgeTitle;
+
+  /// Explains the daily nudge
+  ///
+  /// In en, this message translates to:
+  /// **'One notification a day, at a time you choose'**
+  String get nudgeSubtitle;
+
+  /// The row that opens the daily nudge's time picker
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get nudgeTime;
+
+  /// Settings section for notifications
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifications;
+
+  /// Notification title before noon
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning, {name}'**
+  String nudgeGreetingMorning(String name);
+
+  /// Notification title the rest of the day
+  ///
+  /// In en, this message translates to:
+  /// **'Hello, {name}'**
+  String nudgeGreetingDay(String name);
+
+  /// Notification title when there is no name
+  ///
+  /// In en, this message translates to:
+  /// **'Nex'**
+  String get nudgeGreetingPlain;
+
+  /// Notification body when there is no recap
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing written down yet today.'**
+  String get nudgeNothing;
 
   /// Confirms a reminder and says how far off it is
   ///
