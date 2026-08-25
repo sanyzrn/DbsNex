@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1049,24 +1050,48 @@ class _Composer extends StatelessWidget {
                   : const Icon(Icons.mic_none),
             ),
           Expanded(
-            child: TextField(
-              controller: controller,
-              enabled: !transcribing,
-              minLines: 1,
-              maxLines: 5,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => onSend(),
-              decoration: InputDecoration(
-                hintText: transcribing ? l10n.chatTranscribing : l10n.chatHint,
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest,
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(NexRadius.xl)),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: NexSpacing.md,
-                  vertical: NexSpacing.sm,
+            // Rebuilt on every keystroke, which is the whole point: the field
+            // has to change direction as the sentence being typed acquires
+            // one. Listening to the controller rather than lifting the text
+            // into the sheet's state keeps a per-character rebuild inside
+            // this row instead of repainting the transcript above it.
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (context, value, _) => TextField(
+                controller: controller,
+                enabled: !transcribing,
+                minLines: 1,
+                maxLines: 5,
+                // A Persian sentence with an English word in it was being laid
+                // out left-to-right, because the field took its direction from
+                // the interface language and never from what was in it. Bidi
+                // then reorders the runs around a base direction that is
+                // wrong, so the line scrambles as you type — and read back
+                // correctly the moment it was sent, since the bubble had been
+                // doing this all along.
+                textDirection: nexDirectionOf(value.text),
+                textAlign: TextAlign.start,
+                // Same reason as the capture field: the default highlight runs
+                // to the end of the line on right-to-left text.
+                selectionWidthStyle: BoxWidthStyle.tight,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => onSend(),
+                decoration: InputDecoration(
+                  hintText: transcribing
+                      ? l10n.chatTranscribing
+                      : l10n.chatHint,
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest,
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(NexRadius.xl),
+                    ),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.md,
+                    vertical: NexSpacing.sm,
+                  ),
                 ),
               ),
             ),
