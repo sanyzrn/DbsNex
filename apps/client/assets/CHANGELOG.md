@@ -34,8 +34,6 @@ Working convention:
 
 ## Unreleased
 
-## v0.9.8
-
 - **Reminders arrive.** They never have. The alarm was set correctly and the
   app said so, but nothing in the build claimed the message Android sends when
   it goes off, so it went nowhere — which is why the phone's own notification
@@ -44,11 +42,6 @@ Working convention:
   confirming a reminder that will never come. Settings › Notifications has a
   test button that sends one immediately and one ten seconds later, so a phone
   that still refuses can be told apart from an app that never asked.
-- A reminder that has been set says when it is for. The card carries how long
-  is left — "in 2 hours", "in 3 days", or "Overdue" — and opening the reminder
-  shows the exact day and time above the choices that would replace it. It used
-  to be a bell and nothing else, so the only thing you could do to a reminder
-  you could not read was delete it.
 - Typing in the wrong direction is fixed everywhere it was still wrong — the
   checklist, tag names, your own name, the annotation box, feedback and tag
   search. Each of them now follows the script you are typing rather than the
@@ -70,6 +63,14 @@ Working convention:
 - The Gemma licence notice keeps its English wording, because those terms
   require that exact sentence, but it is laid out left-to-right in a Persian
   interface now and has a plain Persian line under it saying what it means.
+
+## v0.9.8
+
+- A reminder that has been set says when it is for. The card carries how long
+  is left — "in 2 hours", "in 3 days", or "Overdue" — and opening the reminder
+  shows the exact day and time above the choices that would replace it. It used
+  to be a bell and nothing else, so the only thing you could do to a reminder
+  you could not read was delete it.
 - The swipe on a card starts from almost anywhere on it. It used to need the
   outer third of either edge — a strip that existed to protect the long press
   that lifted a card for reordering, and reordering is gone. Now it is 45% from
