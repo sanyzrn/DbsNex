@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v0.9.9
+
 - **Reminders arrive.** They never have. The alarm was set correctly and the
   app said so, but nothing in the build claimed the message Android sends when
   it goes off, so it went nowhere — which is why the phone's own notification
