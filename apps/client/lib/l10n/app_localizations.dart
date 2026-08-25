@@ -2888,6 +2888,42 @@ abstract class AppLocalizations {
   /// **'Nothing written down yet today.'**
   String get nudgeNothing;
 
+  /// A reminder whose time has passed
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue'**
+  String get remindOverdue;
+
+  /// A reminder due later today
+  ///
+  /// In en, this message translates to:
+  /// **'Today at {time}'**
+  String remindWhenToday(String time);
+
+  /// A reminder due tomorrow
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow at {time}'**
+  String remindWhenTomorrow(String time);
+
+  /// A reminder due on a named date
+  ///
+  /// In en, this message translates to:
+  /// **'{date} at {time}'**
+  String remindWhenOn(String date, String time);
+
+  /// Header of the reminder picker when one is already set
+  ///
+  /// In en, this message translates to:
+  /// **'Set for {when}'**
+  String remindCurrent(String when);
+
+  /// Title of the picker when a reminder already exists
+  ///
+  /// In en, this message translates to:
+  /// **'Change reminder'**
+  String get remindChange;
+
   /// Hint under the no-op swipe action
   ///
   /// In en, this message translates to:

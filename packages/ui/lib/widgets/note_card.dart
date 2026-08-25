@@ -18,6 +18,7 @@ class NexCardStrings {
     required this.tagList,
     required this.accentColor,
     this.relativeTime = _defaultRelativeTime,
+    this.dueLabel,
   });
 
   /// English default, for tests and for anything that has not been localised
@@ -55,6 +56,14 @@ class NexCardStrings {
 
   /// "8h", "2w" and so on — see [NexRelativeTime].
   final String Function(NexRelativeTime time) relativeTime;
+
+  /// "in 2 hours", "Overdue" — how long until a note's reminder.
+  ///
+  /// Null leaves the card showing the bell alone, which is what it did before
+  /// and is still the right answer for a caller that has no localisation to
+  /// hand. A bell with no time beside it says a reminder exists and nothing
+  /// else, which was the report this parameter exists to answer.
+  final String Function(DateTime due)? dueLabel;
 }
 
 class NoteCard extends StatelessWidget {
@@ -166,22 +175,83 @@ class _CardBody extends StatelessWidget {
               // A note that asked to come back says so on the card. Without
               // it a reminder is invisible until it fires, which means the
               // only way to check one was set is to open the note.
-              if (note.dueAt != null) ...[
+              if (note.dueAt case final due?) ...[
                 const SizedBox(width: NexSpacing.xs),
-                Icon(
-                  Icons.notifications_active_outlined,
-                  size: 14,
-                  color: note.dueAt!.isAfter(DateTime.now().toUtc())
-                      ? theme.colorScheme.primary
-                      // A lapsed reminder is not an alarm any more, so it
-                      // stops asking for attention in the accent colour.
-                      : theme.colorScheme.outline,
+                _DueChip(
+                  due: due,
+                  label: strings.dueLabel?.call(due),
+                  // A lapsed reminder is not an alarm any more, so it stops
+                  // asking for attention in the accent colour.
+                  upcoming: due.isAfter(DateTime.now().toUtc()),
                 ),
               ],
               const SizedBox(width: NexSpacing.contentGap),
               Expanded(child: previewOverride ?? _Preview(note: note)),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The bell on a card, and when it will ring.
+///
+/// It was the bell on its own, which said a reminder existed and nothing
+/// about it — so the only thing anyone could do with a reminder they could not
+/// read was delete it. Every app that sets reminders on a list row puts the
+/// time on the row.
+///
+/// The text is optional and the bell is not: a caller with no localisation
+/// still gets the mark it always had.
+class _DueChip extends StatelessWidget {
+  const _DueChip({
+    required this.due,
+    required this.label,
+    required this.upcoming,
+  });
+
+  final DateTime due;
+  final String? label;
+  final bool upcoming;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = upcoming
+        ? theme.colorScheme.primary
+        : theme.colorScheme.outline;
+    final text = label;
+    if (text == null) {
+      return Icon(
+        Icons.notifications_active_outlined,
+        size: 14,
+        color: color,
+      );
+    }
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(NexRadius.sm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.notifications_active_outlined,
+              size: 12,
+              color: color,
+            ),
+            const SizedBox(width: 3),
+            Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(color: color),
+            ),
+          ],
         ),
       ),
     );

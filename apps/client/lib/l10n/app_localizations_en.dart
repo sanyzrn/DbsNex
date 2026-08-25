@@ -1660,6 +1660,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nudgeNothing => 'Nothing written down yet today.';
 
   @override
+  String get remindOverdue => 'Overdue';
+
+  @override
+  String remindWhenToday(String time) {
+    return 'Today at $time';
+  }
+
+  @override
+  String remindWhenTomorrow(String time) {
+    return 'Tomorrow at $time';
+  }
+
+  @override
+  String remindWhenOn(String date, String time) {
+    return '$date at $time';
+  }
+
+  @override
+  String remindCurrent(String when) {
+    return 'Set for $when';
+  }
+
+  @override
+  String get remindChange => 'Change reminder';
+
+  @override
   String get swipeNoneHint => 'This edge does nothing';
 
   @override

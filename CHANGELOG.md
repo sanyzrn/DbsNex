@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v0.9.8
+
+- A reminder that has been set says when it is for. The card carries how long
+  is left — "in 2 hours", "in 3 days", or "Overdue" — and opening the reminder
+  shows the exact day and time above the choices that would replace it. It used
+  to be a bell and nothing else, so the only thing you could do to a reminder
+  you could not read was delete it.
 - The swipe on a card starts from almost anywhere on it. It used to need the
   outer third of either edge — a strip that existed to protect the long press
   that lifted a card for reordering, and reordering is gone. Now it is 45% from

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/nex_services.dart';
+import 'due_label.dart';
 import 'nex_banner.dart';
 import 'nex_time_picker.dart';
 
@@ -42,7 +44,51 @@ Future<bool> nexPickReminder({
     builder: (sheetContext) => SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // What is already set, before the list of things that would replace
+          // it. Without this the sheet asked someone to change a reminder they
+          // had no way of reading — the only informed thing they could do to
+          // it was delete it.
+          if (note.dueAt case final due?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                NexSpacing.md,
+                NexSpacing.md,
+                NexSpacing.md,
+                NexSpacing.sm,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.remindChange,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: NexSpacing.xs),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.notifications_active_outlined,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.remindCurrent(nexDueExact(sheetContext, due)),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          if (note.dueAt != null) const Divider(height: 1),
           for (final (label, at) in choices)
             ListTile(
               leading: const Icon(Icons.schedule),

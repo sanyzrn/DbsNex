@@ -1586,6 +1586,30 @@
   "@nudgeGreetingPlain": {"description": "Notification title when there is no name"},
   "nudgeNothing": "Nothing written down yet today.",
   "@nudgeNothing": {"description": "Notification body when there is no recap"},
+  "remindOverdue": "Overdue",
+  "@remindOverdue": {"description": "A reminder whose time has passed"},
+  "remindWhenToday": "Today at {time}",
+  "@remindWhenToday": {
+    "description": "A reminder due later today",
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "remindWhenTomorrow": "Tomorrow at {time}",
+  "@remindWhenTomorrow": {
+    "description": "A reminder due tomorrow",
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "remindWhenOn": "{date} at {time}",
+  "@remindWhenOn": {
+    "description": "A reminder due on a named date",
+    "placeholders": { "date": { "type": "String" }, "time": { "type": "String" } }
+  },
+  "remindCurrent": "Set for {when}",
+  "@remindCurrent": {
+    "description": "Header of the reminder picker when one is already set",
+    "placeholders": { "when": { "type": "String" } }
+  },
+  "remindChange": "Change reminder",
+  "@remindChange": {"description": "Title of the picker when a reminder already exists"},
   "swipeNoneHint": "This edge does nothing",
   "@swipeNoneHint": {"description": "Hint under the no-op swipe action"},
   "swipeDeleteHint": "Move the note to Recently Deleted",

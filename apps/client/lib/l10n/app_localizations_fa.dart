@@ -1660,6 +1660,32 @@ class AppLocalizationsFa extends AppLocalizations {
   String get nudgeNothing => 'امروز هنوز چیزی ننوشته‌ای.';
 
   @override
+  String get remindOverdue => 'گذشته';
+
+  @override
+  String remindWhenToday(String time) {
+    return 'امروز ساعت $time';
+  }
+
+  @override
+  String remindWhenTomorrow(String time) {
+    return 'فردا ساعت $time';
+  }
+
+  @override
+  String remindWhenOn(String date, String time) {
+    return '$date ساعت $time';
+  }
+
+  @override
+  String remindCurrent(String when) {
+    return 'تنظیم‌شده برای $when';
+  }
+
+  @override
+  String get remindChange => 'تغییر یادآور';
+
+  @override
   String get swipeNoneHint => 'این لبه کاری نمی‌کند';
 
   @override
