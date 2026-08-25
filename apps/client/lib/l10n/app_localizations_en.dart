@@ -1660,6 +1660,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nudgeNothing => 'Nothing written down yet today.';
 
   @override
+  String get swipeNoneHint => 'This edge does nothing';
+
+  @override
+  String get swipeDeleteHint => 'Move the note to Recently Deleted';
+
+  @override
+  String get swipeAddTagHint => 'Pick a tag for the note';
+
+  @override
+  String get swipePinHint => 'Keep the note at the top of the timeline';
+
+  @override
+  String get swipeRemindHint => 'Choose when it should come back';
+
+  @override
+  String get swipeShareHint => 'Send the note to another app';
+
+  @override
+  String get swipeAskHint => 'Open the assistant on this note';
+
+  @override
+  String get swipeLeadingEdge => 'Swipe from the left';
+
+  @override
+  String get swipeTrailingEdge => 'Swipe from the right';
+
+  @override
   String get markdownTooLarge =>
       'Too large to show here — open it in another app.';
 

@@ -2888,6 +2888,60 @@ abstract class AppLocalizations {
   /// **'Nothing written down yet today.'**
   String get nudgeNothing;
 
+  /// Hint under the no-op swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'This edge does nothing'**
+  String get swipeNoneHint;
+
+  /// Hint under the delete swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Move the note to Recently Deleted'**
+  String get swipeDeleteHint;
+
+  /// Hint under the add-tag swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a tag for the note'**
+  String get swipeAddTagHint;
+
+  /// Hint under the pin swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the note at the top of the timeline'**
+  String get swipePinHint;
+
+  /// Hint under the reminder swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Choose when it should come back'**
+  String get swipeRemindHint;
+
+  /// Hint under the share swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Send the note to another app'**
+  String get swipeShareHint;
+
+  /// Hint under the ask-the-assistant swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Open the assistant on this note'**
+  String get swipeAskHint;
+
+  /// Title of the leading-edge swipe row
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe from the left'**
+  String get swipeLeadingEdge;
+
+  /// Title of the trailing-edge swipe row
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe from the right'**
+  String get swipeTrailingEdge;
+
   /// A Markdown file past the preview size limit
   ///
   /// In en, this message translates to:

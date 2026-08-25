@@ -25,10 +25,21 @@ final _testPng = Uint8List.fromList(
 /// rather than reusing [_testPng] — that fixture is a solid, uniform colour,
 /// so a 90° turn of it leaves every pixel exactly as it was and could never
 /// tell an applied rotation apart from a silent no-op.
+/// A picture that cannot be rotated without the difference showing.
+///
+/// It was one red pixel in a corner, which made the rotation test depend on
+/// whether the crop rectangle happened to include that corner — and it stopped
+/// including it the moment the screen's chrome changed shape. Half the frame
+/// filled instead: every crop of this that is not empty differs from the same
+/// crop of its rotation.
 Uint8List _asymmetricTestPng() {
   final image = img.Image(width: 12, height: 8);
   img.fill(image, color: img.ColorRgb8(10, 10, 10));
-  image.setPixelRgb(0, 0, 255, 0, 0);
+  for (var y = 0; y < 8; y++) {
+    for (var x = 0; x < 6; x++) {
+      image.setPixelRgb(x, y, 255, 0, 0);
+    }
+  }
   return Uint8List.fromList(img.encodePng(image));
 }
 
@@ -39,6 +50,15 @@ Future<Uint8List? Function()> _pushCropScreen(
   WidgetTester tester, {
   Uint8List? image,
 }) async {
+  // Pinned rather than left at the default. What `Crop` selects depends on
+  // the shape of the box it is given, and that box is the screen minus the
+  // app bar and the action bar — so a change to the chrome silently changed
+  // which pixels the rotation test was comparing. Fixing the surface makes
+  // the geometry the test's own, instead of the layout's.
+  tester.view.physicalSize = const Size(800, 1600);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+
   Uint8List? result;
   var resultSet = false;
   await tester.pumpWidget(

@@ -130,12 +130,16 @@ class _CardBody extends StatelessWidget {
       // colour, which left a 1.2:1 hairline as the only thing marking the
       // boundary of the app's main tap target.
       color: theme.colorScheme.surfaceContainerLowest,
-      // No outline: the boundary is carried by the tonal step between the
-      // card's fill and the page's, plus the shadow. The shadow is a
-      // little deeper than it was because it is now doing the outline's
-      // share of the work as well as its own.
-      elevation: 2,
-      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.16),
+      // Flat. No outline and no shadow: the boundary is the tonal step
+      // between the card's fill and the page's, and nothing else.
+      //
+      // The shadow was doing the outline's share of the work as well as its
+      // own, and a screen of it read as busy — dozens of soft edges stacked
+      // down a list, none of them carrying information. Losing it costs
+      // something real in the dark theme, where the step between page and
+      // card was four values of lightness; `bgCardDark` was opened up to pay
+      // for that rather than quietly leaving the cards invisible.
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.lg),
       ),

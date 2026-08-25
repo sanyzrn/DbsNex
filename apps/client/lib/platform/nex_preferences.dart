@@ -13,20 +13,35 @@ import 'package:uuid/uuid.dart';
 /// not two needs a way to say so. ADR-022 originally fixed this at exactly two
 /// and called the set deliberately closed; the set is open now, and adding to
 /// it means adding an entry here and a case in the resolver — nothing else.
-enum SwipeAction { none, delete, addTag }
+/// What one edge of a card does when it is swiped.
+///
+/// Open by construction (ADR-022), and it grew once the gesture stopped being
+/// a pair: every one of these is something the note detail sheet could already
+/// do, brought one gesture closer.
+enum SwipeAction { none, delete, addTag, pin, remind, share, ask }
 
 extension SwipeActionWire on SwipeAction {
   String get wireName => switch (this) {
     SwipeAction.none => 'none',
     SwipeAction.delete => 'delete',
     SwipeAction.addTag => 'add_tag',
+    SwipeAction.pin => 'pin',
+    SwipeAction.remind => 'remind',
+    SwipeAction.share => 'share',
+    SwipeAction.ask => 'ask',
   };
 
   static SwipeAction fromWire(String? value) => switch (value) {
     'none' => SwipeAction.none,
     'add_tag' => SwipeAction.addTag,
     'delete' => SwipeAction.delete,
-    // An unknown stored value is not a reason to lose the gesture.
+    'pin' => SwipeAction.pin,
+    'remind' => SwipeAction.remind,
+    'share' => SwipeAction.share,
+    'ask' => SwipeAction.ask,
+    // An unknown stored value is not a reason to lose the gesture. It is
+    // reachable in one direction only — a build that knew about an action this
+    // one does not, which is a downgrade rather than an upgrade.
     _ => SwipeAction.delete,
   };
 }

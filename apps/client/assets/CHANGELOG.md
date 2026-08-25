@@ -34,6 +34,27 @@ Working convention:
 
 ## Unreleased
 
+- The swipe on a card starts from almost anywhere on it. It used to need the
+  outer third of either edge — a strip that existed to protect the long press
+  that lifted a card for reordering, and reordering is gone. Now it is 45% from
+  each side, leaving a narrow band down the middle that starts nothing, so
+  there is still somewhere to put a thumb and scroll.
+- A swipe can do more than delete or tag. Pin, Remind, Share and Ask the
+  assistant join the list — everything the note detail sheet could already do,
+  one gesture closer. Settings shows each edge as a row saying what it does
+  now, with the whole list behind it; two grids of preview cards was fine at
+  two actions and a wall at six.
+- The date headings line up with the notes under them, sit further from the
+  rows around them, and fold with an animation instead of a jump cut. A run
+  closing now shrinks away; one opening grows in.
+- The timeline is quieter: more space between cards, and the shadow under each
+  one is gone. The card's own fill carries the boundary now, and the dark
+  theme's page colour was deepened to keep that boundary visible without it.
+- A photo no longer goes straight into the cropper. It opens on the photo
+  itself with two buttons — use it, or edit it first — because most photos need
+  no edit and putting one in the way of every capture made it a toll. The
+  editor's own controls moved to the bottom of the screen at a size a thumb can
+  reach, instead of small icons in the top corner.
 - A Markdown file opens in Nex instead of only being listed. Share a `.md` into
   the app and the note shows the document itself — headings, lists, quotes,
   tables and code — under the filename, laid out in the direction the file is

@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 
 import '../l10n/app_localizations.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/photo_action_bar.dart';
 import 'photo_annotate_screen.dart';
 
 /// Runs off the UI thread: a full-resolution camera photo is large enough
@@ -126,38 +127,29 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        actions: [
-          IconButton(
-            tooltip: l10n.cropRotate,
-            icon: _rotating
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.rotate_90_degrees_cw_outlined),
+      ),
+      // The controls are at the bottom now — see [NexPhotoActionBar]. They
+      // were three small icons in the app bar, which is the far corner of a
+      // phone from the hand holding it, and one of them committed the photo.
+      bottomNavigationBar: NexPhotoActionBar(
+        tools: [
+          NexPhotoTool(
+            icon: Icons.rotate_90_degrees_cw_outlined,
+            label: l10n.cropRotate,
+            busy: _rotating,
             onPressed: busy ? null : _rotate,
           ),
-          IconButton(
-            tooltip: l10n.cropAnnotate,
-            icon: const Icon(Icons.edit_outlined),
+          NexPhotoTool(
+            icon: Icons.edit_outlined,
+            label: l10n.cropAnnotate,
             onPressed: busy ? null : () => _startCrop(annotate: true),
           ),
-          IconButton(
-            tooltip: l10n.cropConfirm,
-            icon: _cropping
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.check),
+        ],
+        buttons: [
+          NexPhotoPrimaryButton(
+            label: l10n.cropConfirm,
+            icon: Icons.check,
+            busy: _cropping,
             onPressed: busy ? null : () => _startCrop(annotate: false),
           ),
         ],

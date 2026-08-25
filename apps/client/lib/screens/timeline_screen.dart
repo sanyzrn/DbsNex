@@ -17,6 +17,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/note_search.dart';
 import '../platform/os_capture_bridge.dart';
+import '../platform/sharing.dart';
 import '../platform/update_service.dart';
 import '../widgets/ai_chat_sheet.dart';
 import '../widgets/capture_sheet.dart';
@@ -30,10 +31,12 @@ import '../widgets/nex_banner.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/search_field_header.dart';
 import '../widgets/search_results.dart';
+import '../widgets/reminder_picker.dart';
+import '../widgets/swipe_actions.dart';
 import '../widgets/tag_picker.dart';
 import 'library_screen.dart';
 import 'note_detail_sheet.dart';
-import 'photo_crop_screen.dart';
+import 'photo_preview_screen.dart';
 import 'settings_sheet.dart';
 
 class TimelineScreen extends StatefulWidget {
@@ -78,6 +81,10 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// month" has said something about how they want the list to look, and
   /// having it spring open on the next launch means saying it again every day.
   Set<String> _collapsedGroups = const {};
+
+  /// The group whose rows are on their way out — see [_toggleGroup]. Null at
+  /// rest, which is every frame except the ~200ms after a fold.
+  String? _closingGroup;
   List<Tag> filterTags = const [];
   String? selectedTagId;
   NoteType? selectedType;
@@ -814,8 +821,10 @@ class TimelineScreenState extends State<TimelineScreen> {
       if (picked == null) return;
       final original = await picked.readAsBytes();
       if (!mounted) return;
+      // The preview first, not the cropper. Most photos need no edit at all,
+      // and putting one in the path of every capture was the report.
       final cropped = await Navigator.of(context).push<Uint8List>(
-        MaterialPageRoute(builder: (_) => PhotoCropScreen(image: original)),
+        MaterialPageRoute(builder: (_) => PhotoPreviewScreen(image: original)),
       );
       if (cropped == null) return;
       final dest = p.join(
@@ -1369,8 +1378,11 @@ class TimelineScreenState extends State<TimelineScreen> {
     final rows = <_TimelineRow>[
       for (final group in groups) ...[
         _TimelineRow.header(group),
-        if (!_collapsedGroups.contains(group.key))
-          for (final note in group.notes) _TimelineRow.note(note),
+        // A closing group keeps its rows for one animation. Without that the
+        // fold was a jump cut: the rows were simply gone on the next frame,
+        // which is the report this fixes. See [_toggleGroup].
+        if (!_collapsedGroups.contains(group.key) || group.key == _closingGroup)
+          for (final note in group.notes) _TimelineRow.note(note, group.key),
       ],
     ];
 
@@ -1388,39 +1400,38 @@ class TimelineScreenState extends State<TimelineScreen> {
             );
           }
           final note = row.note!;
-          return CommitReceipt(
-            key: ValueKey(note.id),
-            active: landedId == note.id,
-            // Cleared when it finishes, so the receipt is a moment rather than
-            // a permanent mark on whichever note was captured last.
-            onDone: () {
-              if (mounted && landedId == note.id) {
-                setState(() => landedId = null);
-              }
-            },
-            // ADR-022: the action set is open, and each edge is bound
-            // independently.
-            child: SwipeableNoteCard(
-              deleteLabel: l10n.delete,
-              addTagLabel: l10n.addTag,
-              haptics: widget.preferences.haptics,
-              controller: _swipe,
-              resolveAction: ({required bool isLeading}) {
-                final action = isLeading
-                    ? widget.preferences.leadingAction
-                    : widget.preferences.trailingAction;
-                return switch (action) {
-                  SwipeAction.none => null,
-                  SwipeAction.delete => NexSwipeAction.delete,
-                  SwipeAction.addTag => NexSwipeAction.addTag,
-                };
+          return _FoldingRow(
+            // Keyed on the note so the controller survives a rebuild of the
+            // list and an entrance is never restarted mid-flight.
+            key: ValueKey('fold-${note.id}'),
+            open: row.groupKey != _closingGroup,
+            child: CommitReceipt(
+              key: ValueKey(note.id),
+              active: landedId == note.id,
+              // Cleared when it finishes, so the receipt is a moment rather than
+              // a permanent mark on whichever note was captured last.
+              onDone: () {
+                if (mounted && landedId == note.id) {
+                  setState(() => landedId = null);
+                }
               },
-              onDelete: () => unawaited(deleteWithUndo(note)),
-              onAddTag: () => unawaited(_addTagTo(note)),
-              child: NoteCard(
-                note: note,
-                strings: nexCardStrings(context),
-                onTap: () => _tapNote(note),
+              // ADR-022: the action set is open, and each edge is bound
+              // independently.
+              child: SwipeableNoteCard(
+                haptics: widget.preferences.haptics,
+                controller: _swipe,
+                resolveAction: ({required bool isLeading}) => nexSwipeSpec(
+                  l10n,
+                  isLeading
+                      ? widget.preferences.leadingAction
+                      : widget.preferences.trailingAction,
+                ),
+                onAction: (action) => unawaited(_runSwipe(action, note)),
+                child: NoteCard(
+                  note: note,
+                  strings: nexCardStrings(context),
+                  onTap: () => _tapNote(note),
+                ),
               ),
             ),
           );
@@ -1429,12 +1440,88 @@ class TimelineScreenState extends State<TimelineScreen> {
     ];
   }
 
+  /// Runs whichever action an edge was bound to.
+  ///
+  /// Every one of these already existed behind the note detail sheet; a swipe
+  /// is a second way to reach it, not a second implementation of it — which is
+  /// why the reminder picker and the share path are shared functions rather
+  /// than copies.
+  Future<void> _runSwipe(NexSwipeAction action, Note note) async {
+    final l10n = AppLocalizations.of(context);
+    switch (action) {
+      case NexSwipeAction.delete:
+        await deleteWithUndo(note);
+      case NexSwipeAction.addTag:
+        await _addTagTo(note);
+      case NexSwipeAction.pin:
+        // A toggle, because the swipe is the same gesture either way and a
+        // pin that could only ever be set would need a second route to undo.
+        if (note.pinnedAt == null) {
+          await widget.services.pinNote(note.id);
+        } else {
+          await widget.services.unpinNote(note.id);
+        }
+        await widget.services.refreshTimeline();
+      case NexSwipeAction.remind:
+        await nexPickReminder(
+          context: context,
+          services: widget.services,
+          note: note,
+        );
+        await widget.services.refreshTimeline();
+      case NexSwipeAction.share:
+        if (!await nexShareNote(note) && mounted) {
+          nexShowBanner(context, message: l10n.nothingToCopy);
+        }
+      case NexSwipeAction.ask:
+        if (!mounted) return;
+        // Same guard the detail sheet uses: a button that can only answer
+        // "unavailable" is worse than no button, and an edge bound to this
+        // with no provider configured is exactly that.
+        if (!AiChatSheet.availableFor(widget.preferences)) {
+          nexShowBanner(context, message: l10n.chatUnavailable);
+          return;
+        }
+        await AiChatSheet.show(
+          context,
+          preferences: widget.preferences,
+          services: widget.services,
+          history: widget.preferences.chatHistory,
+          focus: note,
+        );
+    }
+  }
+
+  /// Folds a date run, or opens it.
+  ///
+  /// Opening is easy: the rows go into the list and each one animates itself
+  /// in. Closing cannot work the same way — a row that has been removed has
+  /// nothing left to animate — so the group is marked as closing, its rows
+  /// stay in the list for exactly one animation while they shrink to nothing,
+  /// and only then is the fold committed.
+  ///
+  /// The rows are kept rather than the whole group being built eagerly on the
+  /// side, so the list stays lazy: `SliverList` still builds only what the
+  /// viewport can see, which matters for a run like "Older" holding a
+  /// hundred notes.
   Future<void> _toggleGroup(String key) async {
-    final next = {..._collapsedGroups};
-    if (!next.remove(key)) next.add(key);
-    setState(() => _collapsedGroups = next);
     nexBump();
-    await widget.preferences.setCollapsedTimelineGroups(next);
+    final closing = !_collapsedGroups.contains(key);
+    if (closing) {
+      setState(() {
+        _closingGroup = key;
+        _collapsedGroups = {..._collapsedGroups, key};
+      });
+      await Future<void>.delayed(_foldDuration);
+      if (!mounted) return;
+      setState(() => _closingGroup = null);
+    } else {
+      setState(() {
+        _closingGroup = null;
+        _collapsedGroups = {..._collapsedGroups}..remove(key);
+      });
+    }
+    await widget.preferences.setCollapsedTimelineGroups(_collapsedGroups);
   }
 
   /// Splits an already-ordered list into date runs.
@@ -2028,11 +2115,95 @@ class _NoteGroup {
 
 /// A row in the flattened list: either a heading or a note, never both.
 class _TimelineRow {
-  const _TimelineRow.header(this.group) : note = null;
-  const _TimelineRow.note(this.note) : group = null;
+  const _TimelineRow.header(this.group) : note = null, groupKey = null;
+  const _TimelineRow.note(this.note, this.groupKey) : group = null;
 
   final _NoteGroup? group;
   final Note? note;
+
+  /// Which run this note sits under. Needed only while a group is closing —
+  /// see `_closingGroup`.
+  final String? groupKey;
+}
+
+/// How long a run takes to fold away or open up.
+const _foldDuration = Duration(milliseconds: 220);
+
+/// The total vertical room a group heading claims, split 60/40 above and
+/// below — see `_GroupHeader`.
+const _headerSpace = NexSpacing.lg + NexSpacing.sm;
+
+/// One note row, which grows in when its group opens and shrinks out when it
+/// closes.
+///
+/// A `SizeTransition` rather than an `AnimatedSize`, because the two ends are
+/// not symmetrical. A row that has just been inserted has to start closed and
+/// open itself — that is the expand. A row on its way out is still in the list
+/// only because [_TimelineScreenState._toggleGroup] is holding it there for
+/// exactly this animation, and it has to reach zero before the fold commits.
+///
+/// The fade is deliberately faster than the size: content that disappears
+/// before the space does reads as leaving, where the two together read as
+/// being squashed.
+class _FoldingRow extends StatefulWidget {
+  const _FoldingRow({super.key, required this.open, required this.child});
+
+  final bool open;
+  final Widget child;
+
+  @override
+  State<_FoldingRow> createState() => _FoldingRowState();
+}
+
+class _FoldingRowState extends State<_FoldingRow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: _foldDuration,
+    // From closed, so a row that has just been inserted opens rather than
+    // appearing at full height.
+    value: 0,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.open) _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(_FoldingRow old) {
+    super.didUpdateWidget(old);
+    if (widget.open == old.open) return;
+    widget.open ? _controller.forward() : _controller.reverse();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Someone who asked for less motion gets none of this: the row is simply
+    // there or not, which is what the setting means.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      return widget.open ? widget.child : const SizedBox.shrink();
+    }
+    final curved = CurvedAnimation(
+      parent: _controller,
+      curve: NexMotion.curve,
+      reverseCurve: NexMotion.curve.flipped,
+    );
+    return SizeTransition(
+      sizeFactor: curved,
+      child: FadeTransition(
+        opacity: curved.drive(CurveTween(curve: const Interval(0.25, 1))),
+        child: widget.child,
+      ),
+    );
+  }
 }
 
 /// The heading over a date run, and the whole of its fold control.
@@ -2064,11 +2235,19 @@ class _GroupHeader extends StatelessWidget {
       child: InkWell(
         onTap: onToggle,
         child: Padding(
+          // Level with the cards below it — the same horizontal gutter
+          // `nexCardInsets` gives them, so the heading and the run it names
+          // start on the same line instead of the heading sitting inside the
+          // margin.
+          //
+          // Vertically it is weighted 60/40 toward the top. A heading belongs
+          // to what follows it, and even spacing makes it read as floating
+          // between two runs rather than opening one.
           padding: const EdgeInsets.fromLTRB(
-            NexSpacing.xs,
             NexSpacing.md,
-            NexSpacing.xs,
-            NexSpacing.xs,
+            _headerSpace * 0.6,
+            NexSpacing.md,
+            _headerSpace * 0.4,
           ),
           child: Row(
             children: [

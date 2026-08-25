@@ -54,7 +54,17 @@ abstract final class NexColors {
   // card colour that using it here would read as the card sitting *behind*
   // the page instead of elevated above it — the Figma file's own card colour
   // wasn't confirmed before its MCP access hit a rate limit).
-  static const bgPrimaryDark = Color(0xFF1A1A19);
+  // Darker than it was, to open the step up to the card above it. The cards
+  // used to carry a shadow, and four values of lightness plus that shadow was
+  // enough of an edge; with the shadow gone the tonal step is the only thing
+  // marking where a card starts, and four values cannot be seen.
+  //
+  // The page moved rather than the card, deliberately. Lightening the card
+  // would have walked it toward `bgElevatedDark` and `borderDark`, and the
+  // scaffold tests caught exactly that — the disc inside a card fell to
+  // 1.21:1 and the boundary token to 2.81:1. Moving the page away costs
+  // nothing on either.
+  static const bgPrimaryDark = Color(0xFF131312);
   static const bgCardDark = Color(0xFF1E1E1E);
   static const bgElevatedDark = Color(0xFF323232);
   static const textPrimaryDark = Color(0xFFF2F2F3);
@@ -135,6 +145,19 @@ abstract final class NexColors {
   /// "organize", stays quiet next to the delete panel, and clears 4.5:1
   /// against the white label it carries.
   static const swipeAddTag = Color(0xFF4A5568);
+
+  /// The rest of the swipe set, added when the gesture stopped being a pair.
+  ///
+  /// Muted on purpose, and all from the same family as [swipeAddTag]: these
+  /// panels fill half the screen for a moment, and a set of bright hues would
+  /// make the timeline feel like a different app depending on which way you
+  /// swiped. Every one of them carries a white label, so every one clears
+  /// 4.5:1 against white — which is what rules out the obvious cheerful
+  /// choices for the amber and green.
+  static const swipePin = Color(0xFF8A6D1F);
+  static const swipeRemind = Color(0xFF2F6F5E);
+  static const swipeShare = Color(0xFF3D5A80);
+  static const swipeAsk = Color(0xFF5B4B8A);
 }
 
 /// The 4pt grid. Every gap in the app is one of these.
@@ -226,7 +249,7 @@ const nexFocusRingOffset = 2.0;
 /// same object.
 const nexCardInsets = EdgeInsets.symmetric(
   horizontal: NexSpacing.md,
-  vertical: NexSpacing.xs,
+  vertical: NexSpacing.sm,
 );
 
 /// The type glyph's container on a card, and the photo thumbnail's size.

@@ -8,7 +8,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
@@ -20,7 +19,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/reminders.dart';
 import '../widgets/nex_banner.dart';
-import '../widgets/nex_time_picker.dart';
+import '../widgets/reminder_picker.dart';
 import '../widgets/tag_picker.dart';
 import '../widgets/translate_sheet.dart';
 
@@ -282,22 +281,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final note = _note;
     if (note == null) return;
     final l10n = AppLocalizations.of(context);
-    final uri = note.mediaUri;
-    final text = _copyableText(note);
-    if (uri != null && File(uri).existsSync()) {
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(uri, mimeType: note.mimeType)],
-          text: note.caption?.trim().isNotEmpty == true ? note.caption : null,
-        ),
-      );
-      return;
-    }
-    if (text == null) {
-      _toast(l10n.nothingToCopy);
-      return;
-    }
-    await SharePlus.instance.share(ShareParams(text: text));
+    if (!await nexShareNote(note) && mounted) _toast(l10n.nothingToCopy);
   }
 
   /// Editing a text note in place. `updateNote` existed on every layer down to
@@ -362,130 +346,17 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   Future<void> _pickReminder() async {
     final note = _note;
     if (note == null) return;
-    final l10n = AppLocalizations.of(context);
-    final now = DateTime.now();
-    final choices = <(String, DateTime?)>[
-      (l10n.remindLater, now.add(const Duration(hours: 1))),
-      (
-        l10n.remindEvening,
-        DateTime(now.year, now.month, now.day, 20).isAfter(now)
-            ? DateTime(now.year, now.month, now.day, 20)
-            // Past eight already: "this evening" can only mean tomorrow's.
-            : DateTime(now.year, now.month, now.day + 1, 20),
-      ),
-      (l10n.remindTomorrow, DateTime(now.year, now.month, now.day + 1, 9)),
-      (l10n.remindNextWeek, DateTime(now.year, now.month, now.day + 7, 9)),
-    ];
-
-    final picked = await showModalBottomSheet<DateTime?>(
+    // The picker itself lives in `reminder_picker.dart`: a swipe on the
+    // timeline opens the same sheet, and two copies of a date-and-permission
+    // flow is two places for it to drift.
+    if (await nexPickReminder(
       context: context,
-      useSafeArea: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final (label, at) in choices)
-              ListTile(
-                leading: const Icon(Icons.schedule),
-                title: Text(label),
-                onTap: () => Navigator.pop(sheetContext, at),
-              ),
-            ListTile(
-              leading: const Icon(Icons.event),
-              title: Text(l10n.remindPick),
-              onTap: () async {
-                final date = await nexPickDate(
-                  sheetContext,
-                  first: now,
-                  last: now.add(const Duration(days: 365 * 5)),
-                  initial: now.add(const Duration(days: 1)),
-                );
-                if (date == null || !sheetContext.mounted) return;
-                final time = await nexPickTime(
-                  sheetContext,
-                  initial: const TimeOfDay(hour: 9, minute: 0),
-                );
-                if (!sheetContext.mounted) return;
-                Navigator.pop(
-                  sheetContext,
-                  DateTime(
-                    date.year,
-                    date.month,
-                    date.day,
-                    time?.hour ?? 9,
-                    time?.minute ?? 0,
-                  ),
-                );
-              },
-            ),
-            if (note.dueAt != null)
-              ListTile(
-                leading: const Icon(Icons.notifications_off_outlined),
-                title: Text(l10n.remindClear),
-                // Null is a real answer here, so the sheet has to be able to
-                // tell "cleared" from "dismissed" — which is what the flag
-                // below is for.
-                onTap: () => Navigator.pop(sheetContext, _clearReminder),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (picked == null || !mounted) return;
-
-    if (identical(picked, _clearReminder)) {
-      await widget.services.setDueAt(note.id, null);
+      services: widget.services,
+      note: note,
+    )) {
       await _reload();
-      return;
     }
-
-    // Asked for at the moment it is needed, not on first launch: a permission
-    // prompt before anyone has seen what the app does is the reliable way to
-    // be refused.
-    final allowed = await widget.services.reminders.requestPermission();
-    if (!mounted) return;
-    if (!allowed) {
-      nexShowBanner(context, message: l10n.remindDenied);
-      return;
-    }
-    await widget.services.setDueAt(note.id, picked.toUtc());
-    if (!mounted) return;
-    // What an alarm clock says back. "Reminder set" alone is the same
-    // sentence whether the alarm lands in ten minutes or, because a date was
-    // mis-tapped, in ten months — and the second case is invisible until it
-    // never arrives.
-    final failure = widget.services.reminders.lastError;
-    nexShowBanner(
-      context,
-      message: failure != null
-          ? l10n.remindNotScheduled
-          : l10n.remindSetIn(_untilLabel(l10n, picked)),
-      kind: failure != null ? NexBannerKind.failed : NexBannerKind.done,
-    );
-    await _reload();
   }
-
-  /// How far off a reminder is, in the one unit that reads at that distance.
-  ///
-  /// Rounded up rather than down: a reminder 90 seconds away is "2 minutes",
-  /// not "1 minute" — the number people check against is when it *will* go
-  /// off, and undershooting reads as the app being wrong.
-  String _untilLabel(AppLocalizations l10n, DateTime when) {
-    final left = when.difference(DateTime.now());
-    if (left.inHours >= 24) {
-      return l10n.remindInDays((left.inHours / 24).ceil());
-    }
-    if (left.inMinutes >= 60) {
-      return l10n.remindInHours((left.inMinutes / 60).ceil());
-    }
-    return l10n.remindInMinutes(
-      left.inSeconds <= 0 ? 0 : (left.inSeconds / 60).ceil(),
-    );
-  }
-
-  /// A sentinel meaning "take the reminder away", told apart from a dismissed
-  /// sheet by identity rather than by value.
-  static final _clearReminder = DateTime.utc(1970);
 
   Future<void> _showDetails() async {
     final note = _note;
