@@ -368,7 +368,7 @@
   "@opening": {
     "description": "Screen-reader label for the startup splash"
   },
-  "swipeActionsHint": "Each edge is set on its own. Tap a card to pick what that swipe does, or turn it off.",
+  "swipeActionsHint": "Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.",
   "@swipeActionsHint": {
     "description": "Explains that each swipe edge is configured independently"
   },
@@ -938,7 +938,7 @@
   "@aiProviderSaved": {
     "description": "Confirmation shown after the AI provider settings are stored"
   },
-  "aiKeyStorage": "The key is stored on this device in the app's private settings. It is not encrypted, and it is never sent anywhere except to the provider you chose.",
+  "aiKeyStorage": "The key is kept in this device's own secure storage, not in the app's ordinary settings, and it is never sent anywhere except to the provider you chose.",
   "@aiKeyStorage": {
     "description": "Honest note about how the key is kept"
   },
@@ -1322,7 +1322,7 @@
   "@tourSettingsBody": {"description": "Tour step body for the settings button"},
   "tourCardsTitle": "One more thing",
   "@tourCardsTitle": {"description": "Tour step about gestures on a note card"},
-  "tourCardsBody": "Swipe a note from its left or right edge for its quick actions, and hold one to pick it up and move it.",
+  "tourCardsBody": "Swipe a note from either edge for its quick actions. Each edge is yours to set in Settings.",
   "@tourCardsBody": {"description": "Tour step body about gestures on a note card"},
   "translate": "Translate",
   "@translate": {
@@ -1586,6 +1586,19 @@
   "@nudgeGreetingPlain": {"description": "Notification title when there is no name"},
   "nudgeNothing": "Nothing written down yet today.",
   "@nudgeNothing": {"description": "Notification body when there is no recap"},
+  "localModelLicenseGloss": "In short: the model is Google's, it comes with its own terms, and downloading it means accepting them.",
+  "@localModelLicenseGloss": {"description": "Plain-language gloss under the verbatim Gemma notice"},
+  "notificationTest": "Send a test notification",
+  "@notificationTest": {"description": "Settings row that posts a test notification"},
+  "notificationTestHint": "One now, and one in ten seconds",
+  "@notificationTestHint": {"description": "Explains what the test does"},
+  "notificationTestSent": "Sent — one now, one in ten seconds",
+  "@notificationTestSent": {"description": "Confirms the test notifications were posted"},
+  "notificationTestFailed": "Could not send it — {error}",
+  "@notificationTestFailed": {
+    "description": "The test notification failed, with the system's own message",
+    "placeholders": { "error": { "type": "String" } }
+  },
   "remindOverdue": "Overdue",
   "@remindOverdue": {"description": "A reminder whose time has passed"},
   "remindWhenToday": "Today at {time}",

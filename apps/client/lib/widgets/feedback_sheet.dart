@@ -83,14 +83,19 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
         children: [
           Text(l10n.sendFeedback, style: theme.textTheme.titleLarge),
           const SizedBox(height: NexSpacing.lg),
-          TextField(
+          NexAutoDirection(
             controller: _controller,
-            autofocus: true,
-            minLines: 4,
-            maxLines: 8,
-            decoration: InputDecoration(
-              hintText: l10n.feedbackHint,
-              border: const OutlineInputBorder(),
+            builder: (context, direction) => TextField(
+              controller: _controller,
+              autofocus: true,
+              minLines: 4,
+              maxLines: 8,
+              textDirection: direction,
+              textAlign: TextAlign.start,
+              decoration: InputDecoration(
+                hintText: l10n.feedbackHint,
+                border: const OutlineInputBorder(),
+              ),
             ),
           ),
           if (_lastFailure != null) ...[

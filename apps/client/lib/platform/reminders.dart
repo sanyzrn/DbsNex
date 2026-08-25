@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -69,6 +70,21 @@ class NexReminders {
   Future<void> initialise() async {
     if (_ready || !supported) return;
     tz_data.initializeTimeZones();
+    // Loading the database is only half of it. Without this `tz.local` is
+    // UTC, and anything scheduled by wall-clock time — the daily nudge, and
+    // any repeat matched on the time of day — lands at the wrong hour by
+    // exactly the device's offset. A note reminder survived that because it
+    // is scheduled from an instant rather than a clock face, which is why the
+    // gap went unnoticed.
+    try {
+      final zone = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(zone.identifier));
+    } catch (error) {
+      // An unknown zone name leaves `tz.local` at UTC, which is where it was
+      // before. Recorded rather than swallowed: a reminder an hour out is a
+      // harder thing to explain than one that never came.
+      lastError = 'timezone: $error';
+    }
     await _plugin.initialize(
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
@@ -164,7 +180,7 @@ class NexReminders {
         androidScheduleMode: _scheduleMode,
         payload: note.id,
       );
-      lastError = null;
+      lastError = await _verify(_idFor(note.id));
     } catch (error) {
       // Too many pending alarms, a platform that changed its mind, a channel
       // that never registered. Still not an error thrown at someone mid-
@@ -174,6 +190,78 @@ class NexReminders {
       lastError = '$error';
     }
   }
+
+  /// Confirms the OS actually took the alarm, and says so when it did not.
+  ///
+  /// `zonedSchedule` returning without throwing means the request was
+  /// accepted, not that anything is pending — and the difference is where
+  /// this feature spent its longest silence. Reading the queue back is the
+  /// one check that distinguishes "scheduled" from "believed to be
+  /// scheduled", and it costs one platform call per reminder.
+  ///
+  /// Returns null when the alarm is there, and a sentence when it is not.
+  Future<String?> _verify(int id) async {
+    try {
+      final pending = await _plugin.pendingNotificationRequests();
+      if (pending.any((request) => request.id == id)) return null;
+      return 'the system did not keep the alarm';
+    } catch (error) {
+      // The queue could not be read. Not evidence either way, so it is not
+      // reported as a failure — the schedule call itself did not throw.
+      return null;
+    }
+  }
+
+  /// Posts one notification now, and schedules a second a few seconds out.
+  ///
+  /// A diagnostic, reachable from Settings, and the fastest way to find out
+  /// which half of this is broken on a given phone: the immediate one proves
+  /// permission and the channel, the delayed one proves scheduling and
+  /// delivery. Reminders failed for a year because those two look identical
+  /// from inside the app — both are "nothing happened".
+  ///
+  /// Returns null on success, or what went wrong.
+  Future<String?> sendTestNotification({
+    required String title,
+    required String body,
+  }) async {
+    if (!supported) return 'not supported on this platform';
+    await initialise();
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _channelId,
+        'Reminders',
+        channelDescription: 'Notes you asked Nex to bring back up',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+      iOS: DarwinNotificationDetails(),
+    );
+    try {
+      await _plugin.show(
+        id: _testId,
+        title: title,
+        body: body,
+        notificationDetails: details,
+      );
+      final when = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10));
+      await _plugin.zonedSchedule(
+        id: _testId + 1,
+        title: title,
+        body: body,
+        scheduledDate: when,
+        notificationDetails: details,
+        androidScheduleMode: _scheduleMode,
+      );
+      return await _verify(_testId + 1);
+    } catch (error) {
+      return '$error';
+    }
+  }
+
+  /// The two ids [sendTestNotification] uses, kept away from note hashes and
+  /// from [_dailyId].
+  static const _testId = 1;
 
   /// The one repeating notification: a nudge at a time the user picked.
   ///
@@ -241,7 +329,7 @@ class NexReminders {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-      lastError = null;
+      lastError = await _verify(_dailyId);
     } catch (error) {
       lastError = '$error';
     }

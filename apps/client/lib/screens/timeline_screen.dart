@@ -85,6 +85,17 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// The group whose rows are on their way out — see [_toggleGroup]. Null at
   /// rest, which is every frame except the ~200ms after a fold.
   String? _closingGroup;
+
+  /// The group whose rows are on their way in, for the same window.
+  ///
+  /// Needed because `SliverList` matches its children by index. Folding a run
+  /// shortens the list, so every row below it arrives at a new index, gets a
+  /// new [_FoldingRow] state, and — if that state animated itself in on
+  /// creation — played the entrance animation. The result was every group
+  /// below the one being folded flickering open, which is the report this
+  /// exists to answer. Only the group actually being opened animates in;
+  /// everyone else appears at full height, because they never left it.
+  String? _openingGroup;
   List<Tag> filterTags = const [];
   String? selectedTagId;
   NoteType? selectedType;
@@ -1405,6 +1416,7 @@ class TimelineScreenState extends State<TimelineScreen> {
             // list and an entrance is never restarted mid-flight.
             key: ValueKey('fold-${note.id}'),
             open: row.groupKey != _closingGroup,
+            animateIn: row.groupKey == _openingGroup,
             child: CommitReceipt(
               key: ValueKey(note.id),
               active: landedId == note.id,
@@ -1510,6 +1522,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     if (closing) {
       setState(() {
         _closingGroup = key;
+        _openingGroup = null;
         _collapsedGroups = {..._collapsedGroups, key};
       });
       await Future<void>.delayed(_foldDuration);
@@ -1518,8 +1531,12 @@ class TimelineScreenState extends State<TimelineScreen> {
     } else {
       setState(() {
         _closingGroup = null;
+        _openingGroup = key;
         _collapsedGroups = {..._collapsedGroups}..remove(key);
       });
+      await Future<void>.delayed(_foldDuration);
+      if (!mounted) return;
+      setState(() => _openingGroup = null);
     }
     await widget.preferences.setCollapsedTimelineGroups(_collapsedGroups);
   }
@@ -2146,9 +2163,22 @@ const _headerSpace = NexSpacing.lg + NexSpacing.sm;
 /// before the space does reads as leaving, where the two together read as
 /// being squashed.
 class _FoldingRow extends StatefulWidget {
-  const _FoldingRow({super.key, required this.open, required this.child});
+  const _FoldingRow({
+    super.key,
+    required this.open,
+    required this.animateIn,
+    required this.child,
+  });
 
   final bool open;
+
+  /// Whether this row is arriving now, or was already here.
+  ///
+  /// False means "start at full height and stay there". A row that was
+  /// already on screen must not animate itself in when its index shifts —
+  /// see [_TimelineScreenState._openingGroup].
+  final bool animateIn;
+
   final Widget child;
 
   @override
@@ -2157,17 +2187,19 @@ class _FoldingRow extends StatefulWidget {
 
 class _FoldingRowState extends State<_FoldingRow>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: _foldDuration,
-    // From closed, so a row that has just been inserted opens rather than
-    // appearing at full height.
-    value: 0,
-  );
+  late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: _foldDuration,
+      // Closed only when this row is genuinely arriving. Otherwise it starts
+      // where it already was, which is the difference between one group
+      // opening and every group below it flickering.
+      value: widget.animateIn ? 0 : 1,
+    );
     if (widget.open) _controller.forward();
   }
 

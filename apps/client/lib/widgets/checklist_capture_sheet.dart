@@ -1,3 +1,5 @@
+import 'dart:ui' show BoxWidthStyle;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_core/nex_core.dart';
@@ -82,17 +84,27 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet> {
           const SizedBox(height: NexSpacing.sm),
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 240),
-            child: TextField(
+            child: NexAutoDirection(
               controller: _text,
-              autofocus: true,
-              maxLines: null,
-              // Never TextInputAction.send, whatever the capture preference
-              // says — see the class comment.
-              textInputAction: TextInputAction.newline,
-              keyboardType: TextInputType.multiline,
-              decoration: InputDecoration(
-                hintText: l10n.checklistHint,
-                border: InputBorder.none,
+              builder: (context, direction) => TextField(
+                controller: _text,
+                autofocus: true,
+                maxLines: null,
+                // The list is written in whichever language the person
+                // thinks in, which is not necessarily the interface's. Without
+                // this a Persian checklist typed in an English app is laid out
+                // left-to-right and reorders itself as it is written.
+                textDirection: direction,
+                textAlign: TextAlign.start,
+                selectionWidthStyle: BoxWidthStyle.tight,
+                // Never TextInputAction.send, whatever the capture preference
+                // says — see the class comment.
+                textInputAction: TextInputAction.newline,
+                keyboardType: TextInputType.multiline,
+                decoration: InputDecoration(
+                  hintText: l10n.checklistHint,
+                  border: InputBorder.none,
+                ),
               ),
             ),
           ),

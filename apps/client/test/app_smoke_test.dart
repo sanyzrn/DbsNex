@@ -1010,6 +1010,48 @@ void main() {
     },
   );
 
+  testWidgets('the seams between action groups can actually be seen', (
+    tester,
+  ) async {
+    // They were `outlineVariant` faded to 0.6 — the quiet token, quieter — on
+    // the theory that a seam should be softer than a border. The result was
+    // invisible in both themes, which makes it a seam that separates nothing.
+    await services.captureText('a note');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('a note'));
+    await tester.pumpAndSettle();
+
+    final seams = find.byWidgetPredicate(
+      (widget) => widget is Container && widget.constraints?.maxWidth == 1,
+      description: 'a 1px separator',
+    );
+    expect(seams, findsWidgets, reason: 'the action row has no separators');
+
+    final theme = Theme.of(tester.element(find.byType(NoteDetailSheet)));
+    for (final element in seams.evaluate()) {
+      final colour = ((element.widget as Container).color)!;
+      // 3:1 is the floor for a boundary a person is meant to perceive
+      // (WCAG 1.4.11). Measured against both surfaces the sheet can paint, so
+      // this holds whichever one is behind the row, and composited first —
+      // the separator is translucent, so its raw colour is not what anyone
+      // sees.
+      for (final ground in [
+        theme.colorScheme.surface,
+        theme.colorScheme.surfaceContainerLowest,
+      ]) {
+        expect(
+          nexContrastRatio(Color.alphaBlend(colour, ground), ground),
+          greaterThanOrEqualTo(3.0),
+          reason: 'the separator is invisible against $ground',
+        );
+      }
+    }
+  });
+
   testWidgets('what the AI read is behind a tap, not on top of the note', (
     tester,
   ) async {

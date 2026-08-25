@@ -543,9 +543,33 @@ class _License extends StatelessWidget {
         children: [
           Text(l10n.localModelLicenseTitle, style: theme.textTheme.titleSmall),
           const SizedBox(height: NexSpacing.sm),
-          // The notice text verbatim. The licence names the sentence, so it is
-          // reproduced rather than paraphrased.
-          Text(model.licenseNotice, style: theme.textTheme.bodySmall),
+          // The notice text verbatim, in English, and left-to-right whatever
+          // the interface is set to. Gemma's terms name this exact sentence
+          // as the notice that must be reproduced, so translating it would be
+          // paraphrasing a legal requirement — and in a Persian interface it
+          // was also being laid out right-to-left, which is the wrong shape
+          // for an English sentence ending in a URL.
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                model.licenseNotice,
+                style: theme.textTheme.bodySmall,
+                textAlign: TextAlign.left,
+              ),
+            ),
+          ),
+          const SizedBox(height: NexSpacing.xs),
+          // What it says, in the interface's own language. The notice above
+          // has to stay as Google wrote it; nothing stops Nex from also
+          // saying what it means.
+          Text(
+            l10n.localModelLicenseGloss,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: NexSpacing.sm),
           Align(
             alignment: AlignmentDirectional.centerStart,

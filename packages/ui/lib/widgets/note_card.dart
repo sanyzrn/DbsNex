@@ -166,25 +166,28 @@ class _CardBody extends StatelessWidget {
               // making the card taller to hold it spent height on the least
               // important thing on the card. Here it costs nothing vertically,
               // and it doubles as the gap that keeps the text off the glyph.
-              Text(
-                strings.relativeTime(nexRelativeTimeOf(note.updatedAt)),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall,
-              ),
-              // A note that asked to come back says so on the card. Without
-              // it a reminder is invisible until it fires, which means the
-              // only way to check one was set is to open the note.
-              if (note.dueAt case final due?) ...[
-                const SizedBox(width: NexSpacing.xs),
+              //
+              // A reminder takes this slot rather than sitting beside it. The
+              // two together stole a chunk of the preview's width and pushed
+              // the note's own words off the card — not a trade worth making
+              // for a second timestamp. Of the two, the one that matters on a
+              // note with a reminder is the one in the future; when it was
+              // written is still in the note.
+              if (note.dueAt case final due?)
                 _DueChip(
                   due: due,
                   label: strings.dueLabel?.call(due),
                   // A lapsed reminder is not an alarm any more, so it stops
                   // asking for attention in the accent colour.
                   upcoming: due.isAfter(DateTime.now().toUtc()),
+                )
+              else
+                Text(
+                  strings.relativeTime(nexRelativeTimeOf(note.updatedAt)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
                 ),
-              ],
               const SizedBox(width: NexSpacing.contentGap),
               Expanded(child: previewOverride ?? _Preview(note: note)),
             ],
@@ -223,11 +226,7 @@ class _DueChip extends StatelessWidget {
         : theme.colorScheme.outline;
     final text = label;
     if (text == null) {
-      return Icon(
-        Icons.notifications_active_outlined,
-        size: 14,
-        color: color,
-      );
+      return Icon(Icons.notifications_active_outlined, size: 14, color: color);
     }
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -239,11 +238,7 @@ class _DueChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.notifications_active_outlined,
-              size: 12,
-              color: color,
-            ),
+            Icon(Icons.notifications_active_outlined, size: 12, color: color),
             const SizedBox(width: 3),
             Text(
               text,

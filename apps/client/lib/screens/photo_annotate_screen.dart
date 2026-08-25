@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:nex_ui/nex_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 
@@ -101,10 +102,15 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen> {
     final text = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        content: TextField(
+        content: NexAutoDirection(
           controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(hintText: l10n.annotateTextHint),
+          builder: (context, direction) => TextField(
+            controller: controller,
+            autofocus: true,
+            textDirection: direction,
+            textAlign: TextAlign.start,
+            decoration: InputDecoration(hintText: l10n.annotateTextHint),
+          ),
         ),
         actions: [
           TextButton(

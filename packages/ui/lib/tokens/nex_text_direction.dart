@@ -102,3 +102,48 @@ class NexBodyText extends StatelessWidget {
     );
   }
 }
+
+/// Rebuilds a text field as the script being typed into it changes.
+///
+/// A `TextField` takes its direction from the ambient [Directionality] — the
+/// interface language — unless it is told otherwise, and the interface
+/// language is not what decides here. A Persian sentence typed into a
+/// left-to-right field is laid out around the wrong base direction, so it
+/// scrambles as it is written and settles the moment it is saved.
+///
+/// The rebuild has to happen per keystroke, which is why this listens to the
+/// controller rather than taking a string: the direction is a property of
+/// text that does not exist yet.
+///
+/// ```dart
+/// NexAutoDirection(
+///   controller: controller,
+///   builder: (context, direction) => TextField(
+///     controller: controller,
+///     textDirection: direction,
+///     textAlign: TextAlign.start,
+///   ),
+/// )
+/// ```
+///
+/// A null direction means the text carries none of its own — it is empty, or
+/// it is a number — and the field should keep the ambient one. That is what
+/// puts a placeholder at the right edge in Persian and the left in English.
+class NexAutoDirection extends StatelessWidget {
+  const NexAutoDirection({
+    super.key,
+    required this.controller,
+    required this.builder,
+  });
+
+  final TextEditingController controller;
+  final Widget Function(BuildContext context, TextDirection? direction) builder;
+
+  @override
+  Widget build(BuildContext context) =>
+      ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller,
+        builder: (context, value, _) =>
+            builder(context, nexDirectionOf(value.text)),
+      );
+}

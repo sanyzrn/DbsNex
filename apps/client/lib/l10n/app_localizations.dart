@@ -1019,7 +1019,7 @@ abstract class AppLocalizations {
   /// Explains that each swipe edge is configured independently
   ///
   /// In en, this message translates to:
-  /// **'Each edge is set on its own. Tap a card to pick what that swipe does, or turn it off.'**
+  /// **'Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.'**
   String get swipeActionsHint;
 
   /// Copies a media note's file path to the clipboard
@@ -1805,7 +1805,7 @@ abstract class AppLocalizations {
   /// Honest note about how the key is kept
   ///
   /// In en, this message translates to:
-  /// **'The key is stored on this device in the app\'s private settings. It is not encrypted, and it is never sent anywhere except to the provider you chose.'**
+  /// **'The key is kept in this device\'s own secure storage, not in the app\'s ordinary settings, and it is never sent anywhere except to the provider you chose.'**
   String get aiKeyStorage;
 
   /// What each capability can actually reach
@@ -2483,7 +2483,7 @@ abstract class AppLocalizations {
   /// Tour step body about gestures on a note card
   ///
   /// In en, this message translates to:
-  /// **'Swipe a note from its left or right edge for its quick actions, and hold one to pick it up and move it.'**
+  /// **'Swipe a note from either edge for its quick actions. Each edge is yours to set in Settings.'**
   String get tourCardsBody;
 
   /// Note action that translates the note's text
@@ -2887,6 +2887,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nothing written down yet today.'**
   String get nudgeNothing;
+
+  /// Plain-language gloss under the verbatim Gemma notice
+  ///
+  /// In en, this message translates to:
+  /// **'In short: the model is Google\'s, it comes with its own terms, and downloading it means accepting them.'**
+  String get localModelLicenseGloss;
+
+  /// Settings row that posts a test notification
+  ///
+  /// In en, this message translates to:
+  /// **'Send a test notification'**
+  String get notificationTest;
+
+  /// Explains what the test does
+  ///
+  /// In en, this message translates to:
+  /// **'One now, and one in ten seconds'**
+  String get notificationTestHint;
+
+  /// Confirms the test notifications were posted
+  ///
+  /// In en, this message translates to:
+  /// **'Sent — one now, one in ten seconds'**
+  String get notificationTestSent;
+
+  /// The test notification failed, with the system's own message
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send it — {error}'**
+  String notificationTestFailed(String error);
 
   /// A reminder whose time has passed
   ///

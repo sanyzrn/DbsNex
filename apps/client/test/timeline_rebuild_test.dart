@@ -538,6 +538,44 @@ void main() {
     expect(find.text('note A'), findsNothing);
   });
 
+  testWidgets('folding one group leaves the groups below it alone', (
+    tester,
+  ) async {
+    // `SliverList` matches its children by index, so folding a run shortens
+    // the list and every row below it arrives at a new index with fresh
+    // state. A row that animated itself in on creation then played the
+    // entrance animation, and every group below the one being folded
+    // flickered open — which is the report this guards.
+    await services.captureText('today note');
+    final older = await services.captureText('yesterday note');
+    // Capture stamps `now`, so the second group has to be made by hand.
+    (services.worker as InProcessDb).backdate(
+      older!.id,
+      DateTime.now().subtract(const Duration(days: 1)),
+    );
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    final below = find.ancestor(
+      of: find.text('yesterday note'),
+      matching: find.byWidgetPredicate((widget) => widget is SizeTransition),
+    );
+    expect(below, findsWidgets);
+    final restingHeight = tester.getSize(below.first).height;
+
+    await tester.tap(find.text('Today'));
+    // One frame into the fold. The row below must be exactly where it was.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 90));
+    expect(tester.getSize(below.first).height, restingHeight);
+
+    await tester.pumpAndSettle();
+    expect(tester.getSize(below.first).height, restingHeight);
+  });
+
   testWidgets('a folded group stays folded across a rebuild', (tester) async {
     await services.captureText('note A');
     await services.refreshTimeline();

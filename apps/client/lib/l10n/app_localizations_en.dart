@@ -542,7 +542,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get swipeActionsHint =>
-      'Each edge is set on its own. Tap a card to pick what that swipe does, or turn it off.';
+      'Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.';
 
   @override
   String get revealInFolder => 'Copy file path';
@@ -1045,7 +1045,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiKeyStorage =>
-      'The key is stored on this device in the app\'s private settings. It is not encrypted, and it is never sent anywhere except to the provider you chose.';
+      'The key is kept in this device\'s own secure storage, not in the app\'s ordinary settings, and it is never sent anywhere except to the provider you chose.';
 
   @override
   String get aiCapabilityNote =>
@@ -1443,7 +1443,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tourCardsBody =>
-      'Swipe a note from its left or right edge for its quick actions, and hold one to pick it up and move it.';
+      'Swipe a note from either edge for its quick actions. Each edge is yours to set in Settings.';
 
   @override
   String get translate => 'Translate';
@@ -1658,6 +1658,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nudgeNothing => 'Nothing written down yet today.';
+
+  @override
+  String get localModelLicenseGloss =>
+      'In short: the model is Google\'s, it comes with its own terms, and downloading it means accepting them.';
+
+  @override
+  String get notificationTest => 'Send a test notification';
+
+  @override
+  String get notificationTestHint => 'One now, and one in ten seconds';
+
+  @override
+  String get notificationTestSent => 'Sent — one now, one in ten seconds';
+
+  @override
+  String notificationTestFailed(String error) {
+    return 'Could not send it — $error';
+  }
 
   @override
   String get remindOverdue => 'Overdue';

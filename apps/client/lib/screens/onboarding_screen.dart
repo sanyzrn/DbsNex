@@ -345,13 +345,21 @@ class _SetupPage extends StatelessWidget {
             ),
             const SizedBox(height: NexSpacing.lg),
             _Field(label: l10n.yourName),
-            TextField(
+            NexAutoDirection(
               controller: name,
-              textCapitalization: TextCapitalization.words,
-              textInputAction: TextInputAction.done,
-              decoration: InputDecoration(
-                hintText: l10n.yourNamePlaceholder,
-                errorText: showNameError ? l10n.onboardingNameRequired : null,
+              builder: (context, direction) => TextField(
+                controller: name,
+                textCapitalization: TextCapitalization.words,
+                // The one field in the app most likely to be in a different
+                // script from the interface: someone setting Nex to English
+                // still writes their own name in Persian.
+                textDirection: direction,
+                textAlign: TextAlign.start,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  hintText: l10n.yourNamePlaceholder,
+                  errorText: showNameError ? l10n.onboardingNameRequired : null,
+                ),
               ),
             ),
             const SizedBox(height: NexSpacing.lg),
