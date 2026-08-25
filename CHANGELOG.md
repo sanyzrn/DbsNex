@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+- A Markdown file opens in Nex instead of only being listed. Share a `.md` into
+  the app and the note shows the document itself — headings, lists, quotes,
+  tables and code — under the filename, laid out in the direction the file is
+  written in rather than the direction the app is set to. Very large files are
+  still named rather than rendered, and say why.
+- The assistant's answers are formatted. It has always written lists and bold
+  text; you were reading the asterisks. Your own messages are left exactly as
+  you typed them.
+
 ## v0.9.7
 
 - The timeline is grouped by date — Today, Yesterday, Last week, Last month,

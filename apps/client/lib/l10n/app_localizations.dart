@@ -2888,6 +2888,18 @@ abstract class AppLocalizations {
   /// **'Nothing written down yet today.'**
   String get nudgeNothing;
 
+  /// A Markdown file past the preview size limit
+  ///
+  /// In en, this message translates to:
+  /// **'Too large to show here — open it in another app.'**
+  String get markdownTooLarge;
+
+  /// A Markdown file that failed to open, with the runtime's own message
+  ///
+  /// In en, this message translates to:
+  /// **'This file could not be read — {error}'**
+  String markdownUnreadable(String error);
+
   /// Confirms a reminder and says how far off it is
   ///
   /// In en, this message translates to:

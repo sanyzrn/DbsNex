@@ -974,6 +974,15 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         ),
                       ),
                     ),
+                    // A Markdown file, shown rather than merely listed. The
+                    // note itself only ever held the filename — the words are
+                    // in a file on disk — so this is the one place in the app
+                    // that reads a note's media back as text.
+                    if (nexIsMarkdownFile(
+                      path: note.mediaUri,
+                      mimeType: note.mimeType,
+                    ))
+                      _MarkdownFileBody(path: note.mediaUri!),
                   ],
                   if (note.type != NoteType.text) ...[
                     const SizedBox(height: NexSpacing.md),
@@ -1641,5 +1650,125 @@ class _LinkBody extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// Whether a file note is worth rendering as Markdown rather than only naming.
+///
+/// The MIME type first where the sharing app sent one, then the extension —
+/// Android's share sheet is generous with `application/octet-stream`, so the
+/// name is often the only thing that knows.
+bool nexIsMarkdownFile({String? path, String? mimeType}) {
+  if (path == null || path.isEmpty) return false;
+  final type = mimeType?.toLowerCase().split(';').first.trim();
+  if (type == 'text/markdown' || type == 'text/x-markdown') return true;
+  const extensions = {'.md', '.markdown', '.mdown', '.mkd', '.mdtext'};
+  return extensions.contains(p.extension(path).toLowerCase());
+}
+
+/// Reads a Markdown file off disk and renders it.
+///
+/// The words are not in the note. A file note stores its filename and a path,
+/// so this is the one place in the app that reads a note's media back as text.
+///
+/// The read is synchronous, and in [initState] rather than in `build`. Both
+/// halves are deliberate. Synchronous because [maxBytes] bounds it: half a
+/// megabyte off local storage costs a fraction of a frame, and the sheet
+/// around it already calls `existsSync` and `lengthSync` to print the file's
+/// size. In `initState` because this sheet rebuilds on every action taken in
+/// it — captioning, tagging, pinning — and re-reading the file each time would
+/// turn a cheap read into a repeated one.
+///
+/// Three outcomes, all of them said out loud. A file too large is named but
+/// not rendered, and says why. A file that cannot be read reports the
+/// runtime's own words: a preview that silently shows nothing is
+/// indistinguishable from a file that genuinely has nothing in it, and this
+/// project has paid for that confusion before.
+class _MarkdownFileBody extends StatefulWidget {
+  const _MarkdownFileBody({required this.path});
+
+  final String path;
+
+  /// Past this, the file is named but not rendered. Generous for prose —
+  /// roughly a quarter of a million characters — and small enough that both
+  /// reading it and building it stay inside a frame.
+  static const maxBytes = 512 * 1024;
+
+  @override
+  State<_MarkdownFileBody> createState() => _MarkdownFileBodyState();
+}
+
+class _MarkdownFileBodyState extends State<_MarkdownFileBody> {
+  String? _text;
+  String? _error;
+  bool _tooLarge = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(_MarkdownFileBody old) {
+    super.didUpdateWidget(old);
+    if (old.path != widget.path) _load();
+  }
+
+  void _load() {
+    _text = null;
+    _error = null;
+    _tooLarge = false;
+    try {
+      final file = File(widget.path);
+      if (!file.existsSync()) return;
+      if (file.lengthSync() > _MarkdownFileBody.maxBytes) {
+        _tooLarge = true;
+        return;
+      }
+      _text = file.readAsStringSync();
+    } catch (error) {
+      // Reached by a file that is not UTF-8 as much as by one that cannot be
+      // opened — `readAsStringSync` decodes, and a mislabelled binary lands
+      // here rather than rendering as mojibake.
+      _error = '$error';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final quiet = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    if (_tooLarge) {
+      return Padding(
+        padding: const EdgeInsets.only(top: NexSpacing.sm),
+        child: Text(l10n.markdownTooLarge, style: quiet),
+      );
+    }
+    if (_error != null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: NexSpacing.sm),
+        child: Text(l10n.markdownUnreadable(_error!), style: quiet),
+      );
+    }
+    final text = _text?.trim() ?? '';
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: NexSpacing.sm),
+      child: NexMarkdown(text, onTapLink: _openLink),
+    );
+  }
+
+  Future<void> _openLink(String href) async {
+    final uri = Uri.tryParse(href);
+    if (uri == null || !uri.hasScheme) return;
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // No handler for this scheme on this device. The link stays a link.
+    }
   }
 }

@@ -1586,6 +1586,13 @@
   "@nudgeGreetingPlain": {"description": "Notification title when there is no name"},
   "nudgeNothing": "Nothing written down yet today.",
   "@nudgeNothing": {"description": "Notification body when there is no recap"},
+  "markdownTooLarge": "Too large to show here — open it in another app.",
+  "@markdownTooLarge": {"description": "A Markdown file past the preview size limit"},
+  "markdownUnreadable": "This file could not be read — {error}",
+  "@markdownUnreadable": {
+    "description": "A Markdown file that failed to open, with the runtime's own message",
+    "placeholders": { "error": { "type": "String" } }
+  },
   "remindSetIn": "Reminder set — {when} from now",
   "@remindSetIn": {
     "description": "Confirms a reminder and says how far off it is",

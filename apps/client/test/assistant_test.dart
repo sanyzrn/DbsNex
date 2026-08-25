@@ -11,6 +11,8 @@ import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:nex_ui/nex_ui.dart';
+
 import 'package:nex_client/l10n/app_localizations.dart';
 
 import 'support/in_process_db.dart';
@@ -435,6 +437,39 @@ Sure, here you go:
       await tester.enterText(field, 'is lmstudio better than ollama?');
       await tester.pump();
       expect(composerDirection(tester), TextDirection.ltr);
+    });
+
+    testWidgets('the assistant\'s answer is rendered, the question is not', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        client: replying('Here you go:\n\n- **first** thing\n- second thing'),
+      );
+      // The user's own turn is Markdown-shaped on purpose: they typed those
+      // asterisks and the app has no business eating them.
+      await tester.enterText(find.byType(TextField).last, 'give me a **list**');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+
+      // The reply is rendered — the bold marks are gone and the word is not.
+      expect(find.byType(NexMarkdown), findsOneWidget);
+      expect(find.textContaining('**first**'), findsNothing);
+      expect(find.textContaining('first'), findsWidgets);
+      // The question is still exactly what was typed.
+      expect(find.text('give me a **list**'), findsOneWidget);
+    });
+
+    testWidgets('a plain answer stays plain', (tester) async {
+      await openSheet(tester, client: replying('No, ollama is simpler.'));
+      await tester.enterText(find.byType(TextField).last, 'lmstudio?');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+
+      // Nothing to gain by parsing prose, and something to lose: a stray
+      // asterisk or underscore in an ordinary sentence would be eaten.
+      expect(find.byType(NexMarkdown), findsNothing);
+      expect(find.text('No, ollama is simpler.'), findsOneWidget);
     });
 
     testWidgets('a chat about one note says which note', (tester) async {

@@ -1660,6 +1660,15 @@ class AppLocalizationsFa extends AppLocalizations {
   String get nudgeNothing => 'امروز هنوز چیزی ننوشته‌ای.';
 
   @override
+  String get markdownTooLarge =>
+      'برای نمایش اینجا بزرگ است — با یک برنامهٔ دیگر بازش کن.';
+
+  @override
+  String markdownUnreadable(String error) {
+    return 'این فایل خوانده نشد — $error';
+  }
+
+  @override
   String remindSetIn(String when) {
     return 'یادآور تنظیم شد — $when دیگر';
   }

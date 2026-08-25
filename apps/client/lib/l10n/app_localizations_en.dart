@@ -1660,6 +1660,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nudgeNothing => 'Nothing written down yet today.';
 
   @override
+  String get markdownTooLarge =>
+      'Too large to show here — open it in another app.';
+
+  @override
+  String markdownUnreadable(String error) {
+    return 'This file could not be read — $error';
+  }
+
+  @override
   String remindSetIn(String when) {
     return 'Reminder set — $when from now';
   }

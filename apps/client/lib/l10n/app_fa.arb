@@ -812,6 +812,8 @@
   "nudgeGreetingDay": "سلام، {name}",
   "nudgeGreetingPlain": "Nex",
   "nudgeNothing": "امروز هنوز چیزی ننوشته‌ای.",
+  "markdownTooLarge": "برای نمایش اینجا بزرگ است — با یک برنامهٔ دیگر بازش کن.",
+  "markdownUnreadable": "این فایل خوانده نشد — {error}",
   "remindSetIn": "یادآور تنظیم شد — {when} دیگر",
   "remindInDays": "{count, plural, =1{۱ روز} other{{count} روز}}",
   "remindInHours": "{count, plural, =1{۱ ساعت} other{{count} ساعت}}",

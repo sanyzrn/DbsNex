@@ -960,20 +960,41 @@ class _Thread extends StatelessWidget {
                     : theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(NexRadius.lg),
               ),
-              child: Text(
-                turn.content,
-                // The on-colour that belongs to the container behind it. Left
-                // at the default the user's own words were onSurface on
-                // primaryContainer — a pairing nothing guarantees the contrast
-                // of, and in practice barely readable in the light theme.
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: mine
-                      ? theme.colorScheme.onPrimaryContainer
-                      : theme.colorScheme.onSurface,
-                ),
-                // Either side may be in either language — the assistant
-                // answers in whatever the output-language setting asks for.
-                textDirection: nexDirectionOf(turn.content),
+              child: Builder(
+                builder: (context) {
+                  // The on-colour that belongs to the container behind it.
+                  // Left at the default the user's own words were onSurface on
+                  // primaryContainer — a pairing nothing guarantees the
+                  // contrast of, and in practice barely readable in the light
+                  // theme.
+                  final style = theme.textTheme.bodyMedium?.copyWith(
+                    color: mine
+                        ? theme.colorScheme.onPrimaryContainer
+                        : theme.colorScheme.onSurface,
+                  );
+                  // The assistant's own turns, and only when there is actually
+                  // markup to gain by it. A model asked for a list writes one,
+                  // and this is the difference between reading a list and
+                  // reading its asterisks. The user's turns stay literal: they
+                  // typed what they typed, and quietly eating a character of
+                  // it would be the app editing their words.
+                  if (!mine && nexLooksLikeMarkdown(turn.content)) {
+                    return NexMarkdown(
+                      turn.content,
+                      style: style,
+                      // Long-press to copy belongs to the whole bubble; a
+                      // selectable child would take the gesture first.
+                      selectable: false,
+                    );
+                  }
+                  return Text(
+                    turn.content,
+                    style: style,
+                    // Either side may be in either language — the assistant
+                    // answers in whatever the output-language setting asks for.
+                    textDirection: nexDirectionOf(turn.content),
+                  );
+                },
               ),
             ),
           ),
