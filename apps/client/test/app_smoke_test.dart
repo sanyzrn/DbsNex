@@ -825,13 +825,11 @@ void main() {
     expect(theme.colorScheme.primary, isNot(NexColors.defaultAccent.light));
   });
 
-  testWidgets('swipe actions are chosen from cards, not a popup menu', (
-    tester,
-  ) async {
-    // The picker used to be a raw PopupMenuButton — Flutter's stock dropdown
-    // chrome, nothing like the cards every other choice in Settings uses.
-    // The swipe-actions row sits below the fold on the default test surface,
-    // and a scroll view only mounts what is within reach.
+  testWidgets('each swipe edge picks from a list of its own', (tester) async {
+    // The picker was a grid of preview cards, one grid per edge. That was
+    // legible at two actions and a wall at seven, so each edge became a row
+    // that opens its own list. The thing being asserted is unchanged: two
+    // independent choices, and setting one leaves the other alone.
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -845,21 +843,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PopupMenuButton<SwipeAction>), findsNothing);
-    // Both edges in the one sheet: this is the only picker that is two
-    // choices rather than one, so it stays open across both.
-    expect(find.byType(NexChoiceCards<SwipeAction>), findsNWidgets(2));
-
     expect(preferences.leadingAction, SwipeAction.addTag);
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NexChoiceCards<SwipeAction>).first,
-        matching: find.text('Nothing'),
-      ),
-    );
+
+    // One row per edge, each naming what it currently does.
+    await tester.tap(find.text('Swipe from the leading edge'));
+    await tester.pumpAndSettle();
+
+    // The whole set is offered, including the ones that arrived after the
+    // gesture stopped being a pair.
+    expect(find.text('Pin'), findsOneWidget);
+    expect(find.text('Remind'), findsOneWidget);
+
+    await tester.tap(find.text('Nothing').last);
     await tester.pumpAndSettle();
     expect(preferences.leadingAction, SwipeAction.none);
-    // The other edge is untouched — cards for one edge don't leak into
-    // the other's selection.
+    // The other edge is untouched — one edge's list does not leak into the
+    // other's selection.
     expect(preferences.trailingAction, SwipeAction.delete);
   });
 
@@ -1352,18 +1351,37 @@ void main() {
     }
   });
 
-  test('No Pin/Archive swipe actions exist', () async {
-    // The set is open now (ADR-022 revised), but it opens by deliberate
-    // addition — Pin and Archive are still not in it.
+  test('the two swipe enums stay in step', () async {
+    // The set is open (ADR-022) and it grew: Pin, Remind, Share and Ask were
+    // all things the note detail sheet could already do, brought one gesture
+    // closer. What has to hold is that the app's enum and the design system's
+    // agree — every SwipeAction except `none` needs a panel to draw, and a
+    // panel with no action behind it is a control that does nothing.
     expect(SwipeAction.values.map((e) => e.name).toList(), [
       'none',
       'delete',
       'addTag',
+      'pin',
+      'remind',
+      'share',
+      'ask',
     ]);
-    expect(NexSwipeAction.values.map((e) => e.name).toList(), [
-      'delete',
-      'addTag',
-    ]);
+    expect(
+      NexSwipeAction.values.map((e) => e.name).toSet(),
+      SwipeAction.values.map((e) => e.name).toSet()..remove('none'),
+    );
+  });
+
+  test('a stored swipe setting survives the round trip', () async {
+    // The stored value is the wire name, not the index, so adding an action
+    // in the middle of the enum cannot silently repoint someone's setting at
+    // a different one.
+    for (final action in SwipeAction.values) {
+      expect(SwipeActionWire.fromWire(action.wireName), action);
+    }
+    // A name from a newer build. Falling back to delete is the documented
+    // behaviour; what matters is that it is a real action rather than a crash.
+    expect(SwipeActionWire.fromWire('teleport'), SwipeAction.delete);
   });
 
   test('each swipe edge is set on its own (ADR-022 revised)', () async {

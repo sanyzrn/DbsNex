@@ -1660,6 +1660,68 @@ class AppLocalizationsFa extends AppLocalizations {
   String get nudgeNothing => 'امروز هنوز چیزی ننوشته‌ای.';
 
   @override
+  String get remindOverdue => 'گذشته';
+
+  @override
+  String remindWhenToday(String time) {
+    return 'امروز ساعت $time';
+  }
+
+  @override
+  String remindWhenTomorrow(String time) {
+    return 'فردا ساعت $time';
+  }
+
+  @override
+  String remindWhenOn(String date, String time) {
+    return '$date ساعت $time';
+  }
+
+  @override
+  String remindCurrent(String when) {
+    return 'تنظیم‌شده برای $when';
+  }
+
+  @override
+  String get remindChange => 'تغییر یادآور';
+
+  @override
+  String get swipeNoneHint => 'این لبه کاری نمی‌کند';
+
+  @override
+  String get swipeDeleteHint => 'یادداشت را به حذف‌شده‌های اخیر می‌برد';
+
+  @override
+  String get swipeAddTagHint => 'برای یادداشت برچسب انتخاب کن';
+
+  @override
+  String get swipePinHint => 'یادداشت را بالای تایم‌لاین نگه می‌دارد';
+
+  @override
+  String get swipeRemindHint => 'انتخاب کن کِی برگردد';
+
+  @override
+  String get swipeShareHint => 'یادداشت را به برنامهٔ دیگری بفرست';
+
+  @override
+  String get swipeAskHint => 'دستیار را روی همین یادداشت باز می‌کند';
+
+  @override
+  String get swipeLeadingEdge => 'کشیدن از چپ';
+
+  @override
+  String get swipeTrailingEdge => 'کشیدن از راست';
+
+  @override
+  String get markdownTooLarge =>
+      'برای نمایش اینجا بزرگ است — با یک برنامهٔ دیگر بازش کن.';
+
+  @override
+  String markdownUnreadable(String error) {
+    return 'این فایل خوانده نشد — $error';
+  }
+
+  @override
   String remindSetIn(String when) {
     return 'یادآور تنظیم شد — $when دیگر';
   }

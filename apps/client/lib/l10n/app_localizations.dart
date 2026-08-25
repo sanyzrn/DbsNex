@@ -2888,6 +2888,108 @@ abstract class AppLocalizations {
   /// **'Nothing written down yet today.'**
   String get nudgeNothing;
 
+  /// A reminder whose time has passed
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue'**
+  String get remindOverdue;
+
+  /// A reminder due later today
+  ///
+  /// In en, this message translates to:
+  /// **'Today at {time}'**
+  String remindWhenToday(String time);
+
+  /// A reminder due tomorrow
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow at {time}'**
+  String remindWhenTomorrow(String time);
+
+  /// A reminder due on a named date
+  ///
+  /// In en, this message translates to:
+  /// **'{date} at {time}'**
+  String remindWhenOn(String date, String time);
+
+  /// Header of the reminder picker when one is already set
+  ///
+  /// In en, this message translates to:
+  /// **'Set for {when}'**
+  String remindCurrent(String when);
+
+  /// Title of the picker when a reminder already exists
+  ///
+  /// In en, this message translates to:
+  /// **'Change reminder'**
+  String get remindChange;
+
+  /// Hint under the no-op swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'This edge does nothing'**
+  String get swipeNoneHint;
+
+  /// Hint under the delete swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Move the note to Recently Deleted'**
+  String get swipeDeleteHint;
+
+  /// Hint under the add-tag swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a tag for the note'**
+  String get swipeAddTagHint;
+
+  /// Hint under the pin swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the note at the top of the timeline'**
+  String get swipePinHint;
+
+  /// Hint under the reminder swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Choose when it should come back'**
+  String get swipeRemindHint;
+
+  /// Hint under the share swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Send the note to another app'**
+  String get swipeShareHint;
+
+  /// Hint under the ask-the-assistant swipe action
+  ///
+  /// In en, this message translates to:
+  /// **'Open the assistant on this note'**
+  String get swipeAskHint;
+
+  /// Title of the leading-edge swipe row
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe from the left'**
+  String get swipeLeadingEdge;
+
+  /// Title of the trailing-edge swipe row
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe from the right'**
+  String get swipeTrailingEdge;
+
+  /// A Markdown file past the preview size limit
+  ///
+  /// In en, this message translates to:
+  /// **'Too large to show here — open it in another app.'**
+  String get markdownTooLarge;
+
+  /// A Markdown file that failed to open, with the runtime's own message
+  ///
+  /// In en, this message translates to:
+  /// **'This file could not be read — {error}'**
+  String markdownUnreadable(String error);
+
   /// Confirms a reminder and says how far off it is
   ///
   /// In en, this message translates to:

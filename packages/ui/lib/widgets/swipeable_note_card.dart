@@ -9,15 +9,42 @@ import 'package:flutter/semantics.dart';
 import '../tokens/nex_haptics.dart';
 import '../tokens/nex_tokens.dart';
 
-enum NexSwipeAction { delete, addTag }
+/// Everything an edge can be bound to.
+///
+/// Open by construction (ADR-022). The panel draws whatever [NexSwipeActionSpec]
+/// it is handed, so adding one here costs a spec at the call site and nothing
+/// in this file.
+enum NexSwipeAction { delete, addTag, pin, remind, share, ask }
+
+/// How one action looks when a card is swiped far enough to reveal it.
+///
+/// Supplied by the app rather than decided here: the labels are localised and
+/// the colours belong to the design tokens, and this widget has no business
+/// knowing which is which.
+@immutable
+class NexSwipeActionSpec {
+  const NexSwipeActionSpec({
+    required this.action,
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
+
+  final NexSwipeAction action;
+  final String label;
+  final IconData icon;
+
+  /// The panel's fill. Every one of them carries white text, so each must
+  /// clear 4.5:1 against white — see `NexColors`.
+  final Color color;
+}
 
 /// What an edge does, where null means "nothing".
 ///
 /// An edge with no action does not move at all, so a user who only wants one
 /// gesture is not given a second one they will trigger by accident.
-
 typedef NexSwipeActionResolver =
-    NexSwipeAction? Function({required bool isLeading});
+    NexSwipeActionSpec? Function({required bool isLeading});
 
 /// Keeps at most one card open across a list.
 ///
@@ -52,14 +79,23 @@ class NexSwipeController extends ChangeNotifier {
 
 /// The fraction of the card's width, from its physical left edge, that a
 /// swipe may start from.
-const _leadingZone = 0.30;
+///
+/// It was 0.30 a side, which left a 40% dead strip down the middle — that
+/// strip existed to protect the long press that lifted a card for
+/// drag-to-reorder. Reordering is gone (the timeline is ordered by date and
+/// nothing else), so the strip was protecting nothing and the gesture was
+/// harder to find than it needed to be.
+///
+/// Most apps that swipe a list row accept the gesture from anywhere on it. The
+/// 10% left in the middle here is not that convention; it is a deliberate
+/// place to put a thumb and scroll without any chance of opening a card. If it
+/// ever reads as a gap rather than as a rest, these become 0.5 and the middle
+/// closes up.
+const _leadingZone = 0.45;
 
-/// The fraction of the card's width, from its physical right edge, that a
-/// swipe may start from — the same fraction as [_leadingZone], so neither
-/// edge gets an easier reach than the other. The rest of the card — the
-/// middle 40% — starts no swipe at all, which is also exactly the region a
-/// long press turns into a drag-to-reorder (see [SwipeableNoteCard]).
-const _trailingZone = 0.30;
+/// The same fraction from the physical right edge, so neither edge gets an
+/// easier reach than the other. See [_leadingZone].
+const _trailingZone = 0.45;
 
 /// A horizontal drag that yields to a vertical scroll.
 ///
@@ -187,10 +223,11 @@ class _MiddleZoneReorderListener extends ReorderableDelayedDragStartListener {
 ///
 /// Behaviour, in the order the problems appeared:
 ///
-/// * A resting card only starts a swipe from its outer edges — 30% of its
-///   width on each side (see [_leadingZone] and [_trailingZone]). The middle
-///   used to open on any sideways drag, which is also where a thumb
-///   naturally lands while scrolling past a card.
+/// * A resting card starts a swipe from either outer edge — 45% of its width
+///   on each side (see [_leadingZone] and [_trailingZone]), leaving a narrow
+///   strip down the middle that starts nothing. The whole card used to open on
+///   any sideways drag, which is also where a thumb naturally lands while
+///   scrolling past one.
 /// * The offset is animated by a spring rather than assigned from the raw
 ///   pointer delta, so releasing settles instead of snapping.
 /// * A gesture cannot cross the middle. Once a direction is picked, dragging
@@ -199,19 +236,15 @@ class _MiddleZoneReorderListener extends ReorderableDelayedDragStartListener {
 /// * Dragging most of the way across commits the action on release, the way
 ///   Mail on iOS does, instead of requiring a second tap on the panel.
 /// * Only one card in a list is open at a time, and a scroll closes it.
-/// * A long press on the middle zone (see [reorderIndex]) lifts the card for
-///   a drag-to-reorder, using [SliverReorderableList]'s own mechanism —
-///   releasing without moving reports the same start and end index, which is
-///   the list's cue to treat it as a tap-and-hold rather than a reorder.
+/// * Which action each edge runs is the app's business, not this widget's:
+///   [resolveAction] hands back a [NexSwipeActionSpec] and [onAction] is told
+///   which one ran.
 class SwipeableNoteCard extends StatefulWidget {
   const SwipeableNoteCard({
     super.key,
     required this.child,
     required this.resolveAction,
-    required this.onDelete,
-    required this.onAddTag,
-    required this.deleteLabel,
-    required this.addTagLabel,
+    required this.onAction,
     this.haptics = true,
     this.controller,
     this.insets = nexCardInsets,
@@ -227,10 +260,10 @@ class SwipeableNoteCard extends StatefulWidget {
   /// Defaults to the timeline card's own gutter.
   final EdgeInsets insets;
   final NexSwipeActionResolver resolveAction;
-  final VoidCallback onDelete;
-  final VoidCallback onAddTag;
-  final String deleteLabel;
-  final String addTagLabel;
+
+  /// Run when an edge's action is committed — by dragging past the commit
+  /// point, or by tapping the revealed panel.
+  final ValueChanged<NexSwipeAction> onAction;
 
   /// Off when the user has turned capture haptics off.
   final bool haptics;
@@ -253,11 +286,18 @@ const _commitFraction = 0.62;
 
 class _SwipeableNoteCardState extends State<SwipeableNoteCard>
     with SingleTickerProviderStateMixin {
-  /// Unbounded: the drag is allowed to overshoot the stop so it can rubber-band.
-  late final AnimationController _offset = AnimationController.unbounded(
-    vsync: this,
-    value: 0,
-  );
+  /// Unbounded: the drag is allowed to overshoot the stop so it can
+  /// rubber-band.
+  ///
+  /// Created in [initState] rather than by a lazy `late final` initialiser,
+  /// and that is not a style choice. A card that is disposed without ever
+  /// having been built — which a list does whenever it recycles a row it
+  /// scrolled past before laying it out — would reach `_offset.dispose()`
+  /// having never touched the field, *construct* the controller there, and
+  /// `createTicker` would then look up `TickerMode` on an element that has
+  /// already been deactivated. That is an assertion in debug and a leak in
+  /// release, for a controller nothing ever used.
+  late final AnimationController _offset;
 
   double _width = 0;
   double get _open => _width * 0.45;
@@ -270,6 +310,7 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
   @override
   void initState() {
     super.initState();
+    _offset = AnimationController.unbounded(vsync: this, value: 0);
     widget.controller?.addListener(_onControllerChanged);
   }
 
@@ -298,17 +339,14 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
 
   bool get _rtl => Directionality.of(context) == TextDirection.rtl;
 
-  String _label(NexSwipeAction action) =>
-      action == NexSwipeAction.delete ? widget.deleteLabel : widget.addTagLabel;
-
   void _tick() {
     if (widget.haptics) nexTick();
   }
 
-  void _run(NexSwipeAction action) {
+  void _run(NexSwipeActionSpec spec) {
     if (widget.haptics) nexThud();
     _close();
-    action == NexSwipeAction.delete ? widget.onDelete() : widget.onAddTag();
+    widget.onAction(spec.action);
   }
 
   /// Resistance past the point where releasing would run the action.
@@ -417,7 +455,7 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
   void _close() => _settle(0, 0);
 
   /// Which action a given offset has uncovered, in either script direction.
-  NexSwipeAction? _actionFor(double dx) {
+  NexSwipeActionSpec? _actionFor(double dx) {
     if (dx.abs() < 0.5) return null;
     final leading = _rtl ? dx < 0 : dx > 0;
     return widget.resolveAction(isLeading: leading);
@@ -437,9 +475,13 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
       builder: (context, constraints) {
         _width = constraints.maxWidth;
         Widget card = Semantics(
+          // Both edges' actions, whatever they are bound to — a swipe is not
+          // reachable without sight, so this is the only way to run them.
           customSemanticsActions: {
-            CustomSemanticsAction(label: widget.deleteLabel): widget.onDelete,
-            CustomSemanticsAction(label: widget.addTagLabel): widget.onAddTag,
+            for (final leading in const [true, false])
+              if (widget.resolveAction(isLeading: leading) case final spec?)
+                CustomSemanticsAction(label: spec.label): () =>
+                    widget.onAction(spec.action),
           },
           child: RawGestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -486,8 +528,7 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
                                 : Alignment.centerRight,
                             child: _ActionPanel(
                               width: dx.abs(),
-                              action: revealed,
-                              label: _label(revealed),
+                              spec: revealed,
                               // Past the commit point the panel says so, so the
                               // user knows letting go will act rather than open.
                               committed: dx.abs() >= _width * _commitFraction,
@@ -535,31 +576,25 @@ const _glyphRevealWidth = 54.0;
 class _ActionPanel extends StatelessWidget {
   const _ActionPanel({
     required this.width,
-    required this.action,
-    required this.label,
+    required this.spec,
     required this.committed,
     required this.theme,
     required this.onPressed,
   });
 
   final double width;
-  final NexSwipeAction action;
-  final String label;
+  final NexSwipeActionSpec spec;
   final bool committed;
   final ThemeData theme;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final destructive = action == NexSwipeAction.delete;
-    final background = destructive
-        ? NexColors.swipeDelete
-        : NexColors.swipeAddTag;
     final showGlyph = width >= _glyphRevealWidth;
     return SizedBox(
       width: width,
       child: Material(
-        color: background,
+        color: spec.color,
         // Maximum rounding at any size: StadiumBorder takes half the shorter
         // side, so a narrow panel is a vertical pill and a wide one a lozenge.
         shape: const StadiumBorder(),
@@ -578,15 +613,10 @@ class _ActionPanel extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _ActionGlyph(
-                      icon: destructive
-                          ? Icons.delete_outline
-                          : Icons.label_outline,
-                      committed: committed,
-                    ),
+                    _ActionGlyph(icon: spec.icon, committed: committed),
                     const SizedBox(height: 4),
                     Text(
-                      label,
+                      spec.label,
                       maxLines: 1,
                       overflow: TextOverflow.clip,
                       softWrap: false,

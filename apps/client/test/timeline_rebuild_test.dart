@@ -505,6 +505,39 @@ void main() {
     expect(find.text('note A'), findsOneWidget);
   });
 
+  testWidgets('folding a group animates instead of cutting to it', (
+    tester,
+  ) async {
+    await services.captureText('note A');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    final row = find.byWidgetPredicate(
+      (widget) => widget is SizeTransition,
+      description: 'a folding row',
+    );
+    final openHeight = tester.getSize(row.first).height;
+    expect(openHeight, greaterThan(0));
+
+    await tester.tap(find.text('Today'));
+    // Mid-flight, not settled. The fold used to be a jump cut: the rows were
+    // simply absent on the very next frame. They have to still be there, and
+    // shorter than they were.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 110));
+    expect(find.text('note A'), findsOneWidget);
+    final midHeight = tester.getSize(row.first).height;
+    expect(midHeight, lessThan(openHeight));
+    expect(midHeight, greaterThan(0));
+
+    // And only then does it actually go.
+    await tester.pumpAndSettle();
+    expect(find.text('note A'), findsNothing);
+  });
+
   testWidgets('a folded group stays folded across a rebuild', (tester) async {
     await services.captureText('note A');
     await services.refreshTimeline();

@@ -18,6 +18,11 @@ dependencies:
     path: ../core
   intl: ^0.20.2
   path: ^1.9.1
+  # The maintained successor to flutter_markdown, which the Flutter team
+  # discontinued and points at this. Three small dependencies, and it takes its
+  # direction from the ambient Directionality — which is what lets NexMarkdown
+  # impose the text's own direction rather than the interface's.
+  flutter_markdown_plus: ^1.0.12
 
 dev_dependencies:
   flutter_test:

@@ -328,6 +328,23 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 
 ---
 
+## ADR-032 — Markdown is rendered, by `flutter_markdown_plus`, with direction taken from the text
+
+- **Context:** Two things already arriving in Nex are Markdown and were being shown as their own source. A `.md` file shared into the app is captured as a `NoteType.file` whose body is the *filename* — the words sit in a file on disk and nothing read them back. And every answer the assistant writes is Markdown by habit: ask a model for a list and it returns one, which the chat sheet rendered as a column of asterisks. The blocker was never the parser; it was that Nex's own rule — **direction belongs to the content, not to the interface** ([`nex_text_direction.dart`](../packages/ui/lib/tokens/nex_text_direction.dart)) — has no equivalent in any Flutter Markdown package.
+- **Decision:** `packages/ui` gains `NexMarkdown`, wrapping `flutter_markdown_plus`'s `MarkdownBody` in a `Directionality` derived from `nexDirectionOf(text)`, with a style sheet built from the app's theme. It is used in exactly two places: the note detail sheet, for a file note whose extension or MIME type says Markdown; and the assistant's own chat turns, gated on `nexLooksLikeMarkdown` so ordinary prose is left literal. The user's own turns are never parsed.
+- **Rationale:** Three candidates were compared by measuring what they actually render, not by reading their descriptions — a harness pumped the same Persian document through each and recorded every `RichText`'s direction, alignment and position.
+  - `flutter_markdown_plus` — the successor pub.dev names for the discontinued `flutter_markdown`. Contains no reference to `TextDirection` at all: it follows the ambient `Directionality` completely, which is exactly the hook `NexMarkdown` needs. Under an RTL ambient the Persian list's bullets measured at x=372 of a 400px box; under LTR, x=0. Three small dependencies (`markdown`, `meta`, `path`), and the `packages/ui` closure check still passes — no `sqlite3`, `archive` or `http`.
+  - `gpt_markdown` — the only one with a real bidi implementation of its own, and the only one that **ignores the ambient direction entirely**: under an RTL ambient it still rendered LTR unless its own `textDirection` argument was passed. It also pulls `flutter_math_fork`, a LaTeX engine, which a notes app has no use for.
+  - `markdown_widget` — responds to the ambient direction, but brings `url_launcher`, `visibility_detector`, `scroll_to_index` and `highlight` for machinery (a table of contents, scroll-to-index) this does not need.
+- **Consequences and limits, written down rather than discovered later:**
+  - Direction is a **whole-document** decision. A file whose paragraphs alternate between Persian and English gets one direction for all of them. Every candidate had this property; per-block direction is a larger piece of work than the problem has yet earned.
+  - The file is read **synchronously in `initState`**, bounded at 512 KB. `dart:io`'s async API cannot complete inside a widget test's fake-async zone, and the sheet around it already calls `existsSync`/`lengthSync` to print the file's size — a bounded sync read on open, cached in state, is both honest and testable. Past the cap the file is named but not rendered, and says so.
+  - Chat bubbles render **non-selectable**: that surface copies a whole message on long-press, and a selectable child takes the gesture first.
+- **Alternatives Considered:** Writing a small renderer for a Markdown subset — kept in reserve for the day a package's RTL behaviour becomes the problem, but not paid for while a maintained one behaves correctly under a `Directionality` we control.
+- **Status:** Accepted at v0.9.8.
+
+---
+
 ## Decision-Making Heuristic
 
 When facing a new choice, run it through the product's filter:

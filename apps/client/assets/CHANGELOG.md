@@ -34,6 +34,43 @@ Working convention:
 
 ## Unreleased
 
+## v0.9.8
+
+- A reminder that has been set says when it is for. The card carries how long
+  is left — "in 2 hours", "in 3 days", or "Overdue" — and opening the reminder
+  shows the exact day and time above the choices that would replace it. It used
+  to be a bell and nothing else, so the only thing you could do to a reminder
+  you could not read was delete it.
+- The swipe on a card starts from almost anywhere on it. It used to need the
+  outer third of either edge — a strip that existed to protect the long press
+  that lifted a card for reordering, and reordering is gone. Now it is 45% from
+  each side, leaving a narrow band down the middle that starts nothing, so
+  there is still somewhere to put a thumb and scroll.
+- A swipe can do more than delete or tag. Pin, Remind, Share and Ask the
+  assistant join the list — everything the note detail sheet could already do,
+  one gesture closer. Settings shows each edge as a row saying what it does
+  now, with the whole list behind it; two grids of preview cards was fine at
+  two actions and a wall at six.
+- The date headings line up with the notes under them, sit further from the
+  rows around them, and fold with an animation instead of a jump cut. A run
+  closing now shrinks away; one opening grows in.
+- The timeline is quieter: more space between cards, and the shadow under each
+  one is gone. The card's own fill carries the boundary now, and the dark
+  theme's page colour was deepened to keep that boundary visible without it.
+- A photo no longer goes straight into the cropper. It opens on the photo
+  itself with two buttons — use it, or edit it first — because most photos need
+  no edit and putting one in the way of every capture made it a toll. The
+  editor's own controls moved to the bottom of the screen at a size a thumb can
+  reach, instead of small icons in the top corner.
+- A Markdown file opens in Nex instead of only being listed. Share a `.md` into
+  the app and the note shows the document itself — headings, lists, quotes,
+  tables and code — under the filename, laid out in the direction the file is
+  written in rather than the direction the app is set to. Very large files are
+  still named rather than rendered, and say why.
+- The assistant's answers are formatted. It has always written lists and bold
+  text; you were reading the asterisks. Your own messages are left exactly as
+  you typed them.
+
 ## v0.9.7
 
 - The timeline is grouped by date — Today, Yesterday, Last week, Last month,

@@ -16,6 +16,21 @@ Future<void> _dragCard(WidgetTester tester, Finder finder, double dx) {
   return tester.dragFrom(Offset(x, y), Offset(dx, 0));
 }
 
+/// The two the tests bind their edges to. The widget no longer knows what an
+/// action is called or what colour it is — the app tells it, and so do these.
+const _deleteSpec = NexSwipeActionSpec(
+  action: NexSwipeAction.delete,
+  label: 'Delete',
+  icon: Icons.delete_outline,
+  color: NexColors.swipeDelete,
+);
+const _tagSpec = NexSwipeActionSpec(
+  action: NexSwipeAction.addTag,
+  label: 'Add Tag',
+  icon: Icons.label_outline,
+  color: NexColors.swipeAddTag,
+);
+
 void main() {
   testWidgets('swipe reveals an action and tapping it fires the callback', (
     tester,
@@ -29,12 +44,11 @@ void main() {
           body: SizedBox(
             width: 400,
             child: SwipeableNoteCard(
-              deleteLabel: 'Delete',
-              addTagLabel: 'Add Tag',
               resolveAction: ({required bool isLeading}) =>
-                  isLeading ? NexSwipeAction.addTag : NexSwipeAction.delete,
-              onDelete: () => deleted = true,
-              onAddTag: () => tagged = true,
+                  isLeading ? _tagSpec : _deleteSpec,
+              onAction: (action) => action == NexSwipeAction.delete
+                  ? (() => deleted = true)()
+                  : (() => tagged = true)(),
               child: const SizedBox(
                 height: 80,
                 width: double.infinity,
@@ -81,12 +95,10 @@ void main() {
             body: SizedBox(
               width: 400,
               child: SwipeableNoteCard(
-                deleteLabel: 'Delete',
-                addTagLabel: 'Add Tag',
                 resolveAction: ({required bool isLeading}) =>
-                    isLeading ? NexSwipeAction.addTag : NexSwipeAction.delete,
-                onDelete: () {},
-                onAddTag: () {},
+                    isLeading ? _tagSpec : _deleteSpec,
+                onAction: (action) =>
+                    action == NexSwipeAction.delete ? (() {})() : (() {})(),
                 child: const SizedBox(
                   height: 80,
                   width: double.infinity,
@@ -130,12 +142,9 @@ void main() {
           body: SizedBox(
             width: 400,
             child: SwipeableNoteCard(
-              deleteLabel: 'Delete',
-              addTagLabel: 'Add Tag',
-              resolveAction: ({required bool isLeading}) =>
-                  NexSwipeAction.delete,
-              onDelete: () {},
-              onAddTag: () {},
+              resolveAction: ({required bool isLeading}) => _deleteSpec,
+              onAction: (action) =>
+                  action == NexSwipeAction.delete ? (() {})() : (() {})(),
               child: const SizedBox(
                 height: 80,
                 width: double.infinity,
@@ -169,12 +178,11 @@ void main() {
           body: SizedBox(
             width: 400,
             child: SwipeableNoteCard(
-              deleteLabel: 'Delete',
-              addTagLabel: 'Add Tag',
               resolveAction: ({required bool isLeading}) =>
-                  isLeading ? NexSwipeAction.addTag : NexSwipeAction.delete,
-              onDelete: () => deleted = true,
-              onAddTag: () => tagged = true,
+                  isLeading ? _tagSpec : _deleteSpec,
+              onAction: (action) => action == NexSwipeAction.delete
+                  ? (() => deleted = true)()
+                  : (() => tagged = true)(),
               child: const SizedBox(
                 height: 80,
                 width: double.infinity,
@@ -218,12 +226,10 @@ void main() {
           body: SizedBox(
             width: 400,
             child: SwipeableNoteCard(
-              deleteLabel: 'Delete',
-              addTagLabel: 'Add Tag',
-              resolveAction: ({required bool isLeading}) =>
-                  NexSwipeAction.delete,
-              onDelete: () => deleted = true,
-              onAddTag: () {},
+              resolveAction: ({required bool isLeading}) => _deleteSpec,
+              onAction: (action) => action == NexSwipeAction.delete
+                  ? (() => deleted = true)()
+                  : (() {})(),
               child: const SizedBox(
                 height: 80,
                 width: double.infinity,
@@ -258,12 +264,9 @@ void main() {
             body: SizedBox(
               width: 400,
               child: SwipeableNoteCard(
-                deleteLabel: 'Delete',
-                addTagLabel: 'Add Tag',
-                resolveAction: ({required bool isLeading}) =>
-                    NexSwipeAction.delete,
-                onDelete: () {},
-                onAddTag: () {},
+                resolveAction: ({required bool isLeading}) => _deleteSpec,
+                onAction: (action) =>
+                    action == NexSwipeAction.delete ? (() {})() : (() {})(),
                 child: const SizedBox(
                   height: 80,
                   width: double.infinity,
@@ -375,12 +378,10 @@ void main() {
           body: SizedBox(
             width: 400,
             child: SwipeableNoteCard(
-              deleteLabel: 'Delete',
-              addTagLabel: 'Add Tag',
-              resolveAction: ({required bool isLeading}) =>
-                  NexSwipeAction.delete,
-              onDelete: () => deleted = true,
-              onAddTag: () {},
+              resolveAction: ({required bool isLeading}) => _deleteSpec,
+              onAction: (action) => action == NexSwipeAction.delete
+                  ? (() => deleted = true)()
+                  : (() {})(),
               child: NoteCard(
                 note: Note(
                   id: 'n1',
@@ -424,12 +425,9 @@ void main() {
           body: SizedBox(
             width: 400,
             child: SwipeableNoteCard(
-              deleteLabel: 'Delete',
-              addTagLabel: 'Add Tag',
-              resolveAction: ({required bool isLeading}) =>
-                  NexSwipeAction.delete,
-              onDelete: () {},
-              onAddTag: () {},
+              resolveAction: ({required bool isLeading}) => _deleteSpec,
+              onAction: (action) =>
+                  action == NexSwipeAction.delete ? (() {})() : (() {})(),
               child: const SizedBox(
                 height: 80,
                 width: double.infinity,
@@ -470,12 +468,9 @@ void main() {
                   key: ValueKey(index),
                   child: SwipeableNoteCard(
                     reorderIndex: index,
-                    deleteLabel: 'Delete',
-                    addTagLabel: 'Add Tag',
-                    resolveAction: ({required bool isLeading}) =>
-                        NexSwipeAction.delete,
-                    onDelete: () {},
-                    onAddTag: () {},
+                    resolveAction: ({required bool isLeading}) => _deleteSpec,
+                    onAction: (action) =>
+                        action == NexSwipeAction.delete ? (() {})() : (() {})(),
                     child: SizedBox(
                       height: 80,
                       width: double.infinity,
@@ -551,12 +546,10 @@ void main() {
                     width: 400,
                     child: SwipeableNoteCard(
                       reorderIndex: 0,
-                      deleteLabel: 'Delete',
-                      addTagLabel: 'Add Tag',
-                      resolveAction: ({required bool isLeading}) =>
-                          NexSwipeAction.delete,
-                      onDelete: () {},
-                      onAddTag: () {},
+                      resolveAction: ({required bool isLeading}) => _deleteSpec,
+                      onAction: (action) => action == NexSwipeAction.delete
+                          ? (() {})()
+                          : (() {})(),
                       child: GestureDetector(
                         onTap: () => tapped = true,
                         child: const SizedBox(

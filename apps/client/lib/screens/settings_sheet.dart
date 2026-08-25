@@ -9,6 +9,7 @@ import '../widgets/choice_cards.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_time_picker.dart';
+import '../widgets/swipe_actions.dart';
 import '../widgets/tag_color_picker.dart';
 import '../platform/ai_provider.dart';
 import '../platform/daily_nudge.dart';
@@ -21,13 +22,6 @@ import 'backup_screen.dart';
 import 'assistant_screen.dart';
 import 'intelligence_screen.dart';
 import 'update_sheet.dart';
-
-String _swipeLabel(AppLocalizations l10n, SwipeAction action) =>
-    switch (action) {
-      SwipeAction.none => l10n.swipeNone,
-      SwipeAction.delete => l10n.delete,
-      SwipeAction.addTag => l10n.addTag,
-    };
 
 /// The v1 preference surface.
 ///
@@ -378,8 +372,8 @@ class SettingsSheet extends StatelessWidget {
           icon: Icons.swipe_outlined,
           title: l10n.swipeActions,
           value:
-              '${_swipeLabel(l10n, preferences.leadingAction)} · '
-              '${_swipeLabel(l10n, preferences.trailingAction)}',
+              '${nexSwipeActionLabel(l10n, preferences.leadingAction)} · '
+              '${nexSwipeActionLabel(l10n, preferences.trailingAction)}',
           onTap: () => unawaited(
             nexShowSheet<void>(
               context: context,
@@ -1052,13 +1046,18 @@ Future<bool> editDisplayName(
   return true;
 }
 
-/// The FR-2.7 swipe mapping.
+/// The FR-2.7 swipe mapping, as two rows rather than two grids.
 ///
-/// ADR-022 fixes the action set at exactly Delete and Add Tag; the only choice
-/// is which edge does which. Showing the live mapping makes that choice
-/// legible — the bare "swap" tile gave no way to tell what the current state
-/// even was, and because the settings sheet is stateless, swapping did not
-/// even repaint. This owns its own state so the rows update on the spot.
+/// ADR-022 always said the action set was open; for a long time it held two
+/// members, and two grids of two cards each was a fine way to show them. At
+/// seven it is not — fourteen preview cards stacked in a sheet is a wall, and
+/// the thing being chosen (which of *these* does that edge do) stops being
+/// legible somewhere around the fifth.
+///
+/// So each edge is one row saying what it currently does, and the choice moves
+/// behind it into a list. That is the shape every settings screen uses for a
+/// list that can grow, and it means the next action costs one entry rather
+/// than another row of cards.
 class _SwipeMapping extends StatefulWidget {
   const _SwipeMapping({required this.preferences});
 
@@ -1069,13 +1068,32 @@ class _SwipeMapping extends StatefulWidget {
 }
 
 class _SwipeMappingState extends State<_SwipeMapping> {
-  Future<void> _select({
-    required bool isLeading,
-    required SwipeAction action,
-  }) async {
+  Future<void> _choose({required bool isLeading}) async {
+    final l10n = AppLocalizations.of(context);
+    final current = isLeading
+        ? widget.preferences.leadingAction
+        : widget.preferences.trailingAction;
+    final picked = await nexShowSheet<SwipeAction>(
+      context: context,
+      builder: (sheetContext) => _PickerSheet(
+        title: isLeading ? l10n.swipeLeadingEdge : l10n.swipeTrailingEdge,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final action in SwipeAction.values)
+              _SwipeChoiceRow(
+                action: action,
+                selected: action == current,
+                onTap: () => Navigator.pop(sheetContext, action),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked == null) return;
     await widget.preferences.setSwipeAction(
       isLeading: isLeading,
-      action: action,
+      action: picked,
     );
     if (mounted) setState(() {});
   }
@@ -1086,64 +1104,133 @@ class _SwipeMappingState extends State<_SwipeMapping> {
     // The leading edge is the left in LTR and the right in RTL, so the arrow
     // that describes the gesture has to follow the reading direction.
     final rtl = Directionality.of(context) == TextDirection.rtl;
-    // Shared between both edges: a choice's value carries no per-edge state,
-    // only which edge is "selected" differs.
-    final choices = [
-      for (final action in SwipeAction.values)
-        NexChoice(
-          value: action,
-          label: _swipeLabel(l10n, action),
-          preview: _SwipeActionPreview(action: action),
-        ),
-    ];
-    Widget edge(IconData icon, String label) => Padding(
-      padding: const EdgeInsets.only(bottom: NexSpacing.sm),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: Theme.of(context).colorScheme.secondary),
-          const SizedBox(width: NexSpacing.sm),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-        ],
-      ),
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        edge(rtl ? Icons.arrow_back : Icons.arrow_forward, l10n.swipeLeading),
-        NexChoiceCards<SwipeAction>(
-          selected: widget.preferences.leadingAction,
-          onSelected: (action) => _select(isLeading: true, action: action),
-          choices: choices,
+        _SwipeEdgeRow(
+          arrow: rtl ? Icons.arrow_back : Icons.arrow_forward,
+          label: l10n.swipeLeading,
+          action: widget.preferences.leadingAction,
+          onTap: () => unawaited(_choose(isLeading: true)),
         ),
-        const SizedBox(height: NexSpacing.md),
-        edge(rtl ? Icons.arrow_forward : Icons.arrow_back, l10n.swipeTrailing),
-        NexChoiceCards<SwipeAction>(
-          selected: widget.preferences.trailingAction,
-          onSelected: (action) => _select(isLeading: false, action: action),
-          choices: choices,
+        const SizedBox(height: NexSpacing.sm),
+        _SwipeEdgeRow(
+          arrow: rtl ? Icons.arrow_forward : Icons.arrow_back,
+          label: l10n.swipeTrailing,
+          action: widget.preferences.trailingAction,
+          onTap: () => unawaited(_choose(isLeading: false)),
         ),
       ],
     );
   }
 }
 
-IconData _swipeIcon(SwipeAction action) => switch (action) {
-  SwipeAction.none => Icons.block,
-  SwipeAction.delete => Icons.delete_outline,
-  SwipeAction.addTag => Icons.label_outline,
-};
+/// One edge, saying what it does now and opening the list that changes it.
+class _SwipeEdgeRow extends StatelessWidget {
+  const _SwipeEdgeRow({
+    required this.arrow,
+    required this.label,
+    required this.action,
+    required this.onTap,
+  });
 
-Color _swipeColor(ThemeData theme, SwipeAction action) => switch (action) {
-  SwipeAction.none => theme.colorScheme.outline,
-  SwipeAction.delete => theme.colorScheme.error,
-  SwipeAction.addTag => theme.colorScheme.secondary,
-};
+  final IconData arrow;
+  final String label;
+  final SwipeAction action;
+  final VoidCallback onTap;
 
-/// A swipe action's card preview: the same tinted-circle language the
-/// theme/language pickers already use, coloured per action so Delete reads
-/// as destructive and Add tag doesn't.
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(NexRadius.md),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          nexTick();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: NexSpacing.md,
+            vertical: NexSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              Icon(arrow, size: 16, color: theme.colorScheme.secondary),
+              const SizedBox(width: NexSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: theme.textTheme.bodySmall),
+                    Text(
+                      nexSwipeActionLabel(l10n, action),
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+              _SwipeActionPreview(action: action),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One action in the picker: its glyph, its name, and one line saying what it
+/// does — because "Pin" and "Share" explain themselves and "Ask" does not.
+class _SwipeChoiceRow extends StatelessWidget {
+  const _SwipeChoiceRow({
+    required this.action,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final SwipeAction action;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: _SwipeActionPreview(action: action),
+      title: Text(nexSwipeActionLabel(l10n, action)),
+      subtitle: Text(
+        nexSwipeActionHint(l10n, action),
+        style: theme.textTheme.bodySmall,
+      ),
+      trailing: selected
+          ? Icon(Icons.check, color: theme.colorScheme.primary)
+          : null,
+      selected: selected,
+      onTap: () {
+        nexTick();
+        onTap();
+      },
+    );
+  }
+}
+
+/// The colour a swipe action wears in Settings.
+///
+/// The panel's own fill, dimmed onto a tinted disc, so the row in Settings and
+/// the panel the gesture reveals are recognisably the same thing. [SwipeAction
+/// .none] has no panel and no fill, so it borrows the outline.
+Color _swipeColor(BuildContext context, SwipeAction action) =>
+    nexSwipeSpec(AppLocalizations.of(context), action)?.color ??
+    Theme.of(context).colorScheme.outline;
+
+/// A swipe action's glyph on its tinted disc — the same language the theme and
+/// language pickers use.
 class _SwipeActionPreview extends StatelessWidget {
   const _SwipeActionPreview({required this.action});
 
@@ -1151,16 +1238,16 @@ class _SwipeActionPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _swipeColor(Theme.of(context), action);
+    final color = _swipeColor(context, action);
     return Container(
       width: 40,
       height: 40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color.withValues(alpha: 0.12),
+        color: color.withValues(alpha: 0.14),
       ),
-      child: Icon(_swipeIcon(action), size: 20, color: color),
+      child: Icon(nexSwipeActionIcon(action), size: 20, color: color),
     );
   }
 }

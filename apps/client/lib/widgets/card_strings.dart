@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import 'due_label.dart';
 
 /// The card's screen-reader strings, in the language the user chose.
 ///
@@ -27,5 +28,6 @@ NexCardStrings nexCardStrings(BuildContext context) {
       NexRelativeUnit.months => l10n.timeMonthsAgo(time.count),
       NexRelativeUnit.years => l10n.timeYearsAgo(time.count),
     },
+    dueLabel: (due) => nexDueCountdown(l10n, due),
   );
 }
