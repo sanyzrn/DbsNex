@@ -1577,6 +1577,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantContext => 'یادداشت‌هایی که می‌بیند';
 
   @override
+  String get assistantContextSlow =>
+      'فرستادن ۱۰۰ یادداشت یا بیشتر هر سؤال را کندتر می‌کند — مدل قبل از جواب دادن همه‌شان را می‌خواند. روی مدل روی گوشی خیلی محسوس است.';
+
+  @override
   String get assistantContextNone => 'هیچ‌کدام';
 
   @override
@@ -1625,6 +1629,35 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get remindClear => 'حذف یادآوری';
+
+  @override
+  String get nudgeTitle => 'یادآور روزانه';
+
+  @override
+  String get nudgeSubtitle =>
+      'روزی یک نوتیفیکیشن، سر ساعتی که خودت انتخاب می‌کنی';
+
+  @override
+  String get nudgeTime => 'ساعت';
+
+  @override
+  String get notifications => 'اعلان‌ها';
+
+  @override
+  String nudgeGreetingMorning(String name) {
+    return 'صبح بخیر، $name';
+  }
+
+  @override
+  String nudgeGreetingDay(String name) {
+    return 'سلام، $name';
+  }
+
+  @override
+  String get nudgeGreetingPlain => 'Nex';
+
+  @override
+  String get nudgeNothing => 'امروز هنوز چیزی ننوشته‌ای.';
 
   @override
   String remindSetIn(String when) {

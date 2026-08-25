@@ -609,10 +609,25 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The offered sizes. Bounded rather than free-typed: past a few dozen
-  /// notes the prompt is mostly cost and the model's attention is worse, not
-  /// better.
-  static const aiNotesContextChoices = [0, 10, 20, 50];
+  /// The offered sizes.
+  ///
+  /// Bounded rather than free-typed, and the ceiling is a real one. Reading
+  /// *everything* sounds like the strictly better answer and is not: the model
+  /// has to read the whole prompt before it writes a word, and on the
+  /// on-device model that cost is the visible one — the same lag a long
+  /// translation has. It grows with every note, on every question, including
+  /// the short ones.
+  ///
+  /// Attention does not improve with length either. Past a few dozen notes a
+  /// model is likelier to answer from the wrong one, not the right one.
+  ///
+  /// So the big sizes are offered and labelled as slow rather than withheld.
+  /// The answer that actually scales is to search first and send only what
+  /// matches, which is its own piece of work and not this setting.
+  static const aiNotesContextChoices = [0, 10, 20, 50, 100, 200];
+
+  /// Sizes worth warning about before they are chosen.
+  static bool aiNotesContextIsSlow(int count) => count >= 100;
 
   /* --------------------------------------------------------- Saved searches */
 
@@ -622,6 +637,29 @@ class NexPreferences extends ChangeNotifier {
   /// and `type:` are part of the box: one line captures the terms and the
   /// filters together, survives a tag being renamed as gracefully as anything
   /// could, and needs no schema.
+  /* ------------------------------------------------------- Daily nudge */
+
+  /// Whether Nex sends one notification a day.
+  ///
+  /// Off by default. A notes app that starts notifying without being asked is
+  /// one people turn notifications off for entirely, which costs the reminders
+  /// they actually set.
+  bool get dailyNudge => _prefs.getBool('nudge.on') ?? false;
+
+  Future<void> setDailyNudge(bool value) async {
+    await _prefs.setBool('nudge.on', value);
+    notifyListeners();
+  }
+
+  /// When it arrives, as minutes past midnight. Nine in the morning until
+  /// someone says otherwise.
+  int get dailyNudgeMinutes => _prefs.getInt('nudge.at') ?? 9 * 60;
+
+  Future<void> setDailyNudgeMinutes(int value) async {
+    await _prefs.setInt('nudge.at', value.clamp(0, 24 * 60 - 1));
+    notifyListeners();
+  }
+
   /* ------------------------------------------------- Timeline date groups */
 
   /// Date groups the timeline is showing folded away.
@@ -685,6 +723,25 @@ class NexPreferences extends ChangeNotifier {
   }) async {
     await _prefs.setString('ai.daySummary.text', text);
     await _prefs.setString('ai.daySummary.date', dateKey);
+  }
+
+  /// The key a recap is filed under: the local calendar day it describes.
+  static String daySummaryDateKey(DateTime when) =>
+      '${when.year.toString().padLeft(4, '0')}-'
+      '${when.month.toString().padLeft(2, '0')}-'
+      '${when.day.toString().padLeft(2, '0')}';
+
+  /// The recap only if it is today's.
+  ///
+  /// The daily notification is scheduled while the app is open and arrives
+  /// while it is not, so whatever it says was written down beforehand. That
+  /// makes the stale case worth spelling out: a summary of yesterday
+  /// delivered as this morning's is worse than the app admitting it has
+  /// nothing yet.
+  String? get todaysRecap {
+    final text = aiDaySummaryText;
+    if (text == null || text.isEmpty) return null;
+    return aiDaySummaryDate == daySummaryDateKey(DateTime.now()) ? text : null;
   }
 
   /// The timeline's one-line headline, cached the same way and for the same

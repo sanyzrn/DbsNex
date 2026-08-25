@@ -20,9 +20,10 @@ void main() {
   final en = load('lib/l10n/app_en.arb');
   final fa = load('lib/l10n/app_fa.arb');
 
-  // Identical in both locales on purpose: the product name, and URLs, which
-  // are not words in any language.
-  const untranslatable = {'appTitle', 'syncServerHint'};
+  // Identical in both locales on purpose: the product name — including where
+  // it stands in for a name Nex does not have, as the daily notification's
+  // title does — and URLs, which are not words in any language.
+  const untranslatable = {'appTitle', 'syncServerHint', 'nudgeGreetingPlain'};
 
   test('every English message has a Persian one', () {
     expect(en.keys.toSet().difference(fa.keys.toSet()), isEmpty);

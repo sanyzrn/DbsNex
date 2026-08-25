@@ -11,6 +11,7 @@ import 'package:record/record.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/ai_provider.dart';
 import '../platform/capture_failure.dart';
+import '../platform/daily_nudge.dart';
 import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -179,7 +180,13 @@ class TimelineScreenState extends State<TimelineScreen> {
     unawaited(_loadFilterTags());
     // After the first frame, because every stop measures a real widget and
     // none of them has been laid out yet at this point.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeStartTour();
+      // Also here, not only where the recap resolves: the notification is
+      // scheduled for people with no AI provider too, and for them nothing
+      // else on this screen would ever re-arm it.
+      _refreshDailyNudge();
+    });
   }
 
   /// Shows the walk-through once, on the first timeline after onboarding.
@@ -293,6 +300,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     if (text != null && text.isNotEmpty) {
       unawaited(prefs.setAiDaySummary(text: text, dateKey: today));
     }
+    _refreshDailyNudge();
   }
 
   /// Which language the generated line has to be written in.
@@ -401,11 +409,26 @@ class TimelineScreenState extends State<TimelineScreen> {
     });
   }
 
-  String _aiSummaryDateKey() {
-    final now = DateTime.now();
-    return '${now.year.toString().padLeft(4, '0')}-'
-        '${now.month.toString().padLeft(2, '0')}-'
-        '${now.day.toString().padLeft(2, '0')}';
+  String _aiSummaryDateKey() =>
+      NexPreferences.daySummaryDateKey(DateTime.now());
+
+  /// Re-arms the once-a-day notification with whatever Nex knows right now.
+  ///
+  /// Every open, not once at setup. The notification repeats daily on its own
+  /// — that part the system handles — but its text is fixed at the moment it
+  /// was scheduled, and the recap it carries is a day old by the next
+  /// morning. So the schedule is rewritten each time the app is in a position
+  /// to know something newer, which is here.
+  void _refreshDailyNudge() {
+    if (!mounted || !widget.preferences.dailyNudge) return;
+    unawaited(
+      DailyNudge.apply(
+        context: context,
+        preferences: widget.preferences,
+        reminders: widget.services.reminders,
+        recap: widget.preferences.todaysRecap,
+      ),
+    );
   }
 
   /// The most recent notes' own text, newest first — plenty for a recap to

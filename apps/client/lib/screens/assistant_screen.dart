@@ -167,6 +167,20 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   ),
               ],
             ),
+            // Shown only once a big size is actually chosen. A permanent
+            // warning under a control most people leave at 20 is noise; the
+            // same sentence at the moment it applies is information.
+            if (NexPreferences.aiNotesContextIsSlow(
+              preferences.aiNotesContextCount,
+            )) ...[
+              const SizedBox(height: NexSpacing.sm),
+              Text(
+                l10n.assistantContextSlow,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
             const SizedBox(height: NexSpacing.md),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

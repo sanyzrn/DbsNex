@@ -1578,6 +1578,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantContext => 'Notes it can see';
 
   @override
+  String get assistantContextSlow =>
+      'Sending 100 notes or more makes every question slower — the model reads all of them before it answers. On the on-device model it is very noticeable.';
+
+  @override
   String get assistantContextNone => 'None';
 
   @override
@@ -1626,6 +1630,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remindClear => 'Remove reminder';
+
+  @override
+  String get nudgeTitle => 'Daily nudge';
+
+  @override
+  String get nudgeSubtitle => 'One notification a day, at a time you choose';
+
+  @override
+  String get nudgeTime => 'Time';
+
+  @override
+  String get notifications => 'Notifications';
+
+  @override
+  String nudgeGreetingMorning(String name) {
+    return 'Good morning, $name';
+  }
+
+  @override
+  String nudgeGreetingDay(String name) {
+    return 'Hello, $name';
+  }
+
+  @override
+  String get nudgeGreetingPlain => 'Nex';
+
+  @override
+  String get nudgeNothing => 'Nothing written down yet today.';
 
   @override
   String remindSetIn(String when) {

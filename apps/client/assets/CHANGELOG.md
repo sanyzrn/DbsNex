@@ -65,6 +65,15 @@ Working convention:
 - The date and time pickers look like the phone's own again. Nex's text-size
   setting was being applied to them, and a dial laid out at fixed sizes does
   not survive that.
+- A once-a-day notification, off until you turn it on in Settings under
+  Notifications, at a time you pick. It opens with your name and carries the
+  day's recap under it. What it can say is whatever Nex last knew: the
+  notification arrives while the app is closed, so the line is written the last
+  time you had it open rather than at the moment it appears.
+- The assistant can read more of your notes. It stopped at fifty; a hundred and
+  two hundred are now offered, and picking one of those says what it costs —
+  every question gets slower, because the model reads all of them before it
+  answers, and on the on-device model it is very noticeable.
 
 ## v0.9.6
 

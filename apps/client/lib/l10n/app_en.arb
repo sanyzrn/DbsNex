@@ -1493,6 +1493,8 @@
   "@assistantContext": {
     "description": "How many recent notes are sent with each question"
   },
+  "assistantContextSlow": "Sending 100 notes or more makes every question slower — the model reads all of them before it answers. On the on-device model it is very noticeable.",
+  "@assistantContextSlow": {"description": "Warning under the assistant's context-size choice"},
   "assistantContextNone": "None",
   "@assistantContextNone": {
     "description": "Zero notes shared with the assistant"
@@ -1562,6 +1564,28 @@
   "@remindClear": {
     "description": "Clears the note's reminder"
   },
+  "nudgeTitle": "Daily nudge",
+  "@nudgeTitle": {"description": "Settings row for the once-a-day notification"},
+  "nudgeSubtitle": "One notification a day, at a time you choose",
+  "@nudgeSubtitle": {"description": "Explains the daily nudge"},
+  "nudgeTime": "Time",
+  "@nudgeTime": {"description": "The row that opens the daily nudge's time picker"},
+  "notifications": "Notifications",
+  "@notifications": {"description": "Settings section for notifications"},
+  "nudgeGreetingMorning": "Good morning, {name}",
+  "@nudgeGreetingMorning": {
+    "description": "Notification title before noon",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "nudgeGreetingDay": "Hello, {name}",
+  "@nudgeGreetingDay": {
+    "description": "Notification title the rest of the day",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "nudgeGreetingPlain": "Nex",
+  "@nudgeGreetingPlain": {"description": "Notification title when there is no name"},
+  "nudgeNothing": "Nothing written down yet today.",
+  "@nudgeNothing": {"description": "Notification body when there is no recap"},
   "remindSetIn": "Reminder set — {when} from now",
   "@remindSetIn": {
     "description": "Confirms a reminder and says how far off it is",

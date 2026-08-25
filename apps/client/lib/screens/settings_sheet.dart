@@ -8,8 +8,10 @@ import '../l10n/app_localizations.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/nex_time_picker.dart';
 import '../widgets/tag_color_picker.dart';
 import '../platform/ai_provider.dart';
+import '../platform/daily_nudge.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/update_service.dart';
@@ -122,6 +124,41 @@ class SettingsSheet extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// Turns the daily notification on or off.
+  ///
+  /// The permission request comes with the switch rather than at launch: this
+  /// is the first thing in Nex that asks to notify without being told to by a
+  /// specific note, so it is the first honest place to ask. Turning it off
+  /// asks nothing and cancels what was scheduled.
+  Future<void> _setNudge(BuildContext context, bool value) async {
+    await preferences.setDailyNudge(value);
+    if (value) await services.reminders.requestPermission();
+    if (!context.mounted) return;
+    await DailyNudge.apply(
+      context: context,
+      preferences: preferences,
+      reminders: services.reminders,
+      recap: preferences.todaysRecap,
+    );
+  }
+
+  Future<void> _pickNudgeTime(BuildContext context) async {
+    final minutes = preferences.dailyNudgeMinutes;
+    final picked = await nexPickTime(
+      context,
+      initial: TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
+    );
+    if (picked == null) return;
+    await preferences.setDailyNudgeMinutes(picked.hour * 60 + picked.minute);
+    if (!context.mounted) return;
+    await DailyNudge.apply(
+      context: context,
+      preferences: preferences,
+      reminders: services.reminders,
+      recap: preferences.todaysRecap,
     );
   }
 
@@ -356,6 +393,31 @@ class SettingsSheet extends StatelessWidget {
             ),
           ),
         ),
+      ],
+    ),
+    _Section(
+      title: l10n.notifications,
+      children: [
+        _SwitchRow(
+          icon: Icons.notifications_active_outlined,
+          title: l10n.nudgeTitle,
+          subtitle: l10n.nudgeSubtitle,
+          value: preferences.dailyNudge,
+          onChanged: (next) => unawaited(_setNudge(context, next)),
+        ),
+        // Only once it is on. A time picker for a notification that is not
+        // being sent is a control with nothing behind it, and the row it
+        // would sit under already says what turning it on gets you.
+        if (preferences.dailyNudge)
+          _Row(
+            icon: Icons.schedule_outlined,
+            title: l10n.nudgeTime,
+            value: TimeOfDay(
+              hour: preferences.dailyNudgeMinutes ~/ 60,
+              minute: preferences.dailyNudgeMinutes % 60,
+            ).format(context),
+            onTap: () => unawaited(_pickNudgeTime(context)),
+          ),
       ],
     ),
     _Section(
