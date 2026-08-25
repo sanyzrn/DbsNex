@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+- The timeline is grouped by date — Today, Yesterday, Last week, Last month,
+  Older — and each heading folds. A folded group says how many notes are under
+  it, and stays folded until you open it, including after you close the app.
+- Notes can no longer be dragged into a hand-made order, and the order is
+  always the dates. A heading that says "Yesterday" has to be telling the
+  truth about every note beneath it, and a hand-placed note lands in whichever
+  group it was dropped next to. A pinned note keeps its place at the top,
+  under its own heading.
 - Reminders arrive on time. They were scheduled as approximate alarms, which
   Android is free to defer for hours while the phone is idle — so a note due at
   nine could turn up at lunchtime, or not that day. Nex now asks for the same

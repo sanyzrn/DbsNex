@@ -8,7 +8,6 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
-import '../feature_flags.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/ai_provider.dart';
 import '../platform/capture_failure.dart';
@@ -72,11 +71,12 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// Keeps one card open at a time and lets a scroll close it.
   final NexSwipeController _swipe = NexSwipeController();
 
-  /// The index [_onReorderStart] captured, compared against the index
-  /// [_onReorderEnd] is handed to tell a hold-and-release apart from an
-  /// actual drag — see the doc comment on [_onReorderEnd] for why this has
-  /// to be a direct index comparison rather than waiting on [_onReorder].
-  int? _reorderStartIndex;
+  /// Date groups the user has folded away, by their stable key.
+  ///
+  /// Persisted rather than kept for the session: someone who collapses "Last
+  /// month" has said something about how they want the list to look, and
+  /// having it spring open on the next launch means saying it again every day.
+  Set<String> _collapsedGroups = const {};
   List<Tag> filterTags = const [];
   String? selectedTagId;
   NoteType? selectedType;
@@ -148,6 +148,7 @@ class TimelineScreenState extends State<TimelineScreen> {
   @override
   void initState() {
     super.initState();
+    _collapsedGroups = widget.preferences.collapsedTimelineGroups;
     subscription = widget.services.timelineStream.listen((value) {
       if (!mounted) return;
       setState(() {
@@ -929,166 +930,6 @@ class TimelineScreenState extends State<TimelineScreen> {
     );
   }
 
-  void _onReorderStart(int index) {
-    _reorderStartIndex = index;
-    _swipe.closeAll();
-  }
-
-  /// A long-press-and-drag on a card's middle zone (see [SwipeableNoteCard])
-  /// moved it: reflect that in [notes] straight away rather than waiting on
-  /// the next stream tick, and persist the set that was actually dragged
-  /// against — see [NexServices.reorderNotes].
-  ///
-  /// `sort_order` is one column shared by every note, not one scoped to
-  /// whatever filter happens to be active. Persisting it for only the notes
-  /// on screen — which is what [notes] holds under a filter — stamped a
-  /// dense 0, 1, 2… onto that handful and left every other note with
-  /// whatever it already had, so the two competed for the same numbers and
-  /// the *unfiltered* timeline came out shuffled by an outcome nobody chose.
-  /// Reported as: reordering under "All" behaves; reordering under a single
-  /// tag rearranges notes that were never touched.
-  ///
-  /// The fix splices the move into [_all] — the complete, unfiltered list —
-  /// right next to the note it now sits beside in the filtered view, and
-  /// persists that whole list. Every note outside the filter keeps its exact
-  /// relative position; only the moved note's slot changes. Filtering does
-  /// not reorder, so re-deriving [notes] from the patched [_all] reproduces
-  /// the same visible order the drag actually produced.
-  void _onReorder(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) newIndex -= 1;
-    // Nothing may land above a pinned note. It cannot be dragged itself, but
-    // another card dropped on top of it would push it to second place — and
-    // `listTimeline` sorts pinned-first, so the next read would snap it back
-    // and the list would visibly jump for no reason the user could name.
-    if (notes.isNotEmpty && notes.first.pinnedAt != null && newIndex == 0) {
-      newIndex = 1;
-    }
-    if (newIndex == oldIndex) return;
-
-    final visibleReordered = List<Note>.of(notes);
-    final moved = visibleReordered.removeAt(oldIndex);
-    visibleReordered.insert(newIndex, moved);
-
-    // Anchor on whichever neighbour the move actually determined: the note
-    // now right after it if there is one, otherwise the note now right
-    // before it. Either way, `all` only has to know "next to this id" — it
-    // never needs to reconstruct newIndex/oldIndex arithmetic of its own.
-    final all = List<Note>.of(_all ?? notes)
-      ..removeWhere((n) => n.id == moved.id);
-    final after = newIndex + 1 < visibleReordered.length
-        ? visibleReordered[newIndex + 1]
-        : null;
-    final before = newIndex > 0 ? visibleReordered[newIndex - 1] : null;
-    int insertAt;
-    if (after != null) {
-      final at = all.indexWhere((n) => n.id == after.id);
-      insertAt = at < 0 ? all.length : at;
-    } else if (before != null) {
-      final at = all.indexWhere((n) => n.id == before.id);
-      insertAt = at < 0 ? all.length : at + 1;
-    } else {
-      insertAt = 0;
-    }
-    all.insert(insertAt, moved);
-
-    setState(() {
-      _all = all;
-      notes = visibleReordered;
-    });
-    unawaited(widget.services.reorderNotes([for (final n in all) n.id]));
-  }
-
-  /// The same long press, released without ever crossing into a drag.
-  ///
-  /// This fires the instant the finger lifts, carrying the drop index — the
-  /// same index [_onReorder] would use if the drag actually moved anything.
-  /// [_onReorder] itself, though, only runs ~250ms later, once the drop's
-  /// settle animation finishes; waiting for it here to decide whether to
-  /// open the quick actions menu meant every real reorder opened the menu
-  /// first and reordered second, the release fired while the card was still
-  /// settling. Comparing indices directly avoids the wait entirely: the drop
-  /// index is already final the moment this is called.
-  void _onReorderEnd(int index) {
-    final start = _reorderStartIndex;
-    _reorderStartIndex = null;
-    if (start == index && kReorderQuickActionsEnabled) {
-      unawaited(_showQuickActions(notes[index]));
-    }
-  }
-
-  /// What a long press that never turned into a drag opens: the same actions
-  /// a swipe or the detail sheet already offer, reachable without aiming for
-  /// either edge.
-  Future<void> _showQuickActions(Note note) async {
-    final l10n = AppLocalizations.of(context);
-    final action = await nexShowSheet<_QuickAction>(
-      context: context,
-      builder: (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: Icon(
-              note.pinnedAt != null ? Icons.push_pin : Icons.push_pin_outlined,
-            ),
-            title: Text(note.pinnedAt != null ? l10n.unpin : l10n.pin),
-            onTap: () => Navigator.pop(ctx, _QuickAction.togglePin),
-          ),
-          ListTile(
-            leading: const Icon(Icons.label_outline),
-            title: Text(l10n.addTag),
-            onTap: () => Navigator.pop(ctx, _QuickAction.addTag),
-          ),
-          ListTile(
-            leading: const Icon(Icons.delete_outline),
-            title: Text(l10n.delete),
-            onTap: () => Navigator.pop(ctx, _QuickAction.delete),
-          ),
-        ],
-      ),
-    );
-    if (!mounted || action == null) return;
-    switch (action) {
-      case _QuickAction.togglePin:
-        if (note.pinnedAt != null) {
-          await widget.services.unpinNote(note.id);
-        } else {
-          await widget.services.pinNote(note.id);
-        }
-        await widget.services.refreshTimeline();
-      case _QuickAction.addTag:
-        await _addTagTo(note);
-      case _QuickAction.delete:
-        await deleteWithUndo(note);
-    }
-  }
-
-  /// The dragged card's lift off the background — the same effect
-  /// [ReorderableListView] gives its own items by default, reused here since
-  /// [SliverReorderableList] has no default of its own to fall back on.
-  Widget _reorderProxyDecorator(
-    Widget child,
-    int index,
-    Animation<double> animation,
-  ) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        final t = Curves.easeOut.transform(animation.value);
-        return Transform.scale(
-          scale: 1 + 0.02 * t,
-          child: Material(
-            color: Colors.transparent,
-            elevation: 8 * t,
-            shadowColor: Colors.black.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(NexRadius.lg),
-            child: child,
-          ),
-        );
-      },
-      child: child,
-    );
-  }
-
   /// "Good evening, Saeed", and the mark that goes after it — or null when
   /// the user never told the app a name.
   ///
@@ -1497,15 +1338,33 @@ class TimelineScreenState extends State<TimelineScreen> {
       ];
     }
 
+    // Grouped by date, and only by date. Manual arrangement is gone (the
+    // repository's ORDER BY says why): a heading that says "Yesterday" has to
+    // be telling the truth about every row beneath it, and a hand-placed note
+    // lands wherever it was dropped.
+    final groups = _groupNotes(notes, l10n);
+    final rows = <_TimelineRow>[
+      for (final group in groups) ...[
+        _TimelineRow.header(group),
+        if (!_collapsedGroups.contains(group.key))
+          for (final note in group.notes) _TimelineRow.note(note),
+      ],
+    ];
+
     return [
-      SliverReorderableList(
-        itemCount: notes.length,
-        onReorderStart: _onReorderStart,
-        onReorder: _onReorder,
-        onReorderEnd: _onReorderEnd,
-        proxyDecorator: _reorderProxyDecorator,
+      SliverList.builder(
+        itemCount: rows.length,
         itemBuilder: (context, index) {
-          final note = notes[index];
+          final row = rows[index];
+          if (row.group case final group?) {
+            return _GroupHeader(
+              label: group.label,
+              count: group.notes.length,
+              collapsed: _collapsedGroups.contains(group.key),
+              onToggle: () => unawaited(_toggleGroup(group.key)),
+            );
+          }
+          final note = row.note!;
           return CommitReceipt(
             key: ValueKey(note.id),
             active: landedId == note.id,
@@ -1523,10 +1382,6 @@ class TimelineScreenState extends State<TimelineScreen> {
               addTagLabel: l10n.addTag,
               haptics: widget.preferences.haptics,
               controller: _swipe,
-              // A pinned note is held in place by definition, so it is not
-              // a thing that can be dragged somewhere else. Null here is what
-              // SwipeableNoteCard reads as "no reorder gesture on this card".
-              reorderIndex: notes[index].pinnedAt == null ? index : null,
               resolveAction: ({required bool isLeading}) {
                 final action = isLeading
                     ? widget.preferences.leadingAction
@@ -1549,6 +1404,60 @@ class TimelineScreenState extends State<TimelineScreen> {
         },
       ),
     ];
+  }
+
+  Future<void> _toggleGroup(String key) async {
+    final next = {..._collapsedGroups};
+    if (!next.remove(key)) next.add(key);
+    setState(() => _collapsedGroups = next);
+    nexBump();
+    await widget.preferences.setCollapsedTimelineGroups(next);
+  }
+
+  /// Splits an already-ordered list into date runs.
+  ///
+  /// Walks the list rather than sorting it: the order is the repository's —
+  /// pinned first, then newest — and re-deriving it here would be a second
+  /// answer to the same question that could disagree with the first. A group
+  /// simply ends where the bucket changes, which only works because the list
+  /// arrives ordered, and which is why the pin gets its own group instead of
+  /// interrupting whichever day it belongs to.
+  List<_NoteGroup> _groupNotes(List<Note> source, AppLocalizations l10n) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final groups = <_NoteGroup>[];
+
+    for (final note in source) {
+      final (key, label) = _bucketFor(note, today, l10n);
+      if (groups.isEmpty || groups.last.key != key) {
+        groups.add(_NoteGroup(key: key, label: label, notes: [note]));
+      } else {
+        groups.last.notes.add(note);
+      }
+    }
+    return groups;
+  }
+
+  (String, String) _bucketFor(
+    Note note,
+    DateTime today,
+    AppLocalizations l10n,
+  ) {
+    // Pinned before dated: a pinned note is held at the top on purpose, and
+    // filing it under "Today" would put a heading over one row that then
+    // repeats itself two rows later.
+    if (note.pinnedAt != null) return ('pinned', l10n.timelineGroupPinned);
+
+    // The same timestamp the list is ordered by. Grouping by createdAt while
+    // sorting by updatedAt would scatter a group across the whole list.
+    final at = note.updatedAt.toLocal();
+    final day = DateTime(at.year, at.month, at.day);
+    final days = today.difference(day).inDays;
+    if (days <= 0) return ('today', l10n.timelineGroupToday);
+    if (days == 1) return ('yesterday', l10n.timelineGroupYesterday);
+    if (days <= 7) return ('week', l10n.timelineGroupWeek);
+    if (days <= 31) return ('month', l10n.timelineGroupMonth);
+    return ('older', l10n.timelineGroupOlder);
   }
 
   /// A tap on a card, which means two different things depending on what the
@@ -1954,10 +1863,6 @@ class _TypeChoice {
   final NoteType? type;
 }
 
-/// What a hold-and-release without a drag can do to a note — see
-/// [TimelineScreenState._showQuickActions].
-enum _QuickAction { togglePin, addTag, delete }
-
 /// The mockup's leading icon button on the filter row.
 ///
 /// Carries a dot when a content type is filtering, so an active filter is
@@ -2072,6 +1977,98 @@ class _SettingsButton extends StatelessWidget {
               child: IgnorePointer(child: NexBadgeDot()),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// One date run: a heading and the notes under it.
+class _NoteGroup {
+  _NoteGroup({required this.key, required this.label, required this.notes});
+
+  /// Stable across days, unlike the label. "Last week" holds different notes
+  /// tomorrow; the key is what a collapsed state is remembered against.
+  final String key;
+  final String label;
+  final List<Note> notes;
+}
+
+/// A row in the flattened list: either a heading or a note, never both.
+class _TimelineRow {
+  const _TimelineRow.header(this.group) : note = null;
+  const _TimelineRow.note(this.note) : group = null;
+
+  final _NoteGroup? group;
+  final Note? note;
+}
+
+/// The heading over a date run, and the whole of its fold control.
+///
+/// The entire row is the target rather than the chevron alone: a 16-pixel
+/// caret is a worse thing to aim at than a heading, and there is nothing else
+/// on this row to hit by accident.
+class _GroupHeader extends StatelessWidget {
+  const _GroupHeader({
+    required this.label,
+    required this.count,
+    required this.collapsed,
+    required this.onToggle,
+  });
+
+  final String label;
+  final int count;
+  final bool collapsed;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      expanded: !collapsed,
+      label: label,
+      child: InkWell(
+        onTap: onToggle,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            NexSpacing.xs,
+            NexSpacing.md,
+            NexSpacing.xs,
+            NexSpacing.xs,
+          ),
+          child: Row(
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: NexSpacing.sm),
+              // Only when folded. Open, the count is the list itself, and a
+              // number beside a heading you can already read is noise.
+              if (collapsed)
+                Text(
+                  l10n.timelineGroupCount(count),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
+                ),
+              const Spacer(),
+              AnimatedRotation(
+                turns: collapsed ? -0.25 : 0,
+                duration: NexMotion.standard,
+                curve: NexMotion.curve,
+                child: Icon(
+                  Icons.expand_more,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -174,10 +174,6 @@ class InProcessDb implements NexDb {
   Future<String?> pinnedNoteId() async => _repo.pinnedNoteId();
 
   @override
-  Future<void> reorderNotes(List<String> orderedIds) async =>
-      _repo.reorderNotes(orderedIds);
-
-  @override
   Future<Tag> addTag({
     required String noteId,
     required String name,

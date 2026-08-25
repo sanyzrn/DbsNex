@@ -9,7 +9,6 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
-import 'package:nex_client/feature_flags.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
@@ -475,148 +474,59 @@ void main() {
     );
   });
 
-  testWidgets(
-    'reordering under a tag filter does not disturb notes outside it',
-    (tester) async {
-      // Newest first, unfiltered: delta, gamma, beta, alpha.
-      await services.captureText('alpha');
-      await services.captureText('beta');
-      await services.captureText('gamma');
-      await services.captureText('delta');
-      final all = await services.timeline();
-      final beta = all.firstWhere((n) => n.content == 'beta');
-      final delta = all.firstWhere((n) => n.content == 'delta');
-      await services.addTag(noteId: beta.id, name: 'Work');
-      await services.addTag(noteId: delta.id, name: 'Work');
-      await services.refreshTimeline();
-      await tester.pumpWidget(
-        NexApp(services: services, preferences: preferences),
-      );
-      await tester.pumpAndSettle();
-
-      // Filtered to Work: only delta and beta show, in that order.
-      await tester.tap(find.text('Work'));
-      await tester.pumpAndSettle();
-      expect(find.text('gamma'), findsNothing);
-      expect(find.text('alpha'), findsNothing);
-      expect(
-        tester.getCenter(find.text('delta')).dy,
-        lessThan(tester.getCenter(find.text('beta')).dy),
-      );
-
-      // Drag beta above delta, inside the filtered view.
-      final gesture = await tester.startGesture(
-        tester.getCenter(find.text('beta')),
-      );
-      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
-      await gesture.moveBy(const Offset(0, -300));
-      await tester.pump();
-      await gesture.up();
-      await tester.pumpAndSettle();
-      expect(
-        tester.getCenter(find.text('beta')).dy,
-        lessThan(tester.getCenter(find.text('delta')).dy),
-        reason: 'beta now leads within the filtered view',
-      );
-
-      // Clear the filter and read fresh from the repository — not the
-      // in-memory list the drag rewrote directly. Reported symptom: this
-      // used to come back with gamma and alpha shuffled too, since the drag
-      // persisted sort_order for only the two filtered notes and left the
-      // other two contesting the same low numbers.
-      await tester.tap(find.text('Work'));
-      await tester.pumpAndSettle();
-      await services.refreshTimeline();
-      await tester.pumpAndSettle();
-
-      // beta leads, delta follows it — the move survives — and gamma/alpha,
-      // which were never part of the drag, keep the relative order they had
-      // before it: gamma above alpha, both below the moved pair.
-      final betaY = tester.getCenter(find.text('beta')).dy;
-      final deltaY = tester.getCenter(find.text('delta')).dy;
-      final gammaY = tester.getCenter(find.text('gamma')).dy;
-      final alphaY = tester.getCenter(find.text('alpha')).dy;
-      expect(betaY, lessThan(deltaY));
-      expect(deltaY, lessThan(gammaY));
-      expect(gammaY, lessThan(alphaY));
-    },
-  );
-
-  testWidgets(
-    'holding a card without moving opens quick actions, not a reorder',
-    (tester) async {
-      await services.captureText('a note to act on');
-      await services.refreshTimeline();
-      await tester.pumpWidget(
-        NexApp(services: services, preferences: preferences),
-      );
-      await tester.pumpAndSettle();
-
-      final gesture = await tester.startGesture(
-        tester.getCenter(find.text('a note to act on')),
-      );
-      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
-      await gesture.up();
-      await tester.pumpAndSettle();
-
-      expect(find.text('Pin'), findsOneWidget);
-      await tester.tap(find.text('Pin'));
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.push_pin), findsOneWidget);
-    },
-    // The menu itself is paused behind kReorderQuickActionsEnabled — see
-    // feature_flags.dart. The code this exercises is untouched, so flipping
-    // the flag back on is all re-enabling it needs.
-    skip: !kReorderQuickActionsEnabled,
-  );
-
-  testWidgets('holding and dragging a card past another reorders the list', (
+  testWidgets('the timeline is grouped by date, and the groups fold', (
     tester,
   ) async {
     await services.captureText('note A');
     await services.captureText('note B');
-    await services.captureText('note C');
     await services.refreshTimeline();
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
 
-    // Newest first: C, then B, then A.
-    expect(
-      tester.getCenter(find.text('note C')).dy,
-      lessThan(tester.getCenter(find.text('note B')).dy),
-    );
+    // Both captured now, so both sit under one heading rather than in a flat
+    // list with nothing saying when any of it happened.
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('note A'), findsOneWidget);
+    expect(find.text('note B'), findsOneWidget);
 
-    final gesture = await tester.startGesture(
-      tester.getCenter(find.text('note C')),
-    );
-    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
-    await gesture.moveBy(const Offset(0, 300));
-    await tester.pump();
-    await gesture.up();
+    // The whole heading row is the fold control, not a 16-pixel caret.
+    await tester.tap(find.text('Today'));
     await tester.pumpAndSettle();
 
-    // Dragged well past B, so it now leads.
-    expect(
-      tester.getCenter(find.text('note B')).dy,
-      lessThan(tester.getCenter(find.text('note C')).dy),
-    );
-    // Reported symptom: a real drag would still open the quick-actions
-    // sheet on release, since onReorderEnd fires the instant the finger
-    // lifts — well before onReorder, which only runs once the drop's
-    // settle animation finishes ~250ms later.
-    expect(find.text('Pin'), findsNothing);
+    expect(find.text('note A'), findsNothing);
+    expect(find.text('note B'), findsNothing);
+    // Folded, the heading says what it is hiding. Open, the list says it.
+    expect(find.textContaining('2 notes'), findsOneWidget);
 
-    // The order survives a fresh read from the repository, not just the
-    // in-memory list the drag rewrote directly.
+    await tester.tap(find.text('Today'));
+    await tester.pumpAndSettle();
+    expect(find.text('note A'), findsOneWidget);
+  });
+
+  testWidgets('a folded group stays folded across a rebuild', (tester) async {
+    await services.captureText('note A');
     await services.refreshTimeline();
-    await tester.pumpAndSettle();
-    expect(
-      tester.getCenter(find.text('note B')).dy,
-      lessThan(tester.getCenter(find.text('note C')).dy),
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
     );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Today'));
+    await tester.pumpAndSettle();
+    expect(find.text('note A'), findsNothing);
+
+    // Folding is a statement about how someone wants the list to look.
+    // Having it spring open on the next launch means saying it every day.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('note A'), findsNothing);
+    expect(find.text('Today'), findsOneWidget);
   });
 
   testWidgets('search happens on the timeline, without pushing a route', (

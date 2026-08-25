@@ -287,43 +287,30 @@ void main() {
       );
     });
 
-    test('a manual order holds until a fresh capture, which still leads', () {
+    test('the order is the dates, and nothing else can override it', () {
       final t0 = DateTime.utc(2026, 1, 1);
       final t1 = DateTime.utc(2026, 1, 2);
       final t2 = DateTime.utc(2026, 1, 3);
-      final old = repo.insert(makeText('old', at: t0));
+      repo.insert(makeText('old', at: t0));
       final mid = repo.insert(makeText('mid', at: t1));
-      final recent = repo.insert(makeText('new', at: t2));
+      repo.insert(makeText('new', at: t2));
 
-      // Dragged "old" to the front of the on-screen order.
-      repo.reorderNotes([old.id, recent.id, mid.id]);
+      // Manual arrangement is gone. The timeline is grouped by date on
+      // screen — Today, Yesterday, Last week — and a heading only tells the
+      // truth if every row under it belongs there. A hand-placed note would
+      // land in whichever group it was dropped next to.
       expect(repo.listTimeline().map((n) => n.content).toList(), [
-        'old',
         'new',
         'mid',
+        'old',
       ]);
 
-      // Editing one of the arranged notes does not reshuffle the
-      // arrangement — a manual placement is a deliberate override, not
-      // something a later edit should silently undo.
+      // Editing moves a note, because the list is ordered by when it was last
+      // touched and the groups are read off the same timestamp. A note that
+      // sorted as today's while its heading said last week would be worse
+      // than either.
       repo.updateContent(mid.id, 'mid, edited');
-      expect(repo.listTimeline().map((n) => n.content).toList(), [
-        'old',
-        'new',
-        'mid, edited',
-      ]);
-
-      // A brand-new capture has no manual position, so it still leads —
-      // ahead of the whole hand-arranged block, not stuck behind it.
-      repo.insert(
-        makeText('just captured', at: t2.add(const Duration(days: 1))),
-      );
-      expect(repo.listTimeline().map((n) => n.content).toList(), [
-        'just captured',
-        'old',
-        'new',
-        'mid, edited',
-      ]);
+      expect(repo.listTimeline().first.content, 'mid, edited');
     });
   });
 

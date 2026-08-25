@@ -622,6 +622,21 @@ class NexPreferences extends ChangeNotifier {
   /// and `type:` are part of the box: one line captures the terms and the
   /// filters together, survives a tag being renamed as gracefully as anything
   /// could, and needs no schema.
+  /* ------------------------------------------------- Timeline date groups */
+
+  /// Date groups the timeline is showing folded away.
+  ///
+  /// Stored by key rather than by index: "Last week" is a different set of
+  /// notes tomorrow than it is today, and an index would fold whichever group
+  /// happened to land in that position.
+  Set<String> get collapsedTimelineGroups =>
+      (_prefs.getStringList('timeline.collapsed') ?? const []).toSet();
+
+  Future<void> setCollapsedTimelineGroups(Set<String> keys) async {
+    await _prefs.setStringList('timeline.collapsed', keys.toList()..sort());
+    notifyListeners();
+  }
+
   List<String> get savedSearches =>
       _prefs.getStringList('search.saved') ?? const [];
 

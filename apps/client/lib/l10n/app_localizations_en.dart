@@ -130,6 +130,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get merge => 'Merge';
 
   @override
+  String get timelineGroupPinned => 'Pinned';
+
+  @override
+  String get timelineGroupToday => 'Today';
+
+  @override
+  String get timelineGroupYesterday => 'Yesterday';
+
+  @override
+  String get timelineGroupWeek => 'Last week';
+
+  @override
+  String get timelineGroupMonth => 'Last month';
+
+  @override
+  String get timelineGroupOlder => 'Older';
+
+  @override
+  String timelineGroupCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes',
+      one: '1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get tags => 'Tags';
 
   @override

@@ -314,6 +314,48 @@ abstract class AppLocalizations {
   /// **'Merge'**
   String get merge;
 
+  /// Timeline section for the pinned note
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get timelineGroupPinned;
+
+  /// Timeline section for today
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get timelineGroupToday;
+
+  /// Timeline section for yesterday
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get timelineGroupYesterday;
+
+  /// Timeline section for the past seven days
+  ///
+  /// In en, this message translates to:
+  /// **'Last week'**
+  String get timelineGroupWeek;
+
+  /// Timeline section for the past month
+  ///
+  /// In en, this message translates to:
+  /// **'Last month'**
+  String get timelineGroupMonth;
+
+  /// Timeline section for everything before that
+  ///
+  /// In en, this message translates to:
+  /// **'Older'**
+  String get timelineGroupOlder;
+
+  /// How many notes a collapsed section holds
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note} other{{count} notes}}'**
+  String timelineGroupCount(int count);
+
   /// No description provided for @tags.
   ///
   /// In en, this message translates to:

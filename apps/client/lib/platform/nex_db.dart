@@ -83,13 +83,9 @@ abstract interface class NexDb {
 
   Future<void> unpinNote(String id);
 
-  /// The id of the one note currently pinned, if any.
+  /// The pinned note's id, or null. Only one note is ever pinned, so the
+  /// timeline asks for the id rather than scanning what it happens to hold.
   Future<String?> pinnedNoteId();
-
-  /// Stamps every id in [orderedIds] with its index as a manual position —
-  /// the whole set a Rearrange drag was performed against (see
-  /// [SqliteNoteRepository.reorderNotes]).
-  Future<void> reorderNotes(List<String> orderedIds);
 
   Future<Tag> addTag({
     required String noteId,

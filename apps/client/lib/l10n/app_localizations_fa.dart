@@ -130,6 +130,35 @@ class AppLocalizationsFa extends AppLocalizations {
   String get merge => 'ادغام';
 
   @override
+  String get timelineGroupPinned => 'سنجاق‌شده';
+
+  @override
+  String get timelineGroupToday => 'امروز';
+
+  @override
+  String get timelineGroupYesterday => 'دیروز';
+
+  @override
+  String get timelineGroupWeek => 'هفتهٔ گذشته';
+
+  @override
+  String get timelineGroupMonth => 'ماه گذشته';
+
+  @override
+  String get timelineGroupOlder => 'قدیمی‌تر';
+
+  @override
+  String timelineGroupCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count یادداشت',
+      one: '۱ یادداشت',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get tags => 'برچسب‌ها';
 
   @override

@@ -311,9 +311,6 @@ class NexServices {
 
   /// Persists a manual order for exactly the notes in [orderedIds] — the
   /// currently-displayed set a Rearrange drag was performed against.
-  Future<void> reorderNotes(List<String> orderedIds) =>
-      worker.reorderNotes(orderedIds);
-
   /* ---------------------------------------------------------------- tags */
 
   Future<Tag> addTag({
