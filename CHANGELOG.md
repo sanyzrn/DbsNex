@@ -34,6 +34,36 @@ Working convention:
 
 ## Unreleased
 
+- **Reminders arrive.** They never have. The alarm was set correctly and the
+  app said so, but nothing in the build claimed the message Android sends when
+  it goes off, so it went nowhere — which is why the phone's own notification
+  settings for Nex listed no categories at all. Nex now also verifies with the
+  system that an alarm was really kept, and says so when it was not, instead of
+  confirming a reminder that will never come. Settings › Notifications has a
+  test button that sends one immediately and one ten seconds later, so a phone
+  that still refuses can be told apart from an app that never asked.
+- Typing in the wrong direction is fixed everywhere it was still wrong — the
+  checklist, tag names, your own name, the annotation box, feedback and tag
+  search. Each of them now follows the script you are typing rather than the
+  language the app is set to, so a Persian line in an English app stops
+  reordering itself as you write it.
+- Folding a date group no longer makes the groups below it flicker open.
+- The reminder no longer squeezes a note's own words off its card: on a note
+  with one, the countdown takes the timestamp's place rather than sitting
+  beside it.
+- The separators in a note's action row can be seen now. They were set two
+  steps quieter than the quietest boundary colour, which came to the same thing
+  as not being there.
+- The Persian throughout the app speaks to you one way instead of two. It
+  drifted between formal and informal from screen to screen; it is formal
+  everywhere now, apart from the greeting, which is meant to sound like a
+  person. Three descriptions that had gone stale were corrected as well —
+  including one that claimed your provider key is stored unencrypted, which
+  stopped being true when keys moved into the device's secure storage.
+- The Gemma licence notice keeps its English wording, because those terms
+  require that exact sentence, but it is laid out left-to-right in a Persian
+  interface now and has a plain Persian line under it saying what it means.
+
 ## v0.9.8
 
 - A reminder that has been set says when it is for. The card carries how long

@@ -281,6 +281,21 @@ class InProcessDb implements NexDb {
   void seedTranscript(String noteId, String text) =>
       _repo.setTranscriptText(noteId, text);
 
+  /// Moves a note's timestamps back, so a test can have more than one date
+  /// group without waiting a day for one.
+  ///
+  /// Test-only and deliberately raw: capture stamps `now`, and there is no
+  /// app-level reason to rewrite that. Both columns move together — the
+  /// timeline groups on `updated_at`, and a created date in the future of its
+  /// update date is a state the app never produces.
+  void backdate(String noteId, DateTime when) {
+    final stamp = when.toUtc().toIso8601String();
+    _db.db.execute(
+      'UPDATE notes SET created_at = ?, updated_at = ? WHERE id = ?',
+      [stamp, stamp, noteId],
+    );
+  }
+
   @override
   Future<List<TagSuggestion>> suggestTags(String noteId) =>
       _enrichment.suggestTags(noteId);

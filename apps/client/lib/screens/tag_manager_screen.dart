@@ -93,12 +93,19 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       builder: (ctx) => AlertDialog(
         title: Text(l10n.createTag),
         content: NexDialogBody(
-          child: TextField(
+          child: NexAutoDirection(
             controller: controller,
-            autofocus: true,
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(hintText: l10n.tagName),
-            onSubmitted: (value) => Navigator.pop(ctx, value.trim()),
+            builder: (context, direction) => TextField(
+              controller: controller,
+              autofocus: true,
+              // A tag is named in whichever language its notes are in, which
+              // is not necessarily the interface's.
+              textDirection: direction,
+              textAlign: TextAlign.start,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(hintText: l10n.tagName),
+              onSubmitted: (value) => Navigator.pop(ctx, value.trim()),
+            ),
           ),
         ),
         actions: [
@@ -142,7 +149,15 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
         builder: (context) => AlertDialog(
           title: Text(l10n.renameTag),
           content: NexDialogBody(
-            child: TextField(controller: controller, autofocus: true),
+            child: NexAutoDirection(
+              controller: controller,
+              builder: (context, direction) => TextField(
+                controller: controller,
+                autofocus: true,
+                textDirection: direction,
+                textAlign: TextAlign.start,
+              ),
+            ),
           ),
           actions: [
             TextButton(

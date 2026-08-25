@@ -80,6 +80,11 @@ dependencies:
   uuid: ^4.5.1
   flutter_local_notifications: ^20.1.0
   timezone: ^0.10.1
+  # Answers what `tz.local` should be. Without it the timezone database is
+  # loaded and never pointed at a zone, so `tz.local` stays UTC — which makes
+  # every wall-clock schedule (the daily nudge, and any repeat matched on the
+  # time of day) fire at the wrong hour by the device's offset.
+  flutter_timezone: ^5.1.0
 
 dev_dependencies:
   flutter_test:

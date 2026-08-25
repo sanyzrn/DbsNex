@@ -139,6 +139,23 @@ class SettingsSheet extends StatelessWidget {
     );
   }
 
+  Future<void> _testNotification(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    await services.reminders.requestPermission();
+    final failure = await services.reminders.sendTestNotification(
+      title: l10n.appTitle,
+      body: l10n.notificationTestHint,
+    );
+    if (!context.mounted) return;
+    nexShowBanner(
+      context,
+      message: failure == null
+          ? l10n.notificationTestSent
+          : l10n.notificationTestFailed(failure),
+      kind: failure == null ? NexBannerKind.done : NexBannerKind.failed,
+    );
+  }
+
   Future<void> _pickNudgeTime(BuildContext context) async {
     final minutes = preferences.dailyNudgeMinutes;
     final picked = await nexPickTime(
@@ -398,6 +415,16 @@ class SettingsSheet extends StatelessWidget {
           subtitle: l10n.nudgeSubtitle,
           value: preferences.dailyNudge,
           onChanged: (next) => unawaited(_setNudge(context, next)),
+        ),
+        // A diagnostic, not a preference — and the reason it earns a
+        // permanent row is that reminders were silent for a year and there
+        // was no way, from inside the app, to tell a scheduling failure from
+        // a delivery one. One tap now answers it.
+        _Row(
+          icon: Icons.notifications_paused_outlined,
+          title: l10n.notificationTest,
+          value: l10n.notificationTestHint,
+          onTap: () => unawaited(_testNotification(context)),
         ),
         // Only once it is on. A time picker for a notification that is not
         // being sent is a control with nothing behind it, and the row it

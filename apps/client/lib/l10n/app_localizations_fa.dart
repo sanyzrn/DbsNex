@@ -476,7 +476,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get summary => 'خلاصه';
 
   @override
-  String get summarize => 'خلاصه کن';
+  String get summarize => 'خلاصه‌سازی';
 
   @override
   String get suggestedTags => 'برچسب‌های پیشنهادی';
@@ -535,14 +535,14 @@ class AppLocalizationsFa extends AppLocalizations {
       'Nex نتوانست کتابخانهٔ روی دستگاه شما را باز کند. فایل‌های شما دست‌نخورده ماندند.';
 
   @override
-  String get tryAgain => 'دوباره تلاش کن';
+  String get tryAgain => 'تلاش دوباره';
 
   @override
   String get opening => 'Nex در حال باز شدن است';
 
   @override
   String get swipeActionsHint =>
-      'هر طرف جداگانه تنظیم می‌شود. روی هر کارت بزنید تا کارِ آن کشیدن را انتخاب کنید یا خاموشش کنید.';
+      'هر طرف جداگانه تنظیم می‌شود. روی هر ردیف بزنید تا کارِ آن کشیدن را انتخاب کنید یا خاموشش کنید.';
 
   @override
   String get revealInFolder => 'نمایش مسیر فایل';
@@ -601,7 +601,7 @@ class AppLocalizationsFa extends AppLocalizations {
       'قابلیت ارسال بازخورد هنوز در این نسخه فعال نیست';
 
   @override
-  String get feedbackOpenIssueInstead => 'به‌جایش یک ایشو در گیت‌هاب باز کن';
+  String get feedbackOpenIssueInstead => 'به‌جایش در گیت‌هاب ایشو باز کنید';
 
   @override
   String get capabilities => 'Nex چه می‌کند';
@@ -851,7 +851,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get syncToken => 'توکن دستگاه';
 
   @override
-  String get aiShow => 'ببین Nex از این چه فهمیده';
+  String get aiShow => 'ببینید Nex از این چه فهمیده';
 
   @override
   String aiReady(String what) {
@@ -949,7 +949,7 @@ class AppLocalizationsFa extends AppLocalizations {
       'این فایل خوانده نشد. اگر در پوشهٔ ابری است، یک بار بازش کنید تا نسخه‌اش روی دستگاه بیاید.';
 
   @override
-  String get retry => 'دوباره تلاش کن';
+  String get retry => 'تلاش دوباره';
 
   @override
   String get cropPhotoTitle => 'برش عکس';
@@ -988,7 +988,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get annotateDone => 'تمام';
 
   @override
-  String get annotateTapToPlaceText => 'برای گذاشتن متن، روی عکس بزن';
+  String get annotateTapToPlaceText => 'برای گذاشتن متن، روی عکس بزنید';
 
   @override
   String get tagColor => 'رنگ برچسب';
@@ -1033,7 +1033,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiProviderLocalNote =>
-      'مدلی که روی گوشی‌ات هست متن می‌خواند و می‌نویسد، پس دستیار، خلاصهٔ روزانه و ترجمه را پوشش می‌دهد. صدا را نمی‌شنود و عکس را نمی‌خواند — آن‌ها هنوز به یک ارائه‌دهنده نیاز دارند.';
+      'مدلی که روی گوشی‌تان هست متن می‌خواند و می‌نویسد، پس دستیار، خلاصهٔ روزانه و ترجمه را پوشش می‌دهد. صدا را نمی‌شنود و عکس را نمی‌خواند — آن‌ها هنوز به یک سرویس نیاز دارند.';
 
   @override
   String get aiProviderNoneSubtitle =>
@@ -1044,7 +1044,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiKeyStorage =>
-      'کلید روی همین دستگاه و در تنظیمات خصوصی برنامه ذخیره می‌شود. رمزگذاری‌شده نیست، و جز به همان سرویسی که انتخاب کرده‌اید جایی فرستاده نمی‌شود.';
+      'کلید در حافظهٔ امن خود دستگاه نگه داشته می‌شود، نه در تنظیمات معمولی برنامه، و جز به همان سرویسی که انتخاب کرده‌اید جایی فرستاده نمی‌شود.';
 
   @override
   String get aiCapabilityNote =>
@@ -1077,7 +1077,7 @@ class AppLocalizationsFa extends AppLocalizations {
       'Nex کامل آفلاین کار می‌کند. روشن کردن این گزینه تنها استثناست: یادداشت‌هایی که به قابلیت‌های فعال‌شده مربوط می‌شوند، برای سرویسی که انتخاب می‌کنید فرستاده می‌شوند تا بتواند پاسخ بدهد.\n\nتا وقتی سرویس و کلیدش را وارد نکنید هیچ چیزی فرستاده نمی‌شود. هر وقت خواستید می‌توانید دوباره خاموشش کنید و چیزی از آنچه ذخیره شده از بین نمی‌رود.';
 
   @override
-  String get intelligenceConsentAccept => 'روشن کن';
+  String get intelligenceConsentAccept => 'روشن کردن';
 
   @override
   String get intelligenceQuietNote =>
@@ -1273,7 +1273,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get foreignImportUnreadable =>
-      'آن فایل خوانده نشد. همان ‏.zip دانلودشده، یا یک فایل ‏.json و ‏.md و ‏.txt را انتخاب کن.';
+      'آن فایل خوانده نشد. همان ‏.zip دانلودشده، یا یک فایل ‏.json و ‏.md و ‏.txt را انتخاب کنید.';
 
   @override
   String get localModelPause => 'توقف موقت';
@@ -1326,7 +1326,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get localModelExplained =>
-      'نکس می‌تواند یک مدل زبانی را روی همین گوشی اجرا کند، طوری که چت بدون اینترنت کار کند و هیچ‌چیزی که می‌نویسی از دستگاه بیرون نرود. حجمش زیاد است و تا وقتی خودت پاکش نکنی روی گوشی می‌ماند.';
+      'Nex می‌تواند یک مدل زبانی را روی همین گوشی اجرا کند، طوری که چت بدون اینترنت کار کند و هیچ‌چیزی که می‌نویسید از دستگاه بیرون نرود. حجمش زیاد است و تا وقتی خودتان پاکش نکنید روی گوشی می‌ماند.';
 
   @override
   String localModelDownload(String size) {
@@ -1346,14 +1346,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get localModelKeepOpen =>
-      'می‌توانی از این صفحه بیرون بروی — دانلود ادامه پیدا می‌کند. بستن اپ متوقفش می‌کند و دفعهٔ بعد از همان‌جا ادامه می‌دهد.';
+      'می‌توانید از این صفحه بیرون بروید — دانلود ادامه پیدا می‌کند. بستن برنامه متوقفش می‌کند و دفعهٔ بعد از همان‌جا ادامه می‌دهد.';
 
   @override
   String get localModelReady => 'مدل آماده است. چت حالا آفلاین کار می‌کند.';
 
   @override
   String get localModelFailed =>
-      'دانلود تمام نشد. دوباره بزن — از همان‌جایی که ماند ادامه می‌دهد.';
+      'دانلود تمام نشد. دوباره بزنید — از همان‌جایی که ماند ادامه می‌دهد.';
 
   @override
   String localModelInstalled(String size) {
@@ -1368,7 +1368,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get localModelDeleteBody =>
-      'چت آفلاین تا وقتی دوباره دانلودش نکنی کار نمی‌کند. یادداشت‌هایت دست‌نخورده می‌مانند.';
+      'چت آفلاین تا وقتی دوباره دانلودش نکنید کار نمی‌کند. یادداشت‌هایتان دست‌نخورده می‌مانند.';
 
   @override
   String get localModelDeleted => 'مدل حذف شد.';
@@ -1413,24 +1413,24 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get tourCaptureBody =>
-      'بزن تا بنویسی، یا صدا و عکس و فایل بگذاری. نگهش داری، به‌جایش با دستیار حرف می‌زنی.';
+      'بزنید تا بنویسید، یا صدا و عکس و فایل بگذارید. نگهش دارید، به‌جایش با دستیار حرف می‌زنید.';
 
   @override
-  String get tourSearchTitle => 'هر چیزی را پیدا کن';
+  String get tourSearchTitle => 'هر چیزی را پیدا کنید';
 
   @override
   String get tourSearchBody =>
-      'با کلمه بگرد، یا با معنای یادداشت. ‏tag:work یا ‏type:link هم کار می‌کند.';
+      'با کلمه بگردید، یا با معنای یادداشت. ‏tag:work یا ‏type:link هم کار می‌کند.';
 
   @override
   String get tourLibraryTitle => 'برچسب‌ها و پاک‌شده‌ها';
 
   @override
   String get tourLibraryBody =>
-      'برچسب‌هایت اینجاست، و هر چیزی که پاک کرده‌ای هم — تا مدتی.';
+      'برچسب‌هایتان اینجاست، و هر چیزی که پاک کرده‌اید هم — تا مدتی.';
 
   @override
-  String get tourSettingsTitle => 'به سلیقه‌ی خودت';
+  String get tourSettingsTitle => 'به سلیقهٔ خودتان';
 
   @override
   String get tourSettingsBody =>
@@ -1441,7 +1441,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get tourCardsBody =>
-      'یادداشت را از لبه‌ی چپ یا راستش بکش تا کارهای سریعش بیاید، و نگهش دار تا برش داری و جابه‌جایش کنی.';
+      'یادداشت را از هر طرف که بکشید، کارهای سریعش می‌آید. هر طرف را در تنظیمات خودتان انتخاب می‌کنید.';
 
   @override
   String get translate => 'ترجمه';
@@ -1456,7 +1456,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get translateFailed => 'ترجمه برنگشت.';
 
   @override
-  String get translateSaveAsNote => 'به‌عنوان یادداشت نگه دار';
+  String get translateSaveAsNote => 'ذخیره به‌عنوان یادداشت';
 
   @override
   String get translateSaved => 'به‌عنوان یادداشت تازه ذخیره شد.';
@@ -1571,7 +1571,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get assistantInstructionSubtitle =>
-      'یادداشت خودت به دستیار، که همراه هر سؤال فرستاده می‌شود. لحن را عوض می‌کند، نه اینکه چه کارهایی مجاز است.';
+      'یادداشت خودتان به دستیار، که همراه هر سؤال فرستاده می‌شود. لحن را عوض می‌کند، نه اینکه چه کارهایی مجاز است.';
 
   @override
   String get assistantContext => 'یادداشت‌هایی که می‌بیند';
@@ -1635,7 +1635,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get nudgeSubtitle =>
-      'روزی یک نوتیفیکیشن، سر ساعتی که خودت انتخاب می‌کنی';
+      'روزی یک نوتیفیکیشن، سر ساعتی که خودتان انتخاب می‌کنید';
 
   @override
   String get nudgeTime => 'ساعت';
@@ -1658,6 +1658,24 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get nudgeNothing => 'امروز هنوز چیزی ننوشته‌ای.';
+
+  @override
+  String get localModelLicenseGloss =>
+      'خلاصه‌اش: مدل مال گوگل است، شرایط خودش را دارد، و دانلودش یعنی پذیرفتن آن شرایط.';
+
+  @override
+  String get notificationTest => 'ارسال نوتیفیکیشن آزمایشی';
+
+  @override
+  String get notificationTestHint => 'یکی همین حالا، یکی ده ثانیه دیگر';
+
+  @override
+  String get notificationTestSent => 'فرستاده شد — یکی حالا، یکی ده ثانیه دیگر';
+
+  @override
+  String notificationTestFailed(String error) {
+    return 'فرستاده نشد — $error';
+  }
 
   @override
   String get remindOverdue => 'گذشته';
@@ -1692,13 +1710,13 @@ class AppLocalizationsFa extends AppLocalizations {
   String get swipeDeleteHint => 'یادداشت را به حذف‌شده‌های اخیر می‌برد';
 
   @override
-  String get swipeAddTagHint => 'برای یادداشت برچسب انتخاب کن';
+  String get swipeAddTagHint => 'انتخاب برچسب برای یادداشت';
 
   @override
   String get swipePinHint => 'یادداشت را بالای تایم‌لاین نگه می‌دارد';
 
   @override
-  String get swipeRemindHint => 'انتخاب کن کِی برگردد';
+  String get swipeRemindHint => 'انتخاب اینکه کِی برگردد';
 
   @override
   String get swipeShareHint => 'یادداشت را به برنامهٔ دیگری بفرست';
@@ -1714,7 +1732,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get markdownTooLarge =>
-      'برای نمایش اینجا بزرگ است — با یک برنامهٔ دیگر بازش کن.';
+      'برای نمایش اینجا بزرگ است — با برنامهٔ دیگری بازش کنید.';
 
   @override
   String markdownUnreadable(String error) {

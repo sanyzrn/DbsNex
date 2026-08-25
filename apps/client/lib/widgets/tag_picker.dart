@@ -94,21 +94,26 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-            child: TextField(
+            child: NexAutoDirection(
               controller: _controller,
-              autofocus: true,
-              textInputAction: TextInputAction.done,
-              decoration: InputDecoration(
-                hintText: l10n.tagName,
-                prefixIcon: const Icon(Icons.search),
-                border: const OutlineInputBorder(),
+              builder: (context, direction) => TextField(
+                controller: _controller,
+                autofocus: true,
+                textDirection: direction,
+                textAlign: TextAlign.start,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  hintText: l10n.tagName,
+                  prefixIcon: const Icon(Icons.search),
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (value) => setState(() => _query = value),
+                onSubmitted: (value) {
+                  if (_canCreate) {
+                    Navigator.pop(context, TagChoice.create(value.trim()));
+                  }
+                },
               ),
-              onChanged: (value) => setState(() => _query = value),
-              onSubmitted: (value) {
-                if (_canCreate) {
-                  Navigator.pop(context, TagChoice.create(value.trim()));
-                }
-              },
             ),
           ),
           const SizedBox(height: NexSpacing.sm),

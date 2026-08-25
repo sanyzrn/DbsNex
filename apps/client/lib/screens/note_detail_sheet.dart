@@ -1306,14 +1306,25 @@ class _ActionRow extends StatelessWidget {
     return [
       for (var i = 0; i < filled.length; i++) ...[
         if (i > 0)
-          // Short of the icons' full height and dimmer than the outline
-          // token, because it is a seam and not a border. At full height and
-          // full contrast it cut the row into boxes.
+          // It was `outlineVariant` at 0.6 — the quiet token, quieter — on the
+          // theory that a seam should be softer than a border. It could not be
+          // seen in either theme, which makes it a seam that separates
+          // nothing.
+          //
+          // `outline` is not enough either: measured, it is 2.79:1 against the
+          // sheet's own surface in the light theme, under the 3:1 floor for a
+          // boundary someone is meant to perceive (WCAG 1.4.11). The
+          // secondary-text token at three-quarters clears it on every surface
+          // this row is drawn on, in both themes — 3.5:1 at worst.
+          //
+          // The restraint that was being aimed for lives in the height
+          // instead: 24 against a 48-pixel row still reads as a seam rather
+          // than cutting the row into boxes.
           Container(
             width: 1,
-            height: 20,
-            margin: const EdgeInsets.symmetric(horizontal: NexSpacing.xs),
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+            height: 24,
+            margin: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
           ),
         ...filled[i],
       ],
