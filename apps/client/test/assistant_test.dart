@@ -400,6 +400,43 @@ Sure, here you go:
       await tester.pumpAndSettle();
     }
 
+    /// The composer's own direction, which is not the sheet's.
+    TextDirection? composerDirection(WidgetTester tester) => tester
+        .widget<TextField>(
+          find.descendant(
+            of: find.byType(AiChatSheet),
+            matching: find.byType(TextField),
+          ),
+        )
+        .textDirection;
+
+    testWidgets('the composer turns to the script being typed', (tester) async {
+      await openSheet(
+        tester,
+        client: MockClient((_) async => http.Response('{}', 200)),
+      );
+
+      final field = find.descendant(
+        of: find.byType(AiChatSheet),
+        matching: find.byType(TextField),
+      );
+
+      // Empty: no direction of its own, so the placeholder sits at whichever
+      // edge the interface language puts it.
+      expect(composerDirection(tester), isNull);
+
+      // The reported case — a Persian question with two English words in it.
+      // Laid out left-to-right, bidi reorders the runs around the wrong base
+      // and the line scrambles while it is being typed.
+      await tester.enterText(field, 'به نظرت واسه ویندوز lmstudio بهتره؟');
+      await tester.pump();
+      expect(composerDirection(tester), TextDirection.rtl);
+
+      await tester.enterText(field, 'is lmstudio better than ollama?');
+      await tester.pump();
+      expect(composerDirection(tester), TextDirection.ltr);
+    });
+
     testWidgets('a chat about one note says which note', (tester) async {
       final now = DateTime.now().toUtc();
       await openSheet(

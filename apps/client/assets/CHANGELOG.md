@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v0.9.7
+
 - The timeline is grouped by date — Today, Yesterday, Last week, Last month,
   Older — and each heading folds. A folded group says how many notes are under
   it, and stays folded until you open it, including after you close the app.
@@ -74,6 +76,18 @@ Working convention:
   two hundred are now offered, and picking one of those says what it costs —
   every question gets slower, because the model reads all of them before it
   answers, and on the on-device model it is very noticeable.
+- The home screen opens with one sentence instead of two. The greeting and the
+  generated line were separate thoughts sitting on top of each other; the model
+  now writes the greeting itself, your name follows it, and if there is no
+  model the app's own wording takes its place.
+- Typing a Persian sentence with an English word in it no longer scrambles as
+  you type. The chat box took its direction from the interface language rather
+  than from what was in it, so the words reordered around the wrong side and
+  only settled once the message was sent. It now turns to whichever script you
+  are writing in, and turns back.
+- The mark in the top corner is drawn the same size as the icons opposite it.
+  The image has transparent space built into it, so a box that matched them
+  drew something visibly smaller.
 
 ## v0.9.6
 

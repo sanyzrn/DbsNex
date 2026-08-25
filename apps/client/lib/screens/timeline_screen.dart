@@ -1589,16 +1589,26 @@ class _GreetingGlyphState extends State<_GreetingGlyph>
 /// footprint of the two icon buttons opposite — but those are tap targets and
 /// this is not, so the tile was claiming an affordance the mark does not have,
 /// and it read as a fourth button that does nothing.
+///
+/// [_size] is larger than the icons across from it, and has to be. The asset
+/// is a square canvas with the glyph inset inside it — the swirl is 54.7% of
+/// the file's height, the rest transparent — so a box the same size as an
+/// icon draws a mark visibly smaller than one. At 28 the glyph came out 15
+/// logical pixels against the icons' 20 and read as undersized. 36 is what
+/// puts the two on the same optical line; it does not make the mark bigger so
+/// much as stop the padding from shrinking it.
 class _WordmarkTile extends StatelessWidget {
   const _WordmarkTile();
+
+  static const _size = 36.0;
 
   @override
   Widget build(BuildContext context) => Image.asset(
     Theme.of(context).brightness == Brightness.dark
         ? 'assets/branding/logo_dark.png'
         : 'assets/branding/logo_white.png',
-    width: 28,
-    height: 28,
+    width: _size,
+    height: _size,
     semanticLabel: 'Nex',
   );
 }
