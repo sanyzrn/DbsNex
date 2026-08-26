@@ -34,18 +34,22 @@ Working convention:
 
 ## Unreleased
 
+## v1.1.0
+
+The first round of fixes from v1.0.0 in real use.
+
 - **The assistant's own protocol stopped leaking into the chat.** Asked to
   make a note, it answered with `{"action": "create", ...}` as visible text
   and made nothing. An unfenced action had to *be* JSON, so one emoji in front
-  of it broke the parse — and the emoji was there because this release had
-  just asked the assistant to use them. Any JSON object in a reply is found
+  of it broke the parse — and the emoji was there because v1.0.0 had just
+  asked the assistant to use them. Any JSON object in a reply is found
   now, wherever it sits, and the protocol says plainly that a reply carrying
   an action carries nothing else.
 - **Reminders: the exact-alarm state is no longer thrown away every time one
   is set.** Asking Android for the permission opens a settings screen and
   returns "no" on the spot, because the user has not answered yet — and that
   "no" was being stored as the answer, putting every alarm back on the
-  inexact path this release had just taken it off. The state is read back
+  inexact path v1.0.0 had just taken it off. The state is read back
   instead. A reminder that cannot be scheduled now says why, in the system's
   own words, rather than a sentence nobody can act on.
 - **A note's sheet grows with the note.** Past 220 characters it used to jump
