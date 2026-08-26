@@ -53,7 +53,6 @@ void main() {
     // Onboarding has its own test file.
     await preferences.completeOnboarding();
     await preferences.completeTour();
-    await preferences.setReduceMotion(true);
   });
 
   tearDown(() async {

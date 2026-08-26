@@ -34,6 +34,22 @@ Working convention:
 
 ## Unreleased
 
+- **Reminder times fit on the card again.** A note due in thirteen hours was
+  spending most of its line saying so, and pushing its own words off the end.
+  It now says `13h`.
+- **The reminder notification carries the app's mark**, not a white square.
+  Android silhouettes a status-bar icon, so the launcher artwork came through
+  as a solid blob.
+- **A quieter home screen.** The daily digest card and the search field sit
+  flatter against the page, tag chips are outlined only while they are on,
+  and tapping a date heading no longer flashes a filled block behind it.
+- **Fewer switches in Settings.** "Reduce motion" is gone — the app already
+  follows the system's own reduced-motion setting, and the two of them
+  disagreeing was the only thing the switch added. The test-notification row
+  is gone with it, and capture haptics moved up into Capture where it belongs.
+- The Persian for the export screen's title said "output" in the arithmetic
+  sense.
+
 ## v0.9.9
 
 - **Reminders arrive.** They never have. The alarm was set correctly and the

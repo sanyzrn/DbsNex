@@ -199,9 +199,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get accessibility => 'دسترس‌پذیری';
 
   @override
-  String get reduceMotion => 'کم‌کردن انیمیشن‌ها';
-
-  @override
   String get haptics => 'لرزش هنگام ثبت';
 
   @override
@@ -782,7 +779,7 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get exportTitle => 'بردنش با خودتان';
+  String get exportTitle => 'خروجی گرفتن';
 
   @override
   String get exportExplained =>
@@ -1675,6 +1672,21 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String notificationTestFailed(String error) {
     return 'فرستاده نشد — $error';
+  }
+
+  @override
+  String timeMinutesShort(int count) {
+    return '$count دقیقه';
+  }
+
+  @override
+  String timeHoursShort(int count) {
+    return '$count ساعت';
+  }
+
+  @override
+  String timeDaysShort(int count) {
+    return '$count روز';
   }
 
   @override

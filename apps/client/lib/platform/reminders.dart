@@ -87,7 +87,7 @@ class NexReminders {
     }
     await _plugin.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        android: AndroidInitializationSettings('ic_stat_nex'),
         iOS: DarwinInitializationSettings(
           // Asked for at the moment a reminder is first set instead — a
           // permission prompt on first launch, before anyone has seen what

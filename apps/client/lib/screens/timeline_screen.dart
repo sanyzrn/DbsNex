@@ -1851,7 +1851,11 @@ class _AiDaySummaryPanel extends StatelessWidget {
             NexSpacing.xs,
           ),
           decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest,
+            // The same fill the notes below it use, not the elevated tone.
+            // Three different greys stacked down the top of the screen —
+            // recap, search field, tag chips — read as three separate
+            // materials; one reads as one surface with things on it.
+            color: scheme.surfaceContainerLowest,
             // The search field's curvature, not the card radius used
             // elsewhere. These two sit directly above one another and were
             // visibly a step apart — 20 against the field's 24.
@@ -1872,15 +1876,13 @@ class _AiDaySummaryPanel extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
-                    const SizedBox(width: NexSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: theme.textTheme.titleSmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
+                    // The words "Daily Digest" are gone. The sparkle is the
+                    // app's mark for anything a model wrote, this card is the
+                    // only place it appears on the timeline, and a heading
+                    // above two lines of text was naming something already
+                    // named. Semantics still carry the title for anyone who
+                    // cannot see the glyph.
+                    const Spacer(),
                     // Refresh only while it is open, and it is then the only
                     // button on the card: closed, there is nothing on screen
                     // for a refresh to change, and a button that rewrites
@@ -2024,7 +2026,9 @@ class _TypeFilterButton extends StatelessWidget {
             ? scheme.primary.withValues(alpha: 0.12)
             : scheme.surfaceContainerLowest,
         shape: StadiumBorder(
-          side: BorderSide(color: active ? scheme.primary : scheme.outline),
+          // Only the selected chip is outlined. The rest sat in rings that
+          // did no work the fill was not already doing.
+          side: active ? BorderSide(color: scheme.primary) : BorderSide.none,
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(
@@ -2266,6 +2270,12 @@ class _GroupHeader extends StatelessWidget {
       label: label,
       child: InkWell(
         onTap: onToggle,
+        // A heading is not a button, and the stock ripple across a full-width
+        // row read as one — a slab of colour flashing under a label. Kept as
+        // a hint that the row is live, at a quarter of the weight.
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: theme.colorScheme.onSurface.withValues(alpha: 0.04),
+        hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.03),
         child: Padding(
           // Level with the cards below it — the same horizontal gutter
           // `nexCardInsets` gives them, so the heading and the run it names

@@ -416,12 +416,6 @@ abstract class AppLocalizations {
   /// **'Accessibility'**
   String get accessibility;
 
-  /// No description provided for @reduceMotion.
-  ///
-  /// In en, this message translates to:
-  /// **'Reduce motion'**
-  String get reduceMotion;
-
   /// No description provided for @haptics.
   ///
   /// In en, this message translates to:
@@ -2917,6 +2911,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not send it — {error}'**
   String notificationTestFailed(String error);
+
+  /// Reminder countdown on a card, minutes
+  ///
+  /// In en, this message translates to:
+  /// **'{count}m'**
+  String timeMinutesShort(int count);
+
+  /// Reminder countdown on a card, hours
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h'**
+  String timeHoursShort(int count);
+
+  /// Reminder countdown on a card, days
+  ///
+  /// In en, this message translates to:
+  /// **'{count}d'**
+  String timeDaysShort(int count);
 
   /// A reminder whose time has passed
   ///

@@ -175,7 +175,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
             media.textScaler.scale(1);
         return MediaQuery(
           data: media.copyWith(
-            disableAnimations: prefs.reduceMotion || media.disableAnimations,
+            disableAnimations: media.disableAnimations,
             textScaler: TextScaler.linear(
               scaled,
             ).clamp(minScaleFactor: 0.75, maxScaleFactor: 1.9),

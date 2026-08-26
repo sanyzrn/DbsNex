@@ -280,9 +280,6 @@ class NexPreferences extends ChangeNotifier {
   bool get enterSubmitsCapture =>
       _prefs.getBool('capture.enter_submits') ?? true;
 
-  bool get reduceMotion =>
-      _prefs.getBool('accessibility.reduce_motion') ?? false;
-
   bool get haptics => _prefs.getBool('accessibility.haptics') ?? true;
 
   bool get cloudAiOptIn => _prefs.getBool('ai.cloud_opt_in') ?? false;
@@ -366,9 +363,6 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setEnterSubmitsCapture(bool value) =>
       _setBool('capture.enter_submits', value);
-
-  Future<void> setReduceMotion(bool value) =>
-      _setBool('accessibility.reduce_motion', value);
 
   Future<void> setHaptics(bool value) =>
       _setBool('accessibility.haptics', value);

@@ -199,9 +199,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accessibility => 'Accessibility';
 
   @override
-  String get reduceMotion => 'Reduce motion';
-
-  @override
   String get haptics => 'Capture haptics';
 
   @override
@@ -1675,6 +1672,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String notificationTestFailed(String error) {
     return 'Could not send it — $error';
+  }
+
+  @override
+  String timeMinutesShort(int count) {
+    return '${count}m';
+  }
+
+  @override
+  String timeHoursShort(int count) {
+    return '${count}h';
+  }
+
+  @override
+  String timeDaysShort(int count) {
+    return '${count}d';
   }
 
   @override

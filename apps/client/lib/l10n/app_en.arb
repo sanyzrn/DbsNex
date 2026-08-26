@@ -84,7 +84,6 @@
   "appearance": "Appearance",
   "language": "Language",
   "accessibility": "Accessibility",
-  "reduceMotion": "Reduce motion",
   "haptics": "Capture haptics",
   "intelligence": "Intelligence",
   "about": "About Nex",
@@ -1598,6 +1597,21 @@
   "@notificationTestFailed": {
     "description": "The test notification failed, with the system's own message",
     "placeholders": { "error": { "type": "String" } }
+  },
+  "timeMinutesShort": "{count}m",
+  "@timeMinutesShort": {
+    "description": "Reminder countdown on a card, minutes",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timeHoursShort": "{count}h",
+  "@timeHoursShort": {
+    "description": "Reminder countdown on a card, hours",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timeDaysShort": "{count}d",
+  "@timeDaysShort": {
+    "description": "Reminder countdown on a card, days",
+    "placeholders": { "count": { "type": "int" } }
   },
   "remindOverdue": "Overdue",
   "@remindOverdue": {"description": "A reminder whose time has passed"},
