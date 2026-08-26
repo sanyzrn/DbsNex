@@ -233,8 +233,13 @@ Future<bool> nexPickReminder({
         );
   nexShowBanner(
     context,
+    // The OS's own words, appended. Ugly on purpose: "this phone would not
+    // take the alarm" is true and completely undiagnosable, and a reminder
+    // that silently does not happen is the single most expensive failure this
+    // app has had. A rare technical string beats a confident sentence that
+    // leaves nobody anything to go on.
     message: failure != null
-        ? l10n.remindNotScheduled
+        ? '${l10n.remindNotScheduled} ($failure)'
         : l10n.remindSetIn(until),
     kind: failure != null ? NexBannerKind.failed : NexBannerKind.done,
   );

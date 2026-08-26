@@ -131,9 +131,11 @@ wait for the result before doing anything else:
 {"action": "search", "query": "cooler"}
 ```
 
-Rules: no words outside the block — the app shows
-the user what you asked for and waits for them to confirm it, so anything you
-write around it is never read. You may send more than one block when a
+Rules: nothing outside the block — no words, no emoji, no leading bullet,
+not even "Sure:". The app shows the user what you asked for and waits for
+them to confirm it, so anything you write around it is never read, and any
+preference you have been given about tone or emoji does not apply to a reply
+that carries a block. You may send more than one block when a
 request genuinely needs several changes; they are confirmed together. Ids
 come only from the notes listed below or from a search result; never invent
 one. If you are not certain which note is meant, ask instead of
@@ -171,11 +173,17 @@ List<AssistantAction> parseAssistantActions(String reply) {
   final bodies = [
     for (final match in _blockPattern.allMatches(reply)) match.group(1)!.trim(),
   ];
-  // A reply that is bare JSON with no fence at all. Models do this when the
-  // prompt has been in context a while, and refusing it would mean the
-  // feature works for the first few messages of a conversation and then
-  // quietly stops.
-  if (bodies.isEmpty) bodies.add(reply.trim());
+  // A reply with no fence at all. Models do this when the prompt has been in
+  // context a while, and refusing it would mean the feature works for the
+  // first few messages of a conversation and then quietly stops.
+  //
+  // Every JSON object in the reply, not the reply itself: an action arriving
+  // with anything at all in front of it — a stray emoji, "Sure:", a leading
+  // bullet — used to fail `startsWith('{')`, and a failed parse does not
+  // degrade to "no action", it degrades to the raw protocol JSON appearing in
+  // the chat as the assistant's answer. That is what a user sees when they
+  // ask for a note and get `{"action": "create", ...}` back.
+  if (bodies.isEmpty) bodies.addAll(_objectsIn(reply));
 
   final actions = <AssistantAction>[];
   for (final body in bodies) {
@@ -193,6 +201,49 @@ List<AssistantAction> parseAssistantActions(String reply) {
     }
   }
   return actions;
+}
+
+/// Every top-level `{...}` in a string, braces balanced and strings respected.
+///
+/// A regex cannot do this: `}` is legal inside a JSON string value, and note
+/// text routinely contains one. Scanning is a few lines and cannot be fooled
+/// by the note that happens to be about a shell script.
+///
+/// Only depth-1 objects are returned — a nested one is part of its parent, not
+/// a second action.
+List<String> _objectsIn(String reply) {
+  final found = <String>[];
+  var depth = 0;
+  var start = -1;
+  var inString = false;
+  var escaped = false;
+  for (var i = 0; i < reply.length; i++) {
+    final char = reply[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char == '\\') {
+        escaped = true;
+      } else if (char == '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (char == '"') {
+      inString = true;
+    } else if (char == '{') {
+      if (depth == 0) start = i;
+      depth++;
+    } else if (char == '}') {
+      if (depth == 0) continue;
+      depth--;
+      if (depth == 0 && start >= 0) {
+        found.add(reply.substring(start, i + 1));
+        start = -1;
+      }
+    }
+  }
+  return found;
 }
 
 AssistantAction? _action(Map<Object?, Object?> decoded) {

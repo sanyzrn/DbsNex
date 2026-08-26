@@ -2608,16 +2608,42 @@ class _GroupHeader extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsetsDirectional.only(
-            start: NexSpacing.xs,
-            end: NexSpacing.xs,
+          // The same vertical padding the heading carries, so the two glyphs
+          // sit on one line. Without it the menu centred itself in the row's
+          // full height while the chevron sat inside the heading's 60/40
+          // weighting, and the pair read as very slightly crooked — which is
+          // the kind of thing you see before you can say what it is.
+          padding: const EdgeInsets.fromLTRB(
+            NexSpacing.xs,
+            _headerSpace * 0.6,
+            NexSpacing.md,
+            _headerSpace * 0.4,
           ),
           child: PopupMenuButton<_GroupAction>(
             tooltip: l10n.groupActions,
+            // Horizontal. A vertical ellipsis beside a chevron is two marks
+            // running in two directions; laid flat it reads as a row of
+            // controls rather than one control and a stray column of dots.
             icon: Icon(
-              Icons.more_vert,
+              Icons.more_horiz,
               size: 20,
               color: theme.colorScheme.onSurfaceVariant,
+            ),
+            // Padding around the icon, not around the menu. The default is
+            // large enough to set the height of every date heading in the
+            // list; this keeps a tap target the thumb can find without the
+            // button deciding how tall the row is.
+            padding: const EdgeInsets.all(NexSpacing.sm),
+            // Rounded, on a raised surface, sitting under the button rather
+            // than over it.
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(NexRadius.lg),
+            ),
+            color: theme.colorScheme.surfaceContainerHigh,
+            elevation: 3,
+            popUpAnimationStyle: AnimationStyle(
+              duration: NexMotion.standard,
+              curve: NexMotion.curve,
             ),
             onSelected: (action) => switch (action) {
               _GroupAction.ask => onAsk?.call(),
@@ -2627,29 +2653,49 @@ class _GroupHeader extends StatelessWidget {
               if (onAsk != null)
                 PopupMenuItem(
                   value: _GroupAction.ask,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.auto_awesome_outlined),
-                    title: Text(l10n.groupAsk),
+                  child: _GroupMenuRow(
+                    icon: Icons.auto_awesome_outlined,
+                    label: l10n.groupAsk,
                   ),
                 ),
               PopupMenuItem(
                 value: _GroupAction.delete,
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    Icons.delete_outline,
-                    color: theme.colorScheme.error,
-                  ),
-                  title: Text(
-                    l10n.groupDelete,
-                    style: TextStyle(color: theme.colorScheme.error),
-                  ),
+                child: _GroupMenuRow(
+                  icon: Icons.delete_outline,
+                  label: l10n.groupDelete,
+                  color: theme.colorScheme.error,
                 ),
               ),
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// One line of the date heading's menu.
+///
+/// A plain row rather than a `ListTile`: a ListTile inside a PopupMenuItem is
+/// two sets of vertical padding and two minimum heights fighting each other,
+/// and the result was a menu whose rows were taller than they looked and
+/// whose text sat off-centre against its own icon.
+class _GroupMenuRow extends StatelessWidget {
+  const _GroupMenuRow({required this.icon, required this.label, this.color});
+
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tint = color ?? theme.colorScheme.onSurface;
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: tint),
+        const SizedBox(width: NexSpacing.md),
+        Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: tint)),
       ],
     );
   }

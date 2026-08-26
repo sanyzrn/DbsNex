@@ -56,6 +56,36 @@ Sure, here you go:
       expect(parseAssistantAction('```\nnot json at all\n```'), isNull);
     });
 
+    test('an unfenced action survives whatever the model put in front', () {
+      // Reported from a real conversation: the reply came back as
+      // `🔍 {"action": "create", ...}` and the app showed that JSON to the
+      // user as the assistant's answer. The parser required an unfenced reply
+      // to *be* JSON, so one emoji in front turned a note into a wall of
+      // protocol — and the emoji was there because this release had just
+      // asked the assistant to use them.
+      final action = parseAssistantAction(
+        '🔍 {"action": "create", "text": "call the plumber"}',
+      );
+      expect(action?.kind, AssistantActionKind.create);
+      expect(action?.text, 'call the plumber');
+
+      // Same for a word in front, which is the older and commoner version of
+      // the same failure.
+      expect(
+        parseAssistantAction('Sure: {"action": "delete", "id": "n1"}')?.kind,
+        AssistantActionKind.delete,
+      );
+    });
+
+    test('a brace inside note text does not end the object early', () {
+      // The reason this is a scan and not a regex: `}` is legal inside a JSON
+      // string, and a note about a shell script contains one.
+      final action = parseAssistantAction(
+        r'{"action": "create", "text": "run ${HOME}/bin/x"}',
+      );
+      expect(action?.text, r'run ${HOME}/bin/x');
+    });
+
     test('a half-written action is refused rather than half-applied', () {
       // An edit with no id would otherwise be indistinguishable from an edit
       // of whichever note happened to be first.

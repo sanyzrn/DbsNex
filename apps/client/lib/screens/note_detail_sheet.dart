@@ -645,27 +645,22 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final isText = note.type == NoteType.text;
     final hasMedia = note.mediaUri != null;
     final screenHeight = MediaQuery.sizeOf(context).height;
-    // A long note is the reason this sheet exists, so it opens at reading
-    // height instead of a strip at the bottom the user has to drag upward.
-    // Short notes still hug their content — a two-line thought does not need
-    // two thirds of the screen.
+    // The sheet is as tall as what is in it, up to almost the whole screen.
     //
-    // The transcript/OCR text only counts while the AI panel is actually
-    // open. It used to count unconditionally, so a voice or photo note whose
-    // *hidden* transcript happened to run past 220 characters forced the
-    // sheet to its 70%-tall minimum for a screen showing a player and a
-    // "Transcript ready" link — the rest was empty space below Delete, and
-    // which notes hit it depended on how long their speech happened to be.
-    final visibleText =
-        note.content ??
-        (_showAi ? (note.transcriptText ?? note.ocrText) : null) ??
-        '';
-    final long = visibleText.trim().length > 220;
+    // There used to be a floor as well: past 220 characters of text the sheet
+    // was forced to 70% of the screen. That is a step, and a step is exactly
+    // what it looked like — a note one word over the line jumped to two thirds
+    // of the display and then left the bottom third empty underneath its own
+    // last sentence, because the content it was making room for was not that
+    // tall. Where the threshold fell also depended on things the reader could
+    // not see; a voice note's hidden transcript used to trip it.
+    //
+    // Nothing is needed in its place. `Flexible` inside a `MainAxisSize.min`
+    // column already grows with the text and stops at the cap, so a long note
+    // opens tall and a two-line thought hugs itself — which is what the floor
+    // was trying to approximate in one jump.
     return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: screenHeight * 0.92,
-        minHeight: long ? screenHeight * 0.7 : 0,
-      ),
+      constraints: BoxConstraints(maxHeight: screenHeight * 0.92),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
