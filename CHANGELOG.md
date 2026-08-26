@@ -36,6 +36,18 @@ Working convention:
 
 ## v1.2.0
 
+A small round of fixes to make reminders more reliable.
+
+- **Reminders no longer initialise twice at the same time.** Two parts of
+  Nex could ask the reminder service to start together, racing each other and
+  doing the same setup twice. Initialisation is shared now, so the second
+  request waits for the first instead of starting another one.
+- **Notification permission is checked after Android answers.** The immediate
+  result of a permission request can say "no" simply because the system has
+  not returned the user's answer yet. Nex now reads the actual permission state
+  after the request finishes, so a reminder is not incorrectly treated as
+  unable to use exact alarms.
+
 ## v1.1.0
 
 The first round of fixes from v1.0.0 in real use.
