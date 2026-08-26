@@ -37,6 +37,7 @@ class NexReminders {
   static const _dailyChannelId = 'nex.daily';
 
   bool _ready = false;
+  Completer<void>? _initialising;
 
   /// Whether this phone will let Nex wake at an exact minute.
   ///
@@ -95,6 +96,23 @@ class NexReminders {
 
   Future<void> initialise() async {
     if (_ready || !supported) return;
+    final current = _initialising;
+    if (current != null) return current.future;
+
+    final completer = Completer<void>();
+    _initialising = completer;
+    try {
+      await _initialise();
+      completer.complete();
+    } catch (error, stackTrace) {
+      completer.completeError(error, stackTrace);
+      rethrow;
+    } finally {
+      if (identical(_initialising, completer)) _initialising = null;
+    }
+  }
+
+  Future<void> _initialise() async {
     tz_data.initializeTimeZones();
     // Loading the database is only half of it. Without this `tz.local` is
     // UTC, and anything scheduled by wall-clock time — the daily nudge, and
@@ -190,7 +208,10 @@ class NexReminders {
           .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
           >();
-      final posting = await android?.requestNotificationsPermission() ?? false;
+      if (android == null) return false;
+      final requested = await android.requestNotificationsPermission();
+      final posting =
+          requested ?? await android.areNotificationsEnabled() ?? true;
       // Asked for, not required. A refusal costs precision, not the feature:
       // [_scheduleMode] falls back and the reminder still arrives, late.
       //
