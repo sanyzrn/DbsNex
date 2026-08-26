@@ -18,6 +18,8 @@
   "@groupDeleteBody": {"placeholders": {"count": {"type": "int"}}},
   "groupDeleted": "{count} notes deleted",
   "@groupDeleted": {"placeholders": {"count": {"type": "int"}}},
+  "assistantVoiceGroup": "How it talks",
+  "assistantReachGroup": "What it can see",
   "search": "Search",
   "searchHint": "Search notes…",
   "searchStart": "Start typing to find a capture.",

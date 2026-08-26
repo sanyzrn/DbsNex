@@ -60,6 +60,12 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get assistantVoiceGroup => 'چطور حرف بزند';
+
+  @override
+  String get assistantReachGroup => 'چه چیزی را می‌بیند';
+
+  @override
   String get search => 'جست‌وجو';
 
   @override

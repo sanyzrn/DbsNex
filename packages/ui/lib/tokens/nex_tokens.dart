@@ -677,6 +677,29 @@ TextTheme _textTheme({required Color primary, required Color secondary}) =>
 double nexBottomInset(BuildContext context) =>
     MediaQuery.paddingOf(context).bottom;
 
+/// The colours the assistant announces itself with.
+///
+/// Not the accent. The accent is the app's own voice — the capture button, a
+/// selected chip, a set reminder — and holding that button to reach the
+/// assistant lit up in exactly the same blue as tapping it, which said "this
+/// is more of the same" about the one gesture that is not.
+///
+/// Every assistant that has an entrance uses a spectrum rather than a hue for
+/// precisely this reason: Apple Intelligence, Gemini and the Assistant all
+/// sweep blue through violet and magenta into warm. This is that, at this
+/// app's saturation, and it is fixed rather than derived — a colour that
+/// means "a model is about to speak" should not change when someone picks a
+/// different accent, and these five read on both the light and the dark page.
+///
+/// It closes on the colour it opened with so a sweep can loop without a seam.
+const nexAssistantSpectrum = <Color>[
+  Color(0xFF4C8DFF),
+  Color(0xFF9B6DFF),
+  Color(0xFFE0559B),
+  Color(0xFFFF9F45),
+  Color(0xFF4C8DFF),
+];
+
 /// The strip along the bottom of the window the system keeps for its own
 /// navigation gestures.
 ///

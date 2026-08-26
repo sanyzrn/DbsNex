@@ -9,12 +9,15 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
+import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/widgets/commit_receipt.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
+import 'package:nex_client/screens/assistant_screen.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
+import 'package:nex_client/widgets/assistant_settings.dart';
 import 'package:nex_client/widgets/empty_timeline.dart';
 import 'package:nex_client/widgets/note_spotlight.dart';
 import 'package:nex_client/widgets/first_run_tour.dart';
@@ -1217,6 +1220,28 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('first'), findsOneWidget);
+    });
+  });
+
+  group('the assistant settings', () {
+    testWidgets('are one screen, opened from two places', (tester) async {
+      // The Settings row and the chat's own panel render the same body, so
+      // there is one place where a control can be added or renamed. Before
+      // this the chat had no way to reach them at all.
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: AssistantScreen(preferences: preferences),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AssistantSettingsBody), findsOneWidget);
+      // The three questions the screen is now organised around, rather than
+      // five sibling section titles in one flat column.
+      expect(find.text('How it talks'), findsOneWidget);
+      expect(find.text('What it can see'), findsOneWidget);
     });
   });
 }

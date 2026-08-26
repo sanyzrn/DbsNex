@@ -187,6 +187,14 @@ Sure, here you go:
       expect(off, isNot(contains('only from')));
     });
 
+    test('emoji are asked for, and bounded in the same breath', () {
+      final prompt = adapter().chatSystemPrompt(const AiChatOptions());
+      // Both halves matter. "Use more emoji" on its own produces a reply with
+      // a picture beside every noun; the cap is what makes it punctuation.
+      expect(prompt, contains('emoji'));
+      expect(prompt, contains('At most one per line'));
+    });
+
     test('the action vocabulary is absent unless acting is on', () {
       expect(
         adapter().chatSystemPrompt(const AiChatOptions()),

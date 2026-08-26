@@ -188,6 +188,18 @@ abstract class AppLocalizations {
   /// **'{count} notes deleted'**
   String groupDeleted(int count);
 
+  /// No description provided for @assistantVoiceGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'How it talks'**
+  String get assistantVoiceGroup;
+
+  /// No description provided for @assistantReachGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'What it can see'**
+  String get assistantReachGroup;
+
   /// No description provided for @search.
   ///
   /// In en, this message translates to:

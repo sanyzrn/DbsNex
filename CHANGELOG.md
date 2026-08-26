@@ -34,6 +34,22 @@ Working convention:
 
 ## Unreleased
 
+- **The assistant's settings, rebuilt and reachable from the chat.** They were
+  one flat column of five section titles with nothing saying which went with
+  which; they are three groups now — how it talks, what it can see, and your
+  standing instruction — in the same cards Settings uses. A control in the
+  chat's own header opens them over the conversation, which is where you
+  actually notice one needs changing.
+- **The chat rises to meet the keyboard.** Tapping the composer takes the
+  sheet to full height instead of leaving the thread squeezed into whatever
+  the keyboard left.
+- **The history and settings panels close with a downward swipe**, from
+  anywhere in them rather than only from the handle.
+- **Holding the capture button lights a spectrum, not the accent.** Tapping
+  that button and holding it are different things, and lighting the same blue
+  for both said they were the same.
+- **A warmer assistant.** It may use an emoji where one does real work — at
+  most one per line, never inside a sentence.
 - **A spent reminder stops shouting.** A reminder still ahead keeps its chip
   on the card — that is what it is for. One that has already rung gets one
   last showing, and then the slot goes back to the note's own timestamp

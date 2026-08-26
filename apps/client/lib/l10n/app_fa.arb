@@ -18,6 +18,8 @@
   "@groupDeleteBody": {"placeholders": {"count": {"type": "int"}}},
   "groupDeleted": "{count} یادداشت حذف شد",
   "@groupDeleted": {"placeholders": {"count": {"type": "int"}}},
+  "assistantVoiceGroup": "چطور حرف بزند",
+  "assistantReachGroup": "چه چیزی را می‌بیند",
   "search": "جست‌وجو",
   "searchHint": "جست‌وجو در یادداشت‌ها…",
   "searchStart": "برای پیدا کردن یادداشت، تایپ کنید.",

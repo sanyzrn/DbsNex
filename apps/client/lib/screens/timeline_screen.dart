@@ -1337,7 +1337,6 @@ class TimelineScreenState extends State<TimelineScreen> with RouteAware {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         // The greeting used to live here, squeezed between the mark and the
@@ -1560,13 +1559,12 @@ class TimelineScreenState extends State<TimelineScreen> with RouteAware {
           //
           // Only when there is a provider to answer — a long press that opens
           // a chat which cannot reply is worse than one that does nothing.
+          // Not the accent. Tapping this button and holding it are different
+          // things, and lighting the same blue for both said they were the
+          // same. Every assistant with an entrance uses a spectrum for this
+          // reason — see [nexAssistantSpectrum].
           : NexLongPressGlow(
-              colors: [
-                theme.colorScheme.primary,
-                theme.colorScheme.tertiary,
-                theme.colorScheme.secondary,
-                theme.colorScheme.primary,
-              ],
+              colors: nexAssistantSpectrum,
               onHoldStart: _tick,
               onTriggered: _openAssistant,
               child: FloatingActionButton(

@@ -60,6 +60,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get assistantVoiceGroup => 'How it talks';
+
+  @override
+  String get assistantReachGroup => 'What it can see';
+
+  @override
   String get search => 'Search';
 
   @override
