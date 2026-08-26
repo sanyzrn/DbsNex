@@ -2695,7 +2695,18 @@ class _GroupMenuRow extends StatelessWidget {
       children: [
         Icon(icon, size: 20, color: tint),
         const SizedBox(width: NexSpacing.md),
-        Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: tint)),
+        // Flexible, and so allowed to wrap. A popup menu is at most 280
+        // logical pixels wide, and "Delete this group" beside an icon and a
+        // gap does not fit that in every language — the ListTile this
+        // replaced was quietly handling it, and a bare Row is not. The item
+        // grows to a second line rather than clipping the label, because
+        // `PopupMenuItem`'s height is a minimum.
+        Flexible(
+          child: Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(color: tint),
+          ),
+        ),
       ],
     );
   }
