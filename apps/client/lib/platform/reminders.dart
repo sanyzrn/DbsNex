@@ -40,9 +40,16 @@ class NexReminders {
 
   /// Whether this phone will let Nex wake at an exact minute.
   ///
-  /// Answered by the OS when permission is asked for, and re-asked on every
-  /// set — Android lets someone revoke it in Settings at any time, and a
-  /// cached yes from last week is how a reminder quietly becomes approximate.
+  /// *Read* on every [initialise] and re-read whenever permission is asked
+  /// for. Android lets someone revoke this in Settings at any time, and a
+  /// cached yes from last week is how a reminder quietly becomes
+  /// approximate — but the worse failure was the opposite one, and it was
+  /// live: this was only ever written inside [requestPermission], so on a
+  /// cold launch it was false no matter what the OS actually allowed. Every
+  /// alarm rebuilt by [syncFromLibrary] and every daily nudge re-armed by the
+  /// timeline was therefore downgraded to an inexact alarm on every start,
+  /// which Android batches — the reported symptom being a seven o'clock
+  /// notification arriving at twenty past.
   bool _exactAlarms = false;
 
   /// Exact when allowed, approximate when not.
@@ -121,6 +128,25 @@ class NexReminders {
         if (id != null && id.isNotEmpty) onOpenNote?.call(id);
       },
     );
+    // Asked, not assumed, and before anything is scheduled. `canSchedule…`
+    // only reads the current state — it shows nobody a prompt — which is what
+    // makes it safe here, where a permission request would not be.
+    if (Platform.isAndroid) {
+      try {
+        _exactAlarms =
+            await _plugin
+                .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin
+                >()
+                ?.canScheduleExactNotifications() ??
+            false;
+      } catch (error) {
+        // An older Android has no such concept and allows exact alarms
+        // outright; a failure to ask is not a reason to assume the worse of
+        // the two answers, but it is recorded rather than swallowed.
+        lastError = 'exact alarms: $error';
+      }
+    }
     try {
       final launch = await _plugin.getNotificationAppLaunchDetails();
       if (launch?.didNotificationLaunchApp ?? false) {

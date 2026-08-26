@@ -40,11 +40,15 @@ Nex reaches 1.0. Reminders that arrive and repeat, an assistant you can
 reach and tune from the conversation itself, a home screen you decide the
 shape of, and a storage figure that tells you the truth.
 
-- **The daily note arrives.** It was scheduled as an inexact alarm, which
-  Android is free to defer under Doze and which battery-managed phones drop
-  outright — the same mode that had already been proven wrong for note
-  reminders and fixed there. It is exact now. And if the phone refuses either
-  the permission or the alarm, the switch says so instead of sitting on.
+- **The daily note arrives when you asked for it.** Set for seven, it came at
+  twenty past — an inexact alarm, which Android is free to batch, and the same
+  mode already proven wrong for note reminders and fixed there. Worse, the
+  flag deciding exact-versus-inexact was only ever set while *asking* for
+  permission, so every launch quietly re-armed every alarm — reminders
+  included — as inexact regardless of what the phone actually allowed. The
+  state is read at startup now, and the daily note is scheduled exactly. If
+  the phone refuses either the permission or the alarm, the switch says so
+  instead of sitting on.
 - **Tagging a note no longer moves it to the top.** The timeline puts an
   edited note first, which is right — it is the one you were just working on.
   Filing one under a tag was doing the same thing, and it is not the same
