@@ -18,6 +18,96 @@ class AppLocalizationsFa extends AppLocalizations {
   String get captureHint => 'چی تو ذهنته؟';
 
   @override
+  String get layoutTitle => 'چیدمان خانه';
+
+  @override
+  String get layoutSubtitle => 'چه چیزهایی بالای یادداشت‌ها دیده شوند.';
+
+  @override
+  String get layoutGreeting => 'خوش‌آمدگویی';
+
+  @override
+  String get layoutDaySummary => 'خلاصهٔ هوشمند روز';
+
+  @override
+  String get layoutSearchField => 'جعبهٔ جست‌وجو';
+
+  @override
+  String get layoutTagRow => 'نوار برچسب‌ها';
+
+  @override
+  String chatAboutGroup(String label, int count) {
+    return 'دربارهٔ $label · $count یادداشت';
+  }
+
+  @override
+  String get groupActions => 'عملیات گروه';
+
+  @override
+  String get groupAsk => 'دربارهٔ این‌ها بپرس';
+
+  @override
+  String get groupDelete => 'حذف این گروه';
+
+  @override
+  String groupDeleteBody(int count) {
+    return '$count یادداشت به زباله‌دان می‌رود. از کتابخانه ← زباله‌دان می‌توانید برشان گردانید.';
+  }
+
+  @override
+  String groupDeleted(int count) {
+    return '$count یادداشت حذف شد';
+  }
+
+  @override
+  String get assistantVoiceGroup => 'چطور حرف بزند';
+
+  @override
+  String get assistantReachGroup => 'چه چیزی را می‌بیند';
+
+  @override
+  String get storageModels => 'مدل آفلاین';
+
+  @override
+  String get storageImages => 'تصاویر';
+
+  @override
+  String get storageAudio => 'ضبط‌ها';
+
+  @override
+  String get storageBackups => 'پشتیبان‌ها';
+
+  @override
+  String get storageNotes => 'یادداشت‌ها و نمایه';
+
+  @override
+  String get storageOther => 'فایل‌های دیگر';
+
+  @override
+  String get storageEmpty => 'هنوز چیزی ذخیره نشده.';
+
+  @override
+  String get remindRepeat => 'تکرار';
+
+  @override
+  String get remindRepeatOnce => 'یک‌بار';
+
+  @override
+  String get remindRepeatDaily => 'هر روز';
+
+  @override
+  String get remindRepeatWeekly => 'هر هفته';
+
+  @override
+  String remindRepeatingAt(String when, String repeat) {
+    return '$when · $repeat';
+  }
+
+  @override
+  String get nudgeNotScheduled =>
+      'یادآور روزانه روشن شد، ولی این گوشی آلارمش را قبول نکرد.';
+
+  @override
   String get search => 'جست‌وجو';
 
   @override
@@ -199,9 +289,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get accessibility => 'دسترس‌پذیری';
 
   @override
-  String get reduceMotion => 'کم‌کردن انیمیشن‌ها';
-
-  @override
   String get haptics => 'لرزش هنگام ثبت';
 
   @override
@@ -300,11 +387,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get storage => 'فضای ذخیره‌سازی';
-
-  @override
-  String storageUsed(String size) {
-    return '$size روی این دستگاه اشغال شده';
-  }
 
   @override
   String get stopRecording => 'پایان ضبط';
@@ -782,7 +864,7 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get exportTitle => 'بردنش با خودتان';
+  String get exportTitle => 'خروجی گرفتن';
 
   @override
   String get exportExplained =>
@@ -1675,6 +1757,21 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String notificationTestFailed(String error) {
     return 'فرستاده نشد — $error';
+  }
+
+  @override
+  String timeMinutesShort(int count) {
+    return '$count دقیقه';
+  }
+
+  @override
+  String timeHoursShort(int count) {
+    return '$count ساعت';
+  }
+
+  @override
+  String timeDaysShort(int count) {
+    return '$count روز';
   }
 
   @override

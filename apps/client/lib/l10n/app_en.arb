@@ -3,6 +3,37 @@
   "appTitle": "Nex",
   "capture": "Capture",
   "captureHint": "What's on your mind?",
+  "layoutTitle": "Home layout",
+  "layoutSubtitle": "What sits above your notes.",
+  "layoutGreeting": "Greeting",
+  "layoutDaySummary": "Smart daily summary",
+  "layoutSearchField": "Search box",
+  "layoutTagRow": "Tag row",
+  "chatAboutGroup": "About {label} · {count} notes",
+  "@chatAboutGroup": {"placeholders": {"label": {"type": "String"}, "count": {"type": "int"}}},
+  "groupActions": "Group actions",
+  "groupAsk": "Ask about these",
+  "groupDelete": "Delete this group",
+  "groupDeleteBody": "{count} notes move to Trash. You can put them back from Library → Trash.",
+  "@groupDeleteBody": {"placeholders": {"count": {"type": "int"}}},
+  "groupDeleted": "{count} notes deleted",
+  "@groupDeleted": {"placeholders": {"count": {"type": "int"}}},
+  "assistantVoiceGroup": "How it talks",
+  "assistantReachGroup": "What it can see",
+  "storageModels": "Offline model",
+  "storageImages": "Photos",
+  "storageAudio": "Recordings",
+  "storageBackups": "Backups",
+  "storageNotes": "Notes and index",
+  "storageOther": "Other files",
+  "storageEmpty": "Nothing stored yet.",
+  "remindRepeat": "Repeat",
+  "remindRepeatOnce": "Once",
+  "remindRepeatDaily": "Every day",
+  "remindRepeatWeekly": "Every week",
+  "remindRepeatingAt": "{when} · {repeat}",
+  "@remindRepeatingAt": {"placeholders": {"when": {"type": "String"}, "repeat": {"type": "String"}}},
+  "nudgeNotScheduled": "The daily note was turned on, but this phone would not take the alarm.",
   "search": "Search",
   "searchHint": "Search notes…",
   "searchStart": "Start typing to find a capture.",
@@ -84,7 +115,6 @@
   "appearance": "Appearance",
   "language": "Language",
   "accessibility": "Accessibility",
-  "reduceMotion": "Reduce motion",
   "haptics": "Capture haptics",
   "intelligence": "Intelligence",
   "about": "About Nex",
@@ -135,14 +165,6 @@
   "enterSubmitsCaptureSubtitle": "Off starts a new line instead. Shift+Enter always starts a new line either way.",
   "languageSystem": "System",
   "storage": "Storage",
-  "storageUsed": "{size} used locally",
-  "@storageUsed": {
-    "placeholders": {
-      "size": {
-        "type": "String"
-      }
-    }
-  },
   "stopRecording": "Stop recording",
   "recordingElapsed": "Recording, {elapsed}",
   "@recordingElapsed": {
@@ -1598,6 +1620,21 @@
   "@notificationTestFailed": {
     "description": "The test notification failed, with the system's own message",
     "placeholders": { "error": { "type": "String" } }
+  },
+  "timeMinutesShort": "{count}m",
+  "@timeMinutesShort": {
+    "description": "Reminder countdown on a card, minutes",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timeHoursShort": "{count}h",
+  "@timeHoursShort": {
+    "description": "Reminder countdown on a card, hours",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timeDaysShort": "{count}d",
+  "@timeDaysShort": {
+    "description": "Reminder countdown on a card, days",
+    "placeholders": { "count": { "type": "int" } }
   },
   "remindOverdue": "Overdue",
   "@remindOverdue": {"description": "A reminder whose time has passed"},

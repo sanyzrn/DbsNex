@@ -23,11 +23,15 @@ import '../l10n/app_localizations.dart';
 String nexDueCountdown(AppLocalizations l10n, DateTime due) {
   final left = due.toLocal().difference(DateTime.now());
   if (left.isNegative) return l10n.remindOverdue;
-  if (left.inHours >= 24) return l10n.remindInDays((left.inHours / 24).ceil());
+  // The short forms, not the sentences the confirmation uses. This shares one
+  // line with the note's own words, and "13 hours" took enough of it to push
+  // them off the card — which is the whole reason the timestamp gave up its
+  // slot to this in the first place.
+  if (left.inHours >= 24) return l10n.timeDaysShort((left.inHours / 24).ceil());
   if (left.inMinutes >= 60) {
-    return l10n.remindInHours((left.inMinutes / 60).ceil());
+    return l10n.timeHoursShort((left.inMinutes / 60).ceil());
   }
-  return l10n.remindInMinutes(
+  return l10n.timeMinutesShort(
     left.inSeconds <= 0 ? 0 : (left.inSeconds / 60).ceil(),
   );
 }

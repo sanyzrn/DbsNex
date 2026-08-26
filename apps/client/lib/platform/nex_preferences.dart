@@ -280,10 +280,43 @@ class NexPreferences extends ChangeNotifier {
   bool get enterSubmitsCapture =>
       _prefs.getBool('capture.enter_submits') ?? true;
 
-  bool get reduceMotion =>
-      _prefs.getBool('accessibility.reduce_motion') ?? false;
-
   bool get haptics => _prefs.getBool('accessibility.haptics') ?? true;
+
+  /* --------------------------------------------------- Home screen layout */
+
+  /// Which of the four things above the notes the home screen is showing.
+  ///
+  /// All four are on by default, and every one of them is something the app
+  /// decided to put there rather than something the reader asked for: a
+  /// greeting, a generated summary, a search field and a row of tags, on a
+  /// screen whose subject is the notes underneath them. Someone who wants the
+  /// notes and nothing else should be able to have that without the app
+  /// arguing.
+  ///
+  /// Turning the search field off does not take search away — the app bar
+  /// grows the icon back, which is where it lived before the field became
+  /// permanent.
+  bool get showGreeting => _prefs.getBool('home.greeting') ?? true;
+
+  bool get showDaySummary => _prefs.getBool('home.day_summary') ?? true;
+
+  bool get showSearchField => _prefs.getBool('home.search') ?? true;
+
+  bool get showTagRow => _prefs.getBool('home.tags') ?? true;
+
+  Future<void> setShowGreeting(bool value) => _setHomePart('greeting', value);
+
+  Future<void> setShowDaySummary(bool value) =>
+      _setHomePart('day_summary', value);
+
+  Future<void> setShowSearchField(bool value) => _setHomePart('search', value);
+
+  Future<void> setShowTagRow(bool value) => _setHomePart('tags', value);
+
+  Future<void> _setHomePart(String key, bool value) async {
+    await _prefs.setBool('home.$key', value);
+    notifyListeners();
+  }
 
   bool get cloudAiOptIn => _prefs.getBool('ai.cloud_opt_in') ?? false;
 
@@ -366,9 +399,6 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setEnterSubmitsCapture(bool value) =>
       _setBool('capture.enter_submits', value);
-
-  Future<void> setReduceMotion(bool value) =>
-      _setBool('accessibility.reduce_motion', value);
 
   Future<void> setHaptics(bool value) =>
       _setBool('accessibility.haptics', value);
@@ -687,6 +717,27 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setCollapsedTimelineGroups(Set<String> keys) async {
     await _prefs.setStringList('timeline.collapsed', keys.toList()..sort());
+    notifyListeners();
+  }
+
+  /// Notes whose reminder has already rung and been seen.
+  ///
+  /// A reminder that is still ahead earns its chip on the card — that is the
+  /// whole reason the chip exists, and reading "in 3h" at a glance is what a
+  /// reminder is for. One that has already rung is a different thing: the
+  /// notification has been delivered, the note has been read, and the chip is
+  /// then a permanent "Overdue" badge on a note nobody is late for.
+  ///
+  /// So a spent reminder gets exactly one more showing. Leaving the timeline
+  /// and coming back to it is what counts as having seen it, and the whole
+  /// set is rewritten to whatever is overdue at that moment — which prunes
+  /// itself, and means a reminder pushed back into the future gets its chip
+  /// again without anything having to remember to remove an id.
+  Set<String> get seenReminders =>
+      (_prefs.getStringList('reminders.seen') ?? const []).toSet();
+
+  Future<void> setSeenReminders(Set<String> noteIds) async {
+    await _prefs.setStringList('reminders.seen', noteIds.toList()..sort());
     notifyListeners();
   }
 

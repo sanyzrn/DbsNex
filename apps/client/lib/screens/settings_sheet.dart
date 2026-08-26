@@ -6,6 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/choice_cards.dart';
+import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_time_picker.dart';
@@ -15,6 +16,7 @@ import '../platform/ai_provider.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/reminders.dart';
 import '../platform/update_service.dart';
 import '../platform/os_capture_bridge.dart';
 import 'about_screen.dart';
@@ -93,7 +95,7 @@ class SettingsSheet extends StatelessWidget {
               ),
             ),
             Flexible(
-              child: _DismissOnOverscroll(
+              child: NexDismissOnOverscroll(
                 // Every picker writes through `preferences`, which notifies —
                 // without this the row that opened one would still show the
                 // old value when the picker closed, since the sheet itself is
@@ -127,32 +129,42 @@ class SettingsSheet extends StatelessWidget {
   /// is the first thing in Nex that asks to notify without being told to by a
   /// specific note, so it is the first honest place to ask. Turning it off
   /// asks nothing and cancels what was scheduled.
+  ///
+  /// Both refusals are answered rather than ignored. A switch left sitting on
+  /// after the phone said no is the app claiming something it has no way to
+  /// do — and a daily notification that never arrives has nothing else to
+  /// give the reader a clue, unlike a note reminder, which at least still
+  /// shows its time on the card.
   Future<void> _setNudge(BuildContext context, bool value) async {
+    // Only where there is a notification backend to refuse. On a desktop
+    // build `requestPermission` answers false because there is nothing to
+    // ask, and reading that as "the user said no" would make the switch
+    // impossible to turn on for a reason that has nothing to do with them.
+    if (value && NexReminders.supported) {
+      final allowed = await services.reminders.requestPermission();
+      if (!context.mounted) return;
+      if (!allowed) {
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).remindDenied,
+          kind: NexBannerKind.failed,
+        );
+        return;
+      }
+    }
     await preferences.setDailyNudge(value);
-    if (value) await services.reminders.requestPermission();
     if (!context.mounted) return;
-    await DailyNudge.apply(
+    final failure = await DailyNudge.apply(
       context: context,
       preferences: preferences,
       reminders: services.reminders,
       recap: preferences.todaysRecap,
     );
-  }
-
-  Future<void> _testNotification(BuildContext context) async {
-    final l10n = AppLocalizations.of(context);
-    await services.reminders.requestPermission();
-    final failure = await services.reminders.sendTestNotification(
-      title: l10n.appTitle,
-      body: l10n.notificationTestHint,
-    );
-    if (!context.mounted) return;
+    if (!context.mounted || failure == null || !value) return;
     nexShowBanner(
       context,
-      message: failure == null
-          ? l10n.notificationTestSent
-          : l10n.notificationTestFailed(failure),
-      kind: failure == null ? NexBannerKind.done : NexBannerKind.failed,
+      message: AppLocalizations.of(context).nudgeNotScheduled,
+      kind: NexBannerKind.failed,
     );
   }
 
@@ -385,6 +397,12 @@ class SettingsSheet extends StatelessWidget {
           value: preferences.enterSubmitsCapture,
           onChanged: preferences.setEnterSubmitsCapture,
         ),
+        _SwitchRow(
+          icon: Icons.vibration,
+          title: l10n.haptics,
+          value: preferences.haptics,
+          onChanged: preferences.setHaptics,
+        ),
         _Row(
           icon: Icons.swipe_outlined,
           title: l10n.swipeActions,
@@ -416,16 +434,6 @@ class SettingsSheet extends StatelessWidget {
           value: preferences.dailyNudge,
           onChanged: (next) => unawaited(_setNudge(context, next)),
         ),
-        // A diagnostic, not a preference — and the reason it earns a
-        // permanent row is that reminders were silent for a year and there
-        // was no way, from inside the app, to tell a scheduling failure from
-        // a delivery one. One tap now answers it.
-        _Row(
-          icon: Icons.notifications_paused_outlined,
-          title: l10n.notificationTest,
-          value: l10n.notificationTestHint,
-          onTap: () => unawaited(_testNotification(context)),
-        ),
         // Only once it is on. A time picker for a notification that is not
         // being sent is a control with nothing behind it, and the row it
         // would sit under already says what turning it on gets you.
@@ -439,23 +447,6 @@ class SettingsSheet extends StatelessWidget {
             ).format(context),
             onTap: () => unawaited(_pickNudgeTime(context)),
           ),
-      ],
-    ),
-    _Section(
-      title: l10n.accessibility,
-      children: [
-        _SwitchRow(
-          icon: Icons.animation_outlined,
-          title: l10n.reduceMotion,
-          value: preferences.reduceMotion,
-          onChanged: preferences.setReduceMotion,
-        ),
-        _SwitchRow(
-          icon: Icons.vibration,
-          title: l10n.haptics,
-          value: preferences.haptics,
-          onChanged: preferences.setHaptics,
-        ),
       ],
     ),
     _Section(
@@ -586,56 +577,6 @@ const _rowPadding = EdgeInsetsDirectional.only(
   start: NexSpacing.md,
   end: NexSpacing.sm,
 );
-
-/// Closes the sheet on a downward drag anywhere over [child], once it is
-/// already scrolled to the top.
-///
-/// The sheet's own drag-to-dismiss only ever saw the header above the
-/// scroll view: a plain `SingleChildScrollView` wins the same vertical drag
-/// in the gesture arena outright, whether or not it has anywhere left to
-/// scroll, so a swipe that started over the settings themselves never
-/// reached it. `OverscrollNotification` is what the scroll view reports
-/// instead of moving once it is pinned at its own boundary — a negative
-/// value is exactly a downward drag past the top — so it stands in for the
-/// drag-to-dismiss the content itself cannot forward.
-///
-/// [OverscrollNotification.dragDetails] is what keeps this to an actual drag
-/// at the top: a fast fling from further down the list can cross the whole
-/// scroll range and bounce past the top boundary in one continuous motion,
-/// which reports overscroll too, but with `dragDetails: null` — no finger is
-/// pressing at that point, the scrollable is just settling its own fling.
-/// Without this check that fling closed the sheet on the way to the top
-/// instead of merely scrolling it there; only a second, deliberate drag once
-/// it has actually arrived should do that.
-class _DismissOnOverscroll extends StatefulWidget {
-  const _DismissOnOverscroll({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_DismissOnOverscroll> createState() => _DismissOnOverscrollState();
-}
-
-class _DismissOnOverscrollState extends State<_DismissOnOverscroll> {
-  bool _dismissed = false;
-
-  bool _onNotification(OverscrollNotification notification) {
-    if (!_dismissed &&
-        notification.dragDetails != null &&
-        notification.overscroll < -8) {
-      _dismissed = true;
-      Navigator.of(context).maybePop();
-    }
-    return false;
-  }
-
-  @override
-  Widget build(BuildContext context) =>
-      NotificationListener<OverscrollNotification>(
-        onNotification: _onNotification,
-        child: widget.child,
-      );
-}
 
 /// One labelled group of preferences, drawn as a card.
 ///

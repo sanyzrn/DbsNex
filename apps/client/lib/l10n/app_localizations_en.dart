@@ -18,6 +18,96 @@ class AppLocalizationsEn extends AppLocalizations {
   String get captureHint => 'What\'s on your mind?';
 
   @override
+  String get layoutTitle => 'Home layout';
+
+  @override
+  String get layoutSubtitle => 'What sits above your notes.';
+
+  @override
+  String get layoutGreeting => 'Greeting';
+
+  @override
+  String get layoutDaySummary => 'Smart daily summary';
+
+  @override
+  String get layoutSearchField => 'Search box';
+
+  @override
+  String get layoutTagRow => 'Tag row';
+
+  @override
+  String chatAboutGroup(String label, int count) {
+    return 'About $label · $count notes';
+  }
+
+  @override
+  String get groupActions => 'Group actions';
+
+  @override
+  String get groupAsk => 'Ask about these';
+
+  @override
+  String get groupDelete => 'Delete this group';
+
+  @override
+  String groupDeleteBody(int count) {
+    return '$count notes move to Trash. You can put them back from Library → Trash.';
+  }
+
+  @override
+  String groupDeleted(int count) {
+    return '$count notes deleted';
+  }
+
+  @override
+  String get assistantVoiceGroup => 'How it talks';
+
+  @override
+  String get assistantReachGroup => 'What it can see';
+
+  @override
+  String get storageModels => 'Offline model';
+
+  @override
+  String get storageImages => 'Photos';
+
+  @override
+  String get storageAudio => 'Recordings';
+
+  @override
+  String get storageBackups => 'Backups';
+
+  @override
+  String get storageNotes => 'Notes and index';
+
+  @override
+  String get storageOther => 'Other files';
+
+  @override
+  String get storageEmpty => 'Nothing stored yet.';
+
+  @override
+  String get remindRepeat => 'Repeat';
+
+  @override
+  String get remindRepeatOnce => 'Once';
+
+  @override
+  String get remindRepeatDaily => 'Every day';
+
+  @override
+  String get remindRepeatWeekly => 'Every week';
+
+  @override
+  String remindRepeatingAt(String when, String repeat) {
+    return '$when · $repeat';
+  }
+
+  @override
+  String get nudgeNotScheduled =>
+      'The daily note was turned on, but this phone would not take the alarm.';
+
+  @override
   String get search => 'Search';
 
   @override
@@ -199,9 +289,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accessibility => 'Accessibility';
 
   @override
-  String get reduceMotion => 'Reduce motion';
-
-  @override
   String get haptics => 'Capture haptics';
 
   @override
@@ -300,11 +387,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storage => 'Storage';
-
-  @override
-  String storageUsed(String size) {
-    return '$size used locally';
-  }
 
   @override
   String get stopRecording => 'Stop recording';
@@ -1675,6 +1757,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String notificationTestFailed(String error) {
     return 'Could not send it — $error';
+  }
+
+  @override
+  String timeMinutesShort(int count) {
+    return '${count}m';
+  }
+
+  @override
+  String timeHoursShort(int count) {
+    return '${count}h';
+  }
+
+  @override
+  String timeDaysShort(int count) {
+    return '${count}d';
   }
 
   @override

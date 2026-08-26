@@ -18,6 +18,7 @@ import 'ai_provider.dart';
 import 'nex_db.dart';
 import 'media_picker_impl.dart';
 import 'nex_preferences.dart';
+import 'model_store.dart';
 import 'reminders.dart';
 
 /// Thrown when sync is invoked before the device has been paired with a server.
@@ -260,8 +261,12 @@ class NexServices {
   /// match. Both halves or neither: a due date with no alarm behind it is a
   /// reminder that never arrives, and an alarm with no due date is one that
   /// cannot be seen or cancelled.
-  Future<void> setDueAt(String id, DateTime? when) async {
-    await worker.setDueAt(id, when);
+  Future<void> setDueAt(
+    String id,
+    DateTime? when, {
+    NoteRepeat repeat = NoteRepeat.once,
+  }) async {
+    await worker.setDueAt(id, when, repeat: repeat);
     final note = await worker.getById(id);
     if (note == null) return;
     if (when == null) {
@@ -363,8 +368,28 @@ class NexServices {
 
   Future<Note?> nearestMiss(String query) => worker.nearestMiss(query);
 
-  Future<StorageSnapshot> storage() =>
-      worker.storage(dbPath: dbPath, mediaDir: mediaDir, backupDir: backupDir);
+  /// What the library is made of, the offline model included.
+  ///
+  /// The model is measured here rather than in the repository: it lives in
+  /// the app's support directory, which the database has no business knowing
+  /// about, and it is also the single largest thing most installations will
+  /// ever hold — a storage figure that quietly leaves out two gigabytes is
+  /// worse than no figure at all, which is what made the old row useless.
+  ///
+  /// A failure to read that directory costs the breakdown one row rather than
+  /// the whole screen: nothing about a storage figure is worth an error page.
+  Future<StorageSnapshot> storage() async {
+    final snapshot = await worker.storage(
+      dbPath: dbPath,
+      mediaDir: mediaDir,
+      backupDir: backupDir,
+    );
+    try {
+      return snapshot.withModels(await NexModelStore.totalInstalledBytes());
+    } catch (_) {
+      return snapshot;
+    }
+  }
 
   /* ---------------------------------------------------------- enrichment */
 

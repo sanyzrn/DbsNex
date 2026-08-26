@@ -39,14 +39,15 @@ void main() {
       // people check against is when it *will* go off, and undershooting reads
       // as the app being wrong. Every case here is a hair under the round
       // figure by the time the function reads the clock.
-      expect(
-        nexDueCountdown(en, now.add(const Duration(minutes: 30))),
-        '30 minutes',
-      );
-      expect(nexDueCountdown(en, now.add(const Duration(hours: 3))), '3 hours');
+      //
+      // Short forms, not the sentences the confirmation uses: this shares one
+      // line with the note's own words, and "13 hours" took enough of it to
+      // push them off the card.
+      expect(nexDueCountdown(en, now.add(const Duration(minutes: 30))), '30m');
+      expect(nexDueCountdown(en, now.add(const Duration(hours: 3))), '3h');
       expect(
         nexDueCountdown(en, now.add(const Duration(days: 2, hours: 2))),
-        '3 days',
+        '3d',
       );
     });
 

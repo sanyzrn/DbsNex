@@ -4,18 +4,23 @@ import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
+import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/widgets/commit_receipt.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
+import 'package:nex_client/screens/assistant_screen.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
+import 'package:nex_client/widgets/assistant_settings.dart';
 import 'package:nex_client/widgets/empty_timeline.dart';
+import 'package:nex_client/widgets/note_spotlight.dart';
 import 'package:nex_client/widgets/first_run_tour.dart';
 
 import 'support/in_process_db.dart';
@@ -1013,5 +1018,258 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.auto_awesome), findsNothing);
+  });
+
+  group('a tapped reminder', () {
+    testWidgets('points at the note it was about, then stops', (tester) async {
+      await services.captureText('call the plumber');
+      await services.captureText('and something else');
+
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      final target = (await services.worker.timeline()).firstWhere(
+        (note) => note.content == 'call the plumber',
+      );
+
+      // What the notification handler does. Before this it did nothing at
+      // all: the callback existed and nothing was ever assigned to it, so a
+      // tapped reminder opened the app onto the same list as always and left
+      // the reader to find the note themselves.
+      services.reminders.onOpenNote!(target.id);
+      await tester.pump();
+
+      final marked = tester
+          .widgetList<NoteSpotlight>(find.byType(NoteSpotlight))
+          .where((widget) => widget.active);
+      expect(marked, hasLength(1));
+
+      // And it is a moment, not a mark: nothing is left highlighted once the
+      // pulses are over, or the next reminder would arrive on a timeline that
+      // is already pointing somewhere.
+      await tester.pumpAndSettle(const Duration(seconds: 4));
+      expect(
+        tester
+            .widgetList<NoteSpotlight>(find.byType(NoteSpotlight))
+            .where((widget) => widget.active),
+        isEmpty,
+      );
+    });
+  });
+
+  group('a reminder that has already rung', () {
+    setUp(() {
+      // Library measures the storage figure by walking directories — real
+      // async I/O, which never resolves inside flutter_test's fake-async
+      // zone, so its skeleton shimmers for the whole test and nothing ever
+      // settles. These two tests only need Library as *somewhere else*, so
+      // they ask the platform for the reduced motion it already offers.
+      TestWidgetsFlutterBinding.ensureInitialized()
+          .platformDispatcher
+          .accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+        disableAnimations: true,
+      );
+      addTearDown(
+        TestWidgetsFlutterBinding.ensureInitialized()
+            .platformDispatcher
+            .clearAccessibilityFeaturesTestValue,
+      );
+    });
+
+    testWidgets('shows once more, then gives the slot back', (tester) async {
+      await services.captureText('call the plumber');
+      final note = (await services.worker.timeline()).single;
+      // Already past. The notification for this went out an hour ago.
+      await services.setDueAt(
+        note.id,
+        DateTime.now().toUtc().subtract(const Duration(hours: 1)),
+      );
+
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      // One last showing: the reader gets to see what it was for.
+      expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+
+      // Leaving the timeline and coming back is what counts as having seen
+      // it. Library is the nearest screen with a route of its own.
+      await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
+    });
+
+    testWidgets('a repeating reminder is never spent', (tester) async {
+      await services.captureText('call the plumber');
+      final note = (await services.worker.timeline()).single;
+      // The normal state of a repeat that has already fired: its stored time
+      // is when the series started, so by the one-off rule it looks lapsed.
+      await services.setDueAt(
+        note.id,
+        DateTime.now().toUtc().subtract(const Duration(days: 3)),
+        repeat: NoteRepeat.daily,
+      );
+
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      // It is still going to ring tomorrow, so the chip stays — and it says
+      // how often rather than counting down to a moment that has gone.
+      expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+      expect(find.text('Every day'), findsOneWidget);
+    });
+
+    testWidgets('a reminder still ahead keeps its chip', (tester) async {
+      await services.captureText('call the plumber');
+      final note = (await services.worker.timeline()).single;
+      await services.setDueAt(
+        note.id,
+        DateTime.now().toUtc().add(const Duration(hours: 3)),
+      );
+
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      // Nothing about it has been delivered yet, so there is nothing to have
+      // seen. This is the half the chip was added for.
+      expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+    });
+  });
+
+  group('the home layout control', () {
+    testWidgets('turns the four things above the notes off', (tester) async {
+      await services.captureText('a note');
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      // The tag row is the one of the four that is unmistakable in a test:
+      // "All" is its own chip and nothing else on the screen says it.
+      expect(find.text('All'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tag row'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      expect(find.text('All'), findsNothing);
+      expect(find.text('a note'), findsOneWidget);
+    });
+
+    testWidgets('hiding the search box brings its icon back', (tester) async {
+      await services.captureText('a note');
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      // Removed from the app bar when the field became permanent, because it
+      // pointed at something already on screen. With the field off it is the
+      // only way to search at all.
+      expect(find.byTooltip('Search'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Search box'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsNothing);
+      expect(find.byTooltip('Search'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Search'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+    });
+  });
+
+  group('a date heading', () {
+    testWidgets('can delete its whole run, after asking', (tester) async {
+      await services.captureText('first');
+      await services.captureText('second');
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete this group'));
+      await tester.pumpAndSettle();
+
+      // Asked, not undone: a heading's menu takes a whole day away in one
+      // tap, and an undo banner is not a safety net for that much.
+      expect(find.text('first'), findsOneWidget);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('first'), findsNothing);
+      expect(find.text('second'), findsNothing);
+      expect((await services.worker.timeline()), isEmpty);
+    });
+
+    testWidgets('the menu does not fold the group on the way past', (
+      tester,
+    ) async {
+      await services.captureText('first');
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.pumpAndSettle();
+      // Dismiss without choosing anything.
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      expect(find.text('first'), findsOneWidget);
+    });
+  });
+
+  group('the assistant settings', () {
+    testWidgets('are one screen, opened from two places', (tester) async {
+      // The Settings row and the chat's own panel render the same body, so
+      // there is one place where a control can be added or renamed. Before
+      // this the chat had no way to reach them at all.
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: AssistantScreen(preferences: preferences),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AssistantSettingsBody), findsOneWidget);
+      // The three questions the screen is now organised around, rather than
+      // five sibling section titles in one flat column.
+      expect(find.text('How it talks'), findsOneWidget);
+      expect(find.text('What it can see'), findsOneWidget);
+    });
   });
 }

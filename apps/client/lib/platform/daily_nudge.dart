@@ -18,16 +18,18 @@ import 'reminders.dart';
 /// the moment it appears. What arrives tomorrow morning is what Nex last knew,
 /// which is why this runs again every time the app is open.
 abstract final class DailyNudge {
-  static Future<void> apply({
+  /// Returns null when the alarm is scheduled, and the OS's own words when
+  /// it is not.
+  static Future<String?> apply({
     required BuildContext context,
     required NexPreferences preferences,
     required NexReminders reminders,
     String? recap,
   }) async {
-    if (!NexReminders.supported) return;
+    if (!NexReminders.supported) return null;
     if (!preferences.dailyNudge) {
       await reminders.cancelDaily();
-      return;
+      return null;
     }
     final minutes = preferences.dailyNudgeMinutes;
     final l10n = AppLocalizations.of(context);
@@ -37,6 +39,11 @@ abstract final class DailyNudge {
       title: _greeting(preferences, minutes),
       body: (recap ?? '').trim().isEmpty ? l10n.nudgeNothing : recap!.trim(),
     );
+    // Handed back rather than left in the service for nobody to read. This
+    // ran on every launch and every recap, and if the OS refused the alarm it
+    // said so into a field with no callers — which is precisely how a
+    // notification that never arrives becomes a feature nobody can debug.
+    return reminders.lastError;
   }
 
   /// The line the notification opens with.

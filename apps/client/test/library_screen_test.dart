@@ -48,12 +48,19 @@ void main() {
     // The storage figure is measured by walking directories, which is real
     // async I/O and so never resolves inside flutter_test's fake-async zone —
     // its skeleton stays up for the whole test. A repeating shimmer means
-    // `pumpAndSettle` can never settle, so motion is turned off, which the app
-    // ORs into MediaQuery and NexSkeleton honours by stopping outright.
-    await preferences.setReduceMotion(true);
+    // `pumpAndSettle` can never settle, so this asks the platform for the
+    // reduced-motion the OS itself offers; NexSkeleton honours it by stopping
+    // outright.
+    TestWidgetsFlutterBinding.ensureInitialized()
+        .platformDispatcher
+        .accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+      disableAnimations: true,
+    );
   });
 
   tearDown(() async {
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher
+        .clearAccessibilityFeaturesTestValue();
     await services.dispose();
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });

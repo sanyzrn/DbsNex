@@ -13,6 +13,8 @@ import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
 
 import '../l10n/app_localizations.dart';
+import 'dismiss_on_overscroll.dart';
+import 'assistant_settings.dart';
 import '../platform/ai_provider.dart';
 import '../platform/assistant_actions.dart';
 import '../platform/chat_history.dart';
@@ -44,6 +46,8 @@ class AiChatSheet extends StatefulWidget {
     required this.history,
     this.resume,
     this.focus,
+    this.scope,
+    this.scopeLabel,
     this.client,
   });
 
@@ -66,6 +70,17 @@ class AiChatSheet extends StatefulWidget {
   /// the one already on screen.
   final Note? focus;
 
+  /// A run of notes to talk about, instead of one note or the recent library.
+  ///
+  /// What "ask about these" on a date heading opens. Same idea as [focus] and
+  /// the same reason: the context is exactly the notes the question is about,
+  /// which is what makes the answer specific and what stops the request
+  /// carrying twenty unrelated notes to get there.
+  final List<Note>? scope;
+
+  /// What to call that run — the date heading's own words.
+  final String? scopeLabel;
+
   /// Stands in for the network in tests.
   ///
   /// A seam rather than a mock of the whole sheet: what has to be provable
@@ -87,6 +102,8 @@ class AiChatSheet extends StatefulWidget {
     required ChatHistory history,
     ChatThread? resume,
     Note? focus,
+    List<Note>? scope,
+    String? scopeLabel,
     http.Client? client,
   }) => showModalBottomSheet<void>(
     context: context,
@@ -99,6 +116,8 @@ class AiChatSheet extends StatefulWidget {
       history: history,
       resume: resume,
       focus: focus,
+      scope: scope,
+      scopeLabel: scopeLabel,
       client: client,
     ),
   );
@@ -119,6 +138,18 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// a question would otherwise construct its client inside dispose, purely to
   /// close it again.
   late final CloudAIAdapter _adapter;
+
+  /// The sheet's own size, driven when the composer takes focus.
+  ///
+  /// A chat that opens at a bit over half the screen is a question rather
+  /// than a room you moved into, and that is right until someone starts
+  /// typing — at which point the keyboard takes the bottom half and the thread
+  /// is squeezed into whatever is left. Tapping the composer says the
+  /// conversation is the thing now, so the sheet goes up to meet it instead of
+  /// waiting to be dragged.
+  final _sheet = DraggableScrollableController();
+
+  final _composerFocus = FocusNode();
 
   /// The scroll controller [DraggableScrollableSheet] handed down, kept so
   /// the thread can be scrolled to the bottom from outside the builder.
@@ -174,6 +205,20 @@ class _AiChatSheetState extends State<AiChatSheet> {
       client: widget.client,
     );
     unawaited(_loadNotesContext());
+    _composerFocus.addListener(_growWhenTyping);
+  }
+
+  /// Takes the sheet to full height the moment the composer has the cursor.
+  ///
+  /// Guarded on `isAttached` because focus can arrive before the sheet has
+  /// laid out, and on the current size so a sheet already up there is not
+  /// re-animated to where it is.
+  void _growWhenTyping() {
+    if (!_composerFocus.hasFocus || !_sheet.isAttached) return;
+    if (_sheet.size > 0.92) return;
+    unawaited(
+      _sheet.animateTo(1, duration: NexMotion.standard, curve: NexMotion.curve),
+    );
   }
 
   /// Reads the recent notes the assistant is allowed to see.
@@ -186,6 +231,18 @@ class _AiChatSheetState extends State<AiChatSheet> {
     if (focused != null) {
       final line = _contextLine(focused);
       if (line != null && mounted) setState(() => _notesContext = line);
+      return;
+    }
+    // A whole date run, and all of it: the reader picked this set, so it is
+    // not the app's place to trim it down to the context setting — that
+    // number is about how much of the *library* to volunteer when nobody has
+    // said what the question is about.
+    if (widget.scope case final scoped?) {
+      final lines = <String>[
+        for (final note in scoped)
+          if (_contextLine(note) case final line?) line,
+      ];
+      if (mounted) setState(() => _notesContext = lines.join('\n'));
       return;
     }
     final count = widget.preferences.aiNotesContextCount;
@@ -264,6 +321,9 @@ class _AiChatSheetState extends State<AiChatSheet> {
 
   @override
   void dispose() {
+    _composerFocus.removeListener(_growWhenTyping);
+    _composerFocus.dispose();
+    _sheet.dispose();
     _input.dispose();
     _adapter.close();
     super.dispose();
@@ -544,6 +604,17 @@ class _AiChatSheetState extends State<AiChatSheet> {
     _toBottom();
   }
 
+  /// Opens the assistant's own settings over the chat.
+  ///
+  /// Over rather than instead: unlike history, nothing here replaces the
+  /// conversation, so the thread is still underneath and still there when the
+  /// panel closes. The sheet rebuilds on the way back because every one of
+  /// these settings changes what the next answer will be.
+  Future<void> _openSettings() async {
+    await AssistantSettingsPanel.show(context, preferences: widget.preferences);
+    if (mounted) setState(() {});
+  }
+
   /// Swaps this sheet for a saved conversation, or a fresh one.
   ///
   /// Replaces rather than stacks: two assistant sheets on top of each other
@@ -691,6 +762,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return DraggableScrollableSheet(
+      controller: _sheet,
       // Starts as a question, not a room you moved into.
       initialChildSize: 0.55,
       minChildSize: 0.35,
@@ -739,7 +811,20 @@ class _AiChatSheetState extends State<AiChatSheet> {
                     // on it, and none of that was visible: the same blank
                     // chat opened whether it had been reached from the
                     // capture button or from one note's own action row.
-                    if (widget.focus case final note?) ...[
+                    if (widget.scopeLabel case final group?) ...[
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.chatAboutGroup(group, widget.scope?.length ?? 0),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          textDirection: nexDirectionOf(group),
+                        ),
+                      ),
+                    ] else if (widget.focus case final note?) ...[
                       const SizedBox(width: NexSpacing.sm),
                       Expanded(
                         child: Text(
@@ -758,6 +843,15 @@ class _AiChatSheetState extends State<AiChatSheet> {
                       tooltip: l10n.chatHistory,
                       onPressed: _openHistory,
                       icon: const Icon(Icons.history),
+                    ),
+                    // The same settings the Settings row opens, on the
+                    // surface where they are actually being judged: the
+                    // answer that was too long is on screen while the length
+                    // control is being changed.
+                    IconButton(
+                      tooltip: l10n.assistant,
+                      onPressed: _openSettings,
+                      icon: const Icon(Icons.tune),
                     ),
                     IconButton(
                       tooltip: l10n.cancel,
@@ -812,6 +906,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
                 ),
               _Composer(
                 controller: _input,
+                focusNode: _composerFocus,
                 sending: _sending,
                 transcribing: _transcribing,
                 onSend: () => unawaited(_send(_input.text)),
@@ -1015,6 +1110,7 @@ class _Thread extends StatelessWidget {
 class _Composer extends StatelessWidget {
   const _Composer({
     required this.controller,
+    required this.focusNode,
     required this.sending,
     required this.transcribing,
     required this.onSend,
@@ -1022,6 +1118,10 @@ class _Composer extends StatelessWidget {
   });
 
   final TextEditingController controller;
+
+  /// Owned by the sheet, which listens on it: the cursor arriving here is
+  /// what takes the sheet up to full height.
+  final FocusNode focusNode;
   final bool sending;
 
   /// A recording is being turned into text. The composer says so rather than
@@ -1080,6 +1180,7 @@ class _Composer extends StatelessWidget {
               valueListenable: controller,
               builder: (context, value, _) => TextField(
                 controller: controller,
+                focusNode: focusNode,
                 enabled: !transcribing,
                 minLines: 1,
                 maxLines: 5,
@@ -1280,6 +1381,7 @@ class ChatHistorySheet extends StatefulWidget {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    showDragHandle: true,
     builder: (_) => ChatHistorySheet(history: history),
   );
 
@@ -1318,37 +1420,44 @@ class _ChatHistorySheetState extends State<ChatHistorySheet> {
               )
             else
               Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: threads.length,
-                  itemBuilder: (context, index) {
-                    final thread = threads[index];
-                    return ListTile(
-                      title: Text(
-                        thread.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textDirection: nexDirectionOf(thread.title),
-                      ),
-                      // The same words the timeline cards use for "2h", so
-                      // the two places that show an age agree.
-                      subtitle: Text(
-                        nexCardStrings(
-                          context,
-                        ).relativeTime(nexRelativeTimeOf(thread.updatedAt)),
-                      ),
-                      trailing: IconButton(
-                        tooltip: l10n.delete,
-                        icon: const Icon(Icons.close, size: 18),
-                        onPressed: () async {
-                          await widget.history.remove(thread.id);
-                          if (mounted) setState(() {});
-                        },
-                      ),
-                      onTap: () =>
-                          Navigator.pop(context, ChatHistoryChoice(thread)),
-                    );
-                  },
+                // The list fills the panel, so a downward drag over it never
+                // reached the sheet's own drag-to-dismiss: a scroll view wins
+                // that gesture outright whether or not it has anywhere left
+                // to go. This is the same answer the note detail sheet and
+                // Settings use.
+                child: NexDismissOnOverscroll(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: threads.length,
+                    itemBuilder: (context, index) {
+                      final thread = threads[index];
+                      return ListTile(
+                        title: Text(
+                          thread.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textDirection: nexDirectionOf(thread.title),
+                        ),
+                        // The same words the timeline cards use for "2h", so
+                        // the two places that show an age agree.
+                        subtitle: Text(
+                          nexCardStrings(
+                            context,
+                          ).relativeTime(nexRelativeTimeOf(thread.updatedAt)),
+                        ),
+                        trailing: IconButton(
+                          tooltip: l10n.delete,
+                          icon: const Icon(Icons.close, size: 18),
+                          onPressed: () async {
+                            await widget.history.remove(thread.id);
+                            if (mounted) setState(() {});
+                          },
+                        ),
+                        onTap: () =>
+                            Navigator.pop(context, ChatHistoryChoice(thread)),
+                      );
+                    },
+                  ),
                 ),
               ),
             if (threads.isNotEmpty) ...[
@@ -1369,6 +1478,54 @@ class _ChatHistorySheetState extends State<ChatHistorySheet> {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The assistant's own settings, opened from inside the chat.
+///
+/// Same controls as the Settings row, on the surface where they are actually
+/// being judged — the answer that was too long is still on screen behind this
+/// while the length is being changed. It sits *over* the conversation rather
+/// than replacing it, which is the difference between this and history.
+class AssistantSettingsPanel extends StatelessWidget {
+  const AssistantSettingsPanel({super.key, required this.preferences});
+
+  final NexPreferences preferences;
+
+  static Future<void> show(
+    BuildContext context, {
+    required NexPreferences preferences,
+  }) => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (_) => AssistantSettingsPanel(preferences: preferences),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      snap: true,
+      builder: (context, scroll) => NexDismissOnOverscroll(
+        child: AssistantSettingsBody(
+          preferences: preferences,
+          // The sheet's own scrollable, or dragging the settings would not
+          // resize the panel holding them.
+          controller: scroll,
+          padding: EdgeInsets.fromLTRB(
+            NexSpacing.md,
+            NexSpacing.sm,
+            NexSpacing.md,
+            NexSpacing.lg + nexBottomInset(context),
+          ),
         ),
       ),
     );

@@ -15,6 +15,7 @@ import '../platform/daily_nudge.dart';
 import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/route_observer.dart';
 import '../platform/note_search.dart';
 import '../platform/os_capture_bridge.dart';
 import '../platform/sharing.dart';
@@ -24,6 +25,7 @@ import '../widgets/capture_sheet.dart';
 import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/commit_receipt.dart';
+import '../widgets/note_spotlight.dart';
 import '../widgets/empty_timeline.dart';
 import '../widgets/first_run_tour.dart';
 import '../widgets/nex_dialog.dart';
@@ -34,6 +36,7 @@ import '../widgets/search_results.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/swipe_actions.dart';
 import '../widgets/tag_picker.dart';
+import 'home_layout_sheet.dart';
 import 'library_screen.dart';
 import 'note_detail_sheet.dart';
 import 'photo_preview_screen.dart';
@@ -57,7 +60,7 @@ class TimelineScreen extends StatefulWidget {
   State<TimelineScreen> createState() => TimelineScreenState();
 }
 
-class TimelineScreenState extends State<TimelineScreen> {
+class TimelineScreenState extends State<TimelineScreen> with RouteAware {
   /// Everything the timeline stream last delivered, before filters.
   ///
   /// **Null means "not known yet"**, which is a different thing from "empty".
@@ -101,6 +104,27 @@ class TimelineScreenState extends State<TimelineScreen> {
   NoteType? selectedType;
   StreamSubscription<List<Note>>? subscription;
   String? landedId;
+
+  /// Notes whose spent reminder has already had its one last showing.
+  ///
+  /// Read once into the frame rather than off preferences on every card: the
+  /// set is rewritten when the timeline is covered, and a card that read it
+  /// directly would change under a route transition.
+  Set<String> _seenReminders = const {};
+
+  /// The note a tapped reminder is about, until its border has finished
+  /// pulsing.
+  ///
+  /// A tapped reminder used to open the app and stop there: the notification
+  /// named the note, and the timeline then showed the same list it always
+  /// shows, leaving the reader to find it.
+  String? _spotlightId;
+
+  /// The spotlighted card, so it can be scrolled into view.
+  ///
+  /// Only ever attached to one row — a key on every card would be a key per
+  /// note in a list that is deliberately lazy.
+  final GlobalKey _spotlightAnchor = GlobalKey();
 
   /// Guards against firing a second [NexServices.loadMoreTimeline] while one
   /// is still in flight, and against firing one at all once a fetch has come
@@ -192,8 +216,14 @@ class TimelineScreenState extends State<TimelineScreen> {
         unawaited(_loadAiHeadline());
       }
     });
+    _seenReminders = widget.preferences.seenReminders;
     _search.addListener(_onSearchChanged);
     _scroll.addListener(_onAiSummaryScroll);
+    // Both halves of a tapped reminder: one for a tap while the app is up,
+    // one for the tap that started it.
+    widget.services.reminders.onOpenNote = _spotlight;
+    final launched = widget.services.reminders.takeLaunchNoteId();
+    if (launched != null) _spotlight(launched);
     unawaited(_loadTimeline());
     unawaited(_loadFilterTags());
     // After the first frame, because every stop measures a real widget and
@@ -481,6 +511,80 @@ class TimelineScreenState extends State<TimelineScreen> {
   @visibleForTesting
   void markLanded(String id) => setState(() => landedId = id);
 
+  /// Records every reminder that has already rung as seen.
+  ///
+  /// The whole set is replaced rather than added to, so it prunes itself: a
+  /// note whose reminder is pushed back into the future simply is not in the
+  /// overdue set the next time this runs, and gets its chip back with nothing
+  /// having had to remember to remove it.
+  Future<void> _markRemindersSeen() async {
+    final now = DateTime.now().toUtc();
+    final overdue = {
+      for (final note in _all ?? const <Note>[])
+        // A repeating reminder is never spent: its stored time is in the past
+        // by design after the first firing, and it is still going to ring
+        // again. Only a one-off can be finished with.
+        if (note.dueRepeat == NoteRepeat.once)
+          if (note.dueAt case final due?)
+            if (!due.isAfter(now)) note.id,
+    };
+    if (overdue.length == _seenReminders.length &&
+        overdue.every(_seenReminders.contains)) {
+      return;
+    }
+    await widget.preferences.setSeenReminders(overdue);
+    if (mounted) setState(() => _seenReminders = overdue);
+  }
+
+  /// Points at the note a reminder was about.
+  ///
+  /// A search or a filter left over from last time would hide the very note
+  /// the reminder just named, so both are cleared first — and so is the
+  /// collapsed state of whichever date group holds it, since a folded group
+  /// is the other way for a card to be absent from a list that contains it.
+  void _spotlight(String noteId) {
+    if (!mounted) return;
+    setState(() {
+      if (_searching) _exitSearch();
+      _spotlightId = noteId;
+    });
+    unawaited(_revealSpotlight(noteId));
+  }
+
+  Future<void> _revealSpotlight(String noteId) async {
+    // The group is expanded before the frame that would have to contain the
+    // card is built, or the anchor below has nothing to find. Everything that
+    // reads context happens here, ahead of the first await.
+    final note = _all?.where((n) => n.id == noteId).firstOrNull;
+    final now = DateTime.now();
+    final key = note == null
+        ? null
+        : _bucketFor(
+            note,
+            DateTime(now.year, now.month, now.day),
+            AppLocalizations.of(context),
+          ).$1;
+    if (key != null && _collapsedGroups.contains(key)) {
+      await _toggleGroup(key);
+    }
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    final anchor = _spotlightAnchor.currentContext;
+    // Absent when the note is far enough down that the list has not built its
+    // row yet. The border still runs when scrolling brings the card into
+    // view; this only saves the reader the scroll when it can.
+    // `anchor.mounted`, not this State's: the row is its own element and can
+    // have left the tree while the frame was being waited for.
+    if (anchor != null && anchor.mounted) {
+      await Scrollable.ensureVisible(
+        anchor,
+        duration: NexMotion.slow,
+        curve: NexMotion.curve,
+        alignment: 0.3,
+      );
+    }
+  }
+
   /// Brings the field in and puts the cursor in it.
   ///
   /// Tapping the field itself does this, and so does Ctrl+F — the field lives
@@ -496,6 +600,11 @@ class TimelineScreenState extends State<TimelineScreen> {
     }
     if (!mounted) return;
     setState(() => _searching = true);
+    // After the frame: with the field switched off it is not in the list
+    // until this setState puts it there, and a focus request aimed at a node
+    // no widget has attached yet is simply dropped.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
     _searchFocus.requestFocus();
     unawaited(_search.run());
   }
@@ -680,7 +789,26 @@ class TimelineScreenState extends State<TimelineScreen> {
   }
 
   @override
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is ModalRoute<void>) nexRouteObserver.subscribe(this, route);
+  }
+
+  /// Something has covered the timeline — another screen, or a sheet.
+  ///
+  /// That is the moment a reminder that has already rung stops having
+  /// anything left to say: it was delivered as a notification, and it has now
+  /// been on screen once more with the reader looking at it. Written here
+  /// rather than on the way back, so that the return is the first frame
+  /// without it.
+  @override
+  void didPushNext() => unawaited(_markRemindersSeen());
+
+  @override
   void dispose() {
+    nexRouteObserver.unsubscribe(this);
     // Removed, never left behind: an overlay entry outlives the state that
     // inserted it, so a screen replaced mid-tour would leave a scrim over
     // whatever came next with nothing able to dismiss it.
@@ -973,6 +1101,65 @@ class TimelineScreenState extends State<TimelineScreen> {
     );
   }
 
+  /// Opens the assistant with one date run as its whole context.
+  ///
+  /// Same shape as asking about a single note, and for the same reason: the
+  /// context is exactly what the question is about, so the answer is specific
+  /// and the request is not carrying the rest of the library to get there.
+  Future<void> _askAboutGroup(_NoteGroup group) async {
+    await AiChatSheet.show(
+      context,
+      preferences: widget.preferences,
+      services: widget.services,
+      history: widget.preferences.chatHistory,
+      scope: List.of(group.notes),
+      scopeLabel: group.label,
+    );
+  }
+
+  /// Deletes a whole date run, once, after asking.
+  ///
+  /// Confirmed rather than undone: a swipe deletes one note and an undo
+  /// banner is the right weight for that, but a heading's menu can take a
+  /// day's work away in one tap, and an undo that scrolls off screen is not
+  /// a safety net for that much. The notes go to Trash either way, which the
+  /// dialog says so nobody has to hope.
+  Future<void> _deleteGroup(_NoteGroup group, AppLocalizations l10n) async {
+    final notes = List.of(group.notes);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(group.label),
+        content: NexDialogBody(child: Text(l10n.groupDeleteBody(notes.length))),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    if (widget.preferences.haptics) HapticFeedback.mediumImpact();
+    for (final note in notes) {
+      await widget.services.deleteNote(note.id);
+    }
+    await widget.services.refreshTimeline();
+    if (!mounted) return;
+    nexShowBanner(
+      context,
+      message: l10n.groupDeleted(notes.length),
+      haptics: widget.preferences.haptics,
+    );
+  }
+
   /// "Good evening, Saeed", and the mark that goes after it — or null when
   /// the user never told the app a name.
   ///
@@ -1056,8 +1243,17 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// lines is a refresh people report as broken.
   Widget _header(AppLocalizations l10n) {
     final theme = Theme.of(context);
-    final greeting = _greeting(l10n, aiPhrase: _aiHeadlineText);
-    if (greeting == null && !_aiHeaderAvailable) return const SizedBox.shrink();
+    final showGreeting = widget.preferences.showGreeting;
+    final showSummary = _aiHeaderAvailable && widget.preferences.showDaySummary;
+    final greeting = showGreeting
+        ? _greeting(l10n, aiPhrase: _aiHeadlineText)
+        : null;
+    // The line is there either because there is a greeting to say or because
+    // a provider is going to write one — the slot is a skeleton first and
+    // text second, rather than appearing from nowhere later and pushing the
+    // card below it down.
+    final showLine = showGreeting && (greeting != null || _aiHeaderAvailable);
+    if (!showLine && !showSummary) return const SizedBox.shrink();
     final headlineStyle = theme.textTheme.headlineSmall?.copyWith(
       fontWeight: FontWeight.w600,
       height: 1.25,
@@ -1070,7 +1266,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     // The generated line has a slot as soon as there is a provider: it is a
     // skeleton first and text second, rather than appearing from nowhere and
     // pushing the card down once the request lands.
-    final hasHeadlineSlot = _aiHeaderAvailable;
+    final hasHeadlineSlot = _aiHeaderAvailable && showGreeting;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -1086,32 +1282,33 @@ class TimelineScreenState extends State<TimelineScreen> {
         // children. The card below wants the full width anyway.
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          NexTappable(
-            onTap: _refreshHeadline,
-            semanticLabel: l10n.aiHeadlineRefresh,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(NexRadius.lg),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: NexSpacing.xs,
-                vertical: NexSpacing.sm,
+          if (showLine)
+            NexTappable(
+              onTap: _refreshHeadline,
+              semanticLabel: l10n.aiHeadlineRefresh,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(NexRadius.lg),
               ),
-              // One line, and now genuinely one. It used to be the greeting
-              // and a separate generated sentence joined by an em dash, which
-              // read as two openings competing — "The quiet hours, Saeed —
-              // Midnight code audits taste like stale glue." The model now
-              // writes the greeting itself and the name follows it, so there
-              // is one thought here instead of two.
-              child: _GreetingLine(
-                text: greeting?.$1 ?? _aiHeadlineText ?? '',
-                glyph: greeting?.$2 ?? '',
-                loading: hasHeadlineSlot && _aiHeadlineLoading,
-                style: hasHeadlineSlot ? generatedStyle : headlineStyle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: NexSpacing.xs,
+                  vertical: NexSpacing.sm,
+                ),
+                // One line, and now genuinely one. It used to be the greeting
+                // and a separate generated sentence joined by an em dash, which
+                // read as two openings competing — "The quiet hours, Saeed —
+                // Midnight code audits taste like stale glue." The model now
+                // writes the greeting itself and the name follows it, so there
+                // is one thought here instead of two.
+                child: _GreetingLine(
+                  text: greeting?.$1 ?? _aiHeadlineText ?? '',
+                  glyph: greeting?.$2 ?? '',
+                  loading: hasHeadlineSlot && _aiHeadlineLoading,
+                  style: hasHeadlineSlot ? generatedStyle : headlineStyle,
+                ),
               ),
             ),
-          ),
-          if (_aiHeaderAvailable) ...[
+          if (showSummary) ...[
             const SizedBox(height: NexSpacing.sm),
             _AiDaySummaryPanel(
               title: l10n.aiDaySummaryTitle,
@@ -1144,7 +1341,6 @@ class TimelineScreenState extends State<TimelineScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         // The greeting used to live here, squeezed between the mark and the
@@ -1154,6 +1350,31 @@ class TimelineScreenState extends State<TimelineScreen> {
         titleSpacing: NexSpacing.md,
         title: const _WordmarkTile(),
         actions: [
+          // The icon comes back exactly when the field it used to duplicate
+          // is not on screen. It was removed because it pointed at something
+          // already visible; with the field switched off, it is the only way
+          // to search at all.
+          if (!widget.preferences.showSearchField && !_searching)
+            IconButton(
+              tooltip: l10n.search,
+              icon: const Icon(Icons.search),
+              onPressed: () => unawaited(revealSearch()),
+            ),
+          IconButton(
+            tooltip: l10n.layoutTitle,
+            // Not `tune`: the content-type filter at the head of the tag row
+            // already wears that, and two identical icons on one screen
+            // meaning two different things is worse than either.
+            icon: const Icon(Icons.dashboard_customize_outlined),
+            onPressed: () async {
+              await nexShowSheet<void>(
+                context: context,
+                builder: (_) =>
+                    HomeLayoutSheet(preferences: widget.preferences),
+              );
+              if (mounted) setState(() {});
+            },
+          ),
           // Content lives here, preferences live behind the gear. Trash and
           // Tags were reachable only through Settings, and neither is a
           // preference — one of them holds the user's own deleted notes.
@@ -1198,109 +1419,135 @@ class TimelineScreenState extends State<TimelineScreen> {
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) _exitSearch();
         },
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          // A tap anywhere that is not a card closes an open swipe.
-          onTap: _swipe.closeAll,
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              // Scrolling dismisses an open card, the way every list with
-              // swipe actions behaves.
-              if (notification is ScrollStartNotification) _swipe.closeAll();
-              // Past 200 notes, this is the only thing that ever asks for
-              // the rest — nothing rendered the tail of a long timeline
-              // before this, it just never loaded.
-              if (notification.metrics.extentAfter < 600) _maybeLoadMore();
-              return false;
-            },
-            child: Center(
-              // One column, and the filter row is inside it. It used to be a
-              // sibling *above* this, so on a wide window the pills started at
-              // the window edge while the cards sat in a 760px column — two
-              // things that belong to each other, visibly unaligned.
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                // No pull-to-refresh. There is nothing left for it to do:
-                // the timeline is a broadcast stream that every mutation path
-                // already re-fires, the filter row reloads on the same event,
-                // and "Sync now" lives in Settings where a sync server is
-                // configured in the first place. A pull that re-reads data
-                // which is already current is a gesture that does nothing —
-                // and this screen's own history says why that is worse than
-                // no gesture: the pull used to be "reveal the search field",
-                // and it was replaced precisely because it never revealed
-                // anything.
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: _onScroll,
-                  child: CustomScrollView(
-                    controller: _scroll,
-                    // Always scrollable, so a short list still bounces rather
-                    // than feeling locked.
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      // The headline and the recap card, above the search
-                      // field. Both collapse to nothing rather than leaving
-                      // the list, the same reason the two headers below do.
-                      SliverToBoxAdapter(
-                        key: const ValueKey('timeline-header'),
-                        child: AnimatedSize(
-                          duration: NexMotion.slow,
-                          curve: NexMotion.curve,
-                          alignment: Alignment.topCenter,
-                          child: _searching
-                              ? const SizedBox.shrink()
-                              : _header(l10n),
-                        ),
-                      ),
-                      // Both headers are always in the list, keyed, and collapse
-                      // to zero extent rather than leaving it. A sliver list that
-                      // changes length while another sliver changes its pinning
-                      // leaves the viewport painting a child it never laid out.
-                      SliverPersistentHeader(
-                        key: const ValueKey('search-header'),
-                        delegate: SearchFieldHeader(
-                          anchor: _searchAnchor,
-                          controller: _search.query,
-                          focusNode: _searchFocus,
-                          searching: _searching,
-                          onTap: () => unawaited(revealSearch()),
-                          onChanged: (_) => _search.schedule(),
-                          onClear: _exitSearch,
-                        ),
-                      ),
-                      SliverPersistentHeader(
-                        key: const ValueKey('filter-header'),
-                        pinned: true,
-                        delegate: _FilterRowHeader(
-                          visible: !_searching,
-                          child: TagFilterRow(
-                            tags: filterTags,
-                            selectedTagId: selectedTagId,
-                            allLabel: l10n.all,
-                            leading: _TypeFilterButton(
-                              selected: selectedType,
-                              onPressed: () => unawaited(_pickType()),
+        // The list keeps drawing all the way down, and stops *listening*
+        // where the system's own navigation gestures begin. Without this the
+        // two competed for the same upward drag at the bottom of the screen,
+        // and which one won depended on the angle of the finger.
+        //
+        // Over the body, under the capture button: the FAB is a Scaffold slot
+        // painted above this, so it stays tappable where the two overlap.
+        child: Stack(
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              // A tap anywhere that is not a card closes an open swipe.
+              onTap: _swipe.closeAll,
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  // Scrolling dismisses an open card, the way every list with
+                  // swipe actions behaves.
+                  if (notification is ScrollStartNotification) {
+                    _swipe.closeAll();
+                  }
+                  // Past 200 notes, this is the only thing that ever asks for
+                  // the rest — nothing rendered the tail of a long timeline
+                  // before this, it just never loaded.
+                  if (notification.metrics.extentAfter < 600) _maybeLoadMore();
+                  return false;
+                },
+                child: Center(
+                  // One column, and the filter row is inside it. It used to be a
+                  // sibling *above* this, so on a wide window the pills started at
+                  // the window edge while the cards sat in a 760px column — two
+                  // things that belong to each other, visibly unaligned.
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    // No pull-to-refresh. There is nothing left for it to do:
+                    // the timeline is a broadcast stream that every mutation path
+                    // already re-fires, the filter row reloads on the same event,
+                    // and "Sync now" lives in Settings where a sync server is
+                    // configured in the first place. A pull that re-reads data
+                    // which is already current is a gesture that does nothing —
+                    // and this screen's own history says why that is worse than
+                    // no gesture: the pull used to be "reveal the search field",
+                    // and it was replaced precisely because it never revealed
+                    // anything.
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: _onScroll,
+                      child: CustomScrollView(
+                        controller: _scroll,
+                        // Always scrollable, so a short list still bounces rather
+                        // than feeling locked.
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          // The headline and the recap card, above the search
+                          // field. Both collapse to nothing rather than leaving
+                          // the list, the same reason the two headers below do.
+                          SliverToBoxAdapter(
+                            key: const ValueKey('timeline-header'),
+                            child: AnimatedSize(
+                              duration: NexMotion.slow,
+                              curve: NexMotion.curve,
+                              alignment: Alignment.topCenter,
+                              child: _searching
+                                  ? const SizedBox.shrink()
+                                  : _header(l10n),
                             ),
-                            onSelected: (value) => unawaited(_selectTag(value)),
                           ),
-                        ),
+                          // Both headers are always in the list, keyed, and collapse
+                          // to zero extent rather than leaving it. A sliver list that
+                          // changes length while another sliver changes its pinning
+                          // leaves the viewport painting a child it never laid out.
+                          // Kept in the list while a search is running even
+                          // when it is switched off, or the field the app bar
+                          // icon just asked for would not exist.
+                          if (widget.preferences.showSearchField || _searching)
+                            SliverPersistentHeader(
+                              key: const ValueKey('search-header'),
+                              delegate: SearchFieldHeader(
+                                anchor: _searchAnchor,
+                                controller: _search.query,
+                                focusNode: _searchFocus,
+                                searching: _searching,
+                                onTap: () => unawaited(revealSearch()),
+                                onChanged: (_) => _search.schedule(),
+                                onClear: _exitSearch,
+                              ),
+                            ),
+                          if (widget.preferences.showTagRow)
+                            SliverPersistentHeader(
+                              key: const ValueKey('filter-header'),
+                              pinned: true,
+                              delegate: _FilterRowHeader(
+                                visible: !_searching,
+                                child: TagFilterRow(
+                                  tags: filterTags,
+                                  selectedTagId: selectedTagId,
+                                  allLabel: l10n.all,
+                                  leading: _TypeFilterButton(
+                                    selected: selectedType,
+                                    onPressed: () => unawaited(_pickType()),
+                                  ),
+                                  onSelected: (value) =>
+                                      unawaited(_selectTag(value)),
+                                ),
+                              ),
+                            ),
+                          ..._bodySlivers(l10n),
+                          // The capture button floats over the list, and on a
+                          // device with a three-button navigation bar the system's
+                          // own bar sits under that — the last card has to clear
+                          // both, or it cannot be read or tapped.
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: nexFabClearance + nexBottomInset(context),
+                            ),
+                          ),
+                        ],
                       ),
-                      ..._bodySlivers(l10n),
-                      // The capture button floats over the list, and on a
-                      // device with a three-button navigation bar the system's
-                      // own bar sits under that — the last card has to clear
-                      // both, or it cannot be read or tapped.
-                      SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: nexFabClearance + nexBottomInset(context),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: nexBottomGestureStrip(context),
+              child: const AbsorbPointer(),
+            ),
+          ],
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -1316,13 +1563,12 @@ class TimelineScreenState extends State<TimelineScreen> {
           //
           // Only when there is a provider to answer — a long press that opens
           // a chat which cannot reply is worse than one that does nothing.
+          // Not the accent. Tapping this button and holding it are different
+          // things, and lighting the same blue for both said they were the
+          // same. Every assistant with an entrance uses a spectrum for this
+          // reason — see [nexAssistantSpectrum].
           : NexLongPressGlow(
-              colors: [
-                theme.colorScheme.primary,
-                theme.colorScheme.tertiary,
-                theme.colorScheme.secondary,
-                theme.colorScheme.primary,
-              ],
+              colors: nexAssistantSpectrum,
               onHoldStart: _tick,
               onTriggered: _openAssistant,
               child: FloatingActionButton(
@@ -1408,6 +1654,10 @@ class TimelineScreenState extends State<TimelineScreen> {
               count: group.notes.length,
               collapsed: _collapsedGroups.contains(group.key),
               onToggle: () => unawaited(_toggleGroup(group.key)),
+              onAsk: AiChatSheet.availableFor(widget.preferences)
+                  ? () => unawaited(_askAboutGroup(group))
+                  : null,
+              onDelete: () => unawaited(_deleteGroup(group, l10n)),
             );
           }
           final note = row.note!;
@@ -1417,32 +1667,45 @@ class TimelineScreenState extends State<TimelineScreen> {
             key: ValueKey('fold-${note.id}'),
             open: row.groupKey != _closingGroup,
             animateIn: row.groupKey == _openingGroup,
-            child: CommitReceipt(
-              key: ValueKey(note.id),
-              active: landedId == note.id,
-              // Cleared when it finishes, so the receipt is a moment rather than
-              // a permanent mark on whichever note was captured last.
+            child: NoteSpotlight(
+              key: _spotlightId == note.id ? _spotlightAnchor : null,
+              active: _spotlightId == note.id,
               onDone: () {
-                if (mounted && landedId == note.id) {
-                  setState(() => landedId = null);
+                if (mounted && _spotlightId == note.id) {
+                  setState(() => _spotlightId = null);
                 }
               },
-              // ADR-022: the action set is open, and each edge is bound
-              // independently.
-              child: SwipeableNoteCard(
-                haptics: widget.preferences.haptics,
-                controller: _swipe,
-                resolveAction: ({required bool isLeading}) => nexSwipeSpec(
-                  l10n,
-                  isLeading
-                      ? widget.preferences.leadingAction
-                      : widget.preferences.trailingAction,
-                ),
-                onAction: (action) => unawaited(_runSwipe(action, note)),
-                child: NoteCard(
-                  note: note,
-                  strings: nexCardStrings(context),
-                  onTap: () => _tapNote(note),
+              child: CommitReceipt(
+                key: ValueKey(note.id),
+                active: landedId == note.id,
+                // Cleared when it finishes, so the receipt is a moment rather than
+                // a permanent mark on whichever note was captured last.
+                onDone: () {
+                  if (mounted && landedId == note.id) {
+                    setState(() => landedId = null);
+                  }
+                },
+                // ADR-022: the action set is open, and each edge is bound
+                // independently.
+                child: SwipeableNoteCard(
+                  haptics: widget.preferences.haptics,
+                  controller: _swipe,
+                  resolveAction: ({required bool isLeading}) => nexSwipeSpec(
+                    l10n,
+                    isLeading
+                        ? widget.preferences.leadingAction
+                        : widget.preferences.trailingAction,
+                  ),
+                  onAction: (action) => unawaited(_runSwipe(action, note)),
+                  child: NoteCard(
+                    note: note,
+                    strings: nexCardStrings(context),
+                    onTap: () => _tapNote(note),
+                    // A reminder still ahead keeps its chip. One that has
+                    // rung and been seen gives the slot back to the note's
+                    // own timestamp rather than wearing "Overdue" for ever.
+                    showDue: !_seenReminders.contains(note.id),
+                  ),
                 ),
               ),
             ),
@@ -1851,7 +2114,11 @@ class _AiDaySummaryPanel extends StatelessWidget {
             NexSpacing.xs,
           ),
           decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest,
+            // The same fill the notes below it use, not the elevated tone.
+            // Three different greys stacked down the top of the screen —
+            // recap, search field, tag chips — read as three separate
+            // materials; one reads as one surface with things on it.
+            color: scheme.surfaceContainerLowest,
             // The search field's curvature, not the card radius used
             // elsewhere. These two sit directly above one another and were
             // visibly a step apart — 20 against the field's 24.
@@ -1872,15 +2139,13 @@ class _AiDaySummaryPanel extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
-                    const SizedBox(width: NexSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: theme.textTheme.titleSmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
+                    // The words "Daily Digest" are gone. The sparkle is the
+                    // app's mark for anything a model wrote, this card is the
+                    // only place it appears on the timeline, and a heading
+                    // above two lines of text was naming something already
+                    // named. Semantics still carry the title for anyone who
+                    // cannot see the glyph.
+                    const Spacer(),
                     // Refresh only while it is open, and it is then the only
                     // button on the card: closed, there is nothing on screen
                     // for a refresh to change, and a button that rewrites
@@ -2024,7 +2289,9 @@ class _TypeFilterButton extends StatelessWidget {
             ? scheme.primary.withValues(alpha: 0.12)
             : scheme.surfaceContainerLowest,
         shape: StadiumBorder(
-          side: BorderSide(color: active ? scheme.primary : scheme.outline),
+          // Only the selected chip is outlined. The rest sat in rings that
+          // did no work the fill was not already doing.
+          side: active ? BorderSide(color: scheme.primary) : BorderSide.none,
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(
@@ -2238,17 +2505,22 @@ class _FoldingRowState extends State<_FoldingRow>
   }
 }
 
-/// The heading over a date run, and the whole of its fold control.
+/// The heading over a date run: its fold control, and what can be done to the
+/// whole run at once.
 ///
-/// The entire row is the target rather than the chevron alone: a 16-pixel
-/// caret is a worse thing to aim at than a heading, and there is nothing else
-/// on this row to hit by accident.
+/// The heading itself is the fold target rather than the chevron alone — a
+/// 16-pixel caret is a worse thing to aim at than a heading. The menu is
+/// deliberately *outside* that target: it is the one other thing on the row,
+/// and a three-dot button that also folded the group on the way to opening
+/// would be a button that does two things at once.
 class _GroupHeader extends StatelessWidget {
   const _GroupHeader({
     required this.label,
     required this.count,
     required this.collapsed,
     required this.onToggle,
+    required this.onAsk,
+    required this.onDelete,
   });
 
   final String label;
@@ -2256,64 +2528,132 @@ class _GroupHeader extends StatelessWidget {
   final bool collapsed;
   final VoidCallback onToggle;
 
+  /// Null when there is no provider to answer — a menu entry that can only
+  /// say "unavailable" is worse than one that is not there.
+  final VoidCallback? onAsk;
+  final VoidCallback onDelete;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Semantics(
-      button: true,
-      expanded: !collapsed,
-      label: label,
-      child: InkWell(
-        onTap: onToggle,
-        child: Padding(
-          // Level with the cards below it — the same horizontal gutter
-          // `nexCardInsets` gives them, so the heading and the run it names
-          // start on the same line instead of the heading sitting inside the
-          // margin.
-          //
-          // Vertically it is weighted 60/40 toward the top. A heading belongs
-          // to what follows it, and even spacing makes it read as floating
-          // between two runs rather than opening one.
-          padding: const EdgeInsets.fromLTRB(
-            NexSpacing.md,
-            _headerSpace * 0.6,
-            NexSpacing.md,
-            _headerSpace * 0.4,
-          ),
-          child: Row(
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+    return Row(
+      children: [
+        Expanded(
+          child: Semantics(
+            button: true,
+            expanded: !collapsed,
+            label: label,
+            child: InkWell(
+              onTap: onToggle,
+              // A heading is not a button, and the stock ripple across a full-width
+              // row read as one — a slab of colour flashing under a label. Kept as
+              // a hint that the row is live, at a quarter of the weight.
+              splashFactory: NoSplash.splashFactory,
+              highlightColor: theme.colorScheme.onSurface.withValues(
+                alpha: 0.04,
+              ),
+              hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.03),
+              child: Padding(
+                // Level with the cards below it — the same horizontal gutter
+                // `nexCardInsets` gives them, so the heading and the run it names
+                // start on the same line instead of the heading sitting inside the
+                // margin.
+                //
+                // Vertically it is weighted 60/40 toward the top. A heading belongs
+                // to what follows it, and even spacing makes it read as floating
+                // between two runs rather than opening one.
+                padding: const EdgeInsets.fromLTRB(
+                  NexSpacing.md,
+                  _headerSpace * 0.6,
+                  // Nothing on the trailing side: the menu button beside this
+                  // carries its own, and the chevron sits just inside it rather
+                  // than out at the screen edge on its own.
+                  0,
+                  _headerSpace * 0.4,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      label,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: NexSpacing.sm),
+                    // Only when folded. Open, the count is the list itself, and a
+                    // number beside a heading you can already read is noise.
+                    if (collapsed)
+                      Text(
+                        l10n.timelineGroupCount(count),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                    const Spacer(),
+                    AnimatedRotation(
+                      turns: collapsed ? -0.25 : 0,
+                      duration: NexMotion.standard,
+                      curve: NexMotion.curve,
+                      child: Icon(
+                        Icons.expand_more,
+                        size: 20,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: NexSpacing.sm),
-              // Only when folded. Open, the count is the list itself, and a
-              // number beside a heading you can already read is noise.
-              if (collapsed)
-                Text(
-                  l10n.timelineGroupCount(count),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.outline,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsetsDirectional.only(
+            start: NexSpacing.xs,
+            end: NexSpacing.xs,
+          ),
+          child: PopupMenuButton<_GroupAction>(
+            tooltip: l10n.groupActions,
+            icon: Icon(
+              Icons.more_vert,
+              size: 20,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            onSelected: (action) => switch (action) {
+              _GroupAction.ask => onAsk?.call(),
+              _GroupAction.delete => onDelete(),
+            },
+            itemBuilder: (context) => [
+              if (onAsk != null)
+                PopupMenuItem(
+                  value: _GroupAction.ask,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.auto_awesome_outlined),
+                    title: Text(l10n.groupAsk),
                   ),
                 ),
-              const Spacer(),
-              AnimatedRotation(
-                turns: collapsed ? -0.25 : 0,
-                duration: NexMotion.standard,
-                curve: NexMotion.curve,
-                child: Icon(
-                  Icons.expand_more,
-                  size: 20,
-                  color: theme.colorScheme.onSurfaceVariant,
+              PopupMenuItem(
+                value: _GroupAction.delete,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.delete_outline,
+                    color: theme.colorScheme.error,
+                  ),
+                  title: Text(
+                    l10n.groupDelete,
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
                 ),
               ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }
+
+/// What a date heading's menu can do to the whole run under it.
+enum _GroupAction { ask, delete }

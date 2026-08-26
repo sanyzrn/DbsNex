@@ -156,7 +156,6 @@ WHERE id = ? AND deleted_at IS NULL
     return rows.isEmpty ? null : rows.first['id'] as String;
   }
 
-
   void softDelete(String noteId) {
     final now = DateTime.now().toUtc().toIso8601String();
     db.execute(
@@ -330,7 +329,8 @@ ORDER BY t.name COLLATE NOCASE
       'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
       [noteId, tagId],
     );
-    _bumpNote(noteId);
+    // Filing, not editing: the note still says exactly what it said.
+    _bumpNote(noteId, edited: false);
   }
 
   @override
@@ -339,7 +339,7 @@ ORDER BY t.name COLLATE NOCASE
       noteId,
       tagId,
     ]);
-    _bumpNote(noteId);
+    _bumpNote(noteId, edited: false);
   }
 
   @override
@@ -802,14 +802,25 @@ ON CONFLICT(note_id) DO UPDATE SET
   }
 
   @override
-  void setDueAt(String noteId, DateTime? when) {
+  void setDueAt(
+    String noteId,
+    DateTime? when, {
+    NoteRepeat repeat = NoteRepeat.once,
+  }) {
     db.execute(
       // Not a rev bump and not an updated_at touch: a reminder is a thing
       // the user asked the app to do, not an edit to what the note says, and
       // re-sorting the timeline because someone set an alarm would move a
       // note they were not writing to.
-      'UPDATE notes SET due_at = ? WHERE id = ?',
-      [when?.toUtc().toIso8601String(), noteId],
+      'UPDATE notes SET due_at = ?, due_repeat = ? WHERE id = ?',
+      [
+        when?.toUtc().toIso8601String(),
+        // Cleared alongside the time. A repeat left behind on a note with no
+        // reminder is a rule with nothing to apply to, and it would come back
+        // the next time one was set.
+        when == null ? null : repeat.wireName,
+        noteId,
+      ],
     );
   }
 
@@ -818,7 +829,14 @@ ON CONFLICT(note_id) DO UPDATE SET
     final rows = db.select(
       '''
 SELECT * FROM notes
-WHERE deleted_at IS NULL AND due_at IS NOT NULL AND due_at > ?
+WHERE deleted_at IS NULL
+  AND due_at IS NOT NULL
+  -- A repeating reminder's stored time is when the *series* started, which
+  -- is in the past for every one that has fired even once. Filtering on
+  -- `due_at > now` would drop exactly those from the relaunch rebuild, so a
+  -- repeat would stop coming back after the first reinstall or reboot —
+  -- which is the one thing this query exists to prevent.
+  AND (due_at > ? OR (due_repeat IS NOT NULL AND due_repeat != 'once'))
 ORDER BY due_at ASC
 LIMIT ?
 ''',
@@ -1159,16 +1177,32 @@ WHERE id = ?
         backupDir: backupDir,
       );
 
-  void _bumpNote(String noteId) {
+  /// Marks a note changed, and says whether the change was an *edit*.
+  ///
+  /// The two are not the same thing, and conflating them is what put a note
+  /// back at the top of the timeline for being tagged. `updated_at` is what
+  /// the timeline sorts on, so it means "when this note last said something
+  /// different" — filing it under a tag does not change what it says. `rev`
+  /// and `sync_state` still move either way, because the change does have to
+  /// reach other devices.
+  ///
+  /// The cost of leaving `updated_at` alone is in the merge rule, which is
+  /// last-write-wins on that field with `rev` as the tiebreak: a tag added
+  /// here loses to a *newer* remote edit of the same note. Equal timestamps —
+  /// the ordinary case, where the other device has not touched the note — are
+  /// still decided by `rev`, so the tag propagates. Floating every note that
+  /// was ever filed to the top of the list is the worse of the two.
+  void _bumpNote(String noteId, {bool edited = true}) {
     final now = DateTime.now().toUtc().toIso8601String();
     db.execute(
       '''
 UPDATE notes
-SET updated_at = ?, rev = rev + 1, sync_state = 'pending'
+SET rev = rev + 1, sync_state = 'pending'
+    ${edited ? ', updated_at = ?' : ''}
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [now, if (localDeviceId != null) localDeviceId, noteId],
+      [if (edited) now, if (localDeviceId != null) localDeviceId, noteId],
     );
   }
 

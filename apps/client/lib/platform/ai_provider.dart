@@ -869,6 +869,15 @@ class CloudAIAdapter implements AIAdapter {
     final parts = <String>[
       'You are the assistant inside Nex, a notes app. Be concrete and plain: '
           'no preamble, no restating the question, no offers to help further.',
+      // Emoji as punctuation, not as decoration. Asked for because the
+      // assistant read as clipped beside the rest of the app, and bounded in
+      // the same breath because the failure mode of "use more emoji" is a
+      // reply where every noun has a picture beside it and none of them mean
+      // anything.
+      'Warm rather than clipped. Use an emoji where it does real work — one '
+          'ahead of a heading or a list item, or to mark what something is '
+          '(pinned, a reminder, done). At most one per line, never inside a '
+          'sentence, and never standing in for a word.',
       options.length.promptRule,
     ];
     final instruction = options.instruction.trim();

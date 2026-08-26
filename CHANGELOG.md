@@ -34,6 +34,96 @@ Working convention:
 
 ## Unreleased
 
+## v1.0.0
+
+Nex reaches 1.0. Reminders that arrive and repeat, an assistant you can
+reach and tune from the conversation itself, a home screen you decide the
+shape of, and a storage figure that tells you the truth.
+
+- **The daily note arrives when you asked for it.** Set for seven, it came at
+  twenty past — an inexact alarm, which Android is free to batch, and the same
+  mode already proven wrong for note reminders and fixed there. Worse, the
+  flag deciding exact-versus-inexact was only ever set while *asking* for
+  permission, so every launch quietly re-armed every alarm — reminders
+  included — as inexact regardless of what the phone actually allowed. The
+  state is read at startup now, and the daily note is scheduled exactly. If
+  the phone refuses either the permission or the alarm, the switch says so
+  instead of sitting on.
+- **Tagging a note no longer moves it to the top.** The timeline puts an
+  edited note first, which is right — it is the one you were just working on.
+  Filing one under a tag was doing the same thing, and it is not the same
+  thing: the note still says exactly what it said.
+- **Fixes found reviewing this release.** A swipe-back on a screen that
+  declines to close left the page sitting where the finger let go, with the
+  gesture dead for the rest of its life. A repeating reminder stopped coming
+  back after a reboot, and wore "Overdue" on its card between firings — it is
+  never overdue, and now says how often it repeats instead.
+- **Reminders can repeat.** Every day, or every week, chosen beside the four
+  shortcut times rather than instead of them — a repeating reminder still has
+  a first firing, and the confirmation names both. A repeat is cleared when
+  the reminder is.
+- **Storage, rebuilt into something you can act on.** The row said "41 MB"
+  and stopped — a number nobody can do anything with, and the wrong number
+  besides: it left out the offline model, which on an install that has one is
+  larger than the notes, photos and backups put together. It is now the real
+  total, a proportion bar, and the parts: offline model, photos, recordings,
+  backups, notes and index.
+- **The assistant's settings, rebuilt and reachable from the chat.** They were
+  one flat column of five section titles with nothing saying which went with
+  which; they are three groups now — how it talks, what it can see, and your
+  standing instruction — in the same cards Settings uses. A control in the
+  chat's own header opens them over the conversation, which is where you
+  actually notice one needs changing.
+- **The chat rises to meet the keyboard.** Tapping the composer takes the
+  sheet to full height instead of leaving the thread squeezed into whatever
+  the keyboard left.
+- **The history and settings panels close with a downward swipe**, from
+  anywhere in them rather than only from the handle.
+- **Holding the capture button lights a spectrum, not the accent.** Tapping
+  that button and holding it are different things, and lighting the same blue
+  for both said they were the same.
+- **A warmer assistant.** It may use an emoji where one does real work — at
+  most one per line, never inside a sentence.
+- **A spent reminder stops shouting.** A reminder still ahead keeps its chip
+  on the card — that is what it is for. One that has already rung gets one
+  last showing, and then the slot goes back to the note's own timestamp
+  instead of wearing "Overdue" for ever.
+- **A layout control in the app bar.** The greeting, the smart daily summary,
+  the search box and the tag row can each be switched off — all four are the
+  app's idea rather than yours, on a screen whose subject is the notes under
+  them. Turning the search box off brings its app-bar icon back.
+- **Date headings can act on their whole run.** A menu beside the chevron
+  deletes the day's notes in one go, after asking, or opens the assistant with
+  just that day as its context. The menu is outside the heading's own tap
+  area, so reaching it never folds the group on the way.
+- **A tapped reminder now points at its note.** It opened the app and stopped
+  there — the notification named the note and the timeline showed the same
+  list it always shows. The card is scrolled into view and its border pulses
+  twice, including when the tap is what started the app.
+- **Swipe back from anywhere.** Every screen with a back arrow could already
+  be dragged shut, but only from a 20-pixel strip at the very edge — the same
+  far corner the arrow is in. The whole page answers now, mirrored for
+  Persian, and a row of chips inside it still scrolls on its own.
+- **A long note's sheet closes by dragging it down**, not only by its handle.
+- **The bottom of the home screen no longer fights Android's gestures.** The
+  list drew and listened all the way down, so a swipe up from the bottom edge
+  was a coin toss between scrolling and going home.
+- **Reminder times fit on the card again.** A note due in thirteen hours was
+  spending most of its line saying so, and pushing its own words off the end.
+  It now says `13h`.
+- **The reminder notification carries the app's mark**, not a white square.
+  Android silhouettes a status-bar icon, so the launcher artwork came through
+  as a solid blob.
+- **A quieter home screen.** The daily digest card and the search field sit
+  flatter against the page, tag chips are outlined only while they are on,
+  and tapping a date heading no longer flashes a filled block behind it.
+- **Fewer switches in Settings.** "Reduce motion" is gone — the app already
+  follows the system's own reduced-motion setting, and the two of them
+  disagreeing was the only thing the switch added. The test-notification row
+  is gone with it, and capture haptics moved up into Capture where it belongs.
+- The Persian for the export screen's title said "output" in the arithmetic
+  sense.
+
 ## v0.9.9
 
 - **Reminders arrive.** They never have. The alarm was set correctly and the

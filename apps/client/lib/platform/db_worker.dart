@@ -359,10 +359,15 @@ class NexDbWorker implements NexDb {
 
   @override
   @override
-  Future<void> setDueAt(String noteId, DateTime? when) => _send<void>(
-    _DbCommand.setDueAt,
-    {'noteId': noteId, 'when': when?.toUtc().toIso8601String()},
-  );
+  Future<void> setDueAt(
+    String noteId,
+    DateTime? when, {
+    NoteRepeat repeat = NoteRepeat.once,
+  }) => _send<void>(_DbCommand.setDueAt, {
+    'noteId': noteId,
+    'when': when?.toUtc().toIso8601String(),
+    'repeat': repeat.wireName,
+  });
 
   @override
   Future<List<Note>> upcomingReminders({int limit = 200}) =>
@@ -677,6 +682,7 @@ class NexDbWorker implements NexDb {
             repo.setDueAt(
               arg('noteId')! as String,
               at is String ? DateTime.parse(at) : null,
+              repeat: NoteRepeat.fromWire(arg('repeat') as String?),
             );
           }),
           _DbCommand.upcomingReminders => repo.listUpcomingReminders(

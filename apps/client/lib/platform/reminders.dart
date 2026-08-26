@@ -40,9 +40,16 @@ class NexReminders {
 
   /// Whether this phone will let Nex wake at an exact minute.
   ///
-  /// Answered by the OS when permission is asked for, and re-asked on every
-  /// set — Android lets someone revoke it in Settings at any time, and a
-  /// cached yes from last week is how a reminder quietly becomes approximate.
+  /// *Read* on every [initialise] and re-read whenever permission is asked
+  /// for. Android lets someone revoke this in Settings at any time, and a
+  /// cached yes from last week is how a reminder quietly becomes
+  /// approximate — but the worse failure was the opposite one, and it was
+  /// live: this was only ever written inside [requestPermission], so on a
+  /// cold launch it was false no matter what the OS actually allowed. Every
+  /// alarm rebuilt by [syncFromLibrary] and every daily nudge re-armed by the
+  /// timeline was therefore downgraded to an inexact alarm on every start,
+  /// which Android batches — the reported symptom being a seven o'clock
+  /// notification arriving at twenty past.
   bool _exactAlarms = false;
 
   /// Exact when allowed, approximate when not.
@@ -58,6 +65,25 @@ class NexReminders {
 
   /// Called with the note id when a reminder is tapped.
   void Function(String noteId)? onOpenNote;
+
+  /// The note whose reminder started the app, if one did.
+  ///
+  /// [onDidReceiveNotificationResponse] is only called while the app is
+  /// already running. A tap that launches it cold is reported once, here, by
+  /// the plugin's launch details — so without this the case that matters most
+  /// (the phone was in a pocket, the reminder arrived, the notification was
+  /// tapped) was the one case that did nothing.
+  ///
+  /// Read once and cleared by [takeLaunchNoteId]: it describes a single tap,
+  /// not a standing state, and a timeline that rebuilt would otherwise keep
+  /// re-answering the same one.
+  String? _launchNoteId;
+
+  String? takeLaunchNoteId() {
+    final id = _launchNoteId;
+    _launchNoteId = null;
+    return id;
+  }
 
   /// Whether reminders can work here at all.
   ///
@@ -87,7 +113,7 @@ class NexReminders {
     }
     await _plugin.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        android: AndroidInitializationSettings('ic_stat_nex'),
         iOS: DarwinInitializationSettings(
           // Asked for at the moment a reminder is first set instead — a
           // permission prompt on first launch, before anyone has seen what
@@ -102,6 +128,37 @@ class NexReminders {
         if (id != null && id.isNotEmpty) onOpenNote?.call(id);
       },
     );
+    // Asked, not assumed, and before anything is scheduled. `canSchedule…`
+    // only reads the current state — it shows nobody a prompt — which is what
+    // makes it safe here, where a permission request would not be.
+    if (Platform.isAndroid) {
+      try {
+        _exactAlarms =
+            await _plugin
+                .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin
+                >()
+                ?.canScheduleExactNotifications() ??
+            false;
+      } catch (error) {
+        // An older Android has no such concept and allows exact alarms
+        // outright; a failure to ask is not a reason to assume the worse of
+        // the two answers, but it is recorded rather than swallowed.
+        lastError = 'exact alarms: $error';
+      }
+    }
+    try {
+      final launch = await _plugin.getNotificationAppLaunchDetails();
+      if (launch?.didNotificationLaunchApp ?? false) {
+        final id = launch?.notificationResponse?.payload;
+        if (id != null && id.isNotEmpty) _launchNoteId = id;
+      }
+    } catch (error) {
+      // Not worth failing initialisation over — reminders still schedule and
+      // still arrive. Recorded rather than swallowed, because a tap that goes
+      // nowhere is exactly the kind of thing that gets called "flaky".
+      lastError = 'launch details: $error';
+    }
     _ready = true;
   }
 
@@ -157,7 +214,14 @@ class NexReminders {
     // A time already past is not an error — it is a reminder that was missed
     // while the app was not running, and firing it now would be a surprise
     // hours late. The note keeps its due date so the user can see it lapsed.
-    if (!when.isAfter(DateTime.now().toUtc())) return;
+    //
+    // A repeating one is different: its start time being in the past is the
+    // normal state after the first firing, and the whole point is that it
+    // comes back. It is moved forward to the next occurrence instead.
+    final at = note.dueRepeat == NoteRepeat.once
+        ? when
+        : _nextOccurrence(when, note.dueRepeat);
+    if (!at.isAfter(DateTime.now().toUtc())) return;
 
     final body = (note.displayText ?? '').trim();
     try {
@@ -166,7 +230,7 @@ class NexReminders {
         // The note's own words are the title: a reminder saying "Nex" tells
         // someone nothing at the moment they most need to know what it is.
         title: body.isEmpty ? 'Nex' : _clamp(body, 60),
-        scheduledDate: tz.TZDateTime.from(when.toLocal(), tz.local),
+        scheduledDate: tz.TZDateTime.from(at.toLocal(), tz.local),
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
@@ -178,6 +242,14 @@ class NexReminders {
           iOS: DarwinNotificationDetails(),
         ),
         androidScheduleMode: _scheduleMode,
+        // What makes it come back. The plugin re-fires on whichever fields
+        // are *not* named here: `time` matches the clock face every day,
+        // `dayOfWeekAndTime` matches it on the same weekday.
+        matchDateTimeComponents: switch (note.dueRepeat) {
+          NoteRepeat.once => null,
+          NoteRepeat.daily => DateTimeComponents.time,
+          NoteRepeat.weekly => DateTimeComponents.dayOfWeekAndTime,
+        },
         payload: note.id,
       );
       lastError = await _verify(_idFor(note.id));
@@ -189,6 +261,34 @@ class NexReminders {
       // their reminder is set.
       lastError = '$error';
     }
+  }
+
+  /// The first firing of a repeating reminder that is still ahead.
+  ///
+  /// A repeat's stored time is when the series *started*, which is in the past
+  /// for every repeat that has fired even once — so scheduling it verbatim
+  /// would be scheduling a time that has gone, and the alarm would never be
+  /// taken. This walks it forward by the repeat's own period, keeping the
+  /// clock face it was set at.
+  ///
+  /// Local time throughout, then back to UTC: "every day at nine" means nine
+  /// on the wall, and adding 24 hours across a daylight-saving boundary
+  /// silently makes it eight or ten.
+  DateTime _nextOccurrence(DateTime start, NoteRepeat repeat) {
+    final now = DateTime.now();
+    var at = start.toLocal();
+    final step = switch (repeat) {
+      NoteRepeat.once => 0,
+      NoteRepeat.daily => 1,
+      NoteRepeat.weekly => 7,
+    };
+    if (step == 0) return start;
+    // A bounded walk rather than `while (true)`: a corrupt start date years in
+    // the past should cost a skipped reminder, not a hung isolate.
+    for (var guard = 0; guard < 800 && !at.isAfter(now); guard++) {
+      at = DateTime(at.year, at.month, at.day + step, at.hour, at.minute);
+    }
+    return at.toUtc();
   }
 
   /// Confirms the OS actually took the alarm, and says so when it did not.
@@ -322,11 +422,22 @@ class NexReminders {
           iOS: DarwinNotificationDetails(),
         ),
         // Repeats at the same clock time every day, which is what keeps this
-        // arriving when the app is not opened for a week. Inexact is right
-        // here in a way it never was for a reminder: nobody sets a morning
-        // nudge to the minute, and an exact daily alarm spends a wakeup
-        // budget this does not need.
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        // arriving when the app is not opened for a week.
+        //
+        // Exact, not inexact. This used to argue that nobody sets a morning
+        // nudge to the minute, so an inexact alarm was cheap and good enough —
+        // and it is the same argument, on the same phone, that was already
+        // proven wrong for note reminders: Android defers an inexact alarm
+        // under Doze, sometimes by hours, and on the battery-managed ROMs this
+        // app actually runs on, sometimes not at all. A nudge that arrives at
+        // an unpredictable hour or never is not a cheaper nudge; it is a
+        // broken one. `exactAllowWhileIdle` rather than the `alarmClock` mode
+        // reminders use: it is equally exempt from Doze and does not put a
+        // standing alarm icon in the status bar, which a daily greeting has
+        // not earned.
+        androidScheduleMode: _exactAlarms
+            ? AndroidScheduleMode.exactAllowWhileIdle
+            : AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
       );
       lastError = await _verify(_dailyId);

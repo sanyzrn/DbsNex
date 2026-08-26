@@ -198,8 +198,11 @@ class InProcessDb implements NexDb {
       _tags.setColor(tagId: tagId, color: color);
 
   @override
-  Future<void> setDueAt(String noteId, DateTime? when) async =>
-      _repo.setDueAt(noteId, when);
+  Future<void> setDueAt(
+    String noteId,
+    DateTime? when, {
+    NoteRepeat repeat = NoteRepeat.once,
+  }) async => _repo.setDueAt(noteId, when, repeat: repeat);
 
   @override
   Future<List<Note>> upcomingReminders({int limit = 200}) async =>

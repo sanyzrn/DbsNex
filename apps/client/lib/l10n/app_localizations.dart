@@ -116,6 +116,168 @@ abstract class AppLocalizations {
   /// **'What\'s on your mind?'**
   String get captureHint;
 
+  /// No description provided for @layoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Home layout'**
+  String get layoutTitle;
+
+  /// No description provided for @layoutSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What sits above your notes.'**
+  String get layoutSubtitle;
+
+  /// No description provided for @layoutGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Greeting'**
+  String get layoutGreeting;
+
+  /// No description provided for @layoutDaySummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart daily summary'**
+  String get layoutDaySummary;
+
+  /// No description provided for @layoutSearchField.
+  ///
+  /// In en, this message translates to:
+  /// **'Search box'**
+  String get layoutSearchField;
+
+  /// No description provided for @layoutTagRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag row'**
+  String get layoutTagRow;
+
+  /// No description provided for @chatAboutGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'About {label} · {count} notes'**
+  String chatAboutGroup(String label, int count);
+
+  /// No description provided for @groupActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Group actions'**
+  String get groupActions;
+
+  /// No description provided for @groupAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about these'**
+  String get groupAsk;
+
+  /// No description provided for @groupDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this group'**
+  String get groupDelete;
+
+  /// No description provided for @groupDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} notes move to Trash. You can put them back from Library → Trash.'**
+  String groupDeleteBody(int count);
+
+  /// No description provided for @groupDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} notes deleted'**
+  String groupDeleted(int count);
+
+  /// No description provided for @assistantVoiceGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'How it talks'**
+  String get assistantVoiceGroup;
+
+  /// No description provided for @assistantReachGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'What it can see'**
+  String get assistantReachGroup;
+
+  /// No description provided for @storageModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline model'**
+  String get storageModels;
+
+  /// No description provided for @storageImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get storageImages;
+
+  /// No description provided for @storageAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Recordings'**
+  String get storageAudio;
+
+  /// No description provided for @storageBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Backups'**
+  String get storageBackups;
+
+  /// No description provided for @storageNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes and index'**
+  String get storageNotes;
+
+  /// No description provided for @storageOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other files'**
+  String get storageOther;
+
+  /// No description provided for @storageEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing stored yet.'**
+  String get storageEmpty;
+
+  /// No description provided for @remindRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get remindRepeat;
+
+  /// No description provided for @remindRepeatOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'Once'**
+  String get remindRepeatOnce;
+
+  /// No description provided for @remindRepeatDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get remindRepeatDaily;
+
+  /// No description provided for @remindRepeatWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every week'**
+  String get remindRepeatWeekly;
+
+  /// No description provided for @remindRepeatingAt.
+  ///
+  /// In en, this message translates to:
+  /// **'{when} · {repeat}'**
+  String remindRepeatingAt(String when, String repeat);
+
+  /// No description provided for @nudgeNotScheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'The daily note was turned on, but this phone would not take the alarm.'**
+  String get nudgeNotScheduled;
+
   /// No description provided for @search.
   ///
   /// In en, this message translates to:
@@ -416,12 +578,6 @@ abstract class AppLocalizations {
   /// **'Accessibility'**
   String get accessibility;
 
-  /// No description provided for @reduceMotion.
-  ///
-  /// In en, this message translates to:
-  /// **'Reduce motion'**
-  String get reduceMotion;
-
   /// No description provided for @haptics.
   ///
   /// In en, this message translates to:
@@ -607,12 +763,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Storage'**
   String get storage;
-
-  /// No description provided for @storageUsed.
-  ///
-  /// In en, this message translates to:
-  /// **'{size} used locally'**
-  String storageUsed(String size);
 
   /// No description provided for @stopRecording.
   ///
@@ -2917,6 +3067,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not send it — {error}'**
   String notificationTestFailed(String error);
+
+  /// Reminder countdown on a card, minutes
+  ///
+  /// In en, this message translates to:
+  /// **'{count}m'**
+  String timeMinutesShort(int count);
+
+  /// Reminder countdown on a card, hours
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h'**
+  String timeHoursShort(int count);
+
+  /// Reminder countdown on a card, days
+  ///
+  /// In en, this message translates to:
+  /// **'{count}d'**
+  String timeDaysShort(int count);
 
   /// A reminder whose time has passed
   ///
