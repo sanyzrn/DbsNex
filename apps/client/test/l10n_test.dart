@@ -23,7 +23,16 @@ void main() {
   // Identical in both locales on purpose: the product name — including where
   // it stands in for a name Nex does not have, as the daily notification's
   // title does — and URLs, which are not words in any language.
-  const untranslatable = {'appTitle', 'syncServerHint', 'nudgeGreetingPlain'};
+  // Not a translation gap. Each of these is the same string in both
+  // catalogues on purpose: a product name, a URL placeholder, a greeting that
+  // is the app's own name, or — for `remindRepeatingAt` — a pure layout
+  // template whose only content is the two values it joins.
+  const untranslatable = {
+    'appTitle',
+    'syncServerHint',
+    'nudgeGreetingPlain',
+    'remindRepeatingAt',
+  };
 
   test('every English message has a Persian one', () {
     expect(en.keys.toSet().difference(fa.keys.toSet()), isEmpty);

@@ -188,7 +188,14 @@ class NexReminders {
     // A time already past is not an error — it is a reminder that was missed
     // while the app was not running, and firing it now would be a surprise
     // hours late. The note keeps its due date so the user can see it lapsed.
-    if (!when.isAfter(DateTime.now().toUtc())) return;
+    //
+    // A repeating one is different: its start time being in the past is the
+    // normal state after the first firing, and the whole point is that it
+    // comes back. It is moved forward to the next occurrence instead.
+    final at = note.dueRepeat == NoteRepeat.once
+        ? when
+        : _nextOccurrence(when, note.dueRepeat);
+    if (!at.isAfter(DateTime.now().toUtc())) return;
 
     final body = (note.displayText ?? '').trim();
     try {
@@ -197,7 +204,7 @@ class NexReminders {
         // The note's own words are the title: a reminder saying "Nex" tells
         // someone nothing at the moment they most need to know what it is.
         title: body.isEmpty ? 'Nex' : _clamp(body, 60),
-        scheduledDate: tz.TZDateTime.from(when.toLocal(), tz.local),
+        scheduledDate: tz.TZDateTime.from(at.toLocal(), tz.local),
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
@@ -209,6 +216,14 @@ class NexReminders {
           iOS: DarwinNotificationDetails(),
         ),
         androidScheduleMode: _scheduleMode,
+        // What makes it come back. The plugin re-fires on whichever fields
+        // are *not* named here: `time` matches the clock face every day,
+        // `dayOfWeekAndTime` matches it on the same weekday.
+        matchDateTimeComponents: switch (note.dueRepeat) {
+          NoteRepeat.once => null,
+          NoteRepeat.daily => DateTimeComponents.time,
+          NoteRepeat.weekly => DateTimeComponents.dayOfWeekAndTime,
+        },
         payload: note.id,
       );
       lastError = await _verify(_idFor(note.id));
@@ -220,6 +235,34 @@ class NexReminders {
       // their reminder is set.
       lastError = '$error';
     }
+  }
+
+  /// The first firing of a repeating reminder that is still ahead.
+  ///
+  /// A repeat's stored time is when the series *started*, which is in the past
+  /// for every repeat that has fired even once — so scheduling it verbatim
+  /// would be scheduling a time that has gone, and the alarm would never be
+  /// taken. This walks it forward by the repeat's own period, keeping the
+  /// clock face it was set at.
+  ///
+  /// Local time throughout, then back to UTC: "every day at nine" means nine
+  /// on the wall, and adding 24 hours across a daylight-saving boundary
+  /// silently makes it eight or ten.
+  DateTime _nextOccurrence(DateTime start, NoteRepeat repeat) {
+    final now = DateTime.now();
+    var at = start.toLocal();
+    final step = switch (repeat) {
+      NoteRepeat.once => 0,
+      NoteRepeat.daily => 1,
+      NoteRepeat.weekly => 7,
+    };
+    if (step == 0) return start;
+    // A bounded walk rather than `while (true)`: a corrupt start date years in
+    // the past should cost a skipped reminder, not a hung isolate.
+    for (var guard = 0; guard < 800 && !at.isAfter(now); guard++) {
+      at = DateTime(at.year, at.month, at.day + step, at.hour, at.minute);
+    }
+    return at.toUtc();
   }
 
   /// Confirms the OS actually took the alarm, and says so when it did not.

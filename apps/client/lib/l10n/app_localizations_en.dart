@@ -87,6 +87,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storageEmpty => 'Nothing stored yet.';
 
   @override
+  String get remindRepeat => 'Repeat';
+
+  @override
+  String get remindRepeatOnce => 'Once';
+
+  @override
+  String get remindRepeatDaily => 'Every day';
+
+  @override
+  String get remindRepeatWeekly => 'Every week';
+
+  @override
+  String remindRepeatingAt(String when, String repeat) {
+    return '$when · $repeat';
+  }
+
+  @override
   String get search => 'Search';
 
   @override

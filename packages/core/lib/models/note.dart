@@ -72,6 +72,7 @@ class Note {
     this.tags = const [],
     this.pinnedAt,
     this.dueAt,
+    this.dueRepeat = NoteRepeat.once,
     this.sortOrder,
   });
 
@@ -132,6 +133,18 @@ class Note {
   /// a reinstall, a restore or a device that dropped its alarms can put them
   /// back from the library rather than losing them silently.
   final DateTime? dueAt;
+
+  /// Whether [dueAt] is a single moment or the first of a series.
+  ///
+  /// A reminder that only ever fires once cannot say "the bins, every
+  /// Tuesday", which is most of what people set reminders for — every app
+  /// that has reminders has this, and the shortcut list here offered four
+  /// one-off times and nothing else.
+  ///
+  /// Local only, like [pinnedAt] and [sortOrder]: the alarm it describes is
+  /// scheduled on *this* device's OS, so it is not something another device
+  /// can honour and not something a JSON export means anything by.
+  final NoteRepeat dueRepeat;
 
   /// Manual position, set by dragging in Rearrange mode. Null means "not
   /// manually placed" — such notes sort by [updatedAt] ahead of any that
@@ -327,10 +340,43 @@ class Note {
       dueAt: (row['due_at'] as String?) != null
           ? DateTime.parse(row['due_at']! as String).toUtc()
           : null,
+      dueRepeat: NoteRepeat.fromWire(row['due_repeat'] as String?),
       pinnedAt: (row['pinned_at'] as String?) != null
           ? DateTime.parse(row['pinned_at']! as String).toUtc()
           : null,
       sortOrder: row['sort_order'] as int?,
     );
   }
+}
+
+/// How often a reminder comes back.
+///
+/// Deliberately three, and deliberately these three. Android and iOS both
+/// express a repeating alarm as "the same clock time, matching this
+/// component" — the time of day, or the weekday and the time of day. Anything
+/// outside that set has to be rescheduled by the app on every firing, which is
+/// a promise this app cannot keep while it is not running.
+///
+/// That is why there is no "weekdays" here, tempting as it is: it is not one
+/// alarm the OS can match, it is five, and five alarms per note is five things
+/// to cancel, verify and keep in step. A wrong "every weekday" that quietly
+/// fires once a week would be worse than not offering it.
+enum NoteRepeat {
+  once('once'),
+  daily('daily'),
+  weekly('weekly');
+
+  const NoteRepeat(this.wireName);
+
+  final String wireName;
+
+  /// Unknown and missing values both read as [once].
+  ///
+  /// A row written by a newer version with a repeat this build does not know
+  /// still gives a reminder that fires — once, at the time it says — rather
+  /// than a parse failure that loses the note.
+  static NoteRepeat fromWire(String? wire) => values.firstWhere(
+    (value) => value.wireName == wire,
+    orElse: () => NoteRepeat.once,
+  );
 }

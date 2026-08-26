@@ -87,6 +87,23 @@ class AppLocalizationsFa extends AppLocalizations {
   String get storageEmpty => 'هنوز چیزی ذخیره نشده.';
 
   @override
+  String get remindRepeat => 'تکرار';
+
+  @override
+  String get remindRepeatOnce => 'یک‌بار';
+
+  @override
+  String get remindRepeatDaily => 'هر روز';
+
+  @override
+  String get remindRepeatWeekly => 'هر هفته';
+
+  @override
+  String remindRepeatingAt(String when, String repeat) {
+    return '$when · $repeat';
+  }
+
+  @override
   String get search => 'جست‌وجو';
 
   @override

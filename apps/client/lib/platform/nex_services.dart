@@ -261,8 +261,12 @@ class NexServices {
   /// match. Both halves or neither: a due date with no alarm behind it is a
   /// reminder that never arrives, and an alarm with no due date is one that
   /// cannot be seen or cancelled.
-  Future<void> setDueAt(String id, DateTime? when) async {
-    await worker.setDueAt(id, when);
+  Future<void> setDueAt(
+    String id,
+    DateTime? when, {
+    NoteRepeat repeat = NoteRepeat.once,
+  }) async {
+    await worker.setDueAt(id, when, repeat: repeat);
     final note = await worker.getById(id);
     if (note == null) return;
     if (when == null) {

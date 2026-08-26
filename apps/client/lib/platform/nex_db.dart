@@ -103,7 +103,7 @@ abstract interface class NexDb {
 
   Future<void> setTagColor({required String tagId, String? color});
 
-  Future<void> setDueAt(String noteId, DateTime? when);
+  Future<void> setDueAt(String noteId, DateTime? when, {NoteRepeat repeat});
 
   Future<List<Note>> upcomingReminders({int limit});
 

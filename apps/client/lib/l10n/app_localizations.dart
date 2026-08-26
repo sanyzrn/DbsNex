@@ -242,6 +242,36 @@ abstract class AppLocalizations {
   /// **'Nothing stored yet.'**
   String get storageEmpty;
 
+  /// No description provided for @remindRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get remindRepeat;
+
+  /// No description provided for @remindRepeatOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'Once'**
+  String get remindRepeatOnce;
+
+  /// No description provided for @remindRepeatDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get remindRepeatDaily;
+
+  /// No description provided for @remindRepeatWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every week'**
+  String get remindRepeatWeekly;
+
+  /// No description provided for @remindRepeatingAt.
+  ///
+  /// In en, this message translates to:
+  /// **'{when} · {repeat}'**
+  String remindRepeatingAt(String when, String repeat);
+
   /// No description provided for @search.
   ///
   /// In en, this message translates to:

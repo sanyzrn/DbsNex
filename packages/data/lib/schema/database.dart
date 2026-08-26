@@ -105,6 +105,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     // and a join to answer "does this card show a bell" would be paid on
     // every timeline read.
     _addColumnIfMissing('notes', 'due_at', 'TEXT');
+    _addColumnIfMissing('notes', 'due_repeat', 'TEXT');
 
     // Local-only organisation: at most one pinned note, and a manual
     // position set by dragging in Rearrange mode. Neither is synced or
@@ -262,6 +263,7 @@ CREATE TABLE notes_rebuilt (
   -- added to notes and forgotten here makes the rebuild fail on exactly the
   -- databases it exists to migrate.
   due_at TEXT,
+  due_repeat TEXT,
   pinned_at TEXT,
   sort_order INTEGER,
   title TEXT,

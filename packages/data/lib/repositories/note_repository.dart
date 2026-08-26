@@ -801,14 +801,25 @@ ON CONFLICT(note_id) DO UPDATE SET
   }
 
   @override
-  void setDueAt(String noteId, DateTime? when) {
+  void setDueAt(
+    String noteId,
+    DateTime? when, {
+    NoteRepeat repeat = NoteRepeat.once,
+  }) {
     db.execute(
       // Not a rev bump and not an updated_at touch: a reminder is a thing
       // the user asked the app to do, not an edit to what the note says, and
       // re-sorting the timeline because someone set an alarm would move a
       // note they were not writing to.
-      'UPDATE notes SET due_at = ? WHERE id = ?',
-      [when?.toUtc().toIso8601String(), noteId],
+      'UPDATE notes SET due_at = ?, due_repeat = ? WHERE id = ?',
+      [
+        when?.toUtc().toIso8601String(),
+        // Cleared alongside the time. A repeat left behind on a note with no
+        // reminder is a rule with nothing to apply to, and it would come back
+        // the next time one was set.
+        when == null ? null : repeat.wireName,
+        noteId,
+      ],
     );
   }
 

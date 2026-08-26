@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+- **Reminders can repeat.** Every day, or every week, chosen beside the four
+  shortcut times rather than instead of them — a repeating reminder still has
+  a first firing, and the confirmation names both. A repeat is cleared when
+  the reminder is.
 - **Storage, rebuilt into something you can act on.** The row said "41 MB"
   and stopped — a number nobody can do anything with, and the wrong number
   besides: it left out the offline model, which on an install that has one is
