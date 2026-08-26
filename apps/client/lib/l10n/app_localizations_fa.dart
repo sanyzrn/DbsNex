@@ -104,6 +104,10 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get nudgeNotScheduled =>
+      'یادآور روزانه روشن شد، ولی این گوشی آلارمش را قبول نکرد.';
+
+  @override
   String get search => 'جست‌وجو';
 
   @override

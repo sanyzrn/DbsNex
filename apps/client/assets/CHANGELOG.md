@@ -34,6 +34,21 @@ Working convention:
 
 ## Unreleased
 
+## v1.0.0
+
+Nex reaches 1.0. Reminders that arrive and repeat, an assistant you can
+reach and tune from the conversation itself, a home screen you decide the
+shape of, and a storage figure that tells you the truth.
+
+- **The daily note arrives.** It was scheduled as an inexact alarm, which
+  Android is free to defer under Doze and which battery-managed phones drop
+  outright — the same mode that had already been proven wrong for note
+  reminders and fixed there. It is exact now. And if the phone refuses either
+  the permission or the alarm, the switch says so instead of sitting on.
+- **Tagging a note no longer moves it to the top.** The timeline puts an
+  edited note first, which is right — it is the one you were just working on.
+  Filing one under a tag was doing the same thing, and it is not the same
+  thing: the note still says exactly what it said.
 - **Fixes found reviewing this release.** A swipe-back on a screen that
   declines to close left the page sitting where the finger let go, with the
   gesture dead for the rest of its life. A repeating reminder stopped coming

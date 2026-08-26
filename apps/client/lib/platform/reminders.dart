@@ -396,11 +396,22 @@ class NexReminders {
           iOS: DarwinNotificationDetails(),
         ),
         // Repeats at the same clock time every day, which is what keeps this
-        // arriving when the app is not opened for a week. Inexact is right
-        // here in a way it never was for a reminder: nobody sets a morning
-        // nudge to the minute, and an exact daily alarm spends a wakeup
-        // budget this does not need.
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        // arriving when the app is not opened for a week.
+        //
+        // Exact, not inexact. This used to argue that nobody sets a morning
+        // nudge to the minute, so an inexact alarm was cheap and good enough —
+        // and it is the same argument, on the same phone, that was already
+        // proven wrong for note reminders: Android defers an inexact alarm
+        // under Doze, sometimes by hours, and on the battery-managed ROMs this
+        // app actually runs on, sometimes not at all. A nudge that arrives at
+        // an unpredictable hour or never is not a cheaper nudge; it is a
+        // broken one. `exactAllowWhileIdle` rather than the `alarmClock` mode
+        // reminders use: it is equally exempt from Doze and does not put a
+        // standing alarm icon in the status bar, which a daily greeting has
+        // not earned.
+        androidScheduleMode: _exactAlarms
+            ? AndroidScheduleMode.exactAllowWhileIdle
+            : AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
       );
       lastError = await _verify(_dailyId);

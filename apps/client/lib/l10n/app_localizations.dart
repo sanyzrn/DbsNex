@@ -272,6 +272,12 @@ abstract class AppLocalizations {
   /// **'{when} · {repeat}'**
   String remindRepeatingAt(String when, String repeat);
 
+  /// No description provided for @nudgeNotScheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'The daily note was turned on, but this phone would not take the alarm.'**
+  String get nudgeNotScheduled;
+
   /// No description provided for @search.
   ///
   /// In en, this message translates to:

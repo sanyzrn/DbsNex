@@ -104,6 +104,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get nudgeNotScheduled =>
+      'The daily note was turned on, but this phone would not take the alarm.';
+
+  @override
   String get search => 'Search';
 
   @override

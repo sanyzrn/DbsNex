@@ -56,9 +56,7 @@ void main() {
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: AssistantSettingsBody(preferences: preferences),
-        ),
+        home: Scaffold(body: AssistantSettingsBody(preferences: preferences)),
       ),
     );
     await tester.pumpAndSettle();

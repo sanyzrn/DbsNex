@@ -33,6 +33,7 @@
   "remindRepeatWeekly": "هر هفته",
   "remindRepeatingAt": "{when} · {repeat}",
   "@remindRepeatingAt": {"placeholders": {"when": {"type": "String"}, "repeat": {"type": "String"}}},
+  "nudgeNotScheduled": "یادآور روزانه روشن شد، ولی این گوشی آلارمش را قبول نکرد.",
   "search": "جست‌وجو",
   "searchHint": "جست‌وجو در یادداشت‌ها…",
   "searchStart": "برای پیدا کردن یادداشت، تایپ کنید.",

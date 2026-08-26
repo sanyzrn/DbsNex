@@ -16,6 +16,7 @@ import '../platform/ai_provider.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/reminders.dart';
 import '../platform/update_service.dart';
 import '../platform/os_capture_bridge.dart';
 import 'about_screen.dart';
@@ -128,15 +129,42 @@ class SettingsSheet extends StatelessWidget {
   /// is the first thing in Nex that asks to notify without being told to by a
   /// specific note, so it is the first honest place to ask. Turning it off
   /// asks nothing and cancels what was scheduled.
+  ///
+  /// Both refusals are answered rather than ignored. A switch left sitting on
+  /// after the phone said no is the app claiming something it has no way to
+  /// do — and a daily notification that never arrives has nothing else to
+  /// give the reader a clue, unlike a note reminder, which at least still
+  /// shows its time on the card.
   Future<void> _setNudge(BuildContext context, bool value) async {
+    // Only where there is a notification backend to refuse. On a desktop
+    // build `requestPermission` answers false because there is nothing to
+    // ask, and reading that as "the user said no" would make the switch
+    // impossible to turn on for a reason that has nothing to do with them.
+    if (value && NexReminders.supported) {
+      final allowed = await services.reminders.requestPermission();
+      if (!context.mounted) return;
+      if (!allowed) {
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).remindDenied,
+          kind: NexBannerKind.failed,
+        );
+        return;
+      }
+    }
     await preferences.setDailyNudge(value);
-    if (value) await services.reminders.requestPermission();
     if (!context.mounted) return;
-    await DailyNudge.apply(
+    final failure = await DailyNudge.apply(
       context: context,
       preferences: preferences,
       reminders: services.reminders,
       recap: preferences.todaysRecap,
+    );
+    if (!context.mounted || failure == null || !value) return;
+    nexShowBanner(
+      context,
+      message: AppLocalizations.of(context).nudgeNotScheduled,
+      kind: NexBannerKind.failed,
     );
   }
 

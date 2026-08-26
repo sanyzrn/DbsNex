@@ -33,6 +33,7 @@
   "remindRepeatWeekly": "Every week",
   "remindRepeatingAt": "{when} · {repeat}",
   "@remindRepeatingAt": {"placeholders": {"when": {"type": "String"}, "repeat": {"type": "String"}}},
+  "nudgeNotScheduled": "The daily note was turned on, but this phone would not take the alarm.",
   "search": "Search",
   "searchHint": "Search notes…",
   "searchStart": "Start typing to find a capture.",

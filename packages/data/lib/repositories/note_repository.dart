@@ -329,7 +329,8 @@ ORDER BY t.name COLLATE NOCASE
       'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
       [noteId, tagId],
     );
-    _bumpNote(noteId);
+    // Filing, not editing: the note still says exactly what it said.
+    _bumpNote(noteId, edited: false);
   }
 
   @override
@@ -338,7 +339,7 @@ ORDER BY t.name COLLATE NOCASE
       noteId,
       tagId,
     ]);
-    _bumpNote(noteId);
+    _bumpNote(noteId, edited: false);
   }
 
   @override
@@ -1176,16 +1177,32 @@ WHERE id = ?
         backupDir: backupDir,
       );
 
-  void _bumpNote(String noteId) {
+  /// Marks a note changed, and says whether the change was an *edit*.
+  ///
+  /// The two are not the same thing, and conflating them is what put a note
+  /// back at the top of the timeline for being tagged. `updated_at` is what
+  /// the timeline sorts on, so it means "when this note last said something
+  /// different" — filing it under a tag does not change what it says. `rev`
+  /// and `sync_state` still move either way, because the change does have to
+  /// reach other devices.
+  ///
+  /// The cost of leaving `updated_at` alone is in the merge rule, which is
+  /// last-write-wins on that field with `rev` as the tiebreak: a tag added
+  /// here loses to a *newer* remote edit of the same note. Equal timestamps —
+  /// the ordinary case, where the other device has not touched the note — are
+  /// still decided by `rev`, so the tag propagates. Floating every note that
+  /// was ever filed to the top of the list is the worse of the two.
+  void _bumpNote(String noteId, {bool edited = true}) {
     final now = DateTime.now().toUtc().toIso8601String();
     db.execute(
       '''
 UPDATE notes
-SET updated_at = ?, rev = rev + 1, sync_state = 'pending'
+SET rev = rev + 1, sync_state = 'pending'
+    ${edited ? ', updated_at = ?' : ''}
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [now, if (localDeviceId != null) localDeviceId, noteId],
+      [if (edited) now, if (localDeviceId != null) localDeviceId, noteId],
     );
   }
 
