@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1102,6 +1103,33 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
+    });
+
+    testWidgets('a repeating reminder is never spent', (tester) async {
+      await services.captureText('call the plumber');
+      final note = (await services.worker.timeline()).single;
+      // The normal state of a repeat that has already fired: its stored time
+      // is when the series started, so by the one-off rule it looks lapsed.
+      await services.setDueAt(
+        note.id,
+        DateTime.now().toUtc().subtract(const Duration(days: 3)),
+        repeat: NoteRepeat.daily,
+      );
+
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      // It is still going to ring tomorrow, so the chip stays — and it says
+      // how often rather than counting down to a moment that has gone.
+      expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+      expect(find.text('Every day'), findsOneWidget);
     });
 
     testWidgets('a reminder still ahead keeps its chip', (tester) async {

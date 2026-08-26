@@ -828,7 +828,14 @@ ON CONFLICT(note_id) DO UPDATE SET
     final rows = db.select(
       '''
 SELECT * FROM notes
-WHERE deleted_at IS NULL AND due_at IS NOT NULL AND due_at > ?
+WHERE deleted_at IS NULL
+  AND due_at IS NOT NULL
+  -- A repeating reminder's stored time is when the *series* started, which
+  -- is in the past for every one that has fired even once. Filtering on
+  -- `due_at > now` would drop exactly those from the relaunch rebuild, so a
+  -- repeat would stop coming back after the first reinstall or reboot —
+  -- which is the one thing this query exists to prevent.
+  AND (due_at > ? OR (due_repeat IS NOT NULL AND due_repeat != 'once'))
 ORDER BY due_at ASC
 LIMIT ?
 ''',

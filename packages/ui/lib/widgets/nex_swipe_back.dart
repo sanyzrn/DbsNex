@@ -119,10 +119,28 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
     if (committed) {
       _popping = true;
       Navigator.of(context).maybePop();
+      // The page comes back to rest either way. If the pop is taken this is
+      // invisible under the route's own exit; if it is refused — a PopScope
+      // guarding unsaved work — it is the difference between a page left
+      // sitting 300 pixels over and one that simply did not go.
+      _settleBack();
+      // `maybePop`'s answer cannot be used for this: it reports whether the
+      // *request* was handled, and a route that deliberately declines counts
+      // as having handled it, so it returns true in exactly the case this
+      // needs to detect. The route's own state is the honest signal — a route
+      // that is really leaving stops being active.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (ModalRoute.of(context)?.isActive ?? false) _popping = false;
+      });
       return;
     }
     // Not far enough. The page goes back where it was rather than snapping,
     // which is what tells you the gesture was seen and declined.
+    _settleBack();
+  }
+
+  void _settleBack() {
     _settleFrom = _drag;
     _settle.forward(from: 0);
   }

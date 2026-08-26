@@ -521,8 +521,12 @@ class TimelineScreenState extends State<TimelineScreen> with RouteAware {
     final now = DateTime.now().toUtc();
     final overdue = {
       for (final note in _all ?? const <Note>[])
-        if (note.dueAt case final due?)
-          if (!due.isAfter(now)) note.id,
+        // A repeating reminder is never spent: its stored time is in the past
+        // by design after the first firing, and it is still going to ring
+        // again. Only a one-off can be finished with.
+        if (note.dueRepeat == NoteRepeat.once)
+          if (note.dueAt case final due?)
+            if (!due.isAfter(now)) note.id,
     };
     if (overdue.length == _seenReminders.length &&
         overdue.every(_seenReminders.contains)) {

@@ -117,4 +117,47 @@ void main() {
     // The row of chips won the arena, so the page is still here.
     expect(find.text('second'), findsOneWidget);
   });
+
+  testWidgets('a route that refuses to pop keeps its gesture', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PopScope(
+                      // What a form guarding unsaved work does.
+                      canPop: false,
+                      child: Scaffold(body: Center(child: Text('guarded'))),
+                    ),
+                  ),
+                ),
+                child: const Text('go'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+
+    final before = tester.getCenter(find.text('guarded'));
+    await tester.fling(find.text('guarded'), const Offset(300, 0), 1200);
+    await tester.pumpAndSettle();
+
+    // Still here, and — the part that was broken — back where it started
+    // rather than left translated 300 pixels over with the gesture latched
+    // off for the rest of the route's life.
+    expect(find.text('guarded'), findsOneWidget);
+    expect(tester.getCenter(find.text('guarded')).dx, closeTo(before.dx, 0.5));
+
+    // And it still answers, which is what "latched off" would have broken.
+    await tester.fling(find.text('guarded'), const Offset(300, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(find.text('guarded')).dx, closeTo(before.dx, 0.5));
+  });
 }

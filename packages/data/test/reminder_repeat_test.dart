@@ -84,4 +84,34 @@ void main() {
     // parse and vanishes from the timeline.
     expect(NoteRepeat.fromWire('every-third-tuesday'), NoteRepeat.once);
   });
+
+  test('a repeat whose start has passed is still rebuilt at launch', () {
+    final lapsed = capture();
+    final future = capture();
+    // The normal state of a repeat that has fired at least once.
+    repo.setDueAt(
+      lapsed.id,
+      DateTime.utc(2020, 1, 1, 9),
+      repeat: NoteRepeat.daily,
+    );
+    repo.setDueAt(
+      future.id,
+      DateTime.now().toUtc().add(const Duration(days: 1)),
+    );
+
+    final upcoming = repo.listUpcomingReminders().map((n) => n.id).toSet();
+
+    // Both. Dropping the lapsed one is how a repeat would stop coming back
+    // after the first reboot — which is the one thing this query exists to
+    // prevent.
+    expect(upcoming, containsAll([lapsed.id, future.id]));
+  });
+
+  test('a one-off whose time has passed is not rebuilt', () {
+    final note = capture();
+    repo.setDueAt(note.id, DateTime.utc(2020, 1, 1, 9));
+
+    // Firing it now would be a surprise years late.
+    expect(repo.listUpcomingReminders(), isEmpty);
+  });
 }

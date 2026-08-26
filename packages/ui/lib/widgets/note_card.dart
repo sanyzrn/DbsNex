@@ -57,13 +57,18 @@ class NexCardStrings {
   /// "8h", "2w" and so on — see [NexRelativeTime].
   final String Function(NexRelativeTime time) relativeTime;
 
-  /// "in 2 hours", "Overdue" — how long until a note's reminder.
+  /// "in 2 hours", "Overdue", "Every day" — what a note's reminder says.
+  ///
+  /// Takes the repeat as well as the time because the two ask for different
+  /// sentences: a one-off counts down to a moment, and a repeating one has no
+  /// moment to count down to — its stored time is when the series started,
+  /// which is in the past for every repeat that has fired even once.
   ///
   /// Null leaves the card showing the bell alone, which is what it did before
   /// and is still the right answer for a caller that has no localisation to
   /// hand. A bell with no time beside it says a reminder exists and nothing
   /// else, which was the report this parameter exists to answer.
-  final String Function(DateTime due)? dueLabel;
+  final String Function(DateTime due, NoteRepeat repeat)? dueLabel;
 }
 
 class NoteCard extends StatelessWidget {
@@ -189,10 +194,14 @@ class _CardBody extends StatelessWidget {
               if (showDue ? note.dueAt : null case final due?)
                 _DueChip(
                   due: due,
-                  label: strings.dueLabel?.call(due),
+                  label: strings.dueLabel?.call(due, note.dueRepeat),
                   // A lapsed reminder is not an alarm any more, so it stops
-                  // asking for attention in the accent colour.
-                  upcoming: due.isAfter(DateTime.now().toUtc()),
+                  // asking for attention in the accent colour. A repeating one
+                  // never lapses: it is always about to happen again, however
+                  // long ago the series began.
+                  upcoming:
+                      note.dueRepeat != NoteRepeat.once ||
+                      due.isAfter(DateTime.now().toUtc()),
                 )
               else
                 Text(

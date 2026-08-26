@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+- **Fixes found reviewing this release.** A swipe-back on a screen that
+  declines to close left the page sitting where the finger let go, with the
+  gesture dead for the rest of its life. A repeating reminder stopped coming
+  back after a reboot, and wore "Overdue" on its card between firings — it is
+  never overdue, and now says how often it repeats instead.
 - **Reminders can repeat.** Every day, or every week, chosen beside the four
   shortcut times rather than instead of them — a repeating reminder still has
   a first firing, and the confirmation names both. A repeat is cleared when

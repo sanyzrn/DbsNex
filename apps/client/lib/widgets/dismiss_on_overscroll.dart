@@ -42,6 +42,18 @@ class _NexDismissOnOverscrollState extends State<NexDismissOnOverscroll> {
         notification.overscroll < -8) {
       _dismissed = true;
       Navigator.of(context).maybePop();
+      // The latch has to come back off when the pop is refused — a route with
+      // a PopScope guarding unsaved work — or the sheet spends the rest of its
+      // life with its overscroll dismissal dead.
+      //
+      // Not from `maybePop`'s answer: that reports whether the *request* was
+      // handled, and a route that deliberately declines counts as having
+      // handled it, so it returns true in exactly the case this has to catch.
+      // A route that is really leaving stops being active.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (ModalRoute.of(context)?.isActive ?? false) _dismissed = false;
+      });
     }
     return false;
   }
