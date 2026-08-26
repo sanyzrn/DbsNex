@@ -223,12 +223,12 @@ class NexReminders {
       // false, on every single reminder anyone set, which quietly put every
       // alarm back on the inexact path this release had just taken it off.
       try {
-        await android?.requestExactAlarmsPermission();
+        await android.requestExactAlarmsPermission();
       } catch (_) {
         // Nothing to do: the state is read below either way.
       }
       try {
-        _exactAlarms = await android?.canScheduleExactNotifications() ?? false;
+        _exactAlarms = await android.canScheduleExactNotifications() ?? false;
       } catch (_) {
         _exactAlarms = false;
       }
