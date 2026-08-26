@@ -16,6 +16,7 @@ import 'package:nex_client/widgets/commit_receipt.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
 import 'package:nex_client/widgets/empty_timeline.dart';
+import 'package:nex_client/widgets/note_spotlight.dart';
 import 'package:nex_client/widgets/first_run_tour.dart';
 
 import 'support/in_process_db.dart';
@@ -1013,5 +1014,44 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.auto_awesome), findsNothing);
+  });
+
+  group('a tapped reminder', () {
+    testWidgets('points at the note it was about, then stops', (tester) async {
+      await services.captureText('call the plumber');
+      await services.captureText('and something else');
+
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      final target = (await services.worker.timeline()).firstWhere(
+        (note) => note.content == 'call the plumber',
+      );
+
+      // What the notification handler does. Before this it did nothing at
+      // all: the callback existed and nothing was ever assigned to it, so a
+      // tapped reminder opened the app onto the same list as always and left
+      // the reader to find the note themselves.
+      services.reminders.onOpenNote!(target.id);
+      await tester.pump();
+
+      final marked = tester
+          .widgetList<NoteSpotlight>(find.byType(NoteSpotlight))
+          .where((widget) => widget.active);
+      expect(marked, hasLength(1));
+
+      // And it is a moment, not a mark: nothing is left highlighted once the
+      // pulses are over, or the next reminder would arrive on a timeline that
+      // is already pointing somewhere.
+      await tester.pumpAndSettle(const Duration(seconds: 4));
+      expect(
+        tester
+            .widgetList<NoteSpotlight>(find.byType(NoteSpotlight))
+            .where((widget) => widget.active),
+        isEmpty,
+      );
+    });
   });
 }

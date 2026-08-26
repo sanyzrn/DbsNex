@@ -59,6 +59,25 @@ class NexReminders {
   /// Called with the note id when a reminder is tapped.
   void Function(String noteId)? onOpenNote;
 
+  /// The note whose reminder started the app, if one did.
+  ///
+  /// [onDidReceiveNotificationResponse] is only called while the app is
+  /// already running. A tap that launches it cold is reported once, here, by
+  /// the plugin's launch details — so without this the case that matters most
+  /// (the phone was in a pocket, the reminder arrived, the notification was
+  /// tapped) was the one case that did nothing.
+  ///
+  /// Read once and cleared by [takeLaunchNoteId]: it describes a single tap,
+  /// not a standing state, and a timeline that rebuilt would otherwise keep
+  /// re-answering the same one.
+  String? _launchNoteId;
+
+  String? takeLaunchNoteId() {
+    final id = _launchNoteId;
+    _launchNoteId = null;
+    return id;
+  }
+
   /// Whether reminders can work here at all.
   ///
   /// Android and iOS only. The desktop builds have no scheduling backend in
@@ -102,6 +121,18 @@ class NexReminders {
         if (id != null && id.isNotEmpty) onOpenNote?.call(id);
       },
     );
+    try {
+      final launch = await _plugin.getNotificationAppLaunchDetails();
+      if (launch?.didNotificationLaunchApp ?? false) {
+        final id = launch?.notificationResponse?.payload;
+        if (id != null && id.isNotEmpty) _launchNoteId = id;
+      }
+    } catch (error) {
+      // Not worth failing initialisation over — reminders still schedule and
+      // still arrive. Recorded rather than swallowed, because a tap that goes
+      // nowhere is exactly the kind of thing that gets called "flaky".
+      lastError = 'launch details: $error';
+    }
     _ready = true;
   }
 

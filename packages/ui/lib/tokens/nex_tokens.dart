@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import '../widgets/nex_swipe_back.dart';
 import 'nex_accent_palette.dart';
 
 /// Every colour in Nex: one neutral ramp per theme, plus one accent.
@@ -508,12 +509,14 @@ ThemeData _theme({
     // Android's default zoom transition scales and clips the whole page, which
     // reads as heavy next to the rest of the app. The Cupertino slide is the
     // motion this design language already implies: short, horizontal, and
-    // interruptible by an edge swipe back.
+    // interruptible by a swipe back — which this widens to the whole page,
+    // because the edge strip it is normally confined to is the one part of a
+    // large phone a thumb cannot reach.
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
-        TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.android: NexSwipeBackPageTransitionsBuilder(),
+        TargetPlatform.iOS: NexSwipeBackPageTransitionsBuilder(),
+        TargetPlatform.macOS: NexSwipeBackPageTransitionsBuilder(),
         TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
         TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
       },
@@ -673,6 +676,27 @@ TextTheme _textTheme({required Color primary, required Color secondary}) =>
 /// *stop* under it.
 double nexBottomInset(BuildContext context) =>
     MediaQuery.paddingOf(context).bottom;
+
+/// The strip along the bottom of the window the system keeps for its own
+/// navigation gestures.
+///
+/// On a phone using gesture navigation, a swipe that starts in this strip
+/// belongs to Android — it goes home, or opens the recents list. A scrolling
+/// list underneath it competes for the same drag, and the result is neither:
+/// the list twitches, the gesture is eaten, and which of the two wins depends
+/// on the angle of the finger.
+///
+/// This is the platform's own answer to that. `systemGestureInsets` is
+/// documented for exactly this case — Flutter's own example is a slider at
+/// the bottom of the screen fighting the back gesture — and it reports zero
+/// on a phone with three-button navigation, where there is no such gesture to
+/// clash with.
+///
+/// Content should still be *drawn* under the strip: cutting the list off
+/// above it would leave a band of empty page under every screen. It is the
+/// touches, not the pixels, that have to stop.
+double nexBottomGestureStrip(BuildContext context) =>
+    MediaQuery.systemGestureInsetsOf(context).bottom;
 
 /// The glyph for a note type, and the only place one is chosen.
 ///

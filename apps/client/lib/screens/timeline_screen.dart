@@ -24,6 +24,7 @@ import '../widgets/capture_sheet.dart';
 import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/commit_receipt.dart';
+import '../widgets/note_spotlight.dart';
 import '../widgets/empty_timeline.dart';
 import '../widgets/first_run_tour.dart';
 import '../widgets/nex_dialog.dart';
@@ -101,6 +102,20 @@ class TimelineScreenState extends State<TimelineScreen> {
   NoteType? selectedType;
   StreamSubscription<List<Note>>? subscription;
   String? landedId;
+
+  /// The note a tapped reminder is about, until its border has finished
+  /// pulsing.
+  ///
+  /// A tapped reminder used to open the app and stop there: the notification
+  /// named the note, and the timeline then showed the same list it always
+  /// shows, leaving the reader to find it.
+  String? _spotlightId;
+
+  /// The spotlighted card, so it can be scrolled into view.
+  ///
+  /// Only ever attached to one row — a key on every card would be a key per
+  /// note in a list that is deliberately lazy.
+  final GlobalKey _spotlightAnchor = GlobalKey();
 
   /// Guards against firing a second [NexServices.loadMoreTimeline] while one
   /// is still in flight, and against firing one at all once a fetch has come
@@ -194,6 +209,11 @@ class TimelineScreenState extends State<TimelineScreen> {
     });
     _search.addListener(_onSearchChanged);
     _scroll.addListener(_onAiSummaryScroll);
+    // Both halves of a tapped reminder: one for a tap while the app is up,
+    // one for the tap that started it.
+    widget.services.reminders.onOpenNote = _spotlight;
+    final launched = widget.services.reminders.takeLaunchNoteId();
+    if (launched != null) _spotlight(launched);
     unawaited(_loadTimeline());
     unawaited(_loadFilterTags());
     // After the first frame, because every stop measures a real widget and
@@ -480,6 +500,55 @@ class TimelineScreenState extends State<TimelineScreen> {
   /// the recorder; the production callers set [landedId] directly.
   @visibleForTesting
   void markLanded(String id) => setState(() => landedId = id);
+
+  /// Points at the note a reminder was about.
+  ///
+  /// A search or a filter left over from last time would hide the very note
+  /// the reminder just named, so both are cleared first — and so is the
+  /// collapsed state of whichever date group holds it, since a folded group
+  /// is the other way for a card to be absent from a list that contains it.
+  void _spotlight(String noteId) {
+    if (!mounted) return;
+    setState(() {
+      if (_searching) _exitSearch();
+      _spotlightId = noteId;
+    });
+    unawaited(_revealSpotlight(noteId));
+  }
+
+  Future<void> _revealSpotlight(String noteId) async {
+    // The group is expanded before the frame that would have to contain the
+    // card is built, or the anchor below has nothing to find. Everything that
+    // reads context happens here, ahead of the first await.
+    final note = _all?.where((n) => n.id == noteId).firstOrNull;
+    final now = DateTime.now();
+    final key = note == null
+        ? null
+        : _bucketFor(
+            note,
+            DateTime(now.year, now.month, now.day),
+            AppLocalizations.of(context),
+          ).$1;
+    if (key != null && _collapsedGroups.contains(key)) {
+      await _toggleGroup(key);
+    }
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    final anchor = _spotlightAnchor.currentContext;
+    // Absent when the note is far enough down that the list has not built its
+    // row yet. The border still runs when scrolling brings the card into
+    // view; this only saves the reader the scroll when it can.
+    // `anchor.mounted`, not this State's: the row is its own element and can
+    // have left the tree while the frame was being waited for.
+    if (anchor != null && anchor.mounted) {
+      await Scrollable.ensureVisible(
+        anchor,
+        duration: NexMotion.slow,
+        curve: NexMotion.curve,
+        alignment: 0.3,
+      );
+    }
+  }
 
   /// Brings the field in and puts the cursor in it.
   ///
@@ -1198,109 +1267,130 @@ class TimelineScreenState extends State<TimelineScreen> {
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) _exitSearch();
         },
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          // A tap anywhere that is not a card closes an open swipe.
-          onTap: _swipe.closeAll,
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              // Scrolling dismisses an open card, the way every list with
-              // swipe actions behaves.
-              if (notification is ScrollStartNotification) _swipe.closeAll();
-              // Past 200 notes, this is the only thing that ever asks for
-              // the rest — nothing rendered the tail of a long timeline
-              // before this, it just never loaded.
-              if (notification.metrics.extentAfter < 600) _maybeLoadMore();
-              return false;
-            },
-            child: Center(
-              // One column, and the filter row is inside it. It used to be a
-              // sibling *above* this, so on a wide window the pills started at
-              // the window edge while the cards sat in a 760px column — two
-              // things that belong to each other, visibly unaligned.
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                // No pull-to-refresh. There is nothing left for it to do:
-                // the timeline is a broadcast stream that every mutation path
-                // already re-fires, the filter row reloads on the same event,
-                // and "Sync now" lives in Settings where a sync server is
-                // configured in the first place. A pull that re-reads data
-                // which is already current is a gesture that does nothing —
-                // and this screen's own history says why that is worse than
-                // no gesture: the pull used to be "reveal the search field",
-                // and it was replaced precisely because it never revealed
-                // anything.
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: _onScroll,
-                  child: CustomScrollView(
-                    controller: _scroll,
-                    // Always scrollable, so a short list still bounces rather
-                    // than feeling locked.
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      // The headline and the recap card, above the search
-                      // field. Both collapse to nothing rather than leaving
-                      // the list, the same reason the two headers below do.
-                      SliverToBoxAdapter(
-                        key: const ValueKey('timeline-header'),
-                        child: AnimatedSize(
-                          duration: NexMotion.slow,
-                          curve: NexMotion.curve,
-                          alignment: Alignment.topCenter,
-                          child: _searching
-                              ? const SizedBox.shrink()
-                              : _header(l10n),
-                        ),
-                      ),
-                      // Both headers are always in the list, keyed, and collapse
-                      // to zero extent rather than leaving it. A sliver list that
-                      // changes length while another sliver changes its pinning
-                      // leaves the viewport painting a child it never laid out.
-                      SliverPersistentHeader(
-                        key: const ValueKey('search-header'),
-                        delegate: SearchFieldHeader(
-                          anchor: _searchAnchor,
-                          controller: _search.query,
-                          focusNode: _searchFocus,
-                          searching: _searching,
-                          onTap: () => unawaited(revealSearch()),
-                          onChanged: (_) => _search.schedule(),
-                          onClear: _exitSearch,
-                        ),
-                      ),
-                      SliverPersistentHeader(
-                        key: const ValueKey('filter-header'),
-                        pinned: true,
-                        delegate: _FilterRowHeader(
-                          visible: !_searching,
-                          child: TagFilterRow(
-                            tags: filterTags,
-                            selectedTagId: selectedTagId,
-                            allLabel: l10n.all,
-                            leading: _TypeFilterButton(
-                              selected: selectedType,
-                              onPressed: () => unawaited(_pickType()),
+        // The list keeps drawing all the way down, and stops *listening*
+        // where the system's own navigation gestures begin. Without this the
+        // two competed for the same upward drag at the bottom of the screen,
+        // and which one won depended on the angle of the finger.
+        //
+        // Over the body, under the capture button: the FAB is a Scaffold slot
+        // painted above this, so it stays tappable where the two overlap.
+        child: Stack(
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              // A tap anywhere that is not a card closes an open swipe.
+              onTap: _swipe.closeAll,
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  // Scrolling dismisses an open card, the way every list with
+                  // swipe actions behaves.
+                  if (notification is ScrollStartNotification) {
+                    _swipe.closeAll();
+                  }
+                  // Past 200 notes, this is the only thing that ever asks for
+                  // the rest — nothing rendered the tail of a long timeline
+                  // before this, it just never loaded.
+                  if (notification.metrics.extentAfter < 600) _maybeLoadMore();
+                  return false;
+                },
+                child: Center(
+                  // One column, and the filter row is inside it. It used to be a
+                  // sibling *above* this, so on a wide window the pills started at
+                  // the window edge while the cards sat in a 760px column — two
+                  // things that belong to each other, visibly unaligned.
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    // No pull-to-refresh. There is nothing left for it to do:
+                    // the timeline is a broadcast stream that every mutation path
+                    // already re-fires, the filter row reloads on the same event,
+                    // and "Sync now" lives in Settings where a sync server is
+                    // configured in the first place. A pull that re-reads data
+                    // which is already current is a gesture that does nothing —
+                    // and this screen's own history says why that is worse than
+                    // no gesture: the pull used to be "reveal the search field",
+                    // and it was replaced precisely because it never revealed
+                    // anything.
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: _onScroll,
+                      child: CustomScrollView(
+                        controller: _scroll,
+                        // Always scrollable, so a short list still bounces rather
+                        // than feeling locked.
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          // The headline and the recap card, above the search
+                          // field. Both collapse to nothing rather than leaving
+                          // the list, the same reason the two headers below do.
+                          SliverToBoxAdapter(
+                            key: const ValueKey('timeline-header'),
+                            child: AnimatedSize(
+                              duration: NexMotion.slow,
+                              curve: NexMotion.curve,
+                              alignment: Alignment.topCenter,
+                              child: _searching
+                                  ? const SizedBox.shrink()
+                                  : _header(l10n),
                             ),
-                            onSelected: (value) => unawaited(_selectTag(value)),
                           ),
-                        ),
+                          // Both headers are always in the list, keyed, and collapse
+                          // to zero extent rather than leaving it. A sliver list that
+                          // changes length while another sliver changes its pinning
+                          // leaves the viewport painting a child it never laid out.
+                          SliverPersistentHeader(
+                            key: const ValueKey('search-header'),
+                            delegate: SearchFieldHeader(
+                              anchor: _searchAnchor,
+                              controller: _search.query,
+                              focusNode: _searchFocus,
+                              searching: _searching,
+                              onTap: () => unawaited(revealSearch()),
+                              onChanged: (_) => _search.schedule(),
+                              onClear: _exitSearch,
+                            ),
+                          ),
+                          SliverPersistentHeader(
+                            key: const ValueKey('filter-header'),
+                            pinned: true,
+                            delegate: _FilterRowHeader(
+                              visible: !_searching,
+                              child: TagFilterRow(
+                                tags: filterTags,
+                                selectedTagId: selectedTagId,
+                                allLabel: l10n.all,
+                                leading: _TypeFilterButton(
+                                  selected: selectedType,
+                                  onPressed: () => unawaited(_pickType()),
+                                ),
+                                onSelected: (value) =>
+                                    unawaited(_selectTag(value)),
+                              ),
+                            ),
+                          ),
+                          ..._bodySlivers(l10n),
+                          // The capture button floats over the list, and on a
+                          // device with a three-button navigation bar the system's
+                          // own bar sits under that — the last card has to clear
+                          // both, or it cannot be read or tapped.
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: nexFabClearance + nexBottomInset(context),
+                            ),
+                          ),
+                        ],
                       ),
-                      ..._bodySlivers(l10n),
-                      // The capture button floats over the list, and on a
-                      // device with a three-button navigation bar the system's
-                      // own bar sits under that — the last card has to clear
-                      // both, or it cannot be read or tapped.
-                      SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: nexFabClearance + nexBottomInset(context),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: nexBottomGestureStrip(context),
+              child: const AbsorbPointer(),
+            ),
+          ],
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -1417,32 +1507,41 @@ class TimelineScreenState extends State<TimelineScreen> {
             key: ValueKey('fold-${note.id}'),
             open: row.groupKey != _closingGroup,
             animateIn: row.groupKey == _openingGroup,
-            child: CommitReceipt(
-              key: ValueKey(note.id),
-              active: landedId == note.id,
-              // Cleared when it finishes, so the receipt is a moment rather than
-              // a permanent mark on whichever note was captured last.
+            child: NoteSpotlight(
+              key: _spotlightId == note.id ? _spotlightAnchor : null,
+              active: _spotlightId == note.id,
               onDone: () {
-                if (mounted && landedId == note.id) {
-                  setState(() => landedId = null);
+                if (mounted && _spotlightId == note.id) {
+                  setState(() => _spotlightId = null);
                 }
               },
-              // ADR-022: the action set is open, and each edge is bound
-              // independently.
-              child: SwipeableNoteCard(
-                haptics: widget.preferences.haptics,
-                controller: _swipe,
-                resolveAction: ({required bool isLeading}) => nexSwipeSpec(
-                  l10n,
-                  isLeading
-                      ? widget.preferences.leadingAction
-                      : widget.preferences.trailingAction,
-                ),
-                onAction: (action) => unawaited(_runSwipe(action, note)),
-                child: NoteCard(
-                  note: note,
-                  strings: nexCardStrings(context),
-                  onTap: () => _tapNote(note),
+              child: CommitReceipt(
+                key: ValueKey(note.id),
+                active: landedId == note.id,
+                // Cleared when it finishes, so the receipt is a moment rather than
+                // a permanent mark on whichever note was captured last.
+                onDone: () {
+                  if (mounted && landedId == note.id) {
+                    setState(() => landedId = null);
+                  }
+                },
+                // ADR-022: the action set is open, and each edge is bound
+                // independently.
+                child: SwipeableNoteCard(
+                  haptics: widget.preferences.haptics,
+                  controller: _swipe,
+                  resolveAction: ({required bool isLeading}) => nexSwipeSpec(
+                    l10n,
+                    isLeading
+                        ? widget.preferences.leadingAction
+                        : widget.preferences.trailingAction,
+                  ),
+                  onAction: (action) => unawaited(_runSwipe(action, note)),
+                  child: NoteCard(
+                    note: note,
+                    strings: nexCardStrings(context),
+                    onTap: () => _tapNote(note),
+                  ),
                 ),
               ),
             ),

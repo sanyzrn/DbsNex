@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/ai_chat_sheet.dart';
 import '../platform/file_opener.dart';
 import '../platform/sharing.dart';
@@ -670,253 +671,262 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                NexSpacing.md,
-                NexSpacing.sm,
-                NexSpacing.md,
-                NexSpacing.md,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // The type and when it was captured, on one line.
-                  //
-                  // The date used to be on the timeline card and the time was
-                  // nowhere except behind the Details button — so the card
-                  // carried the half nobody needed at a glance and hid the
-                  // half you go looking for. It is the other way round now:
-                  // the card is clean, and this is where you find out when.
-                  Row(
-                    children: [
-                      Text(
-                        l10n.noteType(note.type.wireName),
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const Spacer(),
-                      Text(
-                        _formatTimestamp(note.createdAt),
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: NexSpacing.sm),
-                  if (note.type == NoteType.checklist)
-                    // The one place a checklist is interactive. On the card it
-                    // is a picture of a list; here it is the list.
-                    _ChecklistBody(
-                      items: note.checklistItems,
-                      onToggle: (index) => unawaited(_toggleItem(index)),
-                    )
-                  else if (note.type == NoteType.link)
-                    _LinkBody(note: note, onOpen: _openLink)
-                  else if (note.type == NoteType.text)
-                    // Only the body turns. The "Text" label, the action row and the
-                    // rest of the sheet keep the interface's direction.
-                    NexBodyText(
-                      note.content ?? '',
-                      // Looser leading than the timeline card: this is the surface a
-                      // person actually reads a long note on, and 1.5 at 16px runs
-                      // the lines together over a screenful of text.
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.copyWith(height: 1.62),
-                    )
-                  else if (note.type == NoteType.voice) ...[
-                    Text(
-                      l10n.voiceDuration(
-                        ((note.durationMs ?? 0) / 1000).ceil(),
-                      ),
-                      style: Theme.of(context).textTheme.bodyLarge,
+            // A long note's sheet is almost entirely content, so the handle
+            // at the top was the only part of it that could be dragged shut.
+            child: NexDismissOnOverscroll(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  NexSpacing.md,
+                  NexSpacing.sm,
+                  NexSpacing.md,
+                  NexSpacing.md,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // The type and when it was captured, on one line.
+                    //
+                    // The date used to be on the timeline card and the time was
+                    // nowhere except behind the Details button — so the card
+                    // carried the half nobody needed at a glance and hid the
+                    // half you go looking for. It is the other way round now:
+                    // the card is clean, and this is where you find out when.
+                    Row(
+                      children: [
+                        Text(
+                          l10n.noteType(note.type.wireName),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const Spacer(),
+                        Text(
+                          _formatTimestamp(note.createdAt),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
                     ),
-                    if (_player != null) ...[
-                      const SizedBox(height: NexSpacing.sm),
-                      _VoicePlayerControls(
-                        player: _player!,
-                        position: _position,
-                        duration: _duration,
-                      ),
-                    ],
-                    if (note.transcriptText == null)
+                    const SizedBox(height: NexSpacing.sm),
+                    if (note.type == NoteType.checklist)
+                      // The one place a checklist is interactive. On the card it
+                      // is a picture of a list; here it is the list.
+                      _ChecklistBody(
+                        items: note.checklistItems,
+                        onToggle: (index) => unawaited(_toggleItem(index)),
+                      )
+                    else if (note.type == NoteType.link)
+                      _LinkBody(note: note, onOpen: _openLink)
+                    else if (note.type == NoteType.text)
+                      // Only the body turns. The "Text" label, the action row and the
+                      // rest of the sheet keep the interface's direction.
+                      NexBodyText(
+                        note.content ?? '',
+                        // Looser leading than the timeline card: this is the surface a
+                        // person actually reads a long note on, and 1.5 at 16px runs
+                        // the lines together over a screenful of text.
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.copyWith(height: 1.62),
+                      )
+                    else if (note.type == NoteType.voice) ...[
                       Text(
-                        l10n.voiceSearchHint,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        l10n.voiceDuration(
+                          ((note.durationMs ?? 0) / 1000).ceil(),
+                        ),
+                        style: Theme.of(context).textTheme.bodyLarge,
                       ),
-                  ] else if (note.type == NoteType.photo) ...[
-                    if (note.mediaUri != null &&
-                        File(note.mediaUri!).existsSync()) ...[
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  _FullScreenPhoto(path: note.mediaUri!),
+                      if (_player != null) ...[
+                        const SizedBox(height: NexSpacing.sm),
+                        _VoicePlayerControls(
+                          player: _player!,
+                          position: _position,
+                          duration: _duration,
+                        ),
+                      ],
+                      if (note.transcriptText == null)
+                        Text(
+                          l10n.voiceSearchHint,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                    ] else if (note.type == NoteType.photo) ...[
+                      if (note.mediaUri != null &&
+                          File(note.mediaUri!).existsSync()) ...[
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    _FullScreenPhoto(path: note.mediaUri!),
+                              ),
+                            );
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(NexRadius.md),
+                            child: Image.file(
+                              File(note.mediaUri!),
+                              fit: BoxFit.cover,
+                              height: 220,
+                              width: double.infinity,
                             ),
-                          );
-                        },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(NexRadius.md),
-                          child: Image.file(
-                            File(note.mediaUri!),
-                            fit: BoxFit.cover,
-                            height: 220,
-                            width: double.infinity,
+                          ),
+                        ),
+                        const SizedBox(height: NexSpacing.sm),
+                        Text(
+                          l10n.tapToExpand,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ] else
+                        Text(
+                          l10n.mediaUnavailable,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                    ] else ...[
+                      // File — same sheet, ADR-008 display fields. Tapping the row
+                      // hands it to the OS, so the note behaves like the same file
+                      // does in a file manager.
+                      InkWell(
+                        onTap: _openExternally,
+                        borderRadius: BorderRadius.circular(NexRadius.lg),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: NexSpacing.sm,
+                            horizontal: NexSpacing.xs,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.insert_drive_file_outlined,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
+                              const SizedBox(width: NexSpacing.sm),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      note.content?.trim().isNotEmpty == true
+                                          ? note.content!
+                                          : (note.mediaUri != null
+                                                ? p.basename(note.mediaUri!)
+                                                : l10n.file),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge,
+                                    ),
+                                    if (note.mediaUri != null &&
+                                        File(note.mediaUri!).existsSync())
+                                      Text(
+                                        [
+                                          nexFormatBytes(
+                                            File(note.mediaUri!).lengthSync(),
+                                          ),
+                                          if (note.mimeType != null)
+                                            note.mimeType!,
+                                        ].join(' · '),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.secondary,
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: l10n.revealInFolder,
+                                onPressed: _copyPath,
+                                icon: const Icon(
+                                  Icons.folder_outlined,
+                                  size: 18,
+                                ),
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
+                              Icon(
+                                Icons.open_in_new,
+                                size: 18,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: NexSpacing.sm),
+                      // A Markdown file, shown rather than merely listed. The
+                      // note itself only ever held the filename — the words are
+                      // in a file on disk — so this is the one place in the app
+                      // that reads a note's media back as text.
+                      if (nexIsMarkdownFile(
+                        path: note.mediaUri,
+                        mimeType: note.mimeType,
+                      ))
+                        _MarkdownFileBody(path: note.mediaUri!),
+                    ],
+                    if (note.type != NoteType.text) ...[
+                      const SizedBox(height: NexSpacing.md),
                       Text(
-                        l10n.tapToExpand,
+                        l10n.caption,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
-                    ] else
-                      Text(
-                        l10n.mediaUnavailable,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                  ] else ...[
-                    // File — same sheet, ADR-008 display fields. Tapping the row
-                    // hands it to the OS, so the note behaves like the same file
-                    // does in a file manager.
-                    InkWell(
-                      onTap: _openExternally,
-                      borderRadius: BorderRadius.circular(NexRadius.lg),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: NexSpacing.sm,
-                          horizontal: NexSpacing.xs,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.insert_drive_file_outlined,
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
-                            const SizedBox(width: NexSpacing.sm),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    note.content?.trim().isNotEmpty == true
-                                        ? note.content!
-                                        : (note.mediaUri != null
-                                              ? p.basename(note.mediaUri!)
-                                              : l10n.file),
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge,
-                                  ),
-                                  if (note.mediaUri != null &&
-                                      File(note.mediaUri!).existsSync())
-                                    Text(
-                                      [
-                                        nexFormatBytes(
-                                          File(note.mediaUri!).lengthSync(),
-                                        ),
-                                        if (note.mimeType != null)
-                                          note.mimeType!,
-                                      ].join(' · '),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.secondary,
-                                            fontWeight: FontWeight.w400,
-                                          ),
-                                    ),
-                                ],
+                      const SizedBox(height: NexSpacing.xs),
+                      if (note.caption != null &&
+                          note.caption!.trim().isNotEmpty)
+                        NexBodyText(
+                          note.caption!,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        )
+                      else
+                        Text(
+                          l10n.noCaption,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.secondary,
                               ),
-                            ),
-                            IconButton(
-                              tooltip: l10n.revealInFolder,
-                              onPressed: _copyPath,
-                              icon: const Icon(Icons.folder_outlined, size: 18),
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
-                            Icon(
-                              Icons.open_in_new,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
-                          ],
                         ),
-                      ),
-                    ),
-                    // A Markdown file, shown rather than merely listed. The
-                    // note itself only ever held the filename — the words are
-                    // in a file on disk — so this is the one place in the app
-                    // that reads a note's media back as text.
-                    if (nexIsMarkdownFile(
-                      path: note.mediaUri,
-                      mimeType: note.mimeType,
-                    ))
-                      _MarkdownFileBody(path: note.mediaUri!),
-                  ],
-                  if (note.type != NoteType.text) ...[
-                    const SizedBox(height: NexSpacing.md),
-                    Text(
-                      l10n.caption,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: NexSpacing.xs),
-                    if (note.caption != null && note.caption!.trim().isNotEmpty)
-                      NexBodyText(
-                        note.caption!,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      )
-                    else
-                      Text(
-                        l10n.noCaption,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.secondary,
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton(
+                          onPressed: _editCaption,
+                          child: Text(
+                            note.caption == null || note.caption!.trim().isEmpty
+                                ? l10n.addCaption
+                                : l10n.editCaption,
+                          ),
                         ),
-                      ),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: TextButton(
-                        onPressed: _editCaption,
-                        child: Text(
-                          note.caption == null || note.caption!.trim().isEmpty
-                              ? l10n.addCaption
-                              : l10n.editCaption,
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: NexSpacing.md),
-                  Wrap(
-                    spacing: NexSpacing.xs,
-                    children: [
-                      for (final tag in note.tags)
-                        TagChip(
-                          tag: tag,
-                          onRemove: () async {
-                            await widget.services.removeTag(
-                              noteId: note.id,
-                              tagId: tag.id,
-                            );
-                            // Unlike _addTag, this can take a tag's usage
-                            // count to zero — without a refresh here, the
-                            // filter row on the timeline never hears about
-                            // it and keeps showing a tag nothing wears
-                            // anymore until some unrelated capture or
-                            // delete happens to trigger one.
-                            await widget.services.refreshTimeline();
-                            await _reload();
-                          },
-                        ),
-                      ActionChip(
-                        avatar: const Icon(Icons.add, size: 16),
-                        label: Text(l10n.tag),
-                        onPressed: _addTag,
                       ),
                     ],
-                  ),
-                  _aiPanel(note, l10n),
-                ],
+                    const SizedBox(height: NexSpacing.md),
+                    Wrap(
+                      spacing: NexSpacing.xs,
+                      children: [
+                        for (final tag in note.tags)
+                          TagChip(
+                            tag: tag,
+                            onRemove: () async {
+                              await widget.services.removeTag(
+                                noteId: note.id,
+                                tagId: tag.id,
+                              );
+                              // Unlike _addTag, this can take a tag's usage
+                              // count to zero — without a refresh here, the
+                              // filter row on the timeline never hears about
+                              // it and keeps showing a tag nothing wears
+                              // anymore until some unrelated capture or
+                              // delete happens to trigger one.
+                              await widget.services.refreshTimeline();
+                              await _reload();
+                            },
+                          ),
+                        ActionChip(
+                          avatar: const Icon(Icons.add, size: 16),
+                          label: Text(l10n.tag),
+                          onPressed: _addTag,
+                        ),
+                      ],
+                    ),
+                    _aiPanel(note, l10n),
+                  ],
+                ),
               ),
             ),
           ),

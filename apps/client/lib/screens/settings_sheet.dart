@@ -6,6 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/choice_cards.dart';
+import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_time_picker.dart';
@@ -93,7 +94,7 @@ class SettingsSheet extends StatelessWidget {
               ),
             ),
             Flexible(
-              child: _DismissOnOverscroll(
+              child: NexDismissOnOverscroll(
                 // Every picker writes through `preferences`, which notifies —
                 // without this the row that opened one would still show the
                 // old value when the picker closed, since the sheet itself is
@@ -548,56 +549,6 @@ const _rowPadding = EdgeInsetsDirectional.only(
   start: NexSpacing.md,
   end: NexSpacing.sm,
 );
-
-/// Closes the sheet on a downward drag anywhere over [child], once it is
-/// already scrolled to the top.
-///
-/// The sheet's own drag-to-dismiss only ever saw the header above the
-/// scroll view: a plain `SingleChildScrollView` wins the same vertical drag
-/// in the gesture arena outright, whether or not it has anywhere left to
-/// scroll, so a swipe that started over the settings themselves never
-/// reached it. `OverscrollNotification` is what the scroll view reports
-/// instead of moving once it is pinned at its own boundary — a negative
-/// value is exactly a downward drag past the top — so it stands in for the
-/// drag-to-dismiss the content itself cannot forward.
-///
-/// [OverscrollNotification.dragDetails] is what keeps this to an actual drag
-/// at the top: a fast fling from further down the list can cross the whole
-/// scroll range and bounce past the top boundary in one continuous motion,
-/// which reports overscroll too, but with `dragDetails: null` — no finger is
-/// pressing at that point, the scrollable is just settling its own fling.
-/// Without this check that fling closed the sheet on the way to the top
-/// instead of merely scrolling it there; only a second, deliberate drag once
-/// it has actually arrived should do that.
-class _DismissOnOverscroll extends StatefulWidget {
-  const _DismissOnOverscroll({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_DismissOnOverscroll> createState() => _DismissOnOverscrollState();
-}
-
-class _DismissOnOverscrollState extends State<_DismissOnOverscroll> {
-  bool _dismissed = false;
-
-  bool _onNotification(OverscrollNotification notification) {
-    if (!_dismissed &&
-        notification.dragDetails != null &&
-        notification.overscroll < -8) {
-      _dismissed = true;
-      Navigator.of(context).maybePop();
-    }
-    return false;
-  }
-
-  @override
-  Widget build(BuildContext context) =>
-      NotificationListener<OverscrollNotification>(
-        onNotification: _onNotification,
-        child: widget.child,
-      );
-}
 
 /// One labelled group of preferences, drawn as a card.
 ///

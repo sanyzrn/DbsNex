@@ -34,6 +34,18 @@ Working convention:
 
 ## Unreleased
 
+- **A tapped reminder now points at its note.** It opened the app and stopped
+  there — the notification named the note and the timeline showed the same
+  list it always shows. The card is scrolled into view and its border pulses
+  twice, including when the tap is what started the app.
+- **Swipe back from anywhere.** Every screen with a back arrow could already
+  be dragged shut, but only from a 20-pixel strip at the very edge — the same
+  far corner the arrow is in. The whole page answers now, mirrored for
+  Persian, and a row of chips inside it still scrolls on its own.
+- **A long note's sheet closes by dragging it down**, not only by its handle.
+- **The bottom of the home screen no longer fights Android's gestures.** The
+  list drew and listened all the way down, so a swipe up from the bottom edge
+  was a coin toss between scrolling and going home.
 - **Reminder times fit on the card again.** A note due in thirteen hours was
   spending most of its line saying so, and pushing its own words off the end.
   It now says `13h`.
