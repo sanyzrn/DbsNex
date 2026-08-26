@@ -1606,7 +1606,7 @@
   },
   "nudgeGreetingPlain": "Nex",
   "@nudgeGreetingPlain": {"description": "Notification title when there is no name"},
-  "nudgeNothing": "Nothing written down yet today.",
+  "nudgeNothing": "A clear page. Nex is here when something comes up.",
   "@nudgeNothing": {"description": "Notification body when there is no recap"},
   "localModelLicenseGloss": "In short: the model is Google's, it comes with its own terms, and downloading it means accepting them.",
   "@localModelLicenseGloss": {"description": "Plain-language gloss under the verbatim Gemma notice"},

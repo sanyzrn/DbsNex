@@ -1739,7 +1739,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nudgeGreetingPlain => 'Nex';
 
   @override
-  String get nudgeNothing => 'Nothing written down yet today.';
+  String get nudgeNothing =>
+      'A clear page. Nex is here when something comes up.';
 
   @override
   String get localModelLicenseGloss =>

@@ -1739,7 +1739,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get nudgeGreetingPlain => 'Nex';
 
   @override
-  String get nudgeNothing => 'امروز هنوز چیزی ننوشته‌ای.';
+  String get nudgeNothing =>
+      'صفحه خالی است. هر وقت چیزی پیش آمد، Nex همین‌جاست.';
 
   @override
   String get localModelLicenseGloss =>

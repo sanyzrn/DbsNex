@@ -69,20 +69,36 @@ void main() {
   }
 
   group('the daily nudge', () {
-    test('the recap only counts on the day it was written for', () async {
+    test('the body is the last recap, whatever day it is for', () async {
       final today = NexPreferences.daySummaryDateKey(DateTime.now());
       await preferences.setAiDaySummary(text: 'three notes', dateKey: today);
-      expect(preferences.todaysRecap, 'three notes');
+      expect(preferences.lastRecap, 'three notes');
 
-      // Yesterday's summary delivered as this morning's would describe a day
-      // that is over — worse than the notification admitting it has nothing.
+      // This used to assert the opposite, on the reasoning that yesterday's
+      // summary delivered as this morning's describes a day that is over —
+      // worse, it said, than the notification admitting it has nothing.
+      //
+      // The reasoning had one caller and was wrong for it. The notification's
+      // text is fixed when the alarm is scheduled, and the app was last open
+      // yesterday, so by the time it fires the date has always rolled over.
+      // The gate did not catch a stale recap occasionally; it discarded the
+      // recap every single morning, and a library of hundreds of notes was
+      // greeted with "nothing written down yet today".
       await preferences.setAiDaySummary(
         text: 'three notes',
         dateKey: NexPreferences.daySummaryDateKey(
           DateTime.now().subtract(const Duration(days: 1)),
         ),
       );
-      expect(preferences.todaysRecap, isNull);
+      expect(preferences.lastRecap, 'three notes');
+    });
+
+    test('an empty recap is no recap, so the greeting stands alone', () async {
+      await preferences.setAiDaySummary(
+        text: '',
+        dateKey: NexPreferences.daySummaryDateKey(DateTime.now()),
+      );
+      expect(preferences.lastRecap, isNull);
     });
 
     test('off by default, and nine in the morning when turned on', () {

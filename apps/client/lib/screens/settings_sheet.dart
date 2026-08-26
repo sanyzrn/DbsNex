@@ -158,7 +158,7 @@ class SettingsSheet extends StatelessWidget {
       context: context,
       preferences: preferences,
       reminders: services.reminders,
-      recap: preferences.todaysRecap,
+      recap: preferences.lastRecap,
     );
     if (!context.mounted || failure == null || !value) return;
     nexShowBanner(
@@ -181,7 +181,7 @@ class SettingsSheet extends StatelessWidget {
       context: context,
       preferences: preferences,
       reminders: services.reminders,
-      recap: preferences.todaysRecap,
+      recap: preferences.lastRecap,
     );
   }
 
