@@ -18,6 +18,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get captureHint => 'What\'s on your mind?';
 
   @override
+  String get layoutTitle => 'Home layout';
+
+  @override
+  String get layoutSubtitle => 'What sits above your notes.';
+
+  @override
+  String get layoutGreeting => 'Greeting';
+
+  @override
+  String get layoutDaySummary => 'Smart daily summary';
+
+  @override
+  String get layoutSearchField => 'Search box';
+
+  @override
+  String get layoutTagRow => 'Tag row';
+
+  @override
+  String chatAboutGroup(String label, int count) {
+    return 'About $label · $count notes';
+  }
+
+  @override
+  String get groupActions => 'Group actions';
+
+  @override
+  String get groupAsk => 'Ask about these';
+
+  @override
+  String get groupDelete => 'Delete this group';
+
+  @override
+  String groupDeleteBody(int count) {
+    return '$count notes move to Trash. You can put them back from Library → Trash.';
+  }
+
+  @override
+  String groupDeleted(int count) {
+    return '$count notes deleted';
+  }
+
+  @override
   String get search => 'Search';
 
   @override

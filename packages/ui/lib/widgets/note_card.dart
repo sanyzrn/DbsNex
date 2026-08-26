@@ -73,11 +73,21 @@ class NoteCard extends StatelessWidget {
     this.onTap,
     this.previewOverride,
     this.strings = NexCardStrings.fallback,
+    this.showDue = true,
   });
   final Note note;
   final VoidCallback? onTap;
   final Widget? previewOverride;
   final NexCardStrings strings;
+
+  /// Whether a reminder on this note still has anything to say.
+  ///
+  /// A reminder that is still ahead does: "in 3h" at a glance is what the
+  /// chip is for. One that has already rung has been delivered once as a
+  /// notification and read once here, and after that it is a permanent
+  /// "Overdue" badge on a note nobody is late for — so the caller, which is
+  /// the only thing that knows whether it has been seen, can turn it off.
+  final bool showDue;
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +111,7 @@ class NoteCard extends StatelessWidget {
             onTap: onTap,
             previewOverride: previewOverride,
             strings: strings,
+            showDue: showDue,
           ),
         ),
       ),
@@ -124,12 +135,14 @@ class _CardBody extends StatelessWidget {
     required this.onTap,
     required this.previewOverride,
     required this.strings,
+    required this.showDue,
   });
 
   final Note note;
   final VoidCallback? onTap;
   final Widget? previewOverride;
   final NexCardStrings strings;
+  final bool showDue;
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +186,7 @@ class _CardBody extends StatelessWidget {
               // for a second timestamp. Of the two, the one that matters on a
               // note with a reminder is the one in the future; when it was
               // written is still in the note.
-              if (note.dueAt case final due?)
+              if (showDue ? note.dueAt : null case final due?)
                 _DueChip(
                   due: due,
                   label: strings.dueLabel?.call(due),

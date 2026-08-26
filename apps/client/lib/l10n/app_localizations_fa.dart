@@ -18,6 +18,48 @@ class AppLocalizationsFa extends AppLocalizations {
   String get captureHint => 'چی تو ذهنته؟';
 
   @override
+  String get layoutTitle => 'چیدمان خانه';
+
+  @override
+  String get layoutSubtitle => 'چه چیزهایی بالای یادداشت‌ها دیده شوند.';
+
+  @override
+  String get layoutGreeting => 'خوش‌آمدگویی';
+
+  @override
+  String get layoutDaySummary => 'خلاصهٔ هوشمند روز';
+
+  @override
+  String get layoutSearchField => 'جعبهٔ جست‌وجو';
+
+  @override
+  String get layoutTagRow => 'نوار برچسب‌ها';
+
+  @override
+  String chatAboutGroup(String label, int count) {
+    return 'دربارهٔ $label · $count یادداشت';
+  }
+
+  @override
+  String get groupActions => 'عملیات گروه';
+
+  @override
+  String get groupAsk => 'دربارهٔ این‌ها بپرس';
+
+  @override
+  String get groupDelete => 'حذف این گروه';
+
+  @override
+  String groupDeleteBody(int count) {
+    return '$count یادداشت به زباله‌دان می‌رود. از کتابخانه ← زباله‌دان می‌توانید برشان گردانید.';
+  }
+
+  @override
+  String groupDeleted(int count) {
+    return '$count یادداشت حذف شد';
+  }
+
+  @override
   String get search => 'جست‌وجو';
 
   @override

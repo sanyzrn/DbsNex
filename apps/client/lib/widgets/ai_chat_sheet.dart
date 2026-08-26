@@ -44,6 +44,8 @@ class AiChatSheet extends StatefulWidget {
     required this.history,
     this.resume,
     this.focus,
+    this.scope,
+    this.scopeLabel,
     this.client,
   });
 
@@ -66,6 +68,17 @@ class AiChatSheet extends StatefulWidget {
   /// the one already on screen.
   final Note? focus;
 
+  /// A run of notes to talk about, instead of one note or the recent library.
+  ///
+  /// What "ask about these" on a date heading opens. Same idea as [focus] and
+  /// the same reason: the context is exactly the notes the question is about,
+  /// which is what makes the answer specific and what stops the request
+  /// carrying twenty unrelated notes to get there.
+  final List<Note>? scope;
+
+  /// What to call that run — the date heading's own words.
+  final String? scopeLabel;
+
   /// Stands in for the network in tests.
   ///
   /// A seam rather than a mock of the whole sheet: what has to be provable
@@ -87,6 +100,8 @@ class AiChatSheet extends StatefulWidget {
     required ChatHistory history,
     ChatThread? resume,
     Note? focus,
+    List<Note>? scope,
+    String? scopeLabel,
     http.Client? client,
   }) => showModalBottomSheet<void>(
     context: context,
@@ -99,6 +114,8 @@ class AiChatSheet extends StatefulWidget {
       history: history,
       resume: resume,
       focus: focus,
+      scope: scope,
+      scopeLabel: scopeLabel,
       client: client,
     ),
   );
@@ -186,6 +203,18 @@ class _AiChatSheetState extends State<AiChatSheet> {
     if (focused != null) {
       final line = _contextLine(focused);
       if (line != null && mounted) setState(() => _notesContext = line);
+      return;
+    }
+    // A whole date run, and all of it: the reader picked this set, so it is
+    // not the app's place to trim it down to the context setting — that
+    // number is about how much of the *library* to volunteer when nobody has
+    // said what the question is about.
+    if (widget.scope case final scoped?) {
+      final lines = <String>[
+        for (final note in scoped)
+          if (_contextLine(note) case final line?) line,
+      ];
+      if (mounted) setState(() => _notesContext = lines.join('\n'));
       return;
     }
     final count = widget.preferences.aiNotesContextCount;
@@ -739,7 +768,20 @@ class _AiChatSheetState extends State<AiChatSheet> {
                     // on it, and none of that was visible: the same blank
                     // chat opened whether it had been reached from the
                     // capture button or from one note's own action row.
-                    if (widget.focus case final note?) ...[
+                    if (widget.scopeLabel case final group?) ...[
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.chatAboutGroup(group, widget.scope?.length ?? 0),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          textDirection: nexDirectionOf(group),
+                        ),
+                      ),
+                    ] else if (widget.focus case final note?) ...[
                       const SizedBox(width: NexSpacing.sm),
                       Expanded(
                         child: Text(

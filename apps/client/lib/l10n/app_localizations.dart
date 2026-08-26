@@ -116,6 +116,78 @@ abstract class AppLocalizations {
   /// **'What\'s on your mind?'**
   String get captureHint;
 
+  /// No description provided for @layoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Home layout'**
+  String get layoutTitle;
+
+  /// No description provided for @layoutSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What sits above your notes.'**
+  String get layoutSubtitle;
+
+  /// No description provided for @layoutGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Greeting'**
+  String get layoutGreeting;
+
+  /// No description provided for @layoutDaySummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart daily summary'**
+  String get layoutDaySummary;
+
+  /// No description provided for @layoutSearchField.
+  ///
+  /// In en, this message translates to:
+  /// **'Search box'**
+  String get layoutSearchField;
+
+  /// No description provided for @layoutTagRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag row'**
+  String get layoutTagRow;
+
+  /// No description provided for @chatAboutGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'About {label} · {count} notes'**
+  String chatAboutGroup(String label, int count);
+
+  /// No description provided for @groupActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Group actions'**
+  String get groupActions;
+
+  /// No description provided for @groupAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about these'**
+  String get groupAsk;
+
+  /// No description provided for @groupDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this group'**
+  String get groupDelete;
+
+  /// No description provided for @groupDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} notes move to Trash. You can put them back from Library → Trash.'**
+  String groupDeleteBody(int count);
+
+  /// No description provided for @groupDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} notes deleted'**
+  String groupDeleted(int count);
+
   /// No description provided for @search.
   ///
   /// In en, this message translates to:

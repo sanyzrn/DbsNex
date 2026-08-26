@@ -1054,4 +1054,169 @@ void main() {
       );
     });
   });
+
+  group('a reminder that has already rung', () {
+    setUp(() {
+      // Library measures the storage figure by walking directories — real
+      // async I/O, which never resolves inside flutter_test's fake-async
+      // zone, so its skeleton shimmers for the whole test and nothing ever
+      // settles. These two tests only need Library as *somewhere else*, so
+      // they ask the platform for the reduced motion it already offers.
+      TestWidgetsFlutterBinding.ensureInitialized()
+          .platformDispatcher
+          .accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+        disableAnimations: true,
+      );
+      addTearDown(
+        TestWidgetsFlutterBinding.ensureInitialized()
+            .platformDispatcher
+            .clearAccessibilityFeaturesTestValue,
+      );
+    });
+
+    testWidgets('shows once more, then gives the slot back', (tester) async {
+      await services.captureText('call the plumber');
+      final note = (await services.worker.timeline()).single;
+      // Already past. The notification for this went out an hour ago.
+      await services.setDueAt(
+        note.id,
+        DateTime.now().toUtc().subtract(const Duration(hours: 1)),
+      );
+
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      // One last showing: the reader gets to see what it was for.
+      expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+
+      // Leaving the timeline and coming back is what counts as having seen
+      // it. Library is the nearest screen with a route of its own.
+      await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
+    });
+
+    testWidgets('a reminder still ahead keeps its chip', (tester) async {
+      await services.captureText('call the plumber');
+      final note = (await services.worker.timeline()).single;
+      await services.setDueAt(
+        note.id,
+        DateTime.now().toUtc().add(const Duration(hours: 3)),
+      );
+
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      // Nothing about it has been delivered yet, so there is nothing to have
+      // seen. This is the half the chip was added for.
+      expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+    });
+  });
+
+  group('the home layout control', () {
+    testWidgets('turns the four things above the notes off', (tester) async {
+      await services.captureText('a note');
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      // The tag row is the one of the four that is unmistakable in a test:
+      // "All" is its own chip and nothing else on the screen says it.
+      expect(find.text('All'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tag row'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      expect(find.text('All'), findsNothing);
+      expect(find.text('a note'), findsOneWidget);
+    });
+
+    testWidgets('hiding the search box brings its icon back', (tester) async {
+      await services.captureText('a note');
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      // Removed from the app bar when the field became permanent, because it
+      // pointed at something already on screen. With the field off it is the
+      // only way to search at all.
+      expect(find.byTooltip('Search'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Search box'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsNothing);
+      expect(find.byTooltip('Search'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Search'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+    });
+  });
+
+  group('a date heading', () {
+    testWidgets('can delete its whole run, after asking', (tester) async {
+      await services.captureText('first');
+      await services.captureText('second');
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete this group'));
+      await tester.pumpAndSettle();
+
+      // Asked, not undone: a heading's menu takes a whole day away in one
+      // tap, and an undo banner is not a safety net for that much.
+      expect(find.text('first'), findsOneWidget);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('first'), findsNothing);
+      expect(find.text('second'), findsNothing);
+      expect((await services.worker.timeline()), isEmpty);
+    });
+
+    testWidgets('the menu does not fold the group on the way past', (
+      tester,
+    ) async {
+      await services.captureText('first');
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.pumpAndSettle();
+      // Dismiss without choosing anything.
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      expect(find.text('first'), findsOneWidget);
+    });
+  });
 }

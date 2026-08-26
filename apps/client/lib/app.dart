@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'l10n/app_localizations.dart';
+import 'platform/route_observer.dart';
 import 'platform/feedback_service.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
@@ -142,6 +143,9 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     final accentSeed = nexParseTagColor(prefs.accentSeed);
     return MaterialApp(
       scaffoldMessengerKey: _messengerKey,
+      // The timeline listens on this to know when it has been covered and
+      // uncovered again — which is what "you have seen that reminder" means.
+      navigatorObservers: [nexRouteObserver],
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
       locale: prefs.locale,

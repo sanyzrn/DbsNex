@@ -34,6 +34,18 @@ Working convention:
 
 ## Unreleased
 
+- **A spent reminder stops shouting.** A reminder still ahead keeps its chip
+  on the card — that is what it is for. One that has already rung gets one
+  last showing, and then the slot goes back to the note's own timestamp
+  instead of wearing "Overdue" for ever.
+- **A layout control in the app bar.** The greeting, the smart daily summary,
+  the search box and the tag row can each be switched off — all four are the
+  app's idea rather than yours, on a screen whose subject is the notes under
+  them. Turning the search box off brings its app-bar icon back.
+- **Date headings can act on their whole run.** A menu beside the chevron
+  deletes the day's notes in one go, after asking, or opens the assistant with
+  just that day as its context. The menu is outside the heading's own tap
+  area, so reaching it never folds the group on the way.
 - **A tapped reminder now points at its note.** It opened the app and stopped
   there — the notification named the note and the timeline showed the same
   list it always shows. The card is scrolled into view and its border pulses
