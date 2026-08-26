@@ -142,9 +142,11 @@ class NexReminders {
             false;
       } catch (error) {
         // An older Android has no such concept and allows exact alarms
-        // outright; a failure to ask is not a reason to assume the worse of
-        // the two answers, but it is recorded rather than swallowed.
-        lastError = 'exact alarms: $error';
+        // outright. Deliberately *not* recorded in [lastError]: that field
+        // answers "did the alarm I just asked for get taken", and a startup
+        // probe writing to it makes every reminder set afterwards report a
+        // failure that has nothing to do with it.
+        _exactAlarms = false;
       }
     }
     try {
@@ -191,8 +193,21 @@ class NexReminders {
       final posting = await android?.requestNotificationsPermission() ?? false;
       // Asked for, not required. A refusal costs precision, not the feature:
       // [_scheduleMode] falls back and the reminder still arrives, late.
+      //
+      // The answer is read back rather than taken from the request. On
+      // Android `requestExactAlarmsPermission` does not return a decision —
+      // it opens the system's "Alarms & reminders" screen and returns false
+      // there and then, because the user has not answered yet. Assigning that
+      // to [_exactAlarms] overwrote the true state read at startup with a
+      // false, on every single reminder anyone set, which quietly put every
+      // alarm back on the inexact path this release had just taken it off.
       try {
-        _exactAlarms = await android?.requestExactAlarmsPermission() ?? false;
+        await android?.requestExactAlarmsPermission();
+      } catch (_) {
+        // Nothing to do: the state is read below either way.
+      }
+      try {
+        _exactAlarms = await android?.canScheduleExactNotifications() ?? false;
       } catch (_) {
         _exactAlarms = false;
       }
@@ -209,6 +224,10 @@ class NexReminders {
   Future<void> schedule(Note note) async {
     final when = note.dueAt;
     if (!supported || when == null) return;
+    // Cleared on entry. It reports what happened to *this* alarm, and a value
+    // left over from an earlier one is how a reminder that was scheduled
+    // perfectly well gets announced as having failed.
+    lastError = null;
     await initialise();
     await cancel(note.id);
     // A time already past is not an error — it is a reminder that was missed
@@ -388,6 +407,7 @@ class NexReminders {
     required String body,
   }) async {
     if (!supported) return;
+    lastError = null;
     await initialise();
     await cancelDaily();
 

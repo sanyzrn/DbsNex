@@ -1216,7 +1216,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.tap(find.byTooltip('Group actions').first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete this group'));
       await tester.pumpAndSettle();
@@ -1241,7 +1241,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.tap(find.byTooltip('Group actions').first);
       await tester.pumpAndSettle();
       // Dismiss without choosing anything.
       await tester.tapAt(const Offset(20, 20));
