@@ -474,7 +474,7 @@ class TimelineScreenState extends State<TimelineScreen> with RouteAware {
         context: context,
         preferences: widget.preferences,
         reminders: widget.services.reminders,
-        recap: widget.preferences.todaysRecap,
+        recap: widget.preferences.lastRecap,
       ),
     );
   }

@@ -840,7 +840,7 @@
   "nudgeGreetingMorning": "صبح بخیر، {name}",
   "nudgeGreetingDay": "سلام، {name}",
   "nudgeGreetingPlain": "Nex",
-  "nudgeNothing": "امروز هنوز چیزی ننوشته‌ای.",
+  "nudgeNothing": "صفحه خالی است. هر وقت چیزی پیش آمد، Nex همین‌جاست.",
   "localModelLicenseGloss": "خلاصه‌اش: مدل مال گوگل است، شرایط خودش را دارد، و دانلودش یعنی پذیرفتن آن شرایط.",
   "notificationTest": "ارسال نوتیفیکیشن آزمایشی",
   "notificationTestHint": "یکی همین حالا، یکی ده ثانیه دیگر",

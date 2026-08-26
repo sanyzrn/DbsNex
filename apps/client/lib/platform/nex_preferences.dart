@@ -797,17 +797,27 @@ class NexPreferences extends ChangeNotifier {
       '${when.month.toString().padLeft(2, '0')}-'
       '${when.day.toString().padLeft(2, '0')}';
 
-  /// The recap only if it is today's.
+  /// The most recent recap there is, whatever day it was written for.
   ///
-  /// The daily notification is scheduled while the app is open and arrives
-  /// while it is not, so whatever it says was written down beforehand. That
-  /// makes the stale case worth spelling out: a summary of yesterday
-  /// delivered as this morning's is worse than the app admitting it has
-  /// nothing yet.
-  String? get todaysRecap {
+  /// This used to be `todaysRecap`, gated on the summary having been written
+  /// for today — deliberately, on the reasoning that yesterday's digest
+  /// delivered as this morning's would describe a day that is over.
+  ///
+  /// That reasoning had one caller and was wrong for it. The notification's
+  /// text is fixed when the alarm is scheduled, because nothing can generate a
+  /// sentence at seven in the morning while the app is not running. The last
+  /// time the app was open was almost certainly yesterday, so by the time it
+  /// fires the date has rolled over and the gate has closed — every morning,
+  /// without exception. A library of hundreds of notes was greeted with
+  /// "nothing written down yet today", which is not the notification admitting
+  /// it has nothing: it reads as the app having lost everything.
+  ///
+  /// A morning greeting carrying what you wrote yesterday is the useful thing
+  /// anyway. What you have written since midnight, at seven in the morning, is
+  /// a description of an empty page.
+  String? get lastRecap {
     final text = aiDaySummaryText;
-    if (text == null || text.isEmpty) return null;
-    return aiDaySummaryDate == daySummaryDateKey(DateTime.now()) ? text : null;
+    return (text == null || text.isEmpty) ? null : text;
   }
 
   /// The timeline's one-line headline, cached the same way and for the same

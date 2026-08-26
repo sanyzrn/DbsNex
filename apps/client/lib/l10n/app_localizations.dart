@@ -3035,7 +3035,7 @@ abstract class AppLocalizations {
   /// Notification body when there is no recap
   ///
   /// In en, this message translates to:
-  /// **'Nothing written down yet today.'**
+  /// **'A clear page. Nex is here when something comes up.'**
   String get nudgeNothing;
 
   /// Plain-language gloss under the verbatim Gemma notice

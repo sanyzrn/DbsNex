@@ -49,6 +49,13 @@ shape of, and a storage figure that tells you the truth.
   state is read at startup now, and the daily note is scheduled exactly. If
   the phone refuses either the permission or the alarm, the switch says so
   instead of sitting on.
+- **And it no longer says your library is empty.** Its text is fixed when the
+  alarm is set, and it read the day's recap through a gate that only opened if
+  the summary had been written *today* — which, at seven the next morning, it
+  never has been. So it fell back to "nothing written down yet today", every
+  single morning, to people with hundreds of notes. It carries the last recap
+  there is now, which is yesterday's, which is the useful thing for a morning
+  greeting to be carrying.
 - **Tagging a note no longer moves it to the top.** The timeline puts an
   edited note first, which is right — it is the one you were just working on.
   Filing one under a tag was doing the same thing, and it is not the same
