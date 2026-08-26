@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:nex_core/nex_core.dart';
+import 'package:path/path.dart' as p;
 
 import 'note_repository.dart';
 
@@ -159,6 +160,51 @@ class LibraryMaintenance {
       return total;
     }
 
+    /// The media directory, split the way a person thinks about it.
+    ///
+    /// One "Media" figure answered "what is taking the space" with "your
+    /// stuff", which is not an answer — a library that is 300 MB of voice
+    /// notes and one that is 300 MB of photos want different things done
+    /// about them. Split by extension because that is what the capture paths
+    /// write: there is no per-file record in the database to join against.
+    Future<(int images, int audio, int other)> media(String path) async {
+      final dir = Directory(path);
+      if (!dir.existsSync()) return (0, 0, 0);
+      var images = 0;
+      var audio = 0;
+      var other = 0;
+      await for (final entity in dir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
+        if (entity is! File) continue;
+        final size = await entity.length();
+        final extension = p.extension(entity.path).toLowerCase();
+        if (const {
+          '.jpg',
+          '.jpeg',
+          '.png',
+          '.webp',
+          '.heic',
+          '.gif',
+        }.contains(extension)) {
+          images += size;
+        } else if (const {
+          '.m4a',
+          '.aac',
+          '.mp3',
+          '.wav',
+          '.ogg',
+          '.opus',
+        }.contains(extension)) {
+          audio += size;
+        } else {
+          other += size;
+        }
+      }
+      return (images, audio, other);
+    }
+
     final notes =
         repo.db
                 .select(
@@ -166,10 +212,13 @@ class LibraryMaintenance {
                 )
                 .first['count']
             as int;
+    final (images, audio, otherMedia) = await media(mediaDir);
     return StorageSnapshot(
       notes: notes,
       database: File(dbPath).existsSync() ? await File(dbPath).length() : 0,
-      media: await bytes(mediaDir),
+      images: images,
+      audio: audio,
+      otherMedia: otherMedia,
       backups: await bytes(backupDir),
     );
   }
@@ -181,16 +230,51 @@ class TagUsage {
   final int count;
 }
 
+/// What the library is made of, in bytes, by the thing that made it.
+///
+/// [models] is filled in by the caller rather than measured here: an
+/// offline model lives in the app's support directory, which this repository
+/// has no business knowing about, and it is also the single largest thing
+/// most installations will ever hold — a storage figure that leaves out two
+/// gigabytes is worse than no figure.
 class StorageSnapshot {
   const StorageSnapshot({
     required this.notes,
     required this.database,
-    required this.media,
+    required this.images,
+    required this.audio,
+    required this.otherMedia,
     required this.backups,
+    this.models = 0,
   });
+
+  /// How many notes there are — a count, not a size.
   final int notes;
+
   final int database;
-  final int media;
+  final int images;
+  final int audio;
+
+  /// Anything in the media directory that is neither a picture nor a
+  /// recording: an imported document, a file from a share sheet.
+  final int otherMedia;
+
   final int backups;
-  int get total => database + media + backups;
+
+  /// The offline model, when one is installed.
+  final int models;
+
+  int get media => images + audio + otherMedia;
+
+  int get total => database + media + backups + models;
+
+  StorageSnapshot withModels(int bytes) => StorageSnapshot(
+    notes: notes,
+    database: database,
+    images: images,
+    audio: audio,
+    otherMedia: otherMedia,
+    backups: backups,
+    models: bytes,
+  );
 }

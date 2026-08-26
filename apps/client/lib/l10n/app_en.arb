@@ -20,6 +20,13 @@
   "@groupDeleted": {"placeholders": {"count": {"type": "int"}}},
   "assistantVoiceGroup": "How it talks",
   "assistantReachGroup": "What it can see",
+  "storageModels": "Offline model",
+  "storageImages": "Photos",
+  "storageAudio": "Recordings",
+  "storageBackups": "Backups",
+  "storageNotes": "Notes and index",
+  "storageOther": "Other files",
+  "storageEmpty": "Nothing stored yet.",
   "search": "Search",
   "searchHint": "Search notes…",
   "searchStart": "Start typing to find a capture.",
@@ -151,14 +158,6 @@
   "enterSubmitsCaptureSubtitle": "Off starts a new line instead. Shift+Enter always starts a new line either way.",
   "languageSystem": "System",
   "storage": "Storage",
-  "storageUsed": "{size} used locally",
-  "@storageUsed": {
-    "placeholders": {
-      "size": {
-        "type": "String"
-      }
-    }
-  },
   "stopRecording": "Stop recording",
   "recordingElapsed": "Recording, {elapsed}",
   "@recordingElapsed": {

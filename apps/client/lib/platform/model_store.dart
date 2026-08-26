@@ -212,6 +212,26 @@ class NexModelStore {
     return store;
   }
 
+  /// How much disk every installed model is taking, together.
+  ///
+  /// Distinct from the instance [installedBytes], which answers for one
+  /// release: this one does not know or care which models are there.
+  ///
+  /// Static and path-only: the Library's storage figure should not have to
+  /// open a store, and asking for one would download nothing but would still
+  /// create the directory as a side effect. Returns zero when nothing has
+  /// been installed, which is the common case.
+  static Future<int> totalInstalledBytes() async {
+    final support = await getApplicationSupportDirectory();
+    final root = Directory(p.join(support.path, 'models'));
+    if (!root.existsSync()) return 0;
+    var total = 0;
+    await for (final entity in root.list(recursive: true, followLinks: false)) {
+      if (entity is File) total += await entity.length();
+    }
+    return total;
+  }
+
   /// Where models live. A directory of Nex's own, not the media directory:
   /// these are not the user's files, they are replaceable and enormous, and
   /// nothing that backs up notes should ever pick them up.

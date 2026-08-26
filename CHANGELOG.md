@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+- **Storage, rebuilt into something you can act on.** The row said "41 MB"
+  and stopped — a number nobody can do anything with, and the wrong number
+  besides: it left out the offline model, which on an install that has one is
+  larger than the notes, photos and backups put together. It is now the real
+  total, a proportion bar, and the parts: offline model, photos, recordings,
+  backups, notes and index.
 - **The assistant's settings, rebuilt and reachable from the chat.** They were
   one flat column of five section titles with nothing saying which went with
   which; they are three groups now — how it talks, what it can see, and your

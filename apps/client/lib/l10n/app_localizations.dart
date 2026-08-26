@@ -200,6 +200,48 @@ abstract class AppLocalizations {
   /// **'What it can see'**
   String get assistantReachGroup;
 
+  /// No description provided for @storageModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline model'**
+  String get storageModels;
+
+  /// No description provided for @storageImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get storageImages;
+
+  /// No description provided for @storageAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Recordings'**
+  String get storageAudio;
+
+  /// No description provided for @storageBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Backups'**
+  String get storageBackups;
+
+  /// No description provided for @storageNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes and index'**
+  String get storageNotes;
+
+  /// No description provided for @storageOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other files'**
+  String get storageOther;
+
+  /// No description provided for @storageEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing stored yet.'**
+  String get storageEmpty;
+
   /// No description provided for @search.
   ///
   /// In en, this message translates to:
@@ -685,12 +727,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Storage'**
   String get storage;
-
-  /// No description provided for @storageUsed.
-  ///
-  /// In en, this message translates to:
-  /// **'{size} used locally'**
-  String storageUsed(String size);
 
   /// No description provided for @stopRecording.
   ///

@@ -66,6 +66,27 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantReachGroup => 'چه چیزی را می‌بیند';
 
   @override
+  String get storageModels => 'مدل آفلاین';
+
+  @override
+  String get storageImages => 'تصاویر';
+
+  @override
+  String get storageAudio => 'ضبط‌ها';
+
+  @override
+  String get storageBackups => 'پشتیبان‌ها';
+
+  @override
+  String get storageNotes => 'یادداشت‌ها و نمایه';
+
+  @override
+  String get storageOther => 'فایل‌های دیگر';
+
+  @override
+  String get storageEmpty => 'هنوز چیزی ذخیره نشده.';
+
+  @override
   String get search => 'جست‌وجو';
 
   @override
@@ -345,11 +366,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get storage => 'فضای ذخیره‌سازی';
-
-  @override
-  String storageUsed(String size) {
-    return '$size روی این دستگاه اشغال شده';
-  }
 
   @override
   String get stopRecording => 'پایان ضبط';

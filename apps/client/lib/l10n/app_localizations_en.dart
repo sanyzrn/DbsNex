@@ -66,6 +66,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantReachGroup => 'What it can see';
 
   @override
+  String get storageModels => 'Offline model';
+
+  @override
+  String get storageImages => 'Photos';
+
+  @override
+  String get storageAudio => 'Recordings';
+
+  @override
+  String get storageBackups => 'Backups';
+
+  @override
+  String get storageNotes => 'Notes and index';
+
+  @override
+  String get storageOther => 'Other files';
+
+  @override
+  String get storageEmpty => 'Nothing stored yet.';
+
+  @override
   String get search => 'Search';
 
   @override
@@ -345,11 +366,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storage => 'Storage';
-
-  @override
-  String storageUsed(String size) {
-    return '$size used locally';
-  }
 
   @override
   String get stopRecording => 'Stop recording';

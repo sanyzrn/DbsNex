@@ -3,6 +3,7 @@ import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/storage_panel.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import 'recently_deleted_screen.dart';
@@ -84,23 +85,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
           const Divider(height: NexSpacing.xl),
           FutureBuilder<StorageSnapshot>(
             future: _storage,
-            builder: (context, snapshot) => ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: NexSpacing.lg,
-              ),
-              leading: const Icon(Icons.storage_outlined),
-              title: Text(l10n.storage),
-              subtitle: snapshot.hasData
-                  ? Text(
-                      l10n.storageUsed(
-                        nexFormatBytes(snapshot.requireData.total),
-                      ),
-                    )
-                  : const Padding(
-                      padding: EdgeInsets.only(top: NexSpacing.xs),
-                      child: NexSkeleton(width: 120, height: 13),
+            builder: (context, snapshot) => snapshot.hasData
+                ? StoragePanel(snapshot: snapshot.requireData)
+                : const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        NexSkeleton(width: 120, height: 16),
+                        SizedBox(height: NexSpacing.sm),
+                        NexSkeleton(height: 10),
+                      ],
                     ),
-            ),
+                  ),
           ),
         ],
       ),

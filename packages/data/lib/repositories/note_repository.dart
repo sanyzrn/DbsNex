@@ -156,7 +156,6 @@ WHERE id = ? AND deleted_at IS NULL
     return rows.isEmpty ? null : rows.first['id'] as String;
   }
 
-
   void softDelete(String noteId) {
     final now = DateTime.now().toUtc().toIso8601String();
     db.execute(
