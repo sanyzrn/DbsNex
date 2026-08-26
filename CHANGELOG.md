@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.2.0
+
 ## v1.1.0
 
 The first round of fixes from v1.0.0 in real use.
