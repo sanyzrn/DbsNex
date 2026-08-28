@@ -38,7 +38,26 @@ class NexChoiceCards<T> extends StatelessWidget {
   final ValueChanged<T> onSelected;
 
   @override
-  Widget build(BuildContext context) => IntrinsicHeight(
+  Widget build(BuildContext context) => choices.length <= 3
+      ? _row()
+      : LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = choices.length == 4 ? 2 : 3;
+            final width =
+                (constraints.maxWidth - NexSpacing.sm * (columns - 1)) /
+                columns;
+            return Wrap(
+              spacing: NexSpacing.sm,
+              runSpacing: NexSpacing.sm,
+              children: [
+                for (var i = 0; i < choices.length; i++)
+                  SizedBox(width: width, child: _card(i)),
+              ],
+            );
+          },
+        );
+
+  Widget _row() => IntrinsicHeight(
     // The cards have to be the same height whatever their labels wrap to,
     // and this row lives inside a scroll view, so "stretch" alone would ask
     // for infinite height.
@@ -47,20 +66,20 @@ class NexChoiceCards<T> extends StatelessWidget {
       children: [
         for (var i = 0; i < choices.length; i++) ...[
           if (i > 0) const SizedBox(width: NexSpacing.sm),
-          Expanded(
-            child: _Card<T>(
-              choice: choices[i],
-              isSelected: choices[i].value == selected,
-              onTap: () {
-                if (choices[i].value == selected) return;
-                nexTick();
-                onSelected(choices[i].value);
-              },
-            ),
-          ),
+          Expanded(child: _card(i)),
         ],
       ],
     ),
+  );
+
+  Widget _card(int index) => _Card<T>(
+    choice: choices[index],
+    isSelected: choices[index].value == selected,
+    onTap: () {
+      if (choices[index].value == selected) return;
+      nexTick();
+      onSelected(choices[index].value);
+    },
   );
 }
 

@@ -107,7 +107,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     _addColumnIfMissing('notes', 'due_at', 'TEXT');
     _addColumnIfMissing('notes', 'due_repeat', 'TEXT');
 
-    // Local-only organisation: at most one pinned note, and a manual
+    // Local-only organisation: up to five pinned notes, and a manual
     // position set by dragging in Rearrange mode. Neither is synced or
     // exported (see Note.pinnedAt / Note.sortOrder).
     _addColumnIfMissing('notes', 'pinned_at', 'TEXT');

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../widgets/photo_action_bar.dart';
@@ -73,7 +74,7 @@ class PhotoPreviewScreen extends StatelessWidget {
 
   Future<void> _edit(BuildContext context) async {
     final edited = await Navigator.of(context).push<Uint8List>(
-      MaterialPageRoute(builder: (_) => PhotoCropScreen(image: image)),
+      NexPageRoute(builder: (_) => PhotoCropScreen(image: image)),
     );
     if (!context.mounted) return;
     // Null means they backed out of the editor, not out of the capture — so

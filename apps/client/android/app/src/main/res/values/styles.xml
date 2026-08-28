@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+    <style name="LaunchTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:windowSplashScreenBackground">@color/nex_launch_light</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/nex_splash_icon_light</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:navigationBarColor">@color/nex_launch_light</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
-    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+    <style name="NormalTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:windowBackground">@color/nex_launch_light</item>
         <item name="android:fontFamily">sans</item>
     </style>

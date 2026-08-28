@@ -165,13 +165,13 @@ class InProcessDb implements NexDb {
       _repo.toggleChecklistItem(id, index);
 
   @override
-  Future<void> pinNote(String id) async => _repo.pinNote(id);
+  Future<bool> pinNote(String id) async => _repo.pinNote(id);
 
   @override
   Future<void> unpinNote(String id) async => _repo.unpinNote(id);
 
   @override
-  Future<String?> pinnedNoteId() async => _repo.pinnedNoteId();
+  Future<int> pinnedNoteCount() async => _repo.pinnedNoteCount();
 
   @override
   Future<Tag> addTag({

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../widgets/nex_swipe_back.dart';
 import 'nex_accent_palette.dart';
+import 'nex_appearance.dart';
 
 /// Every colour in Nex: one neutral ramp per theme, plus one accent.
 ///
@@ -329,6 +330,8 @@ String nexFontFor(Locale? locale) =>
 /// default.
 ThemeData nexLightTheme({
   bool comfortMode = false,
+  bool liquidGlass = false,
+  bool transparentScaffold = false,
   String? fontFamily,
   Color? accentSeed,
 }) {
@@ -361,11 +364,15 @@ ThemeData nexLightTheme({
     // the accent drawn for dark grounds.
     accentOnInverse: palette.dark,
     fontFamily: fontFamily ?? nexLatinFont,
+    liquidGlass: liquidGlass,
+    transparentScaffold: transparentScaffold,
   );
 }
 
 ThemeData nexDarkTheme({
   bool comfortMode = false,
+  bool liquidGlass = false,
+  bool transparentScaffold = false,
   String? fontFamily,
   Color? accentSeed,
 }) {
@@ -396,6 +403,8 @@ ThemeData nexDarkTheme({
     onAccent: const Color(0xFF0B0A09),
     accentOnInverse: palette.strongLight,
     fontFamily: fontFamily ?? nexLatinFont,
+    liquidGlass: liquidGlass,
+    transparentScaffold: transparentScaffold,
   );
 }
 
@@ -413,7 +422,19 @@ ThemeData _theme({
   required Color onAccent,
   required Color accentOnInverse,
   required String fontFamily,
+  required bool liquidGlass,
+  required bool transparentScaffold,
 }) {
+  final dark = brightness == Brightness.dark;
+  final pageSurface = liquidGlass
+      ? background.withValues(alpha: dark ? 0.72 : 0.68)
+      : background;
+  final cardSurface = liquidGlass
+      ? card.withValues(alpha: dark ? 0.76 : 0.74)
+      : card;
+  final elevatedSurface = liquidGlass
+      ? elevated.withValues(alpha: dark ? 0.66 : 0.62)
+      : elevated;
   // Declared, not seeded. `ColorScheme.fromSeed` derives a tonal palette from
   // the seed's hue and chroma, and the seed here was near-black — chroma about
   // zero — so every role nobody overrode came out an undesigned grey. One of
@@ -437,14 +458,14 @@ ThemeData _theme({
     onError: const Color(0xFFFFFFFF),
     errorContainer: NexColors.error.withValues(alpha: 0.12),
     onErrorContainer: NexColors.error,
-    surface: background,
+    surface: pageSurface,
     onSurface: primary,
     onSurfaceVariant: secondary,
-    surfaceContainerLowest: card,
-    surfaceContainerLow: card,
-    surfaceContainer: elevated,
-    surfaceContainerHigh: elevated,
-    surfaceContainerHighest: elevated,
+    surfaceContainerLowest: cardSurface,
+    surfaceContainerLow: cardSurface,
+    surfaceContainer: elevatedSurface,
+    surfaceContainerHigh: elevatedSurface,
+    surfaceContainerHighest: elevatedSurface,
     surfaceTint: accent,
     inverseSurface: primary,
     onInverseSurface: background,
@@ -459,25 +480,155 @@ ThemeData _theme({
     useMaterial3: true,
     brightness: brightness,
     colorScheme: scheme,
-    scaffoldBackgroundColor: background,
+    scaffoldBackgroundColor: transparentScaffold || liquidGlass
+        ? Colors.transparent
+        : background,
     canvasColor: background,
     fontFamily: fontFamily,
     focusColor: accent.withValues(alpha: 0.12),
     appBarTheme: AppBarTheme(
-      backgroundColor: background,
+      backgroundColor: liquidGlass
+          ? background.withValues(alpha: dark ? 0.58 : 0.52)
+          : transparentScaffold
+          ? background.withValues(alpha: 0.94)
+          : background,
       elevation: 0,
       scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: accentStrong,
+      backgroundColor: liquidGlass
+          ? accentStrong.withValues(alpha: 0.88)
+          : accentStrong,
       foregroundColor: onAccent,
-      elevation: 3,
+      elevation: liquidGlass ? 8 : 3,
       sizeConstraints: const BoxConstraints.tightFor(
         width: nexCaptureFabSize,
         height: nexCaptureFabSize,
       ),
     ),
     dividerColor: borderSoft,
+    cardTheme: CardThemeData(
+      elevation: 0,
+      color: cardSurface,
+      surfaceTintColor: Colors.transparent,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      elevation: liquidGlass ? 12 : 6,
+      backgroundColor: cardSurface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(NexRadius.xl),
+      ),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: liquidGlass ? Colors.transparent : card,
+      modalBackgroundColor: liquidGlass ? Colors.transparent : card,
+      surfaceTintColor: Colors.transparent,
+      elevation: liquidGlass ? 0 : 8,
+      modalElevation: liquidGlass ? 0 : 8,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(NexRadius.xl)),
+      ),
+      clipBehavior: Clip.antiAlias,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: elevatedSurface,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: NexSpacing.md,
+        vertical: NexSpacing.md,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(NexRadius.md),
+        borderSide: BorderSide(color: borderSoft),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(NexRadius.md),
+        borderSide: BorderSide(color: accent, width: nexFocusRingWidth),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(NexRadius.md),
+        borderSide: const BorderSide(color: NexColors.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(NexRadius.md),
+        borderSide: const BorderSide(
+          color: NexColors.error,
+          width: nexFocusRingWidth,
+        ),
+      ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        minimumSize: const Size.square(nexMinTapTarget),
+        shape: const CircleBorder(),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(nexMinTapTarget, nexMinTapTarget),
+        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+        shape: const StadiumBorder(),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(nexMinTapTarget, nexMinTapTarget),
+        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+        shape: const StadiumBorder(),
+        side: BorderSide(color: border),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        minimumSize: const Size(nexMinTapTarget, nexMinTapTarget),
+        padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+        shape: const StadiumBorder(),
+      ),
+    ),
+    tooltipTheme: TooltipThemeData(
+      waitDuration: const Duration(milliseconds: 450),
+      showDuration: const Duration(seconds: 3),
+      decoration: ShapeDecoration(
+        color: primary.withValues(alpha: 0.94),
+        shape: const StadiumBorder(),
+      ),
+      textStyle: _style(
+        size: 12,
+        lineHeight: 16,
+        weight: FontWeight.w600,
+        color: background,
+      ),
+    ),
+    listTileTheme: const ListTileThemeData(
+      minTileHeight: nexMinTapTarget,
+      contentPadding: EdgeInsets.symmetric(horizontal: NexSpacing.md),
+    ),
+    switchTheme: SwitchThemeData(
+      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+      thumbIcon: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? const Icon(Icons.check, size: 14)
+            : null,
+      ),
+    ),
+    extensions: [
+      NexVisualStyle(
+        liquidGlass: liquidGlass,
+        baseColor: background,
+        glassTint: card.withValues(alpha: dark ? 0.56 : 0.52),
+        glassBorder: Colors.white.withValues(alpha: dark ? 0.16 : 0.62),
+        glassHighlight: Colors.white.withValues(alpha: dark ? 0.13 : 0.46),
+        glassShadow: Colors.black.withValues(alpha: dark ? 0.34 : 0.14),
+        blurSigma: 22,
+      ),
+    ],
     // A capsule that floats, not a slab pinned to the bottom edge.
     //
     // The default SnackBar is full-bleed with square top corners, which is the

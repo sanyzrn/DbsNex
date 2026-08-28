@@ -61,10 +61,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   List<TagSuggestion> _suggestions = const [];
   List<SemanticHit> _related = const [];
 
-  /// The currently pinned note's id, if any — only one note is ever pinned
-  /// at a time, so this note's own pin action is disabled whenever it names
-  /// someone else.
-  String? _pinnedNoteId;
+  int _pinnedNoteCount = 0;
 
   /// Whether the user has asked to see what the intelligence layer produced.
   ///
@@ -103,11 +100,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
   Future<void> _reload() async {
     final loaded = await widget.services.getById(widget.noteId);
-    final pinnedNoteId = await widget.services.pinnedNoteId();
+    final pinnedNoteCount = await widget.services.pinnedNoteCount();
     if (!mounted) return;
     setState(() {
       _note = loaded;
-      _pinnedNoteId = pinnedNoteId;
+      _pinnedNoteCount = pinnedNoteCount;
     });
     final note = _note;
     if (note?.type == NoteType.voice &&
@@ -437,8 +434,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     await _reload();
   }
 
-  /// Only one note is ever pinned — pinning this one releases whatever else
-  /// held it, the same as the repository enforces underneath.
   Future<void> _togglePin() async {
     final note = _note;
     if (note == null) return;
@@ -747,7 +742,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         GestureDetector(
                           onTap: () {
                             Navigator.of(context).push(
-                              MaterialPageRoute<void>(
+                              NexPageRoute<void>(
                                 builder: (_) =>
                                     _FullScreenPhoto(path: note.mediaUri!),
                               ),
@@ -992,13 +987,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         icon: note.pinnedAt != null
                             ? Icons.push_pin
                             : Icons.push_pin_outlined,
-                        label: note.pinnedAt != null ? l10n.unpin : l10n.pin,
-                        // Only one note is ever pinned at a time (see
-                        // NoteRepository.pinNote); rather than silently
-                        // stealing the pin from whichever note holds it, the
-                        // action is simply off until that one is unpinned.
+                        label: note.pinnedAt != null
+                            ? l10n.unpin
+                            : _pinnedNoteCount >= 5
+                            ? l10n.pinLimitReached
+                            : l10n.pin,
                         onPressed:
-                            note.pinnedAt == null && _pinnedNoteId != null
+                            note.pinnedAt == null && _pinnedNoteCount >= 5
                             ? null
                             : _togglePin,
                       ),

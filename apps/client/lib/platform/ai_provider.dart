@@ -227,6 +227,40 @@ enum AiAnswerLength {
       );
 }
 
+enum AiResponseStyle {
+  natural(
+    'natural',
+    'Sound natural, calm, and human. Match the user without imitating them.',
+  ),
+  friendly(
+    'friendly',
+    'Be friendly, encouraging, and conversational without becoming sugary.',
+  ),
+  formal(
+    'formal',
+    'Use a polished, respectful, professional tone and avoid slang.',
+  ),
+  serious(
+    'serious',
+    'Be direct, sober, and focused. Avoid jokes, flattery, and playful phrasing.',
+  ),
+  romantic(
+    'romantic',
+    'Answer affectionately and romantically. Use gentle endearments and caring praise, while respecting boundaries and never implying a real human relationship.',
+  );
+
+  const AiResponseStyle(this.wireName, this.promptRule);
+
+  final String wireName;
+  final String promptRule;
+
+  static AiResponseStyle fromWire(String? value) =>
+      AiResponseStyle.values.firstWhere(
+        (candidate) => candidate.wireName == value,
+        orElse: () => AiResponseStyle.natural,
+      );
+}
+
 /// Everything the assistant sheet decides about one exchange.
 ///
 /// Grouped rather than passed as five parameters: they are read together,
@@ -241,6 +275,9 @@ class AiChatOptions {
     this.notesContext = '',
     this.canAct = false,
     this.instruction = '',
+    this.responseStyle = AiResponseStyle.natural,
+    this.userName = '',
+    this.userIntroduction = '',
   });
 
   final AiCreativity creativity;
@@ -276,6 +313,9 @@ class AiChatOptions {
   /// to ignore the scope or the action protocol does not survive the lines
   /// that follow it.
   final String instruction;
+  final AiResponseStyle responseStyle;
+  final String userName;
+  final String userIntroduction;
 }
 
 /// The outcome of a connection test, in the user's terms.
@@ -879,7 +919,19 @@ class CloudAIAdapter implements AIAdapter {
           '(pinned, a reminder, done). At most one per line, never inside a '
           'sentence, and never standing in for a word.',
       options.length.promptRule,
+      options.responseStyle.promptRule,
     ];
+    final userName = options.userName.trim();
+    final introduction = options.userIntroduction.trim();
+    if (userName.isNotEmpty || introduction.isNotEmpty) {
+      parts.add(
+        [
+          if (userName.isNotEmpty) 'Address the user as "$userName".',
+          if (introduction.isNotEmpty)
+            'The user introduced themselves this way: "$introduction"',
+        ].join(' '),
+      );
+    }
     final instruction = options.instruction.trim();
     if (instruction.isNotEmpty) {
       // Quoted and labelled rather than pasted in as another rule of the

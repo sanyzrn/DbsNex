@@ -437,6 +437,21 @@ void main() {
     expect(preferences.comfortMode, isTrue);
   });
 
+  test(
+    'Glass and background appearance choices persist independently',
+    () async {
+      expect(preferences.liquidGlass, isFalse);
+      expect(preferences.backgroundPattern, NexBackgroundPattern.plain);
+
+      await preferences.setLiquidGlass(true);
+      await preferences.setBackgroundPattern(NexBackgroundPattern.aurora);
+
+      expect(preferences.liquidGlass, isTrue);
+      expect(preferences.backgroundPattern, NexBackgroundPattern.aurora);
+      expect(preferences.themeMode, ThemeMode.system);
+    },
+  );
+
   test('UI scale defaults to 1.0 and persists a choice', () async {
     expect(preferences.uiScale, 1.0);
     await preferences.setUiScale(1.3);
@@ -644,7 +659,14 @@ void main() {
     // The sheet offers a way in, not a row of switches that quietly did
     // nothing because no provider stood behind them.
     expect(find.text('Transcription'), findsNothing);
-    expect(find.text('Off'), findsOneWidget);
+    final intelligenceRow = find.ancestor(
+      of: find.text('Transcription, summaries, tags'),
+      matching: find.byType(ListTile),
+    );
+    expect(
+      find.descendant(of: intelligenceRow, matching: find.text('Off')),
+      findsOneWidget,
+    );
 
     // The sheet scrolls; tapping a row below the fold lands on whatever is
     // actually at those coordinates.
@@ -713,6 +735,8 @@ void main() {
     expect(find.text('Comfort Mode'), findsOneWidget);
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Liquid Glass'), findsOneWidget);
+    expect(find.text('Background'), findsOneWidget);
     expect(find.text('Text & UI size'), findsOneWidget);
     expect(find.byType(NexChoiceCards<ThemeMode>), findsNothing);
     expect(find.byType(NexChoiceCards<double>), findsNothing);
@@ -758,6 +782,30 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('background picker applies a built-in preset immediately', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Background'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NexChoiceCards<NexBackgroundPattern>), findsOneWidget);
+
+    await tester.tap(find.text('Aurora'));
+    await tester.pumpAndSettle();
+
+    expect(preferences.backgroundPattern, NexBackgroundPattern.aurora);
+    expect(find.byType(NexChoiceCards<NexBackgroundPattern>), findsNothing);
   });
 
   testWidgets('the AI output language is its own setting, not the app locale', (
@@ -910,12 +958,12 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Security'), findsOneWidget);
 
-    await tester.drag(find.text('Appearance'), const Offset(0, 400));
+    await tester.drag(find.text('Security'), const Offset(0, 400));
     await tester.pumpAndSettle();
 
-    expect(find.text('Appearance'), findsNothing);
+    expect(find.text('Security'), findsNothing);
   });
 
   testWidgets('the language picker shows every language in its own script', (

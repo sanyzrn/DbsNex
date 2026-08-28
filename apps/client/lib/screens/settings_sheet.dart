@@ -23,6 +23,8 @@ import 'about_screen.dart';
 import 'backup_screen.dart';
 import 'assistant_screen.dart';
 import 'intelligence_screen.dart';
+import 'profile_screen.dart';
+import 'security_screen.dart';
 import 'update_sheet.dart';
 
 /// The v1 preference surface.
@@ -189,7 +191,27 @@ class SettingsSheet extends StatelessWidget {
   }
 
   List<Widget> _groups(BuildContext context, AppLocalizations l10n) => [
-    _ProfileCard(preferences: preferences),
+    _ProfileCard(services: services, preferences: preferences),
+    _Section(
+      title: l10n.securityTitle,
+      children: [
+        _Row(
+          icon: Icons.shield_outlined,
+          title: l10n.securityAppLock,
+          value: preferences.appLockEnabled
+              ? preferences.appLockBiometricOnly
+                    ? l10n.securityBiometric
+                    : l10n.securityDevicePasscode
+              : l10n.securityOff,
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => SecurityScreen(preferences: preferences),
+            ),
+          ),
+        ),
+      ],
+    ),
     _Section(
       title: l10n.intelligence,
       children: [
@@ -201,7 +223,7 @@ class SettingsSheet extends StatelessWidget {
               : l10n.intelligenceOff,
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(
+            NexPageRoute<void>(
               builder: (_) => IntelligenceScreen(
                 services: services,
                 preferences: preferences,
@@ -246,7 +268,7 @@ class SettingsSheet extends StatelessWidget {
           value: l10n.assistantSubtitle,
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(
+            NexPageRoute<void>(
               builder: (_) => AssistantScreen(preferences: preferences),
             ),
           ),
@@ -339,6 +361,35 @@ class SettingsSheet extends StatelessWidget {
           ),
         ),
         _AccentColorRow(preferences: preferences),
+        _SwitchRow(
+          icon: Icons.blur_on_outlined,
+          title: l10n.liquidGlass,
+          subtitle: l10n.liquidGlassSubtitle,
+          value: preferences.liquidGlass,
+          onChanged: preferences.setLiquidGlass,
+        ),
+        _Row(
+          icon: Icons.wallpaper_outlined,
+          title: l10n.backgroundStyle,
+          value: _backgroundLabel(l10n, preferences.backgroundPattern),
+          onTap: () => unawaited(
+            _pick<NexBackgroundPattern>(
+              context: context,
+              title: l10n.backgroundStyle,
+              selected: preferences.backgroundPattern,
+              onSelected: preferences.setBackgroundPattern,
+              footnote: l10n.backgroundStyleSubtitle,
+              choices: [
+                for (final pattern in NexBackgroundPattern.values)
+                  NexChoice(
+                    value: pattern,
+                    label: _backgroundLabel(l10n, pattern),
+                    preview: NexBackgroundPreview(pattern: pattern),
+                  ),
+              ],
+            ),
+          ),
+        ),
         _Row(
           icon: Icons.format_size,
           title: l10n.uiScale,
@@ -463,7 +514,7 @@ class SettingsSheet extends StatelessWidget {
             value: l10n.backupCount(snapshot.data?.length ?? 0),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute<void>(
+              NexPageRoute<void>(
                 builder: (_) =>
                     BackupScreen(services: services, preferences: preferences),
               ),
@@ -494,7 +545,7 @@ class SettingsSheet extends StatelessWidget {
           title: l10n.about,
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(
+            NexPageRoute<void>(
               builder: (_) =>
                   AboutScreen(services: services, preferences: preferences),
             ),
@@ -510,6 +561,14 @@ String _aiLanguageLabel(AppLocalizations l10n, AiOutputLanguage value) =>
       AiOutputLanguage.auto => l10n.aiOutputLanguageAuto,
       AiOutputLanguage.english => l10n.aiOutputLanguageEnglish,
       AiOutputLanguage.persian => l10n.aiOutputLanguagePersian,
+    };
+
+String _backgroundLabel(AppLocalizations l10n, NexBackgroundPattern pattern) =>
+    switch (pattern) {
+      NexBackgroundPattern.plain => l10n.backgroundPlain,
+      NexBackgroundPattern.aurora => l10n.backgroundAurora,
+      NexBackgroundPattern.ripple => l10n.backgroundRipple,
+      NexBackgroundPattern.weave => l10n.backgroundWeave,
     };
 
 /// Opens one setting's choices as their own sheet, and applies the pick.
@@ -613,34 +672,30 @@ class _Section extends StatelessWidget {
               ),
             ),
           ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(NexRadius.lg),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(NexRadius.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < children.length; i++) ...[
-                    if (i > 0)
-                      // The quiet token, now that the section has no outline
-                      // around it: `outline` is for a boundary you can act on,
-                      // and at full strength with nothing enclosing it these
-                      // read as the loudest thing in Settings. Indented past
-                      // the icon tiles so the run of rows reads as a column of
-                      // labels rather than a stack of boxes.
-                      Divider(
-                        height: 1,
-                        indent: _dividerIndent,
-                        endIndent: NexSpacing.md,
-                        color: theme.colorScheme.outlineVariant,
-                      ),
-                    children[i],
-                  ],
+          Material(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(NexRadius.lg),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < children.length; i++) ...[
+                  if (i > 0)
+                    // The quiet token, now that the section has no outline
+                    // around it: `outline` is for a boundary you can act on,
+                    // and at full strength with nothing enclosing it these
+                    // read as the loudest thing in Settings. Indented past
+                    // the icon tiles so the run of rows reads as a column of
+                    // labels rather than a stack of boxes.
+                    Divider(
+                      height: 1,
+                      indent: _dividerIndent,
+                      endIndent: NexSpacing.md,
+                      color: theme.colorScheme.outlineVariant,
+                    ),
+                  children[i],
                 ],
-              ),
+              ],
             ),
           ),
         ],
@@ -775,8 +830,9 @@ class _SwitchRow extends StatelessWidget {
 /// Stateful for the same reason the row it replaces was: the sheet does not
 /// rebuild itself on a name change from the dialog it opens.
 class _ProfileCard extends StatefulWidget {
-  const _ProfileCard({required this.preferences});
+  const _ProfileCard({required this.services, required this.preferences});
 
+  final NexServices services;
   final NexPreferences preferences;
 
   @override
@@ -785,8 +841,16 @@ class _ProfileCard extends StatefulWidget {
 
 class _ProfileCardState extends State<_ProfileCard> {
   Future<void> _edit() async {
-    final saved = await editDisplayName(context, widget.preferences);
-    if (saved && mounted) setState(() {});
+    await Navigator.push(
+      context,
+      NexPageRoute<void>(
+        builder: (_) => ProfileScreen(
+          services: widget.services,
+          preferences: widget.preferences,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   @override
@@ -794,6 +858,9 @@ class _ProfileCardState extends State<_ProfileCard> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final name = widget.preferences.displayName;
+    final photoPath = widget.preferences.profilePhotoPath;
+    final photo = photoPath == null ? null : File(photoPath);
+    final hasPhoto = photo?.existsSync() ?? false;
     return Padding(
       padding: const EdgeInsets.only(bottom: NexSpacing.lg),
       child: Material(
@@ -814,18 +881,29 @@ class _ProfileCardState extends State<_ProfileCard> {
                     shape: BoxShape.circle,
                     color: theme.colorScheme.surfaceContainerHigh,
                   ),
-                  child: name == null
+                  foregroundDecoration: hasPhoto
+                      ? BoxDecoration(
+                          shape: BoxShape.circle,
+                          image: DecorationImage(
+                            image: FileImage(photo!),
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : null,
+                  child: name == null && !hasPhoto
                       // No name is not a blank circle: the placeholder says
                       // what tapping would do.
                       ? Icon(
                           Icons.person_outline,
                           color: theme.colorScheme.onSurfaceVariant,
                         )
+                      : hasPhoto
+                      ? null
                       : Text(
                           // `characters` rather than `[0]`: a Persian name's
                           // first letter, and any emoji, is more than one code
                           // unit, and slicing one in half renders as a box.
-                          name.characters.first.toUpperCase(),
+                          name!.characters.first.toUpperCase(),
                           style: theme.textTheme.titleLarge,
                         ),
                 ),
@@ -842,7 +920,9 @@ class _ProfileCardState extends State<_ProfileCard> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        l10n.yourNameHint,
+                        widget.preferences.profileBio.trim().isEmpty
+                            ? l10n.profileOpenHint
+                            : widget.preferences.profileBio,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

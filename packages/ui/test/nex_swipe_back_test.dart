@@ -24,7 +24,7 @@ void main() {
             body: Center(
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
+                  NexPageRoute<void>(
                     builder: (_) => Scaffold(
                       appBar: AppBar(title: const Text('second')),
                       body: body ?? const Center(child: Text('second body')),
@@ -56,6 +56,23 @@ void main() {
 
     expect(find.text('second'), findsNothing);
     expect(find.text('go'), findsOneWidget);
+  });
+
+  testWidgets('a drag reveals the previous page behind it', (tester) async {
+    await pushSecond(tester);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('second body')),
+    );
+    await gesture.moveBy(const Offset(180, 0));
+    await tester.pump();
+
+    expect(find.text('go'), findsOneWidget);
+    expect(tester.getCenter(find.text('go')).dx, 400);
+    expect(tester.getCenter(find.text('second body')).dx, greaterThan(400));
+
+    await gesture.up();
+    await tester.pumpAndSettle();
   });
 
   testWidgets('under RTL, back is the other way', (tester) async {
@@ -127,7 +144,7 @@ void main() {
             body: Center(
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
+                  NexPageRoute<void>(
                     builder: (_) => const PopScope(
                       // What a form guarding unsaved work does.
                       canPop: false,

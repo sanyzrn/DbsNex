@@ -60,7 +60,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute<void>(
+              NexPageRoute<void>(
                 builder: (_) => TagManagerScreen(services: services),
               ),
             ),
@@ -74,7 +74,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute<void>(
+              NexPageRoute<void>(
                 builder: (_) => RecentlyDeletedScreen(
                   services: services,
                   preferences: preferences,

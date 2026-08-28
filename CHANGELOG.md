@@ -34,8 +34,22 @@ Working convention:
 
 ## Unreleased
 
-## v1.2.1
+## v1.2.2
 
+- **A new optional Liquid Glass appearance sits beside the existing light and
+  dark themes.** It uses adaptive translucent surfaces, real background blur,
+  restrained edge highlights, and softer press feedback while preserving an
+  opaque high-contrast fallback. Four built-in minimal backgrounds — Plain,
+  Aurora, Ripple, and Weave — work independently in either theme.
+- **Profile and assistant preferences are now complete screens.** A profile can
+  hold a local photo, name, birthday, and bio; the assistant can learn what to
+  call you, a short introduction, and a response style including Romantic.
+- **Nex can lock itself with the device credential or biometrics.** The lock is
+  local to the device and returns whenever the app leaves the foreground.
+- **Navigation and reading are more consistent.** Swipe-back reveals the page
+  underneath, Persian and English lines align by their own script, date-group
+  headings share the timeline gutter, and up to five notes can now stay pinned.
+## v1.2.1
 - **Reminder and daily-nudge controls work again in release builds.** The
   Android optimizer was removing the notification icon because its keep rule
   lived in the wrong resource folder. The notification service could not

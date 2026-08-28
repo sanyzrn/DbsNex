@@ -18,6 +18,7 @@ import 'package:nex_client/widgets/commit_receipt.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/screens/assistant_screen.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
+import 'package:nex_client/screens/profile_screen.dart';
 import 'package:nex_client/widgets/assistant_settings.dart';
 import 'package:nex_client/widgets/empty_timeline.dart';
 import 'package:nex_client/widgets/note_spotlight.dart';
@@ -172,6 +173,40 @@ void main() {
     await tester.pumpAndSettle();
     expect(timeline.landedId, isNull);
   });
+
+  testWidgets('the profile screen saves name and bio', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ProfileScreen(services: services, preferences: preferences),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    expect(fields, findsNWidgets(2));
+    await tester.enterText(fields.first, 'Sany');
+    await tester.enterText(fields.last, 'I write music and collect ideas.');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(preferences.displayName, 'Sany');
+    expect(preferences.profileBio, 'I write music and collect ideas.');
+  });
+
+  test(
+    'biometric-only lock also enables app lock, and disabling clears both',
+    () async {
+      await preferences.setAppLockBiometricOnly(true);
+      expect(preferences.appLockEnabled, isTrue);
+      expect(preferences.appLockBiometricOnly, isTrue);
+
+      await preferences.setAppLockEnabled(false);
+      expect(preferences.appLockEnabled, isFalse);
+      expect(preferences.appLockBiometricOnly, isFalse);
+    },
+  );
 
   testWidgets('a freshly captured note reads "now" on its card', (
     tester,
@@ -336,9 +371,7 @@ void main() {
     },
   );
 
-  testWidgets('pinning a note leads the timeline, and only one stays pinned', (
-    tester,
-  ) async {
+  testWidgets('pinning keeps up to five notes at the top', (tester) async {
     await services.captureText('older note');
     await services.captureText('newer note');
     await services.refreshTimeline();
@@ -370,9 +403,7 @@ void main() {
       reason: 'the pinned note leads even though it is the older one',
     );
 
-    // Only one note is ever pinned at a time — rather than silently
-    // stealing the pin, the action on every other note is simply off while
-    // one is already pinned.
+    // Pinning another note keeps the first one pinned as well.
     await tester.tap(find.text('newer note'));
     await tester.pumpAndSettle();
     final pinAction = tester.widget<InkWell>(
@@ -381,34 +412,13 @@ void main() {
         matching: find.byType(InkWell),
       ),
     );
-    expect(pinAction.onTap, isNull);
+    expect(pinAction.onTap, isNotNull);
     await tester.tap(find.byTooltip('Pin'));
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
     await tester.pumpAndSettle();
 
-    expect(
-      tester.getCenter(find.text('older note')).dy,
-      lessThan(tester.getCenter(find.text('newer note')).dy),
-      reason: 'a disabled Pin action must not have moved the pin',
-    );
-
-    // Unpinning first frees the action back up, and the new note takes over.
-    await tester.tap(find.text('older note'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Unpin'));
-    await tester.pumpAndSettle();
-    Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('newer note'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Pin'));
-    await tester.pumpAndSettle();
-    Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.push_pin), findsOneWidget);
+    expect(find.byIcon(Icons.push_pin), findsNWidgets(2));
     expect(
       tester.getCenter(find.text('newer note')).dy,
       lessThan(tester.getCenter(find.text('older note')).dy),
@@ -508,6 +518,44 @@ void main() {
     await tester.tap(find.text('Today'));
     await tester.pumpAndSettle();
     expect(find.text('note A'), findsOneWidget);
+  });
+
+  testWidgets('date group edges align with cards in English and Persian', (
+    tester,
+  ) async {
+    await services.captureText('aligned note');
+    await services.refreshTimeline();
+
+    for (final (locale, label, direction) in [
+      ('en', 'Today', TextDirection.ltr),
+      ('fa', 'امروز', TextDirection.rtl),
+    ]) {
+      await preferences.setLocale(locale);
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      final cardWidget = tester.getRect(find.byType(NoteCard));
+      final card = Rect.fromLTRB(
+        cardWidget.left + nexCardInsets.left,
+        cardWidget.top + nexCardInsets.top,
+        cardWidget.right - nexCardInsets.right,
+        cardWidget.bottom - nexCardInsets.bottom,
+      );
+      final heading = tester.getRect(find.text(label));
+      final menu = tester.getRect(
+        find.byWidgetPredicate((widget) => widget is PopupMenuButton).first,
+      );
+
+      if (direction == TextDirection.ltr) {
+        expect(heading.left, closeTo(card.left, 0.5));
+        expect(menu.right, closeTo(card.right, 0.5));
+      } else {
+        expect(heading.right, closeTo(card.right, 0.5));
+        expect(menu.left, closeTo(card.left, 0.5));
+      }
+    }
   });
 
   testWidgets('folding a group animates instead of cutting to it', (
@@ -1266,9 +1314,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AssistantSettingsBody), findsOneWidget);
-      // The three questions the screen is now organised around, rather than
-      // five sibling section titles in one flat column.
+      // The settings are organised around the user, voice, and reach rather
+      // than a flat run of unrelated controls.
+      expect(find.text('About you'), findsOneWidget);
+      final list = find.descendant(
+        of: find.byType(AssistantSettingsBody),
+        matching: find.byType(ListView),
+      );
+      await tester.drag(list, const Offset(0, -650));
+      await tester.pumpAndSettle();
       expect(find.text('How it talks'), findsOneWidget);
+      expect(find.text('Romantic'), findsOneWidget);
+      await tester.drag(list, const Offset(0, -900));
+      await tester.pumpAndSettle();
       expect(find.text('What it can see'), findsOneWidget);
     });
   });
