@@ -1,4 +1,6 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart'
+    show CupertinoPageTransition, CupertinoPageTransitionsBuilder;
+import 'package:flutter/material.dart';
 
 /// A page route that keeps the route below paintable during a full-width
 /// back-swipe. An opaque route lets the Navigator skip painting everything
