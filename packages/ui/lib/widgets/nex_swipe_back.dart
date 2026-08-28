@@ -1,5 +1,4 @@
-import 'package:flutter/cupertino.dart'
-    show CupertinoPageTransition, CupertinoPageTransitionsBuilder;
+import 'package:flutter/cupertino.dart' show CupertinoPageTransition;
 import 'package:flutter/material.dart';
 
 /// A page route that keeps the route below paintable during a full-width
@@ -89,8 +88,8 @@ class NexPageRoute<T> extends PageRoute<T> {
 /// The Cupertino slide transition, with a back-swipe that can start anywhere
 /// on the page rather than only at its leading edge.
 ///
-/// [CupertinoPageTransitionsBuilder] already gives every pushed route a
-/// drag-to-pop, and it is the convention this app follows — a horizontal drag
+/// The Cupertino page transition gives every pushed route a drag-to-pop, and
+/// it is the convention this app follows — a horizontal drag
 /// away from the leading edge takes you back, mirrored under RTL so a Persian
 /// reader drags the way the text runs. What it does not give is *reach*: the
 /// gesture is only recognised inside a 20-logical-pixel strip at the very
@@ -115,15 +114,14 @@ class NexSwipeBackPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    return CupertinoPageTransitionsBuilder().buildTransitions<T>(
-      route,
-      context,
-      animation,
-      secondaryAnimation,
+    return CupertinoPageTransition(
+      primaryRouteAnimation: animation,
+      secondaryRouteAnimation: secondaryAnimation,
+      linearTransition: false,
       // The first route has nothing behind it, and a full-screen route that
       // says it is not popped by a back gesture — a form guarding unsaved
       // work — must not be popped by this one either.
-      route.isFirst ? child : _NexSwipeBack(child: child),
+      child: route.isFirst ? child : _NexSwipeBack(child: child),
     );
   }
 }
