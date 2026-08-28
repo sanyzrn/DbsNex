@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+- **Reminder and daily-nudge controls work again in release builds.** The
+  Android optimizer was removing the notification icon because its keep rule
+  lived in the wrong resource folder. The notification service could not
+  start, so both controls appeared to ignore taps even though nudges scheduled
+  by an older version kept arriving. The icon is retained now, and release
+  builds refuse to publish if it disappears again.
+
 ## v1.2.0
 
 A small round of fixes to make reminders more reliable.

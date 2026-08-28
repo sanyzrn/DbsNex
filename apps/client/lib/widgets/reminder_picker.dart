@@ -216,7 +216,14 @@ Future<bool> nexPickReminder({
   final allowed = await services.reminders.requestPermission();
   if (!context.mounted) return false;
   if (!allowed) {
-    nexShowBanner(context, message: l10n.remindDenied);
+    final failure = services.reminders.lastError;
+    nexShowBanner(
+      context,
+      message: failure == null
+          ? l10n.remindDenied
+          : '${l10n.remindNotScheduled} ($failure)',
+      kind: NexBannerKind.failed,
+    );
     return false;
   }
   await services.setDueAt(note.id, picked.toUtc(), repeat: repeat);

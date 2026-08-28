@@ -202,16 +202,33 @@ class NexReminders {
   /// see [_scheduleMode].
   Future<bool> requestPermission() async {
     if (!supported) return false;
-    await initialise();
+    lastError = null;
+    try {
+      await initialise();
+    } catch (error) {
+      lastError = 'initialise: $error';
+      return false;
+    }
     if (Platform.isAndroid) {
       final android = _plugin
           .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
           >();
-      if (android == null) return false;
-      final requested = await android.requestNotificationsPermission();
-      final posting =
-          requested ?? await android.areNotificationsEnabled() ?? true;
+      if (android == null) {
+        lastError = 'notification plugin unavailable';
+        return false;
+      }
+      bool posting;
+      try {
+        posting = await android.areNotificationsEnabled() ?? false;
+        if (!posting) {
+          final requested = await android.requestNotificationsPermission();
+          posting = requested ?? await android.areNotificationsEnabled() ?? false;
+        }
+      } catch (error) {
+        lastError = 'notification permission: $error';
+        return false;
+      }
       // Asked for, not required. A refusal costs precision, not the feature:
       // [_scheduleMode] falls back and the reminder still arrives, late.
       //

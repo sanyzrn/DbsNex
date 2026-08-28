@@ -144,9 +144,12 @@ class SettingsSheet extends StatelessWidget {
       final allowed = await services.reminders.requestPermission();
       if (!context.mounted) return;
       if (!allowed) {
+        final failure = services.reminders.lastError;
         nexShowBanner(
           context,
-          message: AppLocalizations.of(context).remindDenied,
+          message: failure == null
+              ? AppLocalizations.of(context).remindDenied
+              : '${AppLocalizations.of(context).nudgeNotScheduled} ($failure)',
           kind: NexBannerKind.failed,
         );
         return;
