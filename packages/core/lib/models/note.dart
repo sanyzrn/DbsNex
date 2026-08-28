@@ -119,7 +119,7 @@ class Note {
   final SyncState syncState;
   final List<Tag> tags;
 
-  /// Set on at most one note at a time (see [NoteRepository.pinNote]).
+  /// Set on at most five notes at a time (see `NoteRepository.pinNote`).
   ///
   /// Local only — never synced or exported, the same as [sortOrder]: both
   /// are how *this device* likes its own timeline arranged, not something

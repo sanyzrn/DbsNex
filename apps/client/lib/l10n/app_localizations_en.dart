@@ -66,6 +66,122 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantReachGroup => 'What it can see';
 
   @override
+  String get assistantAboutYouGroup => 'About you';
+
+  @override
+  String get assistantProfileIntro =>
+      'Give the assistant a little context about you, then choose the voice that feels right. These details are sent only with assistant questions.';
+
+  @override
+  String get assistantCallMe => 'What should it call you?';
+
+  @override
+  String get assistantCallMeHint => 'Your preferred name';
+
+  @override
+  String get assistantAboutMe => 'A short introduction';
+
+  @override
+  String get assistantAboutMeHint =>
+      'What should the assistant know about you?';
+
+  @override
+  String get assistantResponseStyle => 'Response style';
+
+  @override
+  String get assistantStyleNatural => 'Natural';
+
+  @override
+  String get assistantStyleFriendly => 'Friendly';
+
+  @override
+  String get assistantStyleFormal => 'Formal';
+
+  @override
+  String get assistantStyleSerious => 'Serious';
+
+  @override
+  String get assistantStyleRomantic => 'Romantic';
+
+  @override
+  String get profileTitle => 'Profile';
+
+  @override
+  String get profileOpenHint => 'Photo, name, birthday, and bio';
+
+  @override
+  String get profileChangePhoto => 'Change profile photo';
+
+  @override
+  String get profileRemovePhoto => 'Remove photo';
+
+  @override
+  String get profilePhotoFailed => 'The profile photo could not be saved.';
+
+  @override
+  String get profileBirthday => 'Birthday';
+
+  @override
+  String get profileBirthdayEmpty => 'Not set';
+
+  @override
+  String get profileBio => 'Bio';
+
+  @override
+  String get profileBioHint => 'A few words about you';
+
+  @override
+  String get securityTitle => 'Security';
+
+  @override
+  String get securityAppLock => 'App lock';
+
+  @override
+  String get securityOff => 'Off';
+
+  @override
+  String get securityDevicePasscode => 'Device passcode';
+
+  @override
+  String get securityDevicePasscodeSubtitle =>
+      'Unlock Nex with your phone or computer passcode, PIN, or pattern.';
+
+  @override
+  String get securityBiometric => 'Fingerprint or biometrics';
+
+  @override
+  String get securityBiometricSubtitle =>
+      'Require an enrolled fingerprint, face, or Windows Hello instead of passcode fallback.';
+
+  @override
+  String get securityLocalOnly =>
+      'Authentication is handled by your device. Nex never receives or stores your passcode or biometric data.';
+
+  @override
+  String get securityPasscodeUnavailable =>
+      'Set up a device passcode, PIN, or pattern first.';
+
+  @override
+  String get securityBiometricUnavailable =>
+      'No enrolled fingerprint or other biometric was found.';
+
+  @override
+  String get securityAuthenticateReason => 'Unlock Nex to protect your notes';
+
+  @override
+  String get securityLockedTitle => 'Nex is locked';
+
+  @override
+  String get securityLockedSubtitle =>
+      'Authenticate with your device to open your notes.';
+
+  @override
+  String get securityUnlock => 'Unlock';
+
+  @override
+  String get pinLimitReached => 'You can pin up to 5 notes';
+
+  @override
   String get storageModels => 'Offline model';
 
   @override
@@ -349,6 +465,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get comfortMode => 'Comfort Mode';
+
+  @override
+  String get liquidGlass => 'Liquid Glass';
+
+  @override
+  String get liquidGlassSubtitle =>
+      'Adaptive translucent controls with real background blur';
+
+  @override
+  String get backgroundStyle => 'Background';
+
+  @override
+  String get backgroundStyleSubtitle =>
+      'Minimal built-in patterns tuned for both light and dark themes';
+
+  @override
+  String get backgroundPlain => 'Plain';
+
+  @override
+  String get backgroundAurora => 'Aurora';
+
+  @override
+  String get backgroundRipple => 'Ripple';
+
+  @override
+  String get backgroundWeave => 'Weave';
 
   @override
   String get accentColorSetting => 'Accent color';
@@ -1613,7 +1755,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantSubtitle =>
-      'Creativity, answer length, and what it can see';
+      'Your profile, response style, and what it can see';
 
   @override
   String get assistantCreativity => 'Creativity';

@@ -45,6 +45,7 @@ class NexTappable extends StatefulWidget {
 
 class _NexTappableState extends State<NexTappable> {
   bool _focused = false;
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -66,39 +67,49 @@ class _NexTappableState extends State<NexTappable> {
         },
         child: GestureDetector(
           onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
           behavior: HitTestBehavior.opaque,
-          child: ConstrainedBox(
-            // Transparent padding out to the minimum, so the target is large
-            // without the control looking it.
-            constraints: BoxConstraints(
-              minWidth: widget.minSize,
-              minHeight: widget.minSize,
-            ),
-            child: Center(
-              widthFactor: 1,
-              heightFactor: 1,
-              child: DecoratedBox(
-                decoration: ShapeDecoration(
-                  shape: widget.shape,
-                  shadows: _focused
-                      ? [
-                          // A ring standing off the control, not a thicker
-                          // border: a border change is indistinguishable from a
-                          // selection change, and focus and selection are
-                          // different things that can both be true at once.
-                          BoxShadow(
-                            color: scheme.primary,
-                            spreadRadius:
-                                nexFocusRingOffset + nexFocusRingWidth,
-                          ),
-                          BoxShadow(
-                            color: scheme.surface,
-                            spreadRadius: nexFocusRingOffset,
-                          ),
-                        ]
-                      : null,
+          child: AnimatedScale(
+            scale: _pressed ? 0.97 : 1,
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : NexMotion.fast,
+            curve: NexMotion.curve,
+            child: ConstrainedBox(
+              // Transparent padding out to the minimum, so the target is large
+              // without the control looking it.
+              constraints: BoxConstraints(
+                minWidth: widget.minSize,
+                minHeight: widget.minSize,
+              ),
+              child: Center(
+                widthFactor: 1,
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: ShapeDecoration(
+                    shape: widget.shape,
+                    shadows: _focused
+                        ? [
+                            // A ring standing off the control, not a thicker
+                            // border: a border change is indistinguishable from a
+                            // selection change, and focus and selection are
+                            // different things that can both be true at once.
+                            BoxShadow(
+                              color: scheme.primary,
+                              spreadRadius:
+                                  nexFocusRingOffset + nexFocusRingWidth,
+                            ),
+                            BoxShadow(
+                              color: scheme.surface,
+                              spreadRadius: nexFocusRingOffset,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: widget.child,
                 ),
-                child: widget.child,
               ),
             ),
           ),

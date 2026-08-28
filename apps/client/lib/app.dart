@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'l10n/app_localizations.dart';
 import 'platform/route_observer.dart';
+import 'platform/app_lock.dart';
 import 'platform/feedback_service.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
@@ -39,10 +40,14 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     preferences: widget.preferences,
   );
   late final _feedback = FeedbackService(preferences: widget.preferences);
+  final _appLock = AppLockService();
+  bool _locked = false;
+  bool _unlocking = false;
 
   @override
   void initState() {
     super.initState();
+    _locked = widget.preferences.appLockEnabled;
     widget.preferences.addListener(_refresh);
     _updates.addListener(_announceDownload);
     // Quietly, on launch and whenever the app comes back — at most once a day.
@@ -60,11 +65,20 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // exist on the note and nowhere else — so every launch puts them back
     // from the library, which is the only copy that survives.
     unawaited(widget.services.restoreReminders());
+    if (_locked) WidgetsBinding.instance.addPostFrameCallback((_) => _unlock());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if ((state == AppLifecycleState.paused ||
+            state == AppLifecycleState.hidden) &&
+        widget.preferences.appLockEnabled &&
+        !_unlocking &&
+        mounted) {
+      setState(() => _locked = true);
+    }
     if (state == AppLifecycleState.resumed) {
+      if (_locked) unawaited(_unlock());
       unawaited(_updates.maybeCheck());
       unawaited(_feedback.flushPending());
       // Alarms are not durable and notes are. A reinstall, a restore from
@@ -92,7 +106,26 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  void _refresh() => setState(() {});
+  void _refresh() {
+    if (!widget.preferences.appLockEnabled) _locked = false;
+    setState(() {});
+  }
+
+  Future<void> _unlock() async {
+    if (!_locked || _unlocking || !mounted) return;
+    final context = _messengerKey.currentContext;
+    if (context == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _unlock());
+      return;
+    }
+    _unlocking = true;
+    final unlocked = await _appLock.authenticate(
+      reason: AppLocalizations.of(context).securityAuthenticateReason,
+      biometricOnly: widget.preferences.appLockBiometricOnly,
+    );
+    _unlocking = false;
+    if (mounted && unlocked) setState(() => _locked = false);
+  }
 
   /// Says so, once, when an installer finishes arriving.
   ///
@@ -141,6 +174,9 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // direction (see NexBodyText) without dragging the whole chrome with it.
     final font = nexFontFor(prefs.locale ?? _systemLocale(context));
     final accentSeed = nexParseTagColor(prefs.accentSeed);
+    final transparentScaffold =
+        prefs.liquidGlass ||
+        prefs.backgroundPattern != NexBackgroundPattern.plain;
     return MaterialApp(
       scaffoldMessengerKey: _messengerKey,
       // The timeline listens on this to know when it has been covered and
@@ -150,13 +186,19 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       locale: prefs.locale,
       themeMode: prefs.themeMode,
+      themeAnimationDuration: NexMotion.slow,
+      themeAnimationCurve: NexMotion.curve,
       theme: nexLightTheme(
         comfortMode: prefs.comfortMode,
+        liquidGlass: prefs.liquidGlass,
+        transparentScaffold: transparentScaffold,
         fontFamily: font,
         accentSeed: accentSeed,
       ),
       darkTheme: nexDarkTheme(
         comfortMode: prefs.comfortMode,
+        liquidGlass: prefs.liquidGlass,
+        transparentScaffold: transparentScaffold,
         fontFamily: font,
         accentSeed: accentSeed,
       ),
@@ -177,43 +219,63 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
         final scaled =
             TextScaler.linear(prefs.uiScale).scale(1) *
             media.textScaler.scale(1);
-        return MediaQuery(
-          data: media.copyWith(
-            disableAnimations: media.disableAnimations,
-            textScaler: TextScaler.linear(
-              scaled,
-            ).clamp(minScaleFactor: 0.75, maxScaleFactor: 1.9),
-          ),
-          child: Shortcuts(
-            shortcuts: const {
-              SingleActivator(LogicalKeyboardKey.keyN, control: true):
-                  _CaptureIntent(),
-              SingleActivator(LogicalKeyboardKey.keyF, control: true):
-                  _SearchIntent(),
-            },
-            child: Actions(
-              actions: {
-                _CaptureIntent: CallbackAction<_CaptureIntent>(
-                  onInvoke: (_) => timelineKey.currentState?.openCapture(),
-                ),
-                // Reveals the field on the timeline rather than pushing a
-                // screen: search is one surface now, and Ctrl+F should land on
-                // the same one the pull-down does.
-                _SearchIntent: CallbackAction<_SearchIntent>(
-                  onInvoke: (_) => timelineKey.currentState?.revealSearch(),
-                ),
+        return NexAppBackground(
+          pattern: prefs.backgroundPattern,
+          child: MediaQuery(
+            data: media.copyWith(
+              disableAnimations: media.disableAnimations,
+              textScaler: TextScaler.linear(
+                scaled,
+              ).clamp(minScaleFactor: 0.75, maxScaleFactor: 1.9),
+            ),
+            child: Shortcuts(
+              shortcuts: const {
+                SingleActivator(LogicalKeyboardKey.keyN, control: true):
+                    _CaptureIntent(),
+                SingleActivator(LogicalKeyboardKey.keyF, control: true):
+                    _SearchIntent(),
               },
-              // A bare Scaffold above the Navigator, not inside it. Every
-              // screen's own Scaffold is nested under this one, and
-              // ScaffoldMessenger shows a SnackBar on only the root of a
-              // nested set — so toasts now paint above whatever the
-              // Navigator is showing, dialog or bottom sheet included,
-              // instead of being scoped to whichever page happened to be
-              // underneath when they were raised.
-              child: Scaffold(
-                backgroundColor: Colors.transparent,
-                resizeToAvoidBottomInset: false,
-                body: FocusTraversalGroup(child: child!),
+              child: Actions(
+                actions: {
+                  _CaptureIntent: CallbackAction<_CaptureIntent>(
+                    onInvoke: (_) => timelineKey.currentState?.openCapture(),
+                  ),
+                  // Reveals the field on the timeline rather than pushing a
+                  // screen: search is one surface now, and Ctrl+F should land on
+                  // the same one the pull-down does.
+                  _SearchIntent: CallbackAction<_SearchIntent>(
+                    onInvoke: (_) => timelineKey.currentState?.revealSearch(),
+                  ),
+                },
+                // A bare Scaffold above the Navigator, not inside it. Every
+                // screen's own Scaffold is nested under this one, and
+                // ScaffoldMessenger shows a SnackBar on only the root of a
+                // nested set — so toasts now paint above whatever the
+                // Navigator is showing, dialog or bottom sheet included,
+                // instead of being scoped to whichever page happened to be
+                // underneath when they were raised.
+                child: Stack(
+                  children: [
+                    Scaffold(
+                      backgroundColor: Colors.transparent,
+                      resizeToAvoidBottomInset: false,
+                      body: ExcludeSemantics(
+                        excluding: _locked,
+                        child: IgnorePointer(
+                          ignoring: _locked,
+                          child: FocusTraversalGroup(child: child!),
+                        ),
+                      ),
+                    ),
+                    if (_locked)
+                      Positioned.fill(
+                        child: _AppLockGate(
+                          busy: _unlocking,
+                          onUnlock: () => unawaited(_unlock()),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -243,4 +305,58 @@ class _CaptureIntent extends Intent {
 
 class _SearchIntent extends Intent {
   const _SearchIntent();
+}
+
+class _AppLockGate extends StatelessWidget {
+  const _AppLockGate({required this.busy, required this.onUnlock});
+
+  final bool busy;
+  final VoidCallback onUnlock;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(NexSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.lock_outline,
+                size: 56,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(height: NexSpacing.md),
+              Text(
+                l10n.securityLockedTitle,
+                style: theme.textTheme.headlineSmall,
+              ),
+              const SizedBox(height: NexSpacing.sm),
+              Text(
+                l10n.securityLockedSubtitle,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: NexSpacing.lg),
+              FilledButton.icon(
+                onPressed: busy ? null : onUnlock,
+                icon: busy
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.fingerprint),
+                label: Text(l10n.securityUnlock),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

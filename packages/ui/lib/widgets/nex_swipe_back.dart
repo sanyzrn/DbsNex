@@ -1,4 +1,88 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+
+/// A page route that keeps the route below paintable during a full-width
+/// back-swipe. An opaque route lets the Navigator skip painting everything
+/// below it once its entrance animation finishes; translating only its child
+/// then reveals the Navigator's black backing rather than the previous page.
+class NexPageRoute<T> extends PageRoute<T> {
+  NexPageRoute({required this.builder, super.settings});
+
+  final WidgetBuilder builder;
+  bool _opaque = false;
+
+  @override
+  bool get opaque => _opaque;
+
+  @override
+  bool get barrierDismissible => false;
+
+  @override
+  Color? get barrierColor => null;
+
+  @override
+  String? get barrierLabel => null;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 300);
+
+  @override
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 300);
+
+  @override
+  void install() {
+    super.install();
+    animation?.addStatusListener(_handleAnimationStatus);
+  }
+
+  void _handleAnimationStatus(AnimationStatus status) {
+    _setOpaque(status == AnimationStatus.completed);
+  }
+
+  void revealPrevious() => _setOpaque(false);
+
+  void coverPrevious() {
+    if (animation?.status == AnimationStatus.completed) _setOpaque(true);
+  }
+
+  void _setOpaque(bool value) {
+    if (_opaque == value) return;
+    _opaque = value;
+    if (animation?.status == AnimationStatus.completed &&
+        overlayEntries.isNotEmpty) {
+      overlayEntries.first.opaque = value;
+    }
+    changedInternalState();
+  }
+
+  @override
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) => builder(context);
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => CupertinoPageTransition(
+    primaryRouteAnimation: animation,
+    secondaryRouteAnimation: secondaryAnimation,
+    linearTransition: false,
+    child: _NexSwipeBack(child: child),
+  );
+
+  @override
+  void dispose() {
+    animation?.removeStatusListener(_handleAnimationStatus);
+    super.dispose();
+  }
+}
 
 /// The Cupertino slide transition, with a back-swipe that can start anywhere
 /// on the page rather than only at its leading edge.
@@ -29,7 +113,7 @@ class NexSwipeBackPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    return const CupertinoPageTransitionsBuilder().buildTransitions<T>(
+    return CupertinoPageTransitionsBuilder().buildTransitions<T>(
       route,
       context,
       animation,
@@ -83,9 +167,15 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
         AnimationController(
           vsync: this,
           duration: const Duration(milliseconds: 180),
-        )..addListener(
-          () => setState(() => _drag = _settleFrom * (1 - _settle.value)),
-        );
+        )
+          ..addListener(
+            () => setState(() => _drag = _settleFrom * (1 - _settle.value)),
+          )
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed && mounted && !_popping) {
+              _route?.coverPrevious();
+            }
+          });
   }
 
   @override
@@ -98,9 +188,15 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
   double get _sign =>
       Directionality.of(context) == TextDirection.rtl ? -1.0 : 1.0;
 
+  NexPageRoute<dynamic>? get _route {
+    final route = ModalRoute.of(context);
+    return route is NexPageRoute<dynamic> ? route : null;
+  }
+
   void _onStart(DragStartDetails details) {
     _settle.stop();
     _drag = 0;
+    _route?.revealPrevious();
   }
 
   void _onUpdate(DragUpdateDetails details) {
@@ -140,6 +236,11 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
     _settleBack();
   }
 
+  void _onCancel() {
+    if (_popping) return;
+    _settleBack();
+  }
+
   void _settleBack() {
     _settleFrom = _drag;
     _settle.forward(from: 0);
@@ -152,6 +253,7 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
       onHorizontalDragStart: _onStart,
       onHorizontalDragUpdate: _onUpdate,
       onHorizontalDragEnd: _onEnd,
+      onHorizontalDragCancel: _onCancel,
       child: Transform.translate(
         offset: Offset(_drag * _sign, 0),
         child: widget.child,

@@ -305,14 +305,12 @@ class NexServices {
   Future<void> toggleChecklistItem(String id, int index) =>
       worker.toggleChecklistItem(id, index);
 
-  /// Pins [id], releasing whatever else was pinned — at most one note is
-  /// ever pinned at a time.
-  Future<void> pinNote(String id) => worker.pinNote(id);
+  /// Pins [id] when fewer than five notes are already pinned.
+  Future<bool> pinNote(String id) => worker.pinNote(id);
 
   Future<void> unpinNote(String id) => worker.unpinNote(id);
 
-  /// The id of the one note currently pinned, if any.
-  Future<String?> pinnedNoteId() => worker.pinnedNoteId();
+  Future<int> pinnedNoteCount() => worker.pinnedNoteCount();
 
   /// Persists a manual order for exactly the notes in [orderedIds] — the
   /// currently-displayed set a Rearrange drag was performed against.

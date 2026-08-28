@@ -51,6 +51,9 @@ void main() {
   });
 
   testWidgets('a change made there is kept', (tester) async {
+    tester.view.physicalSize = const Size(800, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('en'),
@@ -62,7 +65,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(preferences.aiNotesOnly, isTrue);
-    await tester.tap(find.text('Stay in my notes'));
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Stay in my notes'));
     await tester.pumpAndSettle();
     expect(preferences.aiNotesOnly, isFalse);
   });

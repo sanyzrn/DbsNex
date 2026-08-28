@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
+import '../tokens/nex_appearance.dart';
 import '../tokens/nex_relative_time.dart';
 import '../tokens/nex_text_direction.dart';
 import '../tokens/nex_tokens.dart';
@@ -169,6 +170,9 @@ class _CardBody extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.lg),
+        side: context.nexVisualStyle.liquidGlass
+            ? BorderSide(color: context.nexVisualStyle.glassBorder)
+            : BorderSide.none,
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

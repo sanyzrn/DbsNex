@@ -42,7 +42,7 @@ enum _DbCommand {
   toggleChecklistItem,
   pinNote,
   unpinNote,
-  pinnedNoteId,
+  pinnedNoteCount,
   addTag,
   removeTag,
   createTag,
@@ -317,15 +317,15 @@ class NexDbWorker implements NexDb {
       _send<void>(_DbCommand.toggleChecklistItem, {'id': id, 'index': index});
 
   @override
-  Future<void> pinNote(String id) =>
-      _send<void>(_DbCommand.pinNote, {'id': id});
+  Future<bool> pinNote(String id) =>
+      _send<bool>(_DbCommand.pinNote, {'id': id});
 
   @override
   Future<void> unpinNote(String id) =>
       _send<void>(_DbCommand.unpinNote, {'id': id});
 
   @override
-  Future<String?> pinnedNoteId() => _send<String?>(_DbCommand.pinnedNoteId);
+  Future<int> pinnedNoteCount() => _send<int>(_DbCommand.pinnedNoteCount);
 
   /* ----------------------------------------------------------------- tags */
 
@@ -646,13 +646,11 @@ class NexDbWorker implements NexDb {
               arg('index')! as int,
             ),
           ),
-          _DbCommand.pinNote => _voided(
-            () => repo.pinNote(arg('id')! as String),
-          ),
+          _DbCommand.pinNote => repo.pinNote(arg('id')! as String),
           _DbCommand.unpinNote => _voided(
             () => repo.unpinNote(arg('id')! as String),
           ),
-          _DbCommand.pinnedNoteId => repo.pinnedNoteId(),
+          _DbCommand.pinnedNoteCount => repo.pinnedNoteCount(),
           _DbCommand.addTag => tags.addTag(
             noteId: arg('noteId')! as String,
             name: arg('name')! as String,

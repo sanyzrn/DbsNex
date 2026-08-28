@@ -79,13 +79,11 @@ abstract interface class NexDb {
 
   Future<void> toggleChecklistItem(String id, int index);
 
-  Future<void> pinNote(String id);
+  Future<bool> pinNote(String id);
 
   Future<void> unpinNote(String id);
 
-  /// The pinned note's id, or null. Only one note is ever pinned, so the
-  /// timeline asks for the id rather than scanning what it happens to hold.
-  Future<String?> pinnedNoteId();
+  Future<int> pinnedNoteCount();
 
   Future<Tag> addTag({
     required String noteId,

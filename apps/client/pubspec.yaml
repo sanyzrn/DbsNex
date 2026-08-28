@@ -23,6 +23,7 @@ dependencies:
   # because app_update.dart now imports it.
   crypto: ^3.0.6
   image_picker: ^1.1.2
+  local_auth: ^2.3.0
   # Crop UI right after a capture. Pure Dart — no native platform code — so
   # it works uniformly on every target this app builds for, unlike
   # image_cropper, which has no Windows implementation at all.

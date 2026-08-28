@@ -5,6 +5,7 @@ import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
+import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../widgets/nex_banner.dart';
@@ -99,7 +100,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
           return;
         }
         final annotated = await Navigator.of(context).push<Uint8List>(
-          MaterialPageRoute(
+          NexPageRoute(
             builder: (_) => PhotoAnnotateScreen(image: croppedImage),
           ),
         );

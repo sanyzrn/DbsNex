@@ -124,19 +124,32 @@ WHERE id = ? AND deleted_at IS NULL
     _upsertFts(noteId, content);
   }
 
-  /// Pins [noteId], unpinning whatever else was pinned first — only one note
-  /// is ever pinned at a time. Touches only `pinned_at`: this is local
-  /// device state, not a change worth pushing to sync.
-  void pinNote(String noteId) {
+  /// Pins [noteId] while keeping the five-item home-screen limit atomic.
+  /// Touches only `pinned_at`: this is local device state, not a change worth
+  /// pushing to sync. Returns false when five other notes already hold pins.
+  bool pinNote(String noteId) {
     final now = DateTime.now().toUtc().toIso8601String();
     db.execute('BEGIN IMMEDIATE');
     try {
-      db.execute(
-        'UPDATE notes SET pinned_at = NULL WHERE pinned_at IS NOT NULL AND id != ?',
+      final existing = db.select(
+        'SELECT pinned_at FROM notes WHERE id = ? AND deleted_at IS NULL',
         [noteId],
       );
+      if (existing.isEmpty) {
+        db.execute('ROLLBACK');
+        return false;
+      }
+      if (existing.first['pinned_at'] != null) {
+        db.execute('COMMIT');
+        return true;
+      }
+      if (pinnedNoteCount() >= 5) {
+        db.execute('ROLLBACK');
+        return false;
+      }
       db.execute('UPDATE notes SET pinned_at = ? WHERE id = ?', [now, noteId]);
       db.execute('COMMIT');
+      return true;
     } catch (_) {
       db.execute('ROLLBACK');
       rethrow;
@@ -146,15 +159,13 @@ WHERE id = ? AND deleted_at IS NULL
   void unpinNote(String noteId) =>
       db.execute('UPDATE notes SET pinned_at = NULL WHERE id = ?', [noteId]);
 
-  /// The id of the one note currently pinned, if any. Pinning never touches
-  /// `updated_at` (see [pinNote]), so the pinned note is not necessarily
-  /// inside any timeline page — this is the only reliable way to ask.
-  String? pinnedNoteId() {
-    final rows = db.select(
-      'SELECT id FROM notes WHERE pinned_at IS NOT NULL AND deleted_at IS NULL LIMIT 1',
-    );
-    return rows.isEmpty ? null : rows.first['id'] as String;
-  }
+  int pinnedNoteCount() =>
+      db
+              .select(
+                'SELECT COUNT(*) AS count FROM notes WHERE pinned_at IS NOT NULL AND deleted_at IS NULL',
+              )
+              .first['count']
+          as int;
 
   void softDelete(String noteId) {
     final now = DateTime.now().toUtc().toIso8601String();
@@ -211,7 +222,7 @@ WHERE id = ?
   /// caption or tags bumps it, and a note you just changed belongs at the
   /// top of what you are looking at, not wherever it was originally written.
   ///
-  /// The pinned note (at most one) always leads. Behind it, notes nobody has
+  /// Pinned notes (at most five) always lead. Behind them, notes nobody has
   /// manually placed sort by recency same as ever; notes that *have* been
   /// dragged into place in Rearrange mode follow, in that manual order —
   /// which is why a fresh capture still surfaces at the top instead of
@@ -232,6 +243,7 @@ WHERE id = ?
     const order = '''
 ORDER BY
   (pinned_at IS NOT NULL) DESC,
+  pinned_at DESC,
   updated_at DESC
 ''';
     final rows = tagId == null

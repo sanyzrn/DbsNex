@@ -68,6 +68,28 @@ class NexTextDirection extends StatelessWidget {
   }
 }
 
+class _DirectionalLine extends StatelessWidget {
+  const _DirectionalLine(this.text, this.style);
+
+  final String text;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final direction = nexDirectionOf(text);
+    return Text(
+      text.isEmpty ? '\u200B' : text,
+      style: style,
+      textDirection: direction,
+      textAlign: direction == TextDirection.rtl
+          ? TextAlign.right
+          : direction == TextDirection.ltr
+          ? TextAlign.left
+          : TextAlign.start,
+    );
+  }
+}
+
 /// A block of the user's own writing, laid out in the direction it is written.
 ///
 /// Only the paragraph turns. Wrapping a whole card or sheet in a
@@ -84,6 +106,14 @@ class NexBodyText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (maxLines == null && text.contains('\n')) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final line in text.split('\n')) _DirectionalLine(line, style),
+        ],
+      );
+    }
     final direction = nexDirectionOf(text);
     return SizedBox(
       // Full width, so a short right-to-left line reaches the right edge rather

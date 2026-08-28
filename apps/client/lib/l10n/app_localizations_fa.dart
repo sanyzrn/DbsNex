@@ -66,6 +66,122 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantReachGroup => 'چه چیزی را می‌بیند';
 
   @override
+  String get assistantAboutYouGroup => 'دربارهٔ شما';
+
+  @override
+  String get assistantProfileIntro =>
+      'کمی از خودتان به دستیار بگویید و بعد لحنی را انتخاب کنید که برایتان مناسب است. این اطلاعات فقط همراه سؤال‌های دستیار فرستاده می‌شوند.';
+
+  @override
+  String get assistantCallMe => 'شما را چه صدا کند؟';
+
+  @override
+  String get assistantCallMeHint => 'نامی که دوست دارید';
+
+  @override
+  String get assistantAboutMe => 'معرفی کوتاه';
+
+  @override
+  String get assistantAboutMeHint => 'دستیار چه چیزهایی دربارهٔ شما بداند؟';
+
+  @override
+  String get assistantResponseStyle => 'سبک پاسخ‌گویی';
+
+  @override
+  String get assistantStyleNatural => 'طبیعی';
+
+  @override
+  String get assistantStyleFriendly => 'دوستانه';
+
+  @override
+  String get assistantStyleFormal => 'رسمی';
+
+  @override
+  String get assistantStyleSerious => 'جدی';
+
+  @override
+  String get assistantStyleRomantic => 'عاشقانه';
+
+  @override
+  String get profileTitle => 'پروفایل';
+
+  @override
+  String get profileOpenHint => 'تصویر، نام، تاریخ تولد و بیو';
+
+  @override
+  String get profileChangePhoto => 'تغییر تصویر پروفایل';
+
+  @override
+  String get profileRemovePhoto => 'حذف تصویر';
+
+  @override
+  String get profilePhotoFailed => 'تصویر پروفایل ذخیره نشد.';
+
+  @override
+  String get profileBirthday => 'تاریخ تولد';
+
+  @override
+  String get profileBirthdayEmpty => 'ثبت نشده';
+
+  @override
+  String get profileBio => 'بیو';
+
+  @override
+  String get profileBioHint => 'چند کلمه دربارهٔ خودتان';
+
+  @override
+  String get securityTitle => 'امنیت';
+
+  @override
+  String get securityAppLock => 'قفل برنامه';
+
+  @override
+  String get securityOff => 'خاموش';
+
+  @override
+  String get securityDevicePasscode => 'رمز دستگاه';
+
+  @override
+  String get securityDevicePasscodeSubtitle =>
+      'Nex را با رمز، پین یا الگوی گوشی یا رایانه باز کنید.';
+
+  @override
+  String get securityBiometric => 'اثر انگشت یا بیومتریک';
+
+  @override
+  String get securityBiometricSubtitle =>
+      'به‌جای رمز جایگزین، اثر انگشت، چهره یا Windows Hello ثبت‌شده را بخواهد.';
+
+  @override
+  String get securityLocalOnly =>
+      'احراز هویت را خود دستگاه انجام می‌دهد. Nex هیچ رمز یا دادهٔ بیومتریکی را دریافت یا ذخیره نمی‌کند.';
+
+  @override
+  String get securityPasscodeUnavailable =>
+      'ابتدا برای دستگاه رمز، پین یا الگو تنظیم کنید.';
+
+  @override
+  String get securityBiometricUnavailable =>
+      'اثر انگشت یا بیومتریک ثبت‌شده‌ای پیدا نشد.';
+
+  @override
+  String get securityAuthenticateReason =>
+      'برای محافظت از یادداشت‌ها Nex را باز کنید';
+
+  @override
+  String get securityLockedTitle => 'Nex قفل است';
+
+  @override
+  String get securityLockedSubtitle =>
+      'برای بازکردن یادداشت‌ها با دستگاه احراز هویت کنید.';
+
+  @override
+  String get securityUnlock => 'بازکردن';
+
+  @override
+  String get pinLimitReached => 'می‌توانید حداکثر ۵ یادداشت را پین کنید';
+
+  @override
   String get storageModels => 'مدل آفلاین';
 
   @override
@@ -349,6 +465,32 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get comfortMode => 'حالت آسایش';
+
+  @override
+  String get liquidGlass => 'شیشهٔ مایع';
+
+  @override
+  String get liquidGlassSubtitle =>
+      'کنترل‌های نیمه‌شفاف تطبیقی با محوشدگی واقعی پس‌زمینه';
+
+  @override
+  String get backgroundStyle => 'پس‌زمینه';
+
+  @override
+  String get backgroundStyleSubtitle =>
+      'پترن‌های مینیمال داخلی، تنظیم‌شده برای هر دو پوستهٔ روشن و تیره';
+
+  @override
+  String get backgroundPlain => 'ساده';
+
+  @override
+  String get backgroundAurora => 'شفق';
+
+  @override
+  String get backgroundRipple => 'موج';
+
+  @override
+  String get backgroundWeave => 'بافت';
 
   @override
   String get accentColorSetting => 'رنگ تاکید';
@@ -1612,7 +1754,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistant => 'دستیار';
 
   @override
-  String get assistantSubtitle => 'خلاقیت، طول پاسخ و آنچه می‌بیند';
+  String get assistantSubtitle => 'پروفایل شما، سبک پاسخ و آنچه می‌بیند';
 
   @override
   String get assistantCreativity => 'خلاقیت';

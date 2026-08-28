@@ -145,7 +145,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
               onTap: () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute<void>(
+                  NexPageRoute<void>(
                     builder: (_) => AiProviderScreen(preferences: _prefs),
                   ),
                 );

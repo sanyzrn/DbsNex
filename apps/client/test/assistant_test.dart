@@ -253,6 +253,20 @@ Sure, here you go:
       );
     });
 
+    test('the user profile and response style reach the prompt', () {
+      final prompt = adapter().chatSystemPrompt(
+        const AiChatOptions(
+          responseStyle: AiResponseStyle.romantic,
+          userName: 'Sany',
+          userIntroduction: 'I write music and prefer Persian replies.',
+        ),
+      );
+      expect(prompt, contains('Address the user as "Sany"'));
+      expect(prompt, contains('I write music'));
+      expect(prompt, contains('affectionately and romantically'));
+      expect(prompt, contains('respecting boundaries'));
+    });
+
     test('no notes shared is a working state, not a broken one', () {
       final prompt = adapter().chatSystemPrompt(const AiChatOptions());
       expect(prompt, contains('no notes yet'));

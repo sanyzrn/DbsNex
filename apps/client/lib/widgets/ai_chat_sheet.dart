@@ -312,6 +312,9 @@ class _AiChatSheetState extends State<AiChatSheet> {
     length: widget.preferences.aiAnswerLength,
     notesOnly: widget.preferences.aiNotesOnly,
     instruction: widget.preferences.aiInstruction,
+    responseStyle: widget.preferences.aiResponseStyle,
+    userName: widget.preferences.aiUserName,
+    userIntroduction: widget.preferences.aiUserIntroduction,
     notesContext: _notesContext,
     // Acting needs ids to act on. With no notes in context every id the model
     // could produce would be invented, which is the one thing the prompt

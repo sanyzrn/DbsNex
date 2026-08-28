@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
@@ -31,11 +32,49 @@ class AssistantScreen extends StatelessWidget {
   final NexPreferences preferences;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(AppLocalizations.of(context).assistant)),
-    // The controls themselves live in AssistantSettingsBody, because the chat
-    // opens the same ones in a panel of its own — where the thing you want to
-    // change is usually the thing you just watched go wrong.
-    body: AssistantSettingsBody(preferences: preferences),
-  );
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.assistant)),
+      // The controls themselves live in AssistantSettingsBody, because the chat
+      // opens the same ones in a panel of its own — where the thing you want to
+      // change is usually the thing you just watched go wrong.
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              NexSpacing.md,
+              NexSpacing.sm,
+              NexSpacing.md,
+              0,
+            ),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(NexSpacing.md),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(NexRadius.lg),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
+                  const SizedBox(width: NexSpacing.md),
+                  Expanded(
+                    child: Text(
+                      l10n.assistantProfileIntro,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(child: AssistantSettingsBody(preferences: preferences)),
+        ],
+      ),
+    );
+  }
 }

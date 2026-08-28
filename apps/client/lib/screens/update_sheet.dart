@@ -46,7 +46,7 @@ class UpdateSheet extends StatefulWidget {
     bool haptics = true,
     UpdateService? service,
   }) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
+    NexPageRoute<void>(
       builder: (_) => Scaffold(
         appBar: AppBar(
           title: Text(AppLocalizations.of(context).checkForUpdate),

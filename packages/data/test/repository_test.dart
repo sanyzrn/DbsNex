@@ -256,13 +256,13 @@ void main() {
       ]);
     });
 
-    test('a pinned note leads the timeline, and only one is ever pinned', () {
+    test('up to five pinned notes lead the timeline', () {
       final t0 = DateTime.utc(2026, 1, 1);
       final t1 = DateTime.utc(2026, 1, 2);
       final t2 = DateTime.utc(2026, 1, 3);
       final old = repo.insert(makeText('old', at: t0));
       final mid = repo.insert(makeText('mid', at: t1));
-      repo.insert(makeText('new', at: t2));
+      final newest = repo.insert(makeText('new', at: t2));
 
       repo.pinNote(old.id);
       expect(
@@ -271,20 +271,32 @@ void main() {
         reason: 'pinned leads even though it is the oldest',
       );
 
-      // Pinning a second note releases the first — never two at once.
       repo.pinNote(mid.id);
       expect(repo.listTimeline().map((n) => n.content).toList(), [
         'mid',
-        'new',
         'old',
+        'new',
       ]);
 
       repo.unpinNote(mid.id);
       expect(
         repo.listTimeline().map((n) => n.content).toList(),
-        ['new', 'mid', 'old'],
-        reason: 'back to plain recency once nothing is pinned',
+        ['old', 'new', 'mid'],
+        reason: 'the remaining pinned note still leads',
       );
+
+      final fourth = repo.insert(makeText('fourth'));
+      final fifth = repo.insert(makeText('fifth'));
+      final sixth = repo.insert(makeText('sixth'));
+      final seventh = repo.insert(makeText('seventh'));
+      expect(repo.pinNote(newest.id), isTrue);
+      expect(repo.pinNote(mid.id), isTrue);
+      expect(repo.pinNote(fourth.id), isTrue);
+      expect(repo.pinNote(fifth.id), isTrue);
+      expect(repo.pinnedNoteCount(), 5);
+      expect(repo.pinNote(sixth.id), isFalse);
+      expect(repo.pinNote(seventh.id), isFalse);
+      expect(repo.pinnedNoteCount(), 5);
     });
 
     test('the order is the dates, and nothing else can override it', () {

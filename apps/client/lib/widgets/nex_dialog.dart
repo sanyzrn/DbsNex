@@ -62,8 +62,32 @@ Future<T?> nexShowSheet<T>({
   useSafeArea: true,
   isDismissible: dismissible,
   enableDrag: dismissible,
-  showDragHandle: dismissible,
-  builder: (context) => SafeArea(top: false, child: builder(context)),
+  showDragHandle: false,
+  builder: (context) => NexGlassSurface(
+    borderRadius: const BorderRadius.vertical(
+      top: Radius.circular(NexRadius.xl),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (dismissible)
+          Padding(
+            padding: const EdgeInsets.only(top: NexSpacing.sm),
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        Flexible(child: SafeArea(top: false, child: builder(context))),
+      ],
+    ),
+  ),
 );
 
 /// A bottom sheet body that always fills the sheet's width.

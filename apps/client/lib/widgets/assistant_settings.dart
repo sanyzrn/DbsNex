@@ -53,12 +53,20 @@ class AssistantSettingsBody extends StatefulWidget {
 }
 
 class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
+  late final TextEditingController _name = TextEditingController(
+    text: widget.preferences.aiUserName,
+  );
+  late final TextEditingController _introduction = TextEditingController(
+    text: widget.preferences.aiUserIntroduction,
+  );
   late final TextEditingController _instruction = TextEditingController(
     text: widget.preferences.aiInstruction,
   );
 
   @override
   void dispose() {
+    _name.dispose();
+    _introduction.dispose();
     _instruction.dispose();
     super.dispose();
   }
@@ -71,6 +79,12 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
   /// keystroke's worth of it is not worth debouncing.
   void _saveInstruction(String value) =>
       unawaited(widget.preferences.setAiInstruction(value));
+
+  void _saveName(String value) =>
+      unawaited(widget.preferences.setAiUserName(value));
+
+  void _saveIntroduction(String value) =>
+      unawaited(widget.preferences.setAiUserIntroduction(value));
 
   @override
   Widget build(BuildContext context) {
@@ -85,8 +99,93 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
         padding: widget.padding,
         children: [
           _Group(
+            title: l10n.assistantAboutYouGroup,
+            children: [
+              _Field(
+                icon: Icons.badge_outlined,
+                label: l10n.assistantCallMe,
+                child: NexAutoDirection(
+                  controller: _name,
+                  builder: (context, direction) => TextField(
+                    controller: _name,
+                    onChanged: _saveName,
+                    maxLength: NexPreferences.aiUserNameMaxLength,
+                    textDirection: direction,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: _inputDecoration(
+                      theme,
+                      l10n.assistantCallMeHint,
+                    ),
+                  ),
+                ),
+              ),
+              _Field(
+                icon: Icons.person_search_outlined,
+                label: l10n.assistantAboutMe,
+                child: NexAutoDirection(
+                  controller: _introduction,
+                  builder: (context, direction) => TextField(
+                    controller: _introduction,
+                    onChanged: _saveIntroduction,
+                    maxLength: NexPreferences.aiUserIntroductionMaxLength,
+                    maxLines: 4,
+                    minLines: 2,
+                    textDirection: direction,
+                    textInputAction: TextInputAction.newline,
+                    decoration: _inputDecoration(
+                      theme,
+                      l10n.assistantAboutMeHint,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          _Group(
             title: l10n.assistantVoiceGroup,
             children: [
+              _Field(
+                icon: Icons.record_voice_over_outlined,
+                label: l10n.assistantResponseStyle,
+                child: NexChoiceCards<AiResponseStyle>(
+                  selected: preferences.aiResponseStyle,
+                  onSelected: (value) =>
+                      unawaited(preferences.setAiResponseStyle(value)),
+                  choices: [
+                    NexChoice(
+                      value: AiResponseStyle.natural,
+                      label: l10n.assistantStyleNatural,
+                      preview: const NexScriptSample(icon: Icons.waves),
+                    ),
+                    NexChoice(
+                      value: AiResponseStyle.friendly,
+                      label: l10n.assistantStyleFriendly,
+                      preview: const NexScriptSample(
+                        icon: Icons.sentiment_satisfied_alt,
+                      ),
+                    ),
+                    NexChoice(
+                      value: AiResponseStyle.formal,
+                      label: l10n.assistantStyleFormal,
+                      preview: const NexScriptSample(icon: Icons.work_outline),
+                    ),
+                    NexChoice(
+                      value: AiResponseStyle.serious,
+                      label: l10n.assistantStyleSerious,
+                      preview: const NexScriptSample(
+                        icon: Icons.gavel_outlined,
+                      ),
+                    ),
+                    NexChoice(
+                      value: AiResponseStyle.romantic,
+                      label: l10n.assistantStyleRomantic,
+                      preview: const NexScriptSample(
+                        icon: Icons.favorite_outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               _Field(
                 icon: Icons.tune,
                 label: l10n.assistantCreativity,
@@ -204,14 +303,9 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                     // follows the text rather than the app, and does it as
                     // the text arrives rather than once at build.
                     textDirection: direction,
-                    decoration: InputDecoration(
-                      hintText: l10n.assistantInstructionHint,
-                      filled: true,
-                      fillColor: theme.colorScheme.surface,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(NexRadius.md),
-                        borderSide: BorderSide.none,
-                      ),
+                    decoration: _inputDecoration(
+                      theme,
+                      l10n.assistantInstructionHint,
                     ),
                   ),
                 ),
@@ -222,6 +316,17 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
       ),
     );
   }
+
+  InputDecoration _inputDecoration(ThemeData theme, String hint) =>
+      InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: theme.colorScheme.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(NexRadius.md),
+          borderSide: BorderSide.none,
+        ),
+      );
 }
 
 /// One labelled card, the same shape Settings uses for its groups.
@@ -252,28 +357,24 @@ class _Group extends StatelessWidget {
               ),
             ),
           ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(NexRadius.lg),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(NexRadius.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < children.length; i++) ...[
-                    if (i > 0)
-                      Divider(
-                        height: 1,
-                        indent: NexSpacing.md,
-                        endIndent: NexSpacing.md,
-                        color: theme.colorScheme.outlineVariant,
-                      ),
-                    children[i],
-                  ],
+          Material(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(NexRadius.lg),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < children.length; i++) ...[
+                  if (i > 0)
+                    Divider(
+                      height: 1,
+                      indent: NexSpacing.md,
+                      endIndent: NexSpacing.md,
+                      color: theme.colorScheme.outlineVariant,
+                    ),
+                  children[i],
                 ],
-              ),
+              ],
             ),
           ),
         ],

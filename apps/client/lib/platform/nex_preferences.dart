@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:nex_ui/nex_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ai_provider.dart';
@@ -262,6 +263,13 @@ class NexPreferences extends ChangeNotifier {
 
   bool get comfortMode => _prefs.getBool('appearance.comfort') ?? false;
 
+  bool get liquidGlass => _prefs.getBool('appearance.liquid_glass') ?? false;
+
+  NexBackgroundPattern get backgroundPattern =>
+      NexBackgroundPatternWire.fromWire(
+        _prefs.getString('appearance.background_pattern'),
+      );
+
   /// The one accent colour a user actually picks — `#RRGGBB`, or null for
   /// the shipped default. The other three accent roles follow from it; see
   /// [NexAccentPalette].
@@ -330,6 +338,23 @@ class NexPreferences extends ChangeNotifier {
     return value == null || value.isEmpty ? null : value;
   }
 
+  String? get profilePhotoPath {
+    final value = _prefs.getString('profile.photo')?.trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  DateTime? get profileBirthday {
+    final value = _prefs.getString('profile.birthday');
+    return value == null ? null : DateTime.tryParse(value);
+  }
+
+  String get profileBio => _prefs.getString('profile.bio') ?? '';
+
+  bool get appLockEnabled => _prefs.getBool('security.app_lock') ?? false;
+
+  bool get appLockBiometricOnly =>
+      _prefs.getBool('security.biometric_only') ?? false;
+
   /// [displayName] cut to its first two words, for the places that render it
   /// inside a line of running text.
   ///
@@ -380,6 +405,14 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setComfortMode(bool value) =>
       _setBool('appearance.comfort', value);
+
+  Future<void> setLiquidGlass(bool value) =>
+      _setBool('appearance.liquid_glass', value);
+
+  Future<void> setBackgroundPattern(NexBackgroundPattern value) async {
+    await _prefs.setString('appearance.background_pattern', value.wireName);
+    notifyListeners();
+  }
 
   /// Null clears the setting back to the shipped default rather than storing
   /// an empty string — [accentSeed] only ever has to check for null.
@@ -593,6 +626,84 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setAiAnswerLength(AiAnswerLength value) async {
     await _prefs.setString('ai.answerLength', value.wireName);
+    notifyListeners();
+  }
+
+  AiResponseStyle get aiResponseStyle =>
+      AiResponseStyle.fromWire(_prefs.getString('ai.responseStyle'));
+
+  Future<void> setAiResponseStyle(AiResponseStyle value) async {
+    await _prefs.setString('ai.responseStyle', value.wireName);
+    notifyListeners();
+  }
+
+  Future<void> setProfilePhotoPath(String? value) async {
+    final path = value?.trim() ?? '';
+    if (path.isEmpty) {
+      await _prefs.remove('profile.photo');
+    } else {
+      await _prefs.setString('profile.photo', path);
+    }
+    notifyListeners();
+  }
+
+  Future<void> setProfileBirthday(DateTime? value) async {
+    if (value == null) {
+      await _prefs.remove('profile.birthday');
+    } else {
+      await _prefs.setString(
+        'profile.birthday',
+        DateTime(value.year, value.month, value.day).toIso8601String(),
+      );
+    }
+    notifyListeners();
+  }
+
+  Future<void> setProfileBio(String value) =>
+      _setBoundedText('profile.bio', value, 300);
+
+  Future<void> setAppLockEnabled(bool value) async {
+    await _prefs.setBool('security.app_lock', value);
+    if (!value) await _prefs.setBool('security.biometric_only', false);
+    notifyListeners();
+  }
+
+  Future<void> setAppLockBiometricOnly(bool value) async {
+    await _prefs.setBool('security.biometric_only', value);
+    if (value) await _prefs.setBool('security.app_lock', true);
+    notifyListeners();
+  }
+
+  static const aiUserNameMaxLength = 40;
+  static const aiUserIntroductionMaxLength = 500;
+
+  String get aiUserName => _prefs.getString('ai.userName') ?? '';
+
+  Future<void> setAiUserName(String value) async {
+    await _setBoundedText('ai.userName', value, aiUserNameMaxLength);
+  }
+
+  String get aiUserIntroduction =>
+      _prefs.getString('ai.userIntroduction') ?? '';
+
+  Future<void> setAiUserIntroduction(String value) async {
+    await _setBoundedText(
+      'ai.userIntroduction',
+      value,
+      aiUserIntroductionMaxLength,
+    );
+  }
+
+  Future<void> _setBoundedText(String key, String value, int maxLength) async {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      await _prefs.remove(key);
+    } else {
+      await _prefs.setString(
+        key,
+        trimmed.length <= maxLength ? trimmed : trimmed.substring(0, maxLength),
+      );
+    }
     notifyListeners();
   }
 

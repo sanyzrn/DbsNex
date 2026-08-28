@@ -963,7 +963,7 @@ class TimelineScreenState extends State<TimelineScreen> with RouteAware {
       // The preview first, not the cropper. Most photos need no edit at all,
       // and putting one in the path of every capture was the report.
       final cropped = await Navigator.of(context).push<Uint8List>(
-        MaterialPageRoute(builder: (_) => PhotoPreviewScreen(image: original)),
+        NexPageRoute(builder: (_) => PhotoPreviewScreen(image: original)),
       );
       if (cropped == null) return;
       final dest = p.join(
@@ -1388,7 +1388,7 @@ class TimelineScreenState extends State<TimelineScreen> with RouteAware {
             onPressed: () async {
               await Navigator.push(
                 context,
-                MaterialPageRoute<void>(
+                NexPageRoute<void>(
                   builder: (_) => LibraryScreen(
                     services: widget.services,
                     preferences: widget.preferences,
@@ -1571,11 +1571,14 @@ class TimelineScreenState extends State<TimelineScreen> with RouteAware {
               colors: nexAssistantSpectrum,
               onHoldStart: _tick,
               onTriggered: _openAssistant,
-              child: FloatingActionButton(
-                key: _captureAnchor,
-                onPressed: openCapture,
-                tooltip: l10n.capture,
-                child: const Icon(Icons.add, size: 32),
+              child: NexGlassSurface(
+                borderRadius: BorderRadius.circular(nexCaptureFabSize / 2),
+                child: FloatingActionButton(
+                  key: _captureAnchor,
+                  onPressed: openCapture,
+                  tooltip: l10n.capture,
+                  child: const Icon(Icons.add, size: 32),
+                ),
               ),
             ),
     );
@@ -1732,7 +1735,10 @@ class TimelineScreenState extends State<TimelineScreen> with RouteAware {
         // A toggle, because the swipe is the same gesture either way and a
         // pin that could only ever be set would need a second route to undo.
         if (note.pinnedAt == null) {
-          await widget.services.pinNote(note.id);
+          final pinned = await widget.services.pinNote(note.id);
+          if (!pinned && mounted) {
+            nexShowBanner(context, message: l10n.pinLimitReached);
+          }
         } else {
           await widget.services.unpinNote(note.id);
         }
@@ -2563,7 +2569,7 @@ class _GroupHeader extends StatelessWidget {
                 // Vertically it is weighted 60/40 toward the top. A heading belongs
                 // to what follows it, and even spacing makes it read as floating
                 // between two runs rather than opening one.
-                padding: const EdgeInsets.fromLTRB(
+                padding: const EdgeInsetsDirectional.fromSTEB(
                   NexSpacing.md,
                   _headerSpace * 0.6,
                   // Nothing on the trailing side: the menu button beside this
@@ -2613,7 +2619,7 @@ class _GroupHeader extends StatelessWidget {
           // full height while the chevron sat inside the heading's 60/40
           // weighting, and the pair read as very slightly crooked — which is
           // the kind of thing you see before you can say what it is.
-          padding: const EdgeInsets.fromLTRB(
+          padding: const EdgeInsetsDirectional.fromSTEB(
             NexSpacing.xs,
             _headerSpace * 0.6,
             NexSpacing.md,

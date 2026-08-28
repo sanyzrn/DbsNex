@@ -200,6 +200,222 @@ abstract class AppLocalizations {
   /// **'What it can see'**
   String get assistantReachGroup;
 
+  /// No description provided for @assistantAboutYouGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'About you'**
+  String get assistantAboutYouGroup;
+
+  /// No description provided for @assistantProfileIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Give the assistant a little context about you, then choose the voice that feels right. These details are sent only with assistant questions.'**
+  String get assistantProfileIntro;
+
+  /// No description provided for @assistantCallMe.
+  ///
+  /// In en, this message translates to:
+  /// **'What should it call you?'**
+  String get assistantCallMe;
+
+  /// No description provided for @assistantCallMeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your preferred name'**
+  String get assistantCallMeHint;
+
+  /// No description provided for @assistantAboutMe.
+  ///
+  /// In en, this message translates to:
+  /// **'A short introduction'**
+  String get assistantAboutMe;
+
+  /// No description provided for @assistantAboutMeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What should the assistant know about you?'**
+  String get assistantAboutMeHint;
+
+  /// No description provided for @assistantResponseStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Response style'**
+  String get assistantResponseStyle;
+
+  /// No description provided for @assistantStyleNatural.
+  ///
+  /// In en, this message translates to:
+  /// **'Natural'**
+  String get assistantStyleNatural;
+
+  /// No description provided for @assistantStyleFriendly.
+  ///
+  /// In en, this message translates to:
+  /// **'Friendly'**
+  String get assistantStyleFriendly;
+
+  /// No description provided for @assistantStyleFormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Formal'**
+  String get assistantStyleFormal;
+
+  /// No description provided for @assistantStyleSerious.
+  ///
+  /// In en, this message translates to:
+  /// **'Serious'**
+  String get assistantStyleSerious;
+
+  /// No description provided for @assistantStyleRomantic.
+  ///
+  /// In en, this message translates to:
+  /// **'Romantic'**
+  String get assistantStyleRomantic;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
+
+  /// No description provided for @profileOpenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo, name, birthday, and bio'**
+  String get profileOpenHint;
+
+  /// No description provided for @profileChangePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Change profile photo'**
+  String get profileChangePhoto;
+
+  /// No description provided for @profileRemovePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove photo'**
+  String get profileRemovePhoto;
+
+  /// No description provided for @profilePhotoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The profile photo could not be saved.'**
+  String get profilePhotoFailed;
+
+  /// No description provided for @profileBirthday.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthday'**
+  String get profileBirthday;
+
+  /// No description provided for @profileBirthdayEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get profileBirthdayEmpty;
+
+  /// No description provided for @profileBio.
+  ///
+  /// In en, this message translates to:
+  /// **'Bio'**
+  String get profileBio;
+
+  /// No description provided for @profileBioHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A few words about you'**
+  String get profileBioHint;
+
+  /// No description provided for @securityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get securityTitle;
+
+  /// No description provided for @securityAppLock.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock'**
+  String get securityAppLock;
+
+  /// No description provided for @securityOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get securityOff;
+
+  /// No description provided for @securityDevicePasscode.
+  ///
+  /// In en, this message translates to:
+  /// **'Device passcode'**
+  String get securityDevicePasscode;
+
+  /// No description provided for @securityDevicePasscodeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Nex with your phone or computer passcode, PIN, or pattern.'**
+  String get securityDevicePasscodeSubtitle;
+
+  /// No description provided for @securityBiometric.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint or biometrics'**
+  String get securityBiometric;
+
+  /// No description provided for @securityBiometricSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Require an enrolled fingerprint, face, or Windows Hello instead of passcode fallback.'**
+  String get securityBiometricSubtitle;
+
+  /// No description provided for @securityLocalOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication is handled by your device. Nex never receives or stores your passcode or biometric data.'**
+  String get securityLocalOnly;
+
+  /// No description provided for @securityPasscodeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up a device passcode, PIN, or pattern first.'**
+  String get securityPasscodeUnavailable;
+
+  /// No description provided for @securityBiometricUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No enrolled fingerprint or other biometric was found.'**
+  String get securityBiometricUnavailable;
+
+  /// No description provided for @securityAuthenticateReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Nex to protect your notes'**
+  String get securityAuthenticateReason;
+
+  /// No description provided for @securityLockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex is locked'**
+  String get securityLockedTitle;
+
+  /// No description provided for @securityLockedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticate with your device to open your notes.'**
+  String get securityLockedSubtitle;
+
+  /// No description provided for @securityUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get securityUnlock;
+
+  /// No description provided for @pinLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You can pin up to 5 notes'**
+  String get pinLimitReached;
+
   /// No description provided for @storageModels.
   ///
   /// In en, this message translates to:
@@ -691,6 +907,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Comfort Mode'**
   String get comfortMode;
+
+  /// No description provided for @liquidGlass.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid Glass'**
+  String get liquidGlass;
+
+  /// No description provided for @liquidGlassSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Adaptive translucent controls with real background blur'**
+  String get liquidGlassSubtitle;
+
+  /// No description provided for @backgroundStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Background'**
+  String get backgroundStyle;
+
+  /// No description provided for @backgroundStyleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimal built-in patterns tuned for both light and dark themes'**
+  String get backgroundStyleSubtitle;
+
+  /// No description provided for @backgroundPlain.
+  ///
+  /// In en, this message translates to:
+  /// **'Plain'**
+  String get backgroundPlain;
+
+  /// No description provided for @backgroundAurora.
+  ///
+  /// In en, this message translates to:
+  /// **'Aurora'**
+  String get backgroundAurora;
+
+  /// No description provided for @backgroundRipple.
+  ///
+  /// In en, this message translates to:
+  /// **'Ripple'**
+  String get backgroundRipple;
+
+  /// No description provided for @backgroundWeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Weave'**
+  String get backgroundWeave;
 
   /// Settings row that opens the accent-colour picker
   ///
@@ -2801,7 +3065,7 @@ abstract class AppLocalizations {
   /// Subtitle of the assistant settings row
   ///
   /// In en, this message translates to:
-  /// **'Creativity, answer length, and what it can see'**
+  /// **'Your profile, response style, and what it can see'**
   String get assistantSubtitle;
 
   /// How far the assistant may wander from the plainest answer
