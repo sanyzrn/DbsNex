@@ -250,6 +250,22 @@ jobs:
             --build-name=${{ needs.version.outputs.base }} \
             --build-number=${{ needs.version.outputs.code }}
 
+          # flutter_local_notifications resolves the small icon by its string
+          # name at runtime. Resource shrinking cannot see that reference, so a
+          # misplaced keep rule produces a valid APK whose notification plugin
+          # fails during initialise(). Verify the optimized resource table in
+          # every published APK before it gets anywhere near a release.
+          for apk in \
+            build/app/outputs/flutter-apk/app-armeabi-v7a-ai-release.apk \
+            build/app/outputs/flutter-apk/app-arm64-v8a-ai-release.apk \
+            build/app/outputs/flutter-apk/app-x86_64-ai-release.apk \
+            build/app/outputs/flutter-apk/app-ai-release.apk; do
+            if ! unzip -p "$apk" resources.arsc | grep -aF 'ic_stat_nex' >/dev/null; then
+              echo "::error::$apk is missing the dynamically loaded notification icon ic_stat_nex"
+              exit 1
+            fi
+          done
+
           # LiteRT-LM's native code is arm64-only, so the 32-bit splits carry
           # the app without the inference library. That is survivable and
           # deliberate — LocalAi refuses the feature on any ABI outside
