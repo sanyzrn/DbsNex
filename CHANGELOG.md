@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.2.2
+
 - **A new optional Liquid Glass appearance sits beside the existing light and
   dark themes.** It uses adaptive translucent surfaces, real background blur,
   restrained edge highlights, and softer press feedback while preserving an
