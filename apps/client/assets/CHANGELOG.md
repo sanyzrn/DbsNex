@@ -34,6 +34,27 @@ Working convention:
 
 ## Unreleased
 
+- **The glass appearance is frosted now, not see-through.** It was tuned like
+  a pane of glass — half transparent, a bright rim, a diagonal sheen — so
+  whatever sat behind a surface stayed readable through it and text landed on
+  text. The blur is heavier, the tint carries text at full contrast, the sheen
+  is gone and the edge is a hairline. Depth comes from the blur, not from
+  letting you read the layer underneath.
+- **Sheets have a surface of their own again.** Under the glass appearance a
+  sheet was drawn fully transparent, on the assumption that every one of them
+  wrapped itself in a glass panel — and most do not, so the reminder picker
+  and the chat history were painting their text straight onto the timeline.
+- **The page no longer goes see-through mid-swipe.** Sliding a screen back
+  revealed the page underneath *and* kept the moving page transparent, so for
+  the length of the gesture both were legible at once.
+- **Switches are smaller.** Material draws one at 52x32 and then pads it to a
+  48-pixel target on every side, which made it the loudest thing on a
+  settings row; the tick inside the thumb is gone with it.
+- **A reminder that has rung now clears itself when you put the app away.** It
+  was only cleared by opening another screen first, so anyone who read the
+  note and closed the app kept the chip until they deleted the reminder by
+  hand.
+
 ## v1.2.2
 
 - **A new optional Liquid Glass appearance sits beside the existing light and
