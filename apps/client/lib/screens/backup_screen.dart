@@ -35,7 +35,10 @@ class BackupScreen extends StatefulWidget {
 }
 
 class _BackupScreenState extends State<BackupScreen> {
-  List<File> _backups = const [];
+  /// Null until the first listing comes back — see the tag manager's own
+  /// field. Here the false claim is "No backups", told to someone opening the
+  /// one screen that exists to reassure them their data is recoverable.
+  List<File>? _backups;
   bool _busy = false;
 
   @override
@@ -164,6 +167,7 @@ class _BackupScreenState extends State<BackupScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final backups = _backups;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.dataAndBackup)),
       body: ListView(
@@ -213,7 +217,12 @@ class _BackupScreenState extends State<BackupScreen> {
             ),
           ),
           const SizedBox(height: NexSpacing.md),
-          if (_backups.isEmpty)
+          if (backups == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+              child: NexSkeleton(height: 16),
+            )
+          else if (backups.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
               child: Text(
@@ -222,7 +231,7 @@ class _BackupScreenState extends State<BackupScreen> {
               ),
             )
           else
-            for (final backup in _backups)
+            for (final backup in backups)
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: NexSpacing.lg,

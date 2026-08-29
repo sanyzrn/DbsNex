@@ -31,7 +31,12 @@ class RecentlyDeletedScreen extends StatefulWidget {
 }
 
 class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
-  List<Note> notes = const [];
+  /// Null until the first read comes back — see the tag manager's own field
+  /// for why that is not the same as empty. It matters more here than
+  /// anywhere: this screen holds the user's deleted notes, so "there is
+  /// nothing here" is the one sentence they least want to read by mistake,
+  /// and a purge runs before the read that produces it.
+  List<Note>? notes;
 
   @override
   void initState() {
@@ -80,7 +85,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
     final l10n = AppLocalizations.of(context);
     final ok = await _confirm(
       title: l10n.emptyTrash,
-      body: l10n.emptyTrashBody(notes.length),
+      body: l10n.emptyTrashBody(notes?.length ?? 0),
       confirm: l10n.emptyTrash,
     );
     if (ok != true) return;
@@ -121,11 +126,15 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final loaded = notes;
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.trash),
         actions: [
-          if (notes.isNotEmpty)
+          // Not while the read is still out: an Empty trash button on a
+          // screen that has not counted anything yet offers to destroy an
+          // unknown number of notes.
+          if (loaded != null && loaded.isNotEmpty)
             TextButton(
               onPressed: () => unawaited(_emptyTrash()),
               style: TextButton.styleFrom(
@@ -135,7 +144,9 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
             ),
         ],
       ),
-      body: notes.isEmpty
+      body: loaded == null
+          ? const NexLoadingList()
+          : loaded.isEmpty
           ? NexEmptyState(
               icon: Icons.delete_outline,
               message: l10n.recentlyDeletedEmpty,
@@ -160,10 +171,10 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                 Expanded(
                   child: ListView.separated(
                     padding: EdgeInsets.only(bottom: nexBottomInset(context)),
-                    itemCount: notes.length,
+                    itemCount: loaded.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
-                      final note = notes[index];
+                      final note = loaded[index];
                       return ListTile(
                         minTileHeight: 56,
                         leading: Icon(nexNoteTypeIcon(note.type.wireName)),

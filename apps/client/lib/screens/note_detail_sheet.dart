@@ -63,6 +63,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
   int _pinnedNoteCount = 0;
 
+  /// Whether the first read has come back, whatever it found.
+  ///
+  /// Separate from `_note != null`, because the interesting case is exactly
+  /// the one where both are false: nothing loaded *yet* is not nothing to
+  /// load.
+  bool _read = false;
+
   /// Whether the user has asked to see what the intelligence layer produced.
   ///
   /// The layer works on its own, in the background — that is the point of it —
@@ -105,6 +112,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     setState(() {
       _note = loaded;
       _pinnedNoteCount = pinnedNoteCount;
+      _read = true;
     });
     final note = _note;
     if (note?.type == NoteType.voice &&
@@ -632,9 +640,17 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final l10n = AppLocalizations.of(context);
     final note = _note;
     if (note == null) {
+      // "Not found" is a conclusion, and it needs the read to have finished
+      // to be one. It used to be shown for any null note, which includes
+      // every note that had simply not arrived yet — so opening a perfectly
+      // good note on slow storage said it was gone, then produced it. That is
+      // a temporary wait told as data loss, about the one thing this app is
+      // for.
       return Padding(
         padding: const EdgeInsets.all(NexSpacing.lg),
-        child: Text(l10n.noteNotFound),
+        child: _read
+            ? Text(l10n.noteNotFound)
+            : const NexSkeleton(height: 16),
       );
     }
     final isText = note.type == NoteType.text;
