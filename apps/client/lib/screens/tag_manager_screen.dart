@@ -22,7 +22,13 @@ class TagManagerScreen extends StatefulWidget {
 }
 
 class _TagManagerScreenState extends State<TagManagerScreen> {
-  List<TagUsage> tags = const [];
+  /// Null until the first read comes back, which is not the same as empty.
+  ///
+  /// It used to start as `const []`, so a screen whose read had not finished
+  /// yet said "no tags yet" and offered to create the first one — to someone
+  /// who already had tags. A slow read became a claim that their data was
+  /// gone, and an invitation to act on that premise.
+  List<TagUsage>? tags;
 
   @override
   void initState() {
@@ -39,6 +45,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final loaded = tags;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tags)),
       // The screen could rename, merge and delete tags but had no way to create
@@ -48,7 +55,9 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
         tooltip: l10n.createTag,
         child: const Icon(Icons.add),
       ),
-      body: tags.isEmpty
+      body: loaded == null
+          ? const NexLoadingList()
+          : loaded.isEmpty
           ? NexEmptyState(
               icon: Icons.label_outline,
               message: l10n.noTagsYet,
@@ -60,10 +69,10 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
             )
           : ListView.separated(
               padding: EdgeInsets.only(bottom: nexBottomInset(context)),
-              itemCount: tags.length,
+              itemCount: loaded.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
-                final value = tags[index];
+                final value = loaded[index];
                 return ListTile(
                   minTileHeight: 56,
                   leading: _ColorDot(color: value.tag.color),
@@ -75,7 +84,15 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
                     itemBuilder: (_) => [
                       PopupMenuItem(value: 'color', child: Text(l10n.color)),
                       PopupMenuItem(value: 'rename', child: Text(l10n.rename)),
-                      PopupMenuItem(value: 'merge', child: Text(l10n.merge)),
+                      // Only when there is another tag to merge into. With
+                      // one tag it opened a sheet listing every tag but this
+                      // one — that is, nothing — and the way out was to
+                      // dismiss it.
+                      if (loaded.length > 1)
+                        PopupMenuItem(
+                          value: 'merge',
+                          child: Text(l10n.merge),
+                        ),
                       PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
                     ],
                   ),
@@ -179,7 +196,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
         builder: (context) => ListView(
           shrinkWrap: true,
           children: [
-            for (final item in tags.where(
+            for (final item in (tags ?? const <TagUsage>[]).where(
               (item) => item.tag.id != value.tag.id,
             ))
               ListTile(

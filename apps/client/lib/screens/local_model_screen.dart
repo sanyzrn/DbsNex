@@ -66,11 +66,27 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
     final host = NexBannerHost.of(context);
     switch (_install.phase) {
       case ModelInstallPhase.installed:
-        nexBump();
-        host?.show(
-          message: l10n.localModelReady,
-          haptics: widget.preferences.haptics,
-        );
+        // "Installed" means the files arrived and verified, which is not the
+        // same as the model running. Warm-up records its failure and returns
+        // normally, so this used to congratulate the reader on offline chat
+        // in the same breath as the screen below showed why it would not
+        // start — a 2.6 GB operation ending in two contradictory answers.
+        if (_install.loadError == null) {
+          nexBump();
+          host?.show(
+            message: l10n.localModelReady,
+            haptics: widget.preferences.haptics,
+          );
+        } else {
+          // No bump: that flourish is for something that worked. The detail
+          // stays on the screen below, where there is room for the runtime's
+          // own words about which of the three causes it was.
+          host?.show(
+            message: l10n.localModelLoadFailed,
+            kind: NexBannerKind.failed,
+            haptics: widget.preferences.haptics,
+          );
+        }
         _install.reset();
       case ModelInstallPhase.failed:
         host?.show(

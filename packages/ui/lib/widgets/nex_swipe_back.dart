@@ -193,6 +193,46 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
     return route is NexPageRoute<dynamic> ? route : null;
   }
 
+  /// This page's own entrance and exit, and the one belonging to a page
+  /// pushed over it.
+  ///
+  /// Resolved once per dependency change rather than per build: a drag calls
+  /// `setState` every frame, and rebuilding the merged listenable there would
+  /// make [ListenableBuilder] drop and re-take its subscriptions every frame
+  /// for a pair of animations that never change identity.
+  ///
+  /// The always-on constants are the resting values, so a widget somehow
+  /// built outside a route reads as settled and on top rather than throwing.
+  Animation<double> _primary = kAlwaysCompleteAnimation;
+  Animation<double> _secondary = kAlwaysDismissedAnimation;
+  Listenable _routeAnimations = Listenable.merge(const []);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    _primary = route?.animation ?? kAlwaysCompleteAnimation;
+    _secondary = route?.secondaryAnimation ?? kAlwaysDismissedAnimation;
+    _routeAnimations = Listenable.merge([_primary, _secondary]);
+  }
+
+  /// Whether something is on screen beside this page right now, so that being
+  /// see-through would let the two be read through each other.
+  ///
+  /// *In flight*, deliberately, rather than "not at rest". A settled sheet
+  /// also parks this page's secondary animation away from zero, and treating
+  /// that as movement would hold the page opaque for as long as the sheet
+  /// stayed open — hiding the background pattern behind every sheet in the
+  /// app, which is a worse bug than the one being fixed. Nothing overlaps
+  /// dangerously once the motion has stopped: whatever is on top has settled
+  /// and paints its own surface.
+  bool get _moving =>
+      _drag > 0 || _inFlight(_primary) || _inFlight(_secondary);
+
+  static bool _inFlight(Animation<double> animation) =>
+      animation.status == AnimationStatus.forward ||
+      animation.status == AnimationStatus.reverse;
+
   void _onStart(DragStartDetails details) {
     _settle.stop();
     _drag = 0;
@@ -259,25 +299,41 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
         // Opaque while it moves. Under the glass appearance a Scaffold is
         // deliberately transparent, so the app's background paints once at
         // the root and every page sits on it. That is right until a page
-        // slides: `revealPrevious` un-opaques the route so the page beneath
-        // can paint, and the moving page — having no surface of its own —
-        // then let it through. Both pages' text landed on top of each other
-        // in the middle of the gesture.
+        // moves against the one behind it: two surfaceless pages overlap and
+        // both of their contents are legible at once.
         //
-        // Only while dragging: at rest the page is transparent again and the
-        // root background, pattern and all, shows through as designed.
+        // A drag is not the only way that happens, which is what the first
+        // version of this missed. It asked `_drag > 0` — a finger on the
+        // screen — and a push or a pop is an *animation*, with `_drag` at
+        // zero throughout. So the gesture was fixed and entering and leaving
+        // a page were not: for the length of each transition the two pages
+        // ran together, briefly and every time.
+        //
+        // The honest question is whether anything is moving beside this page:
+        // arriving, leaving, being covered, uncovered, or dragged. At rest it
+        // goes back to being see-through and the root background, pattern and
+        // all, shows through as designed.
         //
         // `canvasColor` rather than the visual style's own base: it is the
         // same opaque background, it is already on ThemeData, and reaching for
         // it here keeps this widget out of the tokens/appearance import cycle.
         // `scaffoldBackgroundColor` is the one thing it cannot be — under
         // glass that is transparent, which is the whole bug.
-        child: _drag > 0
-            ? ColoredBox(
-                color: Theme.of(context).canvasColor,
-                child: widget.child,
-              )
-            : widget.child,
+        child: ListenableBuilder(
+          listenable: _routeAnimations,
+          // The wrap is unconditional and only the colour changes. Adding and
+          // removing a `ColoredBox` around the page instead re-inflates
+          // everything under it on the way in and again on the way out, which
+          // costs the page its scroll position and its focus and shows as a
+          // flicker at exactly the moment this is trying to look calm.
+          builder: (context, child) => ColoredBox(
+            color: _moving
+                ? Theme.of(context).canvasColor
+                : Colors.transparent,
+            child: child,
+          ),
+          child: widget.child,
+        ),
       ),
     );
   }

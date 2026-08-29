@@ -194,6 +194,60 @@ class NexGlassSurface extends StatelessWidget {
   }
 }
 
+/// The blurred band behind a top bar, for a bar the content scrolls under.
+///
+/// [NexGlassSurface] is the wrong shape for this: it is a rounded panel with a
+/// shadow and a border all the way round, which is right for a card floating
+/// over a page and wrong for a strip welded to the top edge of one. This is
+/// the same material — heavy blur, flat tint, hairline — squared off, with the
+/// hairline only along the bottom, where the bar actually meets the list.
+///
+/// Meant for an `AppBar`'s `flexibleSpace`, and only worth anything if that
+/// bar's own `backgroundColor` is transparent and the body extends behind it.
+/// A `BackdropFilter` blurs whatever has already been painted beneath it, so a
+/// bar that fills itself in first has nothing left to blur but its own fill,
+/// and a body that stops at the bar's bottom edge gives it nothing to blur at
+/// all — which is how a translucent bar ends up looking like a dimmed pane of
+/// glass rather than a frosted one.
+///
+/// Nothing at all outside the glass appearance: there the bar is opaque, and
+/// its own colour is the right one to paint it with.
+class NexGlassBar extends StatelessWidget {
+  const NexGlassBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.nexVisualStyle;
+    if (!visual.liquidGlass) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    // Reading what is behind a bar is the point of the effect and the enemy of
+    // this setting, so it stops being translucent rather than being blurred
+    // harder — the same trade [NexGlassSurface] makes.
+    if (MediaQuery.highContrastOf(context)) {
+      return ColoredBox(
+        color: Color.alphaBlend(
+          scheme.surfaceContainerLowest,
+          visual.baseColor,
+        ).withValues(alpha: 1),
+      );
+    }
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: visual.blurSigma,
+          sigmaY: visual.blurSigma,
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: visual.glassTint,
+            border: Border(bottom: BorderSide(color: visual.glassBorder)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class NexBackgroundPreview extends StatelessWidget {
   const NexBackgroundPreview({super.key, required this.pattern});
 

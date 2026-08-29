@@ -176,3 +176,70 @@ class NexCardSkeleton extends StatelessWidget {
     );
   }
 }
+
+/// A list of placeholder rows, for a screen whose first read has not returned.
+///
+/// [NexCardSkeleton] is the timeline's shape and the wrong one here: the tag
+/// manager, the trash and the backup list are `ListTile` rows, so standing in
+/// for them with cards would reflow the whole screen the moment the real rows
+/// arrived — which is the jump a skeleton exists to prevent.
+///
+/// This is not decoration. The screens that use it opened by *claiming* to be
+/// empty and then filling in, so a slow read read as data loss on the three
+/// screens that manage data. A placeholder says "not yet" where those said
+/// "there is nothing".
+class NexLoadingList extends StatelessWidget {
+  const NexLoadingList({super.key, this.rows = 5});
+
+  /// Enough to look like a list rather than an accident, without implying a
+  /// count — the real one is not known yet.
+  final int rows;
+
+  @override
+  Widget build(BuildContext context) => ListView.separated(
+    // Not scrollable: there is nothing to reach, and a placeholder that moves
+    // under the finger invites pulling at something that cannot respond.
+    physics: const NeverScrollableScrollPhysics(),
+    itemCount: rows,
+    separatorBuilder: (_, _) => const Divider(height: 1),
+    itemBuilder: (_, _) => const _TileSkeleton(),
+  );
+}
+
+class _TileSkeleton extends StatelessWidget {
+  const _TileSkeleton();
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(
+    // The `minTileHeight` every one of these lists gives its real rows.
+    height: 56,
+    child: Padding(
+      padding: EdgeInsets.symmetric(horizontal: NexSpacing.md),
+      child: Row(
+        children: [
+          NexSkeleton(width: 24, height: 24, radius: 12),
+          SizedBox(width: NexSpacing.contentGap),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FractionallySizedBox(
+                  alignment: AlignmentDirectional.centerStart,
+                  widthFactor: 0.45,
+                  child: NexSkeleton(height: 14),
+                ),
+                SizedBox(height: NexSpacing.xs),
+                FractionallySizedBox(
+                  alignment: AlignmentDirectional.centerStart,
+                  widthFactor: 0.25,
+                  child: NexSkeleton(height: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}

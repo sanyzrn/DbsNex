@@ -86,6 +86,38 @@ List<Widget> searchResultSlivers({
     );
   }
 
+  // Before "no results": a search that threw found nothing in the sense that
+  // matters here, and saying "nothing matches" would blame the query for the
+  // database's problem.
+  if (search.failure != null) {
+    return [
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(NexSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.searchFailed, style: theme.textTheme.bodyMedium),
+              const SizedBox(height: NexSpacing.sm),
+              // The one thing worth offering. A search is cheap and the
+              // failure may not repeat, so the way out is to ask again rather
+              // than to leave search altogether — which was the only way out
+              // before.
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  onPressed: () => unawaited(search.run()),
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: Text(l10n.retry),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ];
+  }
+
   if (!search.hasRun) {
     return [
       SliverList.builder(

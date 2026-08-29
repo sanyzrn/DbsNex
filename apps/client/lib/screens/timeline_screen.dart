@@ -1026,7 +1026,22 @@ class TimelineScreenState extends State<TimelineScreen>
 
   Future<void> captureVoice() async {
     final recorder = AudioRecorder();
-    if (!await recorder.hasPermission()) return recorder.dispose();
+    // Say so. A denied microphone used to end this method on the spot, with
+    // no sheet, no banner and no reason — the button simply did nothing, and
+    // "nothing" is indistinguishable from a broken control. There is no way
+    // to open the system settings from here without a dependency this app
+    // does not carry, so the message names where the permission lives.
+    if (!await recorder.hasPermission()) {
+      await recorder.dispose();
+      if (!mounted) return;
+      nexShowBanner(
+        context,
+        message: AppLocalizations.of(context).micDenied,
+        kind: NexBannerKind.failed,
+        haptics: widget.preferences.haptics,
+      );
+      return;
+    }
     final elapsed = Stopwatch()..start();
     final path = p.join(
       widget.services.mediaDir,
@@ -1361,8 +1376,14 @@ class TimelineScreenState extends State<TimelineScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final glass = context.nexVisualStyle.liquidGlass;
     return Scaffold(
       appBar: AppBar(
+        // Transparent so the blur below has the list to work on rather than a
+        // fill of the bar's own — see [NexGlassBar]. Null keeps the theme's
+        // opaque colour everywhere else.
+        backgroundColor: glass ? Colors.transparent : null,
+        flexibleSpace: glass ? const NexGlassBar() : null,
         // The greeting used to live here, squeezed between the mark and the
         // two action icons. It is a header now, at header size, in the list
         // below — which is what it always wanted to be, and what left the bar

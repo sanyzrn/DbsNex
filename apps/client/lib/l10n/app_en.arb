@@ -1756,5 +1756,17 @@
   "remindDenied": "Nex needs permission to send notifications.",
   "@remindDenied": {
     "description": "Shown when notification permission is refused"
+  },
+  "micDenied": "Nex needs permission to use the microphone. You can grant it in your device's app settings.",
+  "@micDenied": {
+    "description": "Shown when microphone permission is refused and a recording cannot start"
+  },
+  "searchFailed": "That search could not be run.",
+  "@searchFailed": {
+    "description": "Shown in the results area when a search throws"
+  },
+  "summarizeFailed": "No summary came back for this note.",
+  "@summarizeFailed": {
+    "description": "Shown when an on-demand summary produces nothing"
   }
 }

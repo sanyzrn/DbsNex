@@ -38,6 +38,21 @@ class NoteSearchController extends ChangeNotifier {
   bool get hasRun => _hasRun;
   bool _hasRun = false;
 
+  /// Why the last search did not run, or null if it ran.
+  ///
+  /// A thrown search used to leave `run()` before `_hasRun` was ever set, and
+  /// the results area shows skeletons for as long as that is false — so the
+  /// one visible consequence of a failed search was three placeholder cards,
+  /// for ever. "Search keeps loading" is a worse report than "search failed",
+  /// because there is nothing in it to act on.
+  ///
+  /// The reason is kept rather than dropped, on the same principle the
+  /// reminders follow, even though the results area shows only the plain
+  /// sentence: a database error is not something the reader can act on, and
+  /// the retry beside it is.
+  String? get failure => _failure;
+  String? _failure;
+
   Timer? _debounce;
 
   /// Guards against an older query resolving after a newer one and overwriting
@@ -83,32 +98,45 @@ class NoteSearchController extends ChangeNotifier {
       for (final name in typed.tagNames)
         if (_tagIdNamed(name) case final id?) id else _noSuchTag,
     ];
-    final found = await services.search(
-      SearchFilters(
-        query: typed.text,
-        tagIds: {...tags, ...typedTagIds}.toList(),
-        types: {...types, ...typed.types}.toList(),
-        createdFrom: range?.start,
-        createdTo: range?.end.add(const Duration(days: 1)),
-      ),
-    );
-    final trimmed = typed.text.trim();
-    Note? close;
-    List<Note> semantic = const [];
-    if (found.isEmpty && trimmed.isNotEmpty) {
-      final widened = await Future.wait([
-        services.nearestMiss(trimmed),
-        _semanticMatches(trimmed),
-      ]);
-      close = widened[0] as Note?;
-      semantic = (widened[1] as List<Note>)
-          .where((note) => note.id != close?.id)
-          .toList();
+    try {
+      final found = await services.search(
+        SearchFilters(
+          query: typed.text,
+          tagIds: {...tags, ...typedTagIds}.toList(),
+          types: {...types, ...typed.types}.toList(),
+          createdFrom: range?.start,
+          createdTo: range?.end.add(const Duration(days: 1)),
+        ),
+      );
+      final trimmed = typed.text.trim();
+      Note? close;
+      List<Note> semantic = const [];
+      if (found.isEmpty && trimmed.isNotEmpty) {
+        final widened = await Future.wait([
+          services.nearestMiss(trimmed),
+          _semanticMatches(trimmed),
+        ]);
+        close = widened[0] as Note?;
+        semantic = (widened[1] as List<Note>)
+            .where((note) => note.id != close?.id)
+            .toList();
+      }
+      if (current != _request) return;
+      results = found;
+      nearest = close;
+      semanticResults = semantic;
+      _failure = null;
+    } catch (error) {
+      // A newer query is already in flight and will report for itself; an
+      // older one's failure is not news.
+      if (current != _request) return;
+      results = const [];
+      nearest = null;
+      semanticResults = const [];
+      _failure = '$error';
     }
-    if (current != _request) return;
-    results = found;
-    nearest = close;
-    semanticResults = semantic;
+    // Either way the search has now been *attempted*, which is what stops the
+    // skeletons. Reached only by the paths that did not return early above.
     _hasRun = true;
     notifyListeners();
   }
@@ -136,6 +164,7 @@ class NoteSearchController extends ChangeNotifier {
     nearest = null;
     semanticResults = const [];
     _hasRun = false;
+    _failure = null;
     notifyListeners();
   }
 

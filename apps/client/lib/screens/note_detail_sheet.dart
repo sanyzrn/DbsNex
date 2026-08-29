@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/ai_chat_sheet.dart';
+import '../platform/ai_provider.dart';
 import '../platform/file_opener.dart';
 import '../platform/sharing.dart';
 import '../widgets/nex_dialog.dart';
@@ -63,6 +64,16 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
   int _pinnedNoteCount = 0;
 
+  /// Whether the first read has come back, whatever it found.
+  ///
+  /// Separate from `_note != null`, because the interesting case is exactly
+  /// the one where both are false: nothing loaded *yet* is not nothing to
+  /// load.
+  bool _read = false;
+
+  /// True while an on-demand summary is out.
+  bool _summarizing = false;
+
   /// Whether the user has asked to see what the intelligence layer produced.
   ///
   /// The layer works on its own, in the background — that is the point of it —
@@ -98,6 +109,34 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     super.dispose();
   }
 
+  /// Asks for a summary and says what came back.
+  ///
+  /// The old version was `await summarizeOnDemand(id); await _reload();` — it
+  /// discarded the result and reloaded either way, so a summary that could
+  /// not be produced looked exactly like one that had not arrived yet, which
+  /// looked exactly like a tap that had not registered.
+  Future<void> _summarize(String noteId) async {
+    setState(() => _summarizing = true);
+    Summary? summary;
+    try {
+      summary = await widget.services.summarizeOnDemand(noteId);
+    } finally {
+      if (mounted) setState(() => _summarizing = false);
+    }
+    await _reload();
+    if (!mounted || summary != null) return;
+    // Gated above on the capability and the provider, so reaching here means
+    // the request was made and came back with nothing — a refusal, an
+    // unusable answer, or a provider that failed. Which of those it was is
+    // not distinguishable here; that it did not work is.
+    nexShowBanner(
+      context,
+      message: AppLocalizations.of(context).summarizeFailed,
+      kind: NexBannerKind.failed,
+      haptics: widget.preferences?.haptics ?? true,
+    );
+  }
+
   Future<void> _reload() async {
     final loaded = await widget.services.getById(widget.noteId);
     final pinnedNoteCount = await widget.services.pinnedNoteCount();
@@ -105,6 +144,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     setState(() {
       _note = loaded;
       _pinnedNoteCount = pinnedNoteCount;
+      _read = true;
     });
     final note = _note;
     if (note?.type == NoteType.voice &&
@@ -632,9 +672,17 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final l10n = AppLocalizations.of(context);
     final note = _note;
     if (note == null) {
+      // "Not found" is a conclusion, and it needs the read to have finished
+      // to be one. It used to be shown for any null note, which includes
+      // every note that had simply not arrived yet — so opening a perfectly
+      // good note on slow storage said it was gone, then produced it. That is
+      // a temporary wait told as data loss, about the one thing this app is
+      // for.
       return Padding(
         padding: const EdgeInsets.all(NexSpacing.lg),
-        child: Text(l10n.noteNotFound),
+        child: _read
+            ? Text(l10n.noteNotFound)
+            : const NexSkeleton(height: 16),
       );
     }
     final isText = note.type == NoteType.text;
@@ -1055,17 +1103,30 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             ),
                           ),
                         ),
-                      _DetailAction(
-                        // Was the sparkle, which now belongs to the
-                        // assistant. This one says what it does.
-                        icon: Icons.summarize_outlined,
-                        label: l10n.summarize,
-                        accent: true,
-                        onPressed: () async {
-                          await widget.services.summarizeOnDemand(note.id);
-                          await _reload();
-                        },
-                      ),
+                      // Only where it can do something. The action used to be
+                      // offered unconditionally, and every path that cannot
+                      // produce a summary — the capability switched off, no
+                      // provider configured, the adapter unavailable —
+                      // returns null from the same call, so tapping it did
+                      // nothing at all and taught the reader that a primary
+                      // action was broken. Gated on the same pair the
+                      // translate action uses, plus the switch that governs
+                      // this one specifically.
+                      if (widget.preferences case final preferences?
+                          when preferences.effectiveAiCapabilities.summarization &&
+                              aiTextAvailableWith(preferences.aiProvider))
+                        _DetailAction(
+                          // Was the sparkle, which now belongs to the
+                          // assistant. This one says what it does.
+                          icon: Icons.summarize_outlined,
+                          label: l10n.summarize,
+                          accent: true,
+                          // Null while one is already running, so a slow
+                          // summary cannot be asked for four more times.
+                          onPressed: _summarizing
+                              ? null
+                              : () => unawaited(_summarize(note.id)),
+                        ),
                     ],
                     // What the note is, and getting rid of it.
                     [
