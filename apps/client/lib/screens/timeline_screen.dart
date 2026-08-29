@@ -1361,8 +1361,14 @@ class TimelineScreenState extends State<TimelineScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final glass = context.nexVisualStyle.liquidGlass;
     return Scaffold(
       appBar: AppBar(
+        // Transparent so the blur below has the list to work on rather than a
+        // fill of the bar's own — see [NexGlassBar]. Null keeps the theme's
+        // opaque colour everywhere else.
+        backgroundColor: glass ? Colors.transparent : null,
+        flexibleSpace: glass ? const NexGlassBar() : null,
         // The greeting used to live here, squeezed between the mark and the
         // two action icons. It is a header now, at header size, in the list
         // below — which is what it always wanted to be, and what left the bar

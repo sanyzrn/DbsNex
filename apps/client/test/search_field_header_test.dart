@@ -73,6 +73,30 @@ void main() {
     }
   }
 
+  testWidgets('the header lays no band of colour across the background', (
+    tester,
+  ) async {
+    // The tag row below is pinned and does need a backing; this header is not
+    // and does not. Painted anyway it was an opaque strip drawn straight
+    // across whatever background the reader had chosen.
+    final theme = nexDarkTheme();
+    await effective(tester, theme: theme, searching: false);
+    // Scoped to this header's own subtree, so a ColoredBox belonging to the
+    // scaffold or the viewport cannot fail it for the wrong reason.
+    final bands = tester
+        .widgetList<ColoredBox>(
+          find.descendant(
+            of: find.byWidgetPredicate(
+              (widget) =>
+                  widget is TapRegion && widget.groupId == nexSearchTapGroup,
+            ),
+            matching: find.byType(ColoredBox),
+          ),
+        )
+        .where((box) => box.color == theme.colorScheme.surface);
+    expect(bands, isEmpty);
+  });
+
   testWidgets('and the theme it sits in really does frame a plain field', (
     tester,
   ) async {
