@@ -311,7 +311,16 @@ class _AiChatSheetState extends State<AiChatSheet> {
     creativity: widget.preferences.aiCreativity,
     length: widget.preferences.aiAnswerLength,
     notesOnly: widget.preferences.aiNotesOnly,
-    instruction: widget.preferences.aiInstruction,
+    // Tone has one control: a preset says how to sound, and "Custom" replaces
+    // it with the user's own sentence. Sending both would be two answers to
+    // one question — "be formal" and "be witty and sarcastic" arriving
+    // together, with nothing to say which wins — so the text only travels
+    // under the style it belongs to. It stays in storage either way, so
+    // switching back to Custom brings it back rather than asking for it again.
+    instruction:
+        widget.preferences.aiResponseStyle == AiResponseStyle.custom
+        ? widget.preferences.aiInstruction
+        : '',
     responseStyle: widget.preferences.aiResponseStyle,
     userName: widget.preferences.aiUserName,
     userIntroduction: widget.preferences.aiUserIntroduction,

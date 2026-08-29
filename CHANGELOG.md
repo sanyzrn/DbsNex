@@ -70,8 +70,9 @@ direction, and to the surfaces both of them touch.
   free-text instruction were both about how the assistant sounds, so picking
   "Formal" and writing "be witty and sarcastic" left nothing to say which one
   won. "Custom" is now the sixth style — the one you write yourself — and the
-  box appears under it. An instruction written before this still works: it is
-  read as a custom style rather than quietly dropped.
+  box appears under it. Your sentence is kept either way, so switching to a
+  preset and back does not ask for it again. An instruction written before
+  this still works: it is read as a custom style rather than quietly dropped.
 - **The daily summary lines up in Persian.** Its icon and its text were placed
   with left-and-right padding rather than start-and-end, so in a right-to-left
   layout both stayed pinned to the side they were written for and sat out of

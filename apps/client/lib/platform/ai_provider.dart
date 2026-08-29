@@ -939,13 +939,10 @@ class CloudAIAdapter implements AIAdapter {
         ].join(' '),
       );
     }
-    // Only under the custom style. Tone has one control now: a preset says how
-    // to sound, and "Custom" replaces it with the user's own sentence. Sending
-    // both would be two answers to one question — "be formal" and "be witty
-    // and sarcastic" arriving together, with nothing to say which wins.
-    final instruction = options.responseStyle == AiResponseStyle.custom
-        ? options.instruction.trim()
-        : '';
+    // Whether the user *has* an instruction is settled before it gets here —
+    // tone has one control now, and only the custom style carries a sentence
+    // of its own. An instruction that arrives is one that applies.
+    final instruction = options.instruction.trim();
     if (instruction.isNotEmpty) {
       // Quoted and labelled rather than pasted in as another rule of the
       // app's own. The model needs to be able to tell the difference between
