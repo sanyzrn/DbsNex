@@ -1171,13 +1171,26 @@ void main() {
       // app is opened to read the note, and the app is put away again. No
       // route is ever pushed, so `didPushNext` never fires — and the chip
       // used to stay on the card until the reminder was deleted by hand.
-      // Through `inactive` on the way back: Flutter asserts on the transition
-      // itself, and paused straight to resumed is not one a real device ever
-      // makes.
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      // The whole cycle, in order. Flutter asserts on each transition, and
+      // between `resumed` and `paused` there are two more states in both
+      // directions — `inactive` on the way out and `hidden` either side of
+      // the bottom. Shortcutting any of them throws, which is fair: no device
+      // makes those jumps either.
+      for (final state in [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
       await tester.pumpAndSettle();
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      for (final state in [
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
