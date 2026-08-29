@@ -106,6 +106,13 @@ class NexReminders {
       completer.complete();
     } catch (error, stackTrace) {
       completer.completeError(error, stackTrace);
+      // The originating caller gets this by `rethrow`; the completer's future
+      // is a *second* future carrying the same error, and it has a listener
+      // only when another caller happened to be waiting. With no concurrent
+      // caller — the ordinary case — it would go unheard, and an unheard
+      // error on a future is reported to the zone as an unhandled async
+      // exception, which this app writes into its own crash log.
+      completer.future.ignore();
       rethrow;
     } finally {
       if (identical(_initialising, completer)) _initialising = null;

@@ -435,6 +435,11 @@ ThemeData _theme({
   final elevatedSurface = liquidGlass
       ? elevated.withValues(alpha: dark ? 0.66 : 0.62)
       : elevated;
+  // What a sheet is drawn on. Higher than the other glass surfaces on
+  // purpose: a sheet covers the page rather than sitting within it, and it is
+  // the one place where seeing the layer underneath is not depth, it is two
+  // paragraphs on top of each other.
+  final sheetSurface = card.withValues(alpha: dark ? 0.94 : 0.96);
   // Declared, not seeded. `ColorScheme.fromSeed` derives a tonal palette from
   // the seed's hue and chroma, and the seed here was near-black — chroma about
   // zero — so every role nobody overrode came out an undesigned grey. One of
@@ -526,8 +531,14 @@ ThemeData _theme({
       ),
     ),
     bottomSheetTheme: BottomSheetThemeData(
-      backgroundColor: liquidGlass ? Colors.transparent : card,
-      modalBackgroundColor: liquidGlass ? Colors.transparent : card,
+      // Not transparent. Transparency here assumed every sheet would wrap
+      // itself in a NexGlassSurface, and most do not — the reminder picker,
+      // the chat history and the group menu are plain sheets, so they were
+      // being drawn with no surface at all and their text sat directly on the
+      // timeline. A sheet is a thing you put in front of the page; it has to
+      // be able to hold text on its own.
+      backgroundColor: liquidGlass ? sheetSurface : card,
+      modalBackgroundColor: liquidGlass ? sheetSurface : card,
       surfaceTintColor: Colors.transparent,
       elevation: liquidGlass ? 0 : 8,
       modalElevation: liquidGlass ? 0 : 8,
@@ -610,23 +621,52 @@ ThemeData _theme({
       minTileHeight: nexMinTapTarget,
       contentPadding: EdgeInsets.symmetric(horizontal: NexSpacing.md),
     ),
+    // Material 3 draws a switch at 52x32 with a 24-pixel thumb and then pads
+    // it out to a 48-pixel tap target on every side, which next to a 14-pixel
+    // label is the loudest control on a settings row. `shrinkWrap` drops the
+    // padding and `compact` tightens what is left; the switch itself is
+    // untouched, so the thing you aim at is still the row.
     switchTheme: SwitchThemeData(
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
-      thumbIcon: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.selected)
-            ? const Icon(Icons.check, size: 14)
-            : null,
-      ),
+      // The tick that used to sit inside the thumb is gone with it. iOS puts
+      // no glyph in a switch, and at this size it is a mark nobody reads on a
+      // control whose whole job is to be read as a position. Flutter's own
+      // default is no icon, so this is simply not overridden any more.
+    ),
+    checkboxTheme: const CheckboxThemeData(
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+    ),
+    radioTheme: const RadioThemeData(
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
     ),
     extensions: [
       NexVisualStyle(
         liquidGlass: liquidGlass,
         baseColor: background,
-        glassTint: card.withValues(alpha: dark ? 0.56 : 0.52),
-        glassBorder: Colors.white.withValues(alpha: dark ? 0.16 : 0.62),
-        glassHighlight: Colors.white.withValues(alpha: dark ? 0.13 : 0.46),
-        glassShadow: Colors.black.withValues(alpha: dark ? 0.34 : 0.14),
-        blurSigma: 22,
+        // Frosted, not see-through. The first pass at this was tuned like a
+        // glass *pane* — half-transparent, a bright white rim, a diagonal
+        // sheen — and the result was that whatever sat behind a surface stayed
+        // legible through it, so text landed on text. iOS's own materials, and
+        // Telegram's, work the other way round: the blur is heavy enough that
+        // the backdrop becomes a wash of colour rather than an image, the tint
+        // sits high enough to carry text at full contrast, and the only edge
+        // is a hairline. Depth comes from the blur and the shadow; none of it
+        // comes from letting you read the layer underneath.
+        glassTint: card.withValues(alpha: dark ? 0.82 : 0.86),
+        // A hairline. In light the rim is a dark one — a white edge on a pale
+        // surface is invisible where it matters and glaring where it does not.
+        glassBorder: dark
+            ? Colors.white.withValues(alpha: 0.10)
+            : Colors.black.withValues(alpha: 0.07),
+        // No sheen. A diagonal white gradient across every panel is the one
+        // thing that reads as a 2013 skeuomorph rather than a system material,
+        // and it fights the text sitting on top of it.
+        glassHighlight: Colors.transparent,
+        glassShadow: Colors.black.withValues(alpha: dark ? 0.40 : 0.12),
+        blurSigma: 32,
       ),
     ],
     // A capsule that floats, not a slab pinned to the bottom edge.

@@ -60,7 +60,8 @@ class TimelineScreen extends StatefulWidget {
   State<TimelineScreen> createState() => TimelineScreenState();
 }
 
-class TimelineScreenState extends State<TimelineScreen> with RouteAware {
+class TimelineScreenState extends State<TimelineScreen>
+    with RouteAware, WidgetsBindingObserver {
   /// Everything the timeline stream last delivered, before filters.
   ///
   /// **Null means "not known yet"**, which is a different thing from "empty".
@@ -217,6 +218,7 @@ class TimelineScreenState extends State<TimelineScreen> with RouteAware {
       }
     });
     _seenReminders = widget.preferences.seenReminders;
+    WidgetsBinding.instance.addObserver(this);
     _search.addListener(_onSearchChanged);
     _scroll.addListener(_onAiSummaryScroll);
     // Both halves of a tapped reminder: one for a tap while the app is up,
@@ -806,8 +808,26 @@ class TimelineScreenState extends State<TimelineScreen> with RouteAware {
   @override
   void didPushNext() => unawaited(_markRemindersSeen());
 
+  /// Leaving the app counts as leaving the timeline.
+  ///
+  /// `didPushNext` only fires when another *route* covers this one, and the
+  /// way a spent reminder is actually met is nothing like that: the
+  /// notification arrives, the app is opened to read the note, and then the
+  /// app is put away — no route is ever pushed. So the chip was marked seen
+  /// only by someone who happened to open Settings or the Library on the way
+  /// out, and for everyone else it stayed on the card until the reminder was
+  /// deleted by hand, which is the report.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      unawaited(_markRemindersSeen());
+    }
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     nexRouteObserver.unsubscribe(this);
     // Removed, never left behind: an overlay entry outlives the state that
     // inserted it, so a screen replaced mid-tour would leave a scrim over

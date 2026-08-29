@@ -256,7 +256,28 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
       onHorizontalDragCancel: _onCancel,
       child: Transform.translate(
         offset: Offset(_drag * _sign, 0),
-        child: widget.child,
+        // Opaque while it moves. Under the glass appearance a Scaffold is
+        // deliberately transparent, so the app's background paints once at
+        // the root and every page sits on it. That is right until a page
+        // slides: `revealPrevious` un-opaques the route so the page beneath
+        // can paint, and the moving page — having no surface of its own —
+        // then let it through. Both pages' text landed on top of each other
+        // in the middle of the gesture.
+        //
+        // Only while dragging: at rest the page is transparent again and the
+        // root background, pattern and all, shows through as designed.
+        //
+        // `canvasColor` rather than the visual style's own base: it is the
+        // same opaque background, it is already on ThemeData, and reaching for
+        // it here keeps this widget out of the tokens/appearance import cycle.
+        // `scaffoldBackgroundColor` is the one thing it cannot be — under
+        // glass that is transparent, which is the whole bug.
+        child: _drag > 0
+            ? ColoredBox(
+                color: Theme.of(context).canvasColor,
+                child: widget.child,
+              )
+            : widget.child,
       ),
     );
   }

@@ -1153,6 +1153,49 @@ void main() {
       expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
     });
 
+    testWidgets('putting the app away counts as leaving', (tester) async {
+      await services.captureText('call the plumber');
+      final note = (await services.worker.timeline()).single;
+      await services.setDueAt(
+        note.id,
+        DateTime.now().toUtc().subtract(const Duration(hours: 1)),
+      );
+
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+
+      // How a spent reminder is actually met: the notification arrives, the
+      // app is opened to read the note, and the app is put away again. No
+      // route is ever pushed, so `didPushNext` never fires — and the chip
+      // used to stay on the card until the reminder was deleted by hand.
+      // The whole cycle, in order. Flutter asserts on each transition, and
+      // between `resumed` and `paused` there are two more states in both
+      // directions — `inactive` on the way out and `hidden` either side of
+      // the bottom. Shortcutting any of them throws, which is fair: no device
+      // makes those jumps either.
+      for (final state in [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+      await tester.pumpAndSettle();
+      for (final state in [
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
+    });
+
     testWidgets('a repeating reminder is never spent', (tester) async {
       await services.captureText('call the plumber');
       final note = (await services.worker.timeline()).single;

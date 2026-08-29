@@ -175,19 +175,16 @@ class NexGlassSurface extends StatelessWidget {
             sigmaY: visual.blurSigma,
           ),
           child: DecoratedBox(
+            // A flat tint over a heavy blur, and a hairline. No gradient:
+            // the diagonal sheen this used to carry lightened one corner of
+            // every panel and darkened the other, so a line of text changed
+            // contrast depending on where it fell. A system material is even
+            // — the depth is in the blur behind it, not in a highlight
+            // painted across the front.
             decoration: BoxDecoration(
               borderRadius: borderRadius,
               color: visual.glassTint,
               border: Border.all(color: visual.glassBorder),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  visual.glassHighlight,
-                  visual.glassTint.withValues(alpha: 0.18),
-                ],
-                stops: const [0, 0.72],
-              ),
             ),
             child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
           ),
