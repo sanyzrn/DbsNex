@@ -3505,6 +3505,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nex needs permission to use the microphone. You can grant it in your device\'s app settings.'**
   String get micDenied;
+
+  /// Shown in the results area when a search throws
+  ///
+  /// In en, this message translates to:
+  /// **'That search could not be run.'**
+  String get searchFailed;
 }
 
 class _AppLocalizationsDelegate

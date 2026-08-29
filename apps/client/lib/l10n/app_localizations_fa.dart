@@ -2033,4 +2033,7 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get micDenied =>
       'برای ضبط صدا، اجازه دسترسی به میکروفون لازم است. می‌توانید آن را در تنظیمات برنامه در دستگاهتان بدهید.';
+
+  @override
+  String get searchFailed => 'این جست‌وجو انجام نشد.';
 }

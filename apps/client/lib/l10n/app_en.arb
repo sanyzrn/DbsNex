@@ -1760,5 +1760,9 @@
   "micDenied": "Nex needs permission to use the microphone. You can grant it in your device's app settings.",
   "@micDenied": {
     "description": "Shown when microphone permission is refused and a recording cannot start"
+  },
+  "searchFailed": "That search could not be run.",
+  "@searchFailed": {
+    "description": "Shown in the results area when a search throws"
   }
 }

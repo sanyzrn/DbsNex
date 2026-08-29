@@ -2033,4 +2033,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get micDenied =>
       'Nex needs permission to use the microphone. You can grant it in your device\'s app settings.';
+
+  @override
+  String get searchFailed => 'That search could not be run.';
 }
