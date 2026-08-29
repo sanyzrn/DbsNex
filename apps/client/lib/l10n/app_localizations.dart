@@ -272,6 +272,12 @@ abstract class AppLocalizations {
   /// **'Romantic'**
   String get assistantStyleRomantic;
 
+  /// No description provided for @assistantStyleCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get assistantStyleCustom;
+
   /// No description provided for @profileTitle.
   ///
   /// In en, this message translates to:

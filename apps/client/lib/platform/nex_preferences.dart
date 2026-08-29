@@ -629,8 +629,28 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
-  AiResponseStyle get aiResponseStyle =>
-      AiResponseStyle.fromWire(_prefs.getString('ai.responseStyle'));
+  /// How the assistant should sound — one of five presets, or the user's own
+  /// sentence.
+  ///
+  /// Tone used to have two controls: these presets, and a free-text
+  /// instruction in a section of its own. That is two answers to one
+  /// question — pick "Formal", write "be witty and sarcastic", and nothing
+  /// says which the assistant follows. `custom` folds the second into the
+  /// first: it is the preset you write yourself.
+  ///
+  /// Which leaves the people who wrote an instruction before there was a
+  /// preset for it. Their style key was never written — they never touched
+  /// the presets — so it is derived rather than migrated: an untouched style
+  /// with an instruction behind it *is* a custom style, and reading it that
+  /// way keeps their sentence working without writing anything to their
+  /// preferences on their behalf.
+  AiResponseStyle get aiResponseStyle {
+    final stored = _prefs.getString('ai.responseStyle');
+    if (stored == null && aiInstruction.trim().isNotEmpty) {
+      return AiResponseStyle.custom;
+    }
+    return AiResponseStyle.fromWire(stored);
+  }
 
   Future<void> setAiResponseStyle(AiResponseStyle value) async {
     await _prefs.setString('ai.responseStyle', value.wireName);

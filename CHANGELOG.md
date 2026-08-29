@@ -34,6 +34,20 @@ Working convention:
 
 ## Unreleased
 
+- **Mixed Persian and English no longer flips as you type.** Direction was
+  decided by counting: once enough of a note was Persian, the whole box —
+  English lines included — swung right, at some keystroke nothing announced.
+  The same note then sat on the timeline aligned one way or the other
+  depending on how much of each language it happened to contain. The first
+  letter decides now and nothing after it does, which is the rule Unicode
+  specifies and the reason nothing moves while you write.
+- **Tone is one control instead of two.** The five response styles and the
+  free-text instruction were both about how the assistant sounds, so picking
+  "Formal" and writing "be witty and sarcastic" left nothing to say which one
+  won. "Custom" is now the sixth style — the one you write yourself — and the
+  box appears under it. An instruction written before this still works: it is
+  read as a custom style rather than quietly dropped.
+
 ## v1.2.5
 
 A round of fixes to the glass appearance and the surfaces it touches.

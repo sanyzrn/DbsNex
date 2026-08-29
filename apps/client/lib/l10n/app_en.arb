@@ -32,6 +32,7 @@
   "assistantStyleFormal": "Formal",
   "assistantStyleSerious": "Serious",
   "assistantStyleRomantic": "Romantic",
+  "assistantStyleCustom": "Custom",
   "profileTitle": "Profile",
   "profileOpenHint": "Photo, name, birthday, and bio",
   "profileChangePhoto": "Change profile photo",

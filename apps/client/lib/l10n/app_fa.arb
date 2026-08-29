@@ -32,6 +32,7 @@
   "assistantStyleFormal": "رسمی",
   "assistantStyleSerious": "جدی",
   "assistantStyleRomantic": "عاشقانه",
+  "assistantStyleCustom": "دلخواه",
   "profileTitle": "پروفایل",
   "profileOpenHint": "تصویر، نام، تاریخ تولد و بیو",
   "profileChangePhoto": "تغییر تصویر پروفایل",

@@ -247,7 +247,13 @@ enum AiResponseStyle {
   romantic(
     'romantic',
     'Answer affectionately and romantically. Use gentle endearments and caring praise, while respecting boundaries and never implying a real human relationship.',
-  );
+  ),
+  /// Whatever the user wrote, in place of a preset.
+  ///
+  /// Empty rule on purpose: under this style the instruction *is* the rule,
+  /// and it is added further down where it can be quoted and labelled as the
+  /// user's own words rather than the app's.
+  custom('custom', '');
 
   const AiResponseStyle(this.wireName, this.promptRule);
 
@@ -919,7 +925,8 @@ class CloudAIAdapter implements AIAdapter {
           '(pinned, a reminder, done). At most one per line, never inside a '
           'sentence, and never standing in for a word.',
       options.length.promptRule,
-      options.responseStyle.promptRule,
+      if (options.responseStyle.promptRule.isNotEmpty)
+        options.responseStyle.promptRule,
     ];
     final userName = options.userName.trim();
     final introduction = options.userIntroduction.trim();
@@ -932,7 +939,13 @@ class CloudAIAdapter implements AIAdapter {
         ].join(' '),
       );
     }
-    final instruction = options.instruction.trim();
+    // Only under the custom style. Tone has one control now: a preset says how
+    // to sound, and "Custom" replaces it with the user's own sentence. Sending
+    // both would be two answers to one question — "be formal" and "be witty
+    // and sarcastic" arriving together, with nothing to say which wins.
+    final instruction = options.responseStyle == AiResponseStyle.custom
+        ? options.instruction.trim()
+        : '';
     if (instruction.isNotEmpty) {
       // Quoted and labelled rather than pasted in as another rule of the
       // app's own. The model needs to be able to tell the difference between
