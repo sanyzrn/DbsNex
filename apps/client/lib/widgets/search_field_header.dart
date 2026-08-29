@@ -141,16 +141,30 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                             cursorColor: scheme.primary,
                             decoration: InputDecoration(
                               isDense: true,
-                              border: InputBorder.none,
-                              // The app's InputDecorationTheme fills every
-                              // field and pads it, which is right for a form
-                              // and wrong here: the pill around this row is
-                              // already the surface, so the theme drew a
+                              // The app's InputDecorationTheme frames, fills
+                              // and pads every field, which is right for a
+                              // form and wrong here: the pill around this row
+                              // is already the surface, so the theme drew a
                               // second rounded box inside it with the search
-                              // icon stranded outside — the extra frame in
-                              // the middle of the search bar. `border: none`
-                              // only removes the outline; the fill and the
-                              // padding have to go separately.
+                              // icon stranded outside it.
+                              //
+                              // Every one of these has to be named. `border`
+                              // is only the fallback: `InputDecorator` paints
+                              // `enabledBorder ?? border` at rest and
+                              // `focusedBorder ?? border` while focused, and
+                              // `applyDefaults` fills a null one from the
+                              // theme — which sets both. So `border: none`
+                              // alone removed nothing, and the inner box went
+                              // on showing in exactly the two states the
+                              // field is ever in: a soft outline at rest and
+                              // an accent one under the caret, each drawn
+                              // inside the pill's own matching edge.
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              focusedErrorBorder: InputBorder.none,
                               filled: false,
                               contentPadding: EdgeInsets.zero,
                               hintText: l10n.searchHint,
