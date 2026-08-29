@@ -1764,5 +1764,9 @@
   "searchFailed": "That search could not be run.",
   "@searchFailed": {
     "description": "Shown in the results area when a search throws"
+  },
+  "summarizeFailed": "No summary came back for this note.",
+  "@summarizeFailed": {
+    "description": "Shown when an on-demand summary produces nothing"
   }
 }

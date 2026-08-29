@@ -3511,6 +3511,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That search could not be run.'**
   String get searchFailed;
+
+  /// Shown when an on-demand summary produces nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No summary came back for this note.'**
+  String get summarizeFailed;
 }
 
 class _AppLocalizationsDelegate

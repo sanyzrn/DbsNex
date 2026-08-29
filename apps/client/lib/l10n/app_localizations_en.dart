@@ -2036,4 +2036,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchFailed => 'That search could not be run.';
+
+  @override
+  String get summarizeFailed => 'No summary came back for this note.';
 }

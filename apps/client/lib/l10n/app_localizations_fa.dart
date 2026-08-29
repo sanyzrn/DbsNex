@@ -2036,4 +2036,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get searchFailed => 'این جست‌وجو انجام نشد.';
+
+  @override
+  String get summarizeFailed => 'برای این یادداشت خلاصه‌ای برنگشت.';
 }
