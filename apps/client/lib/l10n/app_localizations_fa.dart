@@ -103,6 +103,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantStyleRomantic => 'عاشقانه';
 
   @override
+  String get assistantStyleCustom => 'دلخواه';
+
+  @override
   String get profileTitle => 'پروفایل';
 
   @override

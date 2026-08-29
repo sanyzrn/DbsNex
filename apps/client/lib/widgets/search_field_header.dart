@@ -142,6 +142,17 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                             decoration: InputDecoration(
                               isDense: true,
                               border: InputBorder.none,
+                              // The app's InputDecorationTheme fills every
+                              // field and pads it, which is right for a form
+                              // and wrong here: the pill around this row is
+                              // already the surface, so the theme drew a
+                              // second rounded box inside it with the search
+                              // icon stranded outside — the extra frame in
+                              // the middle of the search bar. `border: none`
+                              // only removes the outline; the fill and the
+                              // padding have to go separately.
+                              filled: false,
+                              contentPadding: EdgeInsets.zero,
                               hintText: l10n.searchHint,
                             ),
                           ),

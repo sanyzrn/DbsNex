@@ -36,7 +36,8 @@ Working convention:
 
 ## v1.2.5
 
-A round of fixes to the glass appearance and the surfaces it touches.
+A round of fixes to the glass appearance, to how text finds its own
+direction, and to the surfaces both of them touch.
 
 - **The glass appearance is frosted now, not see-through.** It was tuned like
   a pane of glass — half transparent, a bright rim, a diagonal sheen — so
@@ -58,6 +59,31 @@ A round of fixes to the glass appearance and the surfaces it touches.
   was only cleared by opening another screen first, so anyone who read the
   note and closed the app kept the chip until they deleted the reminder by
   hand.
+- **Mixed Persian and English no longer flips as you type.** Direction was
+  decided by counting: once enough of a note was Persian, the whole box —
+  English lines included — swung right, at some keystroke nothing announced.
+  The same note then sat on the timeline aligned one way or the other
+  depending on how much of each language it happened to contain. The first
+  letter decides now and nothing after it does, which is the rule Unicode
+  specifies and the reason nothing moves while you write.
+- **Tone is one control instead of two.** The five response styles and the
+  free-text instruction were both about how the assistant sounds, so picking
+  "Formal" and writing "be witty and sarcastic" left nothing to say which one
+  won. "Custom" is now the sixth style — the one you write yourself — and the
+  box appears under it. Your sentence is kept either way, so switching to a
+  preset and back does not ask for it again. An instruction written before
+  this still works: it is read as a custom style rather than quietly dropped.
+- **The daily summary lines up in Persian.** Its icon and its text were placed
+  with left-and-right padding rather than start-and-end, so in a right-to-left
+  layout both stayed pinned to the side they were written for and sat out of
+  step with everything around them.
+- **The search box is one box again.** A second, filled frame was being drawn
+  inside the rounded field — the app's own input styling landing on top of the
+  one the field already had.
+- **The tag row only takes a background when it needs one.** It carried a band
+  of colour at all times, which showed as a stripe across a chosen background
+  image. The band now appears when the row actually sticks to the top of a
+  scrolling list, which is the moment it has something to cover.
 
 ## v1.2.2
 

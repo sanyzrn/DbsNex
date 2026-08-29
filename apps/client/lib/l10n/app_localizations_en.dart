@@ -104,6 +104,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantStyleRomantic => 'Romantic';
 
   @override
+  String get assistantStyleCustom => 'Custom';
+
+  @override
   String get profileTitle => 'Profile';
 
   @override

@@ -30,17 +30,27 @@ that matches nothing offers the nearest thing you actually wrote rather than an 
 **Organize later** — tags with free-form colours, a tag manager that renames, merges and
 deletes, and a trash that holds deleted notes for 30 days.
 
+**Come back to it** — a reminder on any note, one-off or repeating, and an optional daily
+nudge at an hour you pick. Both go through the OS scheduler, and when Android refuses to
+schedule one — exact alarms off, notifications denied, battery optimisation — the app says
+so in the OS's own words rather than failing quietly.
+
 **Your data stays yours** — export and import a full archive, automatic throttled local
 backups you can prune by hand, and a storage breakdown that tells you what is using space.
 
 **Intelligence, optional and off by default** — transcription, OCR, summarization, tag
 suggestions, semantic search and related notes, each behind its own switch, against a
-provider you configure and can test. It is the only part of Nex that can send a note off
-the device, and it says so before it is switched on. See [`docs/09-ai.md`](./docs/09-ai.md).
+provider you configure and can test, plus an assistant you can actually talk to about what
+you have written. Its tone is yours to set, including one you write yourself. It is the only
+part of Nex that can send a note off the device, it says so before it is switched on, and
+the name you go by never leaves it. See [`docs/09-ai.md`](./docs/09-ai.md).
 
-**Comfort** — light, dark and system themes, an independent Comfort Mode that warms and
-softens either one for night capture, reduce-motion support, and a 48px minimum tap target
-enforced by tests.
+**Comfort** — light, dark and system themes, an optional Liquid Glass appearance with four
+built-in backgrounds, an independent Comfort Mode that warms and softens any of them for
+night capture, reduce-motion support, and a 48px minimum tap target enforced by tests.
+
+**Locked if you want it** — the app can ask for the device credential or a fingerprint
+whenever it comes back to the foreground. The lock is local; nothing about it is synced.
 
 **Updates** — the app checks a public releases repo and downloads its own installer,
 resuming from where it left off if the connection drops.
@@ -64,6 +74,7 @@ packages/
   data/       SQLite repository, schema, sync client. Pure Dart.
   ui/         Design tokens and shared widgets. Flutter.
   ai/         The intelligence adapters. Deletable by design — CI proves it.
+spec/         Language-neutral fixtures both Dart and TypeScript read.
 docs/         Product, architecture, design and decision records.
 ```
 
@@ -80,7 +91,7 @@ by hand.
 
 ## Getting started
 
-Requires Flutter **3.35.x** / Dart **^3.9** (see [`.fvmrc`](./.fvmrc)). Node 20+ only if you
+Requires Flutter **3.35.5** / Dart **^3.9** (see [`.fvmrc`](./.fvmrc)). Node 20+ only if you
 intend to touch the backend.
 
 ```bash

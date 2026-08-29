@@ -2133,7 +2133,12 @@ class _AiDaySummaryPanel extends StatelessWidget {
         ),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(
+          // Directional. `fromLTRB` does not mirror, so in Persian the
+          // sparkle — which is the row's *start* child, and therefore on the
+          // right — was sitting in the 4-pixel inset meant for the refresh
+          // button while the text below it kept a wider one. The two edges
+          // that are supposed to line up were the two that did not.
+          padding: const EdgeInsetsDirectional.fromSTEB(
             NexSpacing.cardInset,
             NexSpacing.xs,
             NexSpacing.xs,
@@ -2194,7 +2199,9 @@ class _AiDaySummaryPanel extends StatelessWidget {
                 child: collapsed
                     ? const SizedBox(width: double.infinity)
                     : Padding(
-                        padding: const EdgeInsets.fromLTRB(
+                        // Start at zero, so the first character sits on the
+                        // card's own inset and under the sparkle above it.
+                        padding: const EdgeInsetsDirectional.fromSTEB(
                           0,
                           NexSpacing.xs,
                           NexSpacing.sm,
@@ -2269,9 +2276,24 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
   @override
   double get maxExtent => visible ? _extent : 0;
 
+  /// The backing appears only once the row is holding its place against
+  /// content moving under it.
+  ///
+  /// Pinned headers need something opaque behind them or the list runs
+  /// through the chips — but that is only true while something is passing
+  /// underneath. Painted unconditionally it was a band of flat colour across
+  /// the top of a screen whose background the reader had just chosen, at the
+  /// one moment nothing was behind it to hide.
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
-      ColoredBox(color: Theme.of(context).colorScheme.surface, child: child);
+      AnimatedContainer(
+        duration: NexMotion.standard,
+        curve: NexMotion.curve,
+        color: overlaps
+            ? Theme.of(context).colorScheme.surface
+            : Colors.transparent,
+        child: child,
+      );
 
   @override
   /// Always, and for the same reason as [SearchFieldHeader].

@@ -183,9 +183,46 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                         icon: Icons.favorite_outline,
                       ),
                     ),
+                    NexChoice(
+                      value: AiResponseStyle.custom,
+                      label: l10n.assistantStyleCustom,
+                      preview: const NexScriptSample(
+                        icon: Icons.edit_outlined,
+                      ),
+                    ),
                   ],
                 ),
               ),
+              // The instruction, and only under Custom. These were two
+              // sections — five preset tones, and a free-text note about tone
+              // — which is two controls for one thing: pick "Formal", write
+              // "be witty and sarcastic", and nothing says which one the
+              // assistant should follow. Custom is simply the sixth preset,
+              // the one you write yourself.
+              if (preferences.aiResponseStyle == AiResponseStyle.custom)
+                _Field(
+                  icon: Icons.format_quote_outlined,
+                  label: l10n.assistantInstructionSubtitle,
+                  child: NexAutoDirection(
+                    controller: _instruction,
+                    builder: (context, direction) => TextField(
+                      controller: _instruction,
+                      onChanged: _saveInstruction,
+                      maxLength: NexPreferences.aiInstructionMaxLength,
+                      maxLines: 3,
+                      minLines: 1,
+                      textInputAction: TextInputAction.newline,
+                      // Written in whichever language the user thinks in,
+                      // which is not necessarily the interface's — so the
+                      // field follows the text rather than the app.
+                      textDirection: direction,
+                      decoration: _inputDecoration(
+                        theme,
+                        l10n.assistantInstructionHint,
+                      ),
+                    ),
+                  ),
+                ),
               _Field(
                 icon: Icons.tune,
                 label: l10n.assistantCreativity,
@@ -280,35 +317,6 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                     unawaited(preferences.setAiNotesOnly(value)),
                 title: Text(l10n.assistantScope),
                 subtitle: Text(l10n.assistantScopeSubtitle),
-              ),
-            ],
-          ),
-          _Group(
-            title: l10n.assistantInstruction,
-            children: [
-              _Field(
-                icon: Icons.format_quote_outlined,
-                label: l10n.assistantInstructionSubtitle,
-                child: NexAutoDirection(
-                  controller: _instruction,
-                  builder: (context, direction) => TextField(
-                    controller: _instruction,
-                    onChanged: _saveInstruction,
-                    maxLength: NexPreferences.aiInstructionMaxLength,
-                    maxLines: 3,
-                    minLines: 1,
-                    textInputAction: TextInputAction.newline,
-                    // Written in whichever language the user thinks in, which
-                    // is not necessarily the interface's — so the field
-                    // follows the text rather than the app, and does it as
-                    // the text arrives rather than once at build.
-                    textDirection: direction,
-                    decoration: _inputDecoration(
-                      theme,
-                      l10n.assistantInstructionHint,
-                    ),
-                  ),
-                ),
               ),
             ],
           ),

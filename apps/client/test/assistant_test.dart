@@ -285,6 +285,37 @@ Sure, here you go:
       expect(prompt, isNot(contains('  answer')));
     });
 
+    test('tone reaches the prompt from one control, not two', () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      // The instruction only travels under the style it belongs to. Sending a
+      // preset and a sentence together would be two answers to one question,
+      // so the choice is made where the preference is read, not in the prompt.
+      SharedPreferences.setMockInitialValues({
+        'ai.responseStyle': 'formal',
+        'ai.instruction': 'be witty and sarcastic',
+      });
+      final chosen = await NexPreferences.load();
+      expect(chosen.aiResponseStyle, AiResponseStyle.formal);
+      // Still stored, so switching to Custom brings it back rather than
+      // asking for it again.
+      expect(chosen.aiInstruction, 'be witty and sarcastic');
+
+      // Whoever wrote an instruction before there was a preset for it never
+      // had a style key written. Deriving it rather than migrating keeps their
+      // sentence working without writing to their preferences on their behalf.
+      SharedPreferences.setMockInitialValues({
+        'ai.instruction': 'answer with a bit of humour',
+      });
+      final inherited = await NexPreferences.load();
+      expect(inherited.aiResponseStyle, AiResponseStyle.custom);
+
+      // And an untouched install is the default, not a custom style with
+      // nothing in it.
+      SharedPreferences.setMockInitialValues({});
+      final fresh = await NexPreferences.load();
+      expect(fresh.aiResponseStyle, isNot(AiResponseStyle.custom));
+    });
+
     test('an empty instruction adds nothing at all', () {
       expect(
         adapter().chatSystemPrompt(const AiChatOptions(instruction: '   ')),

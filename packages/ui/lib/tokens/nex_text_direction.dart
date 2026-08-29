@@ -1,7 +1,4 @@
 import 'package:flutter/widgets.dart';
-// intl exports a TextDirection of its own, which is not dart:ui's — importing
-// it unhidden makes every TextDirection in this file ambiguous.
-import 'package:intl/intl.dart' hide TextDirection;
 
 /// The direction a piece of user text should be laid out in.
 ///
@@ -10,45 +7,59 @@ import 'package:intl/intl.dart' hide TextDirection;
 /// its glyphs shaped correctly — the text was right in itself and wrong on the
 /// page. Direction here is a property of the content, not of the locale.
 ///
+/// **The first strong character decides, and nothing after it.** This used to
+/// ask `Bidi.detectRtlDirectionality`, which counts: it answers "right to
+/// left" once enough of the string is right-to-left, on a ratio. That is a
+/// reasonable guess about a finished sentence and the wrong question entirely
+/// about one being typed, because the answer changes underneath the writer.
+/// Start a note in English, add Persian, and at some unannounced keystroke the
+/// whole box — English included — swung to the right. The same note then
+/// landed on the timeline aligned one way or the other depending on how much
+/// of each language it happened to contain.
+///
+/// First-strong is the rule Unicode itself specifies for this (UAX #9, P2/P3)
+/// and what `dir="auto"` does on the web. Its virtue here is not accuracy so
+/// much as *stability*: once the first letter is down the answer is fixed, so
+/// nothing moves while you write.
+///
 /// Returns null when the text carries no strong directional character (a photo
 /// note, a number, an empty body), leaving the ambient direction in place.
 TextDirection? nexDirectionOf(String? text) {
-  final value = text?.trim();
+  final value = text;
   if (value == null || value.isEmpty) return null;
-  if (!_hasStrongDirection(value)) return null;
-  return Bidi.detectRtlDirectionality(value)
-      ? TextDirection.rtl
-      : TextDirection.ltr;
+  for (final rune in value.runes) {
+    final direction = _directionOfRune(rune);
+    if (direction != null) return direction;
+  }
+  return null;
 }
 
-/// Whether the text contains any character that carries a direction at all.
+/// The direction one character carries, or null if it carries none.
 ///
-/// `detectRtlDirectionality` answers false for neutral text, which is
-/// indistinguishable from "definitely left-to-right" — and forcing LTR on
-/// "12:30" inside a right-to-left card would misplace it.
-bool _hasStrongDirection(String value) {
-  for (final rune in value.runes) {
-    // Latin, Greek, Cyrillic and friends.
-    if ((rune >= 0x0041 && rune <= 0x005A) ||
-        (rune >= 0x0061 && rune <= 0x007A) ||
-        (rune >= 0x00C0 && rune <= 0x02AF) ||
-        (rune >= 0x0370 &&
-            rune <= 0x058F &&
-            !(rune >= 0x0590 && rune <= 0x05FF))) {
-      return true;
-    }
-    // Hebrew, Arabic, Persian, Syriac, Thaana and the Arabic presentation forms.
-    if ((rune >= 0x0590 && rune <= 0x07BF) ||
-        (rune >= 0x0860 && rune <= 0x08FF) ||
-        (rune >= 0xFB1D && rune <= 0xFDFF) ||
-        (rune >= 0xFE70 && rune <= 0xFEFF)) {
-      return true;
-    }
-    // CJK, Hangul, Devanagari and other strongly left-to-right scripts.
-    if (rune >= 0x0900 && rune <= 0x1FFF) return true;
-    if (rune >= 0x2E80 && rune <= 0xD7FF) return true;
+/// Neutral characters — digits, punctuation, spaces, emoji — deliberately
+/// answer null rather than "left to right": "12:30" is not an English string,
+/// and forcing it would misplace it inside a right-to-left card.
+TextDirection? _directionOfRune(int rune) {
+  // Hebrew, Arabic, Syriac, Thaana, NKo, Samaritan, Mandaic and the Arabic
+  // presentation forms.
+  if ((rune >= 0x0590 && rune <= 0x08FF) ||
+      (rune >= 0xFB1D && rune <= 0xFDFF) ||
+      (rune >= 0xFE70 && rune <= 0xFEFF)) {
+    return TextDirection.rtl;
   }
-  return false;
+  // Latin, then Latin supplements and IPA, then Greek/Cyrillic/Armenian.
+  if ((rune >= 0x0041 && rune <= 0x005A) ||
+      (rune >= 0x0061 && rune <= 0x007A) ||
+      (rune >= 0x00C0 && rune <= 0x02AF) ||
+      (rune >= 0x0370 && rune <= 0x058F)) {
+    return TextDirection.ltr;
+  }
+  // Devanagari through Greek Extended, then CJK and Hangul.
+  if ((rune >= 0x0900 && rune <= 0x1FFF) ||
+      (rune >= 0x2E80 && rune <= 0xD7FF)) {
+    return TextDirection.ltr;
+  }
+  return null;
 }
 
 /// Lays [child] out in the direction [text] itself implies.
