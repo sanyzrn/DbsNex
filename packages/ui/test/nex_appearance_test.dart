@@ -13,14 +13,28 @@ void main() {
     );
   });
 
-  test('liquid glass theme remains independent of brightness', () {
+  test('liquid glass leaves the page transparent and a sheet opaque', () {
     for (final theme in [
       nexLightTheme(liquidGlass: true),
       nexDarkTheme(liquidGlass: true),
     ]) {
       expect(theme.extension<NexVisualStyle>()!.liquidGlass, isTrue);
+      // The page is transparent on purpose: the background is painted once at
+      // the root, and every screen sits on it.
       expect(theme.scaffoldBackgroundColor, Colors.transparent);
-      expect(theme.bottomSheetTheme.backgroundColor, Colors.transparent);
+
+      // A sheet is not, and this assertion used to say it was. Transparency
+      // here is only correct if every sheet wraps itself in a glass panel, and
+      // most do not — the reminder picker and the chat history are plain
+      // sheets, so they were drawn with no surface at all and put their text
+      // straight onto the timeline. A sheet covers the page rather than
+      // sitting in it; seeing through one is not depth.
+      for (final sheet in [
+        theme.bottomSheetTheme.backgroundColor!,
+        theme.bottomSheetTheme.modalBackgroundColor!,
+      ]) {
+        expect(sheet.a, greaterThan(0.9));
+      }
     }
   });
 
