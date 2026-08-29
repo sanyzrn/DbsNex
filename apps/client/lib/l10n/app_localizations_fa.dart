@@ -2029,4 +2029,8 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get remindDenied => 'برای ارسال اعلان، اجازه لازم است.';
+
+  @override
+  String get micDenied =>
+      'برای ضبط صدا، اجازه دسترسی به میکروفون لازم است. می‌توانید آن را در تنظیمات برنامه در دستگاهتان بدهید.';
 }

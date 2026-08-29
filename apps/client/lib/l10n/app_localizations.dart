@@ -3499,6 +3499,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nex needs permission to send notifications.'**
   String get remindDenied;
+
+  /// Shown when microphone permission is refused and a recording cannot start
+  ///
+  /// In en, this message translates to:
+  /// **'Nex needs permission to use the microphone. You can grant it in your device\'s app settings.'**
+  String get micDenied;
 }
 
 class _AppLocalizationsDelegate

@@ -2029,4 +2029,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remindDenied => 'Nex needs permission to send notifications.';
+
+  @override
+  String get micDenied =>
+      'Nex needs permission to use the microphone. You can grant it in your device\'s app settings.';
 }

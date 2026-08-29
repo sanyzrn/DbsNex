@@ -1756,5 +1756,9 @@
   "remindDenied": "Nex needs permission to send notifications.",
   "@remindDenied": {
     "description": "Shown when notification permission is refused"
+  },
+  "micDenied": "Nex needs permission to use the microphone. You can grant it in your device's app settings.",
+  "@micDenied": {
+    "description": "Shown when microphone permission is refused and a recording cannot start"
   }
 }

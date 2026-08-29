@@ -365,7 +365,20 @@ class _AiChatSheetState extends State<AiChatSheet> {
   Future<void> _speak() async {
     if (_sending || _transcribing) return;
     final recorder = AudioRecorder();
-    if (!await recorder.hasPermission()) return recorder.dispose();
+    // The same silence as voice capture had, in the same words — see
+    // `captureVoice`. Dictation is the only way to ask the assistant without
+    // typing, so a mute button here reads as the assistant being broken.
+    if (!await recorder.hasPermission()) {
+      await recorder.dispose();
+      if (!mounted) return;
+      nexShowBanner(
+        context,
+        message: AppLocalizations.of(context).micDenied,
+        kind: NexBannerKind.failed,
+        haptics: widget.preferences.haptics,
+      );
+      return;
+    }
     final file = File(
       p.join(
         Directory.systemTemp.path,
