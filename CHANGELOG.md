@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v1.2.5
+
+A round of fixes to the glass appearance and the surfaces it touches.
+
 - **The glass appearance is frosted now, not see-through.** It was tuned like
   a pane of glass — half transparent, a bright rim, a diagonal sheen — so
   whatever sat behind a surface stayed readable through it and text landed on
