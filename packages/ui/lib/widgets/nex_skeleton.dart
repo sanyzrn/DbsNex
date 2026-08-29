@@ -201,8 +201,8 @@ class NexLoadingList extends StatelessWidget {
     // under the finger invites pulling at something that cannot respond.
     physics: const NeverScrollableScrollPhysics(),
     itemCount: rows,
-    separatorBuilder: (_, __) => const Divider(height: 1),
-    itemBuilder: (_, __) => const _TileSkeleton(),
+    separatorBuilder: (_, _) => const Divider(height: 1),
+    itemBuilder: (_, _) => const _TileSkeleton(),
   );
 }
 
