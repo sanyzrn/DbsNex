@@ -93,6 +93,13 @@ void main() {
 
   group('the first-run tour', () {
     testWidgets('runs once and never again', (tester) async {
+      // The tour waits for a note to exist before it opens — it has nothing
+      // to point at on an empty timeline, and opening there put two
+      // tutorials back to back on a fresh install. This test is about the
+      // once-and-never-again part, so it starts from the state where the
+      // tour is actually due.
+      await services.captureText('something to point at');
+
       // Undone deliberately: `setUp` marks it seen so every other test in
       // this file can tap things. This one is about the launch where it has
       // not been seen.
