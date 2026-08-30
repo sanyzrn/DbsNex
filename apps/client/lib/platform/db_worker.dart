@@ -140,6 +140,18 @@ class _WorkerOpenFailure {
 /// The UI isolate never touches sqlite3 directly; it sends a command and awaits
 /// a reply, so no query can block a frame.
 class NexDbWorker implements NexDb {
+  /// The error and exit subscriptions are handed in already listening.
+  ///
+  /// A `ReceivePort` is a single-subscription stream, and [spawn] has to watch
+  /// both ports before the isolate is up — that is the whole point of them, to
+  /// catch a database that never opens. Listening again here threw
+  /// `Bad state: Stream has already been listened to` on every launch, from
+  /// inside the constructor, so the app could not start at all. Cancelling
+  /// the first subscription instead of reusing it is not the fix either:
+  /// cancelling a `ReceivePort` subscription closes the port.
+  ///
+  /// One listener per port for the whole life of the worker; [spawn] routes
+  /// to these handlers once the instance exists.
   NexDbWorker._(
     this._isolate,
     this._toWorker,
@@ -147,14 +159,10 @@ class NexDbWorker implements NexDb {
     Stream<dynamic> incoming,
     this._errors,
     this._exits,
+    this._errorSub,
+    this._exitSub,
   ) {
     _subscription = incoming.listen(_onMessage);
-    // An uncaught worker error is fatal to the isolate (errorsAreFatal).
-    // Whatever requests were in flight must hear about it instead of
-    // waiting forever; the ones queued behind them are covered by the
-    // exit port, which fires when the isolate actually goes away.
-    _errorSub = _errors.listen(_onIsolateError);
-    _exitSub = _exits.listen(_onIsolateExit);
   }
 
   final Isolate _isolate;
@@ -164,8 +172,13 @@ class NexDbWorker implements NexDb {
   final ReceivePort _exits;
 
   late final StreamSubscription<dynamic> _subscription;
-  late final StreamSubscription<dynamic> _errorSub;
-  late final StreamSubscription<dynamic> _exitSub;
+
+  /// An uncaught worker error is fatal to the isolate (errorsAreFatal).
+  /// Whatever requests were in flight must hear about it instead of waiting
+  /// forever; the ones queued behind them are covered by the exit port, which
+  /// fires when the isolate actually goes away.
+  final StreamSubscription<dynamic> _errorSub;
+  final StreamSubscription<dynamic> _exitSub;
   final Map<int, Completer<Object?>> _pending = {};
   int _nextId = 0;
   bool _closed = false;
@@ -229,19 +242,27 @@ class NexDbWorker implements NexDb {
       }
     });
 
-    late final StreamSubscription<dynamic> spawnErrorSub;
-    late final StreamSubscription<dynamic> spawnExitSub;
-    spawnErrorSub = errors.listen((message) {
-      if (ready.isCompleted) return;
-      ready.completeError(
-        StateError('nex-db crashed while starting: $message'),
-      );
-      bootstrap.cancel();
+    // Listened once, here, and never again — see the constructor. Before the
+    // worker exists these fail whatever is waiting on it; afterwards they are
+    // the instance's own error and exit handlers.
+    NexDbWorker? worker;
+    final spawnErrorSub = errors.listen((message) {
+      if (!ready.isCompleted) {
+        ready.completeError(
+          StateError('nex-db crashed while starting: $message'),
+        );
+        bootstrap.cancel();
+        return;
+      }
+      worker?._onIsolateError(message);
     });
-    spawnExitSub = exits.listen((_) {
-      if (ready.isCompleted) return;
-      ready.completeError(StateError('nex-db exited before it was ready'));
-      bootstrap.cancel();
+    final spawnExitSub = exits.listen((message) {
+      if (!ready.isCompleted) {
+        ready.completeError(StateError('nex-db exited before it was ready'));
+        bootstrap.cancel();
+        return;
+      }
+      worker?._onIsolateExit(message);
     });
 
     final isolate = await Isolate.spawn(
@@ -262,13 +283,15 @@ class NexDbWorker implements NexDb {
 
     try {
       final toWorker = await ready.future;
-      return NexDbWorker._(
+      return worker = NexDbWorker._(
         isolate,
         toWorker,
         responses,
         incoming,
         errors,
         exits,
+        spawnErrorSub,
+        spawnExitSub,
       );
     } on Object {
       // The worker never came up. The ports are this frame's problem now —
