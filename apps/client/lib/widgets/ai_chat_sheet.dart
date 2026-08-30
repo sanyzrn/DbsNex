@@ -583,6 +583,23 @@ class _AiChatSheetState extends State<AiChatSheet> {
     });
     var ok = true;
     try {
+      // Every note this set claims to act on, checked before any of it runs.
+      //
+      // Without this the confirmation was a guess. `ok` only went false when
+      // something *threw*, and none of these throw on a note that is not
+      // there: a delete is an UPDATE matched by id, and matching no rows is
+      // a successful statement that changed nothing. So an id the model
+      // invented, or one left over from a note deleted earlier in the same
+      // conversation, produced "Done" over a library that had not moved —
+      // and the reader's next act is to believe it.
+      //
+      // Checked first rather than counted afterwards, for the reason the
+      // loop below already gives: a half-applied set is worse than none of
+      // it. Finding the bad id on the third of three actions is finding it
+      // too late.
+      if (!await _targetsExist(actions)) {
+        throw StateError('an action names a note that is not there');
+      }
       // In order, and stopping at the first failure. A half-applied set is
       // worse than none of it: the user confirmed one intention, and leaving
       // two of its three changes in place is a state nobody asked for and
@@ -627,6 +644,27 @@ class _AiChatSheetState extends State<AiChatSheet> {
     // answering from is now stale.
     unawaited(_loadNotesContext());
     _toBottom();
+  }
+
+  /// Whether every note the set names is really there.
+  ///
+  /// Both id fields count: `noteId` for the single-target actions and
+  /// `noteIds` for a merge, which folds several notes together and is the one
+  /// action that can be half-right — two real ids and one invented.
+  ///
+  /// A create carries no id and a search is never in this list, so an empty
+  /// set of targets is a legitimate answer of "nothing to check".
+  Future<bool> _targetsExist(List<AssistantAction> actions) async {
+    final targets = <String>{
+      for (final action in actions) ...[
+        if (action.noteId case final id?) id,
+        ...action.noteIds,
+      ],
+    };
+    for (final id in targets) {
+      if (await widget.services.getById(id) == null) return false;
+    }
+    return true;
   }
 
   /// Opens the assistant's own settings over the chat.
