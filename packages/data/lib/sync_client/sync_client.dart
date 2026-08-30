@@ -191,33 +191,46 @@ class SyncClient implements SyncPort {
   }
 
   void _applyPage(PullPage page) {
-    for (final t in page.tags) {
-      repo.upsertTagFromSync(
-        id: t['id'] as String,
-        name: t['name'] as String,
-        color: t['color'] as String?,
-        createdAt: DateTime.parse(t['created_at'] as String).toUtc(),
-      );
-    }
+    // Atomic: the cursor that records this page is written right after this
+    // returns, so a page that half-applied and then threw used to wedge sync
+    // forever — every retry re-failed on the same page, at the same note,
+    // with the cursor never moving past it. Now the whole page lands or the
+    // error propagates with nothing on disk half-done.
+    final db = repo.db;
+    db.execute('BEGIN IMMEDIATE');
+    try {
+      for (final t in page.tags) {
+        repo.upsertTagFromSync(
+          id: t['id'] as String,
+          name: t['name'] as String,
+          color: t['color'] as String?,
+          createdAt: DateTime.parse(t['created_at'] as String).toUtc(),
+        );
+      }
 
-    for (final n in page.notes) {
-      final tagIds = (n['tag_ids'] as List?)?.cast<String>() ?? const [];
-      repo.applyRemoteNote(
-        id: n['id'] as String,
-        type: NoteType.fromWire(n['type'] as String),
-        content: n['content'] as String?,
-        mediaUri: n['media_uri'] as String?,
-        mediaHash: n['media_hash'] as String?,
-        durationMs: n['duration_ms'] as int?,
-        createdAt: DateTime.parse(n['created_at'] as String).toUtc(),
-        updatedAt: DateTime.parse(n['updated_at'] as String).toUtc(),
-        deletedAt: n['deleted_at'] != null
-            ? DateTime.parse(n['deleted_at'] as String).toUtc()
-            : null,
-        deviceId: n['device_id'] as String,
-        rev: n['rev'] as int,
-        tagIds: tagIds,
-      );
+      for (final n in page.notes) {
+        final tagIds = (n['tag_ids'] as List?)?.cast<String>() ?? const [];
+        repo.applyRemoteNote(
+          id: n['id'] as String,
+          type: NoteType.fromWire(n['type'] as String),
+          content: n['content'] as String?,
+          mediaUri: n['media_uri'] as String?,
+          mediaHash: n['media_hash'] as String?,
+          durationMs: n['duration_ms'] as int?,
+          createdAt: DateTime.parse(n['created_at'] as String).toUtc(),
+          updatedAt: DateTime.parse(n['updated_at'] as String).toUtc(),
+          deletedAt: n['deleted_at'] != null
+              ? DateTime.parse(n['deleted_at'] as String).toUtc()
+              : null,
+          deviceId: n['device_id'] as String,
+          rev: n['rev'] as int,
+          tagIds: tagIds,
+        );
+      }
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
     }
   }
 

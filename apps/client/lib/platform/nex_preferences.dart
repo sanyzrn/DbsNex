@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nex_core/nex_core.dart';
@@ -101,6 +103,23 @@ class NexPreferences extends ChangeNotifier {
   Future<void> completeOnboarding() async {
     await _prefs.setBool(_kOnboardingComplete, true);
     notifyListeners();
+  }
+
+  /// Whether the system "Alarms & reminders" screen has already been shown
+  /// once for exact-alarm permission.
+  ///
+  /// That screen is intrusive — it leaves the app — so it is shown once per
+  /// install, at the moment a first reminder is set, and never again for
+  /// someone who declined. The OS's own toggle in Settings remains the way
+  /// back; this flag only decides whether *Nex* sends anyone there a second
+  /// time uninvited.
+  static const _kExactAlarmsAsked = 'reminders.exact_alarms_asked';
+
+  bool get remindersExactAlarmsAsked =>
+      _prefs.getBool(_kExactAlarmsAsked) ?? false;
+
+  Future<void> markRemindersExactAlarmsAsked() async {
+    await _prefs.setBool(_kExactAlarmsAsked, true);
   }
 
   /// Whether the terms for a downloadable model have been shown and agreed to.
@@ -225,16 +244,40 @@ class NexPreferences extends ChangeNotifier {
   ///
   /// Stored beside the endpoint because the sync API is no longer open: without
   /// it every push and pull is anonymous and comes back 401.
+  ///
+  /// The token is a bearer credential: whoever holds it can read and write the
+  /// library on the server. It lives in secure storage (Android Keystore /
+  /// Windows DPAPI) for the same reason the provider API keys moved there, and
+  /// a value found in the plaintext preference slot is migrated on read.
+  static const _kSecureSyncToken = 'sync.secure.bearer_token';
+  static const _kSecureSyncTokenMigrated = 'sync.secure.bearer_token.migrated';
+
   String? get syncBearerToken {
-    final value = _prefs.getString(_kSyncBearerToken);
-    return value == null || value.isEmpty ? null : value;
+    return _secureApiKeys[_kSecureSyncToken] ??
+        _migratedPlaintextSyncToken();
+  }
+
+  /// Reads a token left by an older build out of the plaintext slot, hands it
+  /// to secure storage and empties the old slot. Runs at most once.
+  String? _migratedPlaintextSyncToken() {
+    if (_prefs.getBool(_kSecureSyncTokenMigrated) ?? false) return null;
+    final legacy = _prefs.getString(_kSyncBearerToken);
+    _prefs.setBool(_kSecureSyncTokenMigrated, true);
+    if (legacy == null || legacy.isEmpty) return null;
+    unawaited(_secureStorage.write(key: _kSecureSyncToken, value: legacy));
+    _secureApiKeys[_kSecureSyncToken] = legacy;
+    _prefs.remove(_kSyncBearerToken);
+    return legacy;
   }
 
   Future<void> setSyncBearerToken(String? value) async {
     if (value == null || value.isEmpty) {
+      await _secureStorage.delete(key: _kSecureSyncToken);
+      _secureApiKeys.remove(_kSecureSyncToken);
       await _prefs.remove(_kSyncBearerToken);
     } else {
-      await _prefs.setString(_kSyncBearerToken, value);
+      await _secureStorage.write(key: _kSecureSyncToken, value: value);
+      _secureApiKeys[_kSecureSyncToken] = value;
     }
     notifyListeners();
   }

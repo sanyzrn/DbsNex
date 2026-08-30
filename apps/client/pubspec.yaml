@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 0.2.0
+version: 1.3.0
 
 environment:
   sdk: ^3.9.0

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
+import 'package:sqlite3/sqlite3.dart' show Database;
 
 import 'note_repository.dart';
 
@@ -18,8 +19,17 @@ import 'note_repository.dart';
 /// Typed against [SqliteNoteRepository] rather than the [NoteRepository] port:
 /// it needs the raw handle, which the port deliberately does not expose.
 class LibraryMaintenance {
-  const LibraryMaintenance(this.repo);
+  LibraryMaintenance(this.repo, {this.mediaRoot});
   final SqliteNoteRepository repo;
+
+  /// The directory attachment files live in. When set, purges unlink the
+  /// files a purged note pointed at — a "delete forever" that left the
+  /// recording on disk forever was neither a delete nor forever, and it was
+  /// also a privacy hole: the row was gone, the bytes were not.
+  ///
+  /// Null (tests of the SQL behaviour only) keeps the old behaviour of rows
+  /// without files.
+  final String? mediaRoot;
 
   List<Note> deletedNotes({int limit = 200}) => repo.db
       .select(
@@ -31,24 +41,125 @@ class LibraryMaintenance {
       )
       .toList();
 
-  void purgeDeletedBefore(DateTime cutoff) => repo.db.execute(
-    'DELETE FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ?',
-    [cutoff.toUtc().toIso8601String()],
-  );
+  void purgeDeletedBefore(DateTime cutoff) {
+    final uris = _mediaUris(
+      'SELECT media_uri FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ?',
+      [cutoff.toUtc().toIso8601String()],
+    );
+    repo.db.execute(
+      'DELETE FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < ?',
+      [cutoff.toUtc().toIso8601String()],
+    );
+    _unlinkMedia(uris);
+  }
 
-  /// Permanently removes one note from the trash.
+  /// Permanently removes one note from the trash — rows, tags, embeddings
+  /// (by cascade) and the attachment file itself.
   ///
   /// Guarded on `deleted_at IS NOT NULL` so this can never reach a live note:
   /// the only path to it is the trash screen, and a note that was restored
   /// between the tap and the call must survive.
-  void purgeNote(String id) => repo.db.execute(
-    'DELETE FROM notes WHERE id = ? AND deleted_at IS NOT NULL',
-    [id],
-  );
+  void purgeNote(String id) {
+    final rows = repo.db.select(
+      'SELECT media_uri FROM notes WHERE id = ? AND deleted_at IS NOT NULL',
+      [id],
+    );
+    if (rows.isEmpty) return;
+    repo.db.execute(
+      'DELETE FROM notes WHERE id = ? AND deleted_at IS NOT NULL',
+      [id],
+    );
+    _unlinkMedia([
+      for (final row in rows)
+        if (row['media_uri'] is String) row['media_uri']! as String,
+    ]);
+  }
 
   /// Empties the trash.
-  void purgeAllDeleted() =>
-      repo.db.execute('DELETE FROM notes WHERE deleted_at IS NOT NULL');
+  void purgeAllDeleted() {
+    final uris = _mediaUris(
+      'SELECT media_uri FROM notes WHERE deleted_at IS NOT NULL',
+      const [],
+    );
+    repo.db.execute('DELETE FROM notes WHERE deleted_at IS NOT NULL');
+    _unlinkMedia(uris);
+  }
+
+  List<String> _mediaUris(String sql, List<Object?> args) => db
+      .select(sql, args)
+      .map((row) => row['media_uri'] as String?)
+      .whereType<String>()
+      .toList();
+
+  Database get db => repo.db;
+
+  /// Deletes attachment files a purge just orphaned. Best-effort: a file
+  /// that cannot be removed (a stuck handle, a transient EACCES) must not
+  /// turn a finished purge into a thrown one — the row is already gone, and
+  /// [sweepOrphanMedia] picks unreferenced strays up later.
+  void _unlinkMedia(List<String> uris) {
+    for (final uri in uris) {
+      try {
+        final file = File(uri);
+        if (_isInsideMediaRoot(uri) && file.existsSync()) file.deleteSync();
+      } catch (_) {
+        // Left for the sweep.
+      }
+    }
+  }
+
+  /// A file is only ever deleted when it is inside [mediaRoot]. The path in
+  /// a note row was written by this app, but purging is destructive enough
+  /// that a corrupted or hand-edited row pointing somewhere else (a shared
+  /// download, a camera directory) must fail to delete rather than succeed.
+  bool _isInsideMediaRoot(String path) {
+    final root = mediaRoot;
+    if (root == null) return false;
+    final canonical = p.normalize(path);
+    final rootCanonical = p.normalize(root);
+    return canonical == rootCanonical ||
+        canonical.startsWith('$rootCanonical${p.separator}');
+  }
+
+  /// Removes media files no note references anymore.
+  ///
+  /// The safety net under the purge paths: a file whose unlink failed, one
+  /// left behind by a capture whose insert failed, a pre-fix leftover from a
+  /// purge that only deleted rows. Files younger than an hour are left alone
+  /// so a capture mid-flight (file written first, row inserted second) can
+  /// never be swept out from under its own note.
+  ///
+  /// Returns how many files were removed.
+  int sweepOrphanMedia({String? mediaDir, Duration minAge = const Duration(hours: 1)}) {
+    final root = mediaDir ?? mediaRoot;
+    if (root == null) return 0;
+    final dir = Directory(root);
+    if (!dir.existsSync()) return 0;
+
+    final referenced = {
+      for (final row in repo.db.select(
+        'SELECT media_uri FROM notes WHERE media_uri IS NOT NULL',
+      ))
+        p.normalize(row['media_uri']! as String),
+    };
+
+    final cutoff = DateTime.now().subtract(minAge);
+    var removed = 0;
+    final entities = dir.listSync(recursive: true, followLinks: false);
+    for (final entity in entities) {
+      if (entity is! File) continue;
+      final normalized = p.normalize(entity.path);
+      if (referenced.contains(normalized)) continue;
+      try {
+        if (entity.statSync().modified.isAfter(cutoff)) continue;
+        entity.deleteSync();
+        removed++;
+      } catch (_) {
+        // Unreadable or undeletable: leave it for the next pass.
+      }
+    }
+    return removed;
+  }
 
   // A trashed note (deleted_at set) keeps its note_tags row until it is
   // purged — only a hard delete cascades that away — so counting nt.note_id

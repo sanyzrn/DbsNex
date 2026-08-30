@@ -49,11 +49,19 @@ class EnrichmentService {
         await _summarize(note);
       }
       if (_capabilities.semanticSearch || _capabilities.relatedNotes) {
-        await _embed(note);
+        // Re-read before embedding, not the note this method started with:
+        // transcription or OCR may have just landed the very text an embedding
+        // needs, and the in-memory copy predates it. Without the refresh, a
+        // freshly transcribed voice note embedded as nothing and only entered
+        // semantic search when some later backfill happened to re-run.
+        final refreshed = _repo.getById(noteId) ?? note;
+        await _embed(refreshed);
       }
       // Tag suggestions are fetched on demand via [suggestTags] — never auto-applied.
     } catch (_) {
       // AI errors are non-blocking (06-development.md). Leave note as-is.
+      // A thrown [AiUnavailableException] in particular leaves every slot it
+      // touches unwritten, so the note is retried rather than retired.
     }
   }
 
@@ -214,7 +222,17 @@ class EnrichmentService {
     final call = _adapter.transcribe(
       AudioRef(mediaUri: uri, mediaHash: note.mediaHash, bytes: bytes),
     );
-    if (call == null) return;
+    if (call == null) {
+      // This adapter has no way to hear audio — a permanent absence, not a
+      // failure. Mark the note so it stops being selected forever, without
+      // writing fabricated text into its transcript slot.
+      _repo.setTranscriptText(note.id, '');
+      return;
+    }
+    // A failure propagates: nothing is written, and the note stays in the
+    // backlog for the next pass. Persisting an empty transcript here is how
+    // a single timed-out request used to make a voice note permanently
+    // untranscribed and unsearchable.
     final result = await call;
     _repo.setTranscriptText(note.id, result.text);
   }
@@ -228,7 +246,12 @@ class EnrichmentService {
     final call = _adapter.ocr(
       ImageRef(mediaUri: uri, mediaHash: note.mediaHash, bytes: bytes),
     );
-    if (call == null) return;
+    if (call == null) {
+      // No way to read images on this adapter — permanent absence, marked
+      // once rather than retried forever, and never fabricated.
+      _repo.setOcrText(note.id, '');
+      return;
+    }
     final result = await call;
     _repo.setOcrText(note.id, result.text);
   }
@@ -251,8 +274,20 @@ class EnrichmentService {
     if (text.trim().isEmpty) return;
     final call = _adapter.embed(text);
     if (call == null) return;
+    // A failure propagates without writing a row: the note stays in the
+    // embedding backlog and is retried. Storing an empty vector on failure
+    // is how one rate-limited request made a note permanently invisible to
+    // semantic search — and to related notes — forever.
     final vector = await call;
-    _repo.setEmbedding(note.id, vector.values);
+    if (vector.values.isNotEmpty) {
+      _repo.setEmbedding(note.id, vector.values);
+    } else {
+      // A provider that answered with an empty embedding has said, in
+      // effect, "there is no vector for this". Record the zero-width marker
+      // so the note stops being retried; the similarity math already skips
+      // empty vectors, so nothing false can be derived from it.
+      _repo.setEmbedding(note.id, const <double>[]);
+    }
   }
 
   /// What a note means, for embedding. Deliberately not [Note.displayText] —

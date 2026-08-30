@@ -450,13 +450,16 @@ class CloudAIAdapter implements AIAdapter {
       'x-api-key': config.apiKey.trim(),
       'anthropic-version': '2023-06-01',
     },
-    // Gemini takes its key as a query parameter (see [_withKey]), so the
-    // request carries no auth header at all. It also accepts
-    // `x-goog-api-key`, but sending the key in the URL is the form Google's
-    // own quickstarts use and the one verified to work against this
-    // account — and a request that authenticates two ways is a request
-    // with two ways to be wrong.
-    AiWireFormat.gemini => {'content-type': 'application/json'},
+    // Gemini takes its key in the `x-goog-api-key` header, the same way the
+    // other two formats carry their credential in a header. It used to ride
+    // in a `?key=` query parameter — the form Google's quickstarts use — but
+    // a key in a URL is a key in every proxy and server log that ever sees
+    // the request line, and this app sends notes to that provider. One
+    // header, one way to authenticate.
+    AiWireFormat.gemini => {
+      'content-type': 'application/json',
+      'x-goog-api-key': config.apiKey.trim(),
+    },
     AiWireFormat.openai => {
       'content-type': 'application/json',
       'authorization': 'Bearer ${config.apiKey.trim()}',
@@ -467,7 +470,7 @@ class CloudAIAdapter implements AIAdapter {
     AiWireFormat.anthropic => Uri.parse(
       '${config.resolvedBaseUrl}/v1/messages',
     ),
-    AiWireFormat.gemini => _withKey(
+    AiWireFormat.gemini => Uri.parse(
       '${config.resolvedBaseUrl}/v1beta/models/'
       '${config.resolvedModel}:generateContent',
     ),
@@ -475,10 +478,6 @@ class CloudAIAdapter implements AIAdapter {
       '${config.resolvedBaseUrl}/v1/chat/completions',
     ),
   };
-
-  /// Gemini's `?key=` form.
-  Uri _withKey(String url) =>
-      Uri.parse(url).replace(queryParameters: {'key': config.apiKey.trim()});
 
   /// What the provider said the last time it refused, or null.
   ///
@@ -1216,7 +1215,12 @@ class CloudAIAdapter implements AIAdapter {
       media: bytes,
       mediaMimeType: _imageMime(uri),
     );
-    return OCRText(text: reply?.trim() ?? '');
+    // Null means the request itself failed — non-200, timeout, unreadable
+    // reply. That is absence, not an empty page: throwing keeps the note in
+    // the backlog instead of permanently recording "no text found" over a
+    // photo nobody ever actually looked at.
+    if (reply == null) throw const AiUnavailableException();
+    return OCRText(text: reply.trim());
   }
 
   @override
@@ -1238,7 +1242,8 @@ class CloudAIAdapter implements AIAdapter {
         media: bytes,
         mediaMimeType: _audioMime(uri),
       );
-      return Transcript(text: reply?.trim() ?? '');
+      if (reply == null) throw const AiUnavailableException();
+      return Transcript(text: reply.trim());
     }
     // OpenAI has a dedicated multipart endpoint instead.
     final request =
@@ -1256,7 +1261,9 @@ class CloudAIAdapter implements AIAdapter {
             ),
           );
     final streamed = await _client.send(request).timeout(_mediaTimeout);
-    if (streamed.statusCode != 200) return const Transcript(text: '');
+    if (streamed.statusCode != 200) {
+      throw const AiUnavailableException();
+    }
     final body = await streamed.stream.bytesToString();
     final decoded = jsonDecode(body);
     final text = decoded is Map && decoded['text'] is String
@@ -1275,10 +1282,12 @@ class CloudAIAdapter implements AIAdapter {
     if (config.provider.format == AiWireFormat.gemini) {
       final response = await _client
           .post(
-            // Same `?key=` form as the chat endpoint — the Gemini headers no
-            // longer carry the key, so parsing this URL plainly would send an
-            // unauthenticated request.
-            _withKey(
+            // The key rides in the `x-goog-api-key` header (see [_headers]),
+            // like every other provider's credential in its header. It used
+            // to be a `?key=` query parameter — the quickstart form — but a
+            // key in a URL is a key that shows up in proxy logs, server logs
+            // and any diagnostics that print the request line.
+            Uri.parse(
               '${config.resolvedBaseUrl}'
               '/v1beta/models/text-embedding-004:embedContent',
             ),
@@ -1293,15 +1302,17 @@ class CloudAIAdapter implements AIAdapter {
             }),
           )
           .timeout(_textTimeout);
-      if (response.statusCode != 200) return const Vector([]);
+      if (response.statusCode != 200) {
+        throw const AiUnavailableException();
+      }
       final decoded = jsonDecode(_bodyText(response));
       // Spelled out rather than chained: `cond ? a?['b'] : c` puts a `?[` where
       // the parser is still expecting the ternary's true branch.
-      if (decoded is! Map) return const Vector([]);
+      if (decoded is! Map) throw const AiUnavailableException();
       final embedding = decoded['embedding'];
-      if (embedding is! Map) return const Vector([]);
+      if (embedding is! Map) throw const AiUnavailableException();
       final values = embedding['values'];
-      if (values is! List) return const Vector([]);
+      if (values is! List) throw const AiUnavailableException();
       return Vector([for (final value in values) (value as num).toDouble()]);
     }
     final response = await _client
@@ -1311,13 +1322,19 @@ class CloudAIAdapter implements AIAdapter {
           body: jsonEncode({'model': 'text-embedding-3-small', 'input': text}),
         )
         .timeout(_textTimeout);
-    if (response.statusCode != 200) return const Vector([]);
+    if (response.statusCode != 200) {
+      throw const AiUnavailableException();
+    }
     final decoded = jsonDecode(_bodyText(response));
-    if (decoded is! Map<String, dynamic>) return const Vector([]);
+    if (decoded is! Map<String, dynamic>) {
+      throw const AiUnavailableException();
+    }
     final data = decoded['data'];
-    if (data is! List || data.isEmpty) return const Vector([]);
+    if (data is! List || data.isEmpty) {
+      throw const AiUnavailableException();
+    }
     final values = (data.first as Map)['embedding'];
-    if (values is! List) return const Vector([]);
+    if (values is! List) throw const AiUnavailableException();
     return Vector([for (final value in values) (value as num).toDouble()]);
   }
 

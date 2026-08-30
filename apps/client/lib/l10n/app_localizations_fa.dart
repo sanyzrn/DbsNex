@@ -765,6 +765,81 @@ class AppLocalizationsFa extends AppLocalizations {
   String get tryAgain => 'تلاش دوباره';
 
   @override
+  String libraryOpenDetail(String error) {
+    return 'مشکل: $error';
+  }
+
+  @override
+  String get restoreBackupHint =>
+      'اگر فایل پشتیبان دارید، بازگردانی آن در اینجا می‌تواند کتابخانه را بازیابی کند.';
+
+  @override
+  String restoreFailed(String error) {
+    return 'بازگردانی ناموفق بود: $error';
+  }
+
+  @override
+  String get updateAvailableBadge => 'به‌روزرسانی در دسترس است';
+
+  @override
+  String get closeLabel => 'بستن';
+
+  @override
+  String get timelineLoadFailed => 'مجموعه یادداشت‌ها بارگیری نشد.';
+
+  @override
+  String deletedWhen(String when) {
+    return 'حذف‌شده $when';
+  }
+
+  @override
+  String get filteredEmpty => 'یادداشت‌ها پشت پالایه‌ها پنهان شده‌اند.';
+
+  @override
+  String get clearFilters => 'پاک کردن پالایه‌ها';
+
+  @override
+  String get searchFilters => 'پالایه‌ها';
+
+  @override
+  String searchFiltersClear(int count) {
+    return 'پاک کردن همه ($count)';
+  }
+
+  @override
+  String get searchFilterTags => 'برچسب‌ها';
+
+  @override
+  String get searchFilterTypes => 'نوع‌ها';
+
+  @override
+  String get searchFilterDates => 'زمان افزودن';
+
+  @override
+  String get searchFilterAnyTime => 'همه زمان‌ها';
+
+  @override
+  String get searchFilterToday => 'امروز';
+
+  @override
+  String get searchFilterLast7Days => '۷ روز گذشته';
+
+  @override
+  String get searchFilterLast30Days => '۳۰ روز گذشته';
+
+  @override
+  String get searchFiltersHint =>
+      'برای ترکیب انتخاب کنید. پالایه‌ها بی‌درنگ اعمال می‌شوند.';
+
+  @override
+  String searchFiltersActive(int count) {
+    return '$count مورد فعال';
+  }
+
+  @override
+  String get showFilters => 'نمایش پالایه‌ها';
+
+  @override
   String get opening => 'Nex در حال باز شدن است';
 
   @override

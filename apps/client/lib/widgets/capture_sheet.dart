@@ -186,9 +186,12 @@ class _CaptureSheetState extends State<CaptureSheet> {
                 ),
                 _Action(Icons.link_outlined, l10n.link, widget.onLink),
                 IconButton.filled(
+                  // The app-wide 48px tap floor. 44 read as a deliberate
+                  // exception on the single most-pressed control in the app;
+                  // nothing about the filled style needs the smaller box.
                   constraints: const BoxConstraints.tightFor(
-                    width: 44,
-                    height: 44,
+                    width: nexMinTapTarget,
+                    height: nexMinTapTarget,
                   ),
                   onPressed: close,
                   tooltip: l10n.capture,

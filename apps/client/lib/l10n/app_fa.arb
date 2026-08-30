@@ -356,6 +356,95 @@
   "@tryAgain": {
     "description": "Retries startup after a failed library open"
   },
+  "libraryOpenDetail": "مشکل: {error}",
+  "@libraryOpenDetail": {
+    "placeholders": { "error": { "type": "String" } },
+    "description": "Detail line under the startup failure message"
+  },
+  "restoreBackupHint": "اگر فایل پشتیبان دارید، بازگردانی آن در اینجا می‌تواند کتابخانه را بازیابی کند.",
+  "@restoreBackupHint": {
+    "description": "Offered on the startup failure screen, before the app can open"
+  },
+  "restoreFailed": "بازگردانی ناموفق بود: {error}",
+  "@restoreFailed": {
+    "placeholders": { "error": { "type": "String" } },
+    "description": "Shown when restoring a local backup does not complete"
+  },
+  "updateAvailableBadge": "به‌روزرسانی در دسترس است",
+  "@updateAvailableBadge": {
+    "description": "Screen-reader label for the small dot marking a pending update"
+  },
+  "closeLabel": "بستن",
+  "@closeLabel": {
+    "description": "Tooltip for a sheet's close button"
+  },
+  "timelineLoadFailed": "مجموعه یادداشت‌ها بارگیری نشد.",
+  "@timelineLoadFailed": {
+    "description": "Shown when the timeline's first read fails"
+  },
+  "deletedWhen": "حذف‌شده {when}",
+  "@deletedWhen": {
+    "placeholders": { "when": { "type": "String" } },
+    "description": "Trash row subtitle: when the note was deleted"
+  },
+  "filteredEmpty": "یادداشت‌ها پشت پالایه‌ها پنهان شده‌اند.",
+  "@filteredEmpty": {
+    "description": "Timeline body when a filter matches nothing"
+  },
+  "clearFilters": "پاک کردن پالایه‌ها",
+  "@clearFilters": {
+    "description": "Drops the filters that hid every note"
+  },
+  "searchFilters": "پالایه‌ها",
+  "@searchFilters": {
+    "description": "Title of the search filter sheet"
+  },
+  "searchFiltersClear": "پاک کردن همه ({count})",
+  "@searchFiltersClear": {
+    "placeholders": { "count": { "type": "int" } },
+    "description": "Drops every active search filter"
+  },
+  "searchFilterTags": "برچسب‌ها",
+  "@searchFilterTags": {
+    "description": "Filter section heading: tags"
+  },
+  "searchFilterTypes": "نوع‌ها",
+  "@searchFilterTypes": {
+    "description": "Filter section heading: note types"
+  },
+  "searchFilterDates": "زمان افزودن",
+  "@searchFilterDates": {
+    "description": "Filter section heading: when the note was added"
+  },
+  "searchFilterAnyTime": "همه زمان‌ها",
+  "@searchFilterAnyTime": {
+    "description": "Date filter: no date restriction"
+  },
+  "searchFilterToday": "امروز",
+  "@searchFilterToday": {
+    "description": "Date filter: added today"
+  },
+  "searchFilterLast7Days": "۷ روز گذشته",
+  "@searchFilterLast7Days": {
+    "description": "Date filter: last seven days"
+  },
+  "searchFilterLast30Days": "۳۰ روز گذشته",
+  "@searchFilterLast30Days": {
+    "description": "Date filter: last thirty days"
+  },
+  "searchFiltersHint": "برای ترکیب انتخاب کنید. پالایه‌ها بی‌درنگ اعمال می‌شوند.",
+  "@searchFiltersHint": {
+    "description": "Hint shown in the filter sheet before any filter is active"
+  },
+  "searchFiltersActive": "{count} مورد فعال",
+  "@searchFiltersActive": {
+    "placeholders": { "count": { "type": "int" } },
+    "description": "Count of active filters, shown in the filter sheet"
+  },
+  "showFilters": "نمایش پالایه‌ها",
+  "@showFilters": {
+    "description": "Tooltip for the filter button beside the search field"
+  },
   "opening": "Nex در حال باز شدن است",
   "@opening": {
     "description": "Screen-reader label for the startup splash"

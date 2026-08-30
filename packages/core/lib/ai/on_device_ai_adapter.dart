@@ -60,26 +60,23 @@ class OnDeviceAIAdapter implements AIAdapter {
 
   @override
   Future<Transcript>? transcribe(AudioRef audio) {
-    return Future(() {
-      final seed =
-          audio.mediaHash ??
-          sha256.convert(utf8.encode(audio.mediaUri)).toString();
-      // Stable stub transcript so FTS/search tests are deterministic.
-      final text =
-          'voice transcript ${seed.substring(0, 8)} spoken note content';
-      return Transcript(text: text, confidence: 0.42);
-    });
+    // Deliberately unavailable. This adapter is the offline fallback —
+    // heuristics over text the note already has — and it has no way to hear
+    // audio. It used to answer with a seeded fake sentence ("voice transcript
+    // 69cfdd… spoken note content"), which the enrichment service then
+    // stored, indexed and offered to the assistant as a real transcript: a
+    // fabricated record indistinguishable from a transcription, written into
+    // the one note type whose words the user never typed. Null is the honest
+    // answer; the enrichment service marks the slot empty so it is not
+    // retried forever.
+    return null;
   }
 
   @override
   Future<OCRText>? ocr(ImageRef image) {
-    return Future(() {
-      final seed =
-          image.mediaHash ??
-          sha256.convert(utf8.encode(image.mediaUri)).toString();
-      final text = 'photo text ${seed.substring(0, 8)} readable label';
-      return OCRText(text: text, confidence: 0.4);
-    });
+    // See [transcribe]: no way to read images, and no fabricated text in
+    // their place.
+    return null;
   }
 
   @override

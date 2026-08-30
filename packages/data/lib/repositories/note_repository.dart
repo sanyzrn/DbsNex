@@ -121,7 +121,10 @@ WHERE id = ? AND deleted_at IS NULL
 ''',
       [content, now, if (localDeviceId != null) localDeviceId, noteId],
     );
-    _upsertFts(noteId, content);
+    // Re-derived from the whole note, not the raw body: a note with a title
+    // used to drop the title from its search row here, and a checklist got
+    // its `[x]` markers indexed. Every FTS writer goes through [_reindex].
+    _reindex(noteId);
   }
 
   /// Pins [noteId] while keeping the five-item home-screen limit atomic.
@@ -195,11 +198,11 @@ WHERE id = ?
 ''',
       [now, if (localDeviceId != null) localDeviceId, noteId],
     );
-    final content = rows.first['content'] as String?;
-    final type = rows.first['type'] as String?;
-    if (type == 'text' && content != null && content.isNotEmpty) {
-      _upsertFts(noteId, content);
-    }
+    // Re-derived from the whole restored row, not just the text body: a
+    // checklist, a voice note with its transcript, a photo with OCR text and
+    // a link with its excerpt all leave the trash searchable again — before
+    // this, only plain text came back findable.
+    _reindex(noteId);
   }
 
   @override
@@ -643,14 +646,25 @@ WHERE id = ?
       );
     }
     db.execute('DELETE FROM notes_fts WHERE note_id = ?', [id]);
-    if (type == NoteType.text &&
-        content != null &&
-        content.isNotEmpty &&
-        deletedAt == null) {
-      _upsertFts(id, content);
+    final note = Note.fromRow(
+      db.select('SELECT * FROM notes WHERE id = ?', [id]).first,
+    );
+    final searchable = note.searchableDerivedText;
+    if (searchable != null && searchable.isNotEmpty) {
+      _upsertFts(id, searchable);
     }
     db.execute('DELETE FROM note_tags WHERE note_id = ?', [id]);
+    // A remote payload can name a tag this device has never seen — a peer
+    // that created the tag out of order, or a server that kept the note but
+    // dropped the tag. With the foreign key on, one dangling id used to
+    // throw out of this method and abort the whole applying loop (a sync
+    // page, an import) at that note, permanently, every retry. A tag link
+    // that cannot resolve is skipped; the note itself still arrives.
+    final knownTags = {
+      for (final row in db.select('SELECT id FROM tags')) row['id']! as String,
+    };
     for (final tagId in tagIds) {
+      if (!knownTags.contains(tagId)) continue;
       db.execute(
         'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
         [id, tagId],
@@ -676,14 +690,16 @@ WHERE id = ?
       text,
       noteId,
     ]);
-    if (text.isNotEmpty) _upsertFts(noteId, text);
+    // Re-derived, not replaced: writing a transcript used to drop the note's
+    // title and caption out of its search row.
+    _reindex(noteId);
   }
 
   /// Persist AI OCR text alongside the photo note.
   @override
   void setOcrText(String noteId, String text) {
     db.execute('UPDATE notes SET ocr_text = ? WHERE id = ?', [text, noteId]);
-    if (text.isNotEmpty) _upsertFts(noteId, text);
+    _reindex(noteId);
   }
 
   @override
@@ -783,6 +799,45 @@ WHERE id = ? AND deleted_at IS NULL
       _upsertFts(noteId, searchable);
     } else {
       db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+    }
+  }
+
+  /// Repairs the search index's *membership*: FTS rows for notes that are
+  /// gone (purged, deleted) are removed, and live notes with searchable text
+  /// but no row — a crash between one FTS statement and its pair, a database
+  /// restored from before a fix — get their row back, derived exactly as a
+  /// fresh capture would have.
+  ///
+  /// Runs once per open, in the database isolate. On a healthy library both
+  /// queries return nothing and the cost is two set lookups; on a damaged
+  /// one it is the difference between a note that is findable and one that
+  /// silently is not until the next time it is edited.
+  void repairSearchIndex() {
+    // Stale rows: the note row is gone, or it is in the trash. Search never
+    // reads past `deleted_at IS NULL`, but a trashed note's row would come
+    // back wrong on restore if this list were allowed to stand in for one.
+    db.execute('''
+DELETE FROM notes_fts
+WHERE note_id IN (
+  SELECT f.note_id FROM notes_fts f
+  LEFT JOIN notes n ON n.id = f.note_id AND n.deleted_at IS NULL
+  WHERE n.id IS NULL
+)
+''');
+
+    // Missing rows: re-derive in Dart, where the same [Note.searchableDerivedText]
+    // every writer uses decides what belongs in the index. Notes with nothing
+    // searchable (a photo with no caption or OCR yet) correctly stay out.
+    final missing = db
+        .select('''
+SELECT id FROM notes
+WHERE deleted_at IS NULL
+  AND id NOT IN (SELECT note_id FROM notes_fts)
+''')
+        .map((row) => row['id']! as String)
+        .toList();
+    for (final id in missing) {
+      _reindex(id);
     }
   }
 
@@ -1009,6 +1064,7 @@ LIMIT ?
     archive.addFile(
       ArchiveFile('notes.json', jsonPayload.length, utf8.encode(jsonPayload)),
     );
+    final usedMediaNames = <String>{};
 
     for (final note in noteModels) {
       final md = _markdownFor(note);
@@ -1019,9 +1075,17 @@ LIMIT ?
       if (note.mediaUri != null) {
         final src = File(note.mediaUri!);
         if (src.existsSync()) {
+          // Two notes can legitimately carry files with the same basename
+          // (a photo exported twice, a recording re-made under the same
+          // second). Flattening by name silently kept only the last one —
+          // the archive looked complete and had one fewer photo in it.
+          // On a collision the note's id goes in front, which is unique by
+          // construction; the importer knows to look for both spellings.
           final name = p.basename(note.mediaUri!);
+          final firstUse = usedMediaNames.add(name);
+          final entryName = firstUse ? name : '${note.id}-$name';
           final data = src.readAsBytesSync();
-          archive.addFile(ArchiveFile('media/$name', data.length, data));
+          archive.addFile(ArchiveFile('media/$entryName', data.length, data));
         }
       }
     }
@@ -1072,60 +1136,74 @@ LIMIT ?
 
     var imported = 0;
     var skipped = 0;
-    for (final raw in (payload['notes'] as List? ?? const [])) {
-      final json = raw as Map<String, dynamic>;
-      final note = Note.fromRow(json);
-      if (db.select('SELECT id FROM notes WHERE id = ?', [
-        note.id,
-      ]).isNotEmpty) {
-        skipped++;
-        continue;
-      }
-
-      String? mediaUri;
-      if (note.mediaUri != null) {
-        final name = p.basename(note.mediaUri!);
-        final entry = archive.findFile('media/$name');
-        if (entry != null) {
-          final target = File(p.join(mediaRoot, name));
-          target.parent.createSync(recursive: true);
-          target.writeAsBytesSync(entry.content as List<int>);
-          mediaUri = target.path;
+    // One transaction around the whole loop. A failure halfway through used
+    // to leave a partial import on disk — half the notes, and a re-import of
+    // the same file would then skip everything already landed, so the user
+    // could not even heal it by trying again. All of it applies, or none.
+    db.execute('BEGIN IMMEDIATE');
+    try {
+      for (final raw in (payload['notes'] as List? ?? const [])) {
+        final json = raw as Map<String, dynamic>;
+        final note = Note.fromRow(json);
+        if (db.select('SELECT id FROM notes WHERE id = ?', [
+          note.id,
+        ]).isNotEmpty) {
+          skipped++;
+          continue;
         }
-        // No media in the archive: the note still comes in, with its text and
-        // its tags. Losing the whole note over a missing attachment would be a
-        // worse trade than losing the attachment.
-      }
 
-      applyRemoteNote(
-        id: note.id,
-        type: note.type,
-        content: note.content,
-        mediaUri: mediaUri,
-        mediaHash: note.mediaHash,
-        durationMs: note.durationMs,
-        createdAt: note.createdAt,
-        updatedAt: note.updatedAt,
-        deletedAt: note.deletedAt,
-        deviceId: note.deviceId,
-        rev: note.rev,
-        tagIds: [
-          for (final tag in (json['tags'] as List? ?? const []))
-            (tag as Map<String, dynamic>)['id']! as String,
-        ],
-      );
-      // applyRemoteNote carries no captions, transcripts, summaries, titles
-      // or link excerpts — none of them are part of the sync wire — so they
-      // are written back here.
-      //
-      // Titles and link excerpts are on that list deliberately, alongside the
-      // caption they most resemble. What *does* cross the wire is `content`,
-      // which is where a checklist keeps its items and a link keeps its URL —
-      // so both of those new types sync as completely as a text note does,
-      // and it is only the annotation on top that stays local until the wire
-      // grows a field for it.
-      _restoreEnrichment(note);
-      imported++;
+        String? mediaUri;
+        if (note.mediaUri != null) {
+          final name = p.basename(note.mediaUri!);
+          // The current spelling first; the id-prefixed spelling second, for
+          // archives written after exports started de-duplicating basenames.
+          var entry = archive.findFile('media/$name');
+          entry ??= archive.findFile('media/${note.id}-$name');
+          if (entry != null) {
+            final target = File(p.join(mediaRoot, name));
+            target.parent.createSync(recursive: true);
+            target.writeAsBytesSync(entry.content as List<int>);
+            mediaUri = target.path;
+          }
+          // No media in the archive: the note still comes in, with its text
+          // and its tags. Losing the whole note over a missing attachment
+          // would be a worse trade than losing the attachment.
+        }
+
+        applyRemoteNote(
+          id: note.id,
+          type: note.type,
+          content: note.content,
+          mediaUri: mediaUri,
+          mediaHash: note.mediaHash,
+          durationMs: note.durationMs,
+          createdAt: note.createdAt,
+          updatedAt: note.updatedAt,
+          deletedAt: note.deletedAt,
+          deviceId: note.deviceId,
+          rev: note.rev,
+          tagIds: [
+            for (final tag in (json['tags'] as List? ?? const []))
+              (tag as Map<String, dynamic>)['id']! as String,
+          ],
+        );
+        // applyRemoteNote carries no captions, transcripts, summaries, titles
+        // or link excerpts — none of them are part of the sync wire — so they
+        // are written back here.
+        //
+        // Titles and link excerpts are on that list deliberately, alongside
+        // the caption they most resemble. What *does* cross the wire is
+        // `content`, which is where a checklist keeps its items and a link
+        // keeps its URL — so both of those new types sync as completely as a
+        // text note does, and it is only the annotation on top that stays
+        // local until the wire grows a field for it.
+        _restoreEnrichment(note);
+        imported++;
+      }
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
     }
     return ImportResult(imported: imported, skipped: skipped);
   }

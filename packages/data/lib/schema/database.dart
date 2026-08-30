@@ -37,6 +37,22 @@ class NexDatabase {
 
   void _migrate() {
     db.execute('PRAGMA foreign_keys = ON;');
+
+    // Write-ahead logging, once and permanently (the mode is recorded in the
+    // database header, so this is a no-op from the second open onwards).
+    // Every write becomes an atomic commit against the `-wal` file instead of
+    // page surgery in place, which is what makes a crash mid-write leave a
+    // readable database behind rather than a corrupt one — and readers no
+    // longer block the writer, so a capture during a search stops contending.
+    //
+    // `synchronous = NORMAL` is the pairing SQLite itself recommends under
+    // WAL: consistent across app crashes, only a power loss can lose the
+    // last moments, and the automatic backups are the recovery path for
+    // that. The backup and restore paths already checkpoint (`create`) and
+    // sweep the sidecar files (`restore`), which is what this mode expects.
+    // In-memory databases ignore both pragmas and keep their own behaviour.
+    db.execute('PRAGMA journal_mode = WAL;');
+    db.execute('PRAGMA synchronous = NORMAL;');
     db.execute('''
 CREATE TABLE IF NOT EXISTS notes (
   id TEXT PRIMARY KEY NOT NULL,
@@ -92,6 +108,16 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     db.execute(
       'CREATE INDEX IF NOT EXISTS idx_notes_deleted_at ON notes(deleted_at);',
     );
+    // The tag-filtered timeline joins through note_tags from the tag side;
+    // it was a full scan — fine at a few hundred notes, a tax that grows
+    // with the library otherwise. (The two notes-table indexes live further
+    // down, after [_dropLegacyTypeCheck]: the rebuild drops every index on
+    // the table it replaces and only recreates the two it has always known
+    // about, so anything created here would silently vanish on the exact
+    // databases the rebuild exists to migrate.)
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_note_tags_tag_id ON note_tags(tag_id);',
+    );
 
     // Phase 3: AI-derived columns (idempotent ADD COLUMN).
     _addColumnIfMissing('notes', 'transcript_text', 'TEXT');
@@ -122,6 +148,16 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     _addColumnIfMissing('notes', 'link_excerpt', 'TEXT');
 
     _dropLegacyTypeCheck();
+
+    // Created after [_dropLegacyTypeCheck] on purpose — see the note above.
+    // The outbox is scanned on every sync cycle and after every write; the
+    // reminder rebuild walks due_at.
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_notes_sync_state ON notes(sync_state);',
+    );
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_notes_due_at ON notes(due_at);',
+    );
 
     // Tags get the outbox notes have always had.
     //
@@ -360,7 +396,13 @@ CREATE TABLE notes_rebuilt (
     }
 
     // Validation passed — swap into place.
-    for (final suffix in ['', '-wal', '-shm']) {
+    //
+    // `-journal` goes too. The live database runs in WAL mode, but a crash
+    // under an older rollback-journal build (or a file written by one) can
+    // leave `nex.sqlite-journal` behind, and SQLite would treat whatever is
+    // in it as hot for the file being swapped in and roll old pages back
+    // over the restored data. Every sidecar that can carry state goes.
+    for (final suffix in ['', '-wal', '-shm', '-journal']) {
       final f = File('$liveDbPath$suffix');
       if (f.existsSync()) f.deleteSync();
     }

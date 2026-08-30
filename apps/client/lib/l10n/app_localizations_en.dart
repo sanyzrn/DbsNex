@@ -765,6 +765,80 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tryAgain => 'Try again';
 
   @override
+  String libraryOpenDetail(String error) {
+    return 'What went wrong: $error';
+  }
+
+  @override
+  String get restoreBackupHint =>
+      'If you have a backup file, restoring it here may recover your library.';
+
+  @override
+  String restoreFailed(String error) {
+    return 'Restore failed: $error';
+  }
+
+  @override
+  String get updateAvailableBadge => 'Update available';
+
+  @override
+  String get closeLabel => 'Close';
+
+  @override
+  String get timelineLoadFailed => 'Your timeline could not be loaded.';
+
+  @override
+  String deletedWhen(String when) {
+    return 'Deleted $when';
+  }
+
+  @override
+  String get filteredEmpty => 'Notes are hiding behind your filters.';
+
+  @override
+  String get clearFilters => 'Clear filters';
+
+  @override
+  String get searchFilters => 'Filters';
+
+  @override
+  String searchFiltersClear(int count) {
+    return 'Clear all ($count)';
+  }
+
+  @override
+  String get searchFilterTags => 'Tags';
+
+  @override
+  String get searchFilterTypes => 'Types';
+
+  @override
+  String get searchFilterDates => 'Added';
+
+  @override
+  String get searchFilterAnyTime => 'Any time';
+
+  @override
+  String get searchFilterToday => 'Today';
+
+  @override
+  String get searchFilterLast7Days => 'Last 7 days';
+
+  @override
+  String get searchFilterLast30Days => 'Last 30 days';
+
+  @override
+  String get searchFiltersHint => 'Tap to combine. Filters apply as you go.';
+
+  @override
+  String searchFiltersActive(int count) {
+    return '$count active';
+  }
+
+  @override
+  String get showFilters => 'Show filters';
+
+  @override
   String get opening => 'Nex is opening';
 
   @override

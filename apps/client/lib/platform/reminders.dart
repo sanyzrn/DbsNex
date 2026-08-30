@@ -132,9 +132,11 @@ class NexReminders {
       tz.setLocalLocation(tz.getLocation(zone.identifier));
     } catch (error) {
       // An unknown zone name leaves `tz.local` at UTC, which is where it was
-      // before. Recorded rather than swallowed: a reminder an hour out is a
-      // harder thing to explain than one that never came.
-      lastError = 'timezone: $error';
+      // before. Recorded rather than swallowed — into [_initialisationWarning],
+      // which [schedule] merges into what the user actually sees, because
+      // [lastError] is cleared at the start of every schedule and a value
+      // written here would otherwise never survive to be read.
+      _initialisationWarning = 'timezone: $error';
     }
     await _plugin.initialize(
       settings: const InitializationSettings(
@@ -198,6 +200,31 @@ class NexReminders {
   /// worth more than a confident lie.
   String? lastError;
 
+  /// A problem noticed while initialising — most importantly a device zone
+  /// that could not be resolved, which silently shifts every wall-clock
+  /// schedule by the offset to UTC.
+  ///
+  /// [lastError] is cleared at the start of every [schedule], so a startup
+  /// diagnostic written straight into it was overwritten before anyone read
+  /// it. It lives here instead, and [schedule] merges it in — a reminder set
+  /// on a phone whose zone never loaded reports the truth rather than a
+  /// confident success.
+  String? _initialisationWarning;
+
+  /// Gate for the system "Alarms & reminders" screen.
+  ///
+  /// [requestPermission] used to open that screen on *every* reminder set,
+  /// forever, on every Android 14+ phone where the OS ships with the
+  /// permission off — once per reminder, even for someone who had already
+  /// declined. The composition root sets this to answer "has the user already
+  /// been asked once?", which turns a teleport-per-reminder into one
+  /// explained prompt. Null (tests, desktop) means "ask freely".
+  Future<bool> Function()? shouldRequestExactAlarms;
+
+  /// Called after the exact-alarm screen was actually shown, so the gate can
+  /// be latched.
+  void Function()? onExactAlarmsRequested;
+
   /// Asks for permission, and answers whether it was given.
   ///
   /// Called when a reminder is actually being set, which is the only moment
@@ -230,7 +257,8 @@ class NexReminders {
         posting = await android.areNotificationsEnabled() ?? false;
         if (!posting) {
           final requested = await android.requestNotificationsPermission();
-          posting = requested ?? await android.areNotificationsEnabled() ?? false;
+          posting =
+              requested ?? await android.areNotificationsEnabled() ?? false;
         }
       } catch (error) {
         lastError = 'notification permission: $error';
@@ -246,10 +274,25 @@ class NexReminders {
       // to [_exactAlarms] overwrote the true state read at startup with a
       // false, on every single reminder anyone set, which quietly put every
       // alarm back on the inexact path this release had just taken it off.
+      //
+      // And it is shown at most once per install, not once per reminder: on
+      // a default Android 14+ phone the permission is off, so every reminder
+      // used to bounce the user to system Settings whether they had already
+      // said no or not. The gate latches after the first ask.
+      final alreadyExact = _exactAlarms;
+      var gateSaysAsk = true;
       try {
-        await android.requestExactAlarmsPermission();
+        gateSaysAsk = await shouldRequestExactAlarms?.call() ?? true;
       } catch (_) {
-        // Nothing to do: the state is read below either way.
+        gateSaysAsk = true;
+      }
+      if (!alreadyExact && gateSaysAsk) {
+        try {
+          await android.requestExactAlarmsPermission();
+          onExactAlarmsRequested?.call();
+        } catch (_) {
+          // Nothing to do: the state is read below either way.
+        }
       }
       try {
         _exactAlarms = await android.canScheduleExactNotifications() ?? false;
@@ -284,8 +327,11 @@ class NexReminders {
     // comes back. It is moved forward to the next occurrence instead.
     final at = note.dueRepeat == NoteRepeat.once
         ? when
-        : _nextOccurrence(when, note.dueRepeat);
-    if (!at.isAfter(DateTime.now().toUtc())) return;
+        : computeNextOccurrence(when, note.dueRepeat, DateTime.now());
+    if (!at.isAfter(DateTime.now().toUtc())) {
+      _reportInitialisationWarning();
+      return;
+    }
 
     final body = (note.displayText ?? '').trim();
     try {
@@ -325,6 +371,18 @@ class NexReminders {
       // their reminder is set.
       lastError = '$error';
     }
+    // A schedule that succeeded does not get to hide the timezone problem:
+    // on a phone whose zone never loaded, "set for 9:00" was quietly set for
+    // a different 9:00 than the one on the clock.
+    _reportInitialisationWarning();
+  }
+
+  /// Surfaces the startup diagnostic on a schedule that reported no failure
+  /// of its own.
+  void _reportInitialisationWarning() {
+    if (lastError == null || lastError!.isEmpty) {
+      lastError = _initialisationWarning;
+    }
   }
 
   /// The first firing of a repeating reminder that is still ahead.
@@ -332,14 +390,26 @@ class NexReminders {
   /// A repeat's stored time is when the series *started*, which is in the past
   /// for every repeat that has fired even once — so scheduling it verbatim
   /// would be scheduling a time that has gone, and the alarm would never be
-  /// taken. This walks it forward by the repeat's own period, keeping the
-  /// clock face it was set at.
+  /// taken. This moves it forward by whole periods, keeping the clock face it
+  /// was set at.
   ///
   /// Local time throughout, then back to UTC: "every day at nine" means nine
   /// on the wall, and adding 24 hours across a daylight-saving boundary
   /// silently makes it eight or ten.
-  DateTime _nextOccurrence(DateTime start, NoteRepeat repeat) {
-    final now = DateTime.now();
+  ///
+  /// The gap is closed by *arithmetic*, not a walk: a daily series started
+  /// three years ago is ~1,100 steps behind, and the old one-day-at-a-time
+  /// walk hit its 800-step guard at about twenty-six months — after which it
+  /// returned the still-past start, [schedule] refused to schedule it, and a
+  /// reminder someone still wanted retired itself silently on the next
+  /// launch. The short bounded walk that remains only cleans up sub-period
+  /// rounding (a DST-shifted wall clock, a `now` that lands between steps).
+  @visibleForTesting
+  static DateTime computeNextOccurrence(
+    DateTime start,
+    NoteRepeat repeat,
+    DateTime now,
+  ) {
     var at = start.toLocal();
     final step = switch (repeat) {
       NoteRepeat.once => 0,
@@ -347,9 +417,24 @@ class NexReminders {
       NoteRepeat.weekly => 7,
     };
     if (step == 0) return start;
-    // A bounded walk rather than `while (true)`: a corrupt start date years in
-    // the past should cost a skipped reminder, not a hung isolate.
-    for (var guard = 0; guard < 800 && !at.isAfter(now); guard++) {
+    final localNow = now.toLocal();
+    if (!at.isAfter(localNow)) {
+      final daysBehind = localNow.difference(at).inDays;
+      final periodsBehind = daysBehind ~/ step;
+      // One more period than the whole ones that have passed — the first
+      // firing that is still ahead. Wall-clock fields are rebuilt by hand so
+      // a period is a period on the clock face, not 24 elapsed hours.
+      at = DateTime(
+        at.year,
+        at.month,
+        at.day + step * (periodsBehind + 1),
+        at.hour,
+        at.minute,
+      );
+    }
+    // Bounded for the same reason as ever: a corrupt date that arithmetic
+    // somehow cannot get past costs a skipped reminder, not a hung isolate.
+    for (var guard = 0; guard < 800 && !at.isAfter(localNow); guard++) {
       at = DateTime(at.year, at.month, at.day + step, at.hour, at.minute);
     }
     return at.toUtc();
@@ -527,14 +612,41 @@ class NexReminders {
     } catch (_) {}
   }
 
-  /// Rebuilds every pending alarm from the library.
+  /// Rebuilds every pending alarm from the library — and prunes the ones the
+  /// library no longer asks for.
   ///
   /// Run at launch. This is what makes a reminder survive a reinstall, a
   /// restore, or an OS that quietly dropped its alarm list — the note said
   /// when, so the alarm can always be made again.
+  ///
+  /// The prune is the other half of that sentence. This used to only ever
+  /// *add*: every alarm the OS still held that the library could not account
+  /// for — one left by a restore that rolled the library back, one orphaned
+  /// before the delete path learned to cancel — kept firing, and the boot
+  /// receiver re-armed each of them at every reboot. The library is the
+  /// record, so anything the record does not ask for goes. Reserved ids (the
+  /// daily nudge, the diagnostics) are never touched.
   Future<void> syncFromLibrary(List<Note> upcoming) async {
     if (!supported) return;
     await initialise();
+
+    final wanted = <int>{for (final note in upcoming) _idFor(note.id)};
+    try {
+      final pending = await _plugin.pendingNotificationRequests();
+      for (final request in pending) {
+        final id = request.id;
+        if (id == _dailyId || id == _testId || id == _testId + 1) continue;
+        if (!wanted.contains(id)) {
+          try {
+            await _plugin.cancel(id: id);
+          } catch (_) {}
+        }
+      }
+    } catch (_) {
+      // The queue could not be read: adding still happens below, and the
+      // ghosts wait for the next launch rather than failing this one.
+    }
+
     for (final note in upcoming) {
       await schedule(note);
     }
@@ -545,7 +657,22 @@ class NexReminders {
   /// The plugin keys alarms by int, and notes by string. Hashing means
   /// rescheduling the same note replaces its alarm rather than adding a
   /// second one, without keeping a mapping table that could drift.
-  static int _idFor(String noteId) => noteId.hashCode & 0x7fffffff;
+  ///
+  /// The low ids are reserved: 0 is the daily nudge, 1 and 2 the diagnostics.
+  /// A 31-bit hash *can* land there — the previous comment claimed it could
+  /// not, and that claim was false — in which case setting that note's
+  /// reminder would silently replace the nudge, and the nudge would silently
+  /// replace the reminder, each cancelling the other forever. Bumping past
+  /// the reserved block costs three ids at one end of the space and removes
+  /// the entire class of bug.
+  @visibleForTesting
+  static int idFor(String noteId) {
+    var id = noteId.hashCode & 0x7fffffff;
+    if (id <= 2) id += 3;
+    return id;
+  }
+
+  static int _idFor(String noteId) => idFor(noteId);
 
   static String _clamp(String text, int max) {
     final one = text.replaceAll(RegExp(r'\s+'), ' ');

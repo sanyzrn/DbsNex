@@ -317,8 +317,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     // together, with nothing to say which wins — so the text only travels
     // under the style it belongs to. It stays in storage either way, so
     // switching back to Custom brings it back rather than asking for it again.
-    instruction:
-        widget.preferences.aiResponseStyle == AiResponseStyle.custom
+    instruction: widget.preferences.aiResponseStyle == AiResponseStyle.custom
         ? widget.preferences.aiInstruction
         : '',
     responseStyle: widget.preferences.aiResponseStyle,
@@ -1440,11 +1439,8 @@ class ChatHistorySheet extends StatefulWidget {
   static Future<ChatHistoryChoice?> show(
     BuildContext context, {
     required ChatHistory history,
-  }) => showModalBottomSheet<ChatHistoryChoice>(
+  }) => nexShowSheet<ChatHistoryChoice>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
     builder: (_) => ChatHistorySheet(history: history),
   );
 

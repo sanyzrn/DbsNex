@@ -34,6 +34,65 @@ Working convention:
 
 ## Unreleased
 
+## v1.3.0
+
+The reliability release. Most of it is the app refusing to lose things or lie
+to you — the same instincts as 1.2.6, turned toward the parts that had to be
+trusted instead of seen.
+
+- **"Delete forever" now deletes forever.** Emptying the trash (or purging a
+  note from it) removed the database row but left the photo, recording or
+  attachment file on disk for good — still swept into every backup. The file
+  goes with the note now.
+- **Reminders stop outliving their notes.** Deleting a note left its alarm
+  armed in the OS, so it still fired — and re-armed after every reboot.
+  Restoring a backup left ghost alarms for notes the restore had removed.
+  Both are cleaned up now, undoing a delete brings its reminder back, and
+  editing a note refreshes the text of its pending notification.
+- **A reminder series can no longer retire itself.** A daily reminder whose
+  start had drifted more than about two years into the past stopped being
+  rescheduled at launch, silently. The next occurrence is now computed
+  directly instead of stepped day by day.
+- **A failed transcription, OCR pass or embedding no longer burns its slot.**
+  One timed-out request used to permanently mark a voice note "no transcript"
+  or hide a note from semantic search. Failures now leave the slot open for a
+  retry; only a real answer — including "nothing was heard" — closes it.
+- **Nex never invents a transcript.** With AI on but no provider configured,
+  voice and photo notes received fabricated text and it was stored, searched
+  and shown like the real thing. It is not produced any more.
+- **Your library no longer rides Google's cloud backup.** Android's automatic
+  backup silently uploaded the whole database to Google Drive — and without
+  its write-ahead log, which is how a restored copy can come back corrupt.
+  Nex keeps its own backups, on the device, where the data was always meant
+  to stay.
+- **Search filters finally have buttons.** Tag, type and date filters existed
+  under the hood but were reachable only by typing `tag:` and `type:` into
+  the search field. A filter button beside the field opens a sheet of chips
+  that combine and apply as you tap.
+- **A failed first read of your timeline says so, with a retry** — instead of
+  showing skeletons until you gave up.
+- **The app survives a database it cannot open.** The failure is named on
+  screen, and if you have a backup file, a Restore button right there will
+  put your library back without the app ever having to open.
+- **Backups restored onto a reinstall find their files again.** A `.nexbak`
+  restored into a new sandbox used to keep pointing every photo and recording
+  at the old device's paths. Media paths are rewritten to where the files
+  actually landed.
+- **Restores that fail say so.** A failed restore used to brick the session
+  silently; it now reports what happened.
+- **The Gemini API key moved out of the request URL** into a header, so it
+  stops appearing in anything that logs request lines.
+- **The exact-alarm permission screen is shown once per install**, at the
+  first reminder, instead of teleporting you to system Settings every time
+  you set one.
+- **A test notification row in Settings** — one notification now and one in
+  ten seconds, to tell "Nex never sent it" from "my phone swallowed it".
+- Smaller honesty: the trash shows when a note was deleted instead of
+  repeating its type; a filtered timeline says notes are hiding behind your
+  filters instead of claiming the library is empty; the update-available dot
+  is visible to screen readers; the AI recap says when its refresh failed;
+  the on-device chat prompt finally receives its scope ceiling.
+
 ## v1.2.7
 
 - **Starting Nex for the first time lets you write straight away.** A fresh

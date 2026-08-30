@@ -32,6 +32,7 @@ import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/search_field_header.dart';
+import '../widgets/search_filter_sheet.dart';
 import '../widgets/search_results.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/swipe_actions.dart';
@@ -74,6 +75,11 @@ class TimelineScreenState extends State<TimelineScreen>
   /// which a capture triggers — replaced it with the unfiltered one while the
   /// filter chips still claimed to be active.
   List<Note>? _all;
+
+  /// The first timeline read threw and there is nothing to show instead.
+  /// Only ever true while `_all` is null: once data is on screen, a failed
+  /// reload keeps the data it failed to replace.
+  bool _loadFailed = false;
   List<Note> notes = const [];
 
   /// Keeps one card open at a time and lets a scroll close it.
@@ -196,6 +202,7 @@ class TimelineScreenState extends State<TimelineScreen>
     subscription = widget.services.timelineStream.listen((value) {
       if (!mounted) return;
       setState(() {
+        _loadFailed = false;
         _all = value;
         notes = _visible(value);
       });
@@ -368,6 +375,16 @@ class TimelineScreenState extends State<TimelineScreen>
       // would be the tap actively destroying something.
       if (text != null && text.isNotEmpty) _aiSummaryText = text;
     });
+    // Keeping the old line is right; saying nothing about the tap is not —
+    // silence is what a broken button looks like. A quiet banner says the
+    // refresh did not happen, and the old text stays.
+    if (text == null || text.isEmpty) {
+      if (!mounted) return;
+      NexBannerHost.of(context)?.show(
+        message: AppLocalizations.of(context).operationFailed,
+        kind: NexBannerKind.failed,
+      );
+    }
     if (text != null && text.isNotEmpty) {
       unawaited(prefs.setAiDaySummary(text: text, dateKey: today));
     }
@@ -646,13 +663,27 @@ class TimelineScreenState extends State<TimelineScreen>
   /// emitted before initState subscribes is dropped — a refresh that happens
   /// during startup left the timeline empty.
   Future<void> _loadTimeline() async {
-    final loaded = await widget.services.timeline(limit: 200);
-    if (!mounted) return;
-    setState(() {
-      _all = loaded;
-      notes = _visible(loaded);
-    });
-    _tourWhenReady();
+    // Both sides of this matter and neither replaces the other: the failure
+    // state below is what a read that never returns needs, and the tour check
+    // is what a read that *does* return can make due.
+    try {
+      final loaded = await widget.services.timeline(limit: 200);
+      if (!mounted) return;
+      setState(() {
+        _loadFailed = false;
+        _all = loaded;
+        notes = _visible(loaded);
+      });
+      _tourWhenReady();
+    } on Object {
+      // A read that never comes back used to look identical to one still
+      // coming: skeletons for as long as the app was open, with nothing to
+      // tap. When there is nothing on screen yet the failure *is* the state;
+      // once data is showing, keep it — a reload that fails must not blank
+      // the screen it failed on.
+      if (!mounted) return;
+      setState(() => _loadFailed = _all == null);
+    }
   }
 
   /// Re-checks whether the walk-through is due, after the frame.
@@ -1576,6 +1607,13 @@ class TimelineScreenState extends State<TimelineScreen>
                                 onTap: () => unawaited(revealSearch()),
                                 onChanged: (_) => _search.schedule(),
                                 onClear: _exitSearch,
+                                filterCount: _search.activeFilterCount,
+                                onShowFilters: () => unawaited(
+                                  nexShowSearchFilterSheet(
+                                    context,
+                                    search: _search,
+                                  ),
+                                ),
                               ),
                             ),
                           if (widget.preferences.showTagRow)
@@ -1678,6 +1716,26 @@ class TimelineScreenState extends State<TimelineScreen>
     // "empty", which is why the onboarding screen flashed on every launch.
     final all = _all;
     if (all == null) {
+      // A failed first read is a fourth state: skeletons that never resolve
+      // are a hang the user can only interpret as "the app is broken".
+      if (_loadFailed) {
+        return [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: NexEmptyState(
+              icon: Icons.error_outline,
+              message: l10n.timelineLoadFailed,
+              action: FilledButton(
+                onPressed: () {
+                  setState(() => _loadFailed = false);
+                  unawaited(_loadTimeline());
+                },
+                child: Text(l10n.tryAgain),
+              ),
+            ),
+          ),
+        ];
+      }
       return [
         SliverList.builder(
           itemCount: 4,
@@ -2435,9 +2493,12 @@ class _FilteredEmpty extends StatelessWidget {
             color: theme.colorScheme.outline,
           ),
           const SizedBox(height: 12),
-          Text(l10n.noteCount(0), style: theme.textTheme.bodyMedium),
+          // "No notes" was a lie: the library has notes, the filters are
+          // what hides them. Search already had the honest sentence; the
+          // timeline's filter-empty now uses it too.
+          Text(l10n.filteredEmpty, style: theme.textTheme.bodyMedium),
           const SizedBox(height: 4),
-          TextButton(onPressed: onClear, child: Text(l10n.clear)),
+          TextButton(onPressed: onClear, child: Text(l10n.clearFilters)),
         ],
       ),
     );
@@ -2472,18 +2533,24 @@ class _SettingsButton extends StatelessWidget {
     if (service == null) return button;
     return AnimatedBuilder(
       animation: service,
-      builder: (context, _) => Stack(
-        alignment: Alignment.center,
-        children: [
-          button,
-          if (service.hasUpdate)
-            const PositionedDirectional(
-              top: 12,
-              end: 10,
-              child: IgnorePointer(child: NexBadgeDot()),
-            ),
-        ],
-      ),
+      builder: (context, _) {
+        final badge = service.hasUpdate
+            ? PositionedDirectional(
+                top: 12,
+                end: 10,
+                // TalkBack users get the one fact the dot carries — the only
+                // update signal in the app was invisible to them.
+                child: Semantics(
+                  label: AppLocalizations.of(context).updateAvailableBadge,
+                  child: const ExcludeSemantics(child: NexBadgeDot()),
+                ),
+              )
+            : null;
+        return Stack(
+          alignment: Alignment.center,
+          children: [button, if (badge != null) badge],
+        );
+      },
     );
   }
 }
