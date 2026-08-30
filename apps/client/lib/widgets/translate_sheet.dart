@@ -44,10 +44,8 @@ class TranslateSheet extends StatefulWidget {
     required String text,
     required NexPreferences preferences,
     required NexServices services,
-  }) => showModalBottomSheet<void>(
+  }) => nexShowSheet<void>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
     builder: (_) => TranslateSheet(
       text: text,
       preferences: preferences,

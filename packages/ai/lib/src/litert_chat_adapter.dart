@@ -49,6 +49,27 @@ class LiteRtChatAdapter implements ChatAdapter {
   int _sentThroughIndex = 0;
   String? _systemInstruction;
 
+  /// Content signature of what the live conversation has been told so far:
+  /// the system instruction plus every turn through [_sentThroughIndex].
+  ///
+  /// Divergence used to be judged on counts alone — a resumed thread just had
+  /// to be no *shorter* than what was sent before. The binding adapter is
+  /// process-wide, so opening a second thread after closing a first one was
+  /// judged a continuation whenever its history was at least as long: the
+  /// tail of thread B arrived as a reply to a prefix from thread A, or — when
+  /// the two were exactly equal — nothing new was pending at all and the
+  /// adapter answered with an empty string. Comparing content, not counts,
+  /// is what makes "a different conversation" detectable.
+  int _sentSignature = 0;
+
+  static int _signatureOf(String? system, List<ChatMessage> turns, int upTo) {
+    var hash = system == null ? 0 : system.hashCode;
+    for (var i = 0; i < upTo && i < turns.length; i++) {
+      hash = Object.hash(hash, turns[i].role, turns[i].content);
+    }
+    return hash;
+  }
+
   /// Whether this build can run a local model at all.
   ///
   /// Android and iOS only: the plugin registers no other platform. The GPU
@@ -128,6 +149,7 @@ class LiteRtChatAdapter implements ChatAdapter {
       reply = await _conversation!.sendMessage(text);
     }
     _sentThroughIndex = turns.length;
+    _sentSignature = _signatureOf(system, turns, _sentThroughIndex);
     return ChatResponse(content: reply?.text.trim() ?? '');
   }
 
@@ -147,7 +169,9 @@ class LiteRtChatAdapter implements ChatAdapter {
     final diverged =
         _conversation == null ||
         system != _systemInstruction ||
-        turns.length < _sentThroughIndex;
+        turns.length < _sentThroughIndex ||
+        _sentSignature !=
+            _signatureOf(system, turns, _sentThroughIndex.clamp(0, turns.length));
     if (!diverged) return;
 
     await _conversation?.dispose();
@@ -170,6 +194,7 @@ class LiteRtChatAdapter implements ChatAdapter {
       ),
     );
     _sentThroughIndex = replay.length;
+    _sentSignature = _signatureOf(system, turns, replay.length);
   }
 
   /// A note on disk saying "a backend load is in progress".
@@ -262,6 +287,7 @@ class LiteRtChatAdapter implements ChatAdapter {
     _conversation = null;
     _engine = null;
     _sentThroughIndex = 0;
+    _sentSignature = 0;
     _systemInstruction = null;
   }
 }

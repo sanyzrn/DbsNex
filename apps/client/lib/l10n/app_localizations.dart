@@ -1430,6 +1430,132 @@ abstract class AppLocalizations {
   /// **'Try again'**
   String get tryAgain;
 
+  /// Detail line under the startup failure message
+  ///
+  /// In en, this message translates to:
+  /// **'What went wrong: {error}'**
+  String libraryOpenDetail(String error);
+
+  /// Offered on the startup failure screen, before the app can open
+  ///
+  /// In en, this message translates to:
+  /// **'If you have a backup file, restoring it here may recover your library.'**
+  String get restoreBackupHint;
+
+  /// Shown when restoring a local backup does not complete
+  ///
+  /// In en, this message translates to:
+  /// **'Restore failed: {error}'**
+  String restoreFailed(String error);
+
+  /// Screen-reader label for the small dot marking a pending update
+  ///
+  /// In en, this message translates to:
+  /// **'Update available'**
+  String get updateAvailableBadge;
+
+  /// Tooltip for a sheet's close button
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get closeLabel;
+
+  /// Shown when the timeline's first read fails
+  ///
+  /// In en, this message translates to:
+  /// **'Your timeline could not be loaded.'**
+  String get timelineLoadFailed;
+
+  /// Trash row subtitle: when the note was deleted
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {when}'**
+  String deletedWhen(String when);
+
+  /// Timeline body when a filter matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Notes are hiding behind your filters.'**
+  String get filteredEmpty;
+
+  /// Drops the filters that hid every note
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filters'**
+  String get clearFilters;
+
+  /// Title of the search filter sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get searchFilters;
+
+  /// Drops every active search filter
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all ({count})'**
+  String searchFiltersClear(int count);
+
+  /// Filter section heading: tags
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get searchFilterTags;
+
+  /// Filter section heading: note types
+  ///
+  /// In en, this message translates to:
+  /// **'Types'**
+  String get searchFilterTypes;
+
+  /// Filter section heading: when the note was added
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get searchFilterDates;
+
+  /// Date filter: no date restriction
+  ///
+  /// In en, this message translates to:
+  /// **'Any time'**
+  String get searchFilterAnyTime;
+
+  /// Date filter: added today
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get searchFilterToday;
+
+  /// Date filter: last seven days
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get searchFilterLast7Days;
+
+  /// Date filter: last thirty days
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get searchFilterLast30Days;
+
+  /// Hint shown in the filter sheet before any filter is active
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to combine. Filters apply as you go.'**
+  String get searchFiltersHint;
+
+  /// Count of active filters, shown in the filter sheet
+  ///
+  /// In en, this message translates to:
+  /// **'{count} active'**
+  String searchFiltersActive(int count);
+
+  /// Tooltip for the filter button beside the search field
+  ///
+  /// In en, this message translates to:
+  /// **'Show filters'**
+  String get showFilters;
+
   /// Screen-reader label for the startup splash
   ///
   /// In en, this message translates to:

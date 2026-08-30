@@ -1,5 +1,12 @@
+import 'dart:async';
+import 'dart:isolate';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
 import 'l10n/app_localizations.dart';
@@ -82,34 +89,10 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
 
       if (snapshot.hasError) {
         return _host(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Padding(
-                padding: const EdgeInsets.all(NexSpacing.lg),
-                child: Builder(
-                  builder: (context) {
-                    final l10n = AppLocalizations.of(context);
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const _Wordmark(),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.libraryOpenFailed,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        FilledButton(
-                          onPressed: () => setState(() => _future = _start()),
-                          child: Text(l10n.tryAgain),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ),
+          child: _OpenFailed(
+            error: snapshot.error,
+            onRetry: () => setState(() => _future = _start()),
+            onRestored: _restart,
           ),
         );
       }
@@ -152,6 +135,105 @@ class _Wordmark extends StatelessWidget {
     width: 192,
     semanticLabel: 'Nex',
   );
+}
+
+/// The screen a person sees when the library will not open.
+///
+/// It used to be one sentence and a Try again button — which was honest about
+/// the failure but useless against its most common cause, a database file
+/// that will not open. The restore path is offered right here because it is
+/// the one path that does not need the worker: [NexBackupArchive.restore]
+/// works on the files directly, so a corrupt `nex.sqlite` can be replaced
+/// with a good `.nexbak` without the app ever having opened. The real error
+/// text is shown because "could not open your library" repeated forever with
+/// no reason is how a support ticket gets written, not answered.
+class _OpenFailed extends StatelessWidget {
+  const _OpenFailed({
+    required this.error,
+    required this.onRetry,
+    required this.onRestored,
+  });
+
+  /// What bootstrap actually threw.
+  final Object? error;
+
+  final VoidCallback onRetry;
+
+  /// Called after a backup was restored over the dead library.
+  final VoidCallback onRestored;
+
+  Future<void> _restore(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(label: 'Nex backup', extensions: ['nexbak', 'sqlite']),
+      ],
+    );
+    if (file == null || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      // Same composition as NexServices.bootstrap computes — this screen
+      // exists precisely when no services object does.
+      final support = await getApplicationSupportDirectory();
+      final dbPath = p.join(support.path, 'nex.sqlite');
+      final mediaDir = p.join(support.path, 'media');
+      await Isolate.run(
+        () => NexBackupArchive.restore(
+          liveDbPath: dbPath,
+          mediaDir: mediaDir,
+          backupFile: file.path,
+        ),
+      );
+      onRestored();
+    } on Object catch (restoreError) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.restoreFailed('$restoreError'))),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Padding(
+          padding: const EdgeInsets.all(NexSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _Wordmark(),
+              const SizedBox(height: 16),
+              Text(l10n.libraryOpenFailed, textAlign: TextAlign.center),
+              if (error != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  l10n.libraryOpenDetail('$error'),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+              const SizedBox(height: 24),
+              FilledButton(onPressed: onRetry, child: Text(l10n.tryAgain)),
+              const SizedBox(height: 8),
+              Text(
+                l10n.restoreBackupHint,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () => unawaited(_restore(context)),
+                child: Text(l10n.restoreBackup),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _Ready {

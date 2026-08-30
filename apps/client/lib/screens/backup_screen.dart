@@ -156,11 +156,22 @@ class _BackupScreenState extends State<BackupScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    // The restore invalidates the whole service graph; the returned token is
-    // the contract that the caller must rebuild it.
-    final _ = await widget.services.restoreBackup(backup);
-    if (!mounted) return;
-    NexRestartScope.of(context).restart();
+    try {
+      // The restore invalidates the whole service graph; the returned token
+      // is the contract that the caller must rebuild it.
+      final _ = await widget.services.restoreBackup(backup);
+      if (!mounted) return;
+      NexRestartScope.of(context).restart();
+    } on Object catch (error) {
+      // The graph is already closed by the time restore touches live files —
+      // this session cannot read or write the library anymore either way.
+      // Failing silently here was the one path that left a user staring at a
+      // screen where every action answered "unavailable" with no reason.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.restoreFailed(error.toString()))),
+      );
+    }
   }
 
   @override

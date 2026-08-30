@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../app_version.dart';
@@ -174,11 +175,28 @@ class UpdateService extends ChangeNotifier {
       if (existing.existsSync() &&
           (update.sizeBytes == null ||
               existing.lengthSync() == update.sizeBytes)) {
-        // Already fetched on an earlier run — no reason to fetch it twice, and
-        // no reason to announce something that was there before this launch.
-        _downloaded = existing;
-        _notify();
-        return;
+        // Already fetched on an earlier run — no reason to fetch it twice,
+        // and no reason to announce something that was there before this
+        // launch. Size alone used to be the whole check, which accepted a
+        // file that was the right size and the wrong bytes; with a digest
+        // available, a cached installer meets the same bar a fresh download
+        // does before anyone is offered the Install button.
+        final expected = update.checksumSha256;
+        if (expected != null) {
+          final digest = await sha256.bind(existing.openRead()).first;
+          if ('$digest' != expected.toLowerCase()) {
+            // Wrong bytes: gone, and re-fetched below like any other miss.
+            existing.deleteSync();
+          } else {
+            _downloaded = existing;
+            _notify();
+            return;
+          }
+        } else {
+          _downloaded = existing;
+          _notify();
+          return;
+        }
       }
       _announced = false;
       _downloaded = await _downloader.download(

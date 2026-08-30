@@ -375,23 +375,18 @@ void main() {
       );
       await services.backfillEnrichment();
       final withOcr = (await services.getById(photo.id))!;
-      expect(
-        withOcr.ocrText,
-        isNotNull,
-        reason: 'the on-device adapter always produces something',
-      );
-      expect(
-        withOcr.displayText,
-        withOcr.ocrText,
-        reason: 'nothing else to show yet',
-      );
+      // The on-device adapter cannot read images and no longer pretends to:
+      // the OCR slot is marked attempted-empty rather than filled with a
+      // fabricated reading, and the card shows nothing at all.
+      expect(withOcr.ocrText, '');
+      expect(withOcr.displayText, isNull, reason: 'nothing else to show yet');
 
       await services.setCaption(photo.id, 'the actual point of this photo');
       final captioned = (await services.getById(photo.id))!;
       expect(captioned.displayText, 'the actual point of this photo');
       expect(
         captioned.displayText,
-        isNot(contains(captioned.ocrText!)),
+        isNot(contains('photo text')),
         reason: 'the caption replaces the reading, not sits beside it',
       );
     },

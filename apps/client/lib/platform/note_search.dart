@@ -5,6 +5,36 @@ import 'package:nex_core/nex_core.dart';
 
 import 'nex_services.dart';
 
+/// The date windows the filter sheet offers. Presets rather than a calendar:
+/// every fielded request for "find that thing" is about recency, and a
+/// two-handle date picker is a form for a query that used to be one tap.
+enum NoteDatePreset {
+  any,
+  today,
+  last7Days,
+  last30Days;
+
+  DateTimeRange? resolve(DateTime now) => switch (this) {
+    any => null,
+    today => DateTimeRange(
+      start: DateTime(now.year, now.month, now.day),
+      end: now,
+    ),
+    last7Days => DateTimeRange(
+      start: DateTime(now.year, now.month, now.day).subtract(
+        const Duration(days: 6),
+      ),
+      end: now,
+    ),
+    last30Days => DateTimeRange(
+      start: DateTime(now.year, now.month, now.day).subtract(
+        const Duration(days: 29),
+      ),
+      end: now,
+    ),
+  };
+}
+
 /// Everything a search needs to run, independent of where it is shown.
 ///
 /// Search used to live entirely inside a full-screen route, which is why
@@ -61,6 +91,54 @@ class NoteSearchController extends ChangeNotifier {
 
   int get activeFilterCount =>
       tags.length + types.length + (range == null ? 0 : 1);
+
+  /// The preset the current [range] came from, if it still matches one.
+  /// A null range is "any time".
+  NoteDatePreset get datePreset {
+    if (range == null) return NoteDatePreset.any;
+    final now = DateTime.now();
+    for (final preset in NoteDatePreset.values) {
+      final resolved = preset.resolve(now);
+      if (resolved == null) continue;
+      if (_sameDay(resolved.start, range!.start) &&
+          _sameDay(resolved.end, range!.end)) {
+        return preset;
+      }
+    }
+    return NoteDatePreset.any;
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  /// Toggles one tag in the filter set and re-runs the search.
+  void toggleTag(String tagId) {
+    if (!tags.add(tagId)) tags.remove(tagId);
+    schedule();
+  }
+
+  /// Toggles one note type in the filter set and re-runs the search.
+  void toggleType(NoteType type) {
+    if (!types.add(type)) types.remove(type);
+    schedule();
+  }
+
+  /// Sets the date window from a preset and re-runs the search.
+  void setDatePreset(NoteDatePreset preset) {
+    range = preset.resolve(DateTime.now());
+    schedule();
+  }
+
+  /// Drops every chip filter at once. The typed query is left alone — it is
+  /// what the field shows, and clearing text the user typed is not a filter
+  /// operation.
+  void clearFilters() {
+    if (activeFilterCount == 0) return;
+    tags.clear();
+    types.clear();
+    range = null;
+    schedule();
+  }
 
   /// Stands in for a `tag:` nobody has ever used.
   ///

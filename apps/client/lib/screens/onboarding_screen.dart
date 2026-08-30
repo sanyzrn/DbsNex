@@ -33,14 +33,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   int _page = 0;
 
-  /// Set by the first attempt to leave the last page without a name, so the
-  /// field is not scolding anyone before they have had a chance to type.
-  bool _nameTouched = false;
-
   static const _pageCount = 5;
   bool get _onSetup => _page == _pageCount - 1;
-  bool get _hasName => _name.text.trim().isNotEmpty;
-
   @override
   void initState() {
     super.initState();
@@ -63,29 +57,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
       return;
     }
-    if (!_hasName) {
-      setState(() => _nameTouched = true);
-      return;
-    }
-    // The name is the only thing not already written: the three pickers save
-    // as they are tapped, the way they do in Settings, so backing out of this
-    // screen mid-way could never leave a half-applied choice.
-    await widget.preferences.setDisplayName(_name.text);
+    // The name became optional, and is the only thing here not already
+    // written: the three pickers save as they are tapped, the way they do in
+    // Settings, so backing out of this screen mid-way could never leave a
+    // half-applied choice. Leaving it empty simply means the greeting and the
+    // assistant's introduction carry on without one — the app's own empty
+    // state promised "nothing else is asked", and a name gate contradicted
+    // the promise on the screen where it was made.
+    final given = _name.text.trim();
+    await widget.preferences.setDisplayName(given.isEmpty ? null : given);
     await widget.preferences.completeOnboarding();
   }
 
   Future<void> _back() =>
       _pages.previousPage(duration: NexMotion.standard, curve: NexMotion.curve);
 
-  /// Jumps to the setup page rather than finishing. Skip means "I have read
-  /// enough", not "do not ask me" — the name is required either way, and a
-  /// Skip that lands on an app that has not been told it would be a worse
-  /// first minute than the four pages it saved.
-  Future<void> _skip() => _pages.animateToPage(
-    _pageCount - 1,
-    duration: NexMotion.slow,
-    curve: NexMotion.curve,
-  );
+  /// Finishes onboarding outright. Skip means "I have read enough": the
+  /// setup pickers are defaults-first anyway (system theme, system language)
+  /// and all three live in Settings, so forcing every skipper through one
+  /// more page cost more than it saved. Nothing is asked now, and nothing
+  /// was lost.
+  Future<void> _skip() async {
+    await widget.preferences.completeOnboarding();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +156,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       _SetupPage(
                         preferences: widget.preferences,
                         name: _name,
-                        showNameError: _nameTouched && !_hasName,
+                        showNameError: false,
                       ),
                     ],
                   ),

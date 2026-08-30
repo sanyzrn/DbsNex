@@ -4,6 +4,37 @@ import 'package:nex_ai/nex_ai.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// A provider-shaped adapter that answers transcription and OCR with real
+/// text, and keeps the on-device heuristics for tags, embeddings and
+/// summaries (those are genuinely on-device capabilities, not stubs). The
+/// on-device adapter deliberately cannot transcribe or read images — it has
+/// no way to, and it used to fabricate stub text instead, which is exactly
+/// what these tests must not depend on. The storage/FTS contract under test
+/// is the same one a cloud provider exercises.
+class _ProviderStubAIAdapter implements AIAdapter {
+  const _ProviderStubAIAdapter();
+
+  static const _onDevice = OnDeviceAIAdapter();
+
+  @override
+  Future<Transcript>? transcribe(AudioRef audio) async =>
+      const Transcript(text: 'spoken grocery list milk eggs bread');
+
+  @override
+  Future<OCRText>? ocr(ImageRef image) async =>
+      const OCRText(text: 'readable receipt total 42');
+
+  @override
+  Future<Vector>? embed(String text) => _onDevice.embed(text);
+
+  @override
+  Future<List<TagSuggestion>>? suggestTags(Note note) =>
+      _onDevice.suggestTags(note);
+
+  @override
+  Future<Summary>? summarize(Note note) => _onDevice.summarize(note);
+}
+
 void main() {
   late NexDatabase db;
   late SqliteNoteRepository repo;
@@ -14,8 +45,15 @@ void main() {
     repo = SqliteNoteRepository(db, localDeviceId: 'test');
     enrichment = EnrichmentService(
       repo: repo,
-      adapter: const OnDeviceAIAdapter(),
-      capabilities: const AiCapabilities(),
+      adapter: const _ProviderStubAIAdapter(),
+      capabilities: const AiCapabilities(
+        transcription: true,
+        ocr: true,
+        tagSuggestions: true,
+        summarization: true,
+        semanticSearch: true,
+        relatedNotes: true,
+      ),
     );
   });
 
@@ -61,8 +99,8 @@ void main() {
     await enrichment.enrichNote(note.id);
     final updated = repo.getById(note.id)!;
     expect(updated.transcriptText, isNotNull);
-    expect(updated.transcriptText, contains('voice transcript'));
-    final hits = repo.search(SearchFilters(query: 'spoken'));
+    expect(updated.transcriptText, contains('grocery list'));
+    final hits = repo.search(SearchFilters(query: 'grocery'));
     expect(hits.map((n) => n.id), contains(note.id));
   });
 
@@ -71,8 +109,28 @@ void main() {
     await enrichment.enrichNote(note.id);
     final updated = repo.getById(note.id)!;
     expect(updated.ocrText, isNotNull);
-    final hits = repo.search(SearchFilters(query: 'readable'));
+    expect(updated.ocrText, contains('receipt'));
+    final hits = repo.search(SearchFilters(query: 'receipt'));
     expect(hits.map((n) => n.id), contains(note.id));
+  });
+
+  test('an adapter that cannot transcribe marks the slot empty, once', () async {
+    // The on-device adapter has no way to hear audio. The note must come out
+    // of the backlog (empty slot, not null) and must never carry fabricated
+    // text — the failure mode the old stub transcript created.
+    final offline = EnrichmentService(
+      repo: repo,
+      adapter: const OnDeviceAIAdapter(),
+      capabilities: const AiCapabilities(transcription: true, ocr: true),
+    );
+    final voice = insertVoice();
+    await offline.enrichNote(voice.id);
+    final updated = repo.getById(voice.id)!;
+    expect(updated.transcriptText, '');
+    expect(
+      repo.listNeedingEnrichment(limit: 10).map((n) => n.id),
+      isNot(contains(voice.id)),
+    );
   });
 
   test('disabled transcription leaves note unchanged', () async {

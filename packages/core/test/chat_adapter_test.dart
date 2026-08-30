@@ -58,7 +58,12 @@ void main() {
     });
 
     test(
-      'does not stack a second system message on top of a caller-provided one',
+      // Appends to a caller-provided system message rather than skipping it:
+      // skipping meant the ceiling never reached the model at all on the app's
+      // local path, which always supplies its own system prompt. Exactly one
+      // system message is still the invariant — the ceiling joins it, it does
+      // not become a second one.
+      'the ceiling joins a caller-provided system message instead of being skipped',
       () {
         const existing = ChatMessage(
           role: ChatRole.system,
@@ -69,7 +74,12 @@ void main() {
           ChatMessage(role: ChatRole.user, content: 'hi'),
         ]);
         expect(result, hasLength(2));
-        expect(result.first.content, 'custom system prompt');
+        expect(result.first.role, ChatRole.system);
+        expect(result.first.content, startsWith('custom system prompt'));
+        expect(result.first.content, contains(nexChatScopeCeilingPrompt));
+        // And it is idempotent: applying it again changes nothing.
+        final again = withScopeCeiling(result);
+        expect(again.first.content, result.first.content);
       },
     );
   });

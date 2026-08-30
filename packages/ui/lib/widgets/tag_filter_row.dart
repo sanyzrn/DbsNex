@@ -52,12 +52,12 @@ class TagFilterRow extends StatelessWidget {
         children: [
           if (leading != null)
             Padding(
-              padding: const EdgeInsets.only(right: NexSpacing.sm),
+              padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
               child: leading,
             ),
           if (showAll)
             Padding(
-              padding: const EdgeInsets.only(right: NexSpacing.sm),
+              padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
               child: _Pill(
                 label: allLabel,
                 selected: selectedTagId == null,
@@ -67,7 +67,7 @@ class TagFilterRow extends StatelessWidget {
             ),
           for (final tag in tags)
             Padding(
-              padding: const EdgeInsets.only(right: NexSpacing.sm),
+              padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
               child: _Pill(
                 label: tag.name,
                 selected: selectedTagId == tag.id,

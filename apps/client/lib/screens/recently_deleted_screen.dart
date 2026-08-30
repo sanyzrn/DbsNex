@@ -10,6 +10,22 @@ import '../widgets/nex_dialog.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 
+/// "3d ago", in the language the user chose — the same bucketing the cards
+/// use, so a note's card and its trash row agree about time.
+String _relative(BuildContext context, DateTime when) {
+  final l10n = AppLocalizations.of(context);
+  final time = nexRelativeTimeOf(when);
+  return switch (time.unit) {
+    NexRelativeUnit.now => l10n.timeNow,
+    NexRelativeUnit.minutes => l10n.timeMinutesAgo(time.count),
+    NexRelativeUnit.hours => l10n.timeHoursAgo(time.count),
+    NexRelativeUnit.days => l10n.timeDaysAgo(time.count),
+    NexRelativeUnit.weeks => l10n.timeWeeksAgo(time.count),
+    NexRelativeUnit.months => l10n.timeMonthsAgo(time.count),
+    NexRelativeUnit.years => l10n.timeYearsAgo(time.count),
+  };
+}
+
 /// The trash.
 ///
 /// Restoring was the only thing it could do: a note stayed until the 30-day
@@ -187,7 +203,16 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                         ),
                         subtitle: note.deletedAt == null
                             ? null
-                            : Text(l10n.noteType(note.type.wireName)),
+                            : Text(
+                                // The one fact a trash screen exists to
+                                // convey: *when* this went in. It used to
+                                // repeat the note type, which duplicated
+                                // both the leading glyph and the title's
+                                // own fallback and said nothing about time.
+                                l10n.deletedWhen(
+                                  _relative(context, note.deletedAt!),
+                                ),
+                              ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

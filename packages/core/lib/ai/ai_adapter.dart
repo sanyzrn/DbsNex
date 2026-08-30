@@ -91,3 +91,22 @@ class NullAIAdapter implements AIAdapter {
   @override
   Future<OCRText>? ocr(ImageRef image) => null;
 }
+
+/// The provider was asked and could not answer — unreachable, timed out,
+/// refused, or returned something unreadable.
+///
+/// Distinct from both "this adapter has no such capability" (a null call, a
+/// permanent absence) and "the provider answered and found nothing" (an empty
+/// result, a final one). Failure is the only one of the three that must stay
+/// retriable: an enrichment backlog that treats a network blip as an answer
+/// burns the slot forever — a rate-limited note became permanently
+/// unsearchable that way, silently, on exactly the day the user most wanted
+/// it. Throwing is what lets the caller leave the slot untouched.
+class AiUnavailableException implements Exception {
+  const AiUnavailableException([this.message = 'AI provider unavailable']);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}

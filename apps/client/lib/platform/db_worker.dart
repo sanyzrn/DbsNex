@@ -101,6 +101,7 @@ class _WorkerBoot {
     this.deviceId,
     this.adapter,
     this.capabilities,
+    this.mediaDir,
   );
 
   final SendPort sendPort;
@@ -112,6 +113,26 @@ class _WorkerBoot {
   /// this; a plugin-backed adapter would not.
   final AIAdapter adapter;
   final AiCapabilities capabilities;
+
+  /// Where attachment files live. The purge paths need it to delete the file
+  /// a purged note pointed at — the row alone was never the whole note.
+  final String mediaDir;
+}
+
+/// Sent through the boot port when the database itself cannot be opened.
+///
+/// The worker used to send its request port first and open the database
+/// second, so a file that would not open — corruption, a full disk, a locked
+/// path — killed the isolate silently and left the awaiting side parked on a
+/// Completer that nothing would ever complete: the app hung on the splash
+/// screen for as long as the user was willing to stare at it. Failure is now
+/// a first-class reply, and it becomes a bootstrap error the user can see
+/// and retry.
+class _WorkerOpenFailure {
+  const _WorkerOpenFailure(this.message, this.stack);
+
+  final String message;
+  final String stack;
 }
 
 /// Async facade over a dedicated database isolate.
@@ -124,45 +145,141 @@ class NexDbWorker implements NexDb {
     this._toWorker,
     this._responses,
     Stream<dynamic> incoming,
+    this._errors,
+    this._exits,
   ) {
     _subscription = incoming.listen(_onMessage);
+    // An uncaught worker error is fatal to the isolate (errorsAreFatal).
+    // Whatever requests were in flight must hear about it instead of
+    // waiting forever; the ones queued behind them are covered by the
+    // exit port, which fires when the isolate actually goes away.
+    _errorSub = _errors.listen(_onIsolateError);
+    _exitSub = _exits.listen(_onIsolateExit);
   }
 
   final Isolate _isolate;
   final SendPort _toWorker;
   final ReceivePort _responses;
+  final ReceivePort _errors;
+  final ReceivePort _exits;
 
   late final StreamSubscription<dynamic> _subscription;
+  late final StreamSubscription<dynamic> _errorSub;
+  late final StreamSubscription<dynamic> _exitSub;
   final Map<int, Completer<Object?>> _pending = {};
   int _nextId = 0;
   bool _closed = false;
 
+  /// Fails everything in flight. Called when the isolate reports a fatal
+  /// error or exits: a caller parked on a request that will never be
+  /// answered is a caller hanging the capture sheet, the timeline, or the
+  /// whole app.
+  void _failAllPending(String reason) {
+    if (_closed || _pending.isEmpty) return;
+    final outstanding = Map<int, Completer<Object?>>.of(_pending);
+    _pending.clear();
+    for (final completer in outstanding.values) {
+      if (!completer.isCompleted) {
+        completer.completeError(StateError(reason));
+      }
+    }
+  }
+
+  /// An error port message is a two-element list: [error, stackTrace], both
+  /// strings by the time they cross the port.
+  void _onIsolateError(dynamic message) {
+    _failAllPending('nex-db worker crashed: $message');
+  }
+
+  void _onIsolateExit(dynamic message) {
+    _failAllPending('nex-db worker has exited unexpectedly');
+  }
+
   static Future<NexDbWorker> spawn({
     required String dbPath,
     required String deviceId,
+    required String mediaDir,
     AIAdapter adapter = const NullAIAdapter(),
     AiCapabilities capabilities = const AiCapabilities(),
   }) async {
     final responses = ReceivePort();
     final incoming = responses.asBroadcastStream();
     final ready = Completer<SendPort>();
+    final errors = ReceivePort();
+    final exits = ReceivePort();
 
+    // Everything below is about refusing to hang. Three ways this used to
+    // deadlock or go silent: the database failing to open (the isolate died
+    // before its request port was ever sent — nothing completed `ready`), an
+    // unexpected error killing the isolate mid-session (pending requests sat
+    // unanswered forever), and the isolate exiting outright. Each now
+    // completes or fails whatever is waiting on it.
     late final StreamSubscription<dynamic> bootstrap;
     bootstrap = incoming.listen((message) {
-      if (message is SendPort && !ready.isCompleted) {
+      if (ready.isCompleted) return;
+      if (message is SendPort) {
         ready.complete(message);
+        bootstrap.cancel();
+      } else if (message is _WorkerOpenFailure) {
+        ready.completeError(
+          StateError('nex-db failed to open: ${message.message}'),
+          StackTrace.fromString(message.stack),
+        );
         bootstrap.cancel();
       }
     });
 
+    late final StreamSubscription<dynamic> spawnErrorSub;
+    late final StreamSubscription<dynamic> spawnExitSub;
+    spawnErrorSub = errors.listen((message) {
+      if (ready.isCompleted) return;
+      ready.completeError(
+        StateError('nex-db crashed while starting: $message'),
+      );
+      bootstrap.cancel();
+    });
+    spawnExitSub = exits.listen((_) {
+      if (ready.isCompleted) return;
+      ready.completeError(StateError('nex-db exited before it was ready'));
+      bootstrap.cancel();
+    });
+
     final isolate = await Isolate.spawn(
       _entryPoint,
-      _WorkerBoot(responses.sendPort, dbPath, deviceId, adapter, capabilities),
+      _WorkerBoot(
+        responses.sendPort,
+        dbPath,
+        deviceId,
+        adapter,
+        capabilities,
+        mediaDir,
+      ),
       debugName: 'nex-db',
+      errorsAreFatal: true,
+      onError: errors.sendPort,
+      onExit: exits.sendPort,
     );
 
-    final toWorker = await ready.future;
-    return NexDbWorker._(isolate, toWorker, responses, incoming);
+    try {
+      final toWorker = await ready.future;
+      return NexDbWorker._(
+        isolate,
+        toWorker,
+        responses,
+        incoming,
+        errors,
+        exits,
+      );
+    } on Object {
+      // The worker never came up. The ports are this frame's problem now —
+      // the instance that would own them will never exist.
+      await spawnErrorSub.cancel();
+      await spawnExitSub.cancel();
+      errors.close();
+      exits.close();
+      isolate.kill(priority: Isolate.beforeNextEvent);
+      rethrow;
+    }
   }
 
   void _onMessage(dynamic message) {
@@ -510,7 +627,11 @@ class NexDbWorker implements NexDb {
     }
 
     await _subscription.cancel();
+    await _errorSub.cancel();
+    await _exitSub.cancel();
     _responses.close();
+    _errors.close();
+    _exits.close();
     _isolate.kill(priority: Isolate.beforeNextEvent);
   }
 
@@ -541,271 +662,298 @@ class NexDbWorker implements NexDb {
 
   static void _entryPoint(_WorkerBoot boot) {
     final requests = ReceivePort();
+
+    final NexDatabase db;
+    try {
+      db = NexDatabase.open(boot.dbPath);
+    } catch (e, stack) {
+      // The boot port must be answered even when the database will not
+      // open: the awaiting side is parked on a Completer that only a
+      // message through this port can complete. This turns "splash screen
+      // forever" into a bootstrap error the user can see and retry.
+      boot.sendPort.send(_WorkerOpenFailure(e.toString(), stack.toString()));
+      return;
+    }
     boot.sendPort.send(requests.sendPort);
 
-    final db = NexDatabase.open(boot.dbPath);
     final repo = SqliteNoteRepository(db, localDeviceId: boot.deviceId);
     final capture = CaptureService(repo, deviceId: boot.deviceId);
     final tags = TagService(repo);
     final search = SearchService(repo);
-    final maintenance = LibraryMaintenance(repo);
+    final maintenance = LibraryMaintenance(repo, mediaRoot: boot.mediaDir);
     final enrichment = EnrichmentService(
       repo: repo,
       adapter: boot.adapter,
       capabilities: boot.capabilities,
     );
 
-    // The handler is asynchronous because several operations are: exportArchive
-    // and storage return Futures, and a Future cannot cross a SendPort — the
-    // previous synchronous handler sent the Future itself and the awaiting side
-    // hung or cast-failed.
-    requests.listen((message) async {
-      if (message is! _DbRequest) return;
+    // One repair pass per open. Cheap when the index is healthy (two set
+    // lookups), and the difference between findable and silently missing
+    // when it is not — a crash between paired FTS statements used to
+    // strand a note out of search until it was next edited.
+    repo.repairSearchIndex();
 
-      Object? arg(String key) => message.args[key];
+    Object? argOf(_DbRequest message, String key) => message.args[key];
 
-      try {
-        final Object? result = switch (message.command) {
-          _DbCommand.timeline || _DbCommand.loadMore => search.timeline(
-            limit: arg('limit')! as int,
-            offset: arg('offset')! as int,
-            tagId: arg('tagId') as String?,
-          ),
-          _DbCommand.search => search.search(arg('filters')! as SearchFilters),
-          _DbCommand.getById => repo.getById(arg('id')! as String),
-          _DbCommand.captureText => capture.submitTextCapture(
+    Future<Object?> dispatch(_DbRequest message) async {
+      Object? arg(String key) => argOf(message, key);
+
+      // The handler is asynchronous because several operations are: exportArchive
+      // and storage return Futures, and a Future cannot cross a SendPort — the
+      // previous synchronous handler sent the Future itself and the awaiting side
+      // hung or cast-failed.
+      return switch (message.command) {
+        _DbCommand.timeline || _DbCommand.loadMore => search.timeline(
+          limit: arg('limit')! as int,
+          offset: arg('offset')! as int,
+          tagId: arg('tagId') as String?,
+        ),
+        _DbCommand.search => search.search(arg('filters')! as SearchFilters),
+        _DbCommand.getById => repo.getById(arg('id')! as String),
+        _DbCommand.captureText => capture.submitTextCapture(
+          arg('content')! as String,
+        ),
+        _DbCommand.captureChecklist => capture.submitChecklistCapture(
+          parseChecklist(arg('body')! as String),
+        ),
+        // Read *and* written inside the isolate. Unzipping a Takeout
+        // export, writing its photos out and inserting a few thousand rows
+        // are all long enough to drop frames, and the point of this worker
+        // is that none of it happens on the thread drawing the screen.
+        _DbCommand.importNotes => _importNotes(
+          capture,
+          File(arg('path')! as String),
+          Directory(arg('mediaDir')! as String),
+        ),
+        _DbCommand.captureLink => capture.submitLinkCapture(
+          arg('url')! as String,
+        ),
+        _DbCommand.captureVoice => capture.submitVoiceCapture(
+          mediaUri: arg('mediaUri')! as String,
+          mediaBytes: arg('mediaBytes')! as Uint8List,
+          durationMs: arg('durationMs')! as int,
+        ),
+        _DbCommand.capturePhoto => capture.submitPhotoCapture(
+          mediaUri: arg('mediaUri')! as String,
+          mediaBytes: arg('mediaBytes')! as Uint8List,
+        ),
+        _DbCommand.captureFile => capture.submitFileCapture(
+          mediaUri: arg('mediaUri')! as String,
+          mediaBytes: arg('mediaBytes')! as Uint8List,
+          originalFilename: arg('originalFilename') as String?,
+          mimeType: arg('mimeType') as String?,
+        ),
+        _DbCommand.updateNote => _voided(
+          () => repo.updateContent(
+            arg('id')! as String,
             arg('content')! as String,
           ),
-          _DbCommand.captureChecklist => capture.submitChecklistCapture(
-            parseChecklist(arg('body')! as String),
+        ),
+        _DbCommand.deleteNote => _voided(
+          () => repo.softDelete(arg('id')! as String),
+        ),
+        _DbCommand.undelete => _voided(
+          () => repo.undelete(arg('id')! as String),
+        ),
+        _DbCommand.setCaption => _voided(
+          () =>
+              repo.setCaption(arg('id')! as String, arg('caption')! as String),
+        ),
+        _DbCommand.setTitle => _voided(
+          () => repo.setTitle(arg('id')! as String, arg('title') as String?),
+        ),
+        _DbCommand.setSummaryText => _voided(
+          () =>
+              repo.setSummaryText(arg('id')! as String, arg('text')! as String),
+        ),
+        _DbCommand.setLinkMetadata => _voided(
+          () => repo.setLinkMetadata(
+            arg('id')! as String,
+            title: arg('title') as String?,
+            excerpt: arg('excerpt') as String?,
           ),
-          // Read *and* written inside the isolate. Unzipping a Takeout
-          // export, writing its photos out and inserting a few thousand rows
-          // are all long enough to drop frames, and the point of this worker
-          // is that none of it happens on the thread drawing the screen.
-          _DbCommand.importNotes => _importNotes(
-            capture,
-            File(arg('path')! as String),
-            Directory(arg('mediaDir')! as String),
+        ),
+        _DbCommand.toggleChecklistItem => _voided(
+          () => repo.toggleChecklistItem(
+            arg('id')! as String,
+            arg('index')! as int,
           ),
-          _DbCommand.captureLink => capture.submitLinkCapture(
-            arg('url')! as String,
-          ),
-          _DbCommand.captureVoice => capture.submitVoiceCapture(
-            mediaUri: arg('mediaUri')! as String,
-            mediaBytes: arg('mediaBytes')! as Uint8List,
-            durationMs: arg('durationMs')! as int,
-          ),
-          _DbCommand.capturePhoto => capture.submitPhotoCapture(
-            mediaUri: arg('mediaUri')! as String,
-            mediaBytes: arg('mediaBytes')! as Uint8List,
-          ),
-          _DbCommand.captureFile => capture.submitFileCapture(
-            mediaUri: arg('mediaUri')! as String,
-            mediaBytes: arg('mediaBytes')! as Uint8List,
-            originalFilename: arg('originalFilename') as String?,
-            mimeType: arg('mimeType') as String?,
-          ),
-          _DbCommand.updateNote => _voided(
-            () => repo.updateContent(
-              arg('id')! as String,
-              arg('content')! as String,
-            ),
-          ),
-          _DbCommand.deleteNote => _voided(
-            () => repo.softDelete(arg('id')! as String),
-          ),
-          _DbCommand.undelete => _voided(
-            () => repo.undelete(arg('id')! as String),
-          ),
-          _DbCommand.setCaption => _voided(
-            () => repo.setCaption(
-              arg('id')! as String,
-              arg('caption')! as String,
-            ),
-          ),
-          _DbCommand.setTitle => _voided(
-            () => repo.setTitle(arg('id')! as String, arg('title') as String?),
-          ),
-          _DbCommand.setSummaryText => _voided(
-            () => repo.setSummaryText(
-              arg('id')! as String,
-              arg('text')! as String,
-            ),
-          ),
-          _DbCommand.setLinkMetadata => _voided(
-            () => repo.setLinkMetadata(
-              arg('id')! as String,
-              title: arg('title') as String?,
-              excerpt: arg('excerpt') as String?,
-            ),
-          ),
-          _DbCommand.toggleChecklistItem => _voided(
-            () => repo.toggleChecklistItem(
-              arg('id')! as String,
-              arg('index')! as int,
-            ),
-          ),
-          _DbCommand.pinNote => repo.pinNote(arg('id')! as String),
-          _DbCommand.unpinNote => _voided(
-            () => repo.unpinNote(arg('id')! as String),
-          ),
-          _DbCommand.pinnedNoteCount => repo.pinnedNoteCount(),
-          _DbCommand.addTag => tags.addTag(
+        ),
+        _DbCommand.pinNote => repo.pinNote(arg('id')! as String),
+        _DbCommand.unpinNote => _voided(
+          () => repo.unpinNote(arg('id')! as String),
+        ),
+        _DbCommand.pinnedNoteCount => repo.pinnedNoteCount(),
+        _DbCommand.addTag => tags.addTag(
+          noteId: arg('noteId')! as String,
+          name: arg('name')! as String,
+          color: arg('color') as String?,
+        ),
+        _DbCommand.removeTag => _voided(
+          () => tags.removeTag(
             noteId: arg('noteId')! as String,
-            name: arg('name')! as String,
+            tagId: arg('tagId')! as String,
+          ),
+        ),
+        _DbCommand.createTag => repo.upsertTag(
+          name: arg('name')! as String,
+          color: arg('color') as String?,
+        ),
+        _DbCommand.listTags => tags.listTags(),
+        _DbCommand.setTagColor => _voided(
+          () => tags.setColor(
+            tagId: arg('tagId')! as String,
             color: arg('color') as String?,
           ),
-          _DbCommand.removeTag => _voided(
-            () => tags.removeTag(
-              noteId: arg('noteId')! as String,
-              tagId: arg('tagId')! as String,
-            ),
-          ),
-          _DbCommand.createTag => repo.upsertTag(
-            name: arg('name')! as String,
-            color: arg('color') as String?,
-          ),
-          _DbCommand.listTags => tags.listTags(),
-          _DbCommand.setTagColor => _voided(
-            () => tags.setColor(
-              tagId: arg('tagId')! as String,
-              color: arg('color') as String?,
-            ),
-          ),
-          // `when` is a pattern guard keyword, so the variable it would
-          // otherwise be named cannot be spelled here.
-          _DbCommand.setDueAt => _voided(() {
-            final at = arg('when');
-            repo.setDueAt(
-              arg('noteId')! as String,
-              at is String ? DateTime.parse(at) : null,
-              repeat: NoteRepeat.fromWire(arg('repeat') as String?),
-            );
-          }),
-          _DbCommand.upcomingReminders => repo.listUpcomingReminders(
-            limit: arg('limit')! as int,
-          ),
-          _DbCommand.backup => repo.backup(
-            arg('dir')! as String,
-            mediaDir: arg('mediaDir')! as String,
-          ),
-          _DbCommand.exportArchive => (await repo.exportArchive(
-            outputPath: arg('outputPath')! as String,
-            mediaRoot: arg('mediaRoot')! as String,
-          )).path,
-          _DbCommand.importArchive => await repo.importArchive(
-            archiveFile: File(arg('archivePath')! as String),
-            mediaRoot: arg('mediaRoot')! as String,
-          ),
-          _DbCommand.deletedNotes => maintenance.deletedNotes(
-            limit: arg('limit')! as int,
-          ),
-          _DbCommand.purgeDeletedBefore => _voided(
-            () => maintenance.purgeDeletedBefore(arg('cutoff')! as DateTime),
-          ),
-          _DbCommand.purgeNote => _voided(
-            () => maintenance.purgeNote(arg('id')! as String),
-          ),
-          _DbCommand.purgeAllDeleted => _voided(maintenance.purgeAllDeleted),
-          _DbCommand.tagUsage => maintenance.tagUsage(),
-          _DbCommand.renameTag => _voided(
-            () => maintenance.renameTag(
-              arg('id')! as String,
-              arg('name')! as String,
-            ),
-          ),
-          _DbCommand.mergeTag => _voided(
-            () => maintenance.mergeTag(
-              sourceId: arg('sourceId')! as String,
-              targetId: arg('targetId')! as String,
-            ),
-          ),
-          _DbCommand.deleteTag => _voided(
-            () => maintenance.deleteTag(arg('id')! as String),
-          ),
-          _DbCommand.nearestMiss => maintenance.nearestMiss(
-            arg('query')! as String,
-          ),
-          _DbCommand.storage => await maintenance.storage(
-            arg('dbPath')! as String,
-            arg('mediaDir')! as String,
-            arg('backupDir')! as String,
-          ),
-          _DbCommand.enrichNote =>
-            await enrichment
-                .enrichNote(arg('noteId')! as String)
-                .then<Object?>((_) => null),
-          _DbCommand.backfillEnrichment => await enrichment.backfill(
-            limit: arg('limit')! as int,
-          ),
-          _DbCommand.suggestTags => await enrichment.suggestTags(
+        ),
+        // `when` is a pattern guard keyword, so the variable it would
+        // otherwise be named cannot be spelled here.
+        _DbCommand.setDueAt => _voided(() {
+          final at = arg('when');
+          repo.setDueAt(
             arg('noteId')! as String,
+            at is String ? DateTime.parse(at) : null,
+            repeat: NoteRepeat.fromWire(arg('repeat') as String?),
+          );
+        }),
+        _DbCommand.upcomingReminders => repo.listUpcomingReminders(
+          limit: arg('limit')! as int,
+        ),
+        _DbCommand.backup => repo.backup(
+          arg('dir')! as String,
+          mediaDir: arg('mediaDir')! as String,
+        ),
+        _DbCommand.exportArchive => (await repo.exportArchive(
+          outputPath: arg('outputPath')! as String,
+          mediaRoot: arg('mediaRoot')! as String,
+        )).path,
+        _DbCommand.importArchive => await repo.importArchive(
+          archiveFile: File(arg('archivePath')! as String),
+          mediaRoot: arg('mediaRoot')! as String,
+        ),
+        _DbCommand.deletedNotes => maintenance.deletedNotes(
+          limit: arg('limit')! as int,
+        ),
+        _DbCommand.purgeDeletedBefore => _voided(
+          () => maintenance.purgeDeletedBefore(arg('cutoff')! as DateTime),
+        ),
+        _DbCommand.purgeNote => _voided(
+          () => maintenance.purgeNote(arg('id')! as String),
+        ),
+        _DbCommand.purgeAllDeleted => _voided(maintenance.purgeAllDeleted),
+        _DbCommand.tagUsage => maintenance.tagUsage(),
+        _DbCommand.renameTag => _voided(
+          () => maintenance.renameTag(
+            arg('id')! as String,
+            arg('name')! as String,
           ),
-          _DbCommand.summarize => await enrichment.summarizeOnDemand(
-            arg('noteId')! as String,
+        ),
+        _DbCommand.mergeTag => _voided(
+          () => maintenance.mergeTag(
+            sourceId: arg('sourceId')! as String,
+            targetId: arg('targetId')! as String,
           ),
-          _DbCommand.relatedNotes => await enrichment.relatedNotes(
-            arg('noteId')! as String,
-            limit: arg('limit')! as int,
+        ),
+        _DbCommand.deleteTag => _voided(
+          () => maintenance.deleteTag(arg('id')! as String),
+        ),
+        _DbCommand.nearestMiss => maintenance.nearestMiss(
+          arg('query')! as String,
+        ),
+        _DbCommand.storage => await maintenance.storage(
+          arg('dbPath')! as String,
+          arg('mediaDir')! as String,
+          arg('backupDir')! as String,
+        ),
+        _DbCommand.enrichNote =>
+          await enrichment
+              .enrichNote(arg('noteId')! as String)
+              .then<Object?>((_) => null),
+        _DbCommand.backfillEnrichment => await enrichment.backfill(
+          limit: arg('limit')! as int,
+        ),
+        _DbCommand.suggestTags => await enrichment.suggestTags(
+          arg('noteId')! as String,
+        ),
+        _DbCommand.summarize => await enrichment.summarizeOnDemand(
+          arg('noteId')! as String,
+        ),
+        _DbCommand.relatedNotes => await enrichment.relatedNotes(
+          arg('noteId')! as String,
+          limit: arg('limit')! as int,
+        ),
+        _DbCommand.semanticSearch => await enrichment.semanticSearch(
+          arg('query')! as String,
+          limit: arg('limit')! as int,
+        ),
+        _DbCommand.setAiCapabilities => _voided(
+          () => enrichment.updateCapabilities(
+            arg('capabilities')! as AiCapabilities,
           ),
-          _DbCommand.semanticSearch => await enrichment.semanticSearch(
-            arg('query')! as String,
-            limit: arg('limit')! as int,
-          ),
-          _DbCommand.setAiCapabilities => _voided(
-            () => enrichment.updateCapabilities(
-              arg('capabilities')! as AiCapabilities,
-            ),
-          ),
-          _DbCommand.setAiProvider => _voided(() {
-            final raw = (arg('config')! as Map).cast<String, String>();
-            final config = AiProviderConfig(
-              provider: AiProviderWire.fromWire(raw['provider']),
-              apiKey: raw['apiKey'] ?? '',
-              baseUrl: raw['baseUrl'] ?? '',
-              model: raw['model'] ?? '',
-            );
-            // No provider, or an incomplete one, falls back to the local
-            // heuristics rather than to nothing: tag hints keep working.
-            enrichment.updateAdapter(
-              config.isUsable
-                  ? CloudAIAdapter(
-                      config: config,
-                      outputLanguage: AiOutputLanguage.fromWire(
-                        raw['outputLanguage'],
-                      ),
-                    )
-                  : const OnDeviceAIAdapter(),
-            );
-          }),
-          _DbCommand.sync => await () async {
-            final client = SyncClient(
-              baseUrl: arg('baseUrl')! as String,
-              deviceId: boot.deviceId,
-              repo: repo,
-              bearerToken: arg('bearerToken') as String?,
-            );
-            try {
-              return await client.sync();
-            } finally {
-              client.close();
-            }
-          }(),
-          _DbCommand.close => null,
-        };
+        ),
+        _DbCommand.setAiProvider => _voided(() {
+          final raw = (arg('config')! as Map).cast<String, String>();
+          final config = AiProviderConfig(
+            provider: AiProviderWire.fromWire(raw['provider']),
+            apiKey: raw['apiKey'] ?? '',
+            baseUrl: raw['baseUrl'] ?? '',
+            model: raw['model'] ?? '',
+          );
+          // No provider, or an incomplete one, falls back to the local
+          // heuristics rather than to nothing: tag hints keep working.
+          enrichment.updateAdapter(
+            config.isUsable
+                ? CloudAIAdapter(
+                    config: config,
+                    outputLanguage: AiOutputLanguage.fromWire(
+                      raw['outputLanguage'],
+                    ),
+                  )
+                : const OnDeviceAIAdapter(),
+          );
+        }),
+        _DbCommand.sync => await () async {
+          final client = SyncClient(
+            baseUrl: arg('baseUrl')! as String,
+            deviceId: boot.deviceId,
+            repo: repo,
+            bearerToken: arg('bearerToken') as String?,
+          );
+          try {
+            return await client.sync();
+          } finally {
+            client.close();
+          }
+        }(),
+        _DbCommand.close => null,
+      };
+    }
 
-        boot.sendPort.send(_DbResponse(message.id, result, null, null));
+    // One request handled at a time. The listener is not `async` — several
+    // handlers await (import reads a file, sync talks over HTTP, enrichment
+    // talks to a provider) — and a raw async listener interleaved them: a
+    // capture could run against the database mid-import, and a close could
+    // dispose the handle under a handler still mid-await. Chaining each
+    // request onto the tail of the last keeps ordering honest. The chain is
+    // fault-tolerant on purpose: a failed request must not poison the queue.
+    var tail = Future<void>.value();
+    requests.listen((message) {
+      if (message is! _DbRequest) return;
+      tail = tail.then((_) async {
+        try {
+          final result = await dispatch(message);
+          boot.sendPort.send(_DbResponse(message.id, result, null, null));
 
-        if (message.command == _DbCommand.close) {
-          db.close();
-          requests.close();
+          if (message.command == _DbCommand.close) {
+            db.close();
+            requests.close();
+          }
+        } catch (e, stack) {
+          boot.sendPort.send(
+            _DbResponse(message.id, null, e.toString(), stack.toString()),
+          );
         }
-      } catch (e, stack) {
-        boot.sendPort.send(
-          _DbResponse(message.id, null, e.toString(), stack.toString()),
-        );
-      }
+      });
     });
   }
 }

@@ -378,13 +378,15 @@ void main() {
       expect(
         seen.url.toString(),
         'https://generativelanguage.googleapis.com/v1beta/models/'
-        'gemini-2.0-flash:generateContent?key=google-key',
+        'gemini-2.0-flash:generateContent',
       );
-      // The key rides in the query string, the way Google's own quickstarts
-      // send it. No auth header of any kind: a request that authenticates two
-      // ways is a request with two ways to be wrong.
+      // The key rides in the `x-goog-api-key` header, like every other
+      // provider's credential. It used to be a `?key=` query parameter, the
+      // quickstart form — but a key in a URL is a key in every proxy and
+      // server log that sees the request line.
+      expect(seen.url.queryParameters.containsKey('key'), isFalse);
+      expect(seen.headers['x-goog-api-key'], 'google-key');
       expect(seen.headers.containsKey('authorization'), isFalse);
-      expect(seen.headers.containsKey('x-goog-api-key'), isFalse);
       final body = jsonDecode(seen.body) as Map<String, dynamic>;
       expect(body['systemInstruction'], isNotNull);
       expect(body['contents'], isA<List<dynamic>>());

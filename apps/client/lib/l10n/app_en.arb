@@ -431,6 +431,95 @@
   "@tryAgain": {
     "description": "Retries startup after a failed library open"
   },
+  "libraryOpenDetail": "What went wrong: {error}",
+  "@libraryOpenDetail": {
+    "placeholders": { "error": { "type": "String" } },
+    "description": "Detail line under the startup failure message"
+  },
+  "restoreBackupHint": "If you have a backup file, restoring it here may recover your library.",
+  "@restoreBackupHint": {
+    "description": "Offered on the startup failure screen, before the app can open"
+  },
+  "restoreFailed": "Restore failed: {error}",
+  "@restoreFailed": {
+    "placeholders": { "error": { "type": "String" } },
+    "description": "Shown when restoring a local backup does not complete"
+  },
+  "updateAvailableBadge": "Update available",
+  "@updateAvailableBadge": {
+    "description": "Screen-reader label for the small dot marking a pending update"
+  },
+  "closeLabel": "Close",
+  "@closeLabel": {
+    "description": "Tooltip for a sheet's close button"
+  },
+  "timelineLoadFailed": "Your timeline could not be loaded.",
+  "@timelineLoadFailed": {
+    "description": "Shown when the timeline's first read fails"
+  },
+  "deletedWhen": "Deleted {when}",
+  "@deletedWhen": {
+    "placeholders": { "when": { "type": "String" } },
+    "description": "Trash row subtitle: when the note was deleted"
+  },
+  "filteredEmpty": "Notes are hiding behind your filters.",
+  "@filteredEmpty": {
+    "description": "Timeline body when a filter matches nothing"
+  },
+  "clearFilters": "Clear filters",
+  "@clearFilters": {
+    "description": "Drops the filters that hid every note"
+  },
+  "searchFilters": "Filters",
+  "@searchFilters": {
+    "description": "Title of the search filter sheet"
+  },
+  "searchFiltersClear": "Clear all ({count})",
+  "@searchFiltersClear": {
+    "placeholders": { "count": { "type": "int" } },
+    "description": "Drops every active search filter"
+  },
+  "searchFilterTags": "Tags",
+  "@searchFilterTags": {
+    "description": "Filter section heading: tags"
+  },
+  "searchFilterTypes": "Types",
+  "@searchFilterTypes": {
+    "description": "Filter section heading: note types"
+  },
+  "searchFilterDates": "Added",
+  "@searchFilterDates": {
+    "description": "Filter section heading: when the note was added"
+  },
+  "searchFilterAnyTime": "Any time",
+  "@searchFilterAnyTime": {
+    "description": "Date filter: no date restriction"
+  },
+  "searchFilterToday": "Today",
+  "@searchFilterToday": {
+    "description": "Date filter: added today"
+  },
+  "searchFilterLast7Days": "Last 7 days",
+  "@searchFilterLast7Days": {
+    "description": "Date filter: last seven days"
+  },
+  "searchFilterLast30Days": "Last 30 days",
+  "@searchFilterLast30Days": {
+    "description": "Date filter: last thirty days"
+  },
+  "searchFiltersHint": "Tap to combine. Filters apply as you go.",
+  "@searchFiltersHint": {
+    "description": "Hint shown in the filter sheet before any filter is active"
+  },
+  "searchFiltersActive": "{count} active",
+  "@searchFiltersActive": {
+    "placeholders": { "count": { "type": "int" } },
+    "description": "Count of active filters, shown in the filter sheet"
+  },
+  "showFilters": "Show filters",
+  "@showFilters": {
+    "description": "Tooltip for the filter button beside the search field"
+  },
   "opening": "Nex is opening",
   "@opening": {
     "description": "Screen-reader label for the startup splash"

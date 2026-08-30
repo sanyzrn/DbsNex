@@ -105,8 +105,10 @@ jobs:
       # scroll, rebuilds, the chat sheet — would be measured wrong.
       #
       # --target lib/main_ai.dart is what makes this the ai flavor in fact and
-      # not just in name: the Gradle flavor sets the applicationId suffix, and
-      # the Dart entry point is what binds LiteRtChatAdapter (ADR-031).
+      # not just in name: the Dart entry point is what binds LiteRtChatAdapter
+      # (ADR-031). Both flavors share one applicationId on purpose — the suffix
+      # was removed so a shipped build can update over itself; reintroducing
+      # one is how an update stops installing (see 0.9.1).
       #
       # arm64 only, because that is the only ABI LiteRT-LM ships native code
       # for; LocalAi refuses to offer the download on anything else, so a

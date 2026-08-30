@@ -77,7 +77,7 @@ void main() {
     expect(existing.onboardingComplete, isTrue);
   });
 
-  testWidgets('the last page will not finish without a name', (tester) async {
+  testWidgets('finishing without a name is allowed and stores nothing', (tester) async {
     tester.view.physicalSize = const Size(900, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -94,13 +94,34 @@ void main() {
     }
     expect(find.text('A few quick choices'), findsOneWidget);
 
-    // Nothing typed: the button refuses, says why, and stays put.
+    // A name is no longer demanded. Finishing without one goes straight
+    // through: nothing is stored, and the app's own empty-state promise —
+    // "nothing else is asked" — holds.
     await tester.tap(find.text('Start using Nex'));
     await tester.pumpAndSettle();
-    expect(find.text('Nex needs something to call you.'), findsOneWidget);
-    expect(preferences.onboardingComplete, isFalse);
-    expect(find.byType(TimelineScreen), findsNothing);
 
+    expect(preferences.displayName, isNull);
+    expect(preferences.onboardingComplete, isTrue);
+    expect(find.byType(TimelineScreen), findsOneWidget);
+    expect(find.byType(OnboardingScreen), findsNothing);
+  });
+
+  testWidgets('a name typed on the last page is saved through', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    for (var i = 0; i < 4; i++) {
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+    }
     await tester.enterText(find.byType(TextField).first, 'Saeed');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Start using Nex'));
@@ -113,7 +134,7 @@ void main() {
     expect(find.byType(OnboardingScreen), findsNothing);
   });
 
-  testWidgets('Skip jumps to the setup page, it does not skip setup', (
+  testWidgets('Skip finishes onboarding outright', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(900, 2400);
@@ -128,11 +149,12 @@ void main() {
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
 
-    // Skip means "I have read enough", not "do not ask me": the name is
-    // required either way, so it lands on the last page rather than finishing.
-    expect(find.text('A few quick choices'), findsOneWidget);
-    expect(find.text('Skip'), findsNothing);
-    expect(preferences.onboardingComplete, isFalse);
+    // Skip means "I have read enough" — it finishes outright. The setup
+    // pickers are defaults-first and live in Settings too, so nothing the
+    // skipper needed was only reachable behind that page.
+    expect(preferences.onboardingComplete, isTrue);
+    expect(find.byType(TimelineScreen), findsOneWidget);
+    expect(find.byType(OnboardingScreen), findsNothing);
   });
 
   testWidgets('the setup page applies each choice as it is made', (

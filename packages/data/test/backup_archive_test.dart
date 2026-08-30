@@ -44,6 +44,58 @@ void main() {
     );
   }
 
+  test('a restore onto a moved sandbox rewrites media paths', () {
+    // The reinstall case: every restore on iOS and most on Android lands in
+    // a support directory whose path has changed, and a database row that
+    // still points at the old absolute path means a photo that "came back"
+    // but cannot be opened.
+    File(p.join(mediaDir, 'a.jpg')).writeAsBytesSync([1, 2, 3]);
+    repo.insert(photoNote('n1', 'a.jpg'));
+
+    final backup = repo.backup(backupDir, mediaDir: mediaDir);
+    db.close();
+
+    // Lose everything, then restore into a *different* media directory, the
+    // way a fresh install would have.
+    File(dbPath).deleteSync();
+    Directory(mediaDir).deleteSync(recursive: true);
+    final newMediaDir = p.join(tmp.path, 'support2', 'media');
+    Directory(newMediaDir).createSync(recursive: true);
+
+    NexBackupArchive.restore(
+      liveDbPath: dbPath,
+      mediaDir: newMediaDir,
+      backupFile: backup.path,
+    );
+
+    final reopened = NexDatabase.open(dbPath);
+    final restored = SqliteNoteRepository(reopened).getById('n1')!;
+    expect(restored.mediaUri, startsWith(newMediaDir),
+        reason: 'the row must point where the file actually landed');
+    expect(File(restored.mediaUri!).existsSync(), isTrue,
+        reason: 'and the file must be there');
+    reopened.close();
+  });
+
+  test('a stale rollback journal is swept by restore, not replayed', () {
+    // A -journal left beside the live file is treated by SQLite as hot for
+    // whatever file it sits next to; after a swap it would roll *old* pages
+    // over the restored database.
+    File(p.join(mediaDir, 'a.jpg')).writeAsBytesSync([1]);
+    repo.insert(photoNote('n1', 'a.jpg'));
+    final backup = repo.backup(backupDir, mediaDir: mediaDir);
+    db.close();
+    File('$dbPath-journal').writeAsBytesSync([0xAA, 0xBB]);
+
+    NexBackupArchive.restore(
+      liveDbPath: dbPath,
+      mediaDir: mediaDir,
+      backupFile: backup.path,
+    );
+
+    expect(File('$dbPath-journal').existsSync(), isFalse);
+  });
+
   test('a backup carries the media, not only the database', () {
     File(p.join(mediaDir, 'a.jpg')).writeAsBytesSync([1, 2, 3]);
     File(p.join(mediaDir, 'clip.m4a')).writeAsBytesSync([4, 5, 6, 7]);

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:path/path.dart' as p;
+import 'package:sqlite3/sqlite3.dart';
 
 import 'database.dart';
 
@@ -162,27 +163,82 @@ class NexBackupArchive {
           ..writeAsBytesSync(file.content as List<int>);
       }
 
-      for (final suffix in ['', '-wal', '-shm']) {
+      for (final suffix in ['', '-wal', '-shm', '-journal']) {
         final live = File('$liveDbPath$suffix');
         if (live.existsSync()) live.deleteSync();
       }
       stagedDb.renameSync(liveDbPath);
 
+      // The media swap is one rename, not a per-file copy. Copying the
+      // staged files over the live directory one by one left the library
+      // with its database already swapped and its media half-replaced: an
+      // interruption in the middle was a restore that looked finished and
+      // referenced files that no longer existed. Both directories are
+      // siblings under the same support directory, so the rename stays on
+      // one filesystem and is atomic.
       final stagedMedia = Directory(p.join(staging.path, 'media'));
       if (stagedMedia.existsSync()) {
+        final incoming = Directory(p.join(p.dirname(mediaDir), 'media.incoming'));
+        if (incoming.existsSync()) incoming.deleteSync(recursive: true);
+        stagedMedia.renameSync(incoming.path);
+
         final live = Directory(mediaDir);
         if (live.existsSync()) live.deleteSync(recursive: true);
-        live.createSync(recursive: true);
-        for (final file in stagedMedia.listSync(recursive: true)) {
-          if (file is! File) continue;
-          final destination = File(
-            p.join(mediaDir, p.relative(file.path, from: stagedMedia.path)),
-          )..parent.createSync(recursive: true);
-          file.copySync(destination.path);
+        incoming.renameSync(live.path);
+      }
+
+      // The backed-up database still carries whatever absolute paths the
+      // device that made it used. The files were deliberately restored
+      // relative — this sandbox's media directory is the destination — so
+      // every row pointing outside it is rewritten to where the file now
+      // actually lives. Without this, a restore onto a reinstall (which is
+      // every restore on iOS, and most of them on Android) came back with
+      // every photo and recording pointing at a path that no longer exists.
+      _remapMediaUris(liveDbPath, mediaDir);
+    } finally {
+      if (staging.existsSync()) staging.deleteSync(recursive: true);
+    }
+  }
+
+  /// Points every note back at its file inside [mediaDir].
+  ///
+  /// A row whose file already exists at the stored path is left alone — the
+  /// common case for a backup restored on the device that made it. For the
+  /// rest, the file that actually arrived in the restore is matched by name:
+  /// first the full relative path the row implies (for a backup with
+  /// subdirectories), then the basename (for the flat media directory this
+  /// app writes). A row whose file made it into neither is left exactly as
+  /// it is — rewriting it to a path that does not exist would turn "stale
+  /// path, file findable" into "wrong path, file gone".
+  static void _remapMediaUris(String liveDbPath, String mediaDir) {
+    if (!File(liveDbPath).existsSync()) return;
+    final db = sqlite3.open(liveDbPath);
+    try {
+      final rows = db.select(
+        'SELECT id, media_uri FROM notes WHERE media_uri IS NOT NULL',
+      );
+      for (final row in rows) {
+        final stored = row['media_uri']! as String;
+        if (File(stored).existsSync()) continue;
+
+        final relative = p.relative(stored, from: p.dirname(stored));
+        File? candidate;
+        final nested = File(p.join(mediaDir, relative));
+        if (nested.existsSync()) {
+          candidate = nested;
+        } else {
+          final flat = File(p.join(mediaDir, p.basename(stored)));
+          if (flat.existsSync()) candidate = flat;
+        }
+        if (candidate != null) {
+          db.execute('UPDATE notes SET media_uri = ? WHERE id = ?', [
+            candidate.path,
+            row['id']! as String,
+          ]);
         }
       }
     } finally {
-      if (staging.existsSync()) staging.deleteSync(recursive: true);
+      db.dispose();
     }
   }
 
