@@ -894,26 +894,6 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Notes whose reminder has already rung and been seen.
-  ///
-  /// A reminder that is still ahead earns its chip on the card — that is the
-  /// whole reason the chip exists, and reading "in 3h" at a glance is what a
-  /// reminder is for. One that has already rung is a different thing: the
-  /// notification has been delivered, the note has been read, and the chip is
-  /// then a permanent "Overdue" badge on a note nobody is late for.
-  ///
-  /// So a spent reminder gets exactly one more showing. Leaving the timeline
-  /// and coming back to it is what counts as having seen it, and the whole
-  /// set is rewritten to whatever is overdue at that moment — which prunes
-  /// itself, and means a reminder pushed back into the future gets its chip
-  /// again without anything having to remember to remove an id.
-  Set<String> get seenReminders =>
-      (_prefs.getStringList('reminders.seen') ?? const []).toSet();
-
-  Future<void> setSeenReminders(Set<String> noteIds) async {
-    await _prefs.setStringList('reminders.seen', noteIds.toList()..sort());
-    notifyListeners();
-  }
 
   List<String> get savedSearches =>
       _prefs.getStringList('search.saved') ?? const [];

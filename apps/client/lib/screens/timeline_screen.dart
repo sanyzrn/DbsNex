@@ -117,7 +117,6 @@ class TimelineScreenState extends State<TimelineScreen>
   /// Read once into the frame rather than off preferences on every card: the
   /// set is rewritten when the timeline is covered, and a card that read it
   /// directly would change under a route transition.
-  Set<String> _seenReminders = const {};
 
   /// The note a tapped reminder is about, until its border has finished
   /// pulsing.
@@ -227,7 +226,6 @@ class TimelineScreenState extends State<TimelineScreen>
         unawaited(_loadAiHeadline());
       }
     });
-    _seenReminders = widget.preferences.seenReminders;
     WidgetsBinding.instance.addObserver(this);
     _search.addListener(_onSearchChanged);
     _scroll.addListener(_onAiSummaryScroll);
@@ -551,29 +549,49 @@ class TimelineScreenState extends State<TimelineScreen>
   @visibleForTesting
   void markLanded(String id) => setState(() => landedId = id);
 
-  /// Records every reminder that has already rung as seen.
+  /// Clears one-off reminders that have already rung.
   ///
-  /// The whole set is replaced rather than added to, so it prunes itself: a
-  /// note whose reminder is pushed back into the future simply is not in the
-  /// overdue set the next time this runs, and gets its chip back with nothing
-  /// having had to remember to remove it.
-  Future<void> _markRemindersSeen() async {
+  /// A reminder is a thing to be reminded of, and once it has happened it is
+  /// finished. It used to be kept on the note for ever and merely hidden from
+  /// the card by a set of ids recorded here — so the note still carried a
+  /// reminder, the detail sheet still offered to remove it, and removing it
+  /// by hand was the only way to be rid of it. That was the report, three
+  /// times: the trace stays on the item.
+  ///
+  /// Retired on the way out rather than the moment it lapses, so it gets
+  /// exactly one more showing — a reminder that vanished while being read
+  /// would be a reminder you never saw.
+  ///
+  /// A repeating one is never spent: its stored time is in the past by design
+  /// after the first firing, and it is still going to ring again. Only a
+  /// one-off can be finished with.
+  Future<void> _retireSpentReminders() async {
     final now = DateTime.now().toUtc();
-    final overdue = {
+    final spent = [
       for (final note in _all ?? const <Note>[])
-        // A repeating reminder is never spent: its stored time is in the past
-        // by design after the first firing, and it is still going to ring
-        // again. Only a one-off can be finished with.
         if (note.dueRepeat == NoteRepeat.once)
           if (note.dueAt case final due?)
             if (!due.isAfter(now)) note.id,
-    };
-    if (overdue.length == _seenReminders.length &&
-        overdue.every(_seenReminders.contains)) {
-      return;
+    ];
+    if (spent.isEmpty) return;
+    var cleared = false;
+    for (final id in spent) {
+      // Re-read before clearing. `_all` is a snapshot, and the most likely
+      // way to reach this code is by opening the note — which is also the
+      // most likely place to push the reminder forward. Deleting a time the
+      // reader has just chosen, because a list from a moment ago still said
+      // it had lapsed, is the one mistake this must not make.
+      final current = await widget.services.getById(id);
+      if (current == null) continue;
+      if (current.dueRepeat != NoteRepeat.once) continue;
+      final due = current.dueAt;
+      if (due == null || due.isAfter(DateTime.now().toUtc())) continue;
+      // Null clears the repeat alongside the time, and cancels the alarm the
+      // OS is still holding for it.
+      await widget.services.setDueAt(id, null);
+      cleared = true;
     }
-    await widget.preferences.setSeenReminders(overdue);
-    if (mounted) setState(() => _seenReminders = overdue);
+    if (cleared) await widget.services.refreshTimeline();
   }
 
   /// Points at the note a reminder was about.
@@ -870,22 +888,22 @@ class TimelineScreenState extends State<TimelineScreen>
   /// rather than on the way back, so that the return is the first frame
   /// without it.
   @override
-  void didPushNext() => unawaited(_markRemindersSeen());
+  void didPushNext() => unawaited(_retireSpentReminders());
 
   /// Leaving the app counts as leaving the timeline.
   ///
   /// `didPushNext` only fires when another *route* covers this one, and the
   /// way a spent reminder is actually met is nothing like that: the
   /// notification arrives, the app is opened to read the note, and then the
-  /// app is put away — no route is ever pushed. So the chip was marked seen
-  /// only by someone who happened to open Settings or the Library on the way
-  /// out, and for everyone else it stayed on the card until the reminder was
+  /// app is put away — no route is ever pushed. So a spent reminder was
+  /// retired only for someone who happened to open Settings or the Library on
+  /// the way out, and for everyone else it sat on the note until it was
   /// deleted by hand, which is the report.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
-      unawaited(_markRemindersSeen());
+      unawaited(_retireSpentReminders());
     }
   }
 
@@ -1836,10 +1854,6 @@ class TimelineScreenState extends State<TimelineScreen>
                     note: note,
                     strings: nexCardStrings(context),
                     onTap: () => _tapNote(note),
-                    // A reminder still ahead keeps its chip. One that has
-                    // rung and been seen gives the slot back to the note's
-                    // own timestamp rather than wearing "Overdue" for ever.
-                    showDue: !_seenReminders.contains(note.id),
                   ),
                 ),
               ),
