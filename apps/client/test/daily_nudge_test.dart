@@ -11,6 +11,7 @@ import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/assistant_screen.dart';
 import 'package:nex_client/screens/settings_sheet.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 import 'support/in_process_db.dart';
 
@@ -116,7 +117,7 @@ void main() {
       await tester.tap(
         find.ancestor(
           of: find.text('Daily nudge'),
-          matching: find.byType(SwitchListTile),
+          matching: find.byType(NexSwitchTile),
         ),
       );
       await tester.pumpAndSettle();

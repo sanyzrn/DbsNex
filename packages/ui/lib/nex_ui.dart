@@ -11,6 +11,7 @@ export 'widgets/nex_empty_state.dart';
 export 'widgets/nex_markdown.dart';
 export 'widgets/nex_edge_glow.dart';
 export 'widgets/nex_skeleton.dart';
+export 'widgets/nex_switch.dart';
 export 'widgets/nex_swipe_back.dart';
 export 'widgets/nex_tappable.dart';
 export 'widgets/nex_toast_pop.dart';

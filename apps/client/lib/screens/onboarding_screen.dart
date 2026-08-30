@@ -33,10 +33,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   int _page = 0;
 
-  /// Set by the first attempt to leave the last page without a name, so the
-  /// field is not scolding anyone before they have had a chance to type.
-  bool _nameTouched = false;
-
   static const _pageCount = 5;
   bool get _onSetup => _page == _pageCount - 1;
   bool get _hasName => _name.text.trim().isNotEmpty;
@@ -63,29 +59,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
       return;
     }
-    if (!_hasName) {
-      setState(() => _nameTouched = true);
-      return;
-    }
-    // The name is the only thing not already written: the three pickers save
-    // as they are tapped, the way they do in Settings, so backing out of this
-    // screen mid-way could never leave a half-applied choice.
-    await widget.preferences.setDisplayName(_name.text);
+    await _finish();
+  }
+
+  /// Writes whatever has been given and opens the app.
+  ///
+  /// The name used to be required, and it was the only thing standing between
+  /// a fresh install and the timeline. It buys a greeting — the header says
+  /// "Deep into the night, Saeed" instead of nothing — and the header already
+  /// handles not having one, so the whole cost of asking was borne at the
+  /// door and the whole benefit was cosmetic. An app whose first promise is
+  /// "capture in seconds" cannot open with a mandatory text field.
+  ///
+  /// The name is the only thing not already written: the three pickers save
+  /// as they are tapped, the way they do in Settings, so backing out of this
+  /// screen mid-way could never leave a half-applied choice.
+  Future<void> _finish() async {
+    if (_hasName) await widget.preferences.setDisplayName(_name.text);
     await widget.preferences.completeOnboarding();
   }
 
   Future<void> _back() =>
       _pages.previousPage(duration: NexMotion.standard, curve: NexMotion.curve);
 
-  /// Jumps to the setup page rather than finishing. Skip means "I have read
-  /// enough", not "do not ask me" — the name is required either way, and a
-  /// Skip that lands on an app that has not been told it would be a worse
-  /// first minute than the four pages it saved.
-  Future<void> _skip() => _pages.animateToPage(
-    _pageCount - 1,
-    duration: NexMotion.slow,
-    curve: NexMotion.curve,
-  );
+  /// Finishes. Skip means skip.
+  ///
+  /// It used to jump to the setup page, on the reasoning that the name was
+  /// required so there was nothing to skip past except the reading. That made
+  /// the word untrue: someone who taps Skip is saying "let me in", and
+  /// answering with the one page they cannot leave is the opposite. With the
+  /// name optional there is nothing left to hold them for, and every choice
+  /// on that page is in Settings under the same labels.
+  Future<void> _skip() => _finish();
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +167,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       _SetupPage(
                         preferences: widget.preferences,
                         name: _name,
-                        showNameError: _nameTouched && !_hasName,
                       ),
                     ],
                   ),
@@ -307,12 +311,10 @@ class _SetupPage extends StatelessWidget {
   const _SetupPage({
     required this.preferences,
     required this.name,
-    required this.showNameError,
   });
 
   final NexPreferences preferences;
   final TextEditingController name;
-  final bool showNameError;
 
   @override
   Widget build(BuildContext context) {
@@ -356,9 +358,11 @@ class _SetupPage extends StatelessWidget {
                 textDirection: direction,
                 textAlign: TextAlign.start,
                 textInputAction: TextInputAction.done,
+                // No error state: there is nothing to get wrong here any
+                // more. Leaving it blank is a valid answer, and the header
+                // simply does not greet anyone who has not said who they are.
                 decoration: InputDecoration(
                   hintText: l10n.yourNamePlaceholder,
-                  errorText: showNameError ? l10n.onboardingNameRequired : null,
                 ),
               ),
             ),

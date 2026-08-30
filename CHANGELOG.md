@@ -34,6 +34,26 @@ Working convention:
 
 ## Unreleased
 
+## v1.2.7
+
+- **Starting Nex for the first time lets you write straight away.** A fresh
+  install opened on five pages of introduction, then a name it would not go
+  past, then a four-stop tour laid over the screen — all before there was
+  anywhere to put a thought. Skip now finishes rather than jumping to the one
+  page it could not leave, the name is optional, and the walk-through waits
+  until there is a note to point at, so it can show you where what you just
+  wrote went instead of describing an empty screen. Nothing was removed: the
+  pages are still there for anyone who wants them, and every choice on the
+  setup page has always lived in Settings too.
+- **The assistant no longer says "Done." when nothing was done.** If it named
+  a note that was not there — one it had misremembered, or one already
+  deleted earlier in the same conversation — the change quietly matched
+  nothing and it reported success anyway. Every note an action names is
+  checked before any of it runs.
+- **The switches are smaller.** They were the loudest thing on a settings row.
+  Tapping anywhere on the row still works, so there is more to aim at than
+  there was before, not less.
+
 ## v1.2.6
 
 Mostly a round of the app telling the truth: several controls that did

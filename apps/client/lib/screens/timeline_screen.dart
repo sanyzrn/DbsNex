@@ -199,6 +199,9 @@ class TimelineScreenState extends State<TimelineScreen>
         _all = value;
         notes = _visible(value);
       });
+      // The tour waits for a first note, and this is the path the note that
+      // ends that wait arrives on.
+      _tourWhenReady();
       // A capture or a delete can change whether there is more to load —
       // most obviously a capture, past a window an earlier scroll had
       // already exhausted. Re-arming here costs one wasted fetch on the next
@@ -239,13 +242,31 @@ class TimelineScreenState extends State<TimelineScreen>
     });
   }
 
-  /// Shows the walk-through once, on the first timeline after onboarding.
+  /// Shows the walk-through once, after the first note exists.
+  ///
+  /// It used to open on the first timeline after onboarding, which put two
+  /// tutorials back to back: five pages of introduction, then four stops of
+  /// overlay, and only then somewhere to write. For an app whose whole claim
+  /// is capture in seconds, the first thing a new install did was ask to be
+  /// read.
+  ///
+  /// Waiting for a note inverts that. The first thing that happens is the
+  /// thing the app is for, and the tour arrives when it has something to
+  /// point at and something to explain — where the note just written went,
+  /// and how to find it again — rather than describing an empty screen to
+  /// someone who has not used it yet.
+  ///
+  /// An install that already has notes still sees it once, so this changes
+  /// when it opens and not whether.
   ///
   /// In an overlay rather than as part of this screen's tree: it has to paint
   /// over the app bar and the capture button, both of which the `Scaffold`
   /// draws above its own body.
   void _maybeStartTour() {
     if (!mounted || widget.preferences.tourComplete || _tour != null) return;
+    // Null is "not loaded yet" rather than "empty" — see [_all]. Either way
+    // there is nothing to point at, and the next load comes back here.
+    if (_all?.isEmpty ?? true) return;
     final l10n = AppLocalizations.of(context);
     final overlay = Overlay.maybeOf(context);
     if (overlay == null) return;
@@ -631,6 +652,18 @@ class TimelineScreenState extends State<TimelineScreen>
       _all = loaded;
       notes = _visible(loaded);
     });
+    _tourWhenReady();
+  }
+
+  /// Re-checks whether the walk-through is due, after the frame.
+  ///
+  /// Called from both paths that can produce the first note: the initial load
+  /// for an install that already has some, and the stream for the capture
+  /// that has just made one. After the frame because each stop measures a
+  /// real widget, which has to have been laid out first.
+  void _tourWhenReady() {
+    if (widget.preferences.tourComplete || _tour != null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
   }
 
   /// FR-4 filter chips. TagFilterRow shipped in packages/ui, complete and

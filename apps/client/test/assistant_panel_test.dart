@@ -6,6 +6,7 @@ import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:nex_client/widgets/assistant_settings.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 /// The chat had no way to reach the settings that decide what its next answer
 /// looks like — the one place where you notice one needs changing.
@@ -65,7 +66,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(preferences.aiNotesOnly, isTrue);
-    await tester.tap(find.widgetWithText(SwitchListTile, 'Stay in my notes'));
+    await tester.tap(find.widgetWithText(NexSwitchTile, 'Stay in my notes'));
     await tester.pumpAndSettle();
     expect(preferences.aiNotesOnly, isFalse);
   });

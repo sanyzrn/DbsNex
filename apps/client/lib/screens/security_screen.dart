@@ -77,7 +77,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
               margin: EdgeInsets.zero,
               child: Column(
                 children: [
-                  SwitchListTile(
+                  NexSwitchTile(
                     secondary: const Icon(Icons.password_outlined),
                     title: Text(l10n.securityDevicePasscode),
                     subtitle: Text(l10n.securityDevicePasscodeSubtitle),
@@ -87,7 +87,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                         : (value) => unawaited(_setAppLock(value)),
                   ),
                   const Divider(height: 1),
-                  SwitchListTile(
+                  NexSwitchTile(
                     secondary: const Icon(Icons.fingerprint),
                     title: Text(l10n.securityBiometric),
                     subtitle: Text(l10n.securityBiometricSubtitle),

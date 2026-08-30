@@ -614,6 +614,37 @@ Sure, here you go:
       expect(await services.getById(note.id), isNull);
     });
 
+    testWidgets('a note that is not there is not reported as deleted', (
+      tester,
+    ) async {
+      // The reported failure: the model names an id that no longer exists —
+      // stale context, or one it invented — and the delete runs as an UPDATE
+      // that matches no rows. Matching nothing is a successful statement, so
+      // nothing threw and the assistant said "Done." over a library that had
+      // not moved.
+      final note = (await services.captureText('still here'))!;
+      await tester.pumpAndSettle();
+
+      await openSheet(
+        tester,
+        client: replying(
+          '```nex\n{"action":"delete","id":"a-note-that-never-existed"}\n```',
+        ),
+      );
+      await tester.enterText(find.byType(TextField).last, 'delete that one');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Do it'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("That didn't work."), findsOneWidget);
+      expect(find.text('Done.'), findsNothing);
+      // And the real note is untouched — the check happens before anything
+      // runs, so a bad id in the set cannot take a good one down with it.
+      expect(await services.getById(note.id), isNotNull);
+    });
+
     testWidgets('cancelling leaves the note alone', (tester) async {
       final note = (await services.captureText('keep me'))!;
       await tester.pumpAndSettle();
