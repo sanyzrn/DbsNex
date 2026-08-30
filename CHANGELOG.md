@@ -34,6 +34,16 @@ Working convention:
 
 ## Unreleased
 
+## v1.3.1
+
+- **Fixes a crash that stopped 1.3.0 opening at all.** On every launch Nex
+  reported that it could not open your local library and offered to try
+  again, which could not help: the fault was in the code that opens the
+  database, not in the database. Your notes were never touched — the library
+  was never reached, let alone changed. If you are on 1.3.0 you will need to
+  install this one by hand, because the in-app updater lives behind the
+  screen that will not open.
+
 ## v1.3.0
 
 The reliability release. Most of it is the app refusing to lose things or lie
