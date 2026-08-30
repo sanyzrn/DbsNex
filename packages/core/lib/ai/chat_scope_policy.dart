@@ -27,12 +27,29 @@ truncated answer.''';
 /// expected to land well under it.
 const int nexChatMaxResponseTokens = 1024;
 
-/// Prepends [nexChatScopeCeilingPrompt] as a system message, unless
-/// [conversation] already starts with one (so callers can't accidentally
-/// stack it on every turn if they pass their own system message).
+/// Puts [nexChatScopeCeilingPrompt] in front of [conversation].
+///
+/// When [conversation] already starts with a system message — the app's local
+/// path always sends one — the ceiling is *appended* to it rather than
+/// skipped. Skipping meant the ceiling never reached the model at all on the
+/// only path that runs it: the adapter applies this on every call, saw a
+/// system message already present, and bowed out, so the instruction existed
+/// in core, was tested here, and was silently absent from every real local
+/// reply. Appending also keeps the anti-stacking promise: one ceiling per
+/// system message, never one per turn.
 List<ChatMessage> withScopeCeiling(List<ChatMessage> conversation) {
   if (conversation.isNotEmpty && conversation.first.role == ChatRole.system) {
-    return conversation;
+    final existing = conversation.first.content;
+    // Already carrying the ceiling (a caller that applies it itself, or this
+    // function run twice over the same list): unchanged.
+    if (existing.contains(nexChatScopeCeilingPrompt)) return conversation;
+    return [
+      ChatMessage(
+        role: ChatRole.system,
+        content: '$existing\n\n$nexChatScopeCeilingPrompt',
+      ),
+      ...conversation.skip(1),
+    ];
   }
   return [
     const ChatMessage(

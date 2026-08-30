@@ -3,6 +3,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import 'nex_dialog.dart';
 import '../platform/nex_services.dart';
 import 'due_label.dart';
 import 'nex_banner.dart';
@@ -44,9 +45,12 @@ Future<bool> nexPickReminder({
   // beside them.
   var repeat = note.dueRepeat;
 
-  final picked = await showModalBottomSheet<DateTime?>(
+  // The standard sheet chrome (glass surface, drag handle, keyboard inset),
+  // not a raw showModalBottomSheet: the last four raw call sites were fixed
+  // and this one regressed, which is how a picker ends up with different
+  // corner rounding and a different handle than every sheet beside it.
+  final picked = await nexShowSheet<DateTime?>(
     context: context,
-    useSafeArea: true,
     builder: (sheetContext) => StatefulBuilder(
       builder: (sheetContext, setSheetState) => SafeArea(
         child: Column(

@@ -5,6 +5,7 @@ import 'package:nex_client/platform/ai_provider.dart';
 import 'package:nex_client/platform/nex_db.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
+import 'package:path/path.dart' as p;
 
 /// A [NexDb] that runs the real storage stack on the calling isolate.
 ///
@@ -28,7 +29,12 @@ class InProcessDb implements NexDb {
     _capture = CaptureService(_repo, deviceId: deviceId);
     _tags = TagService(_repo);
     _search = SearchService(_repo);
-    _maintenance = LibraryMaintenance(_repo);
+    // Same composition as the real worker: the purge paths only delete
+    // attachment files they can prove live under the media directory.
+    _maintenance = LibraryMaintenance(
+      _repo,
+      mediaRoot: p.join(p.dirname(dbPath), 'media'),
+    );
     _enrichment = EnrichmentService(
       repo: _repo,
       adapter: adapter ?? const NullAIAdapter(),

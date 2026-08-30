@@ -24,8 +24,10 @@ Files shared to Nex from another app land the same way as ones picked inside it.
 the list stays even. Swipe an edge for delete or add-tag; hold and drag to reorder; one
 note at a time can be pinned to the top.
 
-**Find** — SQLite FTS5 full-text search, plus tag, date and content-type filters. A search
-that matches nothing offers the nearest thing you actually wrote rather than an empty box.
+**Find** — SQLite FTS5 full-text search, plus tag, content-type and date filters with
+tappable chips beside the search field (the `tag:`/`type:` operators still work in the
+field itself). A search that matches nothing offers the nearest thing you actually wrote
+rather than an empty box.
 
 **Organize later** — tags with free-form colours, a tag manager that renames, merges and
 deletes, and a trash that holds deleted notes for 30 days.
@@ -33,7 +35,9 @@ deletes, and a trash that holds deleted notes for 30 days.
 **Come back to it** — a reminder on any note, one-off or repeating, and an optional daily
 nudge at an hour you pick. Both go through the OS scheduler, and when Android refuses to
 schedule one — exact alarms off, notifications denied, battery optimisation — the app says
-so in the OS's own words rather than failing quietly.
+so in the OS's own words rather than failing quietly. A test-notification row in Settings
+splits "Nex never sent it" from "my phone swallowed it", and deleting, restoring or editing
+a note keeps its alarms exactly as honest as the notes themselves.
 
 **Your data stays yours** — export and import a full archive, automatic throttled local
 backups you can prune by hand, and a storage breakdown that tells you what is using space.

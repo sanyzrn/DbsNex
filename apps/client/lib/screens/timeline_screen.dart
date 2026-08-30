@@ -32,6 +32,7 @@ import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/search_field_header.dart';
+import '../widgets/search_filter_sheet.dart';
 import '../widgets/search_results.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/swipe_actions.dart';
@@ -74,6 +75,11 @@ class TimelineScreenState extends State<TimelineScreen>
   /// which a capture triggers — replaced it with the unfiltered one while the
   /// filter chips still claimed to be active.
   List<Note>? _all;
+
+  /// The first timeline read threw and there is nothing to show instead.
+  /// Only ever true while `_all` is null: once data is on screen, a failed
+  /// reload keeps the data it failed to replace.
+  bool _loadFailed = false;
   List<Note> notes = const [];
 
   /// Keeps one card open at a time and lets a scroll close it.
@@ -111,7 +117,6 @@ class TimelineScreenState extends State<TimelineScreen>
   /// Read once into the frame rather than off preferences on every card: the
   /// set is rewritten when the timeline is covered, and a card that read it
   /// directly would change under a route transition.
-  Set<String> _seenReminders = const {};
 
   /// The note a tapped reminder is about, until its border has finished
   /// pulsing.
@@ -196,6 +201,7 @@ class TimelineScreenState extends State<TimelineScreen>
     subscription = widget.services.timelineStream.listen((value) {
       if (!mounted) return;
       setState(() {
+        _loadFailed = false;
         _all = value;
         notes = _visible(value);
       });
@@ -220,7 +226,6 @@ class TimelineScreenState extends State<TimelineScreen>
         unawaited(_loadAiHeadline());
       }
     });
-    _seenReminders = widget.preferences.seenReminders;
     WidgetsBinding.instance.addObserver(this);
     _search.addListener(_onSearchChanged);
     _scroll.addListener(_onAiSummaryScroll);
@@ -368,6 +373,16 @@ class TimelineScreenState extends State<TimelineScreen>
       // would be the tap actively destroying something.
       if (text != null && text.isNotEmpty) _aiSummaryText = text;
     });
+    // Keeping the old line is right; saying nothing about the tap is not —
+    // silence is what a broken button looks like. A quiet banner says the
+    // refresh did not happen, and the old text stays.
+    if (text == null || text.isEmpty) {
+      if (!mounted) return;
+      NexBannerHost.of(context)?.show(
+        message: AppLocalizations.of(context).operationFailed,
+        kind: NexBannerKind.failed,
+      );
+    }
     if (text != null && text.isNotEmpty) {
       unawaited(prefs.setAiDaySummary(text: text, dateKey: today));
     }
@@ -534,29 +549,49 @@ class TimelineScreenState extends State<TimelineScreen>
   @visibleForTesting
   void markLanded(String id) => setState(() => landedId = id);
 
-  /// Records every reminder that has already rung as seen.
+  /// Clears one-off reminders that have already rung.
   ///
-  /// The whole set is replaced rather than added to, so it prunes itself: a
-  /// note whose reminder is pushed back into the future simply is not in the
-  /// overdue set the next time this runs, and gets its chip back with nothing
-  /// having had to remember to remove it.
-  Future<void> _markRemindersSeen() async {
+  /// A reminder is a thing to be reminded of, and once it has happened it is
+  /// finished. It used to be kept on the note for ever and merely hidden from
+  /// the card by a set of ids recorded here — so the note still carried a
+  /// reminder, the detail sheet still offered to remove it, and removing it
+  /// by hand was the only way to be rid of it. That was the report, three
+  /// times: the trace stays on the item.
+  ///
+  /// Retired on the way out rather than the moment it lapses, so it gets
+  /// exactly one more showing — a reminder that vanished while being read
+  /// would be a reminder you never saw.
+  ///
+  /// A repeating one is never spent: its stored time is in the past by design
+  /// after the first firing, and it is still going to ring again. Only a
+  /// one-off can be finished with.
+  Future<void> _retireSpentReminders() async {
     final now = DateTime.now().toUtc();
-    final overdue = {
+    final spent = [
       for (final note in _all ?? const <Note>[])
-        // A repeating reminder is never spent: its stored time is in the past
-        // by design after the first firing, and it is still going to ring
-        // again. Only a one-off can be finished with.
         if (note.dueRepeat == NoteRepeat.once)
           if (note.dueAt case final due?)
             if (!due.isAfter(now)) note.id,
-    };
-    if (overdue.length == _seenReminders.length &&
-        overdue.every(_seenReminders.contains)) {
-      return;
+    ];
+    if (spent.isEmpty) return;
+    var cleared = false;
+    for (final id in spent) {
+      // Re-read before clearing. `_all` is a snapshot, and the most likely
+      // way to reach this code is by opening the note — which is also the
+      // most likely place to push the reminder forward. Deleting a time the
+      // reader has just chosen, because a list from a moment ago still said
+      // it had lapsed, is the one mistake this must not make.
+      final current = await widget.services.getById(id);
+      if (current == null) continue;
+      if (current.dueRepeat != NoteRepeat.once) continue;
+      final due = current.dueAt;
+      if (due == null || due.isAfter(DateTime.now().toUtc())) continue;
+      // Null clears the repeat alongside the time, and cancels the alarm the
+      // OS is still holding for it.
+      await widget.services.setDueAt(id, null);
+      cleared = true;
     }
-    await widget.preferences.setSeenReminders(overdue);
-    if (mounted) setState(() => _seenReminders = overdue);
+    if (cleared) await widget.services.refreshTimeline();
   }
 
   /// Points at the note a reminder was about.
@@ -646,13 +681,27 @@ class TimelineScreenState extends State<TimelineScreen>
   /// emitted before initState subscribes is dropped — a refresh that happens
   /// during startup left the timeline empty.
   Future<void> _loadTimeline() async {
-    final loaded = await widget.services.timeline(limit: 200);
-    if (!mounted) return;
-    setState(() {
-      _all = loaded;
-      notes = _visible(loaded);
-    });
-    _tourWhenReady();
+    // Both sides of this matter and neither replaces the other: the failure
+    // state below is what a read that never returns needs, and the tour check
+    // is what a read that *does* return can make due.
+    try {
+      final loaded = await widget.services.timeline(limit: 200);
+      if (!mounted) return;
+      setState(() {
+        _loadFailed = false;
+        _all = loaded;
+        notes = _visible(loaded);
+      });
+      _tourWhenReady();
+    } on Object {
+      // A read that never comes back used to look identical to one still
+      // coming: skeletons for as long as the app was open, with nothing to
+      // tap. When there is nothing on screen yet the failure *is* the state;
+      // once data is showing, keep it — a reload that fails must not blank
+      // the screen it failed on.
+      if (!mounted) return;
+      setState(() => _loadFailed = _all == null);
+    }
   }
 
   /// Re-checks whether the walk-through is due, after the frame.
@@ -839,22 +888,22 @@ class TimelineScreenState extends State<TimelineScreen>
   /// rather than on the way back, so that the return is the first frame
   /// without it.
   @override
-  void didPushNext() => unawaited(_markRemindersSeen());
+  void didPushNext() => unawaited(_retireSpentReminders());
 
   /// Leaving the app counts as leaving the timeline.
   ///
   /// `didPushNext` only fires when another *route* covers this one, and the
   /// way a spent reminder is actually met is nothing like that: the
   /// notification arrives, the app is opened to read the note, and then the
-  /// app is put away — no route is ever pushed. So the chip was marked seen
-  /// only by someone who happened to open Settings or the Library on the way
-  /// out, and for everyone else it stayed on the card until the reminder was
+  /// app is put away — no route is ever pushed. So a spent reminder was
+  /// retired only for someone who happened to open Settings or the Library on
+  /// the way out, and for everyone else it sat on the note until it was
   /// deleted by hand, which is the report.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
-      unawaited(_markRemindersSeen());
+      unawaited(_retireSpentReminders());
     }
   }
 
@@ -1576,6 +1625,13 @@ class TimelineScreenState extends State<TimelineScreen>
                                 onTap: () => unawaited(revealSearch()),
                                 onChanged: (_) => _search.schedule(),
                                 onClear: _exitSearch,
+                                filterCount: _search.activeFilterCount,
+                                onShowFilters: () => unawaited(
+                                  nexShowSearchFilterSheet(
+                                    context,
+                                    search: _search,
+                                  ),
+                                ),
                               ),
                             ),
                           if (widget.preferences.showTagRow)
@@ -1678,6 +1734,26 @@ class TimelineScreenState extends State<TimelineScreen>
     // "empty", which is why the onboarding screen flashed on every launch.
     final all = _all;
     if (all == null) {
+      // A failed first read is a fourth state: skeletons that never resolve
+      // are a hang the user can only interpret as "the app is broken".
+      if (_loadFailed) {
+        return [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: NexEmptyState(
+              icon: Icons.error_outline,
+              message: l10n.timelineLoadFailed,
+              action: FilledButton(
+                onPressed: () {
+                  setState(() => _loadFailed = false);
+                  unawaited(_loadTimeline());
+                },
+                child: Text(l10n.tryAgain),
+              ),
+            ),
+          ),
+        ];
+      }
       return [
         SliverList.builder(
           itemCount: 4,
@@ -1778,10 +1854,6 @@ class TimelineScreenState extends State<TimelineScreen>
                     note: note,
                     strings: nexCardStrings(context),
                     onTap: () => _tapNote(note),
-                    // A reminder still ahead keeps its chip. One that has
-                    // rung and been seen gives the slot back to the note's
-                    // own timestamp rather than wearing "Overdue" for ever.
-                    showDue: !_seenReminders.contains(note.id),
                   ),
                 ),
               ),
@@ -2435,9 +2507,12 @@ class _FilteredEmpty extends StatelessWidget {
             color: theme.colorScheme.outline,
           ),
           const SizedBox(height: 12),
-          Text(l10n.noteCount(0), style: theme.textTheme.bodyMedium),
+          // "No notes" was a lie: the library has notes, the filters are
+          // what hides them. Search already had the honest sentence; the
+          // timeline's filter-empty now uses it too.
+          Text(l10n.filteredEmpty, style: theme.textTheme.bodyMedium),
           const SizedBox(height: 4),
-          TextButton(onPressed: onClear, child: Text(l10n.clear)),
+          TextButton(onPressed: onClear, child: Text(l10n.clearFilters)),
         ],
       ),
     );
@@ -2472,18 +2547,24 @@ class _SettingsButton extends StatelessWidget {
     if (service == null) return button;
     return AnimatedBuilder(
       animation: service,
-      builder: (context, _) => Stack(
-        alignment: Alignment.center,
-        children: [
-          button,
-          if (service.hasUpdate)
-            const PositionedDirectional(
-              top: 12,
-              end: 10,
-              child: IgnorePointer(child: NexBadgeDot()),
-            ),
-        ],
-      ),
+      builder: (context, _) {
+        final badge = service.hasUpdate
+            ? PositionedDirectional(
+                top: 12,
+                end: 10,
+                // TalkBack users get the one fact the dot carries — the only
+                // update signal in the app was invisible to them.
+                child: Semantics(
+                  label: AppLocalizations.of(context).updateAvailableBadge,
+                  child: const ExcludeSemantics(child: NexBadgeDot()),
+                ),
+              )
+            : null;
+        return Stack(
+          alignment: Alignment.center,
+          children: [button, if (badge != null) badge],
+        );
+      },
     );
   }
 }

@@ -30,6 +30,8 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
     required this.onChanged,
     required this.onClear,
     this.anchor,
+    this.filterCount = 0,
+    this.onShowFilters,
   });
 
   /// Attached to the field's own box, so the first-run tour can measure where
@@ -42,6 +44,14 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
   final VoidCallback onTap;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
+
+  /// How many chip filters are active — drawn as a dot on the filter button,
+  /// because a filter that is silently narrowing every search is a filter
+  /// someone will eventually describe as "search is broken".
+  final int filterCount;
+
+  /// Opens the filter sheet. Null on surfaces that have no filter sheet.
+  final VoidCallback? onShowFilters;
 
   // Fixed, both of them, and the header is never pinned.
   //
@@ -120,9 +130,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                   // tapped, which read as the control jumping under the finger.
                   // This is also the tap-target floor, which the resting state
                   // was under.
-                  constraints: const BoxConstraints(
-                    minHeight: nexMinTapTarget,
-                  ),
+                  constraints: const BoxConstraints(minHeight: nexMinTapTarget),
                   child: Row(
                     children: [
                       Icon(
@@ -176,7 +184,32 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                           ),
                         ),
                       ),
-                      if (searching)
+                      if (searching) ...[
+                        IconButton(
+                          tooltip: l10n.showFilters,
+                          iconSize: 20,
+                          visualDensity: VisualDensity.compact,
+                          onPressed: onShowFilters,
+                          icon: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              const Icon(Icons.tune),
+                              if (filterCount > 0)
+                                PositionedDirectional(
+                                  end: -2,
+                                  top: -2,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: scheme.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                         IconButton(
                           tooltip: l10n.clear,
                           iconSize: 20,
@@ -184,6 +217,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                           onPressed: onClear,
                           icon: const Icon(Icons.close),
                         ),
+                      ],
                     ],
                   ),
                 ),

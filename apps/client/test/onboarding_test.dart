@@ -78,7 +78,9 @@ void main() {
     expect(existing.onboardingComplete, isTrue);
   });
 
-  testWidgets('the last page finishes with or without a name', (tester) async {
+  testWidgets('finishing without a name is allowed and stores nothing', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(900, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -95,8 +97,33 @@ void main() {
     }
     expect(find.text('A few quick choices'), findsOneWidget);
 
-    // A name is worth asking for and not worth blocking on: it buys a
-    // greeting, and the header already handles not having one.
+    // A name is no longer demanded. Finishing without one goes straight
+    // through, and nothing is written on the user's behalf.
+    await tester.tap(find.text('Start using Nex'));
+    await tester.pumpAndSettle();
+
+    expect(preferences.displayName, isNull);
+    expect(preferences.onboardingComplete, isTrue);
+    expect(find.byType(TimelineScreen), findsOneWidget);
+    expect(find.byType(OnboardingScreen), findsNothing);
+  });
+
+  testWidgets('a name typed on the last page is saved through', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    for (var i = 0; i < 4; i++) {
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+    }
     await tester.enterText(find.byType(TextField).first, 'Saeed');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Start using Nex'));

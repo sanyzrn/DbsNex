@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:io';
 
 // foundation exports its own Summary (a diagnostics type); the one this file
@@ -117,6 +118,7 @@ class NexServices {
     final worker = await NexDbWorker.spawn(
       dbPath: dbPath,
       deviceId: id,
+      mediaDir: mediaDir,
       adapter: aiAdapter ?? AIAdapterBinding.instance,
       capabilities: preferences.aiCapabilities,
     );
@@ -131,6 +133,18 @@ class NexServices {
       backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
       preferences: preferences,
     );
+
+    // The system "Alarms & reminders" screen leaves the app, so it is shown
+    // once per install — at the first reminder — and never re-shown for
+    // someone who declined. The gate latches here, where the preference
+    // store lives; the engine stays free of platform storage.
+    services.reminders
+      ..shouldRequestExactAlarms = () async {
+        return !preferences.remindersExactAlarmsAsked;
+      }
+      ..onExactAlarmsRequested = () {
+        unawaited(preferences.markRemindersExactAlarmsAsked());
+      };
 
     unawaited(services.refreshTimeline());
     unawaited(services._maybeBackupInBackground());
@@ -252,10 +266,55 @@ class NexServices {
     mimeType: mimeType,
   );
 
-  Future<void> updateNote(String id, String content) =>
-      worker.updateNote(id, content);
+  Future<void> updateNote(String id, String content) async {
+    await worker.updateNote(id, content);
+    // The pending notification carries the note's text, baked in when it was
+    // scheduled. An edit that did not re-schedule left a reminder whose
+    // notification said something the note had already stopped saying until
+    // the next launch happened to rebuild it. The alarm instant is unchanged;
+    // only its payload is refreshed.
+    try {
+      final note = await worker.getById(id);
+      if (note != null && note.dueAt != null) {
+        await reminders.schedule(note);
+      }
+    } catch (_) {}
+    await refreshTimeline();
+  }
 
-  Future<void> deleteNote(String id) => worker.deleteNote(id);
+  /// Soft-deletes a note and cancels whatever alarm it still had pending.
+  ///
+  /// The alarm used to survive the note: the OS keeps its own schedule, the
+  /// library is only consulted to rebuild, and nothing in the delete path
+  /// told the scheduler anything — so a deleted note's reminder still fired,
+  /// tapped through to nothing, and the plugin's boot receiver re-armed it
+  /// again at every reboot. Cancelling here is what makes the library the
+  /// record it claims to be: if the note is not in it, no alarm exists.
+  Future<void> deleteNote(String id) async {
+    await worker.deleteNote(id);
+    // Best-effort: the row is already soft-deleted, so a failure here must
+    // not roll the visible state back; the next reconcile would catch it.
+    try {
+      await reminders.cancel(id);
+    } catch (_) {}
+    await refreshTimeline();
+  }
+
+  /// Undoes a soft delete, and re-arms the note's alarm if it has one.
+  Future<void> undelete(String id) async {
+    await worker.undelete(id);
+    // The delete path cancelled the alarm (as it must). Restoring the note
+    // without restoring its reminder would make delete lose data — the one
+    // thing an undo is not allowed to do. A past-due one-off stays quiet,
+    // matching [NexReminders.schedule]'s own rule for missed reminders.
+    try {
+      final note = await worker.getById(id);
+      if (note != null && note.dueAt != null) {
+        await reminders.schedule(note);
+      }
+    } catch (_) {}
+    await refreshTimeline();
+  }
 
   /// Sets or clears when a note should come back up, and moves the alarm to
   /// match. Both halves or neither: a due date with no alarm behind it is a
@@ -288,8 +347,6 @@ class NexServices {
       // fail to read too, and that path already reports it.
     }
   }
-
-  Future<void> undelete(String id) => worker.undelete(id);
 
   Future<void> setCaption(String id, String caption) =>
       worker.setCaption(id, caption);
@@ -567,13 +624,26 @@ class NexServices {
   /// [RestartRequired] return value makes that contract explicit — previously
   /// restore closed the database and returned void, leaving every field
   /// dangling, and dispose() then closed the same handle a second time.
+  ///
+  /// The restore itself runs in a background isolate: decoding the zip,
+  /// `PRAGMA integrity_check` on the staged copy and copying the media are
+  /// all work big enough to drop frames, and this was the one path that
+  /// still did them on the UI isolate. The worker is closed first — the swap
+  /// needs no live handle and must not race one — so a failure past this
+  /// point is a dead session regardless; the error still propagates so the
+  /// caller can say what happened instead of bricking silently.
   @useResult
   Future<RestartRequired> restoreBackup(File backup) async {
     await _closeOnce();
-    NexBackupArchive.restore(
-      liveDbPath: dbPath,
-      mediaDir: mediaDir,
-      backupFile: backup.path,
+    final dbPath = this.dbPath;
+    final mediaDir = this.mediaDir;
+    final backupPath = backup.path;
+    await Isolate.run(
+      () => NexBackupArchive.restore(
+        liveDbPath: dbPath,
+        mediaDir: mediaDir,
+        backupFile: backupPath,
+      ),
     );
     return const RestartRequired();
   }
