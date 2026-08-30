@@ -804,7 +804,7 @@ class _SwitchRow extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) => SwitchListTile(
+  Widget build(BuildContext context) => NexSwitchTile(
     contentPadding: _rowPadding,
     secondary: _IconTile(icon),
     title: Text(title),

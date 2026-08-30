@@ -111,7 +111,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
           bottom: NexSpacing.xl + nexBottomInset(context),
         ),
         children: [
-          SwitchListTile(
+          NexSwitchTile(
             contentPadding: const EdgeInsets.symmetric(
               horizontal: NexSpacing.lg,
               vertical: NexSpacing.sm,
@@ -296,7 +296,7 @@ class _Capability extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return SwitchListTile(
+    return NexSwitchTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
       secondary: Icon(icon),
       title: Text(title),

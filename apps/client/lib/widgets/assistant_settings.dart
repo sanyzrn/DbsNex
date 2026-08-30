@@ -310,7 +310,7 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                   ],
                 ),
               ),
-              SwitchListTile(
+              NexSwitchTile(
                 secondary: const Icon(Icons.fence_outlined),
                 value: preferences.aiNotesOnly,
                 onChanged: (value) =>

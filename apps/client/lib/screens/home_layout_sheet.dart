@@ -33,7 +33,7 @@ class _HomeLayoutSheetState extends State<HomeLayoutSheet> {
       required String label,
       required bool value,
       required Future<void> Function(bool) onChanged,
-    }) => SwitchListTile.adaptive(
+    }) => NexSwitchTile(
       value: value,
       secondary: Icon(icon),
       title: Text(label),

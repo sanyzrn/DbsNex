@@ -685,7 +685,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(IntelligenceScreen),
-        matching: find.byType(SwitchListTile),
+        matching: find.byType(NexSwitchTile),
       ),
       findsOneWidget,
     );
