@@ -12,6 +12,7 @@ import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/onboarding_screen.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
+import 'package:nex_client/widgets/first_run_tour.dart';
 
 import 'support/in_process_db.dart';
 
@@ -77,7 +78,7 @@ void main() {
     expect(existing.onboardingComplete, isTrue);
   });
 
-  testWidgets('the last page will not finish without a name', (tester) async {
+  testWidgets('the last page finishes with or without a name', (tester) async {
     tester.view.physicalSize = const Size(900, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -94,13 +95,8 @@ void main() {
     }
     expect(find.text('A few quick choices'), findsOneWidget);
 
-    // Nothing typed: the button refuses, says why, and stays put.
-    await tester.tap(find.text('Start using Nex'));
-    await tester.pumpAndSettle();
-    expect(find.text('Nex needs something to call you.'), findsOneWidget);
-    expect(preferences.onboardingComplete, isFalse);
-    expect(find.byType(TimelineScreen), findsNothing);
-
+    // A name is worth asking for and not worth blocking on: it buys a
+    // greeting, and the header already handles not having one.
     await tester.enterText(find.byType(TextField).first, 'Saeed');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Start using Nex'));
@@ -113,9 +109,7 @@ void main() {
     expect(find.byType(OnboardingScreen), findsNothing);
   });
 
-  testWidgets('Skip jumps to the setup page, it does not skip setup', (
-    tester,
-  ) async {
+  testWidgets('Skip skips, and lands somewhere you can write', (tester) async {
     tester.view.physicalSize = const Size(900, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -128,11 +122,42 @@ void main() {
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
 
-    // Skip means "I have read enough", not "do not ask me": the name is
-    // required either way, so it lands on the last page rather than finishing.
-    expect(find.text('A few quick choices'), findsOneWidget);
-    expect(find.text('Skip'), findsNothing);
-    expect(preferences.onboardingComplete, isFalse);
+    // Skip used to jump to the one page it could not leave, which made the
+    // word untrue. Every choice on that page is in Settings under the same
+    // labels, so there is nothing here worth holding a fresh install for.
+    expect(preferences.onboardingComplete, isTrue);
+    expect(find.byType(TimelineScreen), findsOneWidget);
+    expect(find.byType(OnboardingScreen), findsNothing);
+    // Nothing was invented on the user's behalf on the way past.
+    expect(preferences.displayName, anyOf(isNull, isEmpty));
+  });
+
+  testWidgets('a fresh install is not toured before it has a note', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
+
+    // Two tutorials back to back was the complaint: five pages of prose and
+    // then four stops of overlay, before anywhere to write. The timeline is
+    // empty, so the tour has nothing to point at and does not open.
+    expect(find.byType(FirstRunTour), findsNothing);
+    expect(preferences.tourComplete, isFalse);
+
+    // It is still owed, and falls due once there is a note to talk about.
+    await services.captureText('the first thing I wrote');
+    await services.refreshTimeline();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FirstRunTour), findsOneWidget);
   });
 
   testWidgets('the setup page applies each choice as it is made', (
