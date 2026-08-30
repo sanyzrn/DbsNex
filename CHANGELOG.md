@@ -34,6 +34,46 @@ Working convention:
 
 ## Unreleased
 
+## v1.2.6
+
+Mostly a round of the app telling the truth: several controls that did
+nothing, said nothing, or said the wrong thing now report what actually
+happened.
+
+- **The microphone button says why it did nothing.** Refuse Nex permission to
+  record once and both voice capture and the assistant's dictation went
+  silently inert for good — no sheet, no message, no reason. They explain
+  now, and say where the permission can be given back.
+- **Four screens no longer claim to be empty while they are still loading.**
+  Tags, Recently Deleted, Backups and a note opened from the timeline all
+  rendered before their first read came back, so "no tags yet", "nothing in
+  the trash", "no backups" and "note not found" were what you saw for as long
+  as the read took, and then the real thing appeared. On the screens that
+  exist to reassure you your notes are safe, that is a wait told as loss.
+- **Summarize appears only where it can work, and says when it cannot.** It
+  was offered on every note, including with summarization switched off or no
+  provider set up, and in all of those cases tapping it did nothing at all.
+- **A search that fails says so, with a way to try again.** If the search
+  itself errored, the results area kept showing placeholder cards for ever
+  and leaving search was the only way out.
+- **Empty trash is no longer offered before the trash has been counted**, and
+  **Merge no longer appears on your only tag**, where it opened a list of
+  every other tag — that is, nothing.
+- **A finished model download no longer announces that offline chat works
+  when the model would not start.** The screen showed the reason underneath
+  at the same time, which is two answers to the same question.
+- **The search box is one box again, and the strip of colour under it is
+  gone.** A second frame was being drawn inside the rounded field, in both
+  its resting and typing states, and the row itself sat on a band of flat
+  colour laid across whatever background you had chosen.
+- **The top bar is frosted under the glass appearance instead of merely
+  see-through.** It was a half-transparent tint with no blur behind it, so
+  what sat behind it stayed perfectly readable, only paler.
+- **Pages no longer go transparent on the way in and out.** The previous
+  release fixed this for the back-swipe; entering and leaving a screen is an
+  animation rather than a gesture, and went on briefly showing two pages
+  through each other every time.
+
 ## v1.2.5
 
 A round of fixes to the glass appearance, to how text finds its own
