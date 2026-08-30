@@ -49,6 +49,12 @@ trusted instead of seen.
   Restoring a backup left ghost alarms for notes the restore had removed.
   Both are cleaned up now, undoing a delete brings its reminder back, and
   editing a note refreshes the text of its pending notification.
+- **A one-off reminder clears itself once it has rung.** It used to stay on
+  the note for good — the card stopped showing it, but the note still carried
+  a reminder and the only way to be rid of it was to open it and press
+  Remove. A reminder is a thing to be reminded of, and once it has happened
+  it is finished. Repeating reminders are untouched: a daily or weekly one is
+  never spent, because it is always about to ring again.
 - **A reminder series can no longer retire itself.** A daily reminder whose
   start had drifted more than about two years into the past stopped being
   rescheduled at launch, silently. The next occurrence is now computed
