@@ -412,6 +412,34 @@ class NexServices {
 
   Future<void> purgeAllDeleted() => worker.purgeAllDeleted();
 
+  /// Clears attachment files no note points at any more, at most once a day.
+  ///
+  /// Purging a note deletes its file now, so from here on nothing is left
+  /// behind. This is for what was left behind *before* that: every install
+  /// upgrading from an earlier version carries the photos and recordings of
+  /// every note it ever deleted for good, and no amount of deleting things
+  /// correctly from now on will reach them. It also catches the rarer strays
+  /// — a capture whose file was written and whose row then failed, or a purge
+  /// whose unlink lost a race with a file handle.
+  ///
+  /// Throttled because it walks the media directory and stats every file in
+  /// it: worth doing, not worth doing on every launch. Called away from the
+  /// critical path — nothing waits on it, and a failure is not worth
+  /// reporting, since the next sweep does the same work again.
+  ///
+  /// Returns how many files went, or zero when it was not due.
+  Future<int> sweepOrphanMediaIfDue({
+    Duration interval = const Duration(hours: 24),
+  }) async {
+    if (!_preferences.mediaSweepDue(interval)) return 0;
+    // Marked before the walk, not after. A sweep that throws halfway has
+    // still deleted whatever it deleted, and retrying it on every launch
+    // because it never got to write a timestamp is how a background chore
+    // turns into a launch cost.
+    await _preferences.markMediaSwept();
+    return worker.sweepOrphanMedia();
+  }
+
   Future<List<TagUsage>> tagUsage() => worker.tagUsage();
 
   Future<void> renameTag(String id, String name) => worker.renameTag(id, name);

@@ -9,8 +9,11 @@ Organize later, if you ever need to.
 > Nex is not a knowledge base, not a project manager, not another Notion or Obsidian. It's
 > the fastest possible front door into whatever system you use to think.
 
-Android and Windows from one Flutter codebase; iOS later. English and Persian, with full
-right-to-left layout.
+Android, in English and Persian, with full right-to-left layout.
+
+The codebase is Flutter and a Windows desktop target still builds locally, but its
+CI and release jobs are paused and no Windows build is published — so Android is
+what ships. iOS is not in progress.
 
 ---
 
@@ -71,7 +74,7 @@ it is by pasting a base URL and a token into Settings. Treat it as unreleased.
 
 ```
 apps/
-  client/     Flutter app — the product. Android + Windows.
+  client/     Flutter app — the product. Android ships; Windows builds, unreleased.
   backend/    Node + PostgreSQL sync API. Dormant until v2.
 packages/
   core/       Domain models, ports, services. Pure Dart, no Flutter.
@@ -103,7 +106,7 @@ make bootstrap          # resolve every package
 
 cd apps/client
 flutter run             # Android device or emulator
-flutter run -d windows  # Windows desktop
+flutter run -d windows  # Windows desktop — builds, but is not a released target
 ```
 
 Each Dart package resolves independently and all five lockfiles are committed — a root pub
@@ -132,7 +135,7 @@ unrelated diff.
 ## Releasing
 
 Tag a version and [`release.yml`](./.github/workflows/release.yml) builds a signed Android
-bundle and APK plus a Windows installer, then publishes them to a **separate public
+bundle and APK — the Windows installer job is paused — then publishes them to a **separate public
 releases repository** — not this one.
 
 That indirection is the point: GitHub requires authentication for a private repo's release

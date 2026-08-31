@@ -297,7 +297,13 @@ class _Capability extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return NexSwitchTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+      // Matched to the settings sheet's own rows, which carry the same
+      // vertical room — these sit in the same kind of list and were the
+      // tightest of the lot.
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: NexSpacing.lg,
+        vertical: NexSpacing.sm,
+      ),
       secondary: Icon(icon),
       title: Text(title),
       subtitle: Text(supported ? subtitle : l10n.notSupportedByProvider),

@@ -75,6 +75,62 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  /// The colour the moving page is painting itself with, or null when it is
+  /// letting whatever is behind it through.
+  Color? pageSurface(WidgetTester tester) => tester
+      .widgetList<ColoredBox>(
+        find.descendant(
+          of: find.byType(Transform),
+          matching: find.byType(ColoredBox),
+        ),
+      )
+      .map((box) => box.color)
+      .where((color) => color.a > 0)
+      .firstOrNull;
+
+  testWidgets('the page is opaque from the first frame of the gesture', (
+    tester,
+  ) async {
+    await pushSecond(tester);
+    expect(pageSurface(tester), isNull, reason: 'at rest it should be clear');
+
+    // `revealPrevious` runs as the gesture is recognised, so the page below
+    // starts painting before this one has travelled a single pixel. Keying the
+    // surface off distance meant these frames showed both pages at once — the
+    // brief flicker at the start of every swipe.
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('second body')),
+    );
+    await tester.pump();
+    expect(pageSurface(tester), isNotNull);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('a drag the wrong way keeps its surface too', (tester) async {
+    await pushSecond(tester);
+
+    // Dragging away from back clamps the travel to zero and leaves it there,
+    // so the whole gesture ran with the page see-through and the one below
+    // showing through it — the same fault as the flicker, for longer.
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('second body')),
+    );
+    await gesture.moveBy(const Offset(-160, 0));
+    await tester.pump();
+
+    expect(tester.getCenter(find.text('second body')).dx, 400);
+    expect(pageSurface(tester), isNotNull);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    // And it lets go again once everything is back at rest, or the chosen
+    // background would be hidden behind every page for good.
+    expect(pageSurface(tester), isNull);
+  });
+
   testWidgets('under RTL, back is the other way', (tester) async {
     await pushSecond(tester, direction: TextDirection.rtl);
 

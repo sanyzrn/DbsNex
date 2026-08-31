@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+- **Old attachments left behind by deleted notes are cleared out.** Until
+  1.3.0, emptying the trash removed the note but left its photo or recording
+  on the device for good. Deleting takes the file with it now, but that does
+  nothing about what earlier versions already left — so Nex sweeps those up
+  in the background, once a day, and only ever removes a file no note points
+  at any more.
+- **Swiping back no longer flashes through to the page underneath**, and a
+  swipe in the wrong direction no longer makes the page transparent for as
+  long as you hold it.
+- **Settings rows have more room between them.**
+
 ## v1.3.1
 
 - **Fixes a crash that stopped 1.3.0 opening at all.** On every launch Nex

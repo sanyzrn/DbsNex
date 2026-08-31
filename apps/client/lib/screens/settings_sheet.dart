@@ -666,9 +666,18 @@ class _PickerSheet extends StatelessWidget {
   }
 }
 
+/// Both row types in this sheet share it, so the rhythm of the whole screen
+/// is set here.
+///
+/// The vertical half is not decoration. With none, every row sat at
+/// `ListTile`'s own minimum and the rows ran together — a stack of settings
+/// reads as one dense block rather than as separate things you choose between,
+/// and the switches made it worse by filling the height they were given.
 const _rowPadding = EdgeInsetsDirectional.only(
   start: NexSpacing.md,
   end: NexSpacing.sm,
+  top: NexSpacing.sm,
+  bottom: NexSpacing.sm,
 );
 
 /// One labelled group of preferences, drawn as a card.

@@ -160,6 +160,21 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
   double _drag = 0;
   bool _popping = false;
 
+  /// True from the moment a back-swipe is recognised until the page is back
+  /// at rest, whether or not it ever moved.
+  ///
+  /// Distinct from `_drag > 0` on purpose, and the difference is the bug this
+  /// exists for. [_onStart] calls `revealPrevious`, which un-opaques the route
+  /// so the page underneath begins painting — at a moment when the page has
+  /// travelled nothing at all. Keying the surface off distance left two holes:
+  /// a flicker on every swipe, for the frames between the gesture starting and
+  /// the finger actually moving, and something worse for a drag the wrong way,
+  /// which clamps to zero and stays there — so the page underneath showed
+  /// through for the whole gesture. Both are the same mistake, that the page
+  /// needs its surface from the moment something else can be seen behind it,
+  /// not from the moment it has moved.
+  bool _dragging = false;
+
   @override
   void initState() {
     super.initState();
@@ -172,9 +187,13 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
             () => setState(() => _drag = _settleFrom * (1 - _settle.value)),
           )
           ..addStatusListener((status) {
-            if (status == AnimationStatus.completed && mounted && !_popping) {
-              _route?.coverPrevious();
-            }
+            if (status != AnimationStatus.completed || !mounted) return;
+            // Back at rest. The route covers what is below it again, so this
+            // page can stop carrying a surface of its own and let the app's
+            // background through — which is the whole point of not simply
+            // painting it opaque all the time.
+            if (!_popping) _route?.coverPrevious();
+            setState(() => _dragging = false);
           });
   }
 
@@ -227,7 +246,7 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
   /// dangerously once the motion has stopped: whatever is on top has settled
   /// and paints its own surface.
   bool get _moving =>
-      _drag > 0 || _inFlight(_primary) || _inFlight(_secondary);
+      _dragging || _drag > 0 || _inFlight(_primary) || _inFlight(_secondary);
 
   static bool _inFlight(Animation<double> animation) =>
       animation.status == AnimationStatus.forward ||
@@ -235,7 +254,12 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
 
   void _onStart(DragStartDetails details) {
     _settle.stop();
-    _drag = 0;
+    // Set together, and before `revealPrevious`: the frame that first lets the
+    // page underneath paint is the frame this page must already be opaque on.
+    setState(() {
+      _drag = 0;
+      _dragging = true;
+    });
     _route?.revealPrevious();
   }
 
