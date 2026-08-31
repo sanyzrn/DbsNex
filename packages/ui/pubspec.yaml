@@ -23,6 +23,12 @@ dependencies:
   # direction from the ambient Directionality — which is what lets NexMarkdown
   # impose the text's own direction rather than the interface's.
   flutter_markdown_plus: ^1.0.12
+  # The parser flutter_markdown_plus is built on, and already in this package's
+  # dependency closure through it. Declared directly because NexMarkdown's own
+  # element builder has to name `md.Element` to override the hook it hangs on.
+  # Nothing new is resolved by this line; it only stops the name being reached
+  # through somebody else's dependency.
+  markdown: ^7.3.1
 
 dev_dependencies:
   flutter_test:

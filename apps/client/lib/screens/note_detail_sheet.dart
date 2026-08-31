@@ -771,12 +771,21 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       // the card strips by, so the two always agree about what a note
                       // says. A sentence with a stray asterisk in it is a sentence.
                       nexLooksLikeMarkdown(note.content ?? '')
-                      ? NexMarkdown(
-                          note.content!,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(height: 1.62),
-                          onTapLink: _openHref,
+                      // Selection belongs to the area rather than to the text,
+                      // which is what lets a link and a `code` span still
+                      // answer a tap — `SelectableText` handles every gesture
+                      // itself and dispatches none of them onward.
+                      ? SelectionArea(
+                          child: NexMarkdown(
+                            note.content!,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyLarge?.copyWith(height: 1.62),
+                            selectable: false,
+                            onTapLink: _openHref,
+                            onCopyCode: (code) =>
+                                unawaited(_copyCodeSpan(context, code)),
+                          ),
                         )
                       : NexBodyText(
                           note.content ?? '',
@@ -1844,7 +1853,14 @@ class _FileTextBodyState extends State<_FileTextBody> {
     return Padding(
       padding: const EdgeInsets.only(top: NexSpacing.sm),
       child: switch (widget.kind) {
-        NexFileKind.markdown => NexMarkdown(text, onTapLink: _openHref),
+        NexFileKind.markdown => SelectionArea(
+          child: NexMarkdown(
+            text,
+            selectable: false,
+            onTapLink: _openHref,
+            onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
+          ),
+        ),
         // The same leading as a text note's body in this same sheet: a plain
         // file someone shared and a note someone typed are both prose, and
         // there is no reason to read them at two different densities.
@@ -1864,6 +1880,18 @@ class _FileTextBodyState extends State<_FileTextBody> {
     );
   }
 
+}
+
+/// Copies a tapped `code` span and says so.
+///
+/// Silently would not do: a tap that copied and a tap that missed look exactly
+/// the same, and the second is the more likely of the two on a span two
+/// characters wide.
+Future<void> _copyCodeSpan(BuildContext context, String code) async {
+  final message = AppLocalizations.of(context).copied;
+  await Clipboard.setData(ClipboardData(text: code));
+  if (!context.mounted) return;
+  nexShowBanner(context, message: message);
 }
 
 /// Follows a link out of rendered Markdown — a note's own body, or a file

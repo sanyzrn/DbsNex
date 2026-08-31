@@ -56,6 +56,11 @@ Working convention:
   meant as an asterisk stays one. Timeline cards and reminders show the words
   without the marks.
 
+- **Tap a `mono` word to copy it.** Inside an open note, one touch on a span
+  you set in monospace puts it on the clipboard and says so. Links inside a
+  note — and inside a Markdown file opened in one — are tappable now too, and
+  the whole body can still be selected by dragging across it.
+
 ## v1.3.2
 
 - **A swiped-open card takes the next tap, whatever it lands on.** Tapping
