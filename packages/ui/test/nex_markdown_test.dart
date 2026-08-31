@@ -94,33 +94,4 @@ void main() {
       );
     });
   });
-
-  group('nexLooksLikeMarkdown', () {
-    test('says yes to structure worth rendering', () {
-      expect(nexLooksLikeMarkdown('# Heading'), isTrue);
-      expect(nexLooksLikeMarkdown('- one\n- two'), isTrue);
-      expect(nexLooksLikeMarkdown('1. one\n2. two'), isTrue);
-      expect(nexLooksLikeMarkdown('some **bold** text'), isTrue);
-      expect(nexLooksLikeMarkdown('run `flutter test` first'), isTrue);
-      expect(nexLooksLikeMarkdown('```dart\nfinal x = 1;\n```'), isTrue);
-      expect(nexLooksLikeMarkdown('> quoted'), isTrue);
-      expect(nexLooksLikeMarkdown('| a | b |\n|---|---|'), isTrue);
-      expect(nexLooksLikeMarkdown('see [the docs](https://x.dev)'), isTrue);
-      expect(nexLooksLikeMarkdown('- مورد اول\n- مورد دوم'), isTrue);
-    });
-
-    test('says no to ordinary prose', () {
-      expect(nexLooksLikeMarkdown(''), isFalse);
-      expect(nexLooksLikeMarkdown('   '), isFalse);
-      expect(nexLooksLikeMarkdown('Just a sentence.'), isFalse);
-      // The case that would cost something if it were wrong: an asterisk or an
-      // underscore loose in prose is not markup, and rendering it as markup
-      // would delete a character the user typed.
-      expect(nexLooksLikeMarkdown('2 * 3 = 6'), isFalse);
-      expect(nexLooksLikeMarkdown('the file is my_notes.txt'), isFalse);
-      expect(nexLooksLikeMarkdown('یک جملهٔ فارسی ساده.'), isFalse);
-      // A dash used as punctuation mid-line, not as a list marker.
-      expect(nexLooksLikeMarkdown('سلام - حالت خوبه؟'), isFalse);
-    });
-  });
 }

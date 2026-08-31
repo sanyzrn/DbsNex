@@ -48,6 +48,14 @@ Working convention:
   look completely different depending on whether it was taken in the app or
   shared into it; now either one opens full screen from the same tap.
 
+- **Text you write can be formatted.** Select a word while writing or editing a
+  note and the menu that already offers Cut and Copy now also offers **Bold**,
+  *Italic*, `Mono`, ~~Strikethrough~~, Quote, Link, and Regular to take it all
+  back off. A note that has formatting in it is shown formatted when you open
+  it; one that does not is shown exactly as you typed it, so an asterisk you
+  meant as an asterisk stays one. Timeline cards and reminders show the words
+  without the marks.
+
 ## v1.3.2
 
 - **A swiped-open card takes the next tap, whatever it lands on.** Tapping

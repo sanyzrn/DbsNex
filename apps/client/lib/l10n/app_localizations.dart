@@ -3590,6 +3590,60 @@ abstract class AppLocalizations {
   /// **'Showing the first {count} rows.'**
   String tableTruncated(int count);
 
+  /// Selection menu: make the selected text bold
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get formatBold;
+
+  /// Selection menu: make the selected text italic
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get formatItalic;
+
+  /// Selection menu: set the selected text in a monospace face
+  ///
+  /// In en, this message translates to:
+  /// **'Mono'**
+  String get formatMono;
+
+  /// Selection menu: strike the selected text through
+  ///
+  /// In en, this message translates to:
+  /// **'Strikethrough'**
+  String get formatStrikethrough;
+
+  /// Selection menu: mark the selected lines as a quotation
+  ///
+  /// In en, this message translates to:
+  /// **'Quote'**
+  String get formatQuote;
+
+  /// Selection menu: turn the selected text into a link
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get formatLink;
+
+  /// Selection menu: remove formatting from the selection
+  ///
+  /// In en, this message translates to:
+  /// **'Regular'**
+  String get formatClear;
+
+  /// Title of the dialog asking where a link should point
+  ///
+  /// In en, this message translates to:
+  /// **'Add link'**
+  String get addLink;
+
+  /// Label of the field holding a link’s URL
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get linkAddress;
+
   /// Confirms a reminder and says how far off it is
   ///
   /// In en, this message translates to:

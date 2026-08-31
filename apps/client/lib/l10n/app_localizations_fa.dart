@@ -2063,6 +2063,33 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get formatBold => 'پررنگ';
+
+  @override
+  String get formatItalic => 'کج';
+
+  @override
+  String get formatMono => 'مونو';
+
+  @override
+  String get formatStrikethrough => 'خط‌خورده';
+
+  @override
+  String get formatQuote => 'نقل‌قول';
+
+  @override
+  String get formatLink => 'پیوند';
+
+  @override
+  String get formatClear => 'ساده';
+
+  @override
+  String get addLink => 'افزودن پیوند';
+
+  @override
+  String get linkAddress => 'نشانی';
+
+  @override
   String remindSetIn(String when) {
     return 'یادآور تنظیم شد — $when دیگر';
   }

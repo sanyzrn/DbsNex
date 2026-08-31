@@ -23,6 +23,7 @@ import '../platform/reminders.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/tag_picker.dart';
+import '../widgets/text_format_menu.dart';
 import '../widgets/translate_sheet.dart';
 
 /// What the sheet reports back when it closes.
@@ -358,6 +359,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               // (the default) paints a double-tap word selection out to the
               // end of the line on Persian text.
               selectionWidthStyle: BoxWidthStyle.tight,
+              // The same selection menu the capture sheet has: a note is
+              // formatted where it is written, and it is written in both.
+              contextMenuBuilder: nexFormatContextMenuBuilder(context),
               onChanged: (_) => setDialogState(() {}),
             ),
           ),
@@ -761,15 +765,28 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                     else if (note.type == NoteType.text)
                       // Only the body turns. The "Text" label, the action row and the
                       // rest of the sheet keep the interface's direction.
-                      NexBodyText(
-                        note.content ?? '',
-                        // Looser leading than the timeline card: this is the surface a
-                        // person actually reads a long note on, and 1.5 at 16px runs
-                        // the lines together over a screenful of text.
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyLarge?.copyWith(height: 1.62),
-                      )
+                      //
+                      // Rendered where the writer reached for the formatting menu and
+                      // left exactly as typed where they did not — the same predicate
+                      // the card strips by, so the two always agree about what a note
+                      // says. A sentence with a stray asterisk in it is a sentence.
+                      nexLooksLikeMarkdown(note.content ?? '')
+                      ? NexMarkdown(
+                          note.content!,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(height: 1.62),
+                          onTapLink: _openHref,
+                        )
+                      : NexBodyText(
+                          note.content ?? '',
+                          // Looser leading than the timeline card: this is the surface a
+                          // person actually reads a long note on, and 1.5 at 16px runs
+                          // the lines together over a screenful of text.
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(height: 1.62),
+                        )
                     else if (note.type == NoteType.voice) ...[
                       Text(
                         l10n.voiceDuration(
@@ -1827,7 +1844,7 @@ class _FileTextBodyState extends State<_FileTextBody> {
     return Padding(
       padding: const EdgeInsets.only(top: NexSpacing.sm),
       child: switch (widget.kind) {
-        NexFileKind.markdown => NexMarkdown(text, onTapLink: _openLink),
+        NexFileKind.markdown => NexMarkdown(text, onTapLink: _openHref),
         // The same leading as a text note's body in this same sheet: a plain
         // file someone shared and a note someone typed are both prose, and
         // there is no reason to read them at two different densities.
@@ -1847,14 +1864,21 @@ class _FileTextBodyState extends State<_FileTextBody> {
     );
   }
 
-  Future<void> _openLink(String href) async {
-    final uri = Uri.tryParse(href);
-    if (uri == null || !uri.hasScheme) return;
-    try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      // No handler for this scheme on this device. The link stays a link.
-    }
+}
+
+/// Follows a link out of rendered Markdown — a note's own body, or a file
+/// shown inside one.
+///
+/// A schemeless href is ignored rather than guessed at: `[x](notes/plan.md)`
+/// is a relative path in somebody's repository, and handing it to the OS as a
+/// URL opens nothing at best.
+Future<void> _openHref(String href) async {
+  final uri = Uri.tryParse(href);
+  if (uri == null || !uri.hasScheme) return;
+  try {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } catch (_) {
+    // No handler for this scheme on this device. The link stays a link.
   }
 }
 

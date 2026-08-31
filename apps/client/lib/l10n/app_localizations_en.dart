@@ -2062,6 +2062,33 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get formatBold => 'Bold';
+
+  @override
+  String get formatItalic => 'Italic';
+
+  @override
+  String get formatMono => 'Mono';
+
+  @override
+  String get formatStrikethrough => 'Strikethrough';
+
+  @override
+  String get formatQuote => 'Quote';
+
+  @override
+  String get formatLink => 'Link';
+
+  @override
+  String get formatClear => 'Regular';
+
+  @override
+  String get addLink => 'Add link';
+
+  @override
+  String get linkAddress => 'Address';
+
+  @override
   String remindSetIn(String when) {
     return 'Reminder set — $when from now';
   }

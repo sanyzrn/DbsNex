@@ -170,34 +170,3 @@ class NexMarkdown extends StatelessWidget {
     );
   }
 }
-
-/// Whether [text] is worth handing to [NexMarkdown] rather than showing plain.
-///
-/// Used for the assistant's replies, which are Markdown only when the model
-/// chose to write Markdown. Rendering an ordinary sentence through a Markdown
-/// parser is not wrong so much as pointless, and it has one real cost: a lone
-/// `*` or `_` in prose — or in Persian, a line that opens with `-` as a dash —
-/// would be eaten as markup. So the renderer is used only where there is a
-/// structure to gain by it.
-///
-/// Deliberately conservative. It looks for constructs that are unambiguous at
-/// the start of a line (a heading, a fence, a list marker, a quote, a rule, a
-/// table row) or paired inline (`**bold**`, `` `code` ``), and ignores
-/// everything else.
-bool nexLooksLikeMarkdown(String text) {
-  if (text.trim().isEmpty) return false;
-  if (text.contains('```')) return true;
-  if (RegExp(r'(^|\n)\s{0,3}#{1,6}\s+\S').hasMatch(text)) return true;
-  if (RegExp(r'(^|\n)\s{0,3}([-*+]|\d{1,9}[.)])\s+\S').hasMatch(text)) {
-    return true;
-  }
-  if (RegExp(r'(^|\n)\s{0,3}>\s+\S').hasMatch(text)) return true;
-  if (RegExp(r'(^|\n)\s{0,3}(([-*_])\s*){3,}\s*(\n|$)').hasMatch(text)) {
-    return true;
-  }
-  if (RegExp(r'(^|\n)\s*\|.+\|\s*(\n|$)').hasMatch(text)) return true;
-  if (RegExp(r'\*\*[^*\n]+\*\*').hasMatch(text)) return true;
-  if (RegExp(r'`[^`\n]+`').hasMatch(text)) return true;
-  if (RegExp(r'\[[^\]\n]+\]\([^)\s]+\)').hasMatch(text)) return true;
-  return false;
-}

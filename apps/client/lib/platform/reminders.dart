@@ -333,7 +333,9 @@ class NexReminders {
       return;
     }
 
-    final body = (note.displayText ?? '').trim();
+    // The same treatment a card gets: a reminder is the note's words on a
+    // lock screen, and nobody wants to read the markers there either.
+    final body = NexMarkdownText.preview(note.displayText ?? '').trim();
     try {
       await _plugin.zonedSchedule(
         id: _idFor(note.id),

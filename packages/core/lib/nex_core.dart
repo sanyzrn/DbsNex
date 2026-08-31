@@ -31,6 +31,9 @@ export 'import/note_import.dart';
 export 'files/delimited_text.dart';
 export 'files/file_kind.dart';
 
+// The user's own writing, with formatting in it.
+export 'text/markdown_formatting.dart';
+
 // Identity and content hashing.
 export 'ids.dart';
 
