@@ -2048,12 +2048,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get swipeTrailingEdge => 'Swipe from the right';
 
   @override
-  String get markdownTooLarge =>
+  String get filePreviewTooLarge =>
       'Too large to show here — open it in another app.';
 
   @override
-  String markdownUnreadable(String error) {
+  String filePreviewUnreadable(String error) {
     return 'This file could not be read — $error';
+  }
+
+  @override
+  String tableTruncated(int count) {
+    return 'Showing the first $count rows.';
   }
 
   @override

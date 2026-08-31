@@ -27,6 +27,10 @@ export 'models/tag.dart';
 // Reading somebody else's export.
 export 'import/note_import.dart';
 
+// What a file note is, for whoever has to show one.
+export 'files/delimited_text.dart';
+export 'files/file_kind.dart';
+
 // Identity and content hashing.
 export 'ids.dart';
 

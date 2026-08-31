@@ -2049,12 +2049,17 @@ class AppLocalizationsFa extends AppLocalizations {
   String get swipeTrailingEdge => 'کشیدن از راست';
 
   @override
-  String get markdownTooLarge =>
+  String get filePreviewTooLarge =>
       'برای نمایش اینجا بزرگ است — با برنامهٔ دیگری بازش کنید.';
 
   @override
-  String markdownUnreadable(String error) {
+  String filePreviewUnreadable(String error) {
     return 'این فایل خوانده نشد — $error';
+  }
+
+  @override
+  String tableTruncated(int count) {
+    return 'فقط $count سطر اول نشان داده شده است.';
   }
 
   @override

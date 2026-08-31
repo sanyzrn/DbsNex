@@ -1812,12 +1812,17 @@
   "@swipeLeadingEdge": {"description": "Title of the leading-edge swipe row"},
   "swipeTrailingEdge": "Swipe from the right",
   "@swipeTrailingEdge": {"description": "Title of the trailing-edge swipe row"},
-  "markdownTooLarge": "Too large to show here — open it in another app.",
-  "@markdownTooLarge": {"description": "A Markdown file past the preview size limit"},
-  "markdownUnreadable": "This file could not be read — {error}",
-  "@markdownUnreadable": {
-    "description": "A Markdown file that failed to open, with the runtime's own message",
+  "filePreviewTooLarge": "Too large to show here — open it in another app.",
+  "@filePreviewTooLarge": {"description": "A file past the in-app preview size limit"},
+  "filePreviewUnreadable": "This file could not be read — {error}",
+  "@filePreviewUnreadable": {
+    "description": "A file that failed to open, with the runtime's own message",
     "placeholders": { "error": { "type": "String" } }
+  },
+  "tableTruncated": "Showing the first {count} rows.",
+  "@tableTruncated": {
+    "description": "A CSV or TSV file with more rows than the preview draws",
+    "placeholders": { "count": { "type": "int" } }
   },
   "remindSetIn": "Reminder set — {when} from now",
   "@remindSetIn": {

@@ -3572,17 +3572,23 @@ abstract class AppLocalizations {
   /// **'Swipe from the right'**
   String get swipeTrailingEdge;
 
-  /// A Markdown file past the preview size limit
+  /// A file past the in-app preview size limit
   ///
   /// In en, this message translates to:
   /// **'Too large to show here — open it in another app.'**
-  String get markdownTooLarge;
+  String get filePreviewTooLarge;
 
-  /// A Markdown file that failed to open, with the runtime's own message
+  /// A file that failed to open, with the runtime's own message
   ///
   /// In en, this message translates to:
   /// **'This file could not be read — {error}'**
-  String markdownUnreadable(String error);
+  String filePreviewUnreadable(String error);
+
+  /// A CSV or TSV file with more rows than the preview draws
+  ///
+  /// In en, this message translates to:
+  /// **'Showing the first {count} rows.'**
+  String tableTruncated(int count);
 
   /// Confirms a reminder and says how far off it is
   ///

@@ -34,6 +34,20 @@ Working convention:
 
 ## Unreleased
 
+- **A file you share into Nex is shown, not just named.** Markdown already
+  opened inside the note; now a plain text file, a spreadsheet exported as
+  `.csv` or `.tsv`, and a source or configuration file do too — each read the
+  way it should be read, so a text file is not mistaken for Markdown and a
+  table arrives as a table.
+
+- **Music plays inside the note.** An `.mp3`, `.m4a`, `.wav`, `.ogg`, `.opus`
+  or `.flac` gets the same player a voice note has, instead of being a
+  filename and a size.
+
+- **A picture shared as a file looks like a picture.** The same photo used to
+  look completely different depending on whether it was taken in the app or
+  shared into it; now either one opens full screen from the same tap.
+
 ## v1.3.2
 
 - **A swiped-open card takes the next tap, whatever it lands on.** Tapping
