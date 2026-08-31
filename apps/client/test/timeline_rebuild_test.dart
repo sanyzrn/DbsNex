@@ -496,6 +496,55 @@ void main() {
     );
   });
 
+  testWidgets('with a card swiped open, a tap only closes it', (tester) async {
+    await services.captureText('note A');
+    await services.captureText('note B');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    // Opened the way the card actually opens: from inside the trailing edge
+    // zone, far enough to pass the open threshold and not far enough to commit
+    // the action. Dragging from the middle of the text does nothing at all,
+    // which is how the first version of this test asserted against a card that
+    // had never opened.
+    final card = tester.getRect(
+      find
+          .ancestor(
+            of: find.text('note A'),
+            matching: find.byType(SwipeableNoteCard),
+          )
+          .first,
+    );
+    await tester.dragFrom(
+      Offset(card.right - 10, card.center.dy),
+      Offset(-card.width * 0.5, 0),
+    );
+    await tester.pumpAndSettle();
+    // Proof it is open before anything is claimed about tapping past it.
+    expect(find.text('Delete'), findsOneWidget);
+
+    // The reported bug: this tap was meant to put the card away, and folded
+    // the group as well. The first touch while something is open belongs to
+    // closing it and to nothing else.
+    await tester.tap(find.text('Today'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('note A'),
+      findsOneWidget,
+      reason: 'the group folded on the tap that should only have closed a card',
+    );
+    expect(find.text('note B'), findsOneWidget);
+
+    // And with nothing open, the heading is a fold control again.
+    await tester.tap(find.text('Today'));
+    await tester.pumpAndSettle();
+    expect(find.text('note A'), findsNothing);
+  });
+
   testWidgets('the timeline is grouped by date, and the groups fold', (
     tester,
   ) async {
