@@ -505,9 +505,26 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Swipe one open and leave it waiting for the tap that runs its action.
-    await tester.drag(find.text('note A'), const Offset(-140, 0));
+    // Opened the way the card actually opens: from inside the trailing edge
+    // zone, far enough to pass the open threshold and not far enough to commit
+    // the action. Dragging from the middle of the text does nothing at all,
+    // which is how the first version of this test asserted against a card that
+    // had never opened.
+    final card = tester.getRect(
+      find
+          .ancestor(
+            of: find.text('note A'),
+            matching: find.byType(SwipeableNoteCard),
+          )
+          .first,
+    );
+    await tester.dragFrom(
+      Offset(card.right - 10, card.center.dy),
+      Offset(-card.width * 0.5, 0),
+    );
     await tester.pumpAndSettle();
+    // Proof it is open before anything is claimed about tapping past it.
+    expect(find.text('Delete'), findsOneWidget);
 
     // The reported bug: this tap was meant to put the card away, and folded
     // the group as well. The first touch while something is open belongs to
