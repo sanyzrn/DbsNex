@@ -244,6 +244,14 @@ class TimelineScreenState extends State<TimelineScreen>
       // scheduled for people with no AI provider too, and for them nothing
       // else on this screen would ever re-arm it.
       _refreshDailyNudge();
+      // Housekeeping, deliberately last and deliberately unawaited: it walks
+      // the media directory, and nothing on this screen depends on the
+      // answer. Throttled to once a day inside — see the service — so the
+      // cost is not paid on every launch. Here rather than at boot because
+      // the app has to be usable first; here rather than on the trash screen
+      // because most people never open it, and the files this is for belong
+      // to notes deleted long before the purge learned to take them.
+      unawaited(widget.services.sweepOrphanMediaIfDue());
     });
   }
 

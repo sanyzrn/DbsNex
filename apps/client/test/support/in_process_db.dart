@@ -243,6 +243,9 @@ class InProcessDb implements NexDb {
       _maintenance.purgeDeletedBefore(cutoff);
 
   @override
+  Future<int> sweepOrphanMedia() async => _maintenance.sweepOrphanMedia();
+
+  @override
   Future<void> purgeNote(String id) async => _maintenance.purgeNote(id);
 
   @override

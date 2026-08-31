@@ -895,6 +895,23 @@ class NexPreferences extends ChangeNotifier {
   }
 
 
+  /// Whether the orphaned-media sweep is due — see
+  /// `NexServices.sweepOrphanMediaIfDue`.
+  ///
+  /// A bare timestamp rather than a policy object: there is one caller, it
+  /// asks once per launch, and the question is only ever "has it been a day".
+  bool mediaSweepDue(Duration interval) {
+    final last = _prefs.getInt('media.last_sweep_at_ms');
+    if (last == null) return true;
+    final elapsed = DateTime.now().millisecondsSinceEpoch - last;
+    return elapsed >= interval.inMilliseconds;
+  }
+
+  Future<void> markMediaSwept() => _prefs.setInt(
+    'media.last_sweep_at_ms',
+    DateTime.now().millisecondsSinceEpoch,
+  );
+
   List<String> get savedSearches =>
       _prefs.getStringList('search.saved') ?? const [];
 

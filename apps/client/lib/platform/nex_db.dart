@@ -121,6 +121,10 @@ abstract interface class NexDb {
 
   Future<void> purgeDeletedBefore(DateTime cutoff);
 
+  /// Deletes attachment files no note points at any more, and answers how
+  /// many went. See `LibraryMaintenance.sweepOrphanMedia`.
+  Future<int> sweepOrphanMedia();
+
   /// Permanently removes one trashed note.
   Future<void> purgeNote(String id);
 
