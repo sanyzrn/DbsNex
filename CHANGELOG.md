@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v1.3.2
+
+- **A swiped-open card takes the next tap, whatever it lands on.** Tapping
+  another card already only put the open one away, but the date headings did
+  not know that yet — so a tap meant to close a card also folded the group it
+  was in. Nothing on the screen acts while a card is waiting: the touch puts
+  it away, and that is all it does.
+
 - **Old attachments left behind by deleted notes are cleared out.** Until
   1.3.0, emptying the trash removed the note but left its photo or recording
   on the device for good. Deleting takes the file with it now, but that does

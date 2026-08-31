@@ -496,6 +496,38 @@ void main() {
     );
   });
 
+  testWidgets('with a card swiped open, a tap only closes it', (tester) async {
+    await services.captureText('note A');
+    await services.captureText('note B');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    // Swipe one open and leave it waiting for the tap that runs its action.
+    await tester.drag(find.text('note A'), const Offset(-140, 0));
+    await tester.pumpAndSettle();
+
+    // The reported bug: this tap was meant to put the card away, and folded
+    // the group as well. The first touch while something is open belongs to
+    // closing it and to nothing else.
+    await tester.tap(find.text('Today'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('note A'),
+      findsOneWidget,
+      reason: 'the group folded on the tap that should only have closed a card',
+    );
+    expect(find.text('note B'), findsOneWidget);
+
+    // And with nothing open, the heading is a fold control again.
+    await tester.tap(find.text('Today'));
+    await tester.pumpAndSettle();
+    expect(find.text('note A'), findsNothing);
+  });
+
   testWidgets('the timeline is grouped by date, and the groups fold', (
     tester,
   ) async {

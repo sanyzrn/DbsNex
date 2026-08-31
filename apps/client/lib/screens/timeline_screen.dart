@@ -1606,13 +1606,16 @@ class TimelineScreenState extends State<TimelineScreen>
                           // the list, the same reason the two headers below do.
                           SliverToBoxAdapter(
                             key: const ValueKey('timeline-header'),
-                            child: AnimatedSize(
-                              duration: NexMotion.slow,
-                              curve: NexMotion.curve,
-                              alignment: Alignment.topCenter,
-                              child: _searching
-                                  ? const SizedBox.shrink()
-                                  : _header(l10n),
+                            child: NexInertWhileSwiped(
+                              controller: _swipe,
+                              child: AnimatedSize(
+                                duration: NexMotion.slow,
+                                curve: NexMotion.curve,
+                                alignment: Alignment.topCenter,
+                                child: _searching
+                                    ? const SizedBox.shrink()
+                                    : _header(l10n),
+                              ),
                             ),
                           ),
                           // Both headers are always in the list, keyed, and collapse
@@ -1648,16 +1651,19 @@ class TimelineScreenState extends State<TimelineScreen>
                               pinned: true,
                               delegate: _FilterRowHeader(
                                 visible: !_searching,
-                                child: TagFilterRow(
-                                  tags: filterTags,
-                                  selectedTagId: selectedTagId,
-                                  allLabel: l10n.all,
-                                  leading: _TypeFilterButton(
-                                    selected: selectedType,
-                                    onPressed: () => unawaited(_pickType()),
+                                child: NexInertWhileSwiped(
+                                  controller: _swipe,
+                                  child: TagFilterRow(
+                                    tags: filterTags,
+                                    selectedTagId: selectedTagId,
+                                    allLabel: l10n.all,
+                                    leading: _TypeFilterButton(
+                                      selected: selectedType,
+                                      onPressed: () => unawaited(_pickType()),
+                                    ),
+                                    onSelected: (value) =>
+                                        unawaited(_selectTag(value)),
                                   ),
-                                  onSelected: (value) =>
-                                      unawaited(_selectTag(value)),
                                 ),
                               ),
                             ),
@@ -1708,12 +1714,18 @@ class TimelineScreenState extends State<TimelineScreen>
           : NexLongPressGlow(
               colors: nexAssistantSpectrum,
               onHoldStart: _tick,
-              onTriggered: _openAssistant,
+              onTriggered: () {
+                if (_claimedBySwipe()) return;
+                _openAssistant();
+              },
               child: NexGlassSurface(
                 borderRadius: BorderRadius.circular(nexCaptureFabSize / 2),
                 child: FloatingActionButton(
                   key: _captureAnchor,
-                  onPressed: openCapture,
+                  onPressed: () {
+                    if (_claimedBySwipe()) return;
+                    openCapture();
+                  },
                   tooltip: l10n.capture,
                   child: const Icon(Icons.add, size: 32),
                 ),
@@ -1810,15 +1822,21 @@ class TimelineScreenState extends State<TimelineScreen>
         itemBuilder: (context, index) {
           final row = rows[index];
           if (row.group case final group?) {
-            return _GroupHeader(
-              label: group.label,
-              count: group.notes.length,
-              collapsed: _collapsedGroups.contains(group.key),
-              onToggle: () => unawaited(_toggleGroup(group.key)),
-              onAsk: AiChatSheet.availableFor(widget.preferences)
-                  ? () => unawaited(_askAboutGroup(group))
-                  : null,
-              onDelete: () => unawaited(_deleteGroup(group, l10n)),
+            // Inert while a card is open: the fold, the menu and Ask all sit
+            // in the same list as the swiped card, and the tap that puts it
+            // away must not also do one of them.
+            return NexInertWhileSwiped(
+              controller: _swipe,
+              child: _GroupHeader(
+                label: group.label,
+                count: group.notes.length,
+                collapsed: _collapsedGroups.contains(group.key),
+                onToggle: () => unawaited(_toggleGroup(group.key)),
+                onAsk: AiChatSheet.availableFor(widget.preferences)
+                    ? () => unawaited(_askAboutGroup(group))
+                    : null,
+                onDelete: () => unawaited(_deleteGroup(group, l10n)),
+              ),
             );
           }
           final note = row.note!;
@@ -2019,11 +2037,22 @@ class TimelineScreenState extends State<TimelineScreen>
   /// off the same touch. The first tap while something is open now only
   /// closes it; opening a note takes its own, second tap.
   void _tapNote(Note note) {
-    if (_swipe.openCard != null) {
-      _swipe.closeAll();
-      return;
-    }
+    if (_claimedBySwipe()) return;
     unawaited(_openNote(note));
+  }
+
+  /// Whether this touch belongs to closing an open card rather than to what
+  /// it landed on.
+  ///
+  /// The controls inside the list are made inert structurally — see
+  /// [NexInertWhileSwiped] — because a touch there falls through to the
+  /// handler that closes. The capture button and the app bar are `Scaffold`
+  /// slots outside that handler's reach, so ignoring their pointers would
+  /// leave the card open with the tap going nowhere. They ask instead.
+  bool _claimedBySwipe() {
+    if (_swipe.openCard == null) return false;
+    _swipe.closeAll();
+    return true;
   }
 
   Future<void> _openNote(Note note) async {

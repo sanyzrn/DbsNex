@@ -77,6 +77,39 @@ class NexSwipeController extends ChangeNotifier {
   }
 }
 
+/// Makes its child inert for as long as a card is swiped open.
+///
+/// The first tap while something is open belongs to closing it, and to nothing
+/// else. Cards already work that way and the timeline's own tap handler closes
+/// on any touch that misses one — but every *other* control was on its honour
+/// to check first, and the date-group headers, added later, were not told. So
+/// a tap meant to put a swiped card away also folded the group it was in.
+///
+/// [IgnorePointer] rather than [AbsorbPointer] on purpose: the touch has to
+/// keep travelling to the handler behind, or it would close nothing and the
+/// card would sit there open. Ignoring passes it through; absorbing eats it.
+///
+/// Wrapping is structural, so the next control added to this screen inherits
+/// the rule instead of having to remember it.
+class NexInertWhileSwiped extends StatelessWidget {
+  const NexInertWhileSwiped({
+    super.key,
+    required this.controller,
+    required this.child,
+  });
+
+  final NexSwipeController controller;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: controller,
+    builder: (context, child) =>
+        IgnorePointer(ignoring: controller.openCard != null, child: child),
+    child: child,
+  );
+}
+
 /// The fraction of the card's width, from its physical left edge, that a
 /// swipe may start from.
 ///
