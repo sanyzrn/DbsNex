@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
@@ -250,9 +251,44 @@ void main() {
       expect(find.textContaining('# Chapter one'), findsNothing);
     });
 
-    testWidgets('a document this app cannot open is named and left alone', (
+    testWidgets('a PDF shows its first page, drawn by the platform', (
       tester,
     ) async {
+      // The rendering is Android's own, over the channel the share intent
+      // uses; here it is mocked, because a widget test runs on the host.
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('nex/os_capture'),
+            (call) async =>
+                call.method == 'pdfPreview' ? pngBytes : null,
+          );
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+              const MethodChannel('nex/os_capture'),
+              null,
+            ),
+      );
+      await openFile(
+        tester,
+        'report.pdf',
+        text: '%PDF-1.4 not really',
+        mimeType: 'application/pdf',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('report.pdf'), findsOneWidget);
+      expect(find.byType(Image), findsOneWidget);
+      // A picture of the page, not a reader: nothing is parsed out of it.
+      expect(find.byType(NexMarkdown), findsNothing);
+    });
+
+    testWidgets('a PDF with no renderer is named and left alone', (
+      tester,
+    ) async {
+      // No mock handler, so the channel throws MissingPluginException — which
+      // is what Windows does, and what an Android build without the native
+      // half would do. It is an absence, not an error.
       await openFile(
         tester,
         'report.pdf',
@@ -261,6 +297,7 @@ void main() {
       );
 
       expect(find.text('report.pdf'), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
       expect(find.byType(NexMarkdown), findsNothing);
       expect(find.byType(Table), findsNothing);
     });
