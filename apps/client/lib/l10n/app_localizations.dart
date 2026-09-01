@@ -3686,6 +3686,66 @@ abstract class AppLocalizations {
   /// **'Show two lines'**
   String get collapseCard;
 
+  /// Title of the user guide screen
+  ///
+  /// In en, this message translates to:
+  /// **'How Nex works'**
+  String get guideTitle;
+
+  /// Settings row subtitle for the user guide
+  ///
+  /// In en, this message translates to:
+  /// **'Everything the app does, in one place'**
+  String get guideSubtitle;
+
+  /// Shown if the bundled guide file is missing
+  ///
+  /// In en, this message translates to:
+  /// **'The guide could not be opened.'**
+  String get guideUnavailable;
+
+  /// Onboarding page title about files
+  ///
+  /// In en, this message translates to:
+  /// **'Whatever you throw at it'**
+  String get onboardingFilesTitle;
+
+  /// Onboarding page body about files
+  ///
+  /// In en, this message translates to:
+  /// **'Share a document, a PDF, a song or a picture into Nex and it shows you the thing itself — not just a filename.'**
+  String get onboardingFilesBody;
+
+  /// Onboarding page title about privacy
+  ///
+  /// In en, this message translates to:
+  /// **'It stays yours'**
+  String get onboardingYoursTitle;
+
+  /// Onboarding page body about privacy
+  ///
+  /// In en, this message translates to:
+  /// **'No account, no server, and it works with the plane on. Lock it behind your fingerprint if you like, and export the lot whenever you want.'**
+  String get onboardingYoursBody;
+
+  /// Heading above the guide link on the last onboarding step
+  ///
+  /// In en, this message translates to:
+  /// **'Not sure where something is?'**
+  String get onboardingGuideTitle;
+
+  /// Text above the guide link on the last onboarding step
+  ///
+  /// In en, this message translates to:
+  /// **'The guide walks through everything, and it is always in Settings.'**
+  String get onboardingGuideBody;
+
+  /// Button that opens the user guide from onboarding
+  ///
+  /// In en, this message translates to:
+  /// **'Read the guide'**
+  String get onboardingGuideOpen;
+
   /// Title of the dialog asking where a link should point
   ///
   /// In en, this message translates to:

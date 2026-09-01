@@ -110,6 +110,13 @@ Working convention:
   fit all of it — every item of a checklist, every line of a note — and stays
   that way until you put it back. Every other card is unchanged.
 
+- **There is a guide now.** Settings opens with **How Nex works** — a short,
+  friendly walk through everything the app does, from writing a note to adding
+  an API key to changing the theme. In English and Persian.
+
+- **The first-run introduction covers more of the app**, and ends by pointing
+  at that guide, so nothing has to be discovered by accident.
+
 ## v1.3.2
 
 - **A swiped-open card takes the next tap, whatever it lands on.** Tapping
