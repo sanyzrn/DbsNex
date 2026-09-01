@@ -40,11 +40,7 @@ void main() {
         const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          // The panel no longer scrolls inside itself — About is already a
-          // scrolling page, and this stands in for that.
-          home: Scaffold(
-            body: SingleChildScrollView(child: ChangelogPanel()),
-          ),
+          home: Scaffold(body: ChangelogPanel()),
         ),
       );
       // `rootBundle.loadString` is real file IO — it does not reliably resolve
@@ -80,12 +76,20 @@ void main() {
         tester.widgetList(find.textContaining('Version v')).length,
         lessThanOrEqualTo(10),
       );
+
+      // A card that scrolls inside itself, not a run of text down the page:
+      // ten releases would otherwise push everything under it out of reach.
+      expect(find.byType(Scrollbar), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(ChangelogPanel)).height,
+        lessThanOrEqualTo(360),
+      );
     },
   );
 
   test('parseChangelogSections keeps the newest sections when capped', () {
-    // Forty releases in, About should not be an archive with a scrollbar —
-    // and the file still holds all of them, so raising the cap loses nothing.
+    // Forty releases in, the card should still be ten of them — the file
+    // holds all forty, so raising the cap loses nothing.
     final raw = [
       for (var i = 40; i >= 1; i--) '## v0.$i.0\n\n- something changed\n',
     ].join('\n');

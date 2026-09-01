@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:nex_ui/nex_ui.dart';
@@ -60,17 +62,21 @@ List<ChangelogSection> parseChangelogSections(String raw, {int? limit}) {
 ///
 /// It used to sit under the update screen's offer, which put every release
 /// there has ever been beneath a question about one of them. About is where a
-/// history belongs, and About is a page that already scrolls — so this no
-/// longer scrolls inside itself, which is the thing nested scrollers do worst.
+/// history belongs.
+///
+/// It is a card with its own scroll rather than a run of text down the page,
+/// because it is one thing among many on About and should not be the page:
+/// everything under it stays a flick away instead of a long scroll past
+/// release notes.
 class ChangelogPanel extends StatefulWidget {
   const ChangelogPanel({super.key, this.limit = 10});
 
   /// How many releases back to show.
   ///
   /// Ten, which at this project's pace is a few months — enough to answer
-  /// "when did this arrive?" without turning the page into a changelog file
-  /// with a scrollbar. The bundled file still holds everything; only what is
-  /// drawn is capped, so raising this is one number and loses nothing.
+  /// "when did this arrive?" without making the card an archive nobody
+  /// reaches the end of. The bundled file still holds everything; only what
+  /// is drawn is capped, so raising this is one number and loses nothing.
   final int limit;
 
   @override
@@ -85,6 +91,24 @@ Future<List<ChangelogSection>>? _cachedChangelog;
 class _ChangelogPanelState extends State<ChangelogPanel> {
   late final Future<List<ChangelogSection>> _sections = _cachedChangelog ??=
       _load();
+
+  /// Its own, not the page's. Without one both this and the ListView it sits
+  /// in would try to claim the primary controller, and a Scrollbar needs a
+  /// controller it can be sure of anyway.
+  final _scroll = ScrollController();
+
+  /// How tall the card grows before its content starts scrolling.
+  ///
+  /// Ten releases is more than fits on any phone. Capped against the window
+  /// as well as by a number, so on a short screen it takes half of it rather
+  /// than all of it.
+  static const _maxHeight = 360.0;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   Future<List<ChangelogSection>> _load() async {
     // assets/CHANGELOG.md, not the root file directly: see the comment on
@@ -101,41 +125,73 @@ class _ChangelogPanelState extends State<ChangelogPanel> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return FutureBuilder<List<ChangelogSection>>(
-      future: _sections,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          // No spinner: this is a local bundled file, not a network fetch —
-          // the wait is one frame, not something worth animating for. An
-          // indeterminate `CircularProgressIndicator` also runs a repeating
-          // ticker, which is actively hostile to `pumpAndSettle()` in tests
-          // if this state is ever visible for more than an instant.
-          return const SizedBox(height: 60);
-        }
-        final sections = snapshot.data;
-        if (sections == null || sections.isEmpty) {
-          return Text(l10n.changelogEmpty, style: theme.textTheme.bodyMedium);
-        }
-        final shown = sections.length <= widget.limit
-            ? sections
-            : sections.sublist(0, widget.limit);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final section in shown) ...[
-              Text(
-                section.heading == 'Unreleased'
-                    ? l10n.changelogLatestHeading
-                    : l10n.changelogVersionHeading(section.heading),
-                style: theme.textTheme.titleSmall,
+    return Material(
+      // The same card the Settings sections are: a filled, rounded, clipped
+      // Material. Nothing new invented for one screen.
+      color: theme.colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(NexRadius.lg),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: math.min(
+            _maxHeight,
+            MediaQuery.sizeOf(context).height / 2,
+          ),
+        ),
+        child: FutureBuilder<List<ChangelogSection>>(
+          future: _sections,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              // No spinner: this is a local bundled file, not a network fetch
+              // — the wait is one frame, not something worth animating for.
+              // An indeterminate `CircularProgressIndicator` also runs a
+              // repeating ticker, which is actively hostile to
+              // `pumpAndSettle()` in tests if this state is ever visible for
+              // more than an instant.
+              return const SizedBox(height: 60);
+            }
+            final sections = snapshot.data;
+            if (sections == null || sections.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(NexSpacing.md),
+                child: Text(
+                  l10n.changelogEmpty,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              );
+            }
+            final shown = sections.length <= widget.limit
+                ? sections
+                : sections.sublist(0, widget.limit);
+            return Scrollbar(
+              controller: _scroll,
+              // Shown standing still, because a card that ends mid-sentence
+              // is the only thing saying it scrolls otherwise.
+              thumbVisibility: true,
+              child: SingleChildScrollView(
+                controller: _scroll,
+                padding: const EdgeInsets.all(NexSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < shown.length; i++) ...[
+                      if (i > 0) const SizedBox(height: NexSpacing.lg),
+                      Text(
+                        shown[i].heading == 'Unreleased'
+                            ? l10n.changelogLatestHeading
+                            : l10n.changelogVersionHeading(shown[i].heading),
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: NexSpacing.sm),
+                      ReleaseNotesList(raw: shown[i].body),
+                    ],
+                  ],
+                ),
               ),
-              const SizedBox(height: NexSpacing.sm),
-              ReleaseNotesList(raw: section.body),
-              const SizedBox(height: NexSpacing.lg),
-            ],
-          ],
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 }
