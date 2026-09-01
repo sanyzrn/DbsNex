@@ -2090,6 +2090,21 @@ class AppLocalizationsFa extends AppLocalizations {
   String get documentUnreadable => 'این سند اینجا نمایش داده نشد.';
 
   @override
+  String get downloadStopped => 'دانلود قطع شد';
+
+  @override
+  String get resumeDownload => 'ادامه';
+
+  @override
+  String get updateDownloadingTitle => 'در حال دانلود به‌روزرسانی';
+
+  @override
+  String get updateReadyTitle => 'به‌روزرسانی آماده است';
+
+  @override
+  String get updateReadyBody => 'برای نصب ضربه بزنید';
+
+  @override
   String get addLink => 'افزودن پیوند';
 
   @override

@@ -2089,6 +2089,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get documentUnreadable => 'This document could not be shown here.';
 
   @override
+  String get downloadStopped => 'Download stopped';
+
+  @override
+  String get resumeDownload => 'Resume';
+
+  @override
+  String get updateDownloadingTitle => 'Downloading update';
+
+  @override
+  String get updateReadyTitle => 'Update ready';
+
+  @override
+  String get updateReadyBody => 'Tap to install';
+
+  @override
   String get addLink => 'Add link';
 
   @override

@@ -3644,6 +3644,36 @@ abstract class AppLocalizations {
   /// **'This document could not be shown here.'**
   String get documentUnreadable;
 
+  /// Shown under the progress bar when a download is interrupted
+  ///
+  /// In en, this message translates to:
+  /// **'Download stopped'**
+  String get downloadStopped;
+
+  /// Button that picks a stopped download up where it left off
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get resumeDownload;
+
+  /// Notification title while the update downloads
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading update'**
+  String get updateDownloadingTitle;
+
+  /// Notification title once the installer has landed
+  ///
+  /// In en, this message translates to:
+  /// **'Update ready'**
+  String get updateReadyTitle;
+
+  /// Notification body once the installer has landed
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to install'**
+  String get updateReadyBody;
+
   /// Title of the dialog asking where a link should point
   ///
   /// In en, this message translates to:

@@ -14,6 +14,7 @@ import '../platform/capture_failure.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
+import 'update_sheet.dart';
 import '../platform/nex_services.dart';
 import '../platform/route_observer.dart';
 import '../platform/note_search.dart';
@@ -234,6 +235,13 @@ class TimelineScreenState extends State<TimelineScreen>
     widget.services.reminders.onOpenNote = _spotlight;
     final launched = widget.services.reminders.takeLaunchNoteId();
     if (launched != null) _spotlight(launched);
+    // And both halves of a tapped download. Here rather than in the app
+    // widget because opening a screen needs a Navigator, and the app widget
+    // sits above the one this route lives in.
+    widget.services.reminders.onOpenUpdate = _openUpdate;
+    if (widget.services.reminders.takeLaunchedFromUpdate()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openUpdate());
+    }
     unawaited(_loadTimeline());
     unawaited(_loadFilterTags());
     // After the first frame, because every stop measures a real widget and
@@ -730,6 +738,22 @@ class TimelineScreenState extends State<TimelineScreen>
   /// Built from usage counts rather than the bare tag list: a tag nothing is
   /// tagged with anymore (its last note deleted, or created and never used)
   /// was still showing up as a pill that filtered to an empty list.
+  /// Opens the update screen, from a tap on the download's notification.
+  ///
+  /// The installer is already on disk by then, so this lands on Install —
+  /// which is the whole point of the notification saying it is ready.
+  void _openUpdate() {
+    final service = widget.updates;
+    if (service == null || !mounted) return;
+    unawaited(
+      UpdateSheet.show(
+        context,
+        haptics: widget.preferences.haptics,
+        service: service,
+      ),
+    );
+  }
+
   Future<void> _loadFilterTags() async {
     final loaded = await widget.services.tagUsage();
     if (!mounted) return;
