@@ -882,6 +882,10 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
+    // Where this row falls depends on how many sections sit above it, which
+    // is not what this test is about.
+    await tester.ensureVisible(find.text('Swipe actions'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Swipe actions'));
     await tester.pumpAndSettle();
 

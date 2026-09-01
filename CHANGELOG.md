@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.4.0
+
 - **A file you share into Nex is shown, not just named.** Markdown already
   opened inside the note; now a plain text file, a spreadsheet exported as
   `.csv` or `.tsv`, and a source or configuration file do too — each read the
@@ -96,7 +98,9 @@ Working convention:
   showed a Download button as though nothing was happening.
 
 - **The update screen shows only the version it is offering.** The full history
-  of every past release is no longer stacked underneath it.
+  of every past release is no longer stacked underneath a question about one
+  build — it moved to About, where the last ten releases are listed on the page
+  rather than in a small box that scrolls inside itself.
 
 - **The download shows up in the notification shade.** While an update is
   downloading there is a progress notification you can watch without opening
