@@ -68,6 +68,12 @@ Working convention:
   the file itself is still one tap from whatever opens it properly. A very long
   document shows its beginning and says that is what it is showing.
 
+- **A PDF shows its first page.** Enough to tell one report from another at a
+  glance; tapping it hands the file to whatever opens PDFs on your device,
+  which is where searching and turning pages belong. Android only for now —
+  it uses the renderer Android already has rather than adding several
+  megabytes of one to the app — and elsewhere the file is named as before.
+
 ## v1.3.2
 
 - **A swiped-open card takes the next tap, whatever it lands on.** Tapping

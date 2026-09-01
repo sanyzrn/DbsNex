@@ -1,11 +1,18 @@
 package com.sanyzrn.nex
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Matrix
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 
@@ -25,6 +32,13 @@ class MainActivity : FlutterFragmentActivity() {
                     type = "*/*"; addCategory(Intent.CATEGORY_OPENABLE)
                 }, 9911)
             }
+            "pdfPreview" -> result.success(
+                renderPdfPreview(
+                    call.argument<String>("path"),
+                    call.argument<Int>("width") ?: 1200,
+                    call.argument<Int>("maxHeight") ?: 960,
+                )
+            )
             "shareText" -> {
                 startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
@@ -90,6 +104,72 @@ class MainActivity : FlutterFragmentActivity() {
     private fun enqueue(value: Map<String, String>, live: Boolean) {
         pending = value
         if (live) channel?.invokeMethod("onOsCapture", value)
+    }
+
+    /**
+     * The first page of a PDF as PNG bytes, or null when there is nothing to
+     * show.
+     *
+     * No library for this on purpose. Android has rendered PDFs itself since
+     * API 21 and this app's minimum is 24, while every Flutter PDF package
+     * ships its own copy of PDFium — several megabytes added to the APK to do
+     * what the platform already does. The trade is that this is Android only;
+     * the Dart side treats a missing channel as "no preview here" and the file
+     * row above it is unchanged either way.
+     *
+     * Rendered onto white first. A PDF page is paper: transparent wherever
+     * nothing was drawn, which under a dark theme would come out as black text
+     * on a black page.
+     */
+    private fun renderPdfPreview(path: String?, width: Int, maxHeight: Int): ByteArray? {
+        if (path.isNullOrEmpty()) return null
+        val file = File(path)
+        if (!file.isFile) return null
+        val target = width.coerceIn(200, 2400)
+        val cap = maxHeight.coerceIn(200, 4800)
+        var descriptor: ParcelFileDescriptor? = null
+        var renderer: PdfRenderer? = null
+        var page: PdfRenderer.Page? = null
+        var bitmap: Bitmap? = null
+        return try {
+            descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            renderer = PdfRenderer(descriptor)
+            if (renderer.pageCount < 1) return null
+            page = renderer.openPage(0)
+            if (page.width < 1 || page.height < 1) return null
+            // Only the band the caller is going to show, not the whole page.
+            // A full A4 at this width is around 1200x1700, and a bitmap is
+            // four bytes a pixel — eight megabytes to draw a thumbnail, on
+            // devices that have better uses for them. The scale is the page's
+            // own; the bitmap is simply shorter than the page, so what lands
+            // in it is the top of it at the right size.
+            val scale = target.toFloat() / page.width
+            val full = (page.height * scale).toInt().coerceAtLeast(1)
+            bitmap = Bitmap.createBitmap(target, minOf(full, cap), Bitmap.Config.ARGB_8888)
+            Canvas(bitmap).drawColor(Color.WHITE)
+            page.render(
+                bitmap,
+                null,
+                Matrix().apply { setScale(scale, scale) },
+                PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY,
+            )
+            val out = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            out.toByteArray()
+        } catch (_: Exception) {
+            // A file that is not a PDF, one that is encrypted, one Android's
+            // own renderer will not open. The caller shows the file row and
+            // says nothing about a preview, which is what it did before.
+            null
+        } finally {
+            // Order matters — a renderer closed with a page still open throws
+            // — and each close is guarded because a failure while cleaning up
+            // must not become the answer to "can this file be previewed".
+            bitmap?.recycle()
+            runCatching { page?.close() }
+            runCatching { renderer?.close() }
+            runCatching { descriptor?.close() }
+        }
     }
 
     private fun copyUri(uri: Uri): Map<String, String>? = try {

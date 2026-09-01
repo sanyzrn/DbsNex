@@ -21,6 +21,7 @@ import '../platform/sharing.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/pdf_preview.dart';
 import '../platform/reminders.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
@@ -938,6 +939,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           player: _player,
                           position: _position,
                           duration: _duration,
+                          onOpen: _openExternally,
                         ),
                     ],
                     if (note.type != NoteType.text) ...[
@@ -1655,10 +1657,16 @@ class _FileBody extends StatelessWidget {
     required this.player,
     required this.position,
     required this.duration,
+    required this.onOpen,
   });
 
   final String path;
   final NexFileKind kind;
+
+  /// Hands the file to the operating system — the same thing the row above
+  /// does when tapped. A preview is a picture of the file, and tapping the
+  /// picture should do what tapping its name does.
+  final VoidCallback onOpen;
 
   /// Non-null once the sheet has loaded this file into the audio player.
   ///
@@ -1671,7 +1679,16 @@ class _FileBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (kind.isText) return _FileTextBody(path: path, kind: kind);
-    if (kind == NexFileKind.document) return _DocumentBody(path: path);
+    if (kind == NexFileKind.document) {
+      // The two document formats this app can show anything of, and they are
+      // shown in opposite ways: a `.docx` is converted to text, a `.pdf` is a
+      // picture of a page. Anything else is named and left alone.
+      return switch (NexFileKinds.extensionOf(path)) {
+        'docx' => _DocumentBody(path: path),
+        'pdf' => _PdfBody(path: path, onOpen: onOpen),
+        _ => const SizedBox.shrink(),
+      };
+    }
     if (kind == NexFileKind.image) return _ImageFileBody(path: path);
     if (kind == NexFileKind.audio && player != null) {
       return Padding(
@@ -1910,6 +1927,113 @@ Future<void> _openHref(String href) async {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   } catch (_) {
     // No handler for this scheme on this device. The link stays a link.
+  }
+}
+
+/// The first page of a PDF, drawn by the platform.
+///
+/// A picture of the page rather than a reader. Opening a PDF properly means a
+/// viewer with search, selection, links and a page count, and the device
+/// already has one that does all of that — so this answers the question a note
+/// actually raises ("which file is this?") and hands the rest to whatever
+/// opens PDFs, on the same tap.
+///
+/// Nothing is drawn where there is no renderer: on a platform without the
+/// native half, on a file that is not really a PDF, on an encrypted one. The
+/// row above still names the file and still opens it, which is what it did
+/// before this existed.
+class _PdfBody extends StatefulWidget {
+  const _PdfBody({required this.path, required this.onOpen});
+
+  final String path;
+  final VoidCallback onOpen;
+
+  /// How much of the first page to show.
+  ///
+  /// A page is much taller than it is wide, and a full one at the width of a
+  /// sheet would be most of the screen for a thumbnail. This is the top of the
+  /// page — the part with the title on it — which is how a file manager shows
+  /// one too.
+  static const height = 320.0;
+
+  @override
+  State<_PdfBody> createState() => _PdfBodyState();
+}
+
+class _PdfBodyState extends State<_PdfBody> {
+  Uint8List? _page;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Assigned rather than set: `setState` here would fire during a build.
+    _loading = true;
+    unawaited(_load());
+  }
+
+  @override
+  void didUpdateWidget(_PdfBody old) {
+    super.didUpdateWidget(old);
+    if (old.path == widget.path) return;
+    _page = null;
+    _loading = true;
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    final path = widget.path;
+    final page = await NexPdfPreview.firstPage(path);
+    // The sheet is reused across notes, so an answer that arrives after it has
+    // moved on belongs to a file nobody is looking at.
+    if (!mounted || widget.path != path) return;
+    setState(() {
+      _page = page;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.only(top: NexSpacing.sm),
+        child: NexSkeleton(height: 16),
+      );
+    }
+    final page = _page;
+    if (page == null) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: NexSpacing.sm),
+      child: GestureDetector(
+        onTap: widget.onOpen,
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(NexRadius.md),
+            // A rendered page is paper — white, whatever the app's theme is —
+            // so it needs an edge of its own to sit on a dark background
+            // without looking like a hole in it.
+            border: Border.all(color: scheme.outlineVariant),
+          ),
+          // A cap rather than a fixed height: a landscape page is shorter than
+          // the band and should not be given a strip of empty sheet under it.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: _PdfBody.height),
+            child: Image.memory(
+              page,
+              fit: BoxFit.fitWidth,
+              // The top of the page, not the middle of it.
+              alignment: Alignment.topCenter,
+              width: double.infinity,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
