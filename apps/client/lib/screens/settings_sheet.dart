@@ -21,6 +21,7 @@ import '../platform/update_service.dart';
 import '../platform/os_capture_bridge.dart';
 import 'about_screen.dart';
 import 'backup_screen.dart';
+import 'guide_screen.dart';
 import 'assistant_screen.dart';
 import 'intelligence_screen.dart';
 import 'profile_screen.dart';
@@ -192,6 +193,20 @@ class SettingsSheet extends StatelessWidget {
 
   List<Widget> _groups(BuildContext context, AppLocalizations l10n) => [
     _ProfileCard(services: services, preferences: preferences),
+    // First, and on its own. Someone who opens Settings looking for how a
+    // thing works should not have to guess which of seven sections it was
+    // filed under.
+    _Section(
+      title: l10n.guideTitle,
+      children: [
+        _Row(
+          icon: Icons.menu_book_outlined,
+          title: l10n.guideTitle,
+          value: l10n.guideSubtitle,
+          onTap: () => unawaited(GuideScreen.show(context)),
+        ),
+      ],
+    ),
     _Section(
       title: l10n.securityTitle,
       children: [

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import 'guide_screen.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/choice_cards.dart';
@@ -33,7 +34,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   int _page = 0;
 
-  static const _pageCount = 5;
+  static const _pageCount = 7;
   bool get _onSetup => _page == _pageCount - 1;
   bool get _hasName => _name.text.trim().isNotEmpty;
 
@@ -160,9 +161,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         body: l10n.onboardingIntelligenceBody,
                       ),
                       _Page(
+                        icon: Icons.attach_file_outlined,
+                        title: l10n.onboardingFilesTitle,
+                        body: l10n.onboardingFilesBody,
+                      ),
+                      _Page(
                         icon: Icons.notifications_off_outlined,
                         title: l10n.onboardingSilenceTitle,
                         body: l10n.onboardingSilenceBody,
+                      ),
+                      _Page(
+                        icon: Icons.lock_outline,
+                        title: l10n.onboardingYoursTitle,
+                        body: l10n.onboardingYoursBody,
                       ),
                       _SetupPage(
                         preferences: widget.preferences,
@@ -449,6 +460,57 @@ class _SetupPage extends StatelessWidget {
                   preview: const NexScriptSample(sample: 'اَ'),
                 ),
               ],
+            ),
+            const SizedBox(height: NexSpacing.xl),
+            // The last thing on the last step, and deliberately a card rather
+            // than a line of text. Four pages of onboarding cannot cover an
+            // app this size, and the honest answer to that is not more pages —
+            // it is telling someone, once and clearly, where the whole of it
+            // is written down.
+            Card(
+              margin: EdgeInsets.zero,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(NexRadius.md),
+                onTap: () => unawaited(GuideScreen.show(context)),
+                child: Padding(
+                  padding: const EdgeInsets.all(NexSpacing.md),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.menu_book_outlined,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: NexSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              l10n.onboardingGuideTitle,
+                              style: theme.textTheme.titleSmall,
+                            ),
+                            const SizedBox(height: NexSpacing.xs),
+                            Text(
+                              l10n.onboardingGuideBody,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: NexSpacing.sm),
+                      Text(
+                        l10n.onboardingGuideOpen,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),

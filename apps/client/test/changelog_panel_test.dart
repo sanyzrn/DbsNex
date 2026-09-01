@@ -40,7 +40,11 @@ void main() {
         const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: ChangelogPanel()),
+          // The panel no longer scrolls inside itself — About is already a
+          // scrolling page, and this stands in for that.
+          home: Scaffold(
+            body: SingleChildScrollView(child: ChangelogPanel()),
+          ),
         ),
       );
       // `rootBundle.loadString` is real file IO — it does not reliably resolve
@@ -51,23 +55,48 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // A real, specific bullet from the file's newest released section —
-      // proves the asset actually loaded and parsed, not just that the panel
-      // rendered without crashing.
-      //
-      // Both headings, because both sections have bullets right now: work has
-      // landed since v0.9.1 was cut, so "## Unreleased" is populated again and
-      // renders as "Latest changes" above it. Immediately after a release it
-      // is empty instead, and parseChangelogSections drops it rather than
-      // rendering a heading with nothing under it — which is why the released
-      // section is the one asserted by name.
-      expect(find.text('Version v0.9.1'), findsOneWidget);
+      // The newest section the file actually has, read from the file rather
+      // than written down here. This used to assert `v0.9.1` by name, which
+      // was fine until the panel stopped showing every release ever made:
+      // a hard-coded version is a test that expires.
+      final sections = parseChangelogSections(
+        File(
+          p.join(Directory.current.path, 'assets', 'CHANGELOG.md'),
+        ).readAsStringSync(),
+      );
+      expect(sections, isNotEmpty);
+      final newest = sections.first.heading;
       expect(
-        find.text('Toasts pop in instead of just fading.'),
+        find.text(
+          newest == 'Unreleased' ? 'Latest changes' : 'Version $newest',
+        ),
         findsOneWidget,
+      );
+
+      // And no more than the cap, which is the point of the cap. Counted
+      // rather than matched: flutter_test has findsNWidgets and
+      // findsAtLeastNWidgets, but no "at most".
+      expect(
+        tester.widgetList(find.textContaining('Version v')).length,
+        lessThanOrEqualTo(10),
       );
     },
   );
+
+  test('parseChangelogSections keeps the newest sections when capped', () {
+    // Forty releases in, About should not be an archive with a scrollbar —
+    // and the file still holds all of them, so raising the cap loses nothing.
+    final raw = [
+      for (var i = 40; i >= 1; i--) '## v0.$i.0\n\n- something changed\n',
+    ].join('\n');
+
+    expect(parseChangelogSections(raw), hasLength(40));
+
+    final capped = parseChangelogSections(raw, limit: 10);
+    expect(capped, hasLength(10));
+    expect(capped.first.heading, 'v0.40.0');
+    expect(capped.last.heading, 'v0.31.0');
+  });
 
   testWidgets(
     'parseChangelogSections splits on ## headings and drops the preamble',
