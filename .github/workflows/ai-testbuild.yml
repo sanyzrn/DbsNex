@@ -26,7 +26,7 @@ jobs:
 
       # 21 for Gradle's own JVM, matching release.yml — Android Lint's
       # release-only task needs SequencedCollection and dies on 17.
-      - uses: actions/setup-java@v5.6.0
+      - uses: actions/setup-java@v6.0.0
         with:
           distribution: temurin
           java-version: "21"
@@ -143,7 +143,7 @@ jobs:
           cp "${apks[0]}" dist/Nex-ai-arm64.apk
           ls -lh dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: nex-ai-arm64-apk
           path: apps/client/dist/Nex-ai-arm64.apk
