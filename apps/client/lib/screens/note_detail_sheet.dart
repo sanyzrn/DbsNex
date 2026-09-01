@@ -487,6 +487,21 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     await _reload();
   }
 
+  /// Shows this note's card in full on the timeline, or puts it back to two
+  /// lines.
+  ///
+  /// Stored per device rather than on the note — see
+  /// [NexPreferences.expandedNoteIds] for why.
+  Future<void> _toggleExpanded(String noteId) async {
+    final preferences = widget.preferences;
+    if (preferences == null) return;
+    await preferences.setNoteExpanded(
+      noteId,
+      !preferences.isNoteExpanded(noteId),
+    );
+    if (mounted) setState(() {});
+  }
+
   Future<void> _togglePin() async {
     final note = _note;
     if (note == null) return;
@@ -1087,6 +1102,19 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             ? null
                             : _togglePin,
                       ),
+                      // Beside Pin, because the two answer the same kind of
+                      // question: where this note sits on the timeline, and
+                      // how hard it is to miss.
+                      if (widget.preferences case final preferences?)
+                        _DetailAction(
+                          icon: preferences.isNoteExpanded(note.id)
+                              ? Icons.unfold_less
+                              : Icons.unfold_more,
+                          label: preferences.isNoteExpanded(note.id)
+                              ? l10n.collapseCard
+                              : l10n.expandCard,
+                          onPressed: () => unawaited(_toggleExpanded(note.id)),
+                        ),
                       if (NexReminders.supported)
                         _DetailAction(
                           icon: note.dueAt == null

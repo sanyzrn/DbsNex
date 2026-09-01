@@ -1015,6 +1015,8 @@
   "updateDownloadingTitle": "در حال دانلود به‌روزرسانی",
   "updateReadyTitle": "به‌روزرسانی آماده است",
   "updateReadyBody": "برای نصب ضربه بزنید",
+  "expandCard": "نمایش کامل",
+  "collapseCard": "نمایش دو خطی",
   "addLink": "افزودن پیوند",
   "linkAddress": "نشانی",
   "remindSetIn": "یادآور تنظیم شد — {when} دیگر",
