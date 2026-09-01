@@ -99,8 +99,8 @@ Working convention:
 
 - **The update screen shows only the version it is offering.** The full history
   of every past release is no longer stacked underneath a question about one
-  build — it moved to About, where the last ten releases are listed on the page
-  rather than in a small box that scrolls inside itself.
+  build — it moved to **Settings → About**, into a card of its own holding the
+  last ten releases, which you scroll through without scrolling the page.
 
 - **The download shows up in the notification shade.** While an update is
   downloading there is a progress notification you can watch without opening
