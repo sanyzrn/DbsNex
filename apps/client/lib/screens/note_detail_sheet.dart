@@ -1913,6 +1913,18 @@ Future<void> _openHref(String href) async {
   }
 }
 
+/// How a `.docx` becomes Markdown.
+///
+/// A variable rather than a direct call, for a testing reason said out loud:
+/// `flutter_test` runs a widget test's body in a fake-async zone, and work
+/// handed to another isolate does not report back into it. With the real
+/// reader in place the only thing a widget test could ever assert about this
+/// preview is that it is still loading — which is exactly the part that was
+/// never in doubt. Tests swap in a same-isolate reader; nothing else does.
+@visibleForTesting
+Future<NexDocxText?> Function(List<int> bytes) nexDocxReader = (bytes) =>
+    Isolate.run(() => NexDocx.read(bytes));
+
 /// A `.docx`, read into Markdown and rendered like any other document in a
 /// note.
 ///
@@ -1979,11 +1991,22 @@ class _DocumentBodyState extends State<_DocumentBody> {
         if (file.lengthSync() > NexDocx.maxBytes) {
           tooLarge = true;
         } else {
-          final bytes = await file.readAsBytes();
-          // The one preview in this sheet that leaves the main thread. See
-          // the class comment: a `.docx` is compressed, so its size on disk
-          // says very little about the work of opening it.
-          read = await Isolate.run(() => NexDocx.read(bytes));
+          // Read synchronously, parsed elsewhere. The read is bounded by
+          // the cap just checked and costs what the other previews' reads
+          // cost; the parse is the expensive half, and it is the half that
+          // leaves the main thread. See the class comment: a `.docx` is
+          // compressed, so its size on disk says little about the work of
+          // opening it.
+          final bytes = file.readAsBytesSync();
+          try {
+            read = await nexDocxReader(bytes);
+          } on Object {
+            // Spawning an isolate can fail for reasons that have nothing to
+            // do with this document. That is a reason to do the work here and
+            // wear the pause, not a reason to refuse to show the file — the
+            // parse itself reports its own failures by returning null.
+            read = NexDocx.read(bytes);
+          }
         }
       }
     } catch (caught) {

@@ -13,6 +13,7 @@ import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:nex_client/documents/docx_markdown.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 
 import 'support/in_process_db.dart';
@@ -43,7 +44,10 @@ void main() {
     preferences = await NexPreferences.load();
   });
 
+  final realDocxReader = nexDocxReader;
+
   tearDown(() async {
+    nexDocxReader = realDocxReader;
     await services.dispose();
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
@@ -226,20 +230,18 @@ void main() {
     testWidgets('a .docx is read off disk and shown as a document', (
       tester,
     ) async {
-      // The read runs on another isolate, so the widget shows a skeleton
-      // first and the answer arrives later. `pumpAndSettle` does not wait for
-      // real asynchrony; `runAsync` gives the isolate actual time to finish.
+      // In the app the parse happens on another isolate, and a widget test's
+      // fake-async zone never hears back from one — so the reader is swapped
+      // for a same-isolate one. What is under test is the wiring either way:
+      // that a `.docx` reaches the document reader and its Markdown reaches
+      // the screen.
+      nexDocxReader = (bytes) async => NexDocx.read(bytes);
       await openFile(
         tester,
         'plan.docx',
         bytes: docxBytes('Chapter one', 'Heading1'),
       );
-      for (var i = 0; i < 30 && find.byType(NexMarkdown).evaluate().isEmpty; i++) {
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 100)),
-        );
-        await tester.pumpAndSettle();
-      }
+      await tester.pumpAndSettle();
 
       expect(find.text('plan.docx'), findsOneWidget);
       expect(find.byType(NexMarkdown), findsOneWidget);
