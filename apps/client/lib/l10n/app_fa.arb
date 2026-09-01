@@ -1010,6 +1010,8 @@
   "formatClear": "ساده",
   "documentTruncated": "فقط ابتدای این سند نشان داده شده است — برای بقیه با برنامهٔ دیگری بازش کنید.",
   "documentUnreadable": "این سند اینجا نمایش داده نشد.",
+  "downloadStopped": "دانلود قطع شد",
+  "resumeDownload": "ادامه",
   "addLink": "افزودن پیوند",
   "linkAddress": "نشانی",
   "remindSetIn": "یادآور تنظیم شد — {when} دیگر",

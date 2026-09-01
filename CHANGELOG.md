@@ -84,6 +84,20 @@ Working convention:
 - **The reminder test row is out of Settings again.** It was taken out once on
   purpose and came back in an imported change nobody meant to include.
 
+- **A stopped update download stays where it stopped.** It used to throw the
+  whole screen away and replace it with a full-page error whose button started
+  the check over. Now it says so in a line under the progress bar, with a
+  Resume beside it that picks the transfer up from the byte it reached — the
+  part already downloaded is kept, not fetched again. Running out of space
+  says that instead, because that one you have to go and fix.
+
+- **Reopening the update screen during a download shows the download.** It was
+  still running the whole time — leaving never stopped it — but the screen
+  showed a Download button as though nothing was happening.
+
+- **The update screen shows only the version it is offering.** The full history
+  of every past release is no longer stacked underneath it.
+
 ## v1.3.2
 
 - **A swiped-open card takes the next tap, whatever it lands on.** Tapping

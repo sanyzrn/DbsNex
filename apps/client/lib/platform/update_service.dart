@@ -70,9 +70,22 @@ class UpdateService extends ChangeNotifier {
   Future<void>? get prefetching => _prefetching;
 
   /// How far along the download is, or null for a download with no known size.
+  ///
+  /// Survives a failure on purpose. A stopped transfer keeps its partial file
+  /// on disk and resumes by byte range, so a bar that snapped back to zero
+  /// would be telling the user their progress was thrown away when it was not.
   double? get downloadProgress => _progress;
 
   bool get isDownloading => _prefetching != null;
+
+  /// Why the last download stopped, or null if none has.
+  ///
+  /// Kept rather than swallowed. A transfer that stopped halfway is the one
+  /// state in this class the user can actually do something about, and
+  /// without this "stopped" and "never started" are the same nothing — which
+  /// is how a stalled download came to look like an offer to start one.
+  Object? get downloadError => _downloadError;
+  Object? _downloadError;
 
   /// Whether a download finished that nobody has been told about yet.
   ///
@@ -99,6 +112,10 @@ class UpdateService extends ChangeNotifier {
     if (_downloaded != null) return Future<void>.value();
     final update = available;
     if (update == null) return Future<void>.value();
+    // Asking again clears the last refusal — and resumes, because the
+    // downloader picks up the partial file by byte range rather than
+    // starting the transfer over.
+    _downloadError = null;
     final started = _prefetch(update);
     _prefetching = started;
     return started;
@@ -199,6 +216,7 @@ class UpdateService extends ChangeNotifier {
         }
       }
       _announced = false;
+      _downloadError = null;
       _downloaded = await _downloader.download(
         url: url,
         into: dir,
@@ -210,12 +228,16 @@ class UpdateService extends ChangeNotifier {
         },
       );
       _notify();
-    } catch (_) {
+    } catch (error) {
       _downloaded = null;
       _announced = true;
+      _downloadError = error;
     } finally {
       _prefetching = null;
-      _progress = null;
+      // Cleared on success, kept on failure: see [downloadProgress]. The bar
+      // a resume is offered under has to show where the transfer actually got
+      // to, which is also where it will pick up from.
+      if (_downloadError == null) _progress = null;
       _notify();
     }
   }
