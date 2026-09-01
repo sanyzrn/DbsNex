@@ -34,6 +34,40 @@ Working convention:
 
 ## Unreleased
 
+- **A file you share into Nex is shown, not just named.** Markdown already
+  opened inside the note; now a plain text file, a spreadsheet exported as
+  `.csv` or `.tsv`, and a source or configuration file do too — each read the
+  way it should be read, so a text file is not mistaken for Markdown and a
+  table arrives as a table.
+
+- **Music plays inside the note.** An `.mp3`, `.m4a`, `.wav`, `.ogg`, `.opus`
+  or `.flac` gets the same player a voice note has, instead of being a
+  filename and a size.
+
+- **A picture shared as a file looks like a picture.** The same photo used to
+  look completely different depending on whether it was taken in the app or
+  shared into it; now either one opens full screen from the same tap.
+
+- **Text you write can be formatted.** Select a word while writing or editing a
+  note and the menu that already offers Cut and Copy now also offers **Bold**,
+  *Italic*, `Mono`, ~~Strikethrough~~, Quote, Link, and Regular to take it all
+  back off. A note that has formatting in it is shown formatted when you open
+  it; one that does not is shown exactly as you typed it, so an asterisk you
+  meant as an asterisk stays one. Timeline cards and reminders show the words
+  without the marks.
+
+- **Tap a `mono` word to copy it.** Inside an open note, one touch on a span
+  you set in monospace puts it on the clipboard and says so. Links inside a
+  note — and inside a Markdown file opened in one — are tappable now too, and
+  the whole body can still be selected by dragging across it.
+
+- **Word documents open inside the note.** A `.docx` shared into Nex is read
+  and shown the way everything else in the app is written: headings, bold,
+  italic, strikethrough, lists, quotes, links and tables all survive. What Word
+  can express and this cannot — fonts, colours, columns, images — does not, and
+  the file itself is still one tap from whatever opens it properly. A very long
+  document shows its beginning and says that is what it is showing.
+
 ## v1.3.2
 
 - **A swiped-open card takes the next tap, whatever it lands on.** Tapping

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../documents/docx_markdown.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/ai_chat_sheet.dart';
@@ -23,6 +25,7 @@ import '../platform/reminders.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/tag_picker.dart';
+import '../widgets/text_format_menu.dart';
 import '../widgets/translate_sheet.dart';
 
 /// What the sheet reports back when it closes.
@@ -147,10 +150,16 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       _read = true;
     });
     final note = _note;
-    if (note?.type == NoteType.voice &&
-        note?.mediaUri != null &&
-        _player == null) {
-      _initPlayer(note!.mediaUri!);
+    // A voice note, and now a music file someone shared in as well. Both are a
+    // path to something the bundled player already decodes, and there was
+    // never a reason for the second to be a filename and a byte count.
+    if (note != null && note.mediaUri != null && _player == null) {
+      final playable =
+          note.type == NoteType.voice ||
+          (note.type == NoteType.file &&
+              NexFileKinds.of(path: note.mediaUri, mimeType: note.mimeType) ==
+                  NexFileKind.audio);
+      if (playable) _initPlayer(note.mediaUri!);
     }
   }
 
@@ -352,6 +361,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               // (the default) paints a double-tap word selection out to the
               // end of the line on Persian text.
               selectionWidthStyle: BoxWidthStyle.tight,
+              // The same selection menu the capture sheet has: a note is
+              // formatted where it is written, and it is written in both.
+              contextMenuBuilder: nexFormatContextMenuBuilder(context),
               onChanged: (_) => setDialogState(() {}),
             ),
           ),
@@ -755,15 +767,37 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                     else if (note.type == NoteType.text)
                       // Only the body turns. The "Text" label, the action row and the
                       // rest of the sheet keep the interface's direction.
-                      NexBodyText(
-                        note.content ?? '',
-                        // Looser leading than the timeline card: this is the surface a
-                        // person actually reads a long note on, and 1.5 at 16px runs
-                        // the lines together over a screenful of text.
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyLarge?.copyWith(height: 1.62),
-                      )
+                      //
+                      // Rendered where the writer reached for the formatting menu and
+                      // left exactly as typed where they did not — the same predicate
+                      // the card strips by, so the two always agree about what a note
+                      // says. A sentence with a stray asterisk in it is a sentence.
+                      nexLooksLikeMarkdown(note.content ?? '')
+                      // Selection belongs to the area rather than to the text,
+                      // which is what lets a link and a `code` span still
+                      // answer a tap — `SelectableText` handles every gesture
+                      // itself and dispatches none of them onward.
+                      ? SelectionArea(
+                          child: NexMarkdown(
+                            note.content!,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyLarge?.copyWith(height: 1.62),
+                            selectable: false,
+                            onTapLink: _openHref,
+                            onCopyCode: (code) =>
+                                unawaited(_copyCodeSpan(context, code)),
+                          ),
+                        )
+                      : NexBodyText(
+                          note.content ?? '',
+                          // Looser leading than the timeline card: this is the surface a
+                          // person actually reads a long note on, and 1.5 at 16px runs
+                          // the lines together over a screenful of text.
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(height: 1.62),
+                        )
                     else if (note.type == NoteType.voice) ...[
                       Text(
                         l10n.voiceDuration(
@@ -890,15 +924,21 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           ),
                         ),
                       ),
-                      // A Markdown file, shown rather than merely listed. The
-                      // note itself only ever held the filename — the words are
-                      // in a file on disk — so this is the one place in the app
-                      // that reads a note's media back as text.
-                      if (nexIsMarkdownFile(
-                        path: note.mediaUri,
-                        mimeType: note.mimeType,
-                      ))
-                        _MarkdownFileBody(path: note.mediaUri!),
+                      // A file shown rather than merely listed. The note
+                      // itself only ever held the filename — the content is in
+                      // a file on disk — so this is the one place in the app
+                      // that reads a note's media back.
+                      if (note.mediaUri != null)
+                        _FileBody(
+                          path: note.mediaUri!,
+                          kind: NexFileKinds.of(
+                            path: note.mediaUri,
+                            mimeType: note.mimeType,
+                          ),
+                          player: _player,
+                          position: _position,
+                          duration: _duration,
+                        ),
                     ],
                     if (note.type != NoteType.text) ...[
                       const SizedBox(height: NexSpacing.md),
@@ -1596,20 +1636,104 @@ class _LinkBody extends StatelessWidget {
   }
 }
 
-/// Whether a file note is worth rendering as Markdown rather than only naming.
+/// Everything a file note can show beyond its own name.
 ///
-/// The MIME type first where the sharing app sent one, then the extension —
-/// Android's share sheet is generous with `application/octet-stream`, so the
-/// name is often the only thing that knows.
-bool nexIsMarkdownFile({String? path, String? mimeType}) {
-  if (path == null || path.isEmpty) return false;
-  final type = mimeType?.toLowerCase().split(';').first.trim();
-  if (type == 'text/markdown' || type == 'text/x-markdown') return true;
-  const extensions = {'.md', '.markdown', '.mdown', '.mkd', '.mdtext'};
-  return extensions.contains(p.extension(path).toLowerCase());
+/// A file note stores a filename and a path, and for most of this app's life
+/// that was all the sheet did with one: print the name, hand the path to the
+/// operating system. Markdown was the single exception, rendered by a widget
+/// wired to that one format by a predicate that could answer exactly one
+/// question.
+///
+/// This is the generalisation. [NexFileKind] answers what the file is; this
+/// answers what to do about it. A kind it has no answer for renders nothing
+/// and leaves the row above untouched — which is the old behaviour, and the
+/// right one for a format nobody here can draw.
+class _FileBody extends StatelessWidget {
+  const _FileBody({
+    required this.path,
+    required this.kind,
+    required this.player,
+    required this.position,
+    required this.duration,
+  });
+
+  final String path;
+  final NexFileKind kind;
+
+  /// Non-null once the sheet has loaded this file into the audio player.
+  ///
+  /// Owned by the sheet rather than created here: the player outlives any one
+  /// rebuild, and a second one on the same note would play the file twice.
+  final AudioPlayer? player;
+  final Duration position;
+  final Duration duration;
+
+  @override
+  Widget build(BuildContext context) {
+    if (kind.isText) return _FileTextBody(path: path, kind: kind);
+    if (kind == NexFileKind.document) return _DocumentBody(path: path);
+    if (kind == NexFileKind.image) return _ImageFileBody(path: path);
+    if (kind == NexFileKind.audio && player != null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: NexSpacing.sm),
+        child: _VoicePlayerControls(
+          player: player!,
+          position: position,
+          duration: duration,
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
 }
 
-/// Reads a Markdown file off disk and renders it.
+/// An image that arrived as a file rather than through the camera.
+///
+/// The same picture in the same app looked entirely different depending on
+/// which door it came in by: one captured or picked was shown full width and
+/// opened into the viewer, and one dropped on the share sheet was a filename
+/// and a byte count. Same picture, same gesture, same viewer, either way now.
+class _ImageFileBody extends StatelessWidget {
+  const _ImageFileBody({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!File(path).existsSync()) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: NexSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(
+              NexPageRoute<void>(builder: (_) => _FullScreenPhoto(path: path)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(NexRadius.md),
+              child: Image.file(
+                File(path),
+                fit: BoxFit.cover,
+                height: 220,
+                width: double.infinity,
+                // A file named `.png` that is not one lands here as a decode
+                // failure rather than as a crash. Nothing is drawn, and the
+                // row above still says everything the file itself knows.
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          Text(l10n.tapToExpand, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+}
+
+/// Reads a file off disk and shows it as what it is.
 ///
 /// The words are not in the note. A file note stores its filename and a path,
 /// so this is the one place in the app that reads a note's media back as text.
@@ -1620,31 +1744,45 @@ bool nexIsMarkdownFile({String? path, String? mimeType}) {
 /// around it already calls `existsSync` and `lengthSync` to print the file's
 /// size. In `initState` because this sheet rebuilds on every action taken in
 /// it — captioning, tagging, pinning — and re-reading the file each time would
-/// turn a cheap read into a repeated one.
+/// turn a cheap read into a repeated one. A table is parsed there too, for the
+/// same reason.
 ///
 /// Three outcomes, all of them said out loud. A file too large is named but
 /// not rendered, and says why. A file that cannot be read reports the
 /// runtime's own words: a preview that silently shows nothing is
 /// indistinguishable from a file that genuinely has nothing in it, and this
 /// project has paid for that confusion before.
-class _MarkdownFileBody extends StatefulWidget {
-  const _MarkdownFileBody({required this.path});
+class _FileTextBody extends StatefulWidget {
+  const _FileTextBody({required this.path, required this.kind});
 
   final String path;
+
+  /// One of the four [NexFileKind.isText] kinds. Each is read the same way and
+  /// drawn differently — and the difference matters: a `.txt` must not go
+  /// through a Markdown parser, or a shopping list whose line starts with `#`
+  /// acquires a heading nobody typed.
+  final NexFileKind kind;
 
   /// Past this, the file is named but not rendered. Generous for prose —
   /// roughly a quarter of a million characters — and small enough that both
   /// reading it and building it stay inside a frame.
   static const maxBytes = 512 * 1024;
 
+  /// Past this many rows a table is drawn short and says so. The byte cap
+  /// alone does not bound the widget count: half a megabyte of two-column CSV
+  /// is tens of thousands of rows, and every one of them would be built.
+  static const maxRows = 200;
+
   @override
-  State<_MarkdownFileBody> createState() => _MarkdownFileBodyState();
+  State<_FileTextBody> createState() => _FileTextBodyState();
 }
 
-class _MarkdownFileBodyState extends State<_MarkdownFileBody> {
+class _FileTextBodyState extends State<_FileTextBody> {
   String? _text;
   String? _error;
   bool _tooLarge = false;
+  List<List<String>> _rows = const [];
+  int _omittedRows = 0;
 
   @override
   void initState() {
@@ -1653,19 +1791,21 @@ class _MarkdownFileBodyState extends State<_MarkdownFileBody> {
   }
 
   @override
-  void didUpdateWidget(_MarkdownFileBody old) {
+  void didUpdateWidget(_FileTextBody old) {
     super.didUpdateWidget(old);
-    if (old.path != widget.path) _load();
+    if (old.path != widget.path || old.kind != widget.kind) _load();
   }
 
   void _load() {
     _text = null;
     _error = null;
     _tooLarge = false;
+    _rows = const [];
+    _omittedRows = 0;
     try {
       final file = File(widget.path);
       if (!file.existsSync()) return;
-      if (file.lengthSync() > _MarkdownFileBody.maxBytes) {
+      if (file.lengthSync() > _FileTextBody.maxBytes) {
         _tooLarge = true;
         return;
       }
@@ -1675,6 +1815,20 @@ class _MarkdownFileBodyState extends State<_MarkdownFileBody> {
       // opened — `readAsStringSync` decodes, and a mislabelled binary lands
       // here rather than rendering as mojibake.
       _error = '$error';
+      return;
+    }
+    if (widget.kind != NexFileKind.table) return;
+    final parsed = NexDelimitedText.parse(
+      _text!,
+      delimiter: NexDelimitedText.delimiterFor(
+        NexFileKinds.extensionOf(widget.path),
+      ),
+    );
+    if (parsed.length > _FileTextBody.maxRows) {
+      _omittedRows = parsed.length - _FileTextBody.maxRows;
+      _rows = parsed.sublist(0, _FileTextBody.maxRows);
+    } else {
+      _rows = parsed;
     }
   }
 
@@ -1688,30 +1842,373 @@ class _MarkdownFileBodyState extends State<_MarkdownFileBody> {
     if (_tooLarge) {
       return Padding(
         padding: const EdgeInsets.only(top: NexSpacing.sm),
-        child: Text(l10n.markdownTooLarge, style: quiet),
+        child: Text(l10n.filePreviewTooLarge, style: quiet),
       );
     }
     if (_error != null) {
       return Padding(
         padding: const EdgeInsets.only(top: NexSpacing.sm),
-        child: Text(l10n.markdownUnreadable(_error!), style: quiet),
+        child: Text(l10n.filePreviewUnreadable(_error!), style: quiet),
       );
     }
     final text = _text?.trim() ?? '';
     if (text.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: NexSpacing.sm),
-      child: NexMarkdown(text, onTapLink: _openLink),
+      child: switch (widget.kind) {
+        NexFileKind.markdown => SelectionArea(
+          child: NexMarkdown(
+            text,
+            selectable: false,
+            onTapLink: _openHref,
+            onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
+          ),
+        ),
+        // The same leading as a text note's body in this same sheet: a plain
+        // file someone shared and a note someone typed are both prose, and
+        // there is no reason to read them at two different densities.
+        NexFileKind.plainText => NexBodyText(
+          text,
+          style: theme.textTheme.bodyLarge?.copyWith(height: 1.62),
+        ),
+        NexFileKind.table when _rows.isNotEmpty => _DelimitedTable(
+          rows: _rows,
+          omitted: _omittedRows,
+        ),
+        // A table whose parse produced nothing is still a text file, and
+        // showing its source beats showing an empty frame.
+        NexFileKind.table || NexFileKind.code => _CodeBlock(text),
+        _ => const SizedBox.shrink(),
+      },
     );
   }
 
-  Future<void> _openLink(String href) async {
-    final uri = Uri.tryParse(href);
-    if (uri == null || !uri.hasScheme) return;
+}
+
+/// Copies a tapped `code` span and says so.
+///
+/// Silently would not do: a tap that copied and a tap that missed look exactly
+/// the same, and the second is the more likely of the two on a span two
+/// characters wide.
+Future<void> _copyCodeSpan(BuildContext context, String code) async {
+  final message = AppLocalizations.of(context).copied;
+  await Clipboard.setData(ClipboardData(text: code));
+  if (!context.mounted) return;
+  nexShowBanner(context, message: message);
+}
+
+/// Follows a link out of rendered Markdown — a note's own body, or a file
+/// shown inside one.
+///
+/// A schemeless href is ignored rather than guessed at: `[x](notes/plan.md)`
+/// is a relative path in somebody's repository, and handing it to the OS as a
+/// URL opens nothing at best.
+Future<void> _openHref(String href) async {
+  final uri = Uri.tryParse(href);
+  if (uri == null || !uri.hasScheme) return;
+  try {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } catch (_) {
+    // No handler for this scheme on this device. The link stays a link.
+  }
+}
+
+/// How a `.docx` becomes Markdown.
+///
+/// A variable rather than a direct call, for a testing reason said out loud:
+/// `flutter_test` runs a widget test's body in a fake-async zone, and work
+/// handed to another isolate does not report back into it. With the real
+/// reader in place the only thing a widget test could ever assert about this
+/// preview is that it is still loading — which is exactly the part that was
+/// never in doubt. Tests swap in a same-isolate reader; nothing else does.
+@visibleForTesting
+Future<NexDocxText?> Function(List<int> bytes) nexDocxReader = (bytes) =>
+    Isolate.run(() => NexDocx.read(bytes));
+
+/// A `.docx`, read into Markdown and rendered like any other document in a
+/// note.
+///
+/// Off the main thread, unlike every other preview here. A `.docx` is
+/// compressed, so the file's size says little about how much work opening it
+/// is: unzipping and parsing a few hundred kilobytes of XML is not a fraction
+/// of a frame the way reading half a megabyte of plain text is. So this one
+/// waits, and shows that it is waiting.
+///
+/// Only `.docx` for now. The other document kinds — PDF above all — reach this
+/// widget and render nothing, exactly as they did before, because showing them
+/// needs a renderer this app does not carry.
+class _DocumentBody extends StatefulWidget {
+  const _DocumentBody({required this.path});
+
+  final String path;
+
+  @override
+  State<_DocumentBody> createState() => _DocumentBodyState();
+}
+
+class _DocumentBodyState extends State<_DocumentBody> {
+  NexDocxText? _document;
+  String? _error;
+  bool _tooLarge = false;
+  bool _unreadable = false;
+  bool _loading = false;
+
+  /// The only document format with a reader here. Everything else stays a
+  /// named file, which is what it was.
+  bool get _readable => NexFileKinds.extensionOf(widget.path) == 'docx';
+
+  @override
+  void initState() {
+    super.initState();
+    // Assigned rather than set: `setState` inside `initState` — or inside
+    // `didUpdateWidget` — fires during a build, which Flutter rejects. A
+    // rebuild is already coming in both cases.
+    _loading = _readable;
+    unawaited(_load());
+  }
+
+  @override
+  void didUpdateWidget(_DocumentBody old) {
+    super.didUpdateWidget(old);
+    if (old.path == widget.path) return;
+    _document = null;
+    _error = null;
+    _tooLarge = false;
+    _unreadable = false;
+    _loading = _readable;
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    if (!_readable) return;
+    final path = widget.path;
+    NexDocxText? read;
+    String? error;
+    var tooLarge = false;
     try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      // No handler for this scheme on this device. The link stays a link.
+      final file = File(path);
+      if (file.existsSync()) {
+        if (file.lengthSync() > NexDocx.maxBytes) {
+          tooLarge = true;
+        } else {
+          // Read synchronously, parsed elsewhere. The read is bounded by
+          // the cap just checked and costs what the other previews' reads
+          // cost; the parse is the expensive half, and it is the half that
+          // leaves the main thread. See the class comment: a `.docx` is
+          // compressed, so its size on disk says little about the work of
+          // opening it.
+          final bytes = file.readAsBytesSync();
+          try {
+            read = await nexDocxReader(bytes);
+          } on Object {
+            // Spawning an isolate can fail for reasons that have nothing to
+            // do with this document. That is a reason to do the work here and
+            // wear the pause, not a reason to refuse to show the file — the
+            // parse itself reports its own failures by returning null.
+            read = NexDocx.read(bytes);
+          }
+        }
+      }
+    } catch (caught) {
+      error = '$caught';
     }
+    // The path can have changed while the isolate was working — the sheet is
+    // reused across notes — and writing this answer onto a different file
+    // would be worse than dropping it.
+    if (!mounted || widget.path != path) return;
+    setState(() {
+      _document = read;
+      _error = error;
+      _tooLarge = tooLarge;
+      _unreadable = !tooLarge && error == null && read == null;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_readable) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final quiet = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    Widget say(String message) => Padding(
+      padding: const EdgeInsets.only(top: NexSpacing.sm),
+      child: Text(message, style: quiet),
+    );
+
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.only(top: NexSpacing.sm),
+        child: NexSkeleton(height: 16),
+      );
+    }
+    if (_tooLarge) return say(l10n.filePreviewTooLarge);
+    if (_error != null) return say(l10n.filePreviewUnreadable(_error!));
+    if (_unreadable) return say(l10n.documentUnreadable);
+    final document = _document;
+    if (document == null || document.markdown.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: NexSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SelectionArea(
+            child: NexMarkdown(
+              document.markdown,
+              selectable: false,
+              onTapLink: _openHref,
+              onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
+            ),
+          ),
+          // A document that stops early with nothing said about it reads as a
+          // document that is that short.
+          if (document.truncated) say(l10n.documentTruncated),
+        ],
+      ),
+    );
+  }
+}
+
+/// Source and configuration, in the same block the Markdown renderer already
+/// uses for a fenced block — so a `.dart` file and a code fence inside a `.md`
+/// file look like the same thing, because they are.
+class _CodeBlock extends StatelessWidget {
+  const _CodeBlock(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final base = theme.textTheme.bodyLarge ?? const TextStyle();
+    return Container(
+      padding: const EdgeInsets.all(NexSpacing.sm),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(NexRadius.md),
+      ),
+      // Source does not wrap. A line broken at the container's edge is a
+      // different line from the one in the file, and where indentation carries
+      // meaning it is a misleading one — so long lines scroll sideways, the
+      // way every editor shows them.
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SelectableText(
+          text,
+          // Left to right whatever the interface is doing, and whatever the
+          // strings inside the file are: source is written left to right, and
+          // letting a Persian comment turn the block would put the indentation
+          // of every line on the wrong side.
+          textDirection: TextDirection.ltr,
+          style: base.copyWith(
+            // By family name rather than a bundled font, for the same reason
+            // the Markdown renderer does it: the app ships one typeface for
+            // its own text, and code that falls back to the platform's mono is
+            // closer to right than code set in the body face.
+            fontFamily: 'monospace',
+            fontFamilyFallback: const ['Courier New', 'monospace'],
+            fontSize: (base.fontSize ?? 16) - 1,
+            height: 1.45,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A `.csv` or `.tsv`, drawn as the table it is.
+///
+/// Borders, weights and padding are the ones the Markdown renderer uses for a
+/// Markdown table, deliberately: a spreadsheet exported to CSV and a table
+/// typed into a note are the same object to a reader.
+class _DelimitedTable extends StatelessWidget {
+  const _DelimitedTable({required this.rows, required this.omitted});
+
+  final List<List<String>> rows;
+
+  /// How many rows were left undrawn. Said out loud rather than trailing off:
+  /// a table that stops at row 200 with no explanation reads as a file that
+  /// ends at row 200.
+  final int omitted;
+
+  /// Past this, a cell wraps instead of stretching its column across the
+  /// screen. One paragraph in one cell should not set the width of the table.
+  static const _maxCellWidth = 260.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final base = theme.textTheme.bodyLarge;
+    final columns = rows.fold<int>(
+      0,
+      (widest, row) => row.length > widest ? row.length : widest,
+    );
+    if (columns == 0) return const SizedBox.shrink();
+    // The same whole-document rule as the Markdown renderer: the direction
+    // comes from what is written, not from the interface language, so a
+    // Persian spreadsheet starts its first column on the right.
+    final direction =
+        nexDirectionOf(rows.first.join(' ')) ?? Directionality.of(context);
+    return Directionality(
+      textDirection: direction,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Table(
+              defaultColumnWidth: const IntrinsicColumnWidth(),
+              border: TableBorder.all(color: scheme.outlineVariant),
+              children: [
+                for (var r = 0; r < rows.length; r++)
+                  TableRow(
+                    children: [
+                      for (var c = 0; c < columns; c++)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: NexSpacing.sm,
+                            vertical: NexSpacing.xs,
+                          ),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: _maxCellWidth,
+                            ),
+                            child: Text(
+                              // Ragged rows are left ragged by the parser
+                              // rather than padded, so the short ones are
+                              // filled in here — at the edge, where inventing
+                              // an empty cell is a drawing decision and not a
+                              // claim about the file.
+                              c < rows[r].length ? rows[r][c] : '',
+                              style: r == 0
+                                  ? base?.copyWith(fontWeight: FontWeight.w700)
+                                  : base,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+          if (omitted > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: NexSpacing.xs),
+              child: Text(
+                l10n.tableTruncated(rows.length),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

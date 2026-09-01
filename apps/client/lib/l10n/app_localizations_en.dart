@@ -2048,13 +2048,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get swipeTrailingEdge => 'Swipe from the right';
 
   @override
-  String get markdownTooLarge =>
+  String get filePreviewTooLarge =>
       'Too large to show here — open it in another app.';
 
   @override
-  String markdownUnreadable(String error) {
+  String filePreviewUnreadable(String error) {
     return 'This file could not be read — $error';
   }
+
+  @override
+  String tableTruncated(int count) {
+    return 'Showing the first $count rows.';
+  }
+
+  @override
+  String get formatBold => 'Bold';
+
+  @override
+  String get formatItalic => 'Italic';
+
+  @override
+  String get formatMono => 'Mono';
+
+  @override
+  String get formatStrikethrough => 'Strikethrough';
+
+  @override
+  String get formatQuote => 'Quote';
+
+  @override
+  String get formatLink => 'Link';
+
+  @override
+  String get formatClear => 'Regular';
+
+  @override
+  String get documentTruncated => 'Only the start of this document is shown — open it in another app for the rest.';
+
+  @override
+  String get documentUnreadable => 'This document could not be shown here.';
+
+  @override
+  String get addLink => 'Add link';
+
+  @override
+  String get linkAddress => 'Address';
 
   @override
   String remindSetIn(String when) {

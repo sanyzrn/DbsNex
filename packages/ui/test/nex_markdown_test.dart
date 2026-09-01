@@ -95,32 +95,74 @@ void main() {
     });
   });
 
-  group('nexLooksLikeMarkdown', () {
-    test('says yes to structure worth rendering', () {
-      expect(nexLooksLikeMarkdown('# Heading'), isTrue);
-      expect(nexLooksLikeMarkdown('- one\n- two'), isTrue);
-      expect(nexLooksLikeMarkdown('1. one\n2. two'), isTrue);
-      expect(nexLooksLikeMarkdown('some **bold** text'), isTrue);
-      expect(nexLooksLikeMarkdown('run `flutter test` first'), isTrue);
-      expect(nexLooksLikeMarkdown('```dart\nfinal x = 1;\n```'), isTrue);
-      expect(nexLooksLikeMarkdown('> quoted'), isTrue);
-      expect(nexLooksLikeMarkdown('| a | b |\n|---|---|'), isTrue);
-      expect(nexLooksLikeMarkdown('see [the docs](https://x.dev)'), isTrue);
-      expect(nexLooksLikeMarkdown('- مورد اول\n- مورد دوم'), isTrue);
+  group('a tappable code span', () {
+    Future<void> pump(
+      WidgetTester tester,
+      String source, {
+      void Function(String)? onCopyCode,
+      void Function(String)? onTapLink,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: nexLightTheme(),
+          home: Scaffold(
+            body: SelectionArea(
+              child: NexMarkdown(
+                source,
+                selectable: false,
+                onCopyCode: onCopyCode,
+                onTapLink: onTapLink,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('reports its own text when tapped', (tester) async {
+      final copied = <String>[];
+      await pump(tester, '`flutter test`', onCopyCode: copied.add);
+
+      await tester.tap(find.text('flutter test', findRichText: true));
+      await tester.pumpAndSettle();
+
+      expect(copied, ['flutter test']);
     });
 
-    test('says no to ordinary prose', () {
-      expect(nexLooksLikeMarkdown(''), isFalse);
-      expect(nexLooksLikeMarkdown('   '), isFalse);
-      expect(nexLooksLikeMarkdown('Just a sentence.'), isFalse);
-      // The case that would cost something if it were wrong: an asterisk or an
-      // underscore loose in prose is not markup, and rendering it as markup
-      // would delete a character the user typed.
-      expect(nexLooksLikeMarkdown('2 * 3 = 6'), isFalse);
-      expect(nexLooksLikeMarkdown('the file is my_notes.txt'), isFalse);
-      expect(nexLooksLikeMarkdown('یک جملهٔ فارسی ساده.'), isFalse);
-      // A dash used as punctuation mid-line, not as a list marker.
-      expect(nexLooksLikeMarkdown('سلام - حالت خوبه؟'), isFalse);
+    testWidgets('a fenced block is not turned into one tap target', (
+      tester,
+    ) async {
+      // A block already scrolls sideways; collapsing it into a single span
+      // would take that away. The newline is what tells the two apart.
+      final copied = <String>[];
+      await pump(tester, '```\nfinal x = 1;\n```', onCopyCode: copied.add);
+
+      await tester.tap(
+        find.textContaining('final x = 1;', findRichText: true).first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(copied, isEmpty);
+    });
+
+    testWidgets('a link in the same arrangement is tappable too', (
+      tester,
+    ) async {
+      // The reason selection moved out to a SelectionArea: SelectableText
+      // handles every gesture itself and dispatches none of them to the spans
+      // underneath, so neither a link nor a code span inside one can be hit.
+      final followed = <String>[];
+      await pump(
+        tester,
+        '[the docs](https://x.dev)',
+        onTapLink: followed.add,
+      );
+
+      await tester.tap(find.text('the docs', findRichText: true));
+      await tester.pumpAndSettle();
+
+      expect(followed, ['https://x.dev']);
     });
   });
 }

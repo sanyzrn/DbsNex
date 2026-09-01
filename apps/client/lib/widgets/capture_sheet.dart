@@ -6,6 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import 'text_format_menu.dart';
 
 class CaptureSheet extends StatefulWidget {
   const CaptureSheet({
@@ -149,6 +150,9 @@ class _CaptureSheetState extends State<CaptureSheet> {
                   // included, even though the selection itself (and copy) was always
                   // just the word.
                   selectionWidthStyle: BoxWidthStyle.tight,
+                  // Bold, italic and the rest, appended to the platform's own
+                  // Cut/Copy/Paste rather than replacing them.
+                  contextMenuBuilder: nexFormatContextMenuBuilder(context),
                   decoration: InputDecoration(
                     hintText: l10n.captureHint,
                     border: InputBorder.none,

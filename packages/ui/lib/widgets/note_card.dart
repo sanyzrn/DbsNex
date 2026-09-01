@@ -131,7 +131,10 @@ class NoteCard extends StatelessWidget {
   /// on the parent would read the tag list twice on the way past.
   String _label() => [
     strings.noteOfType(note.type.name),
-    note.displayText ?? '',
+    // Stripped for the same reason the preview below is: a screen reader
+    // reading "asterisk asterisk done asterisk asterisk" is the audible
+    // version of the card showing its own source.
+    NexMarkdownText.preview(note.displayText ?? ''),
   ].where((value) => value.isNotEmpty).join('. ');
 }
 
@@ -392,7 +395,12 @@ class _Preview extends StatelessWidget {
     }
     if (note.type == NoteType.link) return _LinkPreview(note: note);
 
-    final text = note.displayText ?? note.type.name;
+    // The card is a picture of the note, not the note: a body someone made
+    // bold shows as bold text would, without the asterisks that made it so.
+    // Rendering Markdown here instead was considered and is wrong — a card is
+    // two lines of a fixed height, and a heading or a list inside one would
+    // fight that.
+    final text = NexMarkdownText.preview(note.displayText ?? note.type.name);
     final direction = nexDirectionOf(text);
     return SizedBox(
       // Full width, so a short right-to-left line reaches the right edge
@@ -531,7 +539,9 @@ class _LinkPreview extends StatelessWidget {
     final host = urlHost(note.linkUrl);
     // Before the page has been read, the URL is the only thing there is to
     // show — which is honest, and better than an empty card that looks broken.
-    final headline = note.displayText ?? note.linkUrl ?? '';
+    final headline = NexMarkdownText.preview(
+      note.displayText ?? note.linkUrl ?? '',
+    );
     final direction = nexDirectionOf(headline);
     return SizedBox(
       width: double.infinity,

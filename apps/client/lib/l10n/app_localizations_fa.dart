@@ -2049,13 +2049,51 @@ class AppLocalizationsFa extends AppLocalizations {
   String get swipeTrailingEdge => 'کشیدن از راست';
 
   @override
-  String get markdownTooLarge =>
+  String get filePreviewTooLarge =>
       'برای نمایش اینجا بزرگ است — با برنامهٔ دیگری بازش کنید.';
 
   @override
-  String markdownUnreadable(String error) {
+  String filePreviewUnreadable(String error) {
     return 'این فایل خوانده نشد — $error';
   }
+
+  @override
+  String tableTruncated(int count) {
+    return 'فقط $count سطر اول نشان داده شده است.';
+  }
+
+  @override
+  String get formatBold => 'پررنگ';
+
+  @override
+  String get formatItalic => 'کج';
+
+  @override
+  String get formatMono => 'مونو';
+
+  @override
+  String get formatStrikethrough => 'خط‌خورده';
+
+  @override
+  String get formatQuote => 'نقل‌قول';
+
+  @override
+  String get formatLink => 'پیوند';
+
+  @override
+  String get formatClear => 'ساده';
+
+  @override
+  String get documentTruncated => 'فقط ابتدای این سند نشان داده شده است — برای بقیه با برنامهٔ دیگری بازش کنید.';
+
+  @override
+  String get documentUnreadable => 'این سند اینجا نمایش داده نشد.';
+
+  @override
+  String get addLink => 'افزودن پیوند';
+
+  @override
+  String get linkAddress => 'نشانی';
 
   @override
   String remindSetIn(String when) {
