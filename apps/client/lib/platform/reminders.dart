@@ -465,11 +465,20 @@ class NexReminders {
 
   /// Posts one notification now, and schedules a second a few seconds out.
   ///
-  /// A diagnostic, reachable from Settings, and the fastest way to find out
-  /// which half of this is broken on a given phone: the immediate one proves
-  /// permission and the channel, the delayed one proves scheduling and
-  /// delivery. Reminders failed for a year because those two look identical
-  /// from inside the app — both are "nothing happened".
+  /// A diagnostic, and the fastest way to find out which half of this is
+  /// broken on a given phone: the immediate one proves permission and the
+  /// channel, the delayed one proves scheduling and delivery. Reminders failed
+  /// for a year because those two look identical from inside the app — both
+  /// are "nothing happened".
+  ///
+  /// **Deliberately has no caller.** It had a row in Settings twice and was
+  /// taken out of Settings twice — once for a quieter settings screen, once
+  /// because it came back in an imported working tree that did not know that.
+  /// It is kept because the diagnostic is genuinely useful when reminders
+  /// misbehave and rewriting it from scratch each time is worse; it is not
+  /// wired up because the owner of this app has now twice decided it does not
+  /// belong on that screen. Wiring it up again is a decision for them, not a
+  /// loose end to tidy.
   ///
   /// Returns null on success, or what went wrong.
   Future<String?> sendTestNotification({
