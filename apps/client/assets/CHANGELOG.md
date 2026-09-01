@@ -34,6 +34,18 @@ Working convention:
 
 ## Unreleased
 
+- **A video shared into Nex shows a frame of itself.** Until now a shared video
+  was a filename and a size, which is nothing to recognise a clip by. It gets a
+  cover now — a frame from a second in, past the fade a lot of video opens with
+  — and tapping it hands the file to whatever plays video on your device, which
+  is where scrubbing and volume belong. Android only for now, the same as the
+  PDF preview and for the same reason: it uses what Android already has instead
+  of adding a video engine to the app.
+
+- **The changelog on About is a card of its own.** It arrived as ten releases of
+  text down the page, which put everything under it a long scroll away. It is a
+  bounded card now that you scroll through without scrolling the page.
+
 ## v1.4.0
 
 - **A file you share into Nex is shown, not just named.** Markdown already
@@ -99,8 +111,8 @@ Working convention:
 
 - **The update screen shows only the version it is offering.** The full history
   of every past release is no longer stacked underneath a question about one
-  build — it moved to **Settings → About**, into a card of its own holding the
-  last ten releases, which you scroll through without scrolling the page.
+  build — it moved to About, where the last ten releases are listed on the page
+  rather than in a small box that scrolls inside itself.
 
 - **The download shows up in the notification shade.** While an update is
   downloading there is a progress notification you can watch without opening

@@ -38,6 +38,7 @@ Nex shows a file rather than just naming it:
   laid out properly.
 - Word documents (`.docx`) — headings, lists, tables and links all survive.
 - PDFs — the first page. Tap it to open the file properly.
+- Video — a frame of it. Tap to play it in your video player.
 - Music — plays in the note.
 - Pictures — shown full width, tap to expand.
 
