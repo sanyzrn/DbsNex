@@ -59,4 +59,93 @@ void main() {
     );
     handle.dispose();
   });
+
+  group('a card asked to show its whole note', () {
+    Note checklist(int items) => Note(
+      id: 'n2',
+      type: NoteType.checklist,
+      content: [
+        for (var i = 1; i <= items; i++) '- [ ] item $i',
+      ].join('\n'),
+      createdAt: DateTime.utc(2026, 7, 28),
+      updatedAt: DateTime.utc(2026, 7, 28),
+      deviceId: 'test',
+      rev: 1,
+      syncState: SyncState.pending,
+    );
+
+    Widget host(Note note, {required bool expanded}) => MaterialApp(
+      theme: nexLightTheme(),
+      home: Scaffold(
+        body: SizedBox(
+          width: 400,
+          child: NoteCard(note: note, expanded: expanded),
+        ),
+      ),
+    );
+
+    testWidgets('a seven-item checklist shows two of them by default', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host(checklist(7), expanded: false));
+      await tester.pumpAndSettle();
+
+      expect(find.text('item 1'), findsOneWidget);
+      expect(find.text('item 2'), findsOneWidget);
+      expect(find.text('item 7'), findsNothing);
+      // And says how many it is not showing.
+      expect(find.text('+5'), findsOneWidget);
+    });
+
+    testWidgets('expanded, it shows all seven and stops counting', (
+      tester,
+    ) async {
+      // The whole reason for the setting: this list has to stay in view.
+      await tester.pumpWidget(host(checklist(7), expanded: true));
+      await tester.pumpAndSettle();
+
+      for (var i = 1; i <= 7; i++) {
+        expect(find.text('item $i'), findsOneWidget, reason: 'item $i');
+      }
+      expect(find.text('+5'), findsNothing);
+    });
+
+    testWidgets('the card grows for it, and never shrinks below a row', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host(checklist(7), expanded: false));
+      await tester.pumpAndSettle();
+      final collapsed = tester.getSize(find.byType(NoteCard)).height;
+
+      await tester.pumpWidget(host(checklist(7), expanded: true));
+      await tester.pumpAndSettle();
+      final grown = tester.getSize(find.byType(NoteCard)).height;
+
+      expect(grown, greaterThan(collapsed));
+
+      // A one-item list expanded is still a full card: the fixed height is a
+      // floor, not a thing that was thrown away.
+      await tester.pumpWidget(host(checklist(1), expanded: true));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(NoteCard)).height, collapsed);
+    });
+
+    testWidgets('a long text note is not cut off when expanded', (
+      tester,
+    ) async {
+      final long = textNote(List.filled(40, 'word').join(' '));
+
+      await tester.pumpWidget(host(long, expanded: false));
+      await tester.pumpAndSettle();
+      final collapsed = tester.getSize(find.byType(NoteCard)).height;
+
+      await tester.pumpWidget(host(long, expanded: true));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getSize(find.byType(NoteCard)).height,
+        greaterThan(collapsed),
+      );
+    });
+  });
 }

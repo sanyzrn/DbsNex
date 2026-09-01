@@ -104,6 +104,12 @@ Working convention:
   download. When it finishes, the same notification says so, and tapping it
   opens the update ready to install.
 
+- **A note can stay open on the timeline.** Cards show two lines, which is
+  right for almost everything and wrong for the one checklist you need in
+  front of you. Open a note and choose **Show in full**: that card grows to
+  fit all of it — every item of a checklist, every line of a note — and stays
+  that way until you put it back. Every other card is unchanged.
+
 ## v1.3.2
 
 - **A swiped-open card takes the next tap, whatever it lands on.** Tapping

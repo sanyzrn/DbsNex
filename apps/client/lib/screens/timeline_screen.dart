@@ -1904,6 +1904,7 @@ class TimelineScreenState extends State<TimelineScreen>
                     note: note,
                     strings: nexCardStrings(context),
                     onTap: () => _tapNote(note),
+                    expanded: widget.preferences.isNoteExpanded(note.id),
                   ),
                 ),
               ),

@@ -2104,6 +2104,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateReadyBody => 'Tap to install';
 
   @override
+  String get expandCard => 'Show in full';
+
+  @override
+  String get collapseCard => 'Show two lines';
+
+  @override
   String get addLink => 'Add link';
 
   @override

@@ -2105,6 +2105,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get updateReadyBody => 'برای نصب ضربه بزنید';
 
   @override
+  String get expandCard => 'نمایش کامل';
+
+  @override
+  String get collapseCard => 'نمایش دو خطی';
+
+  @override
   String get addLink => 'افزودن پیوند';
 
   @override

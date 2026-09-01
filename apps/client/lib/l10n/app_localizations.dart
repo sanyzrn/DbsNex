@@ -3674,6 +3674,18 @@ abstract class AppLocalizations {
   /// **'Tap to install'**
   String get updateReadyBody;
 
+  /// Action that makes a note’s timeline card show all of it
+  ///
+  /// In en, this message translates to:
+  /// **'Show in full'**
+  String get expandCard;
+
+  /// Action that puts an expanded timeline card back to its normal height
+  ///
+  /// In en, this message translates to:
+  /// **'Show two lines'**
+  String get collapseCard;
+
   /// Title of the dialog asking where a link should point
   ///
   /// In en, this message translates to:
