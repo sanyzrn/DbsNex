@@ -23,6 +23,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/pdf_preview.dart';
 import '../platform/reminders.dart';
+import '../platform/video_preview.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/tag_picker.dart';
@@ -1718,6 +1719,9 @@ class _FileBody extends StatelessWidget {
       };
     }
     if (kind == NexFileKind.image) return _ImageFileBody(path: path);
+    if (kind == NexFileKind.video) {
+      return _VideoBody(path: path, onOpen: onOpen);
+    }
     if (kind == NexFileKind.audio && player != null) {
       return Padding(
         padding: const EdgeInsets.only(top: NexSpacing.sm),
@@ -2060,6 +2064,132 @@ class _PdfBodyState extends State<_PdfBody> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A frame of a video, drawn by the platform, standing in for the video.
+///
+/// The same answer as the PDF above, arrived at the same way. Playing a video
+/// in a note means a player, a render surface and a codec plugin; the question
+/// a note actually raises about a video file is "which one is this?", and one
+/// frame answers it. The tap hands the file to whatever plays video on this
+/// device, which is where scrubbing and volume belong.
+///
+/// Nothing is drawn where there is no frame to be had: on a platform without
+/// the native half, on a file that is not really a video, on one in a codec
+/// this device cannot decode. The row above still names the file and still
+/// opens it, which is what it did before this existed.
+class _VideoBody extends StatefulWidget {
+  const _VideoBody({required this.path, required this.onOpen});
+
+  final String path;
+  final VoidCallback onOpen;
+
+  /// The same height a shared image gets. A video and a photo in a note are
+  /// the same kind of thing to look at, and giving them different heights
+  /// would make a timeline of both look like two apps.
+  static const height = 220.0;
+
+  @override
+  State<_VideoBody> createState() => _VideoBodyState();
+}
+
+class _VideoBodyState extends State<_VideoBody> {
+  Uint8List? _poster;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Assigned rather than set: `setState` here would fire during a build.
+    _loading = true;
+    unawaited(_load());
+  }
+
+  @override
+  void didUpdateWidget(_VideoBody old) {
+    super.didUpdateWidget(old);
+    if (old.path == widget.path) return;
+    _poster = null;
+    _loading = true;
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    final path = widget.path;
+    final poster = await NexVideoPreview.poster(path);
+    // The sheet is reused across notes, so an answer that arrives after it has
+    // moved on belongs to a file nobody is looking at.
+    if (!mounted || widget.path != path) return;
+    setState(() {
+      _poster = poster;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.only(top: NexSpacing.sm),
+        child: NexSkeleton(height: 16),
+      );
+    }
+    final poster = _poster;
+    if (poster == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: NexSpacing.sm),
+      child: GestureDetector(
+        onTap: widget.onOpen,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(NexRadius.md),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Image.memory(
+                poster,
+                fit: BoxFit.cover,
+                height: _VideoBody.height,
+                width: double.infinity,
+                filterQuality: FilterQuality.medium,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+              // What tells a still picture from a video. Its own dark disc
+              // rather than a bare icon, because the frame underneath it is
+              // somebody else's photograph and a white glyph on a white wall
+              // is nothing at all.
+              const _PlayBadge(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The play glyph over a video's cover.
+///
+/// Fixed colours, not the theme's: it sits on a frame of video, which is as
+/// likely to be bright under a dark theme as it is to be dark under a light
+/// one. What it needs to be legible against is the picture, not the app.
+class _PlayBadge extends StatelessWidget {
+  const _PlayBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: const BoxDecoration(
+        color: Color(0x8C000000),
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(
+        Icons.play_arrow_rounded,
+        color: Color(0xFFFFFFFF),
+        size: 34,
       ),
     );
   }
