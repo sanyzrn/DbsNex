@@ -137,27 +137,6 @@ class SettingsSheet extends StatelessWidget {
   /// do — and a daily notification that never arrives has nothing else to
   /// give the reader a clue, unlike a note reminder, which at least still
   /// shows its time on the card.
-  /// Posts the reminder diagnostic: one notification now, one in ten
-  /// seconds. The first exercises permission and the channel; the second
-  /// exercises scheduling. A reminder that "does nothing" is one of those
-  /// two halves broken, and from inside the app they are otherwise
-  /// indistinguishable — both look like nothing happened.
-  Future<void> _sendTestNotification(BuildContext context) async {
-    final l10n = AppLocalizations.of(context);
-    final failure = await services.reminders.sendTestNotification(
-      title: l10n.notificationTest,
-      body: l10n.notificationTestHint,
-    );
-    if (!context.mounted) return;
-    nexShowBanner(
-      context,
-      message: failure == null
-          ? l10n.notificationTestSent
-          : l10n.notificationTestFailed(failure),
-      kind: failure == null ? NexBannerKind.done : NexBannerKind.failed,
-    );
-  }
-
   Future<void> _setNudge(BuildContext context, bool value) async {
     // Only where there is a notification backend to refuse. On a desktop
     // build `requestPermission` answers false because there is nothing to
@@ -522,16 +501,6 @@ class SettingsSheet extends StatelessWidget {
             ).format(context),
             onTap: () => unawaited(_pickNudgeTime(context)),
           ),
-        // The diagnostic that separates "my phone swallowed it" from "Nex
-        // never sent it": one notification proves permission and the channel,
-        // a scheduled one proves the alarm path. It existed in the engine and
-        // had shipped strings — it just had no way to be reached.
-        _Row(
-          icon: Icons.notifications_none_outlined,
-          title: l10n.notificationTest,
-          value: l10n.notificationTestHint,
-          onTap: () => unawaited(_sendTestNotification(context)),
-        ),
       ],
     ),
     _Section(

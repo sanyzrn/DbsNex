@@ -74,6 +74,16 @@ Working convention:
   it uses the renderer Android already has rather than adding several
   megabytes of one to the app — and elsewhere the file is named as before.
 
+- **Fixes a bug that deleted your profile picture.** The background clean-up
+  that removes attachments left behind by deleted notes was looking through
+  every folder under the media directory, and the profile picture lives in one
+  of them. No note pointed at it, so it was treated as a leftover and removed.
+  It now only looks where a note's attachments are actually written. A picture
+  already lost cannot be recovered — it has to be set again.
+
+- **The reminder test row is out of Settings again.** It was taken out once on
+  purpose and came back in an imported change nobody meant to include.
+
 ## v1.3.2
 
 - **A swiped-open card takes the next tap, whatever it lands on.** Tapping

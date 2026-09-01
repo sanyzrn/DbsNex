@@ -129,6 +129,32 @@ void main() {
     expect(File(kept.mediaUri!).existsSync(), isTrue);
   });
 
+  test('sweepOrphanMedia never looks inside a subdirectory', () {
+    // The regression this exists for: the app keeps the user's profile
+    // picture in `profile/` under the media root. No note references it, it
+    // is older than an hour, and a recursive sweep deleted it — silently, a
+    // day after the release that gave the sweep a caller.
+    //
+    // Every note's media is written flat into the root, so anything in a
+    // subdirectory belongs to something that is not a note.
+    final profile = Directory(p.join(mediaDir, 'profile'))
+      ..createSync(recursive: true);
+    final avatar = File(p.join(profile.path, 'avatar.jpg'))
+      ..writeAsBytesSync(const [7, 7, 7])
+      ..setLastModifiedSync(DateTime.now().subtract(const Duration(days: 30)));
+
+    // A stray beside it, so the sweep is proved to still be doing its job.
+    final stray = File(p.join(mediaDir, 'stray.jpg'))
+      ..writeAsBytesSync(const [8, 8, 8])
+      ..setLastModifiedSync(DateTime.now().subtract(const Duration(days: 2)));
+
+    final removed = maintenance.sweepOrphanMedia();
+
+    expect(removed, 1);
+    expect(stray.existsSync(), isFalse);
+    expect(avatar.existsSync(), isTrue, reason: 'the profile picture is not note media');
+  });
+
   test('sweepOrphanMedia leaves trashed notes\u2019 files alone', () {
     final trashed = insertPhotoWithFile('trashed.jpg');
     softDelete(trashed.id);
