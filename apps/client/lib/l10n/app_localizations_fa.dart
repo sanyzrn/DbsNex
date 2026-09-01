@@ -2084,6 +2084,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get formatClear => 'ساده';
 
   @override
+  String get documentTruncated => 'فقط ابتدای این سند نشان داده شده است — برای بقیه با برنامهٔ دیگری بازش کنید.';
+
+  @override
+  String get documentUnreadable => 'این سند اینجا نمایش داده نشد.';
+
+  @override
   String get addLink => 'افزودن پیوند';
 
   @override

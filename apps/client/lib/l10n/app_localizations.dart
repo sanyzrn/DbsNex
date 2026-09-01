@@ -3632,6 +3632,18 @@ abstract class AppLocalizations {
   /// **'Regular'**
   String get formatClear;
 
+  /// A .docx longer than the in-app preview reads
+  ///
+  /// In en, this message translates to:
+  /// **'Only the start of this document is shown — open it in another app for the rest.'**
+  String get documentTruncated;
+
+  /// A .docx the in-app reader could not open at all
+  ///
+  /// In en, this message translates to:
+  /// **'This document could not be shown here.'**
+  String get documentUnreadable;
+
   /// Title of the dialog asking where a link should point
   ///
   /// In en, this message translates to:

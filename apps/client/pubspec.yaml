@@ -14,6 +14,13 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  # Both already resolved transitively; declared directly because
+  # documents/docx_markdown.dart imports them. A `.docx` is a zip of XML, so
+  # reading one needs an unzip and a parser, and this is the package that has
+  # them in its closure already — see the note in that file about why the
+  # reader is not in packages/core with the other readers.
+  archive: ^4.0.9
+  xml: ^6.6.1
   file_selector: ^1.0.3
   # The in-app updater: one GET to the GitHub releases API when the user
   # asks, plus the streamed download of the installer.

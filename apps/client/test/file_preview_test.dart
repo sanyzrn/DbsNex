@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -53,11 +54,17 @@ void main() {
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: NoteDetailSheet(
-            services: services,
-            noteId: note.id,
-            preferences: preferences,
+        home: MediaQuery(
+          // A loading skeleton shimmers on a repeating controller, which
+          // requests a frame forever — `pumpAndSettle` never returns while one
+          // is on screen. Reduce-motion stops it, which is what this is.
+          data: const MediaQueryData(disableAnimations: true),
+          child: Scaffold(
+            body: NoteDetailSheet(
+              services: services,
+              noteId: note.id,
+              preferences: preferences,
+            ),
           ),
         ),
       ),
@@ -199,6 +206,46 @@ void main() {
       expect(find.text('song.mp3'), findsOneWidget);
       expect(find.byType(NexMarkdown), findsNothing);
       expect(find.byType(Table), findsNothing);
+    });
+
+    /// A `.docx` holding one styled paragraph.
+    List<int> docxBytes(String text, String style) {
+      final archive = Archive();
+      final xml = utf8.encode(
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/'
+        'wordprocessingml/2006/main"><w:body>'
+        '<w:p><w:pPr><w:pStyle w:val="$style"/></w:pPr>'
+        '<w:r><w:t>$text</w:t></w:r></w:p>'
+        '</w:body></w:document>',
+      );
+      archive.addFile(ArchiveFile('word/document.xml', xml.length, xml));
+      return ZipEncoder().encodeBytes(archive);
+    }
+
+    testWidgets('a .docx is read off disk and shown as a document', (
+      tester,
+    ) async {
+      // The read runs on another isolate, so the widget shows a skeleton
+      // first and the answer arrives later. `pumpAndSettle` does not wait for
+      // real asynchrony; `runAsync` gives the isolate actual time to finish.
+      await openFile(
+        tester,
+        'plan.docx',
+        bytes: docxBytes('Chapter one', 'Heading1'),
+      );
+      for (var i = 0; i < 30 && find.byType(NexMarkdown).evaluate().isEmpty; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      expect(find.text('plan.docx'), findsOneWidget);
+      expect(find.byType(NexMarkdown), findsOneWidget);
+      // Rendered as the heading it was styled as, without its hash.
+      expect(find.textContaining('Chapter one'), findsWidgets);
+      expect(find.textContaining('# Chapter one'), findsNothing);
     });
 
     testWidgets('a document this app cannot open is named and left alone', (

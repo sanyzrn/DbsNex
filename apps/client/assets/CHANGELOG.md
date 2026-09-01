@@ -61,6 +61,13 @@ Working convention:
   note — and inside a Markdown file opened in one — are tappable now too, and
   the whole body can still be selected by dragging across it.
 
+- **Word documents open inside the note.** A `.docx` shared into Nex is read
+  and shown the way everything else in the app is written: headings, bold,
+  italic, strikethrough, lists, quotes, links and tables all survive. What Word
+  can express and this cannot — fonts, colours, columns, images — does not, and
+  the file itself is still one tap from whatever opens it properly. A very long
+  document shows its beginning and says that is what it is showing.
+
 ## v1.3.2
 
 - **A swiped-open card takes the next tap, whatever it lands on.** Tapping

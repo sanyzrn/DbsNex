@@ -2083,6 +2083,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get formatClear => 'Regular';
 
   @override
+  String get documentTruncated => 'Only the start of this document is shown — open it in another app for the rest.';
+
+  @override
+  String get documentUnreadable => 'This document could not be shown here.';
+
+  @override
   String get addLink => 'Add link';
 
   @override

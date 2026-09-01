@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../documents/docx_markdown.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/ai_chat_sheet.dart';
@@ -1669,6 +1671,7 @@ class _FileBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (kind.isText) return _FileTextBody(path: path, kind: kind);
+    if (kind == NexFileKind.document) return _DocumentBody(path: path);
     if (kind == NexFileKind.image) return _ImageFileBody(path: path);
     if (kind == NexFileKind.audio && player != null) {
       return Padding(
@@ -1907,6 +1910,143 @@ Future<void> _openHref(String href) async {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   } catch (_) {
     // No handler for this scheme on this device. The link stays a link.
+  }
+}
+
+/// A `.docx`, read into Markdown and rendered like any other document in a
+/// note.
+///
+/// Off the main thread, unlike every other preview here. A `.docx` is
+/// compressed, so the file's size says little about how much work opening it
+/// is: unzipping and parsing a few hundred kilobytes of XML is not a fraction
+/// of a frame the way reading half a megabyte of plain text is. So this one
+/// waits, and shows that it is waiting.
+///
+/// Only `.docx` for now. The other document kinds — PDF above all — reach this
+/// widget and render nothing, exactly as they did before, because showing them
+/// needs a renderer this app does not carry.
+class _DocumentBody extends StatefulWidget {
+  const _DocumentBody({required this.path});
+
+  final String path;
+
+  @override
+  State<_DocumentBody> createState() => _DocumentBodyState();
+}
+
+class _DocumentBodyState extends State<_DocumentBody> {
+  NexDocxText? _document;
+  String? _error;
+  bool _tooLarge = false;
+  bool _unreadable = false;
+  bool _loading = false;
+
+  /// The only document format with a reader here. Everything else stays a
+  /// named file, which is what it was.
+  bool get _readable => NexFileKinds.extensionOf(widget.path) == 'docx';
+
+  @override
+  void initState() {
+    super.initState();
+    // Assigned rather than set: `setState` inside `initState` — or inside
+    // `didUpdateWidget` — fires during a build, which Flutter rejects. A
+    // rebuild is already coming in both cases.
+    _loading = _readable;
+    unawaited(_load());
+  }
+
+  @override
+  void didUpdateWidget(_DocumentBody old) {
+    super.didUpdateWidget(old);
+    if (old.path == widget.path) return;
+    _document = null;
+    _error = null;
+    _tooLarge = false;
+    _unreadable = false;
+    _loading = _readable;
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    if (!_readable) return;
+    final path = widget.path;
+    NexDocxText? read;
+    String? error;
+    var tooLarge = false;
+    try {
+      final file = File(path);
+      if (file.existsSync()) {
+        if (file.lengthSync() > NexDocx.maxBytes) {
+          tooLarge = true;
+        } else {
+          final bytes = await file.readAsBytes();
+          // The one preview in this sheet that leaves the main thread. See
+          // the class comment: a `.docx` is compressed, so its size on disk
+          // says very little about the work of opening it.
+          read = await Isolate.run(() => NexDocx.read(bytes));
+        }
+      }
+    } catch (caught) {
+      error = '$caught';
+    }
+    // The path can have changed while the isolate was working — the sheet is
+    // reused across notes — and writing this answer onto a different file
+    // would be worse than dropping it.
+    if (!mounted || widget.path != path) return;
+    setState(() {
+      _document = read;
+      _error = error;
+      _tooLarge = tooLarge;
+      _unreadable = !tooLarge && error == null && read == null;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_readable) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final quiet = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    Widget say(String message) => Padding(
+      padding: const EdgeInsets.only(top: NexSpacing.sm),
+      child: Text(message, style: quiet),
+    );
+
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.only(top: NexSpacing.sm),
+        child: NexSkeleton(height: 16),
+      );
+    }
+    if (_tooLarge) return say(l10n.filePreviewTooLarge);
+    if (_error != null) return say(l10n.filePreviewUnreadable(_error!));
+    if (_unreadable) return say(l10n.documentUnreadable);
+    final document = _document;
+    if (document == null || document.markdown.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: NexSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SelectionArea(
+            child: NexMarkdown(
+              document.markdown,
+              selectable: false,
+              onTapLink: _openHref,
+              onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
+            ),
+          ),
+          // A document that stops early with nothing said about it reads as a
+          // document that is that short.
+          if (document.truncated) say(l10n.documentTruncated),
+        ],
+      ),
+    );
   }
 }
 
