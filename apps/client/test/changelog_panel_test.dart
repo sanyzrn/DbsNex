@@ -73,8 +73,13 @@ void main() {
         findsOneWidget,
       );
 
-      // And no more than the cap, which is the point of the cap.
-      expect(find.textContaining('Version v'), findsAtMostNWidgets(10));
+      // And no more than the cap, which is the point of the cap. Counted
+      // rather than matched: flutter_test has findsNWidgets and
+      // findsAtLeastNWidgets, but no "at most".
+      expect(
+        tester.widgetList(find.textContaining('Version v')).length,
+        lessThanOrEqualTo(10),
+      );
     },
   );
 
