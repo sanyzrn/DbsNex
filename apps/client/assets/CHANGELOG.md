@@ -98,6 +98,12 @@ Working convention:
 - **The update screen shows only the version it is offering.** The full history
   of every past release is no longer stacked underneath it.
 
+- **The download shows up in the notification shade.** While an update is
+  downloading there is a progress notification you can watch without opening
+  Nex — and swipe away if you would rather not, which does not stop the
+  download. When it finishes, the same notification says so, and tapping it
+  opens the update ready to install.
+
 ## v1.3.2
 
 - **A swiped-open card takes the next tap, whatever it lands on.** Tapping

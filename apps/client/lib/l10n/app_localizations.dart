@@ -3656,6 +3656,24 @@ abstract class AppLocalizations {
   /// **'Resume'**
   String get resumeDownload;
 
+  /// Notification title while the update downloads
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading update'**
+  String get updateDownloadingTitle;
+
+  /// Notification title once the installer has landed
+  ///
+  /// In en, this message translates to:
+  /// **'Update ready'**
+  String get updateReadyTitle;
+
+  /// Notification body once the installer has landed
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to install'**
+  String get updateReadyBody;
+
   /// Title of the dialog asking where a link should point
   ///
   /// In en, this message translates to:

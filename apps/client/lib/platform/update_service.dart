@@ -21,6 +21,7 @@ import 'nex_preferences.dart';
 class UpdateService extends ChangeNotifier {
   UpdateService({
     required this.preferences,
+    this.onDownloadStatus,
     UpdateChecker? checker,
     UpdateDownloader? downloader,
     Future<Directory> Function()? directory,
@@ -38,6 +39,20 @@ class UpdateService extends ChangeNotifier {
   static const checkInterval = Duration(hours: 24);
 
   final NexPreferences preferences;
+
+  /// Told how the download is going, for whoever wants to show it somewhere
+  /// other than the update screen — the notification shade, in practice.
+  ///
+  /// A callback rather than a dependency on the notification layer: this class
+  /// is tested with no platform under it, and what it has to say is a stage
+  /// and a percentage.
+  ///
+  /// Called only when the whole percent changes, not on every chunk. The
+  /// download reports progress far faster than anything should be asked to
+  /// redraw, and a notification rewritten a thousand times a second is a
+  /// platform channel used as a firehose.
+  final void Function(NexDownloadStatus status)? onDownloadStatus;
+
   final UpdateChecker _checker;
   final UpdateDownloader _downloader;
   final Future<Directory> Function() _directory;
@@ -86,6 +101,12 @@ class UpdateService extends ChangeNotifier {
   /// is how a stalled download came to look like an offer to start one.
   Object? get downloadError => _downloadError;
   Object? _downloadError;
+
+  /// The last whole percent handed to [onDownloadStatus], so the same one is
+  /// not sent twice.
+  int? _reportedPercent;
+
+  void _report(NexDownloadStatus status) => onDownloadStatus?.call(status);
 
   /// Whether a download finished that nobody has been told about yet.
   ///
@@ -217,6 +238,7 @@ class UpdateService extends ChangeNotifier {
       }
       _announced = false;
       _downloadError = null;
+      _reportedPercent = null;
       _downloaded = await _downloader.download(
         url: url,
         into: dir,
@@ -225,13 +247,20 @@ class UpdateService extends ChangeNotifier {
         onProgress: (value) {
           _progress = value;
           _notify();
+          if (value == null) return;
+          final percent = (value * 100).round();
+          if (percent == _reportedPercent) return;
+          _reportedPercent = percent;
+          _report(NexDownloadStatus.running(percent));
         },
       );
       _notify();
+      _report(const NexDownloadStatus.done());
     } catch (error) {
       _downloaded = null;
       _announced = true;
       _downloadError = error;
+      _report(const NexDownloadStatus.stopped());
     } finally {
       _prefetching = null;
       // Cleared on success, kept on failure: see [downloadProgress]. The bar
@@ -255,4 +284,33 @@ class UpdateService extends ChangeNotifier {
     _downloader.close();
     super.dispose();
   }
+}
+
+/// How a download is going, for a listener outside the update screen.
+enum NexDownloadStage {
+  /// Bytes are arriving.
+  running,
+
+  /// The installer is on disk and there is something to do about it.
+  done,
+
+  /// It stopped partway. Not said as an error, because the partial file is
+  /// kept and the next attempt resumes from it.
+  stopped,
+}
+
+class NexDownloadStatus {
+  const NexDownloadStatus.running(int this.percent)
+    : stage = NexDownloadStage.running;
+  const NexDownloadStatus.done()
+    : stage = NexDownloadStage.done,
+      percent = 100;
+  const NexDownloadStatus.stopped()
+    : stage = NexDownloadStage.stopped,
+      percent = null;
+
+  final NexDownloadStage stage;
+
+  /// Whole percent, or null where there is nothing to report one from.
+  final int? percent;
 }

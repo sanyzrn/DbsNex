@@ -2096,6 +2096,15 @@ class AppLocalizationsFa extends AppLocalizations {
   String get resumeDownload => 'ادامه';
 
   @override
+  String get updateDownloadingTitle => 'در حال دانلود به‌روزرسانی';
+
+  @override
+  String get updateReadyTitle => 'به‌روزرسانی آماده است';
+
+  @override
+  String get updateReadyBody => 'برای نصب ضربه بزنید';
+
+  @override
   String get addLink => 'افزودن پیوند';
 
   @override

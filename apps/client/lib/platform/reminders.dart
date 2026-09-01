@@ -67,6 +67,13 @@ class NexReminders {
   /// Called with the note id when a reminder is tapped.
   void Function(String noteId)? onOpenNote;
 
+  /// Called when the update notification is tapped.
+  ///
+  /// Separate from [onOpenNote] because the payload has to be told apart
+  /// before it is used: a note id is opaque, so anything routed there is
+  /// looked up as one, and "nex:update" would be a note nobody has.
+  void Function()? onOpenUpdate;
+
   /// The note whose reminder started the app, if one did.
   ///
   /// [onDidReceiveNotificationResponse] is only called while the app is
@@ -84,6 +91,18 @@ class NexReminders {
     final id = _launchNoteId;
     _launchNoteId = null;
     return id;
+  }
+
+  /// Whether the app was started by a tap on the update notification.
+  ///
+  /// Read once and cleared, for the same reason [takeLaunchNoteId] is: it
+  /// describes one tap, not a standing state.
+  bool _launchedFromUpdate = false;
+
+  bool takeLaunchedFromUpdate() {
+    final launched = _launchedFromUpdate;
+    _launchedFromUpdate = false;
+    return launched;
   }
 
   /// Whether reminders can work here at all.
@@ -151,8 +170,12 @@ class NexReminders {
         ),
       ),
       onDidReceiveNotificationResponse: (response) {
-        final id = response.payload;
-        if (id != null && id.isNotEmpty) onOpenNote?.call(id);
+        final payload = response.payload;
+        if (payload == _updatePayload) {
+          onOpenUpdate?.call();
+          return;
+        }
+        if (payload != null && payload.isNotEmpty) onOpenNote?.call(payload);
       },
     );
     // Asked, not assumed, and before anything is scheduled. `canSchedule…`
@@ -179,8 +202,15 @@ class NexReminders {
     try {
       final launch = await _plugin.getNotificationAppLaunchDetails();
       if (launch?.didNotificationLaunchApp ?? false) {
-        final id = launch?.notificationResponse?.payload;
-        if (id != null && id.isNotEmpty) _launchNoteId = id;
+        final payload = launch?.notificationResponse?.payload;
+        // A cold tap on "ready to install" is the case that matters most for
+        // the update notification, the same way it is for a reminder: the
+        // phone was in a pocket and the app was not running.
+        if (payload == _updatePayload) {
+          _launchedFromUpdate = true;
+        } else if (payload != null && payload.isNotEmpty) {
+          _launchNoteId = payload;
+        }
       }
     } catch (error) {
       // Not worth failing initialisation over — reminders still schedule and
@@ -519,6 +549,103 @@ class NexReminders {
     }
   }
 
+  /// The download's own notification: one entry, rewritten as it goes.
+  ///
+  /// Its own channel, at low importance and with `onlyAlertOnce`, because a
+  /// progress bar that buzzed on every percent would be the most annoying
+  /// thing this app does. Reminders keep theirs at high importance, which is
+  /// right for them and wrong for this.
+  ///
+  /// Deliberately **not** `ongoing`. An ongoing notification cannot be swiped
+  /// away, and a download that has no timer on it and stays until it finishes
+  /// is exactly the sort of thing someone wants out of their way. Dismissing
+  /// it does not touch the transfer, which belongs to the update service.
+  Future<void> showDownloadProgress({
+    required String title,
+    required int percent,
+  }) async {
+    if (!supported) return;
+    await initialise();
+    try {
+      await _plugin.show(
+        id: _updateId,
+        title: title,
+        body: '$percent%',
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _updateChannelId,
+            'Updates',
+            channelDescription: 'Downloading a new version of Nex',
+            importance: Importance.low,
+            priority: Priority.low,
+            onlyAlertOnce: true,
+            showProgress: true,
+            maxProgress: 100,
+            progress: percent.clamp(0, 100),
+            ongoing: false,
+            autoCancel: false,
+          ),
+          iOS: const DarwinNotificationDetails(presentSound: false),
+        ),
+      );
+    } catch (_) {
+      // A shade entry nobody can post is not worth failing a download over.
+    }
+  }
+
+  /// Replaces the progress entry with the one that starts the install.
+  ///
+  /// High importance here, and only here: this is the one moment in the whole
+  /// transfer that is worth a buzz, because it is the only one with something
+  /// to do.
+  Future<void> showDownloadReady({
+    required String title,
+    required String body,
+  }) async {
+    if (!supported) return;
+    await initialise();
+    try {
+      await _plugin.show(
+        id: _updateId,
+        title: title,
+        body: body,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _updateChannelId,
+            'Updates',
+            channelDescription: 'Downloading a new version of Nex',
+            importance: Importance.high,
+            priority: Priority.high,
+            autoCancel: true,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        payload: _updatePayload,
+      );
+    } catch (_) {
+      // See above. The update screen still says the same thing.
+    }
+  }
+
+  /// Takes the download's entry down.
+  Future<void> clearDownloadNotification() async {
+    if (!supported) return;
+    try {
+      await _plugin.cancel(id: _updateId);
+    } catch (_) {
+      // Nothing there to take down, most likely.
+    }
+  }
+
+  /// The download notification's own id and channel, and the payload that
+  /// tells a tap on it apart from a tap on a reminder.
+  ///
+  /// Id 3: 0 is the daily nudge and 1 and 2 are the diagnostics. Note
+  /// reminders hash into everything else by construction.
+  static const _updateId = 3;
+  static const _updateChannelId = 'nex.updates';
+  static const _updatePayload = 'nex:update';
+
   /// The two ids [sendTestNotification] uses, kept away from note hashes and
   /// from [_dailyId].
   static const _testId = 1;
@@ -636,7 +763,8 @@ class NexReminders {
   /// before the delete path learned to cancel — kept firing, and the boot
   /// receiver re-armed each of them at every reboot. The library is the
   /// record, so anything the record does not ask for goes. Reserved ids (the
-  /// daily nudge, the diagnostics) are never touched.
+  /// daily nudge, the download, the diagnostics) are never touched — none of
+  /// them is a note, so none of them is in the library to be asked for.
   Future<void> syncFromLibrary(List<Note> upcoming) async {
     if (!supported) return;
     await initialise();
@@ -646,7 +774,12 @@ class NexReminders {
       final pending = await _plugin.pendingNotificationRequests();
       for (final request in pending) {
         final id = request.id;
-        if (id == _dailyId || id == _testId || id == _testId + 1) continue;
+        if (id == _dailyId ||
+            id == _updateId ||
+            id == _testId ||
+            id == _testId + 1) {
+          continue;
+        }
         if (!wanted.contains(id)) {
           try {
             await _plugin.cancel(id: id);
