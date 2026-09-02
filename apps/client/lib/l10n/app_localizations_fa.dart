@@ -649,6 +649,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get all => 'همه';
 
   @override
+  String get filterHasReminder => 'دارای یادآور';
+
+  @override
   String get swipeLeading => 'کشیدن از لبهٔ آغاز';
 
   @override

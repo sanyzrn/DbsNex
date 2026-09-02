@@ -273,6 +273,10 @@
   "@all": {
     "description": "Filter chip that clears the content-type filter"
   },
+  "filterHasReminder": "Has a reminder",
+  "@filterHasReminder": {
+    "description": "Timeline filter row: show only notes with a reminder still ahead of them"
+  },
   "swipeLeading": "Swipe from the leading edge",
   "@swipeLeading": {
     "description": "Swipe-action mapping row in Settings"

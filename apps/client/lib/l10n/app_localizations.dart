@@ -1208,6 +1208,12 @@ abstract class AppLocalizations {
   /// **'All'**
   String get all;
 
+  /// Timeline filter row: show only notes with a reminder still ahead of them
+  ///
+  /// In en, this message translates to:
+  /// **'Has a reminder'**
+  String get filterHasReminder;
+
   /// Swipe-action mapping row in Settings
   ///
   /// In en, this message translates to:

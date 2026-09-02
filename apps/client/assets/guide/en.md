@@ -64,8 +64,15 @@ the top of the list. You can pin five.
 
 Open a note, tap the bell, pick a time. Nex will bring it back.
 
+You can also set one while you're still writing: once you've typed something,
+an alarm button appears next to the send button. Nothing has to be decided
+first — what you typed is already saved by then.
+
 A reminder can repeat — daily, weekly, whatever suits. A one-off clears itself
 once it has rung, so it doesn't sit there looking overdue forever.
+
+To see everything with a reminder still ahead of it, open the filter on the
+home screen and choose **Has a reminder**.
 
 There's also a **daily nudge** in Settings → Notifications: one quiet
 notification at a time you choose.

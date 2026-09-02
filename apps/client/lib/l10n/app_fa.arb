@@ -198,6 +198,10 @@
   "@all": {
     "description": "Filter chip that clears the content-type filter"
   },
+  "filterHasReminder": "دارای یادآور",
+  "@filterHasReminder": {
+    "description": "Timeline filter row: show only notes with a reminder still ahead of them"
+  },
   "swipeLeading": "کشیدن از لبهٔ آغاز",
   "@swipeLeading": {
     "description": "Swipe-action mapping row in Settings"
