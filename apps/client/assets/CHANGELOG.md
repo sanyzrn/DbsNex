@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.5.0
+
 - **A reminder can be set while you are still writing.** Once you have typed
   something, an alarm button appears beside the send button — one tap, pick a
   time, carry on typing. Nothing has to be decided before you start: the button
