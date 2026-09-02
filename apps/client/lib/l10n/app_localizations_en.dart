@@ -649,6 +649,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get all => 'All';
 
   @override
+  String get filterHasReminder => 'Has a reminder';
+
+  @override
   String get swipeLeading => 'Swipe from the leading edge';
 
   @override

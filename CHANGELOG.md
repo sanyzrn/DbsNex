@@ -34,6 +34,18 @@ Working convention:
 
 ## Unreleased
 
+- **A reminder can be set while you are still writing.** Once you have typed
+  something, an alarm button appears beside the send button — one tap, pick a
+  time, carry on typing. Nothing has to be decided before you start: the button
+  is not there on an empty sheet, and by the time it is, what you typed has
+  already been saved.
+
+- **The home screen can show only what has a reminder coming.** The filter
+  behind the icon on the tag row has a **Has a reminder** row under the note
+  kinds. It layers on top of them rather than replacing them, so "photos with
+  a reminder" is a thing you can ask for — and a reminder that has already rung
+  and been seen drops off by itself, so what is listed is what is still ahead.
+
 - **A video shared into Nex shows a frame of itself.** Until now a shared video
   was a filename and a size, which is nothing to recognise a clip by. It gets a
   cover now — a frame from a second in, past the fade a lot of video opens with

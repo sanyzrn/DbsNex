@@ -125,6 +125,46 @@ void main() {
     expect(find.text('a written thought'), findsNothing);
   });
 
+  testWidgets('the filter can narrow to notes with a reminder ahead', (
+    tester,
+  ) async {
+    // A state, not a type — which is why it sits under a line in that sheet
+    // rather than in the run of note kinds above it, and why it layers on
+    // whichever kind is chosen instead of replacing it.
+    await services.captureText('call the dentist');
+    await services.captureText('a passing thought');
+    final dentist = (await services.worker.timeline()).firstWhere(
+      (note) => note.content == 'call the dentist',
+    );
+    await services.setDueAt(
+      dentist.id,
+      DateTime.now().toUtc().add(const Duration(days: 1)),
+    );
+    await services.refreshTimeline();
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('a passing thought'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Has a reminder'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('call the dentist'), findsOneWidget);
+    expect(find.text('a passing thought'), findsNothing);
+
+    // And off again from the same row, which is the whole of its state.
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Has a reminder'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('a passing thought'), findsOneWidget);
+  });
+
   testWidgets('Timeline is home with capture FAB and no Save button', (
     tester,
   ) async {
@@ -159,6 +199,46 @@ void main() {
       // Not a type-picker-first menu of four equal choices.
       expect(find.text('Text'), findsNothing);
       expect(find.text('Save'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'the reminder button is not on an empty capture sheet, only on a written one',
+    (tester) async {
+      // The one hard rule over this sheet is that nothing on the way in may
+      // become a decision, and a date picker is the most expensive decision
+      // there is. So it is absent until there is something to be reminded
+      // about — and by then the note has already been saved by the first
+      // keystroke, so the button hangs a time on a note that exists rather
+      // than gating one that does not.
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Remind'), findsNothing);
+
+      final captureField = find.descendant(
+        of: find.byType(CaptureSheet),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(captureField, 'put the bins out');
+      await tester.pump();
+
+      expect(find.byTooltip('Remind'), findsOneWidget);
+      // Still no Save button, and still nothing standing between the words
+      // and the timeline.
+      expect(find.text('Save'), findsNothing);
+
+      // Emptied again, it goes with the note it belonged to.
+      await tester.enterText(captureField, '');
+      await tester.pump();
+      expect(find.byTooltip('Remind'), findsNothing);
+
+      // The sheet debounces its writes; let the pending one run rather than
+      // leaving a timer alive past the end of the test.
+      await tester.pump(const Duration(milliseconds: 400));
     },
   );
 

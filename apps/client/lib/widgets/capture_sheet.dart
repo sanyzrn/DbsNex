@@ -6,6 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import 'reminder_picker.dart';
 import 'text_format_menu.dart';
 
 class CaptureSheet extends StatefulWidget {
@@ -40,10 +41,26 @@ class _CaptureSheetState extends State<CaptureSheet> {
   String? noteId;
   String persisted = '';
 
+  /// The write the first keystroke starts.
+  ///
+  /// Kept rather than dropped, because a hand can reach the reminder button
+  /// before that write lands: it crosses an isolate boundary, and there is
+  /// nothing to hang a reminder on until it comes back with an id.
+  Future<void>? draft;
+
+  /// Whether the note being typed already has a reminder on it.
+  ///
+  /// Read back off the note after the picker closes rather than assumed from
+  /// what was tapped: the picker can also be dismissed, denied permission, or
+  /// used to remove the reminder that was there.
+  bool hasReminder = false;
+
   void changed(String value) {
     setState(() {});
     if (noteId == null && value.isNotEmpty) {
-      unawaited(_createFirstDraft(value));
+      final started = _createFirstDraft(value);
+      draft = started;
+      unawaited(started);
       return;
     }
     debounce?.cancel();
@@ -66,10 +83,48 @@ class _CaptureSheetState extends State<CaptureSheet> {
     if (controller.text.isEmpty) {
       unawaited(widget.services.deleteNote(id));
       noteId = null;
+      // The note the reminder was on has just been deleted along with the
+      // text. Whatever this sheet is used for next is a different note.
+      hasReminder = false;
     } else if (controller.text != persisted) {
       unawaited(widget.services.updateNote(id, controller.text));
       persisted = controller.text;
     }
+  }
+
+  /// Sets a reminder on the note being typed, without interrupting the typing.
+  ///
+  /// The capture sheet has one hard rule over it: nothing may become a
+  /// decision on the way in (`docs/07-contributing.md`). A date picker is the
+  /// most expensive decision there is, so this button is not on the sheet
+  /// until there is something to remind anyone about — an empty sheet is
+  /// exactly what it always was — and it never blocks the capture: the note
+  /// is already saved by the time the button exists, so this hangs a time on
+  /// a note that exists rather than gating one that does not.
+  ///
+  /// It sits beside the send button rather than in the row of six, because
+  /// that row answers "what kind of thing am I capturing" and this answers
+  /// "what should happen to it" — the same question the send button answers.
+  Future<void> _remind() async {
+    await draft;
+    // What has been typed since the first keystroke, so a reminder set here
+    // is on the note as it now reads. `updateContent` never touches `due_at`
+    // and `setDueAt` never touches the content, so the order of these two
+    // writes does not matter.
+    flush();
+    final id = noteId;
+    if (id == null) return;
+    final note = await widget.services.getById(id);
+    if (note == null) return;
+    if (!mounted) return;
+    await nexPickReminder(
+      context: context,
+      services: widget.services,
+      note: note,
+    );
+    final saved = await widget.services.getById(id);
+    if (!mounted) return;
+    setState(() => hasReminder = saved?.dueAt != null);
   }
 
   void close() {
@@ -189,6 +244,26 @@ class _CaptureSheetState extends State<CaptureSheet> {
                   widget.onChecklist,
                 ),
                 _Action(Icons.link_outlined, l10n.link, widget.onLink),
+                // Beside the send button, not among the six: those six change
+                // what is being captured, and this changes what happens to it
+                // afterwards — the same question the send button answers, so
+                // the two sit together and are styled as a pair.
+                //
+                // It does nudge the send button along on the first keystroke.
+                // That is the cost of not having it there on an empty sheet,
+                // and the empty sheet is the one that must stay untouched.
+                if (controller.text.isNotEmpty)
+                  IconButton.filledTonal(
+                    constraints: const BoxConstraints.tightFor(
+                      width: nexMinTapTarget,
+                      height: nexMinTapTarget,
+                    ),
+                    onPressed: () => unawaited(_remind()),
+                    tooltip: l10n.remind,
+                    icon: Icon(
+                      hasReminder ? Icons.alarm_on : Icons.alarm_add_outlined,
+                    ),
+                  ),
                 IconButton.filled(
                   // The app-wide 48px tap floor. 44 read as a deliberate
                   // exception on the single most-pressed control in the app;
