@@ -22,6 +22,14 @@ const schema = z.object({
   // index.ts, which meant an integration suite could not run more than sixty
   // requests without being throttled by the thing it was not testing.
   AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(10),
+  // The limiter in front of the token lookup. The two below are keyed on the
+  // authenticated device, which means they cannot count a request whose token
+  // never resolves — so an anonymous caller could spend a database round trip
+  // per request, forever, without ever being throttled. Keyed on IP, since
+  // there is no device yet, and generous on purpose: it exists to bound an
+  // anonymous flood, not to shape real traffic, and several devices behind
+  // one address must never reach it.
+  PRE_AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(600),
   SYNC_RATE_LIMIT: z.coerce.number().int().positive().default(60),
   READ_RATE_LIMIT: z.coerce.number().int().positive().default(120),
   PAIRING_CODE_TTL_SECONDS: z.coerce.number().int().positive().default(600),

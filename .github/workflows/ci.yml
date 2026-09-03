@@ -577,6 +577,10 @@ jobs:
           SYNC_PAGE_SIZE: "50"
           SYNC_RATE_LIMIT: "100000"
           READ_RATE_LIMIT: "100000"
+          # The limiter in front of the token lookup. Left at its default this
+          # would throttle the matrix on the way in, before either of the two
+          # above ever saw a request.
+          PRE_AUTH_RATE_LIMIT: "100000"
         run: |
           setsid npx tsx src/index.ts > "$RUNNER_TEMP/backend.log" 2>&1 < /dev/null &
           echo $! > "$RUNNER_TEMP/backend.pid"

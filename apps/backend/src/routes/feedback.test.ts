@@ -107,6 +107,27 @@ describe("POST /feedback", () => {
     assert.equal(telegramCalls.length, 0);
   });
 
+  test("Telegram being unreachable is a 502, not a 500", async () => {
+    // A refused connection, a DNS failure, or the request timing out all
+    // arrive here as a thrown fetch. They used to escape the handler and be
+    // reported as an internal error — which tells the caller this server is
+    // broken about a fault at the other end of a call they never made, and
+    // tells a client to stop rather than retry later.
+    telegramResponse = () => {
+      throw new TypeError("fetch failed");
+    };
+
+    const res = await fetch(`${baseUrl}/feedback`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "hello" }),
+    });
+
+    assert.equal(res.status, 502);
+    const text = await res.text();
+    assert.ok(!text.includes("fetch failed"), `leaked the cause: ${text}`);
+  });
+
   test("Telegram refusing the message is a 502, with nothing leaked from its body", async () => {
     telegramResponse = () =>
       new Response(

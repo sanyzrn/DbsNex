@@ -908,15 +908,39 @@ class NexPreferences extends ChangeNotifier {
   /// The cost is that it does not survive restoring the library on a new
   /// phone. A note that has to stay in view is one you are looking at now, so
   /// that is the right side to be wrong on.
-  Set<String> get expandedNoteIds =>
-      (_prefs.getStringList('timeline.expanded') ?? const []).toSet();
+  ///
+  /// Held in memory rather than read back out of [_prefs] on every question,
+  /// for the reason [_secureApiKeys] is: [isNoteExpanded] is asked once per
+  /// card, inside the timeline's list builder, which is once per card per
+  /// frame. Each of those calls used to copy the stored list and build a
+  /// fresh `Set` from it — two allocations per card per frame, to answer a
+  /// question about one string. The field beside it in the timeline
+  /// (`_spentReminders`) carries a comment saying not to do this; this one
+  /// did it anyway.
+  ///
+  /// It also only ever grows: nothing drops the id of a note that was later
+  /// deleted for good. That is left alone deliberately — the entries are
+  /// user-chosen and few (this is "keep *this* one open", not a default), and
+  /// pruning them properly means a hook in the purge path down in the storage
+  /// layer, which is a bigger change than one stale string per deleted note
+  /// is worth.
+  late final Set<String> _expandedNoteIds = <String>{
+    ...?_prefs.getStringList('timeline.expanded'),
+  };
 
-  bool isNoteExpanded(String id) => expandedNoteIds.contains(id);
+  /// Unmodifiable: the only way in is [setNoteExpanded], which also persists.
+  Set<String> get expandedNoteIds => Set.unmodifiable(_expandedNoteIds);
+
+  bool isNoteExpanded(String id) => _expandedNoteIds.contains(id);
 
   Future<void> setNoteExpanded(String id, bool expanded) async {
-    final ids = expandedNoteIds;
-    if (expanded ? !ids.add(id) : !ids.remove(id)) return;
-    await _prefs.setStringList('timeline.expanded', ids.toList()..sort());
+    if (expanded ? !_expandedNoteIds.add(id) : !_expandedNoteIds.remove(id)) {
+      return;
+    }
+    await _prefs.setStringList(
+      'timeline.expanded',
+      _expandedNoteIds.toList()..sort(),
+    );
     notifyListeners();
   }
 

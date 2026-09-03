@@ -96,6 +96,19 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Runs in front of `requireDevice`, and that placement is the whole point.
+// The two limiters below key on the authenticated device, so they only ever
+// see a request whose token already resolved — a caller sending a bad token,
+// or a well-formed one that matches no row, was answered 401 by a database
+// round trip that nothing counted, at whatever rate it could be sent. This
+// counts first, keyed on IP because there is no device to key on yet.
+const preAuthLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: env.PRE_AUTH_RATE_LIMIT,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+
 const syncLimiter = rateLimit({
   windowMs: 60_000,
   limit: env.SYNC_RATE_LIMIT,
@@ -142,6 +155,7 @@ if (env.isTestMode) {
 
 app.use(
   "/sync",
+  preAuthLimiter,
   express.json({ limit: "2mb" }),
   requireDevice,
   syncLimiter,
@@ -151,6 +165,7 @@ app.use(
 
 app.use(
   "/notes",
+  preAuthLimiter,
   express.json({ limit: "256kb" }),
   requireDevice,
   readLimiter,
@@ -159,6 +174,7 @@ app.use(
 
 app.use(
   "/tags",
+  preAuthLimiter,
   express.json({ limit: "64kb" }),
   requireDevice,
   readLimiter,

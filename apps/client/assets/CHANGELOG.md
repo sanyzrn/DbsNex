@@ -34,6 +34,33 @@ Working convention:
 
 ## Unreleased
 
+- **A note's reminder can no longer collide with the update notification.**
+  Every reminder gets an id derived from the note it belongs to, and a small
+  block of ids is reserved for the app's own notifications. When the update
+  download took the fourth of those, the arithmetic that keeps reminders out
+  of the block was still only skipping three — so a note landing there took
+  the download's id, and the two would have replaced each other silently. Rare
+  by construction; wrong every time it happened.
+
+- **A malformed release tag no longer breaks the update check.** A version
+  number too large to hold threw where it was supposed to answer "no update",
+  which would have stopped every install from seeing updates until the tag was
+  renamed.
+
+- **A shared video's cover is a fraction of the size it was.** It was encoded
+  the way a PDF page is, which is right for a page of text and wrong for a
+  photograph — the same frame is a few hundred kilobytes now instead of
+  several megabytes.
+
+- **Previews no longer draw on the thread that draws the app.** Rendering a
+  PDF page or pulling a frame out of a video happened on the main thread, so a
+  large file could freeze the interface while it worked — long enough, on a
+  big one, for Android to offer to close the app.
+
+- **The timeline stops re-reading its settings on every card.** Whether a card
+  is shown in full was read back out of storage once per card per frame,
+  rebuilding a list and a set each time to answer a question about one note.
+
 ## v1.5.0
 
 - **A reminder can be set while you are still writing.** Once you have typed
