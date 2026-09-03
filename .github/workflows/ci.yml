@@ -277,7 +277,7 @@ jobs:
       # there. This job builds debug, where lint does not run, so 17 worked
       # here while every release build died in lintVitalAnalyzeRelease; a CI
       # that does not match the release toolchain cannot catch that.
-      - uses: actions/setup-java@v5.6.0
+      - uses: actions/setup-java@v6.0.0
         with:
           distribution: temurin
           java-version: "21"
