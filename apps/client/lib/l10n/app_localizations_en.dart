@@ -649,6 +649,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get all => 'All';
 
   @override
+  String get filterHasReminder => 'Has a reminder';
+
+  @override
   String get swipeLeading => 'Swipe from the leading edge';
 
   @override
@@ -2087,6 +2090,64 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get documentUnreadable => 'This document could not be shown here.';
+
+  @override
+  String get downloadStopped => 'Download stopped';
+
+  @override
+  String get resumeDownload => 'Resume';
+
+  @override
+  String get updateDownloadingTitle => 'Downloading update';
+
+  @override
+  String get updateReadyTitle => 'Update ready';
+
+  @override
+  String get updateReadyBody => 'Tap to install';
+
+  @override
+  String get expandCard => 'Show in full';
+
+  @override
+  String get collapseCard => 'Show two lines';
+
+  @override
+  String get guideTitle => 'How Nex works';
+
+  @override
+  String get guideSubtitle => 'Everything the app does, in one place';
+
+  @override
+  String get guideUnavailable => 'The guide could not be opened.';
+
+  @override
+  String get onboardingFilesTitle =>
+      'Whatever you throw at it';
+
+  @override
+  String get onboardingFilesBody =>
+      'Share a document, a PDF, a song or a picture into Nex and it shows you the thing itself — not just a filename.';
+
+  @override
+  String get onboardingYoursTitle =>
+      'It stays yours';
+
+  @override
+  String get onboardingYoursBody =>
+      'No account, no server, and it works with the plane on. Lock it behind your fingerprint if you like, and export the lot whenever you want.';
+
+  @override
+  String get onboardingGuideTitle =>
+      'Not sure where something is?';
+
+  @override
+  String get onboardingGuideBody =>
+      'The guide walks through everything, and it is always in Settings.';
+
+  @override
+  String get onboardingGuideOpen =>
+      'Read the guide';
 
   @override
   String get addLink => 'Add link';

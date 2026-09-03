@@ -34,6 +34,34 @@ Working convention:
 
 ## Unreleased
 
+## v1.5.0
+
+- **A reminder can be set while you are still writing.** Once you have typed
+  something, an alarm button appears beside the send button — one tap, pick a
+  time, carry on typing. Nothing has to be decided before you start: the button
+  is not there on an empty sheet, and by the time it is, what you typed has
+  already been saved.
+
+- **The home screen can show only what has a reminder coming.** The filter
+  behind the icon on the tag row has a **Has a reminder** row under the note
+  kinds. It layers on top of them rather than replacing them, so "photos with
+  a reminder" is a thing you can ask for — and a reminder that has already rung
+  and been seen drops off by itself, so what is listed is what is still ahead.
+
+- **A video shared into Nex shows a frame of itself.** Until now a shared video
+  was a filename and a size, which is nothing to recognise a clip by. It gets a
+  cover now — a frame from a second in, past the fade a lot of video opens with
+  — and tapping it hands the file to whatever plays video on your device, which
+  is where scrubbing and volume belong. Android only for now, the same as the
+  PDF preview and for the same reason: it uses what Android already has instead
+  of adding a video engine to the app.
+
+- **The changelog on About is a card of its own.** It arrived as ten releases of
+  text down the page, which put everything under it a long scroll away. It is a
+  bounded card now that you scroll through without scrolling the page.
+
+## v1.4.0
+
 - **A file you share into Nex is shown, not just named.** Markdown already
   opened inside the note; now a plain text file, a spreadsheet exported as
   `.csv` or `.tsv`, and a source or configuration file do too — each read the
@@ -73,6 +101,51 @@ Working convention:
   which is where searching and turning pages belong. Android only for now —
   it uses the renderer Android already has rather than adding several
   megabytes of one to the app — and elsewhere the file is named as before.
+
+- **Fixes a bug that deleted your profile picture.** The background clean-up
+  that removes attachments left behind by deleted notes was looking through
+  every folder under the media directory, and the profile picture lives in one
+  of them. No note pointed at it, so it was treated as a leftover and removed.
+  It now only looks where a note's attachments are actually written. A picture
+  already lost cannot be recovered — it has to be set again.
+
+- **The reminder test row is out of Settings again.** It was taken out once on
+  purpose and came back in an imported change nobody meant to include.
+
+- **A stopped update download stays where it stopped.** It used to throw the
+  whole screen away and replace it with a full-page error whose button started
+  the check over. Now it says so in a line under the progress bar, with a
+  Resume beside it that picks the transfer up from the byte it reached — the
+  part already downloaded is kept, not fetched again. Running out of space
+  says that instead, because that one you have to go and fix.
+
+- **Reopening the update screen during a download shows the download.** It was
+  still running the whole time — leaving never stopped it — but the screen
+  showed a Download button as though nothing was happening.
+
+- **The update screen shows only the version it is offering.** The full history
+  of every past release is no longer stacked underneath a question about one
+  build — it moved to About, where the last ten releases are listed on the page
+  rather than in a small box that scrolls inside itself.
+
+- **The download shows up in the notification shade.** While an update is
+  downloading there is a progress notification you can watch without opening
+  Nex — and swipe away if you would rather not, which does not stop the
+  download. When it finishes, the same notification says so, and tapping it
+  opens the update ready to install.
+
+- **A note can stay open on the timeline.** Cards show two lines, which is
+  right for almost everything and wrong for the one checklist you need in
+  front of you. Open a note and choose **Show in full**: that card grows to
+  fit all of it — every item of a checklist, every line of a note — and stays
+  that way until you put it back. Every other card is unchanged.
+
+- **There is a guide now.** Settings opens with **How Nex works** — a short,
+  friendly walk through everything the app does, from writing a note to adding
+  an API key to changing the theme. In English and Persian.
+
+- **The first-run introduction covers more of the app**, and ends by pointing
+  at that guide, so nothing has to be discovered by accident.
 
 ## v1.3.2
 

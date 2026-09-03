@@ -38,6 +38,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
 
   late final UpdateService _updates = UpdateService(
     preferences: widget.preferences,
+    onDownloadStatus: _showDownloadNotification,
   );
   late final _feedback = FeedbackService(preferences: widget.preferences);
   final _appLock = AppLockService();
@@ -125,6 +126,42 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     );
     _unlocking = false;
     if (mounted && unlocked) setState(() => _locked = false);
+  }
+
+  /// Puts the download in the notification shade, where it can be watched
+  /// without this app being open.
+  ///
+  /// Here rather than in the service because the strings are localised and
+  /// the service has no `BuildContext` — and should not grow one to post a
+  /// notification. The messenger's context sits under [MaterialApp], which is
+  /// as much as `AppLocalizations` needs.
+  ///
+  /// A stopped download takes its entry down rather than replacing it with a
+  /// second kind of notification: resuming lives on the update screen, and a
+  /// shade entry that only says "something went wrong" is noise.
+  void _showDownloadNotification(NexDownloadStatus status) {
+    final context = _messengerKey.currentContext;
+    if (context == null) return;
+    final l10n = AppLocalizations.of(context);
+    final reminders = widget.services.reminders;
+    switch (status.stage) {
+      case NexDownloadStage.running:
+        unawaited(
+          reminders.showDownloadProgress(
+            title: l10n.updateDownloadingTitle,
+            percent: status.percent ?? 0,
+          ),
+        );
+      case NexDownloadStage.done:
+        unawaited(
+          reminders.showDownloadReady(
+            title: l10n.updateReadyTitle,
+            body: l10n.updateReadyBody,
+          ),
+        );
+      case NexDownloadStage.stopped:
+        unawaited(reminders.clearDownloadNotification());
+    }
   }
 
   /// Says so, once, when an installer finishes arriving.

@@ -1208,6 +1208,12 @@ abstract class AppLocalizations {
   /// **'All'**
   String get all;
 
+  /// Timeline filter row: show only notes with a reminder still ahead of them
+  ///
+  /// In en, this message translates to:
+  /// **'Has a reminder'**
+  String get filterHasReminder;
+
   /// Swipe-action mapping row in Settings
   ///
   /// In en, this message translates to:
@@ -3643,6 +3649,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This document could not be shown here.'**
   String get documentUnreadable;
+
+  /// Shown under the progress bar when a download is interrupted
+  ///
+  /// In en, this message translates to:
+  /// **'Download stopped'**
+  String get downloadStopped;
+
+  /// Button that picks a stopped download up where it left off
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get resumeDownload;
+
+  /// Notification title while the update downloads
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading update'**
+  String get updateDownloadingTitle;
+
+  /// Notification title once the installer has landed
+  ///
+  /// In en, this message translates to:
+  /// **'Update ready'**
+  String get updateReadyTitle;
+
+  /// Notification body once the installer has landed
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to install'**
+  String get updateReadyBody;
+
+  /// Action that makes a note’s timeline card show all of it
+  ///
+  /// In en, this message translates to:
+  /// **'Show in full'**
+  String get expandCard;
+
+  /// Action that puts an expanded timeline card back to its normal height
+  ///
+  /// In en, this message translates to:
+  /// **'Show two lines'**
+  String get collapseCard;
+
+  /// Title of the user guide screen
+  ///
+  /// In en, this message translates to:
+  /// **'How Nex works'**
+  String get guideTitle;
+
+  /// Settings row subtitle for the user guide
+  ///
+  /// In en, this message translates to:
+  /// **'Everything the app does, in one place'**
+  String get guideSubtitle;
+
+  /// Shown if the bundled guide file is missing
+  ///
+  /// In en, this message translates to:
+  /// **'The guide could not be opened.'**
+  String get guideUnavailable;
+
+  /// Onboarding page title about files
+  ///
+  /// In en, this message translates to:
+  /// **'Whatever you throw at it'**
+  String get onboardingFilesTitle;
+
+  /// Onboarding page body about files
+  ///
+  /// In en, this message translates to:
+  /// **'Share a document, a PDF, a song or a picture into Nex and it shows you the thing itself — not just a filename.'**
+  String get onboardingFilesBody;
+
+  /// Onboarding page title about privacy
+  ///
+  /// In en, this message translates to:
+  /// **'It stays yours'**
+  String get onboardingYoursTitle;
+
+  /// Onboarding page body about privacy
+  ///
+  /// In en, this message translates to:
+  /// **'No account, no server, and it works with the plane on. Lock it behind your fingerprint if you like, and export the lot whenever you want.'**
+  String get onboardingYoursBody;
+
+  /// Heading above the guide link on the last onboarding step
+  ///
+  /// In en, this message translates to:
+  /// **'Not sure where something is?'**
+  String get onboardingGuideTitle;
+
+  /// Text above the guide link on the last onboarding step
+  ///
+  /// In en, this message translates to:
+  /// **'The guide walks through everything, and it is always in Settings.'**
+  String get onboardingGuideBody;
+
+  /// Button that opens the user guide from onboarding
+  ///
+  /// In en, this message translates to:
+  /// **'Read the guide'**
+  String get onboardingGuideOpen;
 
   /// Title of the dialog asking where a link should point
   ///
