@@ -17,10 +17,16 @@ abstract final class NexVideoPreview {
   /// register.
   static const _channel = MethodChannel('nex/os_capture');
 
-  /// A representative frame of the video at [path] as PNG bytes, or null when
-  /// there is no frame to be had — no retriever on this platform, a file that
-  /// is not a video, one in a codec the device cannot decode, a truncated
-  /// download.
+  /// A representative frame of the video at [path] as encoded image bytes, or
+  /// null when there is no frame to be had — no retriever on this platform, a
+  /// file that is not a video, one in a codec the device cannot decode, a
+  /// truncated download.
+  ///
+  /// JPEG today, and the caller does not need to know: `Image.memory` reads
+  /// the header. The PDF preview beside this one answers in PNG, which is
+  /// right for a page of text and wrong for a photograph — the same frame is
+  /// a few hundred kilobytes one way and several megabytes the other, all of
+  /// it copied across the channel to be drawn at thumbnail size.
   ///
   /// Every one of those is null rather than an exception because the caller
   /// does the same thing about all of them: shows the file and says nothing

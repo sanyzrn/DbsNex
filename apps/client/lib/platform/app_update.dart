@@ -30,15 +30,22 @@ class NexVersion implements Comparable<NexVersion> {
   /// Returns null rather than throwing: the input is a tag from a remote
   /// server, so anything at all can arrive, and an unparseable tag means
   /// "no update", not "crash".
+  ///
+  /// `int.tryParse`, not `int.parse`, and that is the whole of the guarantee
+  /// above rather than a preference. The pattern's `\d*` matches a digit run
+  /// of any length, so a tag like `v99999999999999999999.0.0` — twenty digits,
+  /// past what a 64-bit int holds — satisfied the regex and then threw a
+  /// `FormatException` out of a method whose contract is that it never
+  /// throws. One mistyped tag on one release would have broken the update
+  /// check for everyone until it was renamed.
   static NexVersion? tryParse(String value) {
     final match = _pattern.firstMatch(value.trim());
     if (match == null) return null;
-    return NexVersion(
-      int.parse(match.group(1)!),
-      int.parse(match.group(2)!),
-      int.parse(match.group(3)!),
-      preRelease: match.group(4),
-    );
+    final major = int.tryParse(match.group(1)!);
+    final minor = int.tryParse(match.group(2)!);
+    final patch = int.tryParse(match.group(3)!);
+    if (major == null || minor == null || patch == null) return null;
+    return NexVersion(major, minor, patch, preRelease: match.group(4));
   }
 
   bool get isPreRelease => preRelease != null;

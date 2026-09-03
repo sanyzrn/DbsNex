@@ -79,14 +79,34 @@ void main() {
   });
 
   group('idFor', () {
-    test('never collides with the reserved low ids', () {
-      // 0 is the daily nudge; 1 and 2 are the diagnostics. The old claim
-      // that "zero is not a hash any string produces" was simply false, and
-      // a note id landing there would have traded alarms with the nudge on
-      // every schedule.
-      for (final reserved in const {0, 1, 2}) {
-        expect(NexReminders.idFor('note-$reserved'), isNot(reserved));
+    test('no hash in the reserved block survives as a reserved id', () {
+      // 0 is the daily nudge, 1 and 2 the diagnostics, 3 the update
+      // download. A note reminder keyed on a hash can land on any of them,
+      // and sharing an id means each silently cancels the other forever.
+      //
+      // Driven through `unreserved` rather than `idFor`, because a test that
+      // hopes some string hashes into a four-id window never reaches the
+      // arithmetic it is about — which is how the bump went on adding 3 to a
+      // block that had grown to four, mapping a hash of 0 straight onto the
+      // download notification.
+      for (var id = 0; id < NexReminders.reservedIds + 2; id++) {
+        expect(
+          NexReminders.unreserved(id),
+          greaterThanOrEqualTo(NexReminders.reservedIds),
+          reason: 'hash $id landed inside the reserved block',
+        );
       }
+    });
+
+    test('leaves an id outside the block alone', () {
+      // The bump is for the block, not a general offset: every other note
+      // must keep the id its hash already gave it, or upgrading the app
+      // would orphan every alarm the OS is already holding.
+      expect(
+        NexReminders.unreserved(NexReminders.reservedIds),
+        NexReminders.reservedIds,
+      );
+      expect(NexReminders.unreserved(4242), 4242);
     });
 
     test('is stable for the same note id', () {

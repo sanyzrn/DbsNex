@@ -9,6 +9,8 @@ import android.graphics.pdf.PdfRenderer
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -17,11 +19,50 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.util.concurrent.Executors
 
 class MainActivity : FlutterFragmentActivity() {
     private var channel: MethodChannel? = null
     private var pending: Map<String, String>? = null
     private var picker: MethodChannel.Result? = null
+
+    /**
+     * Where the two preview renderers run.
+     *
+     * A MethodChannel handler is invoked on the platform's main thread, and
+     * both of these open a file, decode it, scale it and compress the result:
+     * a 4K frame or a dense PDF page is tens of milliseconds at best and well
+     * past the ANR threshold at worst, all of it on the thread that draws the
+     * app. Dart already awaits the answer, so nothing about the call's shape
+     * changes by moving the work off it.
+     *
+     * One thread, not a pool: each of these holds a full-size bitmap, and two
+     * at once is two of them.
+     */
+    private val renderExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "nex-preview").apply { isDaemon = true }
+    }
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * Runs [work] off the main thread and answers [result] back on it.
+     *
+     * A `MethodChannel.Result` may only be used from the main thread, and a
+     * failure inside [work] is an absence rather than an error: every caller
+     * on the Dart side treats null as "no preview here" already.
+     */
+    private fun replyAsync(result: MethodChannel.Result, work: () -> ByteArray?) {
+        renderExecutor.execute {
+            val bytes = runCatching(work).getOrNull()
+            mainHandler.post {
+                // The engine can be gone by now — the sheet that asked was
+                // closed, or the Activity was recreated. Answering a result
+                // nobody is listening to throws rather than being ignored.
+                runCatching { result.success(bytes) }
+            }
+        }
+    }
 
     override fun configureFlutterEngine(engine: FlutterEngine) {
         super.configureFlutterEngine(engine)
@@ -34,19 +75,19 @@ class MainActivity : FlutterFragmentActivity() {
                     type = "*/*"; addCategory(Intent.CATEGORY_OPENABLE)
                 }, 9911)
             }
-            "pdfPreview" -> result.success(
-                renderPdfPreview(
-                    call.argument<String>("path"),
-                    call.argument<Int>("width") ?: 1200,
-                    call.argument<Int>("maxHeight") ?: 960,
-                )
-            )
-            "videoPreview" -> result.success(
-                renderVideoPoster(
-                    call.argument<String>("path"),
-                    call.argument<Int>("width") ?: 1080,
-                )
-            )
+            "pdfPreview" -> {
+                // Arguments are read here, on the main thread, so the call
+                // object is never touched from the render thread.
+                val path = call.argument<String>("path")
+                val width = call.argument<Int>("width") ?: 1200
+                val maxHeight = call.argument<Int>("maxHeight") ?: 960
+                replyAsync(result) { renderPdfPreview(path, width, maxHeight) }
+            }
+            "videoPreview" -> {
+                val path = call.argument<String>("path")
+                val width = call.argument<Int>("width") ?: 1080
+                replyAsync(result) { renderVideoPoster(path, width) }
+            }
             "shareText" -> {
                 startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
@@ -71,6 +112,16 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent); setIntent(intent); handleIncoming(intent, live = true)
+    }
+
+    override fun onDestroy() {
+        // This Activity is recreated on a configuration change, and each one
+        // brings its own executor. Without this, every rotation leaves a
+        // parked thread behind. `shutdown`, not `shutdownNow`: work already
+        // running finishes and posts its answer, which the reply guards
+        // against a channel that has gone.
+        renderExecutor.shutdown()
+        super.onDestroy()
     }
 
     // [live] is false from configureFlutterEngine: that path always means a
@@ -181,7 +232,15 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     /**
-     * A frame of a video as PNG bytes, or null when there is nothing to show.
+     * A frame of a video as JPEG bytes, or null when there is nothing to show.
+     *
+     * JPEG, unlike the PDF above, and the difference is the content rather
+     * than a preference. A rendered page is mostly flat white with sharp
+     * text, which is what PNG is good at; a frame of video is a photograph,
+     * which is what it is worst at. The same 1080-wide frame is a few hundred
+     * kilobytes as JPEG and several megabytes as PNG — and every one of those
+     * bytes is copied across the method channel to be drawn at thumbnail
+     * size.
      *
      * No library for this either, and for the same reason as the PDF above:
      * Android has pulled frames out of video since long before this app's
@@ -221,8 +280,8 @@ class MainActivity : FlutterFragmentActivity() {
                 ?: return null
             frame = decoded
             // getScaledFrameAtTime already sized it; getFrameAtTime did not,
-            // and a 4K frame is thirty-three megabytes to hand across the
-            // channel as a PNG nobody will look at closely.
+            // and a 4K frame is thirty-three megabytes of bitmap to hand
+            // across the channel for something drawn at thumbnail size.
             val poster = if (decoded.width > target) {
                 val height = (decoded.height.toLong() * target / decoded.width)
                     .toInt().coerceAtLeast(1)
@@ -232,7 +291,10 @@ class MainActivity : FlutterFragmentActivity() {
             }
             scaled = poster
             val out = ByteArrayOutputStream()
-            poster.compress(Bitmap.CompressFormat.PNG, 100, out)
+            // 85: the point on this curve where a still frame shown at
+            // thumbnail size stops looking any better and the file keeps
+            // getting bigger.
+            poster.compress(Bitmap.CompressFormat.JPEG, 85, out)
             out.toByteArray()
         } catch (_: Exception) {
             // A file that is not a video, one in a codec this device has no

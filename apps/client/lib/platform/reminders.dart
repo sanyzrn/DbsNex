@@ -640,8 +640,9 @@ class NexReminders {
   /// The download notification's own id and channel, and the payload that
   /// tells a tap on it apart from a tap on a reminder.
   ///
-  /// Id 3: 0 is the daily nudge and 1 and 2 are the diagnostics. Note
-  /// reminders hash into everything else by construction.
+  /// Id 3, the last of the block [reservedIds] describes: 0 is the daily
+  /// nudge and 1 and 2 are the diagnostics. A note reminder is kept out of
+  /// all four by [idFor].
   static const _updateId = 3;
   static const _updateChannelId = 'nex.updates';
   static const _updatePayload = 'nex:update';
@@ -649,6 +650,18 @@ class NexReminders {
   /// The two ids [sendTestNotification] uses, kept away from note hashes and
   /// from [_dailyId].
   static const _testId = 1;
+
+  /// How many ids at the bottom of the space this class keeps for itself:
+  /// [_dailyId] (0), the two [sendTestNotification] ids (1 and 2), and
+  /// [_updateId] (3).
+  ///
+  /// A note's reminder is keyed on a hash, so it can land on any of them —
+  /// [idFor] is what keeps it out, and [syncFromLibrary] is what keeps the
+  /// prune from cancelling them. Both read this rather than listing the ids
+  /// again, because the last time they were listed separately one of the two
+  /// lists gained an entry and the other did not.
+  @visibleForTesting
+  static const reservedIds = 4;
 
   /// The one repeating notification: a nudge at a time the user picked.
   ///
@@ -774,12 +787,9 @@ class NexReminders {
       final pending = await _plugin.pendingNotificationRequests();
       for (final request in pending) {
         final id = request.id;
-        if (id == _dailyId ||
-            id == _updateId ||
-            id == _testId ||
-            id == _testId + 1) {
-          continue;
-        }
+        // Reserved ids are never touched — none of them is a note, so none of
+        // them is in the library to be asked for.
+        if (id < reservedIds) continue;
         if (!wanted.contains(id)) {
           try {
             await _plugin.cancel(id: id);
@@ -802,19 +812,31 @@ class NexReminders {
   /// rescheduling the same note replaces its alarm rather than adding a
   /// second one, without keeping a mapping table that could drift.
   ///
-  /// The low ids are reserved: 0 is the daily nudge, 1 and 2 the diagnostics.
-  /// A 31-bit hash *can* land there — the previous comment claimed it could
-  /// not, and that claim was false — in which case setting that note's
-  /// reminder would silently replace the nudge, and the nudge would silently
-  /// replace the reminder, each cancelling the other forever. Bumping past
-  /// the reserved block costs three ids at one end of the space and removes
-  /// the entire class of bug.
+  /// The low ids are reserved — see [reservedIds]. A 31-bit hash *can* land
+  /// there — an older comment claimed it could not, and that claim was false
+  /// — in which case setting that note's reminder would silently replace one
+  /// of them, and it would silently replace the reminder, each cancelling the
+  /// other forever. Bumping past the reserved block costs a handful of ids at
+  /// one end of the space and removes the entire class of bug.
+  ///
+  /// The bump is `+ reservedIds`, not `+ 3`. It was `+ 3` when there were
+  /// three reserved ids, so when the download notification took id 3 the
+  /// bump started landing a note straight on top of it: a note whose hash was
+  /// 0 became 3, which is the download. The whole point of the block is that
+  /// its size is one number, used by everything that has to respect it.
   @visibleForTesting
-  static int idFor(String noteId) {
-    var id = noteId.hashCode & 0x7fffffff;
-    if (id <= 2) id += 3;
-    return id;
-  }
+  static int idFor(String noteId) => unreserved(noteId.hashCode & 0x7fffffff);
+
+  /// Moves [id] out of the reserved block.
+  ///
+  /// Split out from [idFor] so it can be tested for what it does. The test
+  /// that was here fed [idFor] the string `'note-0'` and checked the answer
+  /// was not 0 — which it is not, and would not have been however wrong this
+  /// arithmetic was, because that string's hash was never in the block to
+  /// begin with. A test that cannot reach the line it is about is not a test
+  /// of it.
+  @visibleForTesting
+  static int unreserved(int id) => id < reservedIds ? id + reservedIds : id;
 
   static int _idFor(String noteId) => idFor(noteId);
 

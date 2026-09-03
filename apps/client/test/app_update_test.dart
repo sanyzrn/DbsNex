@@ -22,6 +22,25 @@ void main() {
       }
     });
 
+    test('a number too large for an int is no update, not a crash', () {
+      // The pattern's `\d*` matches a digit run of any length, so these all
+      // reached `int.parse` and threw a FormatException straight out of a
+      // method whose entire contract is that it answers null instead. The
+      // input is a tag from a remote server: one mistyped release would have
+      // broken the update check for every install until it was renamed.
+      for (final huge in [
+        'v99999999999999999999.0.0',
+        '1.99999999999999999999.0',
+        '1.0.99999999999999999999',
+      ]) {
+        expect(NexVersion.tryParse(huge), isNull, reason: huge);
+      }
+
+      // The largest value that does fit still parses — the guard is about
+      // overflow, not about long-looking numbers.
+      expect(NexVersion.tryParse('9223372036854775807.0.0'), isNotNull);
+    });
+
     test('orders numerically, not as strings', () {
       // The whole reason this type exists: "0.10.0" < "0.9.0" as text.
       expect(
