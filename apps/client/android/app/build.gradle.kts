@@ -136,5 +136,5 @@ dependencies {
     // the resolved graph gains no new artifact — Gradle already had this one.
     // Pinned rather than floating for the same reason it matters at all:
     // this decides which JDK APIs exist at runtime on old devices.
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
