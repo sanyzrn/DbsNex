@@ -649,6 +649,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get all => 'همه';
 
   @override
+  String get filterHasReminder => 'دارای یادآور';
+
+  @override
   String get swipeLeading => 'کشیدن از لبهٔ آغاز';
 
   @override
@@ -2088,6 +2091,64 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get documentUnreadable => 'این سند اینجا نمایش داده نشد.';
+
+  @override
+  String get downloadStopped => 'دانلود قطع شد';
+
+  @override
+  String get resumeDownload => 'ادامه';
+
+  @override
+  String get updateDownloadingTitle => 'در حال دانلود به‌روزرسانی';
+
+  @override
+  String get updateReadyTitle => 'به‌روزرسانی آماده است';
+
+  @override
+  String get updateReadyBody => 'برای نصب ضربه بزنید';
+
+  @override
+  String get expandCard => 'نمایش کامل';
+
+  @override
+  String get collapseCard => 'نمایش دو خطی';
+
+  @override
+  String get guideTitle => 'نکس چطور کار می‌کند';
+
+  @override
+  String get guideSubtitle => 'هرچه اپ انجام می‌دهد، یک‌جا';
+
+  @override
+  String get guideUnavailable => 'راهنما باز نشد.';
+
+  @override
+  String get onboardingFilesTitle =>
+      'هرچه بهش بدهی';
+
+  @override
+  String get onboardingFilesBody =>
+      'یک سند، یک پی‌دی‌اف، یک آهنگ یا یک عکس را به نکس بفرست — خودِ آن چیز را نشانت می‌دهد، نه فقط اسم فایل را.';
+
+  @override
+  String get onboardingYoursTitle =>
+      'مال خودت می‌ماند';
+
+  @override
+  String get onboardingYoursBody =>
+      'نه حساب کاربری، نه سرور، و با اینترنتِ قطع هم کار می‌کند. اگر خواستی پشت اثر انگشتت قفلش کن، و هر وقت خواستی همه‌اش را بیرون بکش.';
+
+  @override
+  String get onboardingGuideTitle =>
+      'نمی‌دانی چیزی کجاست؟';
+
+  @override
+  String get onboardingGuideBody =>
+      'راهنما همه‌چیز را قدم‌به‌قدم می‌گوید، و همیشه در تنظیمات هست.';
+
+  @override
+  String get onboardingGuideOpen =>
+      'راهنما را بخوان';
 
   @override
   String get addLink => 'افزودن پیوند';

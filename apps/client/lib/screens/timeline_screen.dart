@@ -14,6 +14,7 @@ import '../platform/capture_failure.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
+import 'update_sheet.dart';
 import '../platform/nex_services.dart';
 import '../platform/route_observer.dart';
 import '../platform/note_search.dart';
@@ -109,6 +110,19 @@ class TimelineScreenState extends State<TimelineScreen>
   List<Tag> filterTags = const [];
   String? selectedTagId;
   NoteType? selectedType;
+
+  /// Show only notes with a reminder still ahead of them.
+  ///
+  /// A state, not a type, which is why it is its own field rather than a
+  /// seventh entry in [selectedType]: a note is a photo *and* has a reminder,
+  /// and a filter that made you choose between those two facts would be
+  /// answering a question nobody asked. It layers on top of both other
+  /// filters, the same way they layer on each other.
+  ///
+  /// "Still ahead" comes for free: a reminder that has rung and been seen is
+  /// retired by `_retireSpentReminders`, so a note that still carries a
+  /// `dueAt` is a note with something coming.
+  bool onlyReminders = false;
   StreamSubscription<List<Note>>? subscription;
   String? landedId;
 
@@ -234,6 +248,13 @@ class TimelineScreenState extends State<TimelineScreen>
     widget.services.reminders.onOpenNote = _spotlight;
     final launched = widget.services.reminders.takeLaunchNoteId();
     if (launched != null) _spotlight(launched);
+    // And both halves of a tapped download. Here rather than in the app
+    // widget because opening a screen needs a Navigator, and the app widget
+    // sits above the one this route lives in.
+    widget.services.reminders.onOpenUpdate = _openUpdate;
+    if (widget.services.reminders.takeLaunchedFromUpdate()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openUpdate());
+    }
     unawaited(_loadTimeline());
     unawaited(_loadFilterTags());
     // After the first frame, because every stop measures a real widget and
@@ -730,6 +751,22 @@ class TimelineScreenState extends State<TimelineScreen>
   /// Built from usage counts rather than the bare tag list: a tag nothing is
   /// tagged with anymore (its last note deleted, or created and never used)
   /// was still showing up as a pill that filtered to an empty list.
+  /// Opens the update screen, from a tap on the download's notification.
+  ///
+  /// The installer is already on disk by then, so this lands on Install —
+  /// which is the whole point of the notification saying it is ready.
+  void _openUpdate() {
+    final service = widget.updates;
+    if (service == null || !mounted) return;
+    unawaited(
+      UpdateSheet.show(
+        context,
+        haptics: widget.preferences.haptics,
+        service: service,
+      ),
+    );
+  }
+
   Future<void> _loadFilterTags() async {
     final loaded = await widget.services.tagUsage();
     if (!mounted) return;
@@ -777,31 +814,65 @@ class TimelineScreenState extends State<TimelineScreen>
     await _applyFilters();
   }
 
-  /// The content-type filter, behind the mockup's icon button.
-  Future<void> _pickType() async {
+  Future<void> _selectOnlyReminders(bool only) async {
+    _tick();
+    setState(() => onlyReminders = only);
+    await _applyFilters();
+  }
+
+  /// The content filter, behind the mockup's icon button.
+  Future<void> _pickFilters() async {
     final l10n = AppLocalizations.of(context);
-    final chosen = await nexShowSheet<_TypeChoice>(
+    final chosen = await nexShowSheet<_FilterChoice>(
       context: context,
-      builder: (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final type in <NoteType?>[null, ...NoteType.values])
-            ListTile(
-              leading: Icon(nexNoteTypeIcon(type?.wireName)),
-              title: Text(
-                type == null ? l10n.all : l10n.noteType(type.wireName),
+      // Scrollable, because the sheet's own body is `Flexible`: eight rows
+      // fit a phone at the default text size and stop fitting a few notches
+      // up, and a list that overflows is a list whose last row cannot be
+      // reached at all.
+      builder: (ctx) => SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final type in <NoteType?>[null, ...NoteType.values])
+              ListTile(
+                leading: Icon(nexNoteTypeIcon(type?.wireName)),
+                title: Text(
+                  type == null ? l10n.all : l10n.noteType(type.wireName),
+                ),
+                trailing: selectedType == type ? const Icon(Icons.check) : null,
+                selected: selectedType == type,
+                // Wrapped, because popping a bare null cannot be told apart
+                // from the user dismissing the sheet.
+                onTap: () => Navigator.pop(ctx, _TypeChoice(type)),
               ),
-              trailing: selectedType == type ? const Icon(Icons.check) : null,
-              selected: selectedType == type,
-              // Wrapped, because popping a bare null cannot be told apart
-              // from the user dismissing the sheet.
-              onTap: () => Navigator.pop(ctx, _TypeChoice(type)),
+            // The rows above answer "which kind of thing is it", and each of
+            // them rules the others out. This one is not one of those: it is
+            // a fact about a note rather than a kind of note, and it layers
+            // on top of whichever kind is chosen. The line is what says so.
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.alarm),
+              title: Text(l10n.filterHasReminder),
+              trailing: onlyReminders ? const Icon(Icons.check) : null,
+              selected: onlyReminders,
+              // Tapping closes the sheet and applies, exactly like every row
+              // above it — a switch that stayed put while the rest dismissed
+              // would be two interaction models in one list.
+              onTap: () =>
+                  Navigator.pop(ctx, _ReminderChoice(only: !onlyReminders)),
             ),
-        ],
+          ],
+        ),
       ),
     );
-    if (chosen == null) return;
-    await _selectType(chosen.type);
+    switch (chosen) {
+      case null:
+        return;
+      case _TypeChoice(:final type):
+        await _selectType(type);
+      case _ReminderChoice(:final only):
+        await _selectOnlyReminders(only);
+    }
   }
 
   void _tick() => nexTick();
@@ -835,11 +906,13 @@ class TimelineScreenState extends State<TimelineScreen>
     setState(() {
       selectedTagId = null;
       selectedType = null;
+      onlyReminders = false;
     });
     await _applyFilters();
   }
 
-  bool get _filtering => selectedTagId != null || selectedType != null;
+  bool get _filtering =>
+      selectedTagId != null || selectedType != null || onlyReminders;
 
   /// FR-4.5: the content-type filter layers on top of the tag filter — it is
   /// not a separate mode, so both selections resolve into one view.
@@ -847,6 +920,7 @@ class TimelineScreenState extends State<TimelineScreen>
     final tagId = selectedTagId;
     final type = selectedType;
     return source.where((note) {
+      if (onlyReminders && note.dueAt == null) return false;
       if (type != null && note.type != type) return false;
       if (tagId != null && !note.tags.any((t) => t.id == tagId)) return false;
       return true;
@@ -1657,9 +1731,12 @@ class TimelineScreenState extends State<TimelineScreen>
                                     tags: filterTags,
                                     selectedTagId: selectedTagId,
                                     allLabel: l10n.all,
-                                    leading: _TypeFilterButton(
-                                      selected: selectedType,
-                                      onPressed: () => unawaited(_pickType()),
+                                    leading: _FilterButton(
+                                      active:
+                                          selectedType != null ||
+                                          onlyReminders,
+                                      onPressed: () =>
+                                          unawaited(_pickFilters()),
                                     ),
                                     onSelected: (value) =>
                                         unawaited(_selectTag(value)),
@@ -1880,6 +1957,7 @@ class TimelineScreenState extends State<TimelineScreen>
                     note: note,
                     strings: nexCardStrings(context),
                     onTap: () => _tapNote(note),
+                    expanded: widget.preferences.isNoteExpanded(note.id),
                   ),
                 ),
               ),
@@ -2469,27 +2547,45 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_FilterRowHeader old) => true;
 }
 
-/// Wraps the picker's answer so "All" survives the trip back through
-/// `Navigator.pop`, which cannot distinguish a null result from a dismissal.
-class _TypeChoice {
+/// What the filter sheet came back with.
+///
+/// Wrapped rather than returned bare so that "All" survives the trip back
+/// through `Navigator.pop`, which cannot distinguish a null result from a
+/// dismissal — and sealed because the sheet now answers on two axes, and a
+/// switch over it is what keeps a third from being forgotten at the call
+/// site.
+sealed class _FilterChoice {
+  const _FilterChoice();
+}
+
+class _TypeChoice extends _FilterChoice {
   const _TypeChoice(this.type);
   final NoteType? type;
 }
 
+class _ReminderChoice extends _FilterChoice {
+  const _ReminderChoice({required this.only});
+  final bool only;
+}
+
 /// The mockup's leading icon button on the filter row.
 ///
-/// Carries a dot when a content type is filtering, so an active filter is
-/// visible without opening the sheet.
-class _TypeFilterButton extends StatelessWidget {
-  const _TypeFilterButton({required this.selected, required this.onPressed});
+/// Carries its selected state whenever anything in the sheet behind it is
+/// filtering, so an active filter is visible without opening it.
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({required this.active, required this.onPressed});
 
-  final NoteType? selected;
+  /// Whether anything in the sheet is narrowing the timeline — a content
+  /// type, the reminder filter, or both. A bool rather than the selection
+  /// itself: what this button draws is "something is on", and it should not
+  /// have to grow a parameter every time the sheet gains an axis.
+  final bool active;
+
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final active = selected != null;
     return NexTappable(
       onTap: onPressed,
       selected: active,

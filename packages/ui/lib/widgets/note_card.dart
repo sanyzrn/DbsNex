@@ -80,11 +80,21 @@ class NoteCard extends StatelessWidget {
     this.previewOverride,
     this.strings = NexCardStrings.fallback,
     this.showDue = true,
+    this.expanded = false,
   });
   final Note note;
   final VoidCallback? onTap;
   final Widget? previewOverride;
   final NexCardStrings strings;
+
+  /// Whether this card shows all of its note rather than the first two lines.
+  ///
+  /// Per note, and off by default. The reason to want one is that *this*
+  /// checklist has to stay in view — not that every card should be tall. A
+  /// list where every card is as tall as its contents is a list you have to
+  /// scroll to compare two things in, which is the ragged layout the fixed
+  /// height was introduced to fix.
+  final bool expanded;
 
   /// Whether a reminder on this note still has anything to say.
   ///
@@ -99,11 +109,17 @@ class NoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: nexCardInsets,
-      child: SizedBox(
+      child: ConstrainedBox(
         // Every card, the same height. See [nexCardHeightFor] — which is
         // [nexCardHeight] at the default text size, and only grows if someone
         // has turned the text up past what the glyph's 48 can hold.
-        height: nexCardHeightFor(context),
+        //
+        // An expanded card turns that into a floor: it grows to whatever its
+        // note needs, and still never sits shorter than the row every other
+        // card keeps.
+        constraints: expanded
+            ? BoxConstraints(minHeight: nexCardHeightFor(context))
+            : BoxConstraints.tightFor(height: nexCardHeightFor(context)),
         child: Semantics(
           button: onTap != null,
           label: _label(),
@@ -118,6 +134,7 @@ class NoteCard extends StatelessWidget {
             previewOverride: previewOverride,
             strings: strings,
             showDue: showDue,
+            expanded: expanded,
           ),
         ),
       ),
@@ -145,6 +162,7 @@ class _CardBody extends StatelessWidget {
     required this.previewOverride,
     required this.strings,
     required this.showDue,
+    required this.expanded,
   });
 
   final Note note;
@@ -152,6 +170,7 @@ class _CardBody extends StatelessWidget {
   final Widget? previewOverride;
   final NexCardStrings strings;
   final bool showDue;
+  final bool expanded;
 
   @override
   Widget build(BuildContext context) {
@@ -183,6 +202,12 @@ class _CardBody extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(NexSpacing.cardInset),
           child: Row(
+            // The glyph and the timestamp sit at the top of an expanded card
+            // rather than halfway down beside a paragraph. On a fixed-height
+            // card the two are the same thing.
+            crossAxisAlignment: expanded
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
             children: [
               _LeadingWithPin(note: note, strings: strings),
               const SizedBox(width: NexSpacing.contentGap),
@@ -218,7 +243,10 @@ class _CardBody extends StatelessWidget {
                   style: theme.textTheme.bodySmall,
                 ),
               const SizedBox(width: NexSpacing.contentGap),
-              Expanded(child: previewOverride ?? _Preview(note: note)),
+              Expanded(
+                child:
+                    previewOverride ?? _Preview(note: note, expanded: expanded),
+              ),
             ],
           ),
         ),
@@ -380,9 +408,10 @@ enum _DotCorner { topEnd, bottomStart, topStart, bottomEnd }
 /// right but the card was wrong. Direction here belongs to the paragraph, and
 /// the card keeps the layout the interface language gives it.
 class _Preview extends StatelessWidget {
-  const _Preview({required this.note});
+  const _Preview({required this.note, required this.expanded});
 
   final Note note;
+  final bool expanded;
 
   @override
   Widget build(BuildContext context) {
@@ -391,7 +420,7 @@ class _Preview extends StatelessWidget {
     // interactive here: the card's own tap opens the note, and a checkbox
     // inside a tappable card is a target inside a target.
     if (note.type == NoteType.checklist && note.checklistItems.isNotEmpty) {
-      return _ChecklistPreview(items: note.checklistItems);
+      return _ChecklistPreview(items: note.checklistItems, expanded: expanded);
     }
     if (note.type == NoteType.link) return _LinkPreview(note: note);
 
@@ -412,8 +441,12 @@ class _Preview extends StatelessWidget {
         // height is derived from. One line was enough to tell cards apart
         // and not enough to tell you what a note said: a captured thought is
         // usually a sentence, and a sentence is usually wider than a phone.
-        maxLines: nexCardPreviewLines,
-        overflow: TextOverflow.ellipsis,
+        //
+        // Expanded, there is no limit and nothing to ellipsise: the whole
+        // point of asking for it is that the note is longer than two lines
+        // and you want to read it without opening anything.
+        maxLines: expanded ? null : nexCardPreviewLines,
+        overflow: expanded ? TextOverflow.clip : TextOverflow.ellipsis,
         textDirection: direction,
         textAlign: direction == TextDirection.rtl
             ? TextAlign.right
@@ -424,16 +457,21 @@ class _Preview extends StatelessWidget {
   }
 }
 
-/// The first two items of a checklist, ticked or not, plus what is left over.
+/// The first two items of a checklist, ticked or not, plus what is left over —
+/// or all of them, on a card asked to show its whole note.
 ///
 /// Two, because that is what the card has room for — and the two that matter
 /// are the ones still to do, so unticked items come first regardless of where
 /// they sit in the list. A card showing "milk, bread" you have already bought
 /// is a card telling you nothing.
+///
+/// The ordering holds when expanded too: a seven-item list still leads with
+/// what is left to do. That is the same list, not a different view of it.
 class _ChecklistPreview extends StatelessWidget {
-  const _ChecklistPreview({required this.items});
+  const _ChecklistPreview({required this.items, required this.expanded});
 
   final List<ChecklistItem> items;
+  final bool expanded;
 
   @override
   Widget build(BuildContext context) {
@@ -441,7 +479,9 @@ class _ChecklistPreview extends StatelessWidget {
       ...items.where((item) => !item.done),
       ...items.where((item) => item.done),
     ];
-    final shown = ordered.take(nexCardPreviewLines).toList();
+    final shown = expanded
+        ? ordered
+        : ordered.take(nexCardPreviewLines).toList();
     final remaining = ordered.length - shown.length;
 
     return SizedBox(

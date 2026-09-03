@@ -48,9 +48,13 @@ void main() {
     });
   }
 
-  UpdateService build({required MockClient client, String? assetSuffix}) =>
-      UpdateService(
+  UpdateService build({
+    required MockClient client,
+    String? assetSuffix,
+    void Function(NexDownloadStatus)? onDownloadStatus,
+  }) => UpdateService(
         preferences: preferences,
+        onDownloadStatus: onDownloadStatus,
         checker: UpdateChecker(
           currentVersion: nexAppVersion,
           client: client,
@@ -68,6 +72,55 @@ void main() {
         }
         return http.Response.bytes(file ?? [1, 2, 3, 4], 200);
       });
+
+  group('what the notification shade is told', () {
+    test('a download reports progress and then that it is done', () async {
+      final seen = <NexDownloadStatus>[];
+      final service = build(
+        client: serving(newerRelease()),
+        onDownloadStatus: seen.add,
+      );
+      addTearDown(service.dispose);
+
+      await service.check();
+      await service.prefetching;
+
+      expect(seen, isNotEmpty);
+      expect(seen.last.stage, NexDownloadStage.done);
+      // Never the same percent twice: the download reports progress far
+      // faster than anything should be asked to redraw, and a notification
+      // rewritten on every chunk is a platform channel used as a firehose.
+      final percents = [
+        for (final status in seen)
+          if (status.stage == NexDownloadStage.running) status.percent,
+      ];
+      expect(percents, percents.toSet().toList());
+    });
+
+    test('a download that fails says it stopped, not that it finished', () async {
+      final seen = <NexDownloadStatus>[];
+      final service = build(
+        client: MockClient((request) async {
+          if (request.url.host == 'api.github.com') {
+            return http.Response(newerRelease(), 200);
+          }
+          throw const SocketException('no route to host');
+        }),
+        onDownloadStatus: seen.add,
+      );
+      addTearDown(service.dispose);
+
+      await service.check();
+      await service.prefetching;
+
+      expect(seen.last.stage, NexDownloadStage.stopped);
+      // And the reason is kept rather than swallowed — the screen draws its
+      // "stopped" line from exactly this.
+      expect(service.downloadError, isNotNull);
+      // The progress survives too, so a resume does not look like a restart.
+      expect(service.downloaded, isNull);
+    });
+  });
 
   test('an available update is found and pre-downloaded', () async {
     final service = build(client: serving(newerRelease()));

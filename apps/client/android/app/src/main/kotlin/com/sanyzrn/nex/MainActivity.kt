@@ -6,7 +6,9 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.pdf.PdfRenderer
+import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -37,6 +39,12 @@ class MainActivity : FlutterFragmentActivity() {
                     call.argument<String>("path"),
                     call.argument<Int>("width") ?: 1200,
                     call.argument<Int>("maxHeight") ?: 960,
+                )
+            )
+            "videoPreview" -> result.success(
+                renderVideoPoster(
+                    call.argument<String>("path"),
+                    call.argument<Int>("width") ?: 1080,
                 )
             )
             "shareText" -> {
@@ -169,6 +177,106 @@ class MainActivity : FlutterFragmentActivity() {
             runCatching { page?.close() }
             runCatching { renderer?.close() }
             runCatching { descriptor?.close() }
+        }
+    }
+
+    /**
+     * A frame of a video as PNG bytes, or null when there is nothing to show.
+     *
+     * No library for this either, and for the same reason as the PDF above:
+     * Android has pulled frames out of video since long before this app's
+     * minimum, and the alternative is a codec plugin and a render surface to
+     * produce one still picture.
+     *
+     * Which frame is a judgement, not an obvious answer. The very first is
+     * what "cover" sounds like and is frequently black — a lot of video fades
+     * in, and a phone camera's first frame is whatever the sensor had before
+     * it settled. So this asks for one second in, which is past the fade on
+     * nearly everything — except on a clip under two seconds, where a second
+     * in may be the end of it, and the first frame is all there is.
+     *
+     * OPTION_CLOSEST_SYNC, not OPTION_CLOSEST: the former returns a keyframe
+     * near the requested time, which is a decode; the latter walks forward
+     * frame by frame to land exactly, which on a long video is a visible
+     * stall for a picture nobody asked to be exact.
+     */
+    private fun renderVideoPoster(path: String?, width: Int): ByteArray? {
+        if (path.isNullOrEmpty()) return null
+        val file = File(path)
+        if (!file.isFile) return null
+        val target = width.coerceIn(120, 2160)
+        val retriever = MediaMetadataRetriever()
+        var frame: Bitmap? = null
+        var scaled: Bitmap? = null
+        return try {
+            retriever.setDataSource(file.absolutePath)
+            val durationMs = retriever
+                .extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull() ?: 0L
+            val atUs = if (durationMs > 2_000L) 1_000_000L else 0L
+            // The fallback is the first frame — black beats nothing, and a
+            // clip whose keyframe layout defeats the seek still has one.
+            val decoded = retriever.frameAt(atUs, target)
+                ?: retriever.frameAt(0L, target)
+                ?: return null
+            frame = decoded
+            // getScaledFrameAtTime already sized it; getFrameAtTime did not,
+            // and a 4K frame is thirty-three megabytes to hand across the
+            // channel as a PNG nobody will look at closely.
+            val poster = if (decoded.width > target) {
+                val height = (decoded.height.toLong() * target / decoded.width)
+                    .toInt().coerceAtLeast(1)
+                Bitmap.createScaledBitmap(decoded, target, height, true)
+            } else {
+                decoded
+            }
+            scaled = poster
+            val out = ByteArrayOutputStream()
+            poster.compress(Bitmap.CompressFormat.PNG, 100, out)
+            out.toByteArray()
+        } catch (_: Exception) {
+            // A file that is not a video, one in a codec this device has no
+            // decoder for, a download that stopped halfway. The caller shows
+            // the file row and says nothing about a cover, which is what it
+            // did before.
+            null
+        } finally {
+            // `scaled` is `frame` itself whenever no scaling was needed, so
+            // recycling both would recycle one twice.
+            if (scaled !== frame) scaled?.recycle()
+            frame?.recycle()
+            runCatching { retriever.release() }
+        }
+    }
+
+    /**
+     * The frame at [atUs], asked for at [target] pixels wide where the
+     * platform can do the scaling itself.
+     *
+     * getScaledFrameAtTime arrived in API 27 and decodes straight into a
+     * bitmap of the size asked for. Below that there is only getFrameAtTime,
+     * which allocates the frame at the video's own resolution and leaves the
+     * resizing to the caller.
+     */
+    private fun MediaMetadataRetriever.frameAt(atUs: Long, target: Int): Bitmap? {
+        val option = MediaMetadataRetriever.OPTION_CLOSEST_SYNC
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            val width = extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH
+            )?.toIntOrNull() ?: 0
+            val height = extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT
+            )?.toIntOrNull() ?: 0
+            if (width < 1 || height < 1) {
+                getFrameAtTime(atUs, option)
+            } else {
+                val scaledWidth = minOf(target, width)
+                val scaledHeight = (height.toLong() * scaledWidth / width)
+                    .toInt().coerceAtLeast(1)
+                getScaledFrameAtTime(atUs, option, scaledWidth, scaledHeight)
+            }
+        } else {
+            getFrameAtTime(atUs, option)
         }
     }
 
