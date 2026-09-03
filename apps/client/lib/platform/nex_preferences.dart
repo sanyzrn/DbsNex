@@ -894,6 +894,32 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
+  /* ------------------------------------------------------- Expanded cards */
+
+  /// Notes whose card shows all of itself instead of its first two lines.
+  ///
+  /// Here rather than on the note, and that is a decision worth the words. It
+  /// is how a card is *drawn on this device*, not something true about the
+  /// note — the same reason `pinnedAt` and `sortOrder` are documented as
+  /// local-only and never synced. Keeping it here also means no migration, no
+  /// new column for sync and merge to learn, and nothing for another device to
+  /// disagree with about how tall a card should be.
+  ///
+  /// The cost is that it does not survive restoring the library on a new
+  /// phone. A note that has to stay in view is one you are looking at now, so
+  /// that is the right side to be wrong on.
+  Set<String> get expandedNoteIds =>
+      (_prefs.getStringList('timeline.expanded') ?? const []).toSet();
+
+  bool isNoteExpanded(String id) => expandedNoteIds.contains(id);
+
+  Future<void> setNoteExpanded(String id, bool expanded) async {
+    final ids = expandedNoteIds;
+    if (expanded ? !ids.add(id) : !ids.remove(id)) return;
+    await _prefs.setStringList('timeline.expanded', ids.toList()..sort());
+    notifyListeners();
+  }
+
 
   /// Whether the orphaned-media sweep is due — see
   /// `NexServices.sweepOrphanMediaIfDue`.

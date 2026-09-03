@@ -52,6 +52,20 @@ void main() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
+  /// Taps through the pages of prose to the step that asks for something.
+  ///
+  /// Counted rather than hard-coded: this used to be `for (i < 4)` in three
+  /// places, so every page added to onboarding broke three tests that had
+  /// nothing to do with it.
+  Future<void> reachSetup(WidgetTester tester) async {
+    for (var guard = 0; guard < 12; guard++) {
+      if (find.text('A few quick choices').evaluate().isNotEmpty) return;
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+    }
+    fail('never reached the setup step');
+  }
+
   testWidgets('a first launch opens on onboarding, not the timeline', (
     tester,
   ) async {
@@ -90,11 +104,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Four pages of prose, then the one that asks for something.
-    for (var i = 0; i < 4; i++) {
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
-    }
+    await reachSetup(tester);
     expect(find.text('A few quick choices'), findsOneWidget);
 
     // A name is no longer demanded. Finishing without one goes straight
@@ -120,10 +130,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    for (var i = 0; i < 4; i++) {
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
-    }
+    await reachSetup(tester);
     await tester.enterText(find.byType(TextField).first, 'Saeed');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Start using Nex'));
@@ -198,10 +205,7 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
-    for (var i = 0; i < 4; i++) {
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
-    }
+    await reachSetup(tester);
 
     // The theme and the language take effect under the user as they pick,
     // rather than waiting for the last button — picking Persian and only

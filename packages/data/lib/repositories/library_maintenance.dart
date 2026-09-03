@@ -129,6 +129,18 @@ class LibraryMaintenance {
   /// so a capture mid-flight (file written first, row inserted second) can
   /// never be swept out from under its own note.
   ///
+  /// The root only, never a subdirectory of it, and that is the whole of the
+  /// safety here rather than a detail of it. Every note's media is written
+  /// flat into this directory — `photo-…`, `voice-…`, `media-…`, `keep-…` —
+  /// so a file in a subdirectory was put there by something that is not a
+  /// note, and this has no business forming an opinion about it.
+  ///
+  /// It swept recursively once, and the app keeps the user's profile picture
+  /// in `profile/` under this root. No note references it, it was more than an
+  /// hour old, and so it was deleted — silently, a day after the release that
+  /// gave this method a caller. Whoever changes this back owes the next
+  /// person an answer about that.
+  ///
   /// Returns how many files were removed.
   int sweepOrphanMedia({String? mediaDir, Duration minAge = const Duration(hours: 1)}) {
     final root = mediaDir ?? mediaRoot;
@@ -145,7 +157,7 @@ class LibraryMaintenance {
 
     final cutoff = DateTime.now().subtract(minAge);
     var removed = 0;
-    final entities = dir.listSync(recursive: true, followLinks: false);
+    final entities = dir.listSync(followLinks: false);
     for (final entity in entities) {
       if (entity is! File) continue;
       final normalized = p.normalize(entity.path);

@@ -283,6 +283,60 @@ void main() {
       expect(find.byType(NexMarkdown), findsNothing);
     });
 
+    testWidgets('a video shows a frame of itself, drawn by the platform', (
+      tester,
+    ) async {
+      // A cover, not a player. Playing video in a note means a codec plugin
+      // and a render surface; the question a note raises about a video is
+      // which one it is, and one frame answers it.
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('nex/os_capture'),
+            (call) async => call.method == 'videoPreview' ? pngBytes : null,
+          );
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+              const MethodChannel('nex/os_capture'),
+              null,
+            ),
+      );
+      await openFile(
+        tester,
+        'clip.mp4',
+        bytes: [0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70],
+        mimeType: 'video/mp4',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('clip.mp4'), findsOneWidget);
+      expect(find.byType(Image), findsOneWidget);
+      // What tells the still from the video, and the reason the frame is
+      // worth showing at all rather than being mistaken for a photo.
+      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      // Nothing is parsed out of it, and the bytes never reach the text
+      // reader.
+      expect(find.byType(NexMarkdown), findsNothing);
+    });
+
+    testWidgets('a video with no retriever is named and left alone', (
+      tester,
+    ) async {
+      // No mock handler, so the channel throws MissingPluginException — an
+      // absence, not an error, exactly as with the PDF.
+      await openFile(
+        tester,
+        'clip.mp4',
+        bytes: [0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70],
+        mimeType: 'video/mp4',
+      );
+
+      expect(find.text('clip.mp4'), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
+      expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+      expect(find.byType(NexMarkdown), findsNothing);
+    });
+
     testWidgets('a PDF with no renderer is named and left alone', (
       tester,
     ) async {

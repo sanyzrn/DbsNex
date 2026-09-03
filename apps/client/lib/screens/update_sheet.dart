@@ -10,7 +10,6 @@ import '../l10n/app_localizations.dart';
 import '../platform/app_update.dart';
 import '../platform/file_opener.dart';
 import '../platform/update_service.dart';
-import '../widgets/changelog_panel.dart';
 import '../widgets/release_notes.dart';
 
 /// Check, download, install — the whole update flow in one sheet.
@@ -76,6 +75,24 @@ class _UpdateSheetState extends State<UpdateSheet> {
   UpdateCheck? _result;
   double? _progress;
   File? _downloaded;
+
+  /// Whether the transfer stopped partway.
+  ///
+  /// A *state of the download*, not a phase of its own. A stopped download
+  /// used to throw the whole screen away and replace it with a full-page
+  /// "could not reach the server" and a button that started the check again
+  /// from nothing — for a file that was already most of the way onto the
+  /// disk. It now stays exactly where it was, under its own bar.
+  bool _stopped = false;
+
+  /// The one stop worth naming. Everything else is "it stopped, try again";
+  /// this one is "you have to go and do something first".
+  bool _outOfSpace = false;
+
+  /// Only ever the install handoff failing. A *download* that fails no longer
+  /// comes through here — it stays on its own bar as [_stopped] — so this is
+  /// down to the one case where there is nothing left to retry from inside
+  /// the app.
   String? _error;
 
   @override
@@ -88,7 +105,17 @@ class _UpdateSheetState extends State<UpdateSheet> {
       // Already found, and usually already on disk: open on the last step.
       _result = ready;
       _downloaded = service!.downloaded;
-      _phase = _downloaded != null ? _Phase.ready : _Phase.available;
+      _progress = service.downloadProgress;
+      _stopped = service.downloadError != null;
+      _outOfSpace = _isOutOfSpace(service.downloadError);
+      // Reading only `downloaded` here is what put a Download button in front
+      // of a download that was already running: leaving the screen never
+      // stopped the transfer, but coming back to it showed no sign of one.
+      _phase = _downloaded != null
+          ? _Phase.ready
+          : service.isDownloading || _stopped
+          ? _Phase.downloading
+          : _Phase.available;
       return;
     }
     _check();
@@ -101,9 +128,28 @@ class _UpdateSheetState extends State<UpdateSheet> {
   void _followService() {
     final service = widget.service;
     if (service == null || !mounted) return;
+    // Only while this screen is the one showing the transfer. A prefetch
+    // finishing behind an "up to date" screen should not rewrite it.
     if (_phase != _Phase.downloading) return;
-    setState(() => _progress = service.downloadProgress);
+    final finished = service.downloaded;
+    setState(() {
+      _progress = service.downloadProgress;
+      _stopped = service.downloadError != null;
+      _outOfSpace = _isOutOfSpace(service.downloadError);
+      if (finished == null) return;
+      // Arrived while this screen happened to be open. It offers Install
+      // rather than launching one: nobody asked for an installer to open
+      // itself under them.
+      _downloaded = finished;
+      _stopped = false;
+      _phase = _Phase.ready;
+    });
   }
+
+  /// ENOSPC. "Not enough space" is something a person can act on; the errno
+  /// is not, and neither is "download failed".
+  static bool _isOutOfSpace(Object? error) =>
+      error is FileSystemException && error.osError?.errorCode == 28;
 
   @override
   void dispose() {
@@ -116,6 +162,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
   Future<void> _check() async {
     setState(() {
       _phase = _Phase.checking;
+      _stopped = false;
       _error = null;
     });
     final service = widget.service;
@@ -149,8 +196,6 @@ class _UpdateSheetState extends State<UpdateSheet> {
     final url = result?.downloadUrl;
     final version = result?.version;
     if (url == null || version == null) return;
-    // Read before the first await: `context` is not safe to touch afterwards.
-    final l10n = AppLocalizations.of(context);
 
     // With a service in hand the transfer is *its* job, not this screen's.
     // The downloader used to belong to this State, so `dispose` closed the
@@ -161,7 +206,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
       setState(() {
         _phase = _Phase.downloading;
         _progress = service.downloadProgress;
-        _error = null;
+        _stopped = false;
       });
       await service.ensureDownloaded();
       final prefetched = service.downloaded;
@@ -178,12 +223,19 @@ class _UpdateSheetState extends State<UpdateSheet> {
         await _install();
         return;
       }
+      // It stopped. Stay on the bar and offer to pick it up where it got to —
+      // the partial file is still on disk and the next attempt resumes from
+      // it by byte range. Falling through to a second downloader here, which
+      // is what this used to do, is how a stalled transfer came to look like
+      // an offer to start a fresh one.
+      _stop(service.downloadError);
+      return;
     }
 
     setState(() {
       _phase = _Phase.downloading;
       _progress = 0;
-      _error = null;
+      _stopped = false;
     });
     try {
       // The cache directory, because open_filex's FileProvider already grants
@@ -205,16 +257,10 @@ class _UpdateSheetState extends State<UpdateSheet> {
       });
       if (widget.haptics) HapticFeedback.mediumImpact();
       await _install();
-    } on SocketException {
-      _fail(l10n.updateCheckFailed);
+    } on SocketException catch (error) {
+      _stop(error);
     } on FileSystemException catch (error) {
-      // ENOSPC. "Not enough space" is something a person can act on; the
-      // errno is not.
-      _fail(
-        error.osError?.errorCode == 28
-            ? l10n.updateNoSpace
-            : l10n.updateDownloadFailed,
-      );
+      _stop(error);
     } catch (error, stack) {
       // Everywhere else in this app user-facing copy goes through
       // AppLocalizations; this path used to render `'$error'` straight into
@@ -224,15 +270,18 @@ class _UpdateSheetState extends State<UpdateSheet> {
       // as a Latin-script URL inside an RTL sheet. The detail belongs in a
       // log.
       debugPrint('update download failed: $error\n$stack');
-      _fail(l10n.updateDownloadFailed);
+      _stop(error);
     }
   }
 
-  void _fail(String message) {
+  /// The transfer stopped. Says so under its own bar, and leaves everything
+  /// else where it was.
+  void _stop(Object? error) {
     if (!mounted) return;
     setState(() {
-      _phase = _Phase.failed;
-      _error = message;
+      _phase = _Phase.downloading;
+      _stopped = true;
+      _outOfSpace = _isOutOfSpace(error);
     });
   }
 
@@ -285,15 +334,6 @@ class _UpdateSheetState extends State<UpdateSheet> {
           ),
           const SizedBox(height: NexSpacing.lg),
           ..._body(l10n, theme),
-          const SizedBox(height: NexSpacing.xl),
-          // Always here, regardless of phase — "what changed" is a fair
-          // question whether or not an update happens to be pending right now,
-          // and it never touches the network: bundled straight from
-          // CHANGELOG.md, the same file the release workflow already treats
-          // as the one source of truth.
-          Text(l10n.changelogTitle, style: theme.textTheme.titleMedium),
-          const SizedBox(height: NexSpacing.sm),
-          const ChangelogPanel(),
         ],
       ),
     );
@@ -350,13 +390,35 @@ class _UpdateSheetState extends State<UpdateSheet> {
           const SizedBox(height: NexSpacing.md),
           ClipRRect(
             borderRadius: BorderRadius.circular(NexRadius.sm),
+            // Frozen where it stopped rather than spinning: the bar is the
+            // only thing saying how much of this is already on the disk.
             child: LinearProgressIndicator(value: _progress, minHeight: 8),
           ),
           const SizedBox(height: NexSpacing.sm),
-          Text(
-            _progress == null ? '' : '${(_progress! * 100).round()}%',
-            style: theme.textTheme.bodySmall,
-          ),
+          if (_stopped)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _outOfSpace ? l10n.updateNoSpace : l10n.downloadStopped,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ),
+                // Resume, not restart. The partial file is on disk and the
+                // downloader asks for the rest by byte range.
+                TextButton(
+                  onPressed: _download,
+                  child: Text(l10n.resumeDownload),
+                ),
+              ],
+            )
+          else
+            Text(
+              _progress == null ? '' : '${(_progress! * 100).round()}%',
+              style: theme.textTheme.bodySmall,
+            ),
         ],
         _Phase.ready => [
           Text(l10n.readyToInstall, style: theme.textTheme.titleMedium),

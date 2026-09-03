@@ -9,6 +9,7 @@ import '../platform/feedback_service.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/sharing.dart';
+import '../widgets/changelog_panel.dart';
 import '../widgets/feedback_sheet.dart';
 import '../widgets/nex_banner.dart';
 import 'update_sheet.dart';
@@ -164,6 +165,20 @@ class AboutScreen extends StatelessWidget {
               applicationName: 'Nex',
               applicationVersion: nexAppVersion,
             ),
+          ),
+          // Last, and here rather than under the update screen's offer, which
+          // is where it used to be: a question about one build is no place for
+          // every build before it. This page is already the one that answers
+          // "what is this and where has it been".
+          _Heading(l10n.changelogTitle),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+              NexSpacing.md,
+              0,
+              NexSpacing.md,
+              NexSpacing.lg,
+            ),
+            child: ChangelogPanel(),
           ),
         ],
       ),

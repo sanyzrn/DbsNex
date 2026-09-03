@@ -127,6 +127,9 @@ flutter:
     # byte-for-byte, so drift between the two fails CI instead of shipping
     # silently.
     - assets/CHANGELOG.md
+    # The user guide, one file per language. Prose rather than labels — see
+    # the note on GuideScreen for why it is not in the ARB catalogues.
+    - assets/guide/
   fonts:
     # Shipped as assets rather than left to the platform: without them Android
     # renders Roboto, Windows Segoe UI Variable and iOS SF Pro, so the same
