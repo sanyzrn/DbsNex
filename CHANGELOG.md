@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+- **Checklist and link cards no longer clip their text at larger UI sizes.**
+  The card itself grew with the text size, but the rows inside it were pinned
+  to the height of one line at the default size — so turning the size up made
+  the card taller while squeezing the words into a slot built for smaller
+  ones. Both now grow together.
+
 - **The swipe-action arrows in Settings pointed the wrong way in Persian.**
   Each row shows an arrow for which way your finger travels, and the app was
   flipping those arrows for right-to-left — on top of the flip the system
