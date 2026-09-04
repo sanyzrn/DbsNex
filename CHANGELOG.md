@@ -34,6 +34,16 @@ Working convention:
 
 ## Unreleased
 
+## v1.5.1
+
+- **A reminder arriving at the wrong hour is still being looked into.** One
+  report has a daily reminder set for 10:00 arriving at 1:10 in the morning, on
+  a phone that allows exact alarms, with the note itself still showing the time
+  it was given. The cause is not found, so this release does not claim to fix
+  it — what it adds is the record needed to find it, below. Until it is
+  understood, please do not rely on a reminder for something that has to happen
+  on time.
+
 - **Dismissing the clock no longer sets a reminder for nine o'clock.** Backing
   out of the time picker fell through to a default instead of cancelling, so a
   dialog you had just closed set a reminder at an hour you never chose — and
