@@ -19,6 +19,7 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class MainActivity : FlutterFragmentActivity() {
@@ -43,6 +44,18 @@ class MainActivity : FlutterFragmentActivity() {
         Thread(runnable, "nex-preview").apply { isDaemon = true }
     }
 
+    /**
+     * Where a shared or picked file is copied out of its content provider.
+     *
+     * Its own thread rather than [renderExecutor]'s, because the reason that
+     * one is single-threaded is bitmap memory, and a file copy holds none. On
+     * a shared executor a one-gigabyte video would sit in front of every
+     * thumbnail the timeline wanted to draw while it copied.
+     */
+    private val ioExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "nex-io").apply { isDaemon = true }
+    }
+
     private val mainHandler = Handler(Looper.getMainLooper())
 
     /**
@@ -52,14 +65,18 @@ class MainActivity : FlutterFragmentActivity() {
      * failure inside [work] is an absence rather than an error: every caller
      * on the Dart side treats null as "no preview here" already.
      */
-    private fun replyAsync(result: MethodChannel.Result, work: () -> ByteArray?) {
-        renderExecutor.execute {
-            val bytes = runCatching(work).getOrNull()
+    private fun <T> replyAsync(
+        result: MethodChannel.Result,
+        executor: ExecutorService = renderExecutor,
+        work: () -> T?,
+    ) {
+        executor.execute {
+            val value = runCatching(work).getOrNull()
             mainHandler.post {
                 // The engine can be gone by now — the sheet that asked was
                 // closed, or the Activity was recreated. Answering a result
                 // nobody is listening to throws rather than being ignored.
-                runCatching { result.success(bytes) }
+                runCatching { result.success(value) }
             }
         }
     }
@@ -104,10 +121,19 @@ class MainActivity : FlutterFragmentActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != 9911) return
-        val result = picker.also { picker = null }
+        val result = picker.also { picker = null } ?: return
         val uri = data?.data
-        if (resultCode != RESULT_OK || uri == null) result?.success(null)
-        else result?.success(copyUri(uri))
+        if (resultCode != RESULT_OK || uri == null) {
+            result.success(null)
+            return
+        }
+        // The copy, not the answer, is what took the time. `copyUri` opens the
+        // provider's stream and writes the whole file through to the cache —
+        // seconds for a video, on the thread that draws the app, with Dart
+        // awaiting the result anyway. Picking a large file froze the app until
+        // the copy finished, and past five seconds that is the system's
+        // "Nex isn't responding" dialog.
+        replyAsync(result, ioExecutor) { copyUri(uri) }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -121,6 +147,7 @@ class MainActivity : FlutterFragmentActivity() {
         // running finishes and posts its answer, which the reply guards
         // against a channel that has gone.
         renderExecutor.shutdown()
+        ioExecutor.shutdown()
         super.onDestroy()
     }
 
@@ -151,12 +178,39 @@ class MainActivity : FlutterFragmentActivity() {
             intent.getStringExtra(Intent.EXTRA_TEXT)?.takeIf { it.isNotBlank() }?.let {
                 enqueue(mapOf("type" to "shared_text", "text" to it), live)
             }
-        } else copyUri(stream)?.let { data ->
-            val type = intent.type.orEmpty()
-            enqueue(
-                data + ("type" to if (type.startsWith("image/")) "shared_photo" else "shared_file"),
-                live,
-            )
+            return
+        }
+
+        val type = intent.type.orEmpty()
+        val labelled = { data: Map<String, String> ->
+            data + ("type" to if (type.startsWith("image/")) "shared_photo" else "shared_file")
+        }
+
+        // [live] decides the thread as well as the delivery, and the reason is
+        // the same in both halves: what is already running.
+        //
+        // A share into a running app arrives on `onNewIntent`, with a window
+        // drawing and taking input. Copying a gigabyte there is the classic
+        // ANR — five seconds of an app that was responding a moment ago —
+        // so it goes to [ioExecutor] and comes back to the main thread to
+        // enqueue, because `pending` and `channel.invokeMethod` may only be
+        // touched there.
+        //
+        // The cold-start half stays synchronous, deliberately. It runs inside
+        // `configureFlutterEngine`, before there is a window accepting input
+        // at all, so there is nothing to stop responding — the cost is a
+        // slower launch, not a dialog. And the ordering is load-bearing:
+        // `pending` has to be set before Dart's `start()` calls `takePending`,
+        // which happens moments later. Copying off-thread there would let
+        // `takePending` return null and drop the share entirely, since
+        // `live = false` means nothing is pushed to catch it.
+        if (live) {
+            ioExecutor.execute {
+                val data = copyUri(stream) ?: return@execute
+                mainHandler.post { enqueue(labelled(data), true) }
+            }
+        } else {
+            copyUri(stream)?.let { enqueue(labelled(it), false) }
         }
     }
 

@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+- **Sharing or picking a large file no longer freezes the app.** The file is
+  copied into Nex before anything else happens, and that copy was running on
+  the same thread that draws the screen — so a video or a big PDF locked the
+  app up for as long as it took, and past a few seconds Android offered to
+  close it. The copy now happens in the background.
+
 - **Restoring a backup no longer duplicates the last thing you shared into
   Nex.** A share that arrived while the app was already open was handled, but
   the system kept a copy of it queued. Restoring a backup restarts the app's
