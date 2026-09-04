@@ -546,11 +546,30 @@ WHERE id = ? AND deleted_at IS NULL
     if (byName.isNotEmpty) {
       final localId = byName.first['id']! as String;
       if (localId != id) {
-        // Remap local id → server id so note_tags from pull resolve.
-        db.execute('UPDATE note_tags SET tag_id = ? WHERE tag_id = ?', [
-          id,
-          localId,
-        ]);
+        // The same dance `applyTagRemap` does, and for the same two reasons —
+        // this path did neither.
+        //
+        // It used to re-point `note_tags` at the server's id and only then
+        // insert that row. `note_tags.tag_id` is a foreign key and
+        // `PRAGMA foreign_keys` is ON, so the joins pointed at a row that did
+        // not exist yet: `SqliteException(787)`, thrown out of `_applyPage`,
+        // which rolls the page back and leaves the cursor where it was. Every
+        // later sync re-fetched the same page and failed identically — the
+        // device never synced again. Reachable by restoring an archive whose
+        // tag shares a name with a peer's but not its id, which is the
+        // ordinary case: two devices minted two ids for one name.
+        //
+        // And the fix cannot simply be "insert first": `tags.name` is UNIQUE,
+        // so the incoming row cannot take the name while the local one still
+        // holds it. The losing row has to go first — which cascades its joins
+        // away, so they are carried across by hand.
+        final noteIds = [
+          for (final join in db.select(
+            'SELECT note_id FROM note_tags WHERE tag_id = ?',
+            [localId],
+          ))
+            join['note_id']! as String,
+        ];
         db.execute('DELETE FROM tags WHERE id = ?', [localId]);
         db.execute(
           '''
@@ -564,6 +583,14 @@ VALUES (?, ?, ?, ?, 'synced')
             createdAt.toUtc().toIso8601String(),
           ],
         );
+        for (final noteId in noteIds) {
+          // OR IGNORE: a note already carrying the incoming tag would
+          // otherwise violate the composite primary key.
+          db.execute(
+            'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
+            [noteId, id],
+          );
+        }
       }
       return Tag.fromRow(
         db.select('SELECT * FROM tags WHERE id = ?', [id]).first,
@@ -1124,24 +1151,28 @@ LIMIT ?
         jsonDecode(utf8.decode(jsonFile.content as List<int>))
             as Map<String, dynamic>;
 
-    for (final raw in (payload['tags'] as List? ?? const [])) {
-      final tag = raw as Map<String, dynamic>;
-      upsertTagFromSync(
-        id: tag['id']! as String,
-        name: tag['name']! as String,
-        color: tag['color'] as String?,
-        createdAt: DateTime.parse(tag['created_at']! as String),
-      );
-    }
-
     var imported = 0;
     var skipped = 0;
-    // One transaction around the whole loop. A failure halfway through used
+    // One transaction around the whole import. A failure halfway through used
     // to leave a partial import on disk — half the notes, and a re-import of
     // the same file would then skip everything already landed, so the user
     // could not even heal it by trying again. All of it applies, or none.
+    //
+    // The tags are inside it too. They used to be written in a loop above
+    // this line, so "all of it applies, or none" was not true of them: an
+    // archive whose notes failed to parse still left its tags behind, and the
+    // rollback below could not reach them.
     db.execute('BEGIN IMMEDIATE');
     try {
+      for (final raw in (payload['tags'] as List? ?? const [])) {
+        final tag = raw as Map<String, dynamic>;
+        upsertTagFromSync(
+          id: tag['id']! as String,
+          name: tag['name']! as String,
+          color: tag['color'] as String?,
+          createdAt: DateTime.parse(tag['created_at']! as String),
+        );
+      }
       for (final raw in (payload['notes'] as List? ?? const [])) {
         final json = raw as Map<String, dynamic>;
         final note = Note.fromRow(json);
@@ -1155,12 +1186,22 @@ LIMIT ?
         String? mediaUri;
         if (note.mediaUri != null) {
           final name = p.basename(note.mediaUri!);
-          // The current spelling first; the id-prefixed spelling second, for
-          // archives written after exports started de-duplicating basenames.
-          var entry = archive.findFile('media/$name');
-          entry ??= archive.findFile('media/${note.id}-$name');
+          // The id-prefixed spelling first, and that order is the fix. The
+          // exporter writes it *only* when the bare name was already taken by
+          // another note — so a note that has an id-prefixed entry is exactly
+          // a note whose bare name belongs to somebody else. Looking the bare
+          // name up first therefore handed the second note the first note's
+          // bytes, silently, on a round trip the exporter had gone out of its
+          // way to keep lossless.
+          var entry = archive.findFile('media/${note.id}-$name');
+          entry ??= archive.findFile('media/$name');
           if (entry != null) {
-            final target = File(p.join(mediaRoot, name));
+            // A destination of its own, for the same reason. Both notes used
+            // to be written to `<root>/<basename>`, so even with the right
+            // bytes the second overwrote the first and the two rows ended up
+            // sharing one file — which the purge then deleted out from under
+            // whichever note was not the one being purged.
+            final target = File(p.join(mediaRoot, '${note.id}-$name'));
             target.parent.createSync(recursive: true);
             target.writeAsBytesSync(entry.content as List<int>);
             mediaUri = target.path;

@@ -98,17 +98,77 @@ async function upsertTag(
   tag: IncomingTag,
 ): Promise<string> {
   // A savepoint, because a failed statement poisons the whole transaction:
-  // without one, absorbing the collision here would still lose the notes
-  // pushed alongside it.
+  // without one, absorbing a collision here would still lose the notes
+  // pushed alongside it. The checks below make the ordinary cases explicit;
+  // this is the backstop for two of this user's devices racing.
   await client.query("SAVEPOINT tag_upsert");
   try {
     return await insertTag(client, userId, tag, tag.id);
   } catch (error) {
     if (!isUniqueViolationOn(error, "tags_pkey")) throw error;
     await client.query("ROLLBACK TO SAVEPOINT tag_upsert");
-    // Another tenant owns this id. Ours is a different tag that merely
-    // hashed to the same name.
+
+    // The id is taken. By whom decides what this push meant.
+    const { rows } = await client.query<{ user_id: string }>(
+      "SELECT user_id FROM tags WHERE id = $1",
+      [tag.id],
+    );
+
+    if (rows[0]?.user_id === userId) {
+      // Ours already, under a name that no longer matches: the client
+      // renamed it. `renameTag` on the device changes the name and leaves
+      // `sync_state` alone, so a rename never travels on its own — it
+      // arrives embedded in the next note push, as this tag's own id
+      // carrying a new name. Answering that by minting a second id would
+      // turn a rename into a duplicate: the old row would keep the old name
+      // forever and every device would end up with both.
+      return renameTag(client, userId, tag);
+    }
+
+    // Somebody else's id, which is what a deterministic starter-tag id makes
+    // routine. Ours is a different tag that merely hashed the same.
     return insertTag(client, userId, tag, randomUUID());
+  }
+}
+
+/**
+ * Applies a rename to a tag this tenant already owns, keeping its id.
+ *
+ * The id is the one thing every device already agrees on, so a rename must
+ * not change it. If the new name is one this tenant already uses, the two
+ * tags have become one — the natural key is the identity, so the surviving
+ * row's id is returned and the remap channel folds the client's onto it.
+ */
+async function renameTag(
+  client: PoolClient,
+  userId: string,
+  tag: IncomingTag,
+): Promise<string> {
+  await client.query("SAVEPOINT tag_rename");
+  try {
+    const { rows } = await client.query<{ id: string }>(
+      `UPDATE tags
+          SET name = $3,
+              color = COALESCE($4, color),
+              seq = nextval('sync_seq')
+        WHERE id = $1 AND user_id = $2
+        RETURNING id`,
+      [tag.id, userId, tag.name, tag.color ?? null],
+    );
+    const renamed = rows[0]?.id;
+    if (!renamed) throw new BadRequest(`tag rename failed for "${tag.name}"`);
+    return renamed;
+  } catch (error) {
+    if (!isUniqueViolationOn(error, "uq_tags_user_name_ci")) throw error;
+    await client.query("ROLLBACK TO SAVEPOINT tag_rename");
+    // Renamed onto a name this tenant already has: a merge, not a rename.
+    const { rows } = await client.query<{ id: string }>(
+      `SELECT id FROM tags WHERE user_id = $1 AND lower(name) = lower($2)`,
+      [userId, tag.name],
+    );
+    const survivor = rows[0]?.id;
+    if (!survivor) throw error;
+    return survivor;
   }
 }
 
