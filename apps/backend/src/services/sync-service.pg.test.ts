@@ -125,4 +125,75 @@ describe("sync against a real database", { skip: enabled ? false : "set NEX_PG_T
     assert.equal(rows[0]!.id, WORK_TAG_ID, "the first tenant is untouched");
     assert.notEqual(rows[1]!.id, rows[0]!.id);
   });
+
+  test("renaming a tag keeps its id instead of minting a second one", async () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    const created = new Date().toISOString();
+
+    await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      notes: [],
+      tags: [{ id, name: "Errands", color: null, created_at: created }],
+    });
+
+    // `renameTag` on the device changes the name and leaves `sync_state`
+    // alone, so the rename never travels on its own — it arrives embedded in
+    // the next note push, as this id carrying a different name. The server
+    // used to find no natural-key conflict, hit `tags_pkey` on the id it
+    // already had, and 500: the push rolled back with every note in it, and
+    // every retry failed the same way. Sync was over for that device.
+    //
+    // Absorbing the collision by minting a fresh id would be no better in a
+    // quieter way — the old row would keep the old name forever and the user
+    // would end up with both.
+    const renamed = await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      notes: [],
+      tags: [{ id, name: "Chores", color: null, created_at: created }],
+    });
+
+    assert.equal(renamed.tag_remap.length, 0, "a rename is not a remap");
+
+    const { rows } = await getPool().query<{ id: string; name: string }>(
+      `SELECT id, name FROM tags WHERE user_id = $1 AND id = $2`,
+      [USER_A, id],
+    );
+    assert.equal(rows.length, 1, "one row, renamed — not two");
+    assert.equal(rows[0]!.name, "Chores");
+  });
+
+  test("renaming onto a name already in use merges rather than fails", async () => {
+    const keep = "22222222-2222-4222-8222-222222222222";
+    const folded = "33333333-3333-4333-8333-333333333333";
+    const created = new Date().toISOString();
+
+    await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      notes: [],
+      tags: [
+        { id: keep, name: "Reading", color: null, created_at: created },
+        { id: folded, name: "Books", color: null, created_at: created },
+      ],
+    });
+
+    // "Books" renamed to "Reading", which this tenant already has. The
+    // natural key is the identity, so the two tags have become one.
+    const merged = await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      notes: [],
+      tags: [{ id: folded, name: "Reading", color: null, created_at: created }],
+    });
+
+    assert.equal(merged.tag_remap.length, 1);
+    assert.equal(merged.tag_remap[0]!.client_id, folded);
+    assert.equal(
+      merged.tag_remap[0]!.canonical_id,
+      keep,
+      "the surviving row is the one that already held the name",
+    );
+  });
 });

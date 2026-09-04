@@ -100,6 +100,13 @@ class LibraryMaintenance {
   void _unlinkMedia(List<String> uris) {
     for (final uri in uris) {
       try {
+        // Not if something else is still pointing at it. Two notes can share
+        // one file — an import writes every attachment to `<root>/<basename>`,
+        // so two archived notes whose photos were both called `photo.jpg`
+        // land on one path — and deleting the purged note's copy took the
+        // surviving note's picture with it. The row stayed, the bytes did
+        // not.
+        if (_stillReferenced(uri)) continue;
         final file = File(uri);
         if (_isInsideMediaRoot(uri) && file.existsSync()) file.deleteSync();
       } catch (_) {
@@ -107,6 +114,14 @@ class LibraryMaintenance {
       }
     }
   }
+
+  /// Whether any surviving note still points at [uri].
+  ///
+  /// Asked after the purge has deleted its own rows, so anything this finds
+  /// belongs to a note that is still there.
+  bool _stillReferenced(String uri) => repo.db
+      .select('SELECT 1 FROM notes WHERE media_uri = ? LIMIT 1', [uri])
+      .isNotEmpty;
 
   /// A file is only ever deleted when it is inside [mediaRoot]. The path in
   /// a note row was written by this app, but purging is destructive enough
@@ -189,10 +204,28 @@ class LibraryMaintenance {
       .map((row) => TagUsage(Tag.fromRow(row), row['usage_count'] as int))
       .toList();
 
+  /// Renames a tag, and says so to the server.
+  ///
+  /// The `sync_state` is the half this was missing. A rename used to change
+  /// only the name, leaving the row `'synced'` — so the rename itself never
+  /// travelled. It reached the server anyway, embedded in the next note push
+  /// that happened to carry the tag: this tag's own id, under a name the
+  /// server had never seen. The server found no conflict on the natural key,
+  /// hit its primary key on the id it already held, and answered 500. The
+  /// whole push rolled back, taking every note in it, and every retry failed
+  /// the same way — that device never synced again.
+  ///
+  /// The server handles that case properly now. Marking it pending is the
+  /// other half: a rename is a change the user made, and a change the user
+  /// made belongs in the outbox rather than hitching a ride on the next note
+  /// that happens to be tagged.
   void renameTag(String id, String name) {
     final value = name.trim();
     if (value.isEmpty) throw ArgumentError('Tag name cannot be empty');
-    repo.db.execute('UPDATE tags SET name = ? WHERE id = ?', [value, id]);
+    repo.db.execute(
+      "UPDATE tags SET name = ?, sync_state = 'pending' WHERE id = ?",
+      [value, id],
+    );
   }
 
   void mergeTag({required String sourceId, required String targetId}) {
