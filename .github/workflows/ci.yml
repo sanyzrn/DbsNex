@@ -465,6 +465,16 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nex
         run: npm run migrate
 
+      # After the migration, because what they test is a constraint the
+      # migrations create. `npm test` above ran the same file and skipped this
+      # group — the flag is what turns it on, and turning it on here is what
+      # makes the skip elsewhere honest rather than convenient.
+      - name: Database-backed sync cases
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nex
+          NEX_PG_TESTS: "1"
+        run: npx tsx --test src/services/sync-service.pg.test.ts
+
       - name: Smoke test the built artifact
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nex

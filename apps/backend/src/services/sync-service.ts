@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 
 import { getPool, withTransaction } from "../db/index.ts";
@@ -57,6 +58,13 @@ export type PullResult = {
 
 /* ------------------------------------------------------------------ tags */
 
+/** A unique-violation on a named constraint, whatever pg's error shape. */
+function isUniqueViolationOn(error: unknown, constraint: string): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const e = error as { code?: unknown; constraint?: unknown };
+  return e.code === "23505" && e.constraint === constraint;
+}
+
 /**
  * Upserts a tag on its natural key and returns the canonical id.
  *
@@ -64,11 +72,51 @@ export type PullResult = {
  * devices creating the same tag offline produced a 23505 that permanently broke
  * sync for that user. Identity is now (user_id, lower(name)); the caller
  * forwards the returned canonical id to the client as a remap.
+ *
+ * That fixed one tenant's two devices and left the same failure standing
+ * between two tenants. `tags.id` is still a *global* primary key — migration
+ * 0005 dropped `tags_name_key` and added `uq_tags_user_name_ci`, but never
+ * re-keyed the table the way 0003 re-keyed `media_objects` to
+ * `(user_id, media_hash)`. And the id a client sends is not random: starter
+ * tags are seeded on every install with `stableUuidV5(name)`, which hashes
+ * the name and nothing else, so every user on earth mints the same id for
+ * "Work".
+ *
+ * So the second tenant to push a starter tag collided on `tags_pkey` — a
+ * constraint this statement's `ON CONFLICT (user_id, lower(name))` cannot
+ * arbitrate — the whole push transaction rolled back, the seeds stayed
+ * pending, and every later sync failed the same way. Permanently, for
+ * everyone but the first user of a shared backend.
+ *
+ * The client's id is therefore a suggestion, not an identity. When it is
+ * already spoken for by somebody else, the server mints its own and hands it
+ * back through the remap channel that already exists for exactly this.
  */
 async function upsertTag(
   client: PoolClient,
   userId: string,
   tag: IncomingTag,
+): Promise<string> {
+  // A savepoint, because a failed statement poisons the whole transaction:
+  // without one, absorbing the collision here would still lose the notes
+  // pushed alongside it.
+  await client.query("SAVEPOINT tag_upsert");
+  try {
+    return await insertTag(client, userId, tag, tag.id);
+  } catch (error) {
+    if (!isUniqueViolationOn(error, "tags_pkey")) throw error;
+    await client.query("ROLLBACK TO SAVEPOINT tag_upsert");
+    // Another tenant owns this id. Ours is a different tag that merely
+    // hashed to the same name.
+    return insertTag(client, userId, tag, randomUUID());
+  }
+}
+
+async function insertTag(
+  client: PoolClient,
+  userId: string,
+  tag: IncomingTag,
+  id: string,
 ): Promise<string> {
   const { rows } = await client.query<{ id: string }>(
     // The sequence only moves when something material moved with it.
@@ -92,7 +140,7 @@ async function upsertTag(
                            ELSE tags.seq
                          END
      RETURNING id`,
-    [tag.id, userId, tag.name, tag.color ?? null, normaliseIso(tag.created_at)],
+    [id, userId, tag.name, tag.color ?? null, normaliseIso(tag.created_at)],
   );
 
   const canonical = rows[0]?.id;

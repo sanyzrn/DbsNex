@@ -108,6 +108,27 @@ class NexReminders {
   /// actually told is the call that told it. This is that record.
   void Function(String message)? onDiagnostic;
 
+  /// Whether a reminder's words must be kept off the lock screen.
+  ///
+  /// The title of a reminder is the note's own text, and Android's framework
+  /// default (`VISIBILITY_PRIVATE`) renders it in full on the lock screen
+  /// under the out-of-the-box "show all content" setting. The app lock covers
+  /// Nex's own screens and stops at the shade — so someone who put their
+  /// notes behind a fingerprint was still having them read out on a locked
+  /// phone.
+  ///
+  /// Asked rather than assumed, and asked at schedule time, because the
+  /// honest answer is the user's own lock setting: `secret` hides the
+  /// notification from the lock screen entirely, and doing that to everyone
+  /// would take a medication reminder off the lock screen of every person who
+  /// never asked for a lock. `NexServices` wires this to `appLockEnabled`.
+  ///
+  /// Not `private`: that shows a redacted line only for someone who has
+  /// *already* set Android to hide sensitive content, so it protects nobody
+  /// who has not. And a redacted "Nex" still says a reminder exists and when,
+  /// which for the kind of note that needs a lock is most of what was wanted.
+  bool Function()? hideOnLockScreen;
+
   bool takeLaunchedFromUpdate() {
     final launched = _launchedFromUpdate;
     _launchedFromUpdate = false;
@@ -382,15 +403,18 @@ class NexReminders {
         // someone nothing at the moment they most need to know what it is.
         title: body.isEmpty ? 'Nex' : _clamp(body, 60),
         scheduledDate: scheduledDateFor(at),
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
             'Reminders',
             channelDescription: 'Notes you asked Nex to bring back up',
             importance: Importance.high,
             priority: Priority.high,
+            visibility: hideOnLockScreen?.call() ?? false
+                ? NotificationVisibility.secret
+                : null,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
         androidScheduleMode: _scheduleMode,
         // What makes it come back. The plugin re-fires on whichever fields
