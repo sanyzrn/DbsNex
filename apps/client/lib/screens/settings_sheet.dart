@@ -1183,22 +1183,30 @@ class _SwipeMappingState extends State<_SwipeMapping> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // The leading edge is the left in LTR and the right in RTL, so the arrow
-    // that describes the gesture has to follow the reading direction.
-    final rtl = Directionality.of(context) == TextDirection.rtl;
+    // The arrow shows which way the finger travels: a swipe from the leading
+    // edge moves rightwards in an English UI and leftwards in a Persian one.
+    //
+    // Which is why neither of these picks its icon by direction any more.
+    // `Icons.arrow_forward` and `Icons.arrow_back` are both declared
+    // `matchTextDirection: true`, and `Icon` mirrors such an icon under an RTL
+    // `Directionality` — so the framework already turns "forward" into a
+    // leftward arrow in Persian. Swapping them here as well flipped it twice:
+    // in the app's primary language both arrows pointed the way they do in
+    // English, which made the leading row describe the trailing gesture and
+    // the trailing row the leading one.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
         _SwipeEdgeRow(
-          arrow: rtl ? Icons.arrow_back : Icons.arrow_forward,
+          arrow: Icons.arrow_forward,
           label: l10n.swipeLeading,
           action: widget.preferences.leadingAction,
           onTap: () => unawaited(_choose(isLeading: true)),
         ),
         const SizedBox(height: NexSpacing.sm),
         _SwipeEdgeRow(
-          arrow: rtl ? Icons.arrow_forward : Icons.arrow_back,
+          arrow: Icons.arrow_back,
           label: l10n.swipeTrailing,
           action: widget.preferences.trailingAction,
           onTap: () => unawaited(_choose(isLeading: false)),

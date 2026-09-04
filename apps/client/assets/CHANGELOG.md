@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+- **The swipe-action arrows in Settings pointed the wrong way in Persian.**
+  Each row shows an arrow for which way your finger travels, and the app was
+  flipping those arrows for right-to-left — on top of the flip the system
+  already does. Two flips cancel, so in Persian both arrows pointed the way
+  they do in English, and the row for the starting edge was illustrating the
+  gesture for the other one.
+
 - **Typing quickly no longer leaves half-finished copies of a note behind.**
   The first keystroke is what saves a note — there is no Save button — and
   until that write came back, every further keystroke started another one. A
