@@ -1184,6 +1184,36 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{No backups} =1{1 backup} other{{count} backups}}'**
   String backupCount(int count);
 
+  /// Banner when a sync attempt throws; the reason follows in brackets
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed. Nothing on this device was changed.'**
+  String get syncFailed;
+
+  /// Banner when writing a local backup fails
+  ///
+  /// In en, this message translates to:
+  /// **'The backup could not be written. Your notes were not changed.'**
+  String get backupFailed;
+
+  /// Banner when writing an export archive fails
+  ///
+  /// In en, this message translates to:
+  /// **'The export could not be written. Your notes were not changed.'**
+  String get exportFailed;
+
+  /// Shown after a restore or import when a sync server is configured
+  ///
+  /// In en, this message translates to:
+  /// **'Restored notes stay on this device — sync will not upload them.'**
+  String get restoredStaysLocal;
+
+  /// Banner when re-generating the daily recap fails; the old text stays on screen
+  ///
+  /// In en, this message translates to:
+  /// **'The recap could not be refreshed. The one below is the last one Nex made.'**
+  String get recapRefreshFailed;
+
   /// No description provided for @operationFailed.
   ///
   /// In en, this message translates to:

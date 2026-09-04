@@ -107,4 +107,33 @@ void main() {
     expect(await services.listBackups(), isEmpty);
     expect(find.byIcon(Icons.delete_outline), findsNothing);
   });
+
+  group('the reason a failure gives the person reading the banner', () {
+    // Every one of these banners used to be the same sentence — "The
+    // operation failed" — raised by five different things, each of which
+    // discarded the exception. The banner is transient, so by the time you
+    // wonder what it meant it is gone. The reason is now appended to it.
+    test('an exception is flattened onto one line', () {
+      final message = NexServices.describeFailure(
+        Exception('connection closed\n  at the second attempt'),
+      );
+      expect(message, isNot(contains('\n')));
+      expect(message, contains('connection closed'));
+      expect(message, contains('at the second attempt'));
+    });
+
+    test('a long reason is cut rather than allowed to fill the screen', () {
+      final message = NexServices.describeFailure(StateError('x' * 500));
+      // A banner is one or two lines. Anything longer pushes the app off
+      // screen, and the untruncated text is in the diagnostics file anyway.
+      expect(message.length, lessThanOrEqualTo(120));
+      expect(message, endsWith('\u2026'));
+    });
+
+    test('a reason that already fits is left exactly as it is', () {
+      final message = NexServices.describeFailure(StateError('short'));
+      expect(message, contains('short'));
+      expect(message, isNot(endsWith('\u2026')));
+    });
+  });
 }

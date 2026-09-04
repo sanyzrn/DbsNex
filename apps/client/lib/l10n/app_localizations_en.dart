@@ -625,6 +625,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get syncFailed => 'Sync failed. Nothing on this device was changed.';
+
+  @override
+  String get backupFailed =>
+      'The backup could not be written. Your notes were not changed.';
+
+  @override
+  String get exportFailed =>
+      'The export could not be written. Your notes were not changed.';
+
+  @override
+  String get restoredStaysLocal =>
+      'Restored notes stay on this device — sync will not upload them.';
+
+  @override
+  String get recapRefreshFailed =>
+      'The recap could not be refreshed. The one below is the last one Nex made.';
+
+  @override
   String get operationFailed =>
       'The operation failed. Your existing notes were not changed.';
 

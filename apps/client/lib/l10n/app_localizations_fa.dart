@@ -625,6 +625,26 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get syncFailed =>
+      'همگام‌سازی ناموفق بود. چیزی روی این دستگاه عوض نشد.';
+
+  @override
+  String get backupFailed =>
+      'پشتیبان نوشته نشد. یادداشت‌هایت دست‌نخورده‌اند.';
+
+  @override
+  String get exportFailed =>
+      'خروجی نوشته نشد. یادداشت‌هایت دست‌نخورده‌اند.';
+
+  @override
+  String get restoredStaysLocal =>
+      'یادداشت‌های بازیابی‌شده روی همین دستگاه می‌مانند — همگام‌سازی آن‌ها را بالا نمی‌فرستد.';
+
+  @override
+  String get recapRefreshFailed =>
+      'خلاصه تازه نشد. آنچه پایین می‌بینی آخرین خلاصه‌ای است که نکس ساخته.';
+
+  @override
   String get operationFailed =>
       'این کار انجام نشد. یادداشت‌های قبلی شما دست‌نخورده ماندند.';
 

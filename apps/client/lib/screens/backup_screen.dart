@@ -74,8 +74,8 @@ class _BackupScreenState extends State<BackupScreen> {
       await widget.services.backupNow();
       await _load();
       _say(l10n.backupDone);
-    } catch (_) {
-      _say(l10n.operationFailed);
+    } catch (error) {
+      _say('${l10n.backupFailed} (${NexServices.describeFailure(error)})');
     }
   });
 
@@ -91,8 +91,8 @@ class _BackupScreenState extends State<BackupScreen> {
       final outcome = await nexSendFileOut(path, mimeType: 'application/zip');
       if (!mounted) return;
       if (outcome == SendOutcome.saved) _say(l10n.exportedTo(path));
-    } catch (_) {
-      _say(l10n.operationFailed);
+    } catch (error) {
+      _say('${l10n.exportFailed} (${NexServices.describeFailure(error)})');
     }
   });
 
@@ -106,9 +106,31 @@ class _BackupScreenState extends State<BackupScreen> {
     if (file == null) return;
     try {
       final result = await widget.services.importArchive(file.path);
-      _say(l10n.importDone(result.imported, result.skipped));
-    } catch (_) {
-      _say(l10n.importFailed);
+      // Said out loud, because the alternative is a silent false promise.
+      //
+      // An import writes its notes as already-synced — the same call the
+      // sync client uses for a note the server just sent it. So they never
+      // enter the outbox, the next sync has nothing to push, and the server
+      // never learns they exist. Nothing reports this: the import succeeds,
+      // sync succeeds, and someone who has just restored their library onto
+      // a new phone is told everything is fine while the only copy of it is
+      // the phone in their hand.
+      //
+      // Changing that means re-uploading a whole library on every import and
+      // proving it cannot resurrect anything deleted, which is a change to
+      // sync semantics and wants a test that reaches it. Until then this at
+      // least stops the app from implying a backup it does not have. Shown
+      // only when a server is configured — with no sync set up there is
+      // nothing to be wrong about.
+      final syncing = widget.preferences.syncBaseUrl != null;
+      _say(
+        syncing
+            ? '${l10n.importDone(result.imported, result.skipped)} · '
+                  '${l10n.restoredStaysLocal}'
+            : l10n.importDone(result.imported, result.skipped),
+      );
+    } catch (error) {
+      _say('${l10n.importFailed} (${NexServices.describeFailure(error)})');
     }
   });
 
