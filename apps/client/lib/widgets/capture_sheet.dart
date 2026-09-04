@@ -58,6 +58,28 @@ class _CaptureSheetState extends State<CaptureSheet> {
   void changed(String value) {
     setState(() {});
     if (noteId == null && value.isNotEmpty) {
+      // One first write, not one per keystroke.
+      //
+      // `noteId` is only set when that write comes back from the isolate, so
+      // every character typed while it was still in flight saw a null id and
+      // started another `captureText` — and each of those inserts a note of
+      // its own, with no dedup anywhere behind it. Typing "hello" faster than
+      // the round trip left "h", "he", "hel" and "hell" in the library for
+      // good: only the last id is kept here, so the others could never be
+      // flushed to, updated, or deleted by this sheet again. It also called
+      // `onCommitted` once per draft, flashing the timeline receipt on notes
+      // that were about to be abandoned.
+      //
+      // The window is not as narrow as an isolate hop sounds. The worker runs
+      // one command at a time, so the first capture queues behind whatever is
+      // already in flight — a timeline read after a resume, an enrichment
+      // call — and an IME that delivers a whole word at once (or a paste)
+      // needs no speed at all to get two keystrokes inside it.
+      //
+      // Nothing is scheduled for the keystrokes this skips: there is no id to
+      // flush to yet, and [_createFirstDraft] writes whatever has been typed
+      // by the time it lands.
+      if (draft != null) return;
       final started = _createFirstDraft(value);
       draft = started;
       unawaited(started);
@@ -71,10 +93,28 @@ class _CaptureSheetState extends State<CaptureSheet> {
   /// crosses the isolate boundary, so it cannot be awaited on the keystroke
   /// path without dropping frames.
   Future<void> _createFirstDraft(String value) async {
-    final note = await widget.services.captureText(value);
-    noteId = note?.id;
-    persisted = value;
-    if (noteId != null) widget.onCommitted?.call(noteId!);
+    var created = false;
+    try {
+      final note = await widget.services.captureText(value);
+      if (note == null) return;
+      created = true;
+      noteId = note.id;
+      persisted = value;
+      widget.onCommitted?.call(note.id);
+
+      // Everything typed while this write was in flight. [changed] returned
+      // early for those keystrokes rather than scheduling a debounce — there
+      // was no id to flush to — so without this the note would keep whatever
+      // the first keystroke said and the rest of the word would be lost the
+      // moment the user stopped typing.
+      if (mounted && controller.text != persisted) flush();
+    } finally {
+      // Released whenever this settles without producing a note — a capture
+      // that returned null, or one that threw. [changed] reads it as "a first
+      // write is in flight", and a failure that never released it would leave
+      // the sheet unable to save anything for the rest of its life.
+      if (!created) draft = null;
+    }
   }
 
   void flush() {
@@ -83,6 +123,11 @@ class _CaptureSheetState extends State<CaptureSheet> {
     if (controller.text.isEmpty) {
       unawaited(widget.services.deleteNote(id));
       noteId = null;
+      // And the draft that produced it. [changed] takes a null id with a
+      // non-null draft to mean "the first write has not come back yet", so
+      // leaving this set would make the sheet refuse to start the next note
+      // after someone cleared the field.
+      draft = null;
       // The note the reminder was on has just been deleted along with the
       // text. Whatever this sheet is used for next is a different note.
       hasReminder = false;

@@ -23,6 +23,7 @@ class InProcessDb implements NexDb {
     required this.dbPath,
     required this.deviceId,
     this.readDelay,
+    this.captureDelay,
     AIAdapter? adapter,
   }) : _db = NexDatabase.open(dbPath) {
     _repo = SqliteNoteRepository(_db, localDeviceId: deviceId);
@@ -51,6 +52,16 @@ class InProcessDb implements NexDb {
   /// That state is the whole point of the timeline's tri-state, since treating
   /// it as "empty" is what flashed the onboarding screen on every cold launch.
   final Duration? readDelay;
+
+  /// Holds a text capture open, so the window between the first keystroke and
+  /// the id coming back is long enough for a test to type into.
+  ///
+  /// The same reason as [readDelay] pointed at the write side. In production
+  /// that window is an isolate round trip behind a one-command-at-a-time
+  /// queue; here every call resolves on the next microtask, which makes the
+  /// state the capture sheet has to survive — "a note is being created and
+  /// has no id yet" — unobservable without this.
+  final Duration? captureDelay;
 
   final NexDatabase _db;
   late final SqliteNoteRepository _repo;
@@ -84,8 +95,10 @@ class InProcessDb implements NexDb {
   Future<Note?> getById(String id) async => _repo.getById(id);
 
   @override
-  Future<Note?> captureText(String content) async =>
-      _capture.submitTextCapture(content);
+  Future<Note?> captureText(String content) async {
+    if (captureDelay != null) await Future<void>.delayed(captureDelay!);
+    return _capture.submitTextCapture(content);
+  }
 
   @override
   Future<Note?> captureChecklist(List<ChecklistItem> items) async =>

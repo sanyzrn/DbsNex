@@ -34,6 +34,16 @@ Working convention:
 
 ## Unreleased
 
+- **Typing quickly no longer leaves half-finished copies of a note behind.**
+  The first keystroke is what saves a note — there is no Save button — and
+  until that write came back, every further keystroke started another one. A
+  word typed faster than the save could land left "h", "he" and "hel" in the
+  library as notes of their own, permanently: the sheet only kept the last of
+  them, so nothing you did afterwards touched the rest. It took no unusual
+  speed — a keyboard that sends a whole word at once, or a paste, was enough.
+  Now the first save is the only one, and whatever you typed while it was in
+  flight lands on the note it belongs to.
+
 - **The banner that said "The operation failed" now says what failed, and
   why.** One sentence was doing the work of five different failures — a sync,
   a backup, an export, a restore, a recap — and every one of them threw the
