@@ -26,12 +26,36 @@ class OsCaptureBridge {
   /// equivalent surface yet.
   static bool get isSupported => !kIsWeb && Platform.isAndroid;
 
+  /// Registers the handler and drains anything the native side queued while
+  /// Dart was not listening.
+  ///
+  /// No `isSupported` check any more. The channel is the authority on whether
+  /// it exists — the `MissingPluginException` catch below already says so —
+  /// and a `Platform.isAndroid` check up here made this method unreachable
+  /// from any test, since a widget test runs on the host. That is the same
+  /// trade [NexVideoPreview.poster] states in its own doc comment, and the
+  /// reason the reminder scheduling path had to be pulled apart before it
+  /// could be covered at all.
   Future<void> start() async {
-    if (!isSupported) return;
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'onOsCapture' && call.arguments is Map) {
         final payload = Map<Object?, Object?>.from(call.arguments as Map);
         await handle(payload);
+        // Acknowledge it, or the same capture arrives twice.
+        //
+        // `enqueue` on the native side sets `pending` for *every* payload and
+        // clears it nowhere — `takePending` is the only thing that does. A
+        // live push therefore handled the capture and left a copy behind, and
+        // the next `start()` in the same process picked that copy up and
+        // captured it again. Restoring a backup is exactly that: it calls
+        // `NexRestartScope.restart()`, which builds a new bridge and starts
+        // it, same process and same Activity — so sharing a photo in and then
+        // restoring left two of it.
+        //
+        // After [handle], not before: a process killed mid-handle then still
+        // has the payload queued and captures it once on the next launch,
+        // where consuming first would have lost it outright.
+        await _consumePending();
         _events.add(payload);
       }
     });
@@ -43,12 +67,26 @@ class OsCaptureBridge {
         _events.add(payload);
       }
     } on MissingPluginException {
-      // Belt and braces behind [isSupported]. This call used to be
+      // The whole platform guard now, rather than belt and braces behind
+      // one. This call used to be
       // unguarded, and on Windows — where nothing registers the channel — it
       // threw straight out of `start()`, out of `NexServices.bootstrap`, and
       // into the host's FutureBuilder. The app did not open a timeline at all
       // on a shipped desktop target; it opened an error screen. Nothing in CI
       // caught it, because the Windows job builds the app and never runs it.
+    }
+  }
+
+  /// Clears the native side's copy of the payload just handled.
+  ///
+  /// Its return value is deliberately dropped: what came back is the same
+  /// thing that was just captured, and on a platform with no native half
+  /// there is nothing to clear.
+  Future<void> _consumePending() async {
+    try {
+      await _channel.invokeMethod<dynamic>('takePending');
+    } on MissingPluginException {
+      // No native side — nothing was queued in the first place.
     }
   }
 

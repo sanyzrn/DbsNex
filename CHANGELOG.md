@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+- **Restoring a backup no longer duplicates the last thing you shared into
+  Nex.** A share that arrived while the app was already open was handled, but
+  the system kept a copy of it queued. Restoring a backup restarts the app's
+  internals, which picked that copy up and captured it a second time — so the
+  photo or file you had just shared appeared twice.
+
 - **A note starting with Persian digits no longer flips the line around.**
   Persian and Arabic digits were being treated as Persian *letters*, so a
   note that began with a phone number, a price or a date was laid out
