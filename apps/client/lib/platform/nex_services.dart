@@ -18,6 +18,7 @@ import 'db_worker.dart';
 import 'ai_provider.dart';
 import 'nex_db.dart';
 import 'media_picker_impl.dart';
+import 'crash_reporter.dart';
 import 'nex_preferences.dart';
 import 'model_store.dart';
 import 'reminders.dart';
@@ -144,12 +145,31 @@ class NexServices {
       }
       ..onExactAlarmsRequested = () {
         unawaited(preferences.markRemindersExactAlarmsAsked());
-      };
+      }
+      // Into the file "Share diagnostics" sends. A reminder that arrives at
+      // the wrong hour leaves no other trace: the note keeps the time it was
+      // given, the alarm queue confirms an alarm exists but not when, and the
+      // one moment that knows what the OS was actually told is the call that
+      // told it.
+      ..onDiagnostic = (message) => unawaited(_noteDiagnostic(message));
 
     unawaited(services.refreshTimeline());
     unawaited(services._maybeBackupInBackground());
 
     return services;
+  }
+
+  /// Appends one line to the diagnostics file, and never throws.
+  ///
+  /// Opening the log touches the filesystem, so this is async and fired
+  /// without awaiting: a reminder must not wait on a log entry, and a log
+  /// that cannot be written must not become the failure it was recording.
+  static Future<void> _noteDiagnostic(String message) async {
+    try {
+      (await NexCrashLog.open()).note(message);
+    } catch (_) {
+      // Best-effort, like everything else that writes to this file.
+    }
   }
 
   @visibleForTesting

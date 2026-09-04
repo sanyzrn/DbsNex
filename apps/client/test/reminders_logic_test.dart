@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/reminders.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:timezone/data/latest_all.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 
 /// The scheduling math that never touches the platform: the next occurrence
 /// of a repeating reminder, and the alarm-id space. Everything here used to
@@ -75,6 +77,67 @@ void main() {
         now,
       );
       expect(next.isAfter(now.toUtc()), isTrue);
+    });
+  });
+
+  group('scheduledDateFor', () {
+    // The conversion that decides what the operating system is actually told,
+    // and until now nothing here could execute it: `schedule` returns on its
+    // first line off a phone, so every line below that — this one included —
+    // was unreachable from the whole suite. Every other test in this file
+    // also runs where the machine's zone is UTC, which makes `toLocal` and
+    // `toUtc` do nothing, so no test has ever crossed a zone boundary either.
+    setUpAll(tz_data.initializeTimeZones);
+
+    test('the clock face the OS is given is the one that was picked', () {
+      final tehran = tz.getLocation('Asia/Tehran');
+      // Ten in the morning in Tehran, stored the way a reminder is stored:
+      // as an instant, in UTC, which is 06:30 — a different clock face for
+      // the same moment.
+      final picked = tz.TZDateTime(tehran, 2026, 9, 4, 10, 0);
+      final stored = picked.toUtc();
+      expect(stored.hour, 6, reason: 'the stored instant is not 10 anywhere');
+
+      final scheduled = NexReminders.scheduledDateFor(stored, tehran);
+
+      expect(scheduled.hour, 10);
+      expect(scheduled.minute, 0);
+      expect(scheduled.location.name, 'Asia/Tehran');
+      expect(
+        scheduled.millisecondsSinceEpoch,
+        picked.millisecondsSinceEpoch,
+        reason: 'the moment must not move, only the way it is written',
+      );
+    });
+
+    test('a half-hour zone is not rounded to the hour', () {
+      // Tehran is +03:30. A conversion that only ever handled whole hours
+      // would land this on the hour and nothing else in the suite would
+      // notice, because the suite runs in UTC where the offset is zero.
+      final tehran = tz.getLocation('Asia/Tehran');
+      final picked = tz.TZDateTime(tehran, 2026, 9, 4, 9, 15);
+      final scheduled = NexReminders.scheduledDateFor(picked.toUtc(), tehran);
+      expect(scheduled.hour, 9);
+      expect(scheduled.minute, 15);
+    });
+
+    test('a zone that failed to load keeps the instant, loses the face', () {
+      // What happens when `FlutterTimezone` hands back a name the database
+      // does not know: `tz.local` stays UTC. The one-off firing survives that
+      // — it is an instant — which is exactly why the gap went unnoticed for
+      // so long. A repeat does not: it matches on the clock face below, and
+      // that face is no longer the one anybody chose.
+      final tehran = tz.getLocation('Asia/Tehran');
+      final picked = tz.TZDateTime(tehran, 2026, 9, 4, 10, 0);
+
+      final scheduled = NexReminders.scheduledDateFor(picked.toUtc(), tz.UTC);
+
+      expect(
+        scheduled.millisecondsSinceEpoch,
+        picked.millisecondsSinceEpoch,
+        reason: 'the first firing is still the right moment',
+      );
+      expect(scheduled.hour, 6, reason: 'but the clock face is not 10');
     });
   });
 

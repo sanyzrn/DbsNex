@@ -63,6 +63,20 @@ class NexCrashLog {
     };
   }
 
+  /// Records something that is not a crash.
+  ///
+  /// The same file, because it is the file "Share diagnostics" sends: a fact
+  /// that only matters when something has already gone wrong belongs where
+  /// someone will actually find it. Best-effort and capped like everything
+  /// else here.
+  void note(String message) {
+    try {
+      _append('${DateTime.now().toUtc().toIso8601String()}\n$message');
+    } catch (_) {
+      // A log that cannot be written is not worth an exception.
+    }
+  }
+
   void _record(Object error, StackTrace stack, {String? context}) {
     // A logging failure must never become the crash it was trying to record.
     try {
