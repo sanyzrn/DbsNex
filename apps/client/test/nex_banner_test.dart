@@ -132,4 +132,44 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Note deleted'), findsNothing);
   });
+
+  testWidgets('a banner announces itself to a screen reader', (tester) async {
+    // It used to be a `ScaffoldMessenger` snack bar, which announces itself.
+    // Moving it onto a raw `OverlayEntry` for the look dropped that silently,
+    // and nothing failed — a screen-reader user simply stopped being told
+    // anything. The delete banner is the case that hurts: the only way back
+    // from a swipe-delete is an Undo that lives here for six seconds.
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(
+      host(
+        onTap: (context) => nexShowBanner(
+          context,
+          message: 'Note deleted',
+          haptics: false,
+          actionLabel: 'Undo',
+          onAction: () {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+
+    // `liveRegion` is what makes the platform read a node that appeared
+    // without anyone moving focus to it — which is the whole situation.
+    expect(
+      tester.getSemantics(find.text('Note deleted')),
+      containsSemantics(label: 'Note deleted', isLiveRegion: true),
+    );
+
+    // And the way out is still reachable as a control, not just as text.
+    // `containsSemantics` rather than `matchesSemantics`: the latter asserts
+    // every flag is exactly as given, so a flag Flutter adds in a later
+    // release fails a case that is not about it.
+    expect(
+      tester.getSemantics(find.text('Undo')),
+      containsSemantics(label: 'Undo', isButton: true, hasTapAction: true),
+    );
+
+    handle.dispose();
+  });
 }

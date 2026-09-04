@@ -24,6 +24,7 @@ class SyncClient implements SyncPort {
     required this.deviceId,
     required this.repo,
     this.bearerToken,
+    this.requestTimeout = _defaultRequestTimeout,
     http.Client? httpClient,
   }) : _http = httpClient ?? http.Client();
 
@@ -53,6 +54,37 @@ class SyncClient implements SyncPort {
   /// never synced at all: push threw before the pull this same cycle would
   /// otherwise have run even got a chance to recover anything.
   static const _pushBatchSize = 500;
+
+  /// How long one request is allowed to take before the cycle gives up.
+  ///
+  /// `package:http` has no default timeout, and these two calls were the only
+  /// network in the app without one — `FeedbackService` uses 15s, `LinkReader`
+  /// 8s, the cloud AI adapter 90s and 3min. The absence mattered more here
+  /// than anywhere else: sync is dispatched through the db worker, and that
+  /// worker runs one command at a time. A connection that is accepted and then
+  /// answers nothing — a suspended server, a dropped NAT binding, a VPN that
+  /// went away without a FIN — parks the request for as long as the OS keeps
+  /// the socket open, and every timeline read, search and capture queued
+  /// behind it waits there too. The app's whole data layer stops, with nothing
+  /// on screen to say why.
+  ///
+  /// 30 seconds is chosen against the payload rather than against patience: a
+  /// push carries up to 500 notes and a pull returns up to a 500-row page, so
+  /// this has to cover a large transfer on a bad mobile connection while still
+  /// being far below the several minutes an abandoned socket can take.
+  ///
+  /// A `.timeout` frees the caller, not the socket — the connection is left to
+  /// the OS to reap. That is the right trade here: what was hurting was the
+  /// waiting, not the file descriptor.
+  static const _defaultRequestTimeout = Duration(seconds: 30);
+
+  /// The value in use, so that a test can reach this at all.
+  ///
+  /// A constant would have been simpler and would have shipped a timeout no
+  /// suite could exercise without waiting half a minute for it — the same
+  /// shape of gap that let the reminder scheduling path go untested until it
+  /// was extracted. Production never passes this.
+  final Duration requestTimeout;
 
   Map<String, String> get _headers => {
     'content-type': 'application/json',
@@ -152,11 +184,13 @@ class SyncClient implements SyncPort {
       'tags': tags.map((t) => t.toJson()).toList(),
       'notes': notes.map(_notePayload).toList(),
     };
-    final pushRes = await _http.post(
-      Uri.parse('$baseUrl/sync/push'),
-      headers: _headers,
-      body: jsonEncode(pushBody),
-    );
+    final pushRes = await _http
+        .post(
+          Uri.parse('$baseUrl/sync/push'),
+          headers: _headers,
+          body: jsonEncode(pushBody),
+        )
+        .timeout(requestTimeout);
     if (pushRes.statusCode >= 300) {
       throw StateError(
         'sync push failed: ${pushRes.statusCode} ${pushRes.body}',
@@ -183,7 +217,7 @@ class SyncClient implements SyncPort {
         if (since != null) 'since': since,
       },
     );
-    final res = await _http.get(uri, headers: _headers);
+    final res = await _http.get(uri, headers: _headers).timeout(requestTimeout);
     if (res.statusCode >= 300) {
       throw StateError('sync pull failed: ${res.statusCode} ${res.body}');
     }

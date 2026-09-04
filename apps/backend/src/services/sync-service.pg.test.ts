@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { after, before, describe, test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 /**
  * The cases that need a real PostgreSQL, because what they are about is a
@@ -33,6 +36,17 @@ const USER_B = "00000000-0000-4000-8000-00000000000b";
  */
 const WORK_TAG_ID = "38ef462b-9f60-528c-b01f-0433ac89a7af";
 
+/** The list both languages check their note-type enum against. */
+const SPEC_PATH = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "..",
+  "..",
+  "spec",
+  "note-types.json",
+);
+
 describe("sync against a real database", { skip: enabled ? false : "set NEX_PG_TESTS=1 with a migrated PostgreSQL" }, () => {
   let pushChanges: typeof import("./sync-service.ts").pushChanges;
   let getPool: typeof import("../db/index.ts").getPool;
@@ -56,12 +70,18 @@ describe("sync against a real database", { skip: enabled ? false : "set NEX_PG_T
        ON CONFLICT (device_id) DO NOTHING`,
       [USER_A, USER_B],
     );
+    await getPool().query(`DELETE FROM notes WHERE user_id = ANY($1)`, [
+      [USER_A, USER_B],
+    ]);
     await getPool().query(`DELETE FROM tags WHERE user_id = ANY($1)`, [
       [USER_A, USER_B],
     ]);
   });
 
   after(async () => {
+    await getPool().query(`DELETE FROM notes WHERE user_id = ANY($1)`, [
+      [USER_A, USER_B],
+    ]);
     await getPool().query(`DELETE FROM tags WHERE user_id = ANY($1)`, [
       [USER_A, USER_B],
     ]);
@@ -194,6 +214,54 @@ describe("sync against a real database", { skip: enabled ? false : "set NEX_PG_T
       merged.tag_remap[0]!.canonical_id,
       keep,
       "the surviving row is the one that already held the name",
+    );
+  });
+
+  test("every note type the client can capture reaches the table", async () => {
+    // The other half of the checklist/link failure, and the half a schema test
+    // cannot see. Widening the route's zod enum gets a push past validation and
+    // straight into `CHECK (type IN ('text','voice','photo','file'))`, written
+    // by 0001_init and never revisited — 23514, the whole transaction rolled
+    // back, and the same permanent wedge one layer lower down. 0008 drops it;
+    // this is what says so.
+    //
+    // Read from the spec rather than listed here, so a seventh type added to
+    // spec/note-types.json is pushed against a real database by this test the
+    // moment it exists, with no second edit to remember.
+    const spec = JSON.parse(readFileSync(SPEC_PATH, "utf8")) as {
+      types: string[];
+    };
+    const now = new Date().toISOString();
+
+    const result = await pushChanges({
+      user_id: USER_A,
+      device_id: "pg-test-a",
+      tags: [],
+      notes: spec.types.map((type, i) => ({
+        id: `44444444-4444-4444-8444-00000000000${i}`,
+        type,
+        content: `a ${type} note`,
+        created_at: now,
+        updated_at: now,
+        device_id: "pg-test-a",
+        rev: 1,
+      })),
+    });
+
+    assert.equal(
+      result.merged.length,
+      spec.types.length,
+      "every type the client can mint must be storable",
+    );
+
+    const { rows } = await getPool().query<{ type: string }>(
+      `SELECT type FROM notes WHERE user_id = $1 ORDER BY type`,
+      [USER_A],
+    );
+    assert.deepEqual(
+      rows.map((r) => r.type).sort(),
+      [...spec.types].sort(),
+      "a type that validated but did not persist is the same outage",
     );
   });
 });

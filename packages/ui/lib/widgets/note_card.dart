@@ -502,7 +502,11 @@ class _ChecklistPreview extends StatelessWidget {
           if (shown.length < nexCardPreviewLines)
             // Holds the card's height steady when a list has one item, the
             // same way a one-line text note reserves its second line.
-            SizedBox(height: 24.0 * (nexCardPreviewLines - shown.length)),
+            SizedBox(
+              height:
+                  nexCardPreviewLineHeightFor(context) *
+                  (nexCardPreviewLines - shown.length),
+            ),
         ],
       ),
     );
@@ -521,7 +525,10 @@ class _ChecklistLine extends StatelessWidget {
     final scheme = theme.colorScheme;
     final direction = nexDirectionOf(item.text);
     return SizedBox(
-      height: 24,
+      // Scaled, not 24: the row has to grow with the text inside it, or the
+      // card gets taller (see [nexCardHeightFor]) around a line still being
+      // squeezed into a box built for the default size.
+      height: nexCardPreviewLineHeightFor(context),
       child: Row(
         children: [
           Icon(
@@ -590,7 +597,9 @@ class _LinkPreview extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            height: 24,
+            // Same reason as [_ChecklistLine]: the reserved row follows the
+            // text size rather than pinning it at the default.
+            height: nexCardPreviewLineHeightFor(context),
             child: Text(
               headline,
               maxLines: 1,
@@ -603,7 +612,7 @@ class _LinkPreview extends StatelessWidget {
             ),
           ),
           SizedBox(
-            height: 24,
+            height: nexCardPreviewLineHeightFor(context),
             child: Row(
               children: [
                 Icon(

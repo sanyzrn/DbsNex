@@ -301,11 +301,20 @@ const nexCardHeight = nexCardLeadingSize + NexSpacing.cardInset * 2;
 /// with the system's and clamps at 1.9, so this can be asked for nearly twice
 /// the default.
 double nexCardHeightFor(BuildContext context) {
-  final lines =
-      MediaQuery.textScalerOf(context).scale(_nexCardPreviewLineHeight) *
-      nexCardPreviewLines;
+  final lines = nexCardPreviewLineHeightFor(context) * nexCardPreviewLines;
   return math.max(nexCardLeadingSize, lines) + NexSpacing.cardInset * 2;
 }
+
+/// One preview line, at the text size actually in force.
+///
+/// Public because the card reserves rows of exactly this height for a
+/// checklist's items and a link's two lines, and those rows have to grow with
+/// [nexCardHeightFor] or the card gets taller around text that is still being
+/// squeezed into 24 logical pixels. They were literal `24`s, which held only
+/// at scale 1.0: the app's own UI-size setting composes with the system's and
+/// clamps at 1.9, so bodyLarge can ask for 45 in a box built for 24.
+double nexCardPreviewLineHeightFor(BuildContext context) =>
+    MediaQuery.textScalerOf(context).scale(_nexCardPreviewLineHeight);
 
 /// The typeface used everywhere except in Persian.
 ///

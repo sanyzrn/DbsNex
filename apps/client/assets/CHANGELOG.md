@@ -34,6 +34,43 @@ Working convention:
 
 ## Unreleased
 
+- **A note starting with Persian digits no longer flips the line around.**
+  Persian and Arabic digits were being treated as Persian *letters*, so a
+  note that began with a phone number, a price or a date was laid out
+  right-to-left even when the rest of it was English. Numbers now leave the
+  direction to the words around them, which is what the rest of the app
+  already did for ordinary digits.
+
+- **Messages at the top of the screen are now read aloud by screen readers.**
+  They used to be announced, and stopped being when they moved out of the
+  system's own message bar and into Nex's. Nothing looked wrong, so nothing
+  caught it. It mattered most after deleting a note: the only way to undo
+  that is a button in a message that lasts six seconds, and someone using
+  TalkBack was never told it was there.
+
+- **Checklist and link cards no longer clip their text at larger UI sizes.**
+  The card itself grew with the text size, but the rows inside it were pinned
+  to the height of one line at the default size — so turning the size up made
+  the card taller while squeezing the words into a slot built for smaller
+  ones. Both now grow together.
+
+- **The swipe-action arrows in Settings pointed the wrong way in Persian.**
+  Each row shows an arrow for which way your finger travels, and the app was
+  flipping those arrows for right-to-left — on top of the flip the system
+  already does. Two flips cancel, so in Persian both arrows pointed the way
+  they do in English, and the row for the starting edge was illustrating the
+  gesture for the other one.
+
+- **Typing quickly no longer leaves half-finished copies of a note behind.**
+  The first keystroke is what saves a note — there is no Save button — and
+  until that write came back, every further keystroke started another one. A
+  word typed faster than the save could land left "h", "he" and "hel" in the
+  library as notes of their own, permanently: the sheet only kept the last of
+  them, so nothing you did afterwards touched the rest. It took no unusual
+  speed — a keyboard that sends a whole word at once, or a paste, was enough.
+  Now the first save is the only one, and whatever you typed while it was in
+  flight lands on the note it belongs to.
+
 - **The banner that said "The operation failed" now says what failed, and
   why.** One sentence was doing the work of five different failures — a sync,
   a backup, an export, a restore, a recap — and every one of them threw the

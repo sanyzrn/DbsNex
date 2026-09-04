@@ -17,7 +17,7 @@
     "migrate:dev": "tsx src/db/migrate-cli.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "tsx --test src/services/merge.test.ts src/services/merge.conformance.test.ts src/routes/routes.test.ts src/routes/rate-limit.test.ts src/routes/feedback.test.ts src/services/sync-service.pg.test.ts src/env.test.ts"
+    "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "cors": "2.8.6",

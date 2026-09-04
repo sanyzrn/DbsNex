@@ -271,12 +271,27 @@ class _NexBannerState extends State<_NexBanner>
                           _Glyph(kind: widget.kind),
                           const SizedBox(width: NexSpacing.sm),
                           Flexible(
-                            child: Text(
-                              widget.message,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
+                            // Announced, not just drawn.
+                            //
+                            // This used to be a `ScaffoldMessenger` snack bar,
+                            // which announces itself; moving it onto a raw
+                            // `OverlayEntry` for the look silently dropped
+                            // that. A screen-reader user got nothing at all —
+                            // including for the delete banner, where the only
+                            // way back from a swipe-delete is an Undo that
+                            // lives here for six seconds and then goes.
+                            //
+                            // The recording sheet already does this for its
+                            // elapsed time. Same shape, same reason.
+                            child: Semantics(
+                              liveRegion: true,
+                              child: Text(
+                                widget.message,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),

@@ -989,6 +989,56 @@ void main() {
     expect(preferences.trailingAction, SwipeAction.delete);
   });
 
+  testWidgets('the swipe arrows point the same way in Persian', (tester) async {
+    // `Icons.arrow_forward` and `Icons.arrow_back` are declared
+    // `matchTextDirection: true`, so `Icon` mirrors them itself under an RTL
+    // `Directionality` — "forward" is already a leftward arrow in Persian.
+    // This row used to swap them by hand as well, which flipped them twice:
+    // both arrows pointed the way they do in English, so the leading row
+    // described the trailing gesture and the trailing row the leading one, in
+    // the app's primary language.
+    //
+    // What this pins is that the same icon is used in both directions. The
+    // mirroring is the framework's job and asserting the rendered pixels
+    // would be asserting Flutter's, not ours.
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await preferences.setLocale('fa');
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('کشیدن انگشت'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('کشیدن انگشت'));
+    await tester.pumpAndSettle();
+
+    // Sanity: the sheet really is right-to-left, or the rest proves nothing.
+    expect(
+      Directionality.of(tester.element(find.text('کشیدن از لبهٔ آغاز'))),
+      TextDirection.rtl,
+    );
+
+    Finder arrowBeside(String label) => find.descendant(
+      of: find.ancestor(of: find.text(label), matching: find.byType(Row)).first,
+      matching: find.byType(Icon),
+    );
+
+    expect(
+      (tester.widget<Icon>(arrowBeside('کشیدن از لبهٔ آغاز').first)).icon,
+      Icons.arrow_forward,
+      reason: 'the leading edge travels forward in either direction',
+    );
+    expect(
+      (tester.widget<Icon>(arrowBeside('کشیدن از لبهٔ پایان').first)).icon,
+      Icons.arrow_back,
+    );
+  });
+
   testWidgets('the full-screen photo viewer closes on a downward swipe', (
     tester,
   ) async {
