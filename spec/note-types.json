@@ -1,0 +1,21 @@
+{
+  "$comment": [
+    "The note types that cross the wire, and the one place both languages agree on them.",
+    "",
+    "This file exists because the two halves drifted. The client shipped `checklist` and",
+    "`link`; the server's push schema still listed four types and its `notes` table still",
+    "carried a CHECK for the same four. A device that captured a checklist got a 400 on the",
+    "whole push — and since the push runs before the pull in one cycle, that device stopped",
+    "sending AND receiving, permanently, on a note it could not delete its way out of (a",
+    "tombstone carries the same type).",
+    "",
+    "Adding a type now takes three edits that fail loudly if you miss one: this list,",
+    "NoteType in packages/core/lib/models/note.dart, and the enum in",
+    "apps/backend/src/routes/sync.ts. A test in each language compares its own enum against",
+    "this file, so the halves cannot drift apart again without a red build.",
+    "",
+    "Storage constrains nothing — the client dropped its CHECK for this reason and 0008",
+    "drops the server's. The wire schema is the gate, and it is right here."
+  ],
+  "types": ["text", "voice", "photo", "file", "checklist", "link"]
+}

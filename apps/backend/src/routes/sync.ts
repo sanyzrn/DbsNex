@@ -19,9 +19,34 @@ const incomingTag = z.object({
   created_at: isoString,
 });
 
+/**
+ * The note types this server accepts on the wire.
+ *
+ * Kept in step with `NoteType` in packages/core/lib/models/note.dart through
+ * spec/note-types.json, which a test in each language compares its own enum
+ * against. That guard exists because these two lists drifted once and the
+ * result was not a rejected note but a dead device: the client shipped
+ * `checklist` and `link`, this enum still named four types, and a push
+ * carrying one got a 400 for the whole batch. `sync()` pushes before it
+ * pulls, so the device stopped receiving as well as sending, on every retry,
+ * for as long as the note existed — and deleting it did not help, because the
+ * tombstone is pushed with the same type.
+ *
+ * Exported so the conformance test reads the enum the route actually uses
+ * rather than a copy of it.
+ */
+export const NOTE_TYPES = [
+  "text",
+  "voice",
+  "photo",
+  "file",
+  "checklist",
+  "link",
+] as const;
+
 const incomingNote = z.object({
   id: z.string().min(1).max(128),
-  type: z.enum(["text", "voice", "photo", "file"]),
+  type: z.enum(NOTE_TYPES),
   content: z.string().nullish(),
   media_uri: z.string().max(2048).nullish(),
   media_hash: z.string().max(128).nullish(),
