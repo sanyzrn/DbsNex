@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+- **Messages at the top of the screen are now read aloud by screen readers.**
+  They used to be announced, and stopped being when they moved out of the
+  system's own message bar and into Nex's. Nothing looked wrong, so nothing
+  caught it. It mattered most after deleting a note: the only way to undo
+  that is a button in a message that lasts six seconds, and someone using
+  TalkBack was never told it was there.
+
 - **Checklist and link cards no longer clip their text at larger UI sizes.**
   The card itself grew with the text size, but the rows inside it were pinned
   to the height of one line at the default size — so turning the size up made
