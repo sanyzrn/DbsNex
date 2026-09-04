@@ -40,6 +40,28 @@ TextDirection? nexDirectionOf(String? text) {
 /// answer null rather than "left to right": "12:30" is not an English string,
 /// and forcing it would misplace it inside a right-to-left card.
 TextDirection? _directionOfRune(int rune) {
+  // Arabic-Indic and Persian digits, and the number signs that go with them.
+  //
+  // They live inside the Arabic block, so the range below swept them up as
+  // strong right-to-left — which contradicted the paragraph above this
+  // function ("a number… leaves the ambient direction in place") and UAX #9
+  // itself: P2 looks only at *strong* characters, and Unicode gives these
+  // bidi class AN or EN. `"۱۲۳ abc"` is a left-to-right string that answered
+  // rtl purely because its first character was a Persian digit, and a phone
+  // number or a price at the start of a note flipped the whole paragraph in
+  // the English UI. In the Persian one the ambient was already rtl, which is
+  // why this went unnoticed.
+  //
+  // Only the numbers. The combining marks in this block are not strong
+  // either, but none of them can legitimately begin a string, so excluding
+  // them would be range arithmetic with no case behind it.
+  if ((rune >= 0x0660 && rune <= 0x0669) || // Arabic-Indic digits ٠-٩
+      (rune >= 0x06F0 && rune <= 0x06F9) || // Persian digits ۰-۹
+      (rune >= 0x0600 && rune <= 0x0605) || // Arabic number signs
+      (rune >= 0x066A && rune <= 0x066C) || // percent, decimal, thousands
+      rune == 0x06DD) {
+    return null;
+  }
   // Hebrew, Arabic, Syriac, Thaana, NKo, Samaritan, Mandaic and the Arabic
   // presentation forms.
   if ((rune >= 0x0590 && rune <= 0x08FF) ||

@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+- **A note starting with Persian digits no longer flips the line around.**
+  Persian and Arabic digits were being treated as Persian *letters*, so a
+  note that began with a phone number, a price or a date was laid out
+  right-to-left even when the rest of it was English. Numbers now leave the
+  direction to the words around them, which is what the rest of the app
+  already did for ordinary digits.
+
 - **Messages at the top of the screen are now read aloud by screen readers.**
   They used to be announced, and stopped being when they moved out of the
   system's own message bar and into Nex's. Nothing looked wrong, so nothing
