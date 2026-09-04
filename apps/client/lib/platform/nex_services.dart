@@ -151,7 +151,11 @@ class NexServices {
       // given, the alarm queue confirms an alarm exists but not when, and the
       // one moment that knows what the OS was actually told is the call that
       // told it.
-      ..onDiagnostic = (message) => unawaited(_noteDiagnostic(message));
+      ..onDiagnostic = (message) => unawaited(_noteDiagnostic(message))
+      // Read at schedule time rather than captured once: the lock can be
+      // turned on long after a reminder was set, and every reminder is
+      // rebuilt from the library on launch.
+      ..hideOnLockScreen = () => preferences.appLockEnabled;
 
     unawaited(services.refreshTimeline());
     unawaited(services._maybeBackupInBackground());

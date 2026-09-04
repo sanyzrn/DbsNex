@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+- **The app lock now covers the lock screen too.** A reminder's notification
+  puts the note's own words in its title, and Android shows them in full on the
+  lock screen by default — so a note kept behind a fingerprint was still being
+  read out on a locked phone. With the app lock on, reminders are hidden from
+  the lock screen and appear once you unlock. With it off, nothing changes:
+  hiding every reminder from everyone would take a medication reminder off the
+  lock screen of people who never asked for a lock.
+
 ## v1.5.1
 
 - **A reminder arriving at the wrong hour is still being looked into.** One
