@@ -188,6 +188,26 @@
   "deleteBackup": "حذف پشتیبان",
   "deleteBackupBody": "این فایل پشتیبان روی دستگاه حذف می‌شود و برگشت‌پذیر نیست.",
   "backupCount": "{count, plural, =0{بدون پشتیبان} =1{یک پشتیبان} other{{count} پشتیبان}}",
+  "syncFailed": "همگام‌سازی ناموفق بود. چیزی روی این دستگاه عوض نشد.",
+  "@syncFailed": {
+    "description": "Banner when a sync attempt throws; the reason follows in brackets"
+  },
+  "backupFailed": "پشتیبان نوشته نشد. یادداشت‌هایت دست‌نخورده‌اند.",
+  "@backupFailed": {
+    "description": "Banner when writing a local backup fails"
+  },
+  "exportFailed": "خروجی نوشته نشد. یادداشت‌هایت دست‌نخورده‌اند.",
+  "@exportFailed": {
+    "description": "Banner when writing an export archive fails"
+  },
+  "restoredStaysLocal": "یادداشت‌های بازیابی‌شده روی همین دستگاه می‌مانند — همگام‌سازی آن‌ها را بالا نمی‌فرستد.",
+  "@restoredStaysLocal": {
+    "description": "Shown after a restore or import when a sync server is configured"
+  },
+  "recapRefreshFailed": "خلاصه تازه نشد. آنچه پایین می‌بینی آخرین خلاصه‌ای است که نکس ساخته.",
+  "@recapRefreshFailed": {
+    "description": "Banner when re-generating the daily recap fails; the old text stays on screen"
+  },
   "operationFailed": "این کار انجام نشد. یادداشت‌های قبلی شما دست‌نخورده ماندند.",
   "noteType": "{type, select, text{متن} voice{صدا} photo{عکس} file{فایل} checklist{چک‌لیست} link{لینک} other{یادداشت}}",
   "addAction": "افزودن",

@@ -34,6 +34,23 @@ Working convention:
 
 ## Unreleased
 
+- **The banner that said "The operation failed" now says what failed, and
+  why.** One sentence was doing the work of five different failures — a sync,
+  a backup, an export, a restore, a recap — and every one of them threw the
+  reason away. It named neither the thing that went wrong nor the cause, and
+  it is a banner: it is gone by the time you have finished wondering. Each
+  now names its own operation and carries what the app was actually told,
+  and the full text is kept in the file "Share diagnostics" sends, so a
+  failure can still be read after the banner has passed.
+
+- **A restore now says that restored notes stay on this device.** Notes
+  brought back from an export are written as already up to date, so sync
+  never uploads them — which is fine on the phone you restored onto, and not
+  fine if you took it to mean your library was back on the server. The app
+  now says so when a sync server is set up. It is a disclosure, not a fix:
+  the upload itself is a change to how sync decides what to send, and that
+  is worth doing carefully rather than quickly.
+
 - **The app lock now covers the lock screen too.** A reminder's notification
   puts the note's own words in its title, and Android shows them in full on the
   lock screen by default — so a note kept behind a fingerprint was still being

@@ -408,7 +408,7 @@ class TimelineScreenState extends State<TimelineScreen>
     if (text == null || text.isEmpty) {
       if (!mounted) return;
       NexBannerHost.of(context)?.show(
-        message: AppLocalizations.of(context).operationFailed,
+        message: AppLocalizations.of(context).recapRefreshFailed,
         kind: NexBannerKind.failed,
       );
     }
@@ -796,9 +796,12 @@ class TimelineScreenState extends State<TimelineScreen>
     if (widget.preferences.syncBaseUrl == null) return;
     try {
       await widget.services.syncNow();
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      banner?.show(message: l10n.operationFailed, kind: NexBannerKind.failed);
+      banner?.show(
+        message: '${l10n.syncFailed} (${NexServices.describeFailure(error)})',
+        kind: NexBannerKind.failed,
+      );
     }
   }
 

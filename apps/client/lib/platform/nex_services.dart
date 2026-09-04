@@ -639,12 +639,34 @@ class NexServices {
       throw StateError('Refusing to sync over cleartext in a release build.');
     }
 
-    final result = await worker.sync(
-      baseUrl: url,
-      bearerToken: bearerToken ?? _preferences.syncBearerToken,
-    );
+    final SyncResult result;
+    try {
+      result = await worker.sync(
+        baseUrl: url,
+        bearerToken: bearerToken ?? _preferences.syncBearerToken,
+      );
+    } catch (error) {
+      // Recorded before it is rethrown, because every caller catches this
+      // with `catch (_)` and shows one sentence that names neither the
+      // operation nor the reason. The banner is also transient: it appears
+      // at the top of whatever screen you are on and is gone before you have
+      // worked out what it was about. The server's own words — a status code,
+      // a constraint name — survive here, in the file "Share diagnostics"
+      // sends, so a failure can still be read after the banner has gone.
+      unawaited(_noteDiagnostic('sync failed: $error'));
+      rethrow;
+    }
     await refreshTimeline();
     return result;
+  }
+
+  /// The last thing sync said when it failed, short enough to put in a banner.
+  ///
+  /// The full text goes to the diagnostics file; this is the part worth
+  /// showing someone standing in front of the screen.
+  static String describeFailure(Object error) {
+    final text = error.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+    return text.length <= 120 ? text : '${text.substring(0, 119)}…';
   }
 
   /// Newest-first list of local SQLite backup files (FR-7.2).

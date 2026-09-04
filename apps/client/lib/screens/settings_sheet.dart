@@ -1052,8 +1052,15 @@ class _SyncRowState extends State<_SyncRow> {
       banner?.show(
         message: '${l10n.syncComplete} · ${result.pushed}↑ ${result.pulled}↓',
       );
-    } catch (_) {
-      banner?.show(message: l10n.operationFailed);
+    } catch (error) {
+      // Named, and with the reason. One sentence that says neither which
+      // operation failed nor why leaves someone staring at a banner they
+      // cannot act on — and this one is transient, so by the time they wonder
+      // it is gone. The full text is in the diagnostics file either way.
+      banner?.show(
+        message: '${l10n.syncFailed} (${NexServices.describeFailure(error)})',
+        kind: NexBannerKind.failed,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
