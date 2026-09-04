@@ -99,6 +99,15 @@ class NexReminders {
   /// describes one tap, not a standing state.
   bool _launchedFromUpdate = false;
 
+  /// Told what was actually handed to the operating system, every time.
+  ///
+  /// Wired to the shared diagnostics log by `NexServices`, and null in tests.
+  /// A reminder arriving at an hour nobody asked for is the one bug in this
+  /// class that leaves no trace: the note keeps the right time, the queue
+  /// says an alarm exists, and the only thing that knows what the OS was
+  /// actually told is the call that told it. This is that record.
+  void Function(String message)? onDiagnostic;
+
   bool takeLaunchedFromUpdate() {
     final launched = _launchedFromUpdate;
     _launchedFromUpdate = false;
@@ -372,7 +381,7 @@ class NexReminders {
         // The note's own words are the title: a reminder saying "Nex" tells
         // someone nothing at the moment they most need to know what it is.
         title: body.isEmpty ? 'Nex' : _clamp(body, 60),
-        scheduledDate: tz.TZDateTime.from(at.toLocal(), tz.local),
+        scheduledDate: scheduledDateFor(at),
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
@@ -395,6 +404,17 @@ class NexReminders {
         payload: note.id,
       );
       lastError = await _verify(_idFor(note.id));
+      // What the OS was told, in its own terms: the instant, the wall clock
+      // it resolves to, and the zone that resolved it. `_verify` can only say
+      // that *an* alarm with this id exists — the plugin's queue does not
+      // carry a time — so without this line nothing in the app or its
+      // diagnostics can answer "set for when?" after the fact.
+      final scheduled = scheduledDateFor(at);
+      onDiagnostic?.call(
+        'reminder ${note.id} -> ${scheduled.toIso8601String()} '
+        '(${tz.local.name}, repeat ${note.dueRepeat.wireName}, '
+        'exact $_exactAlarms)${lastError == null ? '' : ' — $lastError'}',
+      );
     } catch (error) {
       // Too many pending alarms, a platform that changed its mind, a channel
       // that never registered. Still not an error thrown at someone mid-
@@ -416,6 +436,25 @@ class NexReminders {
       lastError = _initialisationWarning;
     }
   }
+
+  /// The exact value handed to the platform for the instant [at].
+  ///
+  /// Extracted because [schedule] cannot be reached from a test at all:
+  /// [supported] is false anywhere that is not a phone, so its first line
+  /// returns and every conversion below it is unreachable from the suite.
+  /// That is why a reminder arriving at the wrong hour was not something a
+  /// test could have caught — not that the conversion was under-tested, but
+  /// that no test could execute it. This is the part with an answer worth
+  /// checking, so this is the part made checkable.
+  ///
+  /// `TZDateTime.from` keeps the *instant* and re-derives the wall clock in
+  /// [location]. The instant is what a one-off reminder fires on; the wall
+  /// clock is what a repeat matches on, which is why the location has to be
+  /// the device's real zone and not the UTC that `tz.local` falls back to
+  /// when the zone name fails to load.
+  @visibleForTesting
+  static tz.TZDateTime scheduledDateFor(DateTime at, [tz.Location? location]) =>
+      tz.TZDateTime.from(at, location ?? tz.local);
 
   /// The first firing of a repeating reminder that is still ahead.
   ///

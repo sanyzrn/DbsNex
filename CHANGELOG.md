@@ -34,6 +34,19 @@ Working convention:
 
 ## Unreleased
 
+- **Dismissing the clock no longer sets a reminder for nine o'clock.** Backing
+  out of the time picker fell through to a default instead of cancelling, so a
+  dialog you had just closed set a reminder at an hour you never chose — and
+  said "Reminder set" about it. Backing out of the clock now cancels, the same
+  as backing out of the calendar one step earlier.
+
+- **Nex now records what it actually asked the system for.** When a reminder
+  arrives at the wrong hour there is nothing to look at: the note still shows
+  the time you set, and the alarm queue can only say an alarm exists, not when
+  it is for. Every reminder now writes the exact moment, time zone and alarm
+  precision it was given into the diagnostics that **Settings → About → Share
+  diagnostics** sends.
+
 - **A note's reminder can no longer collide with the update notification.**
   Every reminder gets an id derived from the note it belongs to, and a small
   block of ids is reserved for the app's own notifications. When the update

@@ -180,15 +180,20 @@ Future<bool> nexPickReminder({
                   sheetContext,
                   initial: const TimeOfDay(hour: 9, minute: 0),
                 );
-                if (!sheetContext.mounted) return;
+                // Backing out of the clock is backing out, the same as
+                // backing out of the calendar one line above. It used to fall
+                // through to `?? 9` and set nine o'clock — a reminder at an
+                // hour nobody chose, from a dialog someone had just
+                // dismissed, announced as "Reminder set".
+                if (time == null || !sheetContext.mounted) return;
                 Navigator.pop(
                   sheetContext,
                   DateTime(
                     date.year,
                     date.month,
                     date.day,
-                    time?.hour ?? 9,
-                    time?.minute ?? 0,
+                    time.hour,
+                    time.minute,
                   ),
                 );
               },
