@@ -704,10 +704,13 @@ class NexReminders {
 
   /// The one repeating notification: a nudge at a time the user picked.
   ///
-  /// Its own id, outside the range note ids hash into by construction — a note
-  /// reminder is keyed on `noteId.hashCode`, and zero is not a hash any string
-  /// produces here. Sharing an id would mean scheduling one silently cancels
-  /// the other.
+  /// Its own id, and it stays its own because [idFor] bumps a note out of the
+  /// reserved block — not because a note could never hash to it. This comment
+  /// used to claim the second thing ("zero is not a hash any string produces
+  /// here"), which is false, and [idFor] a few hundred lines below says so
+  /// outright. A reader who believed this one would conclude the bump was
+  /// redundant and remove it, and a note landing on 0 would then cancel this
+  /// nudge — or the update download at 3 — silently and permanently.
   static const _dailyId = 0;
 
   /// Schedules — or reschedules — the daily nudge.

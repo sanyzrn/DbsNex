@@ -28,16 +28,28 @@
 bootstrap:
 	cd packages/core && dart pub get
 	cd packages/data && dart pub get
-	cd packages/ai   && dart pub get
+	cd packages/ai   && flutter pub get
 	cd packages/ui   && flutter pub get
 	cd apps/client   && flutter pub get
 	cd apps/backend  && npm ci
+	cd apps/feedback-worker && npm ci
 
 # Pure Dart packages: proves core and data carry zero Flutter dependency.
 check-dart:
 	cd packages/core && dart analyze --fatal-infos && dart test
 	cd packages/data && dart analyze --fatal-infos && dart test
-	cd packages/ai   && dart analyze --fatal-infos && dart test
+
+# nex_ai is not one of those two, and putting it in that list broke this whole
+# file. It carries a Flutter dependency, so its dev dependency is
+# `flutter_test` and `dart test` cannot run it: the command exits 65 with
+# "Could not find package `test`", and because `check` chains these targets,
+# every one after it — ui, client, backend — never ran either. So `make check`
+# failed on a clean checkout, for everyone, while CI was green: CI has always
+# run this package with `flutter test` (the flutter-ai-package job). The
+# header at the top of this file promises to mirror CI one-to-one, and this
+# line was the place it did not.
+check-ai:
+	cd packages/ai && flutter analyze --fatal-infos && flutter test
 
 check-ui:
 	cd packages/ui && flutter analyze --fatal-infos && flutter test
@@ -48,7 +60,13 @@ check-client:
 check-backend:
 	cd apps/backend && npm run typecheck && npm run lint && npm test
 
-check: check-dart check-ui check-client check-backend
+# The feedback worker is deployed separately and was verified by nothing: no
+# make target, and no CI job matched `apps/feedback-worker/` either. Its nine
+# tests passed the whole time and never gated anything.
+check-worker:
+	cd apps/feedback-worker && npm run typecheck && npm test
+
+check: check-dart check-ai check-ui check-client check-backend check-worker
 
 fmt:
 	dart format apps/client packages

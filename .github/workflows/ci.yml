@@ -123,7 +123,11 @@ jobs:
 
           DART=false; BACKEND=false; DESKTOP=false; ANDROID=false
           match '^(apps/client|packages)/' && DART=true
-          match '^apps/backend/' && BACKEND=true
+          # The feedback worker rides the backend flag rather than carrying
+          # its own: it is nine fast tests, and nothing matched
+          # `apps/feedback-worker/` at all before this, so a change to it ran
+          # no job whatsoever.
+          match '^apps/(backend|feedback-worker)/' && BACKEND=true
           # The sync contract spans both sides, so either one re-runs it.
           match '^(apps/client/windows|apps/client/ios|apps/client/macos)/' && DESKTOP=true
           [ "$DART" = true ] && DESKTOP=true
@@ -390,6 +394,26 @@ jobs:
       # deployment target and plugin registrations drifted silently on every
       # dependency change.
       - run: flutter build ios --debug --no-codesign
+
+  feedback-worker:
+    name: apps/feedback-worker (typecheck + test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    defaults:
+      run:
+        working-directory: apps/feedback-worker
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/feedback-worker/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
 
   backend:
     name: apps/backend (lint + typecheck + test + build + boot)
@@ -710,6 +734,7 @@ jobs:
       - client-windows
       - client-ios
       - backend
+      - feedback-worker
       - merge-conformance
       - sync-integration
       - ai-deletion-proof
