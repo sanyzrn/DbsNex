@@ -151,7 +151,14 @@ class NexServices {
       // given, the alarm queue confirms an alarm exists but not when, and the
       // one moment that knows what the OS was actually told is the call that
       // told it.
-      ..onDiagnostic = (message) => unawaited(_noteDiagnostic(message))
+      //
+      // A block body rather than an arrow, and not a style choice:
+      // `..x = (a) => f(a)` swallows the cascade after it, because the arrow's
+      // body runs to the end of the expression and the next `..` then attaches
+      // to `f(a)`'s result instead of to the object being cascaded.
+      ..onDiagnostic = (message) {
+        unawaited(_noteDiagnostic(message));
+      }
       // Read at schedule time rather than captured once: the lock can be
       // turned on long after a reminder was set, and every reminder is
       // rebuilt from the library on launch.
