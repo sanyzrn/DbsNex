@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.5.3
+
 - **Attachments are now limited to 100 MB, with a message that says so.**
   Nex is a notes app, and a large file costs far more than it weighs: the
   automatic backup packs the whole media folder and keeps five of them, so a
@@ -46,6 +48,15 @@ Working convention:
   next launch opened on an error instead of your notes. Files are now copied
   and checked in pieces, so their size no longer matters.
 
+- **Nex reminders no longer take over the phone's alarm indicator.** A
+  reminder was being scheduled the way a clock app schedules an alarm, so
+  Android showed it as the device's next alarm — the alarm icon in the status
+  bar, and a tile reading e.g. "Alarm · Sat 10:00" in quick settings. Because
+  that indicator shows the next alarm across *all* apps, any Nex reminder
+  earlier than your real wake-up alarm hid it, and tapping the tile opened
+  Nex instead of your clock. Reminders are still exact and still arrive while
+  the phone is idle; they just no longer claim to be alarm clocks.
+
 - **A failed share no longer says your library could not be opened.** That
   screen offered to restore a backup over a library that was never touched.
   A share that fails now leaves the app to open normally and records the
@@ -56,14 +67,13 @@ Working convention:
   quietly took twice the space until Android reclaimed it. Your original file
   is untouched either way — Nex only ever removes copies it made itself.
 
-- **Nex reminders no longer take over the phone's alarm indicator.** A
-  reminder was being scheduled the way a clock app schedules an alarm, so
-  Android showed it as the device's next alarm — the alarm icon in the status
-  bar, and a tile reading e.g. "Alarm · Sat 10:00" in quick settings. Because
-  that indicator shows the next alarm across *all* apps, any Nex reminder
-  earlier than your real wake-up alarm hid it, and tapping the tile opened
-  Nex instead of your clock. Reminders are still exact and still arrive while
-  the phone is idle; they just no longer claim to be alarm clocks.
+- **The reminder-timing warning is withdrawn.** v1.5.1 and v1.5.2 asked you
+  not to rely on a reminder that has to arrive on time, after one report of a
+  10:00 reminder arriving at 1:10 in the morning. It has not happened again
+  on the phone it came from, across both releases. No cause was ever found,
+  so this is a warning being lifted rather than a fix being claimed — if it
+  ever happens to you, **Settings → About → Share diagnostics** now records
+  the exact moment and time zone each reminder was given.
 
 ## v1.5.2
 
