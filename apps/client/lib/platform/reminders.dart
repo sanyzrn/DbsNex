@@ -818,15 +818,23 @@ class NexReminders {
         title: title,
         body: body.isEmpty ? null : body,
         scheduledDate: when,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _dailyChannelId,
             'Daily nudge',
             channelDescription: 'One reminder a day, at a time you chose',
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
+            // The recap this carries is now as long as there was something
+            // to say — up to a short paragraph on a busy week. With no style
+            // set, Android shows one line of it and offers no way to reach
+            // the rest, so the mornings with the most in them would be the
+            // ones the notification said least about.
+            styleInformation: body.isEmpty
+                ? null
+                : BigTextStyleInformation(body),
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
         // Repeats at the same clock time every day, which is what keeps this
         // arriving when the app is not opened for a week.

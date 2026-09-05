@@ -411,13 +411,21 @@ class TimelineScreenState extends State<TimelineScreen>
       }
       return;
     }
-    final source = _aiSummarySource();
+    final source = _aiRecapSource();
     if (source.isEmpty) return;
     if (mounted) setState(() => _aiSummaryLoading = true);
     final adapter = _aiAdapter();
     String? text;
     try {
-      text = await adapter.digest(source);
+      text = await adapter.digest(
+        source,
+        // Counted off the source rather than off the library: what the recap
+        // is allowed to say follows what it was actually given, and the
+        // source caps how many notes that is.
+        words: CloudAIAdapter.recapWords(
+          '\n'.allMatches(source).length + 1,
+        ),
+      );
     } catch (_) {
       text = null;
     } finally {
@@ -500,7 +508,7 @@ class TimelineScreenState extends State<TimelineScreen>
       // Unlike the recap, an empty library is not a reason to skip this: the
       // line is a mood, and "you have not written anything yet" is a mood the
       // prompt handles on its own.
-      text = await adapter.headline(_aiSummarySource(), language: language);
+      text = await adapter.headline(_aiHeadlineSource(), language: language);
     } catch (_) {
       text = null;
     } finally {
@@ -583,9 +591,13 @@ class TimelineScreenState extends State<TimelineScreen>
     );
   }
 
-  /// The most recent notes' own text, newest first — plenty for a recap to
-  /// say something real without sending the whole library on every launch.
-  String _aiSummarySource() {
+  /// The most recent notes' own text, newest first.
+  ///
+  /// The headline's source, and only the headline's. That line is a mood —
+  /// it wants to know roughly what someone has been writing about and
+  /// nothing else, and telling it what is due would turn a greeting into a
+  /// second recap.
+  String _aiHeadlineSource() {
     final recent = (_all ?? notes).take(20);
     final lines = <String>[
       for (final note in recent)
@@ -593,6 +605,15 @@ class TimelineScreenState extends State<TimelineScreen>
     ]..removeWhere((line) => line.isEmpty);
     return lines.join('\n');
   }
+
+  /// The recap's source: the library's state, not a slice of its prose.
+  ///
+  /// Everything the recap can say about what is due or unfinished comes from
+  /// here — see [nexRecapSource], which also explains why the twenty newest
+  /// notes were the wrong twenty. The whole list goes in rather than a
+  /// pre-cut slice, because the choosing is the part that matters and it
+  /// needs everything to choose from.
+  String _aiRecapSource() => nexRecapSource(_all ?? notes);
 
   /// Collapses the card's body on the first real scroll, the way the Figma
   /// redesign asked for — reading a note is not the moment for a recap.

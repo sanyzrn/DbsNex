@@ -772,35 +772,79 @@ class CloudAIAdapter implements AIAdapter {
     return Summary(text: reply?.trim() ?? '');
   }
 
-  /// A warm, two-sentence recap of what someone has been capturing lately.
+  /// How much the recap may say, given how much there is to say about.
+  ///
+  /// A fixed budget was the wrong shape in both directions. Thirty words is
+  /// too little for a library with a fortnight of notes and two things due,
+  /// and it is too much on a Tuesday when someone has written one line — a
+  /// card that fills the same four lines every single morning is a card
+  /// people stop reading, and padding a quiet day into four lines is exactly
+  /// the corporate filler the prompt spends a sentence forbidding.
+  ///
+  /// So the ceiling follows the material. These are ceilings, not targets:
+  /// the prompt says "at most", and a good recap of two notes is one clause.
+  static int recapWords(int noteCount) => switch (noteCount) {
+    <= 2 => 25,
+    <= 6 => 45,
+    <= 12 => 65,
+    _ => 85,
+  };
+
+  /// The recap the timeline shows when the app is opened.
   ///
   /// Not part of [AIAdapter]: every other capability there takes one [Note],
   /// because enrichment is a per-note pipeline. This is the one place in the
-  /// app that wants "here is a handful of recent notes, say something about
-  /// them" rather than "extract something from this one" — it belongs to the
+  /// app that wants "here is the state of somebody's library, say what is in
+  /// it" rather than "extract something from this one" — it belongs to the
   /// timeline's own daily-summary panel, not to the note-scoped contract.
   ///
-  /// The word budget is stated in the prompt *and* enforced on the way out by
-  /// [_clamped]: models treat "at most 30 words" as a suggestion, and the
-  /// panel this lands in is a card with two lines of room. A recap that
-  /// overflows it is worse than a shorter one.
-  Future<String?> digest(String recentNotesText) async {
+  /// What it is *for* changed. It used to be an observation about what
+  /// someone had been writing lately, which is a second decorative line in an
+  /// app that already has one above it — the headline. Its job now is to put
+  /// them back in touch with their own notes: what is due, what is
+  /// unfinished, what they were in the middle of. That only became possible
+  /// once [nexRecapSource] started sending facts instead of prose; with only
+  /// note text to go on, a model asked to remind someone of something
+  /// invents it.
+  ///
+  /// Hence the sentence forbidding invention, which is new and load-bearing.
+  /// A wrong joke about your notes is a bad line. A wrong claim that
+  /// something is due tomorrow is a missed appointment.
+  ///
+  /// [words] is stated in the prompt *and* enforced on the way out by
+  /// [_clamped]: models treat "at most" as a suggestion.
+  Future<String?> digest(String recentNotesText, {int words = 30}) async {
     if (!canAnswerText || recentNotesText.trim().isEmpty) return null;
     final reply = await _complete(
       'You write the short recap a notes app shows someone when they open '
-      "it. You're given a handful of their recent notes. Write ONE or TWO "
-      'short sentences, at most 30 words in total, that show you actually '
-      'read them: name the real thing they wrote about, not the category it '
-      'belongs to — "the cooler and the plane tickets", not "errands and '
-      'travel plans". The tone is a friend reading over their shoulder: dry, '
-      'warm, occasionally funny. Never motivational, never corporate, never '
-      'flattering, no advice, no questions. No preamble, no heading, no '
-      'bullet points, no quotes, no emoji. Write in one language only. '
+      'it. Its job is to put them back in touch with their own notes: what '
+      'is due, what is unfinished, what they were in the middle of. '
+      // The shape is described rather than left to be inferred: these lines
+      // are abbreviated to save tokens, and an abbreviation a model has to
+      // guess at is one it will eventually guess wrong.
+      'Each line you are given is one note, written as `when | kind | text`. '
+      'A line starting DUE carries a reminder — "DUE in 6h", "DUE overdue '
+      '2d" — and those lines come first; the rest are newest first. On a '
+      'checklist, "3/5 left" means three of its five items are still '
+      'unticked. '
+      'Lead with anything due or overdue, then anything unfinished, then '
+      'what they have been writing about. Name the real things, not the '
+      'categories they belong to — "the cooler and the plane tickets", not '
+      '"errands and travel plans". At most $words words, in whole sentences. '
+      'The tone is a friend who has read your notes and is telling you what '
+      'is in them: dry, warm, plain. Never motivational, never corporate, '
+      'never flattering, no advice, no questions. Never state anything that '
+      'is not in the lines you were given — no invented dates, times or '
+      'tasks. No preamble, no heading, no bullet points, no quotes, no '
+      'emoji. Write in one language only. '
       'Reply with the recap only. ${outputLanguage.promptRule}',
       recentNotesText,
-      maxTokens: 160,
+      // Room for the whole budget and then some, because a reply cut off by
+      // the token ceiling ends mid-word and [_clamped] cannot tell that from
+      // a model that simply stopped.
+      maxTokens: (words * 8).clamp(200, 800),
     );
-    return _plausible(_clamped(reply, 30));
+    return _plausible(_clamped(reply, words), shortLine: false);
   }
 
   /// The one-line headline over the timeline: a mood, not a summary.
@@ -1144,7 +1188,9 @@ class CloudAIAdapter implements AIAdapter {
     return text;
   }
 
-  static String? _plausible(String? reply) {
+  /// [shortLine] is what the frequency check below is calibrated for, and it
+  /// is off for anything longer than a line.
+  static String? _plausible(String? reply, {bool shortLine = true}) {
     final text = _notGarbled(reply);
     if (text == null) return null;
 
@@ -1178,19 +1224,36 @@ class CloudAIAdapter implements AIAdapter {
     if (latin + arabic + foreign == 0) return null;
     if (foreign > 1) return null;
 
-    // A word repeating is the other shape these failures take — "toutes
-    // toutes to". Two mentions is ordinary language; three of the same word
-    // in a line this short is not.
     final words = [
       for (final word in text.toLowerCase().split(RegExp(r'[\s,.:;!?…]+')))
         if (word.length > 2) word,
     ];
     if (words.any((word) => word.length > 30)) return null;
-    final counts = <String, int>{};
-    for (final word in words) {
-      final seen = (counts[word] ?? 0) + 1;
-      if (seen > 2) return null;
-      counts[word] = seen;
+
+    // A word repeating is the other shape these failures take — "toutes
+    // toutes to". Two mentions is ordinary language; three of the same word
+    // in a line this short is not.
+    //
+    // "This short" is the whole of it, which is why this is now behind a
+    // flag instead of a threshold. The recap grew from thirty words to
+    // eighty-five, and a frequency rule does not survive being scaled: "the"
+    // is six per cent of ordinary English and thirty of a deliberately dry
+    // sentence, so any ratio loose enough to keep real prose is loose enough
+    // to catch nothing. Scaling it would have meant a card that goes blank
+    // precisely on the days it has most to report.
+    //
+    // The headline is what this was written for and is unchanged. Longer
+    // replies are carried by the checks that do not care about length: a
+    // second script, a stuck decoder, a "word" no language has — and the
+    // same word twice in a row, just below, which is the sharp end of this
+    // one and stays absolute.
+    if (shortLine) {
+      final counts = <String, int>{};
+      for (final word in words) {
+        final seen = (counts[word] ?? 0) + 1;
+        if (seen > 2) return null;
+        counts[word] = seen;
+      }
     }
     for (var i = 1; i < words.length; i++) {
       if (words[i] == words[i - 1]) return null;
