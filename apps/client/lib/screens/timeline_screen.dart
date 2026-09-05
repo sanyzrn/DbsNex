@@ -431,10 +431,18 @@ class TimelineScreenState extends State<TimelineScreen>
       // would be the tap actively destroying something.
       if (text != null && text.isNotEmpty) _aiSummaryText = text;
     });
-    // Keeping the old line is right; saying nothing about the tap is not —
+    // Keeping the old line is right; saying nothing about the *tap* is not —
     // silence is what a broken button looks like. A quiet banner says the
     // refresh did not happen, and the old text stays.
-    if (text == null || text.isEmpty) {
+    //
+    // Only for the tap. This also runs once by itself, the first time the
+    // timeline delivers any notes, and there the banner was an error nobody
+    // asked for: it arrived seconds after launch, over whatever screen the
+    // user had opened by then, about a card they may not even have looked at.
+    // This method's own rule at the top says why that is wrong — the panel is
+    // additive chrome, never a reason to show an error. A failure with no tap
+    // behind it leaves yesterday's recap on the card and says nothing.
+    if (force && (text == null || text.isEmpty)) {
       if (!mounted) return;
       NexBannerHost.of(context)?.show(
         message: AppLocalizations.of(context).recapRefreshFailed,

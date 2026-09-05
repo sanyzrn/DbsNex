@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.5.4
+
 - **The app lock no longer shows your notes while it is asking who you are.**
   With liquid glass or a background pattern on, the timeline was readable
   straight through the unlock prompt — every note on screen, behind the thing
@@ -46,6 +48,15 @@ Working convention:
   square. Turning the lock on now also blanks that thumbnail and blocks
   screenshots, for as long as it stays on — the security screen says so. With
   the lock off nothing changes: screenshots keep working as they always have.
+
+- **Nex no longer reports a failed recap you never asked it to make.** The
+  daily recap is fetched once at launch, and when that quietly failed — no
+  signal, a provider having a bad day — the app said so out loud, seconds
+  after opening, on top of whatever screen you had gone to by then, about a
+  card you may not have looked at. That message now appears only when *you*
+  press refresh on the recap, where the alternative would be a button that
+  seems to do nothing. A failure nobody asked about leaves the last recap
+  where it is and says nothing.
 
 ## v1.5.3
 
