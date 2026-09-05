@@ -13,6 +13,7 @@ import 'l10n/app_localizations.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/os_capture_bridge.dart';
+import 'platform/share_window.dart';
 import 'restart_scope.dart';
 
 class NexBootstrapHost extends StatefulWidget {
@@ -32,11 +33,41 @@ class NexBootstrapHost extends StatefulWidget {
 const _minimumSplashDuration = Duration(milliseconds: 900);
 
 class _NexBootstrapHostState extends State<NexBootstrapHost> {
-  late Future<_Ready> _future = _start();
+  late Future<_Ready> _future;
   _Ready? _ready;
 
+  /// Whether this launch is the invisible window a share arrives through.
+  ///
+  /// Asked once, before anything is drawn, because the answer decides whether
+  /// anything is drawn at all — see [build]. Null until the platform has
+  /// answered, which is a third state and not a default: painting the wordmark
+  /// while the question is outstanding is the one frame this exists to avoid.
+  late final Future<bool> _silentFuture = NexShareWindow.isSilent();
+  bool? _silent;
+
+  @override
+  void initState() {
+    super.initState();
+    // Started here rather than lazily from `build`. The silent share window
+    // never builds anything at all, and the note still has to be written: a
+    // `late` field initialised on first read would simply never run there.
+    _future = _start();
+    unawaited(
+      _silentFuture.then((value) {
+        if (mounted) setState(() => _silent = value);
+      }),
+    );
+  }
+
   Future<_Ready> _start() async {
-    final delay = Future<void>.delayed(_minimumSplashDuration);
+    final silent = await _silentFuture;
+    // The floor exists so a warm start does not flash the brand mark for one
+    // frame. A window that never draws has no mark to flash, and holding it
+    // open for another nine hundred milliseconds is nine hundred milliseconds
+    // before the person is told their note was saved.
+    final delay = silent
+        ? Future<void>.value()
+        : Future<void>.delayed(_minimumSplashDuration);
 
     final preferences = await NexPreferences.load();
     final services = await NexServices.bootstrap(preferences: preferences);
@@ -62,8 +93,62 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
       unawaited(NexServices.noteDiagnostic('shared capture failed: $error'));
     }
 
+    if (silent) await _closeSilently(bridge, preferences);
+
     await delay;
     return _ready = _Ready(preferences, services, bridge);
+  }
+
+  /// Says what became of the share and takes the window down.
+  ///
+  /// The whole of what a person sees when they share into Nex: a toast, over
+  /// the app they were already using. There is no screen to put a banner on
+  /// here and deliberately so — see [NexShareWindow].
+  ///
+  /// The localisations are loaded directly rather than read off a
+  /// `BuildContext`, because this runs during bootstrap and there is no
+  /// context, and never will be one on this path. The locale is Nex's own
+  /// setting when there is one: the platform would otherwise answer the
+  /// device's, which is a different question.
+  Future<void> _closeSilently(
+    OsCaptureBridge bridge,
+    NexPreferences preferences,
+  ) async {
+    final refused = bridge.pendingRejection;
+    if (refused == null && !bridge.handledLaunchShare) {
+      // Nothing arrived. Nothing to say, and nothing to keep the window open
+      // for either — an empty message still closes it.
+      await NexShareWindow.done('');
+      return;
+    }
+    final l10n = await AppLocalizations.delegate.load(
+      _messageLocale(preferences),
+    );
+    final message = refused == null
+        ? l10n.shareSaved
+        : l10n.shareTooLarge(
+            refused.filename,
+            nexFormatBytes(refused.bytes),
+            nexFormatBytes(refused.limit),
+          );
+    // Only once the platform confirms the window is really going. If it is
+    // not — this was the ordinary app after all — the refusal is still owed to
+    // the timeline, which reads it with `takeRejection` of its own.
+    if (await NexShareWindow.done(message)) bridge.takeRejection();
+  }
+
+  /// Which language to say it in: Nex's own setting, or the closest the device
+  /// asks for among the ones Nex ships.
+  Locale _messageLocale(NexPreferences preferences) {
+    final chosen = preferences.locale;
+    if (chosen != null) return chosen;
+    final asked = WidgetsBinding.instance.platformDispatcher.locales;
+    for (final locale in asked) {
+      for (final supported in AppLocalizations.supportedLocales) {
+        if (supported.languageCode == locale.languageCode) return supported;
+      }
+    }
+    return AppLocalizations.supportedLocales.first;
   }
 
   /// Teardown is asynchronous now (the worker isolate must be joined). It must
@@ -89,7 +174,18 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<_Ready>(
+  Widget build(BuildContext context) {
+    // Nothing, until the platform has said which kind of window this is — and
+    // nothing ever, if it is the silent one. A share is received behind
+    // whatever app the person was using, and a single frame of Nex painted
+    // over it is the whole of what this avoids. The unresolved case is the
+    // same answer: two frames of nothing on an ordinary launch sit under
+    // Android's own starting window and are never seen.
+    if (_silent != false) return const SizedBox.shrink();
+    return _app();
+  }
+
+  Widget _app() => FutureBuilder<_Ready>(
     future: _future,
     builder: (context, snapshot) {
       if (snapshot.hasData) {
@@ -126,6 +222,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
       );
     },
   );
+
 
   /// The pre-boot shells carry the localization delegates themselves.
   ///

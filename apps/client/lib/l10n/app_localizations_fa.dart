@@ -649,6 +649,9 @@ class AppLocalizationsFa extends AppLocalizations {
       'خلاصه تازه نشد. آنچه پایین می‌بینی آخرین خلاصه‌ای است که نکس ساخته.';
 
   @override
+  String get shareSaved => 'در نکس ذخیره شد.';
+
+  @override
   String shareTooLarge(Object name, Object size, Object limit) {
     return 'نکس برای یادداشت است، نه فایل‌های سنگین. «$name» حجمش $size است و سقف ضمیمه $limit است.';
   }

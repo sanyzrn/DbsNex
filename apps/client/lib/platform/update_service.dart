@@ -142,6 +142,36 @@ class UpdateService extends ChangeNotifier {
     return started;
   }
 
+  /// Picks an interrupted download back up when the app comes forward again.
+  ///
+  /// The transfer belongs to this service rather than to a screen, which is
+  /// what stopped a back gesture from killing it. But the service belongs to
+  /// a process, and Android suspends that process soon after the app leaves
+  /// the screen — so a download running when the user switched away stops
+  /// there, and nothing started it again: [maybeCheck] returns without doing
+  /// anything for the rest of the day, and the only other caller of
+  /// [ensureDownloaded] is the update screen.
+  ///
+  /// Resumes rather than restarts. The downloader asks for the missing bytes
+  /// by range, so everything that already arrived is kept — leaving and
+  /// coming back costs the pause, not the megabytes.
+  ///
+  /// Only when there is something to resume. A `.part` on disk is what "was
+  /// interrupted" means, and its absence is what keeps this from starting a
+  /// download on a resume where none was ever running.
+  Future<void> resumeInterruptedDownload() async {
+    if (_prefetching != null || _downloaded != null) return;
+    final version = available?.version;
+    if (version == null) return;
+    final dir = await _directory();
+    final partial = File(
+      '${dir.path}${Platform.pathSeparator}'
+      '${nexInstallerFilename(version)}.part',
+    );
+    if (!partial.existsSync()) return;
+    await ensureDownloaded();
+  }
+
   /// The last completed check, whatever it said — including a failure.
   ///
   /// [available] deliberately hides everything but a real update; this is for

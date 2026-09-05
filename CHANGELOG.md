@@ -34,6 +34,38 @@ Working convention:
 
 ## Unreleased
 
+- **The text selection menu is Nex's own again.** Selecting a word in a note
+  offered Ask Copilot, Ask ChatGPT, Translate, Read aloud, Ask Grok, Ask
+  Perplexity, Ask Kimi and Ask DeepSeek before it offered Bold — Android lets
+  any installed app add itself to every selection menu on the phone, and Nex
+  was passing all of them along, which pushed its own formatting onto a second
+  page. The menu now carries Cut, Copy, Paste and Select all, then Nex's
+  formatting, and nothing from apps that have nothing to do with your note.
+
+- **Sharing something into Nex no longer opens Nex.** It used to launch the
+  app over whatever you were doing — a loading screen, then a timeline you did
+  not ask for, and a gesture to get back out — for something that should take
+  a moment and leave you where you were. A share now goes straight into your
+  library with nothing on screen, and a short message says it was saved. You
+  stay in the app you were sharing from.
+
+- **A file that is too big is now refused straight away.** The size limit
+  worked, but it was checked in the wrong order: Nex copied the whole file
+  before measuring it, so refusing a two-gigabyte video took as long as
+  accepting one would have — with the app apparently frozen throughout, and
+  on a share that launched it, stuck on the opening screen. It now asks how
+  big the file is before touching it, so the message comes back at once and
+  nothing is copied that is not going to be kept. Sharing a file you *are*
+  keeping is quicker too, for the same reason.
+
+- **An update download now keeps going after you leave the app.** Android
+  suspends an app's work shortly after you switch away, and the download
+  stopped with it — then nothing started it again until you went back to the
+  update screen and asked. It now runs as a proper background transfer, with
+  its progress in the notification shade for as long as it lasts. And if it
+  is stopped anyway — by the system, or by the app being closed — coming back
+  to Nex picks it up from the byte it reached rather than from the beginning.
+
 ## v1.5.4
 
 - **The app lock no longer shows your notes while it is asking who you are.**

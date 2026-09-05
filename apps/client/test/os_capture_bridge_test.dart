@@ -27,7 +27,7 @@ import 'support/in_process_db.dart';
 /// what is being tested is the protocol between the two: who is allowed to
 /// consider a payload delivered.
 class _FakeNativeSide {
-  _FakeNativeSide() {
+  _FakeNativeSide(this.cacheDir) {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_channel, (call) async {
           calls.add(call.method);
@@ -36,11 +36,36 @@ class _FakeNativeSide {
               final value = pending;
               pending = null;
               return value;
+            case 'copyShared':
+              // What `copyUri` does: read the provider's stream through to a
+              // file in the cache and answer where it landed. Modelled rather
+              // than stubbed, because the point of the split is *when* this
+              // runs — a payload refused on its declared size must never
+              // reach it at all.
+              final uri = (call.arguments as Map<Object?, Object?>)['uri'] as String?;
+              final source = uri == null ? null : File(Uri.parse(uri).path);
+              if (source == null || !source.existsSync()) return null;
+              final copy = File(
+                p.join(
+                  cacheDir.path,
+                  '${DateTime.now().microsecondsSinceEpoch}-'
+                      '${p.basename(source.path)}',
+                ),
+              );
+              await source.copy(copy.path);
+              copied.add(copy.path);
+              return copy.path;
             default:
               return null;
           }
         });
   }
+
+  /// Where the copies land, standing in for `cacheDir/shared`.
+  final Directory cacheDir;
+
+  /// Every file this side has been asked to copy out, in order.
+  final copied = <String>[];
 
   static const _channel = MethodChannel('nex/os_capture');
 
@@ -96,7 +121,7 @@ void main() {
       mediaDir: mediaDir,
       backupDir: backupDir,
     );
-    native = _FakeNativeSide();
+    native = _FakeNativeSide(Directory(p.join(tmp.path, 'cache'))..createSync());
   });
 
   tearDown(() async {
@@ -183,9 +208,10 @@ void main() {
 
     await bridge.handle({
       'type': 'shared_file',
-      'path': source.path,
+      'uri': Uri.file(source.path).toString(),
       'filename': 'clip.mp4',
       'mimeType': 'video/mp4',
+      'size': '${content.length}',
     });
 
     final notes = await db.timeline(limit: 50);
@@ -229,9 +255,10 @@ void main() {
 
     await bridge.handle({
       'type': 'shared_file',
-      'path': source.path,
+      'uri': Uri.file(source.path).toString(),
       'filename': 'huge.mp4',
       'mimeType': 'video/mp4',
+      'size': '${limit + 1}',
     });
 
     expect(await db.timeline(limit: 50), isEmpty, reason: 'nothing captured');
@@ -243,9 +270,17 @@ void main() {
     expect(seen!.bytes, greaterThan(limit));
     expect(seen!.limit, limit, reason: 'the message names the rule in force');
 
-    // And the copy the native side left in the cache goes with it — keeping
-    // it would be the whole cost of the file with none of the benefit.
-    expect(source.existsSync(), isFalse);
+    // The point of the whole split, and what the report was about: the file
+    // is refused on what the provider said about it, before a byte moves.
+    // Copying first and measuring after was correct and unusable — refusing
+    // a two-gigabyte video took as long as accepting one, with the app
+    // apparently frozen for all of it.
+    expect(native.copied, isEmpty, reason: 'refused without being fetched');
+    expect(native.calls, isNot(contains('copyShared')));
+
+    // And nothing happened to what the person actually shared. Nex only ever
+    // deletes copies it made itself, and here it made none.
+    expect(source.existsSync(), isTrue);
   });
 
   test('a refusal during launch waits for someone to tell', () async {
@@ -258,8 +293,9 @@ void main() {
     await source.writeAsBytes(Uint8List(limit + 1), flush: true);
     native.pending = {
       'type': 'shared_file',
-      'path': source.path,
+      'uri': Uri.file(source.path).toString(),
       'filename': 'huge.bin',
+      'size': '${limit + 1}',
     };
 
     final bridge = OsCaptureBridge(services, maxAttachmentBytes: limit);
@@ -294,9 +330,10 @@ void main() {
 
     await bridge.handle({
       'type': 'shared_file',
-      'path': source.path,
+      'uri': Uri.file(source.path).toString(),
       'filename': 'small.pdf',
       'mimeType': 'application/pdf',
+      'size': '${content.length}',
     });
 
     expect(seen, isNull, reason: 'well inside the limit');
@@ -306,6 +343,93 @@ void main() {
 
     // Kept where the library keeps media, and gone from the cache.
     expect(File(notes.single.mediaUri!).readAsBytesSync(), content);
-    expect(source.existsSync(), isFalse);
+    expect(native.copied, hasLength(1), reason: 'inside the limit, so fetched');
+    expect(File(native.copied.single).existsSync(), isFalse);
+
+    // The original is the user's own file behind a content URI. It is not
+    // Nex's to delete, and it never was.
+    expect(source.existsSync(), isTrue);
+  });
+
+  test('a launch share is reported as one; a widget tap is not', () async {
+    // What the silent share window keys off. It exists to receive one thing,
+    // and it has to tell "a share arrived and was kept" apart from "the
+    // widget asked for the capture sheet" — which is the one launch that does
+    // want the app on screen — and from nothing having arrived at all.
+    final quiet = OsCaptureBridge(services);
+    addTearDown(quiet.dispose);
+    await quiet.start();
+    expect(quiet.handledLaunchShare, isFalse, reason: 'nothing was queued');
+
+    native.pending = {'type': 'text_capture'};
+    final tapped = OsCaptureBridge(services);
+    addTearDown(tapped.dispose);
+    await tapped.start();
+    expect(tapped.handledLaunchShare, isFalse, reason: 'the widget, not a share');
+
+    native.pending = {'type': 'shared_text', 'text': 'from another app'};
+    final shared = OsCaptureBridge(services);
+    addTearDown(shared.dispose);
+    await shared.start();
+    expect(shared.handledLaunchShare, isTrue);
+  });
+
+  test('a refusal can be read without being taken', () async {
+    // The silent window has to build its message before it knows whether it
+    // is the one delivering it: the platform decides that, and only when the
+    // window really closed is the refusal spent. Where it did not, this is
+    // the ordinary app and the timeline is still owed the banner.
+    const limit = 4096;
+    final source = File(p.join(tmp.path, 'huge.bin'));
+    await source.writeAsBytes(Uint8List(limit + 1), flush: true);
+    native.pending = {
+      'type': 'shared_file',
+      'uri': Uri.file(source.path).toString(),
+      'filename': 'huge.bin',
+      'size': '${limit + 1}',
+    };
+
+    final bridge = OsCaptureBridge(services, maxAttachmentBytes: limit);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+
+    expect(bridge.pendingRejection?.filename, 'huge.bin');
+    // Twice, because peeking is not taking.
+    expect(bridge.pendingRejection?.filename, 'huge.bin');
+    expect(bridge.takeRejection()?.filename, 'huge.bin');
+    expect(bridge.pendingRejection, isNull, reason: 'and taking is');
+  });
+
+  test('a file the picker already copied is handled by its path', () async {
+    // The other shape a payload arrives in, and the reason `path` is still
+    // read. `ACTION_OPEN_DOCUMENT` hands back a copy in the cache before its
+    // result ever reaches Dart, so there is no URI left to defer and nothing
+    // to gain by asking for one. The same limit applies, measured off the
+    // copy instead of off what a provider claimed.
+    final picked = File(p.join(tmp.path, 'from-picker.pdf'));
+    final content = Uint8List.fromList(
+      List<int>.generate(2048, (i) => (i * 11 + 5) % 256),
+    );
+    await picked.writeAsBytes(content, flush: true);
+
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+
+    await bridge.handle({
+      'type': 'shared_file',
+      'path': picked.path,
+      'filename': 'from-picker.pdf',
+      'mimeType': 'application/pdf',
+    });
+
+    final notes = await db.timeline(limit: 50);
+    expect(notes, hasLength(1));
+    expect(notes.single.content, 'from-picker.pdf');
+    expect(File(notes.single.mediaUri!).readAsBytesSync(), content);
+    // Nothing was fetched — there was nothing to fetch — and the picker's own
+    // cache copy is cleared up, which is the case it always covered.
+    expect(native.calls, isNot(contains('copyShared')));
+    expect(picked.existsSync(), isFalse);
   });
 }

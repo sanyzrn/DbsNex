@@ -344,4 +344,83 @@ void main() {
       expect(service.downloadProgress, isNull);
     },
   );
+
+  group('a download the operating system stopped', () {
+    /// Everything except the interruption itself, which a `MockClient` cannot
+    /// stage: it answers with whole responses, and what an interrupted
+    /// transfer leaves behind is a half-written `.part`. So the first fetch is
+    /// made to fail, the partial is written the way a stopped one would have
+    /// left it, and what is tested is the part that was missing — whether
+    /// anything picks it up again.
+    Future<UpdateService> stalled({
+      required MockClient client,
+      List<int> alreadyHave = const [1, 2, 3],
+    }) async {
+      final service = build(client: client);
+      addTearDown(service.dispose);
+      await service.check();
+      await service.prefetching;
+      final version = service.available!.version!;
+      if (alreadyHave.isNotEmpty) {
+        File(
+          p.join(tmp.path, '${nexInstallerFilename(version)}.part'),
+        ).writeAsBytesSync(alreadyHave);
+      }
+      return service;
+    }
+
+    test('is resumed by range, not fetched again from zero', () async {
+      var failFile = true;
+      String? rangeAsked;
+      final service = await stalled(
+        client: MockClient((request) async {
+          if (request.url.host == 'api.github.com') {
+            return http.Response(newerRelease(size: 8), 200);
+          }
+          if (failFile) throw const SocketException('screen went off');
+          rangeAsked = request.headers[HttpHeaders.rangeHeader];
+          return http.Response.bytes(
+            [4, 5, 6, 7, 8],
+            206,
+            headers: {'content-range': 'bytes 3-7/8'},
+          );
+        }),
+      );
+      failFile = false;
+
+      // What coming back to the app now does.
+      await service.resumeInterruptedDownload();
+      await service.prefetching;
+
+      // By range: the three bytes already on disk are not paid for twice.
+      // On a 60 MB installer that difference is the whole point.
+      expect(rangeAsked, 'bytes=3-');
+      expect(service.downloaded, isNotNull);
+      expect(service.downloaded!.readAsBytesSync(), [1, 2, 3, 4, 5, 6, 7, 8]);
+    });
+
+    test('with nothing half-finished, nothing is started', () async {
+      // The other side of the rule. Coming back to the app is not a request
+      // to fetch an installer — it is a chance to finish one that was already
+      // under way. Without the partial there is nothing under way.
+      var fileRequests = 0;
+      final service = await stalled(
+        alreadyHave: const [],
+        client: MockClient((request) async {
+          if (request.url.host == 'api.github.com') {
+            return http.Response(newerRelease(size: 8), 200);
+          }
+          fileRequests++;
+          throw const SocketException('screen went off');
+        }),
+      );
+      final before = fileRequests;
+
+      await service.resumeInterruptedDownload();
+      await service.prefetching;
+
+      expect(fileRequests, before, reason: 'nothing to resume, so nothing to do');
+      expect(service.downloaded, isNull);
+    });
+  });
 }

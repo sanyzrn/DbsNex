@@ -20,6 +20,18 @@
          RECEIVE_BOOT_COMPLETED lets the scheduled alarms survive a restart;
          without it every reminder set before a reboot is silently lost. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+      Keeps the process alive while an installer is downloading.
+
+      The download is Dart's and already survived leaving the update screen,
+      but Android suspends the process shortly after the app leaves the screen
+      and the transfer stopped with it. An ordinary notification does not
+      change that; a foreground service does. `dataSync` is the type Android
+      14 requires it to be declared as, and its permission is only checked
+      there — declaring it below that changes nothing.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- A reminder that arrives whenever Android gets around to it is not a
          reminder. Without this the only mode available is inexact, which Doze
@@ -73,12 +85,42 @@
                 <action android:name="com.sanyzrn.nex.TEXT_CAPTURE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+        </activity>
+
+        <!--
+          Where a share lands, and why it is a second Activity rather than
+          another intent-filter on the first.
+
+          Sharing into Nex used to open Nex: a launch screen over whatever app
+          you were using, a timeline you did not ask for, and a back gesture to
+          get out of it. This window is translucent and has no starting window
+          of its own, so nothing is painted over the app you shared from; the
+          Dart side closes it as soon as the note is written, with a toast
+          saying so. An `activity-alias` could not do this — it cannot carry
+          its own theme.
+
+          `taskAffinity=""` matches MainActivity: the window belongs to the
+          sharing app's task, so finishing it returns there. Excluded from
+          recents because it is not somewhere anyone can come back to, and
+          `windowDisablePreview` because a starting window is exactly what
+          this exists to avoid.
+        -->
+        <activity
+            android:name=".ShareActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:theme="@style/ShareTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="*/*" />
             </intent-filter>
         </activity>
+
         <!--
           The receiver that actually posts a scheduled reminder.
 
@@ -93,6 +135,14 @@
           the channel is created by this receiver at post time and it had
           never run.
         -->
+        <!-- See the FOREGROUND_SERVICE permissions above. Not exported: it is
+             started by this app, from its own MethodChannel, and by nothing
+             else. -->
+        <service
+            android:name=".DownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
             android:exported="false" />

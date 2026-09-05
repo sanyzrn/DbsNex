@@ -14,6 +14,7 @@ import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import android.view.WindowManager
+import android.widget.Toast
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -23,7 +24,17 @@ import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class MainActivity : FlutterFragmentActivity() {
+open class MainActivity : FlutterFragmentActivity() {
+    /**
+     * Whether this window exists only to receive a share, and should take
+     * itself down once one has been captured.
+     *
+     * False here: the launcher's own Activity is where the app lives, and a
+     * share that lands on it (an in-app pick, a widget tap) leaves it open.
+     * [ShareActivity] overrides it.
+     */
+    protected open val closesAfterShare = false
+
     private var channel: MethodChannel? = null
     private var pending: Map<String, String>? = null
     private var picker: MethodChannel.Result? = null
@@ -87,6 +98,85 @@ class MainActivity : FlutterFragmentActivity() {
         channel = MethodChannel(engine.dartExecutor.binaryMessenger, "nex/os_capture")
         channel?.setMethodCallHandler { call, result -> when (call.method) {
             "takePending" -> { result.success(pending); pending = null }
+            // Fetch the file a share referred to, now that Dart has decided
+            // it is worth having. Split from the share itself so that a file
+            // over the limit costs a metadata query instead of a full copy.
+            //
+            // The read grant on a shared URI belongs to this Activity's task
+            // and outlives the intent that carried it, so re-parsing the
+            // string Dart was given reaches the same file. Off the main
+            // thread: this is the copy, and it is the slow part.
+            "copyShared" -> {
+                val uri = call.argument<String>("uri")
+                replyAsync(result, ioExecutor) {
+                    uri?.let { copyUri(Uri.parse(it))?.get("path") }
+                }
+            }
+            // Which kind of window this is, asked before anything is drawn.
+            // `NexBootstrapHost` paints nothing at all when the answer is
+            // true, which is what keeps a share from flashing Nex over the
+            // app the person was using.
+            "isShareWindow" -> result.success(closesAfterShare)
+            // Say what happened to the share, and close the window if this is
+            // the one that only existed to receive it.
+            //
+            // A toast rather than anything in the app, because by design
+            // there is no app on screen to put it in — and because it has to
+            // outlive this Activity by a couple of seconds. The text comes
+            // from Dart: the app's language is a preference, and the platform
+            // only knows the device's.
+            "shareDone" -> {
+                val message = call.argument<String>("message")
+                if (!message.isNullOrBlank()) {
+                    Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+                }
+                // Answered before the window goes, so the reply cannot race
+                // the engine being torn down with Dart still awaiting it.
+                result.success(closesAfterShare)
+                // `finish`, never `finishAndRemoveTask`: this Activity is
+                // sitting in the *sharing* app's task, so removing the task
+                // would close the app the person shared from.
+                if (closesAfterShare) finish()
+            }
+            // Put the download in the shade, and keep the process alive
+            // while it runs — see [DownloadService].
+            //
+            // Answers whether the platform took the job, because the Dart
+            // side falls back to its own progress notification where there is
+            // no service to run (Windows, where nothing suspends the process
+            // and an ordinary notification was always enough).
+            //
+            // Started only while the service is down. Android 12 refuses to
+            // start a foreground service from the background, and every
+            // progress update after the first arrives from the background by
+            // definition — that is the situation the service exists for — so
+            // the rest only rewrite the notification, which nothing
+            // restricts. A refused start is caught rather than fatal: the
+            // worst case is the old behaviour.
+            "downloadNotice" -> {
+                val title = call.argument<String>("title").orEmpty()
+                val percent = call.argument<Int>("percent") ?: 0
+                if (DownloadService.running) {
+                    DownloadService.update(this, title, percent)
+                    result.success(true)
+                } else {
+                    val intent = Intent(this, DownloadService::class.java)
+                        .putExtra(DownloadService.EXTRA_TITLE, title)
+                        .putExtra(DownloadService.EXTRA_PERCENT, percent)
+                    val started = runCatching {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                    }.isSuccess
+                    result.success(started)
+                }
+            }
+            "stopDownloadNotice" -> {
+                runCatching { stopService(Intent(this, DownloadService::class.java)) }
+                result.success(true)
+            }
             // Whether the OS may capture what this window is showing.
             //
             // FLAG_SECURE is the only thing that blanks the recents thumbnail
@@ -205,32 +295,24 @@ class MainActivity : FlutterFragmentActivity() {
             data + ("type" to if (type.startsWith("image/")) "shared_photo" else "shared_file")
         }
 
-        // [live] decides the thread as well as the delivery, and the reason is
-        // the same in both halves: what is already running.
+        // Nothing is copied here, on either path. What goes across is what
+        // the provider will say about the file — see [describeUri] — and Dart
+        // asks for the copy with `copyShared` once it has decided to keep it.
         //
-        // A share into a running app arrives on `onNewIntent`, with a window
-        // drawing and taking input. Copying a gigabyte there is the classic
-        // ANR — five seconds of an app that was responding a moment ago —
-        // so it goes to [ioExecutor] and comes back to the main thread to
-        // enqueue, because `pending` and `channel.invokeMethod` may only be
-        // touched there.
+        // The copy used to happen right here, and it was the whole cost of a
+        // share. A two-gigabyte video was written through to the cache before
+        // Dart was told the first thing about it, and only then measured and
+        // refused: minutes of work to produce a message saying the work should
+        // never have started. On the cold-start path it was worse than slow —
+        // it ran inside `configureFlutterEngine`, so the launch that was
+        // supposed to be showing a note sat on the splash screen until the
+        // copy finished.
         //
-        // The cold-start half stays synchronous, deliberately. It runs inside
-        // `configureFlutterEngine`, before there is a window accepting input
-        // at all, so there is nothing to stop responding — the cost is a
-        // slower launch, not a dialog. And the ordering is load-bearing:
-        // `pending` has to be set before Dart's `start()` calls `takePending`,
-        // which happens moments later. Copying off-thread there would let
-        // `takePending` return null and drop the share entirely, since
-        // `live = false` means nothing is pushed to catch it.
-        if (live) {
-            ioExecutor.execute {
-                val data = copyUri(stream) ?: return@execute
-                mainHandler.post { enqueue(labelled(data), true) }
-            }
-        } else {
-            copyUri(stream)?.let { enqueue(labelled(it), false) }
-        }
+        // The ordering that used to make this delicate is now free: `pending`
+        // has to be set before Dart's `start()` calls `takePending` moments
+        // later, and a metadata query is fast enough that the synchronous
+        // path costs nothing.
+        enqueue(labelled(describeUri(stream)), live)
     }
 
     private fun enqueue(value: Map<String, String>, live: Boolean) {
@@ -426,6 +508,39 @@ class MainActivity : FlutterFragmentActivity() {
         mapOf("path" to out.absolutePath, "filename" to name,
               "mimeType" to (contentResolver.getType(uri) ?: "application/octet-stream"))
     } catch (_: Exception) { null }
+
+    /**
+     * Everything about a shared file that can be known without reading it.
+     *
+     * This is what a share now sends across, in place of a path to a copy
+     * that had already been made. The size is the point of it: it is the one
+     * fact that decides whether the file is worth copying at all, and asking
+     * the provider for it is a cursor query rather than a transfer.
+     *
+     * [sizeOf] answers -1 when a provider will not say, which some do not.
+     * Dart treats that as "measure it after copying", which is what it had to
+     * do for every file before this existed.
+     */
+    private fun describeUri(uri: Uri): Map<String, String> = mapOf(
+        "uri" to uri.toString(),
+        "filename" to (displayName(uri) ?: "shared-${System.currentTimeMillis()}"),
+        "mimeType" to (contentResolver.getType(uri) ?: "application/octet-stream"),
+        "size" to sizeOf(uri).toString(),
+    )
+
+    /** The provider's own byte count, or -1 when it will not give one. */
+    private fun sizeOf(uri: Uri): Long {
+        runCatching {
+            contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use {
+                if (it.moveToFirst() && !it.isNull(0)) return it.getLong(0)
+            }
+        }
+        // Not every provider backs the OpenableColumns cursor. A descriptor
+        // does not read the file either, and answers for most of the rest.
+        return runCatching {
+            contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length }
+        }.getOrNull() ?: -1L
+    }
 
     private fun displayName(uri: Uri): String? {
         contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {

@@ -13,17 +13,34 @@ import 'nex_dialog.dart';
 /// vertical space, which matters in a sheet whose whole point is a text field
 /// and nothing else.
 ///
-/// The buttons are appended to the platform's own, never substituted for them:
-/// `contextMenuButtonItems` is whatever this field would have offered anyway,
-/// so Cut, Copy, Paste, Select all and Look Up all survive, and Android's
-/// overflow (⋮) paginates the result on its own.
+/// The buttons are appended to the platform's own editing commands — Cut,
+/// Copy, Paste, Select all — and never substituted for them. A text field
+/// without those is a broken text field, whatever else is on the menu.
+///
+/// What is dropped is everything *other apps* put there. Android lets any
+/// installed app register an `ACTION_PROCESS_TEXT` activity and have its name
+/// appear on every selection menu on the phone, and Flutter forwards all of
+/// them. On a device with a few assistants installed that meant Ask Copilot,
+/// Ask ChatGPT, Translate, Read aloud, Ask Grok, Ask Perplexity, Ask Kimi and
+/// Ask DeepSeek stacked above Bold — eight entries from apps that have nothing
+/// to do with this note, pushing Nex's own formatting onto a second page of
+/// the overflow. They are told apart by [ContextMenuButtonType.custom], which
+/// is the type Flutter gives them and gives nothing else it generates itself.
 ///
 /// [host] is the surface the field lives on, not the menu. The menu's own
 /// context dies with the menu, and asking for a link's address outlives it.
 EditableTextContextMenuBuilder nexFormatContextMenuBuilder(BuildContext host) {
   return (BuildContext context, EditableTextState state) {
     final l10n = AppLocalizations.of(context);
-    final items = <ContextMenuButtonItem>[...state.contextMenuButtonItems];
+    final items = <ContextMenuButtonItem>[
+      for (final item in state.contextMenuButtonItems)
+        // Everything Flutter generates for a text field carries a real type;
+        // the third-party text processors are the only ones left as `custom`.
+        // Filtering on that keeps this correct as the platform's own list
+        // grows, where naming the ones to keep would silently drop whatever
+        // Android adds next.
+        if (item.type != ContextMenuButtonType.custom) item,
+    ];
     final selection = state.textEditingValue.selection;
 
     // Everything here acts on a selection. With nothing selected the menu is

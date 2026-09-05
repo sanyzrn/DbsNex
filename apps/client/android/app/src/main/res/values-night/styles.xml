@@ -11,4 +11,18 @@
         <item name="android:windowBackground">@color/nex_launch_dark</item>
         <item name="android:fontFamily">sans</item>
     </style>
+    <!--
+        The share window. Translucent, with no starting window and no splash:
+        a share should leave you where you were, and the only thing it puts on
+        screen is a toast once the note exists. See ShareActivity.
+    -->
+    <style name="ShareTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowSplashScreenBackground">@android:color/transparent</item>
+    </style>
 </resources>

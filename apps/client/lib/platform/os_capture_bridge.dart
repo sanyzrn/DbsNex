@@ -78,6 +78,23 @@ class OsCaptureBridge {
 
   RejectedShare? _rejection;
 
+  /// The refusal without taking it.
+  ///
+  /// For the one caller that has to decide *how* to say it before it knows
+  /// whether it is the one saying it: the silent share window reads this to
+  /// build its toast, and only calls [takeRejection] once the platform has
+  /// confirmed the window really did close. Where it did not, this is still
+  /// the ordinary app, and the timeline's banner is still owed the message.
+  RejectedShare? get pendingRejection => _rejection;
+
+  /// Whether [start] drained a share, as opposed to a widget tap or nothing.
+  ///
+  /// What the silent share window keys off: it exists to receive one thing,
+  /// and if that thing never arrived there is nothing to say and nothing to
+  /// close for.
+  bool get handledLaunchShare => _handledLaunchShare;
+  bool _handledLaunchShare = false;
+
   /// The refusal that happened before anything was listening, once.
   RejectedShare? takeRejection() {
     final value = _rejection;
@@ -136,6 +153,7 @@ class OsCaptureBridge {
       final pending = await _channel.invokeMethod<dynamic>('takePending');
       if (pending is Map) {
         final payload = Map<Object?, Object?>.from(pending);
+        _handledLaunchShare = _isShare(payload['type'] as String?);
         await handle(payload);
         _events.add(payload);
       }
@@ -163,6 +181,12 @@ class OsCaptureBridge {
     }
   }
 
+  /// The payload types that came from another app, rather than from Nex's own
+  /// widget. `text_capture` is the widget asking for the capture sheet, which
+  /// is the one launch that does want the app on screen.
+  static bool _isShare(String? type) =>
+      type == 'shared_text' || type == 'shared_photo' || type == 'shared_file';
+
   Future<void> handle(Map<Object?, Object?> payload) async {
     final type = payload['type'] as String?;
     switch (type) {
@@ -175,12 +199,9 @@ class OsCaptureBridge {
         await services.captureText(text);
         await services.refreshTimeline();
       case 'shared_photo':
-        final path = payload['path'] as String?;
-        if (path == null) return;
-        final file = File(path);
-        if (!file.existsSync()) return;
+        final file = await _fetch(payload);
+        if (file == null) return;
         final name = payload['filename'] as String?;
-        if (await _refuseIfTooLarge(file, name)) return;
         final dest = await _copyIntoMedia(file, preferredName: name);
         await services.capturePhoto(
           mediaUri: dest,
@@ -189,15 +210,12 @@ class OsCaptureBridge {
         await _discardIncoming(file);
         await services.refreshTimeline();
       case 'shared_file':
-        final path = payload['path'] as String?;
-        if (path == null) return;
-        final file = File(path);
-        if (!file.existsSync()) return;
+        final file = await _fetch(payload);
+        if (file == null) return;
         final originalName = _resolveOriginalFilename(
           payload['filename'] as String?,
-          path,
+          file.path,
         );
-        if (await _refuseIfTooLarge(file, originalName)) return;
         final dest = await _copyIntoMedia(file, preferredName: originalName);
         await services.captureFile(
           mediaUri: dest,
@@ -208,6 +226,81 @@ class OsCaptureBridge {
         await _discardIncoming(file);
         await services.refreshTimeline();
     }
+  }
+
+  /// The file a share refers to, in hand and inside the limit — or null,
+  /// meaning it was refused, or there was nothing to fetch.
+  ///
+  /// A payload arrives in one of two shapes, and both are legitimate. A share
+  /// intent carries a `uri` and the provider's own account of the file: the
+  /// bytes have not moved yet, so a file over the limit is refused here for
+  /// the cost of a cursor query. The in-app file picker carries a `path`,
+  /// because `ACTION_OPEN_DOCUMENT` has already produced a copy by the time
+  /// its result comes back.
+  ///
+  /// This is the fix for a refusal that took as long as an acceptance. The
+  /// native side used to copy every shared file into the cache before Dart
+  /// was told the first thing about it, so refusing a two-gigabyte video
+  /// meant writing two gigabytes to disk, measuring them, deleting them, and
+  /// only then saying the file was too big — with the app apparently frozen
+  /// throughout, and on a cold start with the splash screen still up.
+  Future<File?> _fetch(Map<Object?, Object?> payload) async {
+    final name = payload['filename'] as String?;
+    // What the provider says before anything is copied. -1, or absent, means
+    // it would not say — then the only way to know is to fetch and measure,
+    // which is what happened to every file before this.
+    final declared = int.tryParse('${payload['size'] ?? ''}') ?? -1;
+    if (declared > maxAttachmentBytes) {
+      _reject(
+        RejectedShare(
+          filename: _refusedName(name, payload['uri'] as String?),
+          bytes: declared,
+          limit: maxAttachmentBytes,
+        ),
+      );
+      // Nothing was copied, so there is nothing to take back.
+      return null;
+    }
+    final path =
+        payload['path'] as String? ??
+        await _copyShared(payload['uri'] as String?);
+    if (path == null) return null;
+    final file = File(path);
+    if (!file.existsSync()) return null;
+    // The backstop, for a provider that would not name a size and for the
+    // picker's already-copied path. Same rule, later and more expensively.
+    if (await _refuseIfTooLarge(file, name)) return null;
+    return file;
+  }
+
+  /// Asks the native side to copy the shared file out of its provider.
+  ///
+  /// Null on every failure, including a platform with no native half: the
+  /// caller does the same thing about all of them, which is to capture
+  /// nothing and leave the library alone.
+  Future<String?> _copyShared(String? uri) async {
+    if (uri == null) return null;
+    try {
+      return await _channel.invokeMethod<String>('copyShared', <String, Object>{
+        'uri': uri,
+      });
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
+  /// What to call a file in the refusal message when there is no copy of it
+  /// on disk to fall back on.
+  static String _refusedName(String? provided, String? uri) {
+    final name = provided?.trim();
+    if (name != null && name.isNotEmpty) return p.basename(name);
+    final segments = uri == null
+        ? const <String>[]
+        : Uri.tryParse(uri)?.pathSegments ?? const <String>[];
+    final last = segments.isEmpty ? '' : segments.last;
+    return last.isEmpty ? 'file' : last;
   }
 
   /// Pick a file: the platform channel on Android, the system dialog elsewhere.
@@ -255,8 +348,13 @@ class OsCaptureBridge {
   /// available. This is the one place both ways in meet — a share intent and
   /// the in-app file picker both arrive at [handle] — so it is the one place
   /// the rule can be stated once, and the only one a test on a host can
-  /// reach. The cost is that the native half has already copied the file into
-  /// the cache by now; [_discardIncoming] takes that back.
+  /// reach.
+  ///
+  /// The expensive half of the rule, and no longer the usual one. It applies
+  /// to a file already on disk: the picker's copy, or a share whose provider
+  /// would not name a size. When the size is known, [_fetch] refuses before
+  /// anything is copied and this is never reached. [_discardIncoming] takes
+  /// back the copy in the cases where one was made.
   Future<bool> _refuseIfTooLarge(File file, String? name) async {
     final bytes = await file.length();
     if (bytes <= maxAttachmentBytes) return false;
