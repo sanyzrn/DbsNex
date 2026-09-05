@@ -157,7 +157,7 @@ class NexServices {
       // body runs to the end of the expression and the next `..` then attaches
       // to `f(a)`'s result instead of to the object being cascaded.
       ..onDiagnostic = (message) {
-        unawaited(_noteDiagnostic(message));
+        unawaited(noteDiagnostic(message));
       }
       // Read at schedule time rather than captured once: the lock can be
       // turned on long after a reminder was set, and every reminder is
@@ -175,7 +175,13 @@ class NexServices {
   /// Opening the log touches the filesystem, so this is async and fired
   /// without awaiting: a reminder must not wait on a log entry, and a log
   /// that cannot be written must not become the failure it was recording.
-  static Future<void> _noteDiagnostic(String message) async {
+  /// Writes one line where "Share diagnostics" will find it.
+  ///
+  /// Public because the bootstrap host needs it too: a share that fails while
+  /// the app is starting has nowhere on screen to report itself, and the
+  /// alternative — letting it propagate — turned a failed share into a
+  /// "could not open your local library" screen offering Restore backup.
+  static Future<void> noteDiagnostic(String message) async {
     try {
       (await NexCrashLog.open()).note(message);
     } catch (_) {
@@ -272,27 +278,27 @@ class NexServices {
 
   Future<Note> captureVoice({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
     required int durationMs,
   }) => worker.captureVoice(
     mediaUri: mediaUri,
-    mediaBytes: mediaBytes,
+    mediaHash: mediaHash,
     durationMs: durationMs,
   );
 
   Future<Note> capturePhoto({
     required String mediaUri,
-    required Uint8List mediaBytes,
-  }) => worker.capturePhoto(mediaUri: mediaUri, mediaBytes: mediaBytes);
+    required String mediaHash,
+  }) => worker.capturePhoto(mediaUri: mediaUri, mediaHash: mediaHash);
 
   Future<Note> captureFile({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
     String? originalFilename,
     String? mimeType,
   }) => worker.captureFile(
     mediaUri: mediaUri,
-    mediaBytes: mediaBytes,
+    mediaHash: mediaHash,
     originalFilename: originalFilename,
     mimeType: mimeType,
   );
@@ -653,7 +659,7 @@ class NexServices {
       // worked out what it was about. The server's own words — a status code,
       // a constraint name — survive here, in the file "Share diagnostics"
       // sends, so a failure can still be read after the banner has gone.
-      unawaited(_noteDiagnostic('sync failed: $error'));
+      unawaited(noteDiagnostic('sync failed: $error'));
       rethrow;
     }
     await refreshTimeline();

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:nex_client/platform/ai_provider.dart';
 import 'package:nex_client/platform/nex_db.dart';
@@ -122,30 +121,30 @@ class InProcessDb implements NexDb {
   @override
   Future<Note> captureVoice({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
     required int durationMs,
   }) async => _capture.submitVoiceCapture(
     mediaUri: mediaUri,
-    mediaBytes: mediaBytes,
+    mediaHash: mediaHash,
     durationMs: durationMs,
   );
 
   @override
   Future<Note> capturePhoto({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
   }) async =>
-      _capture.submitPhotoCapture(mediaUri: mediaUri, mediaBytes: mediaBytes);
+      _capture.submitPhotoCapture(mediaUri: mediaUri, mediaHash: mediaHash);
 
   @override
   Future<Note> captureFile({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
     String? originalFilename,
     String? mimeType,
   }) async => _capture.submitFileCapture(
     mediaUri: mediaUri,
-    mediaBytes: mediaBytes,
+    mediaHash: mediaHash,
     originalFilename: originalFilename,
     mimeType: mimeType,
   );

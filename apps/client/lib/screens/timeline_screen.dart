@@ -248,6 +248,17 @@ class TimelineScreenState extends State<TimelineScreen>
     widget.services.reminders.onOpenNote = _spotlight;
     final launched = widget.services.reminders.takeLaunchNoteId();
     if (launched != null) _spotlight(launched);
+    // Both halves of a share Nex would not keep, for the same reason as the
+    // two lines above: it can arrive into a running app, or be the intent
+    // that launched it — in which case the refusal already happened, during
+    // bootstrap, with nothing on screen to say so.
+    widget.osCapture?.onRejected = _sayTooLarge;
+    final refused = widget.osCapture?.takeRejection();
+    if (refused != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _sayTooLarge(refused),
+      );
+    }
     // And both halves of a tapped download. Here rather than in the app
     // widget because opening a screen needs a Navigator, and the app widget
     // sits above the one this route lives in.
@@ -274,6 +285,24 @@ class TimelineScreenState extends State<TimelineScreen>
       // to notes deleted long before the purge learned to take them.
       unawaited(widget.services.sweepOrphanMediaIfDue());
     });
+  }
+
+  /// Says why a shared file was not kept.
+  ///
+  /// Names the file and its size next to the limit. "Too large" on its own
+  /// invites the reader to think the app is broken; the numbers make it a
+  /// rule they can work with, and the first sentence says plainly what kind
+  /// of app is refusing.
+  void _sayTooLarge(RejectedShare rejection) {
+    if (!mounted) return;
+    NexBannerHost.of(context)?.show(
+      message: AppLocalizations.of(context).shareTooLarge(
+        rejection.filename,
+        nexFormatBytes(rejection.bytes),
+        nexFormatBytes(rejection.limit),
+      ),
+      kind: NexBannerKind.failed,
+    );
   }
 
   /// Shows the walk-through once, after the first note exists.
@@ -1160,7 +1189,10 @@ class TimelineScreenState extends State<TimelineScreen>
       await File(dest).writeAsBytes(cropped, flush: true);
       final note = await widget.services.capturePhoto(
         mediaUri: dest,
-        mediaBytes: cropped,
+        // The bytes are already in hand and a photo fits in memory, so hash
+        // them here rather than re-reading the file. The share path cannot:
+        // what arrives there is whatever was shared, up to a video.
+        mediaHash: sha256OfBytes(cropped),
       );
       landedId = note.id;
       widget.services.scheduleEnrichment(note.id);
@@ -1231,10 +1263,13 @@ class TimelineScreenState extends State<TimelineScreen>
       if (file.existsSync()) file.deleteSync();
       return;
     }
+    // A recording this app made itself, so its length is bounded by how long
+    // someone held the button — reading it back to hash is safe here in a way
+    // it is not for a file that arrived from somewhere else.
     final bytes = await File(recorded).readAsBytes();
     final note = await widget.services.captureVoice(
       mediaUri: recorded,
-      mediaBytes: Uint8List.fromList(bytes),
+      mediaHash: sha256OfBytes(bytes),
       durationMs: elapsed.elapsedMilliseconds,
     );
     landedId = note.id;

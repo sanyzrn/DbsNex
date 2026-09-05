@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -27,9 +28,36 @@ String stableUuidV5(String name) =>
 
 String sha256OfBytes(Uint8List bytes) => sha256.convert(bytes).toString();
 
-String? sha256OfFile(String? path) {
+/// The same hash, for a file that will not fit in memory.
+///
+/// Read in chunks rather than with `readAsBytes`. A note's attachment is
+/// whatever the person shared into the app, and a two-gigabyte video is an
+/// ordinary thing to share: reading one to hash it needs two gigabytes of
+/// heap that a phone does not have, and the process dies. That is not
+/// hypothetical — it was reported, and the app fell over on launch trying to
+/// finish the share.
+///
+/// Asynchronous for the same reason. There is no way to stream a file without
+/// awaiting it, and the synchronous version could only ever have been the
+/// whole-file read this exists to avoid.
+Future<String?> sha256OfFile(String? path) async {
   if (path == null) return null;
   final file = File(path);
   if (!file.existsSync()) return null;
-  return sha256OfBytes(file.readAsBytesSync());
+  // `dart:convert`'s own sink rather than `package:convert`'s
+  // `AccumulatorSink`, which would be a new dependency in the one package
+  // that is not allowed them.
+  Digest? result;
+  final input = sha256.startChunkedConversion(
+    ChunkedConversionSink<Digest>.withCallback((digests) {
+      result = digests.single;
+    }),
+  );
+  // `openRead` hands over whatever the platform read — typically 64 KiB — so
+  // the peak is a rounding error whatever the file weighs.
+  await for (final chunk in file.openRead()) {
+    input.add(chunk);
+  }
+  input.close();
+  return result?.toString();
 }

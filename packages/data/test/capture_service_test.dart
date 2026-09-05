@@ -36,7 +36,7 @@ void main() {
       final bytes = Uint8List.fromList([9, 8, 7]);
       final note = capture.submitVoiceCapture(
         mediaUri: '/tmp/a.m4a',
-        mediaBytes: bytes,
+        mediaHash: sha256OfBytes(bytes),
         durationMs: 1500,
       );
       expect(note.type, NoteType.voice);
@@ -49,7 +49,7 @@ void main() {
       final bytes = Uint8List.fromList([1, 1, 1]);
       final note = capture.submitPhotoCapture(
         mediaUri: '/tmp/p.jpg',
-        mediaBytes: bytes,
+        mediaHash: sha256OfBytes(bytes),
       );
       expect(note.type, NoteType.photo);
       expect(note.mediaHash, sha256OfBytes(bytes));

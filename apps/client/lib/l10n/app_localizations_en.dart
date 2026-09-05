@@ -644,6 +644,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'The recap could not be refreshed. The one below is the last one Nex made.';
 
   @override
+  String shareTooLarge(Object name, Object size, Object limit) {
+    return 'Nex keeps notes, not large files. \u201c$name\u201d is $size, and attachments are limited to $limit.';
+  }
+
+  @override
   String get operationFailed =>
       'The operation failed. Your existing notes were not changed.';
 

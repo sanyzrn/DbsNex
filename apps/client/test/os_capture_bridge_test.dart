@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -151,5 +152,160 @@ void main() {
     addTearDown(bridge.dispose);
     await expectLater(bridge.start(), completes);
     expect(await db.timeline(limit: 50), isEmpty);
+  });
+
+  test('a shared file is never read into memory to be captured', () async {
+    // The report: a 2 GB video shared into Nex, and the next launch showed
+    // "Nex could not open your local library … Out of Memory".
+    //
+    // `handle` read the whole file with `readAsBytes`, handed that same list
+    // to `writeAsBytes`, then made a second full copy with
+    // `Uint8List.fromList` for the hash — four gigabytes of peak for a
+    // two-gigabyte share, and the bytes existed only to be hashed.
+    //
+    // Allocating a real 2 GB file here would reproduce the bug by causing it,
+    // which is no use in a suite. What is asserted instead is the property
+    // that makes size irrelevant: the note's hash matches the file's, and the
+    // copy on disk matches byte for byte — both of which hold only if the
+    // path was streamed rather than buffered.
+    final source = File(p.join(tmp.path, 'clip.mp4'));
+    // Not uniform: a hash over a run of identical bytes would match a
+    // different-length run of them too, so it could not tell a truncated
+    // stream from a complete one.
+    final content = Uint8List.fromList(
+      List<int>.generate(512 * 1024, (i) => (i * 31 + 7) % 256),
+    );
+    await source.writeAsBytes(content, flush: true);
+
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+
+    await bridge.handle({
+      'type': 'shared_file',
+      'path': source.path,
+      'filename': 'clip.mp4',
+      'mimeType': 'video/mp4',
+    });
+
+    final notes = await db.timeline(limit: 50);
+    expect(notes, hasLength(1));
+    final note = notes.single;
+    expect(note.type, NoteType.file);
+    expect(note.content, 'clip.mp4');
+
+    // The hash is the note's identity for dedup, so a wrong one is worse than
+    // none — and an empty one would make every unreadable attachment look
+    // like the same attachment.
+    expect(note.mediaHash, isNotNull);
+    expect(note.mediaHash, isNotEmpty);
+    expect(note.mediaHash, sha256OfBytes(content));
+
+    // And the copy really is the file, not a truncated stream.
+    final stored = File(note.mediaUri!);
+    expect(stored.existsSync(), isTrue);
+    expect(stored.lengthSync(), content.length);
+    expect(stored.readAsBytesSync(), content);
+  });
+
+  test('a file over the limit is refused, by name and size', () async {
+    // Nex is a notes app. An attachment is not stored once: the automatic
+    // backup zips the whole media directory and keeps five of them, so a
+    // file costs its own size plus up to five times again, and every backup
+    // after it is larger for good. A shared 2 GB video came to roughly
+    // fourteen gigabytes by that arithmetic.
+    // A small limit rather than a hundred-megabyte file: what is being
+    // tested is the rule, and a case that writes 100 MB to prove it is a case
+    // people stop running.
+    const limit = 4096;
+    final source = File(p.join(tmp.path, 'huge.mp4'));
+    await source.writeAsBytes(Uint8List(limit + 1), flush: true);
+
+    final bridge = OsCaptureBridge(services, maxAttachmentBytes: limit);
+    addTearDown(bridge.dispose);
+    RejectedShare? seen;
+    bridge.onRejected = (r) => seen = r;
+    await bridge.start();
+
+    await bridge.handle({
+      'type': 'shared_file',
+      'path': source.path,
+      'filename': 'huge.mp4',
+      'mimeType': 'video/mp4',
+    });
+
+    expect(await db.timeline(limit: 50), isEmpty, reason: 'nothing captured');
+
+    // The message names the file and its size, so the refusal reads as a
+    // rule rather than as the app being broken.
+    expect(seen, isNotNull);
+    expect(seen!.filename, 'huge.mp4');
+    expect(seen!.bytes, greaterThan(limit));
+    expect(seen!.limit, limit, reason: 'the message names the rule in force');
+
+    // And the copy the native side left in the cache goes with it — keeping
+    // it would be the whole cost of the file with none of the benefit.
+    expect(source.existsSync(), isFalse);
+  });
+
+  test('a refusal during launch waits for someone to tell', () async {
+    // A share can be the intent that launched the app, in which case `start`
+    // drains it during bootstrap with nothing on screen yet. `takeRejection`
+    // is how the timeline collects what it missed — the same shape as the
+    // reminder launch path's `takeLaunchNoteId`.
+    const limit = 4096;
+    final source = File(p.join(tmp.path, 'huge.bin'));
+    await source.writeAsBytes(Uint8List(limit + 1), flush: true);
+    native.pending = {
+      'type': 'shared_file',
+      'path': source.path,
+      'filename': 'huge.bin',
+    };
+
+    final bridge = OsCaptureBridge(services, maxAttachmentBytes: limit);
+    addTearDown(bridge.dispose);
+    // Nobody listening, exactly as during bootstrap.
+    await bridge.start();
+
+    expect(await db.timeline(limit: 50), isEmpty);
+    final refused = bridge.takeRejection();
+    expect(refused, isNotNull);
+    expect(refused!.filename, 'huge.bin');
+    // Once. A second screen must not repeat a message the first one showed.
+    expect(bridge.takeRejection(), isNull);
+  });
+
+  test('a file inside the limit is kept, and its cache copy is not', () async {
+    // The boundary from the other side, and the cache cleanup on the success
+    // path: `copyUri` writes every share into `cacheDir/shared` before Dart
+    // sees it, and nothing deleted it — so each share cost twice what it
+    // kept until Android reclaimed the cache.
+    final source = File(p.join(tmp.path, 'small.pdf'));
+    final content = Uint8List.fromList(
+      List<int>.generate(4096, (i) => (i * 7 + 3) % 256),
+    );
+    await source.writeAsBytes(content, flush: true);
+
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    RejectedShare? seen;
+    bridge.onRejected = (r) => seen = r;
+    await bridge.start();
+
+    await bridge.handle({
+      'type': 'shared_file',
+      'path': source.path,
+      'filename': 'small.pdf',
+      'mimeType': 'application/pdf',
+    });
+
+    expect(seen, isNull, reason: 'well inside the limit');
+    final notes = await db.timeline(limit: 50);
+    expect(notes, hasLength(1));
+    expect(notes.single.content, 'small.pdf');
+
+    // Kept where the library keeps media, and gone from the cache.
+    expect(File(notes.single.mediaUri!).readAsBytesSync(), content);
+    expect(source.existsSync(), isFalse);
   });
 }

@@ -276,6 +276,15 @@
   "@recapRefreshFailed": {
     "description": "Banner when re-generating the daily recap fails; the old text stays on screen"
   },
+  "shareTooLarge": "Nex keeps notes, not large files. \u201c{name}\u201d is {size}, and attachments are limited to {limit}.",
+  "@shareTooLarge": {
+    "description": "Shown when a shared or picked file is over the attachment size limit",
+    "placeholders": {
+      "name": {},
+      "size": {},
+      "limit": {}
+    }
+  },
   "operationFailed": "The operation failed. Your existing notes were not changed.",
   "noteType": "{type, select, text{Text} voice{Voice} photo{Photo} file{File} checklist{Checklist} link{Link} other{Note}}",
   "@noteType": {

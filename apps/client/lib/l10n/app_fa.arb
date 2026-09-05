@@ -208,6 +208,7 @@
   "@recapRefreshFailed": {
     "description": "Banner when re-generating the daily recap fails; the old text stays on screen"
   },
+  "shareTooLarge": "نکس برای یادداشت است، نه فایل‌های سنگین. «{name}» حجمش {size} است و سقف ضمیمه {limit} است.",
   "operationFailed": "این کار انجام نشد. یادداشت‌های قبلی شما دست‌نخورده ماندند.",
   "noteType": "{type, select, text{متن} voice{صدا} photo{عکس} file{فایل} checklist{چک‌لیست} link{لینک} other{یادداشت}}",
   "addAction": "افزودن",

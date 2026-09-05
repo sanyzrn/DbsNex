@@ -1214,6 +1214,12 @@ abstract class AppLocalizations {
   /// **'The recap could not be refreshed. The one below is the last one Nex made.'**
   String get recapRefreshFailed;
 
+  /// Shown when a shared or picked file is over the attachment size limit
+  ///
+  /// In en, this message translates to:
+  /// **'Nex keeps notes, not large files. \u201c{name}\u201d is {size}, and attachments are limited to {limit}.'**
+  String shareTooLarge(Object name, Object size, Object limit);
+
   /// No description provided for @operationFailed.
   ///
   /// In en, this message translates to:
