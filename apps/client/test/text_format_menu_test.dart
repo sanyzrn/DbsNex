@@ -114,35 +114,42 @@ void main() {
           .setMockMethodCallHandler(SystemChannels.processText, null),
     );
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    try {
+      await pumpField(tester);
+      await tester.enterText(find.byType(TextField), 'one two three');
+      await select(tester, 4, 7);
+      await tester.pumpAndSettle();
 
-    await pumpField(tester);
-    await tester.enterText(find.byType(TextField), 'one two three');
-    await select(tester, 4, 7);
-    await tester.pumpAndSettle();
+      // The precondition, asserted rather than assumed. Without it the case
+      // below would pass on a host that never had those actions in the first
+      // place, which is every host — and would go on passing after the filter
+      // was taken back out.
+      final state = tester.state<EditableTextState>(find.byType(EditableText));
+      expect(
+        state.contextMenuButtonItems.map((item) => item.label),
+        containsAll(<String>['Ask ChatGPT', 'Translate']),
+        reason: 'the field really is being offered them',
+      );
 
-    // The precondition, asserted rather than assumed. Without it the case
-    // below would pass on a host that never had those actions in the first
-    // place, which is every host — and would go on passing after the filter
-    // was taken back out.
-    final state = tester.state<EditableTextState>(find.byType(EditableText));
-    expect(
-      state.contextMenuButtonItems.map((item) => item.label),
-      containsAll(<String>['Ask ChatGPT', 'Translate']),
-      reason: 'the field really is being offered them',
-    );
+      // And the menu Nex builds is not.
+      final labels = itemsOf(tester).map((item) => item.label).toList();
+      expect(labels, isNot(contains('Ask ChatGPT')));
+      expect(labels, isNot(contains('Translate')));
 
-    // And the menu Nex builds is not.
-    final labels = itemsOf(tester).map((item) => item.label).toList();
-    expect(labels, isNot(contains('Ask ChatGPT')));
-    expect(labels, isNot(contains('Translate')));
-
-    // Without taking Cut and Copy with them. A text field without those is a
-    // broken text field, whatever else is on the menu.
-    final types = itemsOf(tester).map((item) => item.type).toList();
-    expect(types, contains(ContextMenuButtonType.copy));
-    expect(types, contains(ContextMenuButtonType.cut));
-    expect(labels, contains('Bold'));
+      // Without taking Cut and Copy with them. A text field without those is
+      // a broken text field, whatever else is on the menu.
+      final types = itemsOf(tester).map((item) => item.type).toList();
+      expect(types, contains(ContextMenuButtonType.copy));
+      expect(types, contains(ContextMenuButtonType.cut));
+      expect(labels, contains('Bold'));
+    } finally {
+      // Inside the body, not in `addTearDown`. The framework checks that
+      // foundation's debug variables are all unset at the end of
+      // `_runTestBody`, which runs before any teardown — so a tear-down reset
+      // is always too late, and this case failed on that check with every
+      // assertion in it having passed.
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('a caret with nothing selected is offered none of them', (
