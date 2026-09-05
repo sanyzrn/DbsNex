@@ -87,6 +87,20 @@ class MainActivity : FlutterFragmentActivity() {
         channel = MethodChannel(engine.dartExecutor.binaryMessenger, "nex/os_capture")
         channel?.setMethodCallHandler { call, result -> when (call.method) {
             "takePending" -> { result.success(pending); pending = null }
+            // Fetch the file a share referred to, now that Dart has decided
+            // it is worth having. Split from the share itself so that a file
+            // over the limit costs a metadata query instead of a full copy.
+            //
+            // The read grant on a shared URI belongs to this Activity's task
+            // and outlives the intent that carried it, so re-parsing the
+            // string Dart was given reaches the same file. Off the main
+            // thread: this is the copy, and it is the slow part.
+            "copyShared" -> {
+                val uri = call.argument<String>("uri")
+                replyAsync(result, ioExecutor) {
+                    uri?.let { copyUri(Uri.parse(it))?.get("path") }
+                }
+            }
             // Whether the OS may capture what this window is showing.
             //
             // FLAG_SECURE is the only thing that blanks the recents thumbnail
@@ -205,32 +219,24 @@ class MainActivity : FlutterFragmentActivity() {
             data + ("type" to if (type.startsWith("image/")) "shared_photo" else "shared_file")
         }
 
-        // [live] decides the thread as well as the delivery, and the reason is
-        // the same in both halves: what is already running.
+        // Nothing is copied here, on either path. What goes across is what
+        // the provider will say about the file — see [describeUri] — and Dart
+        // asks for the copy with `copyShared` once it has decided to keep it.
         //
-        // A share into a running app arrives on `onNewIntent`, with a window
-        // drawing and taking input. Copying a gigabyte there is the classic
-        // ANR — five seconds of an app that was responding a moment ago —
-        // so it goes to [ioExecutor] and comes back to the main thread to
-        // enqueue, because `pending` and `channel.invokeMethod` may only be
-        // touched there.
+        // The copy used to happen right here, and it was the whole cost of a
+        // share. A two-gigabyte video was written through to the cache before
+        // Dart was told the first thing about it, and only then measured and
+        // refused: minutes of work to produce a message saying the work should
+        // never have started. On the cold-start path it was worse than slow —
+        // it ran inside `configureFlutterEngine`, so the launch that was
+        // supposed to be showing a note sat on the splash screen until the
+        // copy finished.
         //
-        // The cold-start half stays synchronous, deliberately. It runs inside
-        // `configureFlutterEngine`, before there is a window accepting input
-        // at all, so there is nothing to stop responding — the cost is a
-        // slower launch, not a dialog. And the ordering is load-bearing:
-        // `pending` has to be set before Dart's `start()` calls `takePending`,
-        // which happens moments later. Copying off-thread there would let
-        // `takePending` return null and drop the share entirely, since
-        // `live = false` means nothing is pushed to catch it.
-        if (live) {
-            ioExecutor.execute {
-                val data = copyUri(stream) ?: return@execute
-                mainHandler.post { enqueue(labelled(data), true) }
-            }
-        } else {
-            copyUri(stream)?.let { enqueue(labelled(it), false) }
-        }
+        // The ordering that used to make this delicate is now free: `pending`
+        // has to be set before Dart's `start()` calls `takePending` moments
+        // later, and a metadata query is fast enough that the synchronous
+        // path costs nothing.
+        enqueue(labelled(describeUri(stream)), live)
     }
 
     private fun enqueue(value: Map<String, String>, live: Boolean) {
@@ -426,6 +432,39 @@ class MainActivity : FlutterFragmentActivity() {
         mapOf("path" to out.absolutePath, "filename" to name,
               "mimeType" to (contentResolver.getType(uri) ?: "application/octet-stream"))
     } catch (_: Exception) { null }
+
+    /**
+     * Everything about a shared file that can be known without reading it.
+     *
+     * This is what a share now sends across, in place of a path to a copy
+     * that had already been made. The size is the point of it: it is the one
+     * fact that decides whether the file is worth copying at all, and asking
+     * the provider for it is a cursor query rather than a transfer.
+     *
+     * [sizeOf] answers -1 when a provider will not say, which some do not.
+     * Dart treats that as "measure it after copying", which is what it had to
+     * do for every file before this existed.
+     */
+    private fun describeUri(uri: Uri): Map<String, String> = mapOf(
+        "uri" to uri.toString(),
+        "filename" to (displayName(uri) ?: "shared-${System.currentTimeMillis()}"),
+        "mimeType" to (contentResolver.getType(uri) ?: "application/octet-stream"),
+        "size" to sizeOf(uri).toString(),
+    )
+
+    /** The provider's own byte count, or -1 when it will not give one. */
+    private fun sizeOf(uri: Uri): Long {
+        runCatching {
+            contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use {
+                if (it.moveToFirst() && !it.isNull(0)) return it.getLong(0)
+            }
+        }
+        // Not every provider backs the OpenableColumns cursor. A descriptor
+        // does not read the file either, and answers for most of the rest.
+        return runCatching {
+            contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length }
+        }.getOrNull() ?: -1L
+    }
 
     private fun displayName(uri: Uri): String? {
         contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {

@@ -88,6 +88,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       if (_locked) unawaited(_unlock());
       unawaited(_updates.maybeCheck());
+      // Android stops the process shortly after the app leaves the screen,
+      // and an installer being fetched stops with it. This is the moment it
+      // can carry on — by range, from where it got to, so the wait is the
+      // only thing that was lost.
+      unawaited(_updates.resumeInterruptedDownload());
       unawaited(_feedback.flushPending());
       // Alarms are not durable and notes are. A reinstall, a restore from
       // backup, or an OS that dropped its alarm list all leave reminders that

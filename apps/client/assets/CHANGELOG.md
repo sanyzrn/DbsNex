@@ -34,6 +34,21 @@ Working convention:
 
 ## Unreleased
 
+- **A file that is too big is now refused straight away.** The size limit
+  worked, but it was checked in the wrong order: Nex copied the whole file
+  before measuring it, so refusing a two-gigabyte video took as long as
+  accepting one would have — with the app apparently frozen throughout, and
+  on a share that launched it, stuck on the opening screen. It now asks how
+  big the file is before touching it, so the message comes back at once and
+  nothing is copied that is not going to be kept. Sharing a file you *are*
+  keeping is quicker too, for the same reason.
+
+- **An update download that stopped now carries on where it left off.**
+  Android stops the app's work shortly after you switch away, so a download
+  running at that moment stopped — and nothing started it again until you
+  went back to the update screen and asked. Coming back to Nex now resumes
+  it, from the byte it reached rather than from the beginning.
+
 ## v1.5.4
 
 - **The app lock no longer shows your notes while it is asking who you are.**
