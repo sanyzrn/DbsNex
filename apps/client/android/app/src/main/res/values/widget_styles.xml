@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The widget text styles, in Nex's type ramp but sized for a glance:
+  one label, one title, one row of body, one of metadata.
+
+  Fonts live in res/font and load on API 26+ (see values-v26). Below that
+  the platform's own sans-serif carries the layout — the widget is a couple
+  of words at 12–16sp, and the ramp holds either way. The Persian overrides
+  are in values-fa-v26, where Vazirmatn takes over exactly as it does inside
+  the app.
+-->
+<resources>
+    <style name="NexWidget.CaptureLabel" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/nex_widget_on_accent</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:maxLines">1</item>
+    </style>
+
+    <style name="NexWidget.Title" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/nex_widget_text</item>
+        <item name="android:maxLines">1</item>
+    </style>
+
+    <style name="NexWidget.RowPreview" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/nex_widget_text</item>
+    </style>
+
+    <style name="NexWidget.RowTime" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/nex_widget_text_dim</item>
+    </style>
+
+    <style name="NexWidget.Message" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/nex_widget_text_dim</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+    </style>
+
+    <style name="NexWidget.EmptyTitle" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/nex_widget_text</item>
+        <item name="android:gravity">center</item>
+    </style>
+</resources>

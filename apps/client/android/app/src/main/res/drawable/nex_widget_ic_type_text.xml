@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Text note: a page with a folded corner and two lines, for Icons.notes_outlined. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="@color/nex_widget_text_dim"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M6.5,3.5 L13,3.5 L17.5,8 L17.5,20.5 L6.5,20.5 Z" />
+    <path
+        android:strokeColor="@color/nex_widget_text_dim"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M13,3.5 L13,8 L17.5,8" />
+    <path
+        android:strokeColor="@color/nex_widget_text_dim"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:pathData="M9.5,12.5 L14.5,12.5 M9.5,16 L14.5,16" />
+</vector>

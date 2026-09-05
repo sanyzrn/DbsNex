@@ -11,6 +11,25 @@ import 'package:path/path.dart' as p;
 
 import 'nex_services.dart';
 
+/// An OS surface asking Nex to do something on the timeline once there is a
+/// timeline: the Capture widget's tap, or a Timeline widget row asking for
+/// the note it shows (FR-8.1 / ADR-027).
+///
+/// Delivered in one of the two worlds a share arrives in, and for the same
+/// reason: live, while a screen is listening, or during bootstrap, before any
+/// screen exists — in which case it waits for [OsCaptureBridge.takeRequest].
+/// The reminder launch path has this exact shape already.
+class PendingOsRequest {
+  const PendingOsRequest.capture() : noteId = null;
+
+  const PendingOsRequest.openNote(String this.noteId);
+
+  /// The note to open, or null for "open text capture".
+  final String? noteId;
+
+  bool get isCapture => noteId == null;
+}
+
 /// What was refused, and how big it was.
 ///
 /// Carries the numbers rather than a finished sentence: the message is
@@ -75,6 +94,42 @@ class OsCaptureBridge {
   /// The reminder launch path already has this exact shape for the same
   /// reason — `onOpenNote` beside `takeLaunchNoteId`.
   void Function(RejectedShare rejection)? onRejected;
+
+  /// Called when the Capture widget's tap asks for the capture sheet.
+  ///
+  /// Set by the timeline, and null until then — which is most of a cold
+  /// start, since a widget tap is what launched the app. Requests arriving
+  /// in that window queue for [takeRequest].
+  void Function()? onCaptureRequested;
+
+  /// Called when a Timeline widget row asks to open the note it shows.
+  void Function(String noteId)? onOpenNoteRequested;
+
+  PendingOsRequest? _request;
+
+  /// The request that arrived before anything was listening, once.
+  PendingOsRequest? takeRequest() {
+    final value = _request;
+    _request = null;
+    return value;
+  }
+
+  /// Hands [request] to a listening screen, or keeps it for one.
+  ///
+  /// The newest wins, as with [_rejection]: only one payload is ever drained
+  /// at launch, so this decides nothing in practice — but two slots on the
+  /// same object that disagree about which one they keep is a difference
+  /// somebody would eventually have to work out from the source.
+  void _dispatch(PendingOsRequest request) {
+    final open = onOpenNoteRequested;
+    final capture = onCaptureRequested;
+    if (request.isCapture) {
+      if (capture != null) return capture();
+    } else if (open != null) {
+      return open(request.noteId!);
+    }
+    _request = request;
+  }
 
   RejectedShare? _rejection;
 
@@ -191,7 +246,16 @@ class OsCaptureBridge {
     final type = payload['type'] as String?;
     switch (type) {
       case 'text_capture':
-        // Widget opens into text capture — signal UI; no note until content.
+        // The Capture widget's whole job (FR-8.1). This used to be a bare
+        // `return`: the payload arrived, the app opened on the timeline, and
+        // the capture sheet the widget exists to open never did. The tap has
+        // been landing on nothing for as long as the widget has shipped.
+        _dispatch(const PendingOsRequest.capture());
+        return;
+      case 'open_note':
+        final id = (payload['id'] as String?)?.trim() ?? '';
+        if (id.isEmpty) return;
+        _dispatch(PendingOsRequest.openNote(id));
         return;
       case 'shared_text':
         final text = (payload['text'] as String?)?.trim() ?? '';

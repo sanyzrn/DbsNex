@@ -34,6 +34,30 @@ Working convention:
 
 ## Unreleased
 
+- **There is a second widget: the top of your timeline on the home screen.**
+  Your last few captures, each with its type, its own line and how long ago
+  it was, and a capture button in its corner. Tapping a row opens that note.
+  It refreshes itself the moment anything changes in Nex — nothing polls, so
+  it costs no battery for standing there.
+
+- **And it respects the app lock.** With the lock on, the widget shows that
+  Nex is locked and nothing else: not the text, not the times, not even how
+  many notes there are. The lock hides the fact of your notes and not only
+  their contents, so what the home screen is given to draw contains none of
+  them in the first place.
+
+- **The capture widget now actually opens the capture sheet.** Tapping it
+  opened Nex and then stopped — the request reached the app and nothing was
+  listening for it, so the one thing the widget exists to do was the one
+  thing it did not do. It has been like that for as long as the widget has
+  existed.
+
+- **The widgets look like Nex, and speak Persian.** The old one was a black
+  rectangle with English text on it whatever your phone was set to. Both now
+  follow your light or dark theme, use your wallpaper's colours on Android
+  12 and later, are fully right-to-left, and are named and described in your
+  own language in the widget picker.
+
 - **The daily recap now reminds you of your notes instead of remarking on
   them.** It used to be a line about what you had been writing lately, which
   is a second decorative sentence in an app that already has one above it. It

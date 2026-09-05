@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The widget card's corner radius. Android 12+ reports the system's own
+         widget radius (system_app_widget_background_radius), so the widget
+         rounds exactly like everything else on the home screen; the fallback
+         is NexRadius.lg, the timeline card's radius. -->
+    <dimen name="nex_widget_corner">20dp</dimen>
+</resources>

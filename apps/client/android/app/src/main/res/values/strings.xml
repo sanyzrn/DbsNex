@@ -1,4 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="widget_description">Open Nex directly into text capture</string>
+    <!-- Home-screen widgets (FR-8). Persian lives in values-fa; every
+         user-facing word the widgets can show is here. Relative-time labels
+         mirror the timeline card's buckets (packages/ui nex_relative_time),
+         word for word where the app has words. -->
+
+    <!-- The product name is the same word in every locale, and the timeline
+         header carries it verbatim. -->
+    <string name="app_name" translatable="false">Nex</string>
+
+    <string name="widget_capture_picker_label">Nex Capture</string>
+    <string name="widget_timeline_picker_label">Nex Timeline</string>
+
+    <string name="widget_capture_label">Capture</string>
+    <string name="widget_capture_description">Capture a thought without opening Nex first</string>
+    <string name="widget_timeline_description">The top of your timeline, with a capture button</string>
+
+    <string name="widget_a11y_capture">Capture in Nex</string>
+    <string name="widget_a11y_open_app">Open Nex</string>
+
+    <string name="widget_locked_title">Nex is locked</string>
+    <string name="widget_locked_a11y">Nex is locked. Unlock Nex to see your notes here.</string>
+
+    <string name="widget_empty_title">Nothing here yet.</string>
+    <string name="widget_empty_hint">Your first capture lands here.</string>
+    <string name="widget_empty_a11y">Nothing captured yet. Your first capture lands here.</string>
+
+    <!-- A row whose note has no text to preview (an uncaptioned photo, a
+         recording with no transcript): the type's own name, the way the
+         timeline card does it. -->
+    <string name="widget_type_text">Text</string>
+    <string name="widget_type_voice">Voice</string>
+    <string name="widget_type_photo">Photo</string>
+    <string name="widget_type_file">File</string>
+    <string name="widget_type_checklist">Checklist</string>
+    <string name="widget_type_link">Link</string>
+
+    <!-- Relative time. The count is formatted with the device locale, so a
+         Persian device renders Persian digits. -->
+    <string name="widget_time_now">now</string>
+    <string name="widget_time_minutes">%1$dm</string>
+    <string name="widget_time_hours">%1$dh</string>
+    <string name="widget_time_days">%1$dd</string>
+    <string name="widget_time_weeks">%1$dw</string>
+    <string name="widget_time_months">%1$dmo</string>
+    <string name="widget_time_years">%1$dy</string>
 </resources>

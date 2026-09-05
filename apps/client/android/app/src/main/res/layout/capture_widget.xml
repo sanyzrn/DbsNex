@@ -1,27 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
+<!--
+  The Capture widget (FR-8.1): one accent tile, one action.
+
+  Mirrors the timeline's capture button — the app's single loudest element,
+  the FAB's accent fill and its white plus. The label starts hidden: the
+  compact one-cell shape is the glyph alone, and CaptureWidgetProvider turns
+  it on once the tile is at least two cells wide. layoutDirection="locale"
+  mirrors the row on a Persian device without needing the launcher to opt
+  this app into RTL.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/nex_widget_capture_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0A0A0A"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:layoutDirection="locale"
+    android:background="@drawable/nex_widget_bg_capture">
 
-    <TextView
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Nex"
-        android:textColor="#FAFAFA"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+        android:layout_gravity="center"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="+ Capture"
-        android:textColor="#FAFAFA"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-</LinearLayout>
+        <ImageView
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/nex_widget_ic_plus" />
+
+        <TextView
+            android:id="@+id/nex_widget_capture_label"
+            style="@style/NexWidget.CaptureLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

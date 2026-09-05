@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Capture tile: the FAB's accent fill, rounded to the widget corner
+     radius the system reports on Android 12+ (20dp on older releases). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/nex_widget_accent" />
+    <corners android:radius="@dimen/nex_widget_corner" />
+</shape>

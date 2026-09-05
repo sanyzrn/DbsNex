@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Timeline widget.
+
+  Three cells wide by two tall — enough for the header and two rows — and
+  resizable both ways to the launcher's grid; the ListView simply reveals
+  more of the stream as it grows. updatePeriodMillis is 0 by design: nothing
+  here refreshes on a timer, because nothing here is allowed to go stale —
+  the app re-renders the widget the moment its own data moves.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="140dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:maxResizeWidth="250dp"
+    android:maxResizeHeight="250dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_timeline"
+    android:previewImage="@drawable/nex_widget_preview_timeline"
+    android:previewLayout="@layout/widget_timeline"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_timeline_description" />

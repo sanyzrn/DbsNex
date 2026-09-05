@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Photo: Icons.image_outlined — frame, sun, and the mountain line. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="@color/nex_widget_text_dim"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M5.5,4.5 L18.5,4.5 A1.5,1.5 0 0,1 20,6 L20,18 A1.5,1.5 0 0,1 18.5,19.5 L5.5,19.5 A1.5,1.5 0 0,1 4,18 L4,6 A1.5,1.5 0 0,1 5.5,4.5 Z" />
+    <path
+        android:strokeColor="@color/nex_widget_text_dim"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:pathData="M4.5,16.5 L9,12 L12,15 L15,12 L19.5,16.5" />
+    <path
+        android:fillColor="@color/nex_widget_text_dim"
+        android:pathData="M9.2,8m-1.4,0a1.4,1.4 0 1,0 2.8,0a1.4,1.4 0 1,0 -2.8,0" />
+</vector>

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Timeline widget: a card holding the top of the timeline.
+
+  Header — the Nex mark and wordmark (tapping it opens the app) with the
+  capture button at the far end. Below it, one of three bodies the provider
+  swaps between: the list of recent captures, the locked notice, or the
+  empty prompt. All three keep the header, because capture never depends on
+  the library being readable.
+
+  Padding is small and deliberate: the widget is a card on the launcher's
+  desk, so it keeps Nex's card geometry — its own fill, a 1px hairline, a
+  corner radius the system sets on Android 12+ — and leaves the inner edges
+  to the rows themselves.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/nex_widget_timeline_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layoutDirection="locale"
+    android:orientation="vertical"
+    android:background="@drawable/nex_widget_bg_card">
+
+    <LinearLayout
+        android:id="@+id/nex_widget_header"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingEnd="8dp">
+
+        <ImageView
+            android:id="@+id/nex_widget_brand"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/nex_widget_ic_mark" />
+
+        <TextView
+            android:id="@+id/nex_widget_title"
+            style="@style/NexWidget.Title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/app_name" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <FrameLayout
+            android:id="@+id/nex_widget_capture_badge"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="@drawable/nex_widget_bg_badge">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/nex_widget_ic_plus" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <ListView
+        android:id="@+id/nex_widget_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:divider="@null"
+        android:dividerHeight="0dp"
+        android:scrollbars="none" />
+
+    <LinearLayout
+        android:id="@+id/nex_widget_locked"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/nex_widget_ic_lock" />
+
+        <TextView
+            android:id="@+id/nex_widget_locked_text"
+            style="@style/NexWidget.Message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/nex_widget_empty"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/nex_widget_empty_title"
+            style="@style/NexWidget.EmptyTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/nex_widget_empty_hint"
+            style="@style/NexWidget.Message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center" />
+    </LinearLayout>
+</LinearLayout>

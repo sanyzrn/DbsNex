@@ -351,6 +351,59 @@ void main() {
     expect(source.existsSync(), isTrue);
   });
 
+  test('a widget tap reaches whoever is listening for it', () async {
+    // The Capture widget's entire job, and it was not being done. `handle`
+    // met `text_capture` with a bare `return`: the payload arrived, the app
+    // opened on the timeline, and the capture sheet the tile exists to open
+    // never did — for as long as the widget has shipped.
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    var captures = 0;
+    String? opened;
+    bridge.onCaptureRequested = () => captures++;
+    bridge.onOpenNoteRequested = (id) => opened = id;
+    await bridge.start();
+
+    await bridge.handle({'type': 'text_capture'});
+    expect(captures, 1);
+    expect(await db.timeline(limit: 50), isEmpty, reason: 'no note until typed');
+
+    await bridge.handle({'type': 'open_note', 'id': 'note-7'});
+    expect(opened, 'note-7');
+  });
+
+  test('a widget tap that launched the app waits for a screen', () async {
+    // The other world, and the common one: tapping the tile is what starts
+    // the app, so the request is drained during bootstrap with no timeline
+    // built yet. Same shape as the reminder launch path and the refusal
+    // above — it queues, and the screen collects it when there is one.
+    native.pending = {'type': 'text_capture'};
+
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+
+    final waiting = bridge.takeRequest();
+    expect(waiting, isNotNull);
+    expect(waiting!.isCapture, isTrue);
+    // Once. A second screen must not reopen a sheet the first one showed.
+    expect(bridge.takeRequest(), isNull);
+  });
+
+  test('a row tap with no id asks for nothing', () async {
+    // A fill-in intent that lost its extra. Opening the capture sheet
+    // instead would be the widget inventing an action nobody asked for.
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    var captures = 0;
+    bridge.onCaptureRequested = () => captures++;
+    await bridge.start();
+
+    await bridge.handle({'type': 'open_note', 'id': '  '});
+    expect(captures, 0);
+    expect(bridge.takeRequest(), isNull);
+  });
+
   test('a launch share is reported as one; a widget tap is not', () async {
     // What the silent share window keys off. It exists to receive one thing,
     // and it has to tell "a share arrived and was kept" apart from "the

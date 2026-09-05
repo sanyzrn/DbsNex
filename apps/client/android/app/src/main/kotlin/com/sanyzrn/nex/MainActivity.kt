@@ -116,6 +116,14 @@ open class MainActivity : FlutterFragmentActivity() {
             // `NexBootstrapHost` paints nothing at all when the answer is
             // true, which is what keeps a share from flashing Nex over the
             // app the person was using.
+            // The widgets re-render from the snapshot file Dart has just
+            // written; this is only the nudge that tells them to look. One
+            // explicit broadcast per provider — the same path a system update
+            // takes, so there is one rendering code path and not two.
+            "pushWidgets" -> {
+                NexWidgetActions.refreshAll(applicationContext)
+                result.success(null)
+            }
             "isShareWindow" -> result.success(closesAfterShare)
             // Say what happened to the share, and close the window if this is
             // the one that only existed to receive it.
@@ -280,6 +288,17 @@ open class MainActivity : FlutterFragmentActivity() {
     private fun handleIncoming(intent: Intent?, live: Boolean) {
         if (intent?.action == ACTION_TEXT_CAPTURE) {
             return enqueue(mapOf("type" to "text_capture"), live)
+        }
+        // A Timeline widget row: open that one note. The id is the only
+        // payload and it only ever reaches Dart — the sheet that opens is the
+        // same one a timeline tap opens, so the app lock, when it is on,
+        // gates it exactly as it gates everything else.
+        if (intent?.action == ACTION_OPEN_NOTE) {
+            val id = intent.getStringExtra(EXTRA_NOTE_ID)
+            if (!id.isNullOrBlank()) {
+                return enqueue(mapOf("type" to "open_note", "id" to id), live)
+            }
+            return
         }
         if (intent?.action != Intent.ACTION_SEND) return
         val stream = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
@@ -549,5 +568,11 @@ open class MainActivity : FlutterFragmentActivity() {
         return uri.lastPathSegment
     }
 
-    companion object { const val ACTION_TEXT_CAPTURE = "com.sanyzrn.nex.TEXT_CAPTURE" }
+    companion object {
+        const val ACTION_TEXT_CAPTURE = "com.sanyzrn.nex.TEXT_CAPTURE"
+
+        /** Sent by a Timeline widget row; carries [EXTRA_NOTE_ID]. */
+        const val ACTION_OPEN_NOTE = "com.sanyzrn.nex.OPEN_NOTE"
+        const val EXTRA_NOTE_ID = "note_id"
+    }
 }

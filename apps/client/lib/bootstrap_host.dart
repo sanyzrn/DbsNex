@@ -12,6 +12,7 @@ import 'app.dart';
 import 'l10n/app_localizations.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
+import 'platform/nex_widget.dart';
 import 'platform/os_capture_bridge.dart';
 import 'platform/share_window.dart';
 import 'restart_scope.dart';
@@ -93,10 +94,24 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
       unawaited(NexServices.noteDiagnostic('shared capture failed: $error'));
     }
 
+    // What the home-screen widgets read. Started after the share above, so
+    // that a share which launched the app is already in the library when the
+    // first snapshot is written — and before the silent window closes, since
+    // that window's whole run is these few lines.
+    //
+    // Its failures are swallowed inside it: a widget that cannot refresh is
+    // an absence on a home screen, never a reason for the app not to open.
+    final widgets = NexWidgetBridge(services: services, preferences: preferences);
+    try {
+      await widgets.start();
+    } catch (error) {
+      unawaited(NexServices.noteDiagnostic('widget snapshot failed: $error'));
+    }
+
     if (silent) await _closeSilently(bridge, preferences);
 
     await delay;
-    return _ready = _Ready(preferences, services, bridge);
+    return _ready = _Ready(preferences, services, bridge, widgets);
   }
 
   /// Says what became of the share and takes the window down.
@@ -156,6 +171,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
   void _teardown(_Ready? target) {
     if (target == null) return;
     target.bridge.dispose();
+    target.widgets.dispose();
     target.services.dispose().catchError((Object _) {});
   }
 
@@ -351,9 +367,10 @@ class _OpenFailed extends StatelessWidget {
 }
 
 class _Ready {
-  const _Ready(this.preferences, this.services, this.bridge);
+  const _Ready(this.preferences, this.services, this.bridge, this.widgets);
 
   final NexPreferences preferences;
   final NexServices services;
   final OsCaptureBridge bridge;
+  final NexWidgetBridge widgets;
 }
