@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+- **The text selection menu is Nex's own again.** Selecting a word in a note
+  offered Ask Copilot, Ask ChatGPT, Translate, Read aloud, Ask Grok, Ask
+  Perplexity, Ask Kimi and Ask DeepSeek before it offered Bold — Android lets
+  any installed app add itself to every selection menu on the phone, and Nex
+  was passing all of them along, which pushed its own formatting onto a second
+  page. The menu now carries Cut, Copy, Paste and Select all, then Nex's
+  formatting, and nothing from apps that have nothing to do with your note.
+
 - **Sharing something into Nex no longer opens Nex.** It used to launch the
   app over whatever you were doing — a loading screen, then a timeline you did
   not ask for, and a gesture to get back out — for something that should take
