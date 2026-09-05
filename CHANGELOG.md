@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.5.5
+
 - **There is a second widget: the top of your timeline on the home screen.**
   Your last few captures, each with its type, its own line and how long ago
   it was, and a capture button in its corner. Tapping a row opens that note.
