@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+- **Sharing something into Nex no longer opens Nex.** It used to launch the
+  app over whatever you were doing — a loading screen, then a timeline you did
+  not ask for, and a gesture to get back out — for something that should take
+  a moment and leave you where you were. A share now goes straight into your
+  library with nothing on screen, and a short message says it was saved. You
+  stay in the app you were sharing from.
+
 - **A file that is too big is now refused straight away.** The size limit
   worked, but it was checked in the wrong order: Nex copied the whole file
   before measuring it, so refusing a two-gigabyte video took as long as

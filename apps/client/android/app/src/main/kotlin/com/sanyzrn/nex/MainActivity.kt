@@ -14,6 +14,7 @@ import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import android.view.WindowManager
+import android.widget.Toast
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -23,7 +24,17 @@ import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class MainActivity : FlutterFragmentActivity() {
+open class MainActivity : FlutterFragmentActivity() {
+    /**
+     * Whether this window exists only to receive a share, and should take
+     * itself down once one has been captured.
+     *
+     * False here: the launcher's own Activity is where the app lives, and a
+     * share that lands on it (an in-app pick, a widget tap) leaves it open.
+     * [ShareActivity] overrides it.
+     */
+    protected open val closesAfterShare = false
+
     private var channel: MethodChannel? = null
     private var pending: Map<String, String>? = null
     private var picker: MethodChannel.Result? = null
@@ -100,6 +111,32 @@ class MainActivity : FlutterFragmentActivity() {
                 replyAsync(result, ioExecutor) {
                     uri?.let { copyUri(Uri.parse(it))?.get("path") }
                 }
+            }
+            // Which kind of window this is, asked before anything is drawn.
+            // `NexBootstrapHost` paints nothing at all when the answer is
+            // true, which is what keeps a share from flashing Nex over the
+            // app the person was using.
+            "isShareWindow" -> result.success(closesAfterShare)
+            // Say what happened to the share, and close the window if this is
+            // the one that only existed to receive it.
+            //
+            // A toast rather than anything in the app, because by design
+            // there is no app on screen to put it in — and because it has to
+            // outlive this Activity by a couple of seconds. The text comes
+            // from Dart: the app's language is a preference, and the platform
+            // only knows the device's.
+            "shareDone" -> {
+                val message = call.argument<String>("message")
+                if (!message.isNullOrBlank()) {
+                    Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+                }
+                // Answered before the window goes, so the reply cannot race
+                // the engine being torn down with Dart still awaiting it.
+                result.success(closesAfterShare)
+                // `finish`, never `finishAndRemoveTask`: this Activity is
+                // sitting in the *sharing* app's task, so removing the task
+                // would close the app the person shared from.
+                if (closesAfterShare) finish()
             }
             // Put the download in the shade, and keep the process alive
             // while it runs — see [DownloadService].

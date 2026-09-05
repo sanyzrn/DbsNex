@@ -85,12 +85,42 @@
                 <action android:name="com.sanyzrn.nex.TEXT_CAPTURE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+        </activity>
+
+        <!--
+          Where a share lands, and why it is a second Activity rather than
+          another intent-filter on the first.
+
+          Sharing into Nex used to open Nex: a launch screen over whatever app
+          you were using, a timeline you did not ask for, and a back gesture to
+          get out of it. This window is translucent and has no starting window
+          of its own, so nothing is painted over the app you shared from; the
+          Dart side closes it as soon as the note is written, with a toast
+          saying so. An `activity-alias` could not do this — it cannot carry
+          its own theme.
+
+          `taskAffinity=""` matches MainActivity: the window belongs to the
+          sharing app's task, so finishing it returns there. Excluded from
+          recents because it is not somewhere anyone can come back to, and
+          `windowDisablePreview` because a starting window is exactly what
+          this exists to avoid.
+        -->
+        <activity
+            android:name=".ShareActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:theme="@style/ShareTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="*/*" />
             </intent-filter>
         </activity>
+
         <!--
           The receiver that actually posts a scheduled reminder.
 

@@ -78,6 +78,23 @@ class OsCaptureBridge {
 
   RejectedShare? _rejection;
 
+  /// The refusal without taking it.
+  ///
+  /// For the one caller that has to decide *how* to say it before it knows
+  /// whether it is the one saying it: the silent share window reads this to
+  /// build its toast, and only calls [takeRejection] once the platform has
+  /// confirmed the window really did close. Where it did not, this is still
+  /// the ordinary app, and the timeline's banner is still owed the message.
+  RejectedShare? get pendingRejection => _rejection;
+
+  /// Whether [start] drained a share, as opposed to a widget tap or nothing.
+  ///
+  /// What the silent share window keys off: it exists to receive one thing,
+  /// and if that thing never arrived there is nothing to say and nothing to
+  /// close for.
+  bool get handledLaunchShare => _handledLaunchShare;
+  bool _handledLaunchShare = false;
+
   /// The refusal that happened before anything was listening, once.
   RejectedShare? takeRejection() {
     final value = _rejection;
@@ -136,6 +153,7 @@ class OsCaptureBridge {
       final pending = await _channel.invokeMethod<dynamic>('takePending');
       if (pending is Map) {
         final payload = Map<Object?, Object?>.from(pending);
+        _handledLaunchShare = _isShare(payload['type'] as String?);
         await handle(payload);
         _events.add(payload);
       }
@@ -162,6 +180,12 @@ class OsCaptureBridge {
       // No native side — nothing was queued in the first place.
     }
   }
+
+  /// The payload types that came from another app, rather than from Nex's own
+  /// widget. `text_capture` is the widget asking for the capture sheet, which
+  /// is the one launch that does want the app on screen.
+  static bool _isShare(String? type) =>
+      type == 'shared_text' || type == 'shared_photo' || type == 'shared_file';
 
   Future<void> handle(Map<Object?, Object?> payload) async {
     final type = payload['type'] as String?;

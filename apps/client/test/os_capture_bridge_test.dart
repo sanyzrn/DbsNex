@@ -351,6 +351,55 @@ void main() {
     expect(source.existsSync(), isTrue);
   });
 
+  test('a launch share is reported as one; a widget tap is not', () async {
+    // What the silent share window keys off. It exists to receive one thing,
+    // and it has to tell "a share arrived and was kept" apart from "the
+    // widget asked for the capture sheet" — which is the one launch that does
+    // want the app on screen — and from nothing having arrived at all.
+    final quiet = OsCaptureBridge(services);
+    addTearDown(quiet.dispose);
+    await quiet.start();
+    expect(quiet.handledLaunchShare, isFalse, reason: 'nothing was queued');
+
+    native.pending = {'type': 'text_capture'};
+    final tapped = OsCaptureBridge(services);
+    addTearDown(tapped.dispose);
+    await tapped.start();
+    expect(tapped.handledLaunchShare, isFalse, reason: 'the widget, not a share');
+
+    native.pending = {'type': 'shared_text', 'text': 'from another app'};
+    final shared = OsCaptureBridge(services);
+    addTearDown(shared.dispose);
+    await shared.start();
+    expect(shared.handledLaunchShare, isTrue);
+  });
+
+  test('a refusal can be read without being taken', () async {
+    // The silent window has to build its message before it knows whether it
+    // is the one delivering it: the platform decides that, and only when the
+    // window really closed is the refusal spent. Where it did not, this is
+    // the ordinary app and the timeline is still owed the banner.
+    const limit = 4096;
+    final source = File(p.join(tmp.path, 'huge.bin'));
+    await source.writeAsBytes(Uint8List(limit + 1), flush: true);
+    native.pending = {
+      'type': 'shared_file',
+      'uri': Uri.file(source.path).toString(),
+      'filename': 'huge.bin',
+      'size': '${limit + 1}',
+    };
+
+    final bridge = OsCaptureBridge(services, maxAttachmentBytes: limit);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+
+    expect(bridge.pendingRejection?.filename, 'huge.bin');
+    // Twice, because peeking is not taking.
+    expect(bridge.pendingRejection?.filename, 'huge.bin');
+    expect(bridge.takeRejection()?.filename, 'huge.bin');
+    expect(bridge.pendingRejection, isNull, reason: 'and taking is');
+  });
+
   test('a file the picker already copied is handled by its path', () async {
     // The other shape a payload arrives in, and the reason `path` is still
     // read. `ACTION_OPEN_DOCUMENT` hands back a copy in the cache before its

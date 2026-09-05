@@ -1220,6 +1220,12 @@ abstract class AppLocalizations {
   /// **'The recap could not be refreshed. The one below is the last one Nex made.'**
   String get recapRefreshFailed;
 
+  /// No description provided for @shareSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to Nex.'**
+  String get shareSaved;
+
   /// Shown when a shared or picked file is over the attachment size limit
   ///
   /// In en, this message translates to:
