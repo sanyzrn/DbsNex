@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
 
@@ -42,18 +40,18 @@ abstract interface class NexDb {
 
   Future<Note> captureVoice({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
     required int durationMs,
   });
 
   Future<Note> capturePhoto({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
   });
 
   Future<Note> captureFile({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
     String? originalFilename,
     String? mimeType,
   });

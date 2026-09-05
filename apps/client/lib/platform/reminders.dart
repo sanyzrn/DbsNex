@@ -58,10 +58,50 @@ class NexReminders {
   /// `inexactAllowWhileIdle` was the only mode this used, and it is the wrong
   /// one for something a person calls a reminder: Android defers inexact
   /// alarms under Doze, sometimes by hours, so a note due at 9 arrives at
-  /// lunchtime or not that day at all. `alarmClock` is the mode the clock app
-  /// itself uses and the only one Doze does not touch.
-  AndroidScheduleMode get _scheduleMode => _exactAlarms
-      ? AndroidScheduleMode.alarmClock
+  /// lunchtime or not that day at all.
+  ///
+  /// `alarmClock` was the answer to that and went too far the other way. The
+  /// plugin turns it into `AlarmManager.setAlarmClock`, whose documented job
+  /// is not just to fire — the system "will typically also use the
+  /// information supplied here to tell the user about this upcoming alarm".
+  /// In practice that is the alarm icon in the status bar and the "Alarm"
+  /// tile in quick settings, and Android shows the next alarm clock *on the
+  /// device*, across every app. So every note reminder sooner than the user's
+  /// real wake-up alarm quietly replaced it there: the one place you glance
+  /// to check what time your phone will wake you was answering with a note.
+  /// Tapping it opened Nex rather than the clock, because the plugin passes
+  /// the notification's own intent as the `AlarmClockInfo` show intent.
+  ///
+  /// Reported from a phone whose owner had no idea where "Sat 10:00" had come
+  /// from. Android's own guidance is that `setAlarmClock` "should only be
+  /// used for [its] intended purpose", and a note that pops a notification is
+  /// not an alarm clock.
+  ///
+  /// `exactAllowWhileIdle` keeps what the change was for. Android documents
+  /// `setAlarmClock` as Doze-exempt "similar to setExactAndAllowWhileIdle" —
+  /// the same exemption, from the same page — and both require the same
+  /// exact-alarm permission and the same `RTC_WAKEUP`. What is given up is
+  /// the system's extra prep-work and the exemption from the per-app rate
+  /// limit on exact alarms, neither of which a handful of reminders a day
+  /// comes near.
+  ///
+  /// This is the mode [_scheduleDailyNudge] already chose, for this reason,
+  /// written down there before anyone noticed it applied here too.
+  AndroidScheduleMode get _scheduleMode =>
+      scheduleModeFor(exactAllowed: _exactAlarms);
+
+  /// The mode decision on its own, so a test can reach it.
+  ///
+  /// Extracted for the same reason [scheduledDateFor] was: [schedule] returns
+  /// early on anything that is not Android, so on a test host the whole
+  /// decision is unreachable — not merely uncovered. `alarmClock` was chosen
+  /// here, shipped, and only came back through someone noticing their phone's
+  /// alarm chip had started announcing a note. Nothing in the suite could
+  /// have said otherwise.
+  @visibleForTesting
+  static AndroidScheduleMode scheduleModeFor({required bool exactAllowed}) =>
+      exactAllowed
+      ? AndroidScheduleMode.exactAllowWhileIdle
       : AndroidScheduleMode.inexactAllowWhileIdle;
 
   /// Called with the note id when a reminder is tapped.
@@ -798,10 +838,15 @@ class NexReminders {
         // under Doze, sometimes by hours, and on the battery-managed ROMs this
         // app actually runs on, sometimes not at all. A nudge that arrives at
         // an unpredictable hour or never is not a cheaper nudge; it is a
-        // broken one. `exactAllowWhileIdle` rather than the `alarmClock` mode
-        // reminders use: it is equally exempt from Doze and does not put a
-        // standing alarm icon in the status bar, which a daily greeting has
-        // not earned.
+        // broken one. `exactAllowWhileIdle` rather than `alarmClock`: equally
+        // exempt from Doze, and it does not put a standing alarm icon in the
+        // status bar, which a daily greeting has not earned.
+        //
+        // Note reminders used `alarmClock` and have since come here for the
+        // same reason — see [_scheduleMode], which is now what this would
+        // resolve to anyway. Left spelled out rather than swapped for that
+        // getter: this one has never depended on the reminder policy, and
+        // making it do so is how the two drift into each other.
         androidScheduleMode: _exactAlarms
             ? AndroidScheduleMode.exactAllowWhileIdle
             : AndroidScheduleMode.inexactAllowWhileIdle,

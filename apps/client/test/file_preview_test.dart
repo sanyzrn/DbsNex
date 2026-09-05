@@ -95,7 +95,7 @@ void main() {
       tester,
       await services.captureFile(
         mediaUri: file.path,
-        mediaBytes: file.readAsBytesSync(),
+        mediaHash: sha256OfBytes(file.readAsBytesSync()),
         originalFilename: name,
         mimeType: mimeType,
       ),

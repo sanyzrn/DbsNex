@@ -106,7 +106,7 @@ void main() {
     await services.captureText('a written thought');
     await services.captureVoice(
       mediaUri: p.join(tmp.path, 'media', 'clip.m4a'),
-      mediaBytes: Uint8List.fromList([9, 9, 9]),
+      mediaHash: sha256OfBytes(Uint8List.fromList([9, 9, 9])),
       durationMs: 1500,
     );
     await services.refreshTimeline();
@@ -427,7 +427,7 @@ void main() {
       final bytes = Uint8List.fromList([1, 2, 3]);
       final photo = await services.capturePhoto(
         mediaUri: p.join(services.mediaDir, 'p.jpg'),
-        mediaBytes: bytes,
+        mediaHash: sha256OfBytes(bytes),
       );
       expect(photo.caption, isNull);
       await services.setCaption(photo.id, 'whiteboard from sync');
@@ -451,7 +451,7 @@ void main() {
       final bytes = Uint8List.fromList([1, 2, 3]);
       final photo = await services.capturePhoto(
         mediaUri: p.join(services.mediaDir, 'p.jpg'),
-        mediaBytes: bytes,
+        mediaHash: sha256OfBytes(bytes),
       );
       await services.backfillEnrichment();
       final withOcr = (await services.getById(photo.id))!;
@@ -565,7 +565,7 @@ void main() {
     final bytes = Uint8List.fromList([1, 2, 3, 4, 5, 6]);
     final note = await services.captureFile(
       mediaUri: p.join(services.mediaDir, 'doc.pdf'),
-      mediaBytes: bytes,
+      mediaHash: sha256OfBytes(bytes),
       originalFilename: 'Quarterly-Report.pdf',
     );
     expect(note.type, NoteType.file);
@@ -699,7 +699,7 @@ void main() {
     final bytes = Uint8List.fromList([1, 2, 3, 4]);
     final voice = await services.captureVoice(
       mediaUri: p.join(services.mediaDir, 'v.m4a'),
-      mediaBytes: bytes,
+      mediaHash: sha256OfBytes(bytes),
       durationMs: 900,
     );
     expect(voice.mediaHash, isNotNull);
@@ -1045,7 +1045,7 @@ void main() {
     final path = p.join(services.mediaDir, 'p.jpg');
     final bytes = Uint8List.fromList(List.filled(200, 7));
     File(path).writeAsBytesSync(bytes);
-    await services.capturePhoto(mediaUri: path, mediaBytes: bytes);
+    await services.capturePhoto(mediaUri: path, mediaHash: sha256OfBytes(bytes));
     await services.refreshTimeline();
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
@@ -1234,7 +1234,7 @@ void main() {
   ) async {
     final note = await services.captureVoice(
       mediaUri: p.join(tmp.path, 'media', 'said.m4a'),
-      mediaBytes: Uint8List.fromList([1, 2, 3]),
+      mediaHash: sha256OfBytes(Uint8List.fromList([1, 2, 3])),
       durationMs: 4000,
     );
     // As if the background pass had already transcribed it.
@@ -1305,13 +1305,13 @@ void main() {
       // height, since neither transcript is actually shown yet.
       final plain = await services.captureVoice(
         mediaUri: p.join(tmp.path, 'media', 'plain.m4a'),
-        mediaBytes: Uint8List.fromList([1, 2, 3]),
+        mediaHash: sha256OfBytes(Uint8List.fromList([1, 2, 3])),
         durationMs: 5000,
       );
       testWorker.seedTranscript(plain.id, 'short');
       final long = await services.captureVoice(
         mediaUri: p.join(tmp.path, 'media', 'long.m4a'),
-        mediaBytes: Uint8List.fromList([1, 2, 3]),
+        mediaHash: sha256OfBytes(Uint8List.fromList([1, 2, 3])),
         durationMs: 38000,
       );
       testWorker.seedTranscript(

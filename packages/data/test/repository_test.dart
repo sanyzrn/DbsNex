@@ -340,7 +340,7 @@ void main() {
           id: newUuidV7(),
           type: NoteType.photo,
           mediaUri: mediaFile.path,
-          mediaHash: sha256OfFile(mediaFile.path),
+          mediaHash: await sha256OfFile(mediaFile.path),
           createdAt: now,
           updatedAt: now,
           deviceId: 'test-device',
@@ -364,7 +364,7 @@ void main() {
       final exportedPhoto = exportedNotes.firstWhere(
         (n) => n['type'] == 'photo',
       );
-      expect(exportedPhoto['media_hash'], sha256OfFile(mediaFile.path));
+      expect(exportedPhoto['media_hash'], await sha256OfFile(mediaFile.path));
     });
   });
 

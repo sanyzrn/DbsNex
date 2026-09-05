@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
-import 'dart:typed_data';
 
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
@@ -389,32 +388,32 @@ class NexDbWorker implements NexDb {
   @override
   Future<Note> captureVoice({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
     required int durationMs,
   }) => _send<Note>(_DbCommand.captureVoice, {
     'mediaUri': mediaUri,
-    'mediaBytes': mediaBytes,
+    'mediaHash': mediaHash,
     'durationMs': durationMs,
   });
 
   @override
   Future<Note> capturePhoto({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
   }) => _send<Note>(_DbCommand.capturePhoto, {
     'mediaUri': mediaUri,
-    'mediaBytes': mediaBytes,
+    'mediaHash': mediaHash,
   });
 
   @override
   Future<Note> captureFile({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
     String? originalFilename,
     String? mimeType,
   }) => _send<Note>(_DbCommand.captureFile, {
     'mediaUri': mediaUri,
-    'mediaBytes': mediaBytes,
+    'mediaHash': mediaHash,
     'originalFilename': originalFilename,
     'mimeType': mimeType,
   });
@@ -757,16 +756,16 @@ class NexDbWorker implements NexDb {
         ),
         _DbCommand.captureVoice => capture.submitVoiceCapture(
           mediaUri: arg('mediaUri')! as String,
-          mediaBytes: arg('mediaBytes')! as Uint8List,
+          mediaHash: arg('mediaHash')! as String,
           durationMs: arg('durationMs')! as int,
         ),
         _DbCommand.capturePhoto => capture.submitPhotoCapture(
           mediaUri: arg('mediaUri')! as String,
-          mediaBytes: arg('mediaBytes')! as Uint8List,
+          mediaHash: arg('mediaHash')! as String,
         ),
         _DbCommand.captureFile => capture.submitFileCapture(
           mediaUri: arg('mediaUri')! as String,
-          mediaBytes: arg('mediaBytes')! as Uint8List,
+          mediaHash: arg('mediaHash')! as String,
           originalFilename: arg('originalFilename') as String?,
           mimeType: arg('mimeType') as String?,
         ),

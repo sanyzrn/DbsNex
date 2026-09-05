@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import '../ids.dart';
 import '../import/note_import.dart';
@@ -83,7 +82,7 @@ class CaptureService {
   /// Persist a voice capture after recording stops (FR-1.4 / FR-1.7).
   Note submitVoiceCapture({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
     required int durationMs,
   }) {
     final now = DateTime.now().toUtc();
@@ -92,7 +91,7 @@ class CaptureService {
         id: newUuidV7(),
         type: NoteType.voice,
         mediaUri: mediaUri,
-        mediaHash: sha256OfBytes(mediaBytes),
+        mediaHash: mediaHash,
         durationMs: durationMs,
         createdAt: now,
         updatedAt: now,
@@ -106,7 +105,7 @@ class CaptureService {
   /// Persist a photo capture after confirm (FR-1.5 / FR-1.7).
   Note submitPhotoCapture({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
   }) {
     final now = DateTime.now().toUtc();
     return _repo.insert(
@@ -114,7 +113,7 @@ class CaptureService {
         id: newUuidV7(),
         type: NoteType.photo,
         mediaUri: mediaUri,
-        mediaHash: sha256OfBytes(mediaBytes),
+        mediaHash: mediaHash,
         createdAt: now,
         updatedAt: now,
         deviceId: deviceId,
@@ -130,7 +129,7 @@ class CaptureService {
   /// [mimeType] is stored when known (share-intent / picker).
   Note submitFileCapture({
     required String mediaUri,
-    required Uint8List mediaBytes,
+    required String mediaHash,
     String? originalFilename,
     String? mimeType,
   }) {
@@ -142,7 +141,7 @@ class CaptureService {
         content: originalFilename,
         mimeType: mimeType,
         mediaUri: mediaUri,
-        mediaHash: sha256OfBytes(mediaBytes),
+        mediaHash: mediaHash,
         createdAt: now,
         updatedAt: now,
         deviceId: deviceId,

@@ -43,7 +43,24 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     services.applyAiPreferences(preferences);
 
     final bridge = OsCaptureBridge(services);
-    await bridge.start();
+    // A share that fails must not look like a library that will not open.
+    //
+    // `start()` drains whatever the OS queued, and draining it means running
+    // the capture. Anything that throws in there — reported as an
+    // out-of-memory while finishing a two-gigabyte video share — used to
+    // propagate straight out of here, so the app opened on "Nex could not
+    // open your local library. Your files were not changed", and offered
+    // Restore backup as the way out. The library was never touched, and
+    // restoring one over it is the single worst thing that screen could have
+    // talked someone into.
+    //
+    // The share is lost either way; what changes is that the app opens, and
+    // the reason is written where "Share diagnostics" will find it.
+    try {
+      await bridge.start();
+    } catch (error) {
+      unawaited(NexServices.noteDiagnostic('shared capture failed: $error'));
+    }
 
     await delay;
     return _ready = _Ready(preferences, services, bridge);
