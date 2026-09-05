@@ -1,3 +1,4 @@
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/reminders.dart';
 import 'package:nex_core/nex_core.dart';
@@ -174,6 +175,48 @@ void main() {
 
     test('is stable for the same note id', () {
       expect(NexReminders.idFor('abc'), NexReminders.idFor('abc'));
+    });
+  });
+
+  group('scheduleModeFor', () {
+    // `schedule` returns early on anything that is not Android, so this
+    // decision is unreachable from a test host through the normal path —
+    // which is how `alarmClock` shipped and stayed.
+    test('an exact-alarm phone gets an exact, Doze-exempt alarm', () {
+      expect(
+        NexReminders.scheduleModeFor(exactAllowed: true),
+        AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    });
+
+    test('a phone that refuses exact alarms still gets a reminder', () {
+      // Late is bad; never is worse. The fallback is what makes the
+      // exact-alarm permission optional rather than load-bearing.
+      expect(
+        NexReminders.scheduleModeFor(exactAllowed: false),
+        AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    });
+
+    test('a reminder is never scheduled as an alarm clock', () {
+      // The one that would have caught the report. `alarmClock` becomes
+      // `AlarmManager.setAlarmClock`, which Android documents as telling the
+      // user about the alarm: the status-bar alarm icon and the quick
+      // settings tile, showing the next alarm clock on the *device*. Every
+      // note reminder sooner than the owner's real alarm replaced it there,
+      // and tapping it opened Nex instead of the clock — the plugin passes
+      // the notification's own intent as the `AlarmClockInfo` show intent.
+      //
+      // Asserted for both answers, because the bug was in one branch of a
+      // two-branch decision and a case that only drives the other proves
+      // nothing about it.
+      for (final exactAllowed in [true, false]) {
+        expect(
+          NexReminders.scheduleModeFor(exactAllowed: exactAllowed),
+          isNot(AndroidScheduleMode.alarmClock),
+          reason: 'a note is not an alarm clock (exactAllowed: $exactAllowed)',
+        );
+      }
     });
   });
 }

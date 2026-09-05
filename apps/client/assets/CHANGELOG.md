@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+- **Nex reminders no longer take over the phone's alarm indicator.** A
+  reminder was being scheduled the way a clock app schedules an alarm, so
+  Android showed it as the device's next alarm — the alarm icon in the status
+  bar, and a tile reading e.g. "Alarm · Sat 10:00" in quick settings. Because
+  that indicator shows the next alarm across *all* apps, any Nex reminder
+  earlier than your real wake-up alarm hid it, and tapping the tile opened
+  Nex instead of your clock. Reminders are still exact and still arrive while
+  the phone is idle; they just no longer claim to be alarm clocks.
+
 ## v1.5.2
 
 - **Typing quickly no longer leaves half-finished copies of a note behind.**
