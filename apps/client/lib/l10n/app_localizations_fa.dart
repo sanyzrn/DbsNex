@@ -160,6 +160,10 @@ class AppLocalizationsFa extends AppLocalizations {
       'احراز هویت را خود دستگاه انجام می‌دهد. Nex هیچ رمز یا دادهٔ بیومتریکی را دریافت یا ذخیره نمی‌کند.';
 
   @override
+  String get securityScreenshotBlocked =>
+      'تا وقتی قفل روشن است، Nex از صفحهٔ برنامه‌های اخیر هم پنهان می‌ماند و گرفتن اسکرین‌شات از آن مسدود می‌شود.';
+
+  @override
   String get securityPasscodeUnavailable =>
       'ابتدا برای دستگاه رمز، پین یا الگو تنظیم کنید.';
 

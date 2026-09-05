@@ -50,6 +50,7 @@
   "securityBiometric": "اثر انگشت یا بیومتریک",
   "securityBiometricSubtitle": "به‌جای رمز جایگزین، اثر انگشت، چهره یا Windows Hello ثبت‌شده را بخواهد.",
   "securityLocalOnly": "احراز هویت را خود دستگاه انجام می‌دهد. Nex هیچ رمز یا دادهٔ بیومتریکی را دریافت یا ذخیره نمی‌کند.",
+  "securityScreenshotBlocked": "تا وقتی قفل روشن است، Nex از صفحهٔ برنامه‌های اخیر هم پنهان می‌ماند و گرفتن اسکرین‌شات از آن مسدود می‌شود.",
   "securityPasscodeUnavailable": "ابتدا برای دستگاه رمز، پین یا الگو تنظیم کنید.",
   "securityBiometricUnavailable": "اثر انگشت یا بیومتریک ثبت‌شده‌ای پیدا نشد.",
   "securityAuthenticateReason": "برای محافظت از یادداشت‌ها Nex را باز کنید",

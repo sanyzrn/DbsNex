@@ -11,6 +11,7 @@ import 'platform/feedback_service.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/os_capture_bridge.dart';
+import 'platform/secure_window.dart';
 import 'platform/update_service.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/timeline_screen.dart';
@@ -45,10 +46,16 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   bool _locked = false;
   bool _unlocking = false;
 
+  /// What the window flag was last set to, so that a preference change with
+  /// nothing to do with the lock — every one of them arrives at [_refresh] —
+  /// does not go back to the platform to say the same thing again.
+  bool? _secureWindow;
+
   @override
   void initState() {
     super.initState();
     _locked = widget.preferences.appLockEnabled;
+    _applyWindowSecrecy();
     widget.preferences.addListener(_refresh);
     _updates.addListener(_announceDownload);
     // Quietly, on launch and whenever the app comes back — at most once a day.
@@ -109,7 +116,26 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
 
   void _refresh() {
     if (!widget.preferences.appLockEnabled) _locked = false;
+    _applyWindowSecrecy();
     setState(() {});
+  }
+
+  /// Follows the app lock, on and off.
+  ///
+  /// The lock stops someone opening the app. On its own it does nothing about
+  /// the copy of the timeline Android keeps for the recents screen — which is
+  /// a picture of the notes, taken before the lock gate was ever drawn, and
+  /// readable without unlocking anything. `FLAG_SECURE` is what blanks it, and
+  /// blocks screenshots while it is on.
+  ///
+  /// Not always on: someone who never turned the lock on has not asked to lose
+  /// screenshots of their own notes. Turning it on is the point at which the
+  /// user has said these are private.
+  void _applyWindowSecrecy() {
+    final wanted = widget.preferences.appLockEnabled;
+    if (_secureWindow == wanted) return;
+    _secureWindow = wanted;
+    unawaited(NexSecureWindow.setSecure(wanted));
   }
 
   Future<void> _unlock() async {
@@ -344,6 +370,13 @@ class _SearchIntent extends Intent {
   const _SearchIntent();
 }
 
+/// The opaque sheet the lock gate paints over the app.
+///
+/// Named so a test can find it and check that it is still opaque — which is
+/// the whole of the bug it exists for.
+@visibleForTesting
+const appLockBarrierKey = Key('nex.app-lock-barrier');
+
 class _AppLockGate extends StatelessWidget {
   const _AppLockGate({required this.busy, required this.onUnlock});
 
@@ -354,7 +387,22 @@ class _AppLockGate extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // Its own colour, not the theme's scaffold background, and forced opaque.
+    //
+    // `scaffoldBackgroundColor` is `Colors.transparent` whenever liquid glass
+    // or a background pattern is on — deliberately, so the app's backdrop
+    // shows through every screen — and a bare `Scaffold` here inherited that.
+    // The result was a lock gate you could read the timeline through while it
+    // waited for a fingerprint: every note on screen, behind the prompt that
+    // was supposedly hiding them.
+    //
+    // `canvasColor` is the page background with no glass applied, which is the
+    // right shade; the alpha is pinned anyway so that no future theme can make
+    // this see-through again without failing a test.
+    final barrier = theme.canvasColor.withValues(alpha: 1);
     return Scaffold(
+      key: appLockBarrierKey,
+      backgroundColor: barrier,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(NexSpacing.xl),
