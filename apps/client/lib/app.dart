@@ -7,6 +7,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'l10n/app_localizations.dart';
 import 'platform/route_observer.dart';
 import 'platform/app_lock.dart';
+import 'platform/download_notice.dart';
 import 'platform/feedback_service.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
@@ -178,12 +179,13 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     switch (status.stage) {
       case NexDownloadStage.running:
         unawaited(
-          reminders.showDownloadProgress(
-            title: l10n.updateDownloadingTitle,
-            percent: status.percent ?? 0,
-          ),
+          _reportDownload(l10n.updateDownloadingTitle, status.percent ?? 0),
         );
       case NexDownloadStage.done:
+        // The service goes first: its notification is the progress bar, and
+        // the one below is the tappable "ready to install" that has to
+        // outlive it.
+        unawaited(NexDownloadNotice.hide());
         unawaited(
           reminders.showDownloadReady(
             title: l10n.updateReadyTitle,
@@ -191,8 +193,23 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
           ),
         );
       case NexDownloadStage.stopped:
+        unawaited(NexDownloadNotice.hide());
         unawaited(reminders.clearDownloadNotification());
     }
+  }
+
+  /// Puts the progress in the shade, by whichever half of the app can.
+  ///
+  /// On Android that is a foreground service, because the notification is not
+  /// the point of it — keeping the process running while the transfer
+  /// continues is, and only a service does that. Where there is no service,
+  /// the app posts the notification itself, which is all this ever was.
+  Future<void> _reportDownload(String title, int percent) async {
+    if (await NexDownloadNotice.show(title: title, percent: percent)) return;
+    await widget.services.reminders.showDownloadProgress(
+      title: title,
+      percent: percent,
+    );
   }
 
   /// Says so, once, when an installer finishes arriving.

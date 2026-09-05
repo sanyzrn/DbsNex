@@ -20,6 +20,18 @@
          RECEIVE_BOOT_COMPLETED lets the scheduled alarms survive a restart;
          without it every reminder set before a reboot is silently lost. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+      Keeps the process alive while an installer is downloading.
+
+      The download is Dart's and already survived leaving the update screen,
+      but Android suspends the process shortly after the app leaves the screen
+      and the transfer stopped with it. An ordinary notification does not
+      change that; a foreground service does. `dataSync` is the type Android
+      14 requires it to be declared as, and its permission is only checked
+      there — declaring it below that changes nothing.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- A reminder that arrives whenever Android gets around to it is not a
          reminder. Without this the only mode available is inexact, which Doze
@@ -93,6 +105,14 @@
           the channel is created by this receiver at post time and it had
           never run.
         -->
+        <!-- See the FOREGROUND_SERVICE permissions above. Not exported: it is
+             started by this app, from its own MethodChannel, and by nothing
+             else. -->
+        <service
+            android:name=".DownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
             android:exported="false" />

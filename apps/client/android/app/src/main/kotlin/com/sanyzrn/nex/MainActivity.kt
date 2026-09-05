@@ -101,6 +101,45 @@ class MainActivity : FlutterFragmentActivity() {
                     uri?.let { copyUri(Uri.parse(it))?.get("path") }
                 }
             }
+            // Put the download in the shade, and keep the process alive
+            // while it runs — see [DownloadService].
+            //
+            // Answers whether the platform took the job, because the Dart
+            // side falls back to its own progress notification where there is
+            // no service to run (Windows, where nothing suspends the process
+            // and an ordinary notification was always enough).
+            //
+            // Started only while the service is down. Android 12 refuses to
+            // start a foreground service from the background, and every
+            // progress update after the first arrives from the background by
+            // definition — that is the situation the service exists for — so
+            // the rest only rewrite the notification, which nothing
+            // restricts. A refused start is caught rather than fatal: the
+            // worst case is the old behaviour.
+            "downloadNotice" -> {
+                val title = call.argument<String>("title").orEmpty()
+                val percent = call.argument<Int>("percent") ?: 0
+                if (DownloadService.running) {
+                    DownloadService.update(this, title, percent)
+                    result.success(true)
+                } else {
+                    val intent = Intent(this, DownloadService::class.java)
+                        .putExtra(DownloadService.EXTRA_TITLE, title)
+                        .putExtra(DownloadService.EXTRA_PERCENT, percent)
+                    val started = runCatching {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                    }.isSuccess
+                    result.success(started)
+                }
+            }
+            "stopDownloadNotice" -> {
+                runCatching { stopService(Intent(this, DownloadService::class.java)) }
+                result.success(true)
+            }
             // Whether the OS may capture what this window is showing.
             //
             // FLAG_SECURE is the only thing that blanks the recents thumbnail

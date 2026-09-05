@@ -43,11 +43,13 @@ Working convention:
   nothing is copied that is not going to be kept. Sharing a file you *are*
   keeping is quicker too, for the same reason.
 
-- **An update download that stopped now carries on where it left off.**
-  Android stops the app's work shortly after you switch away, so a download
-  running at that moment stopped — and nothing started it again until you
-  went back to the update screen and asked. Coming back to Nex now resumes
-  it, from the byte it reached rather than from the beginning.
+- **An update download now keeps going after you leave the app.** Android
+  suspends an app's work shortly after you switch away, and the download
+  stopped with it — then nothing started it again until you went back to the
+  update screen and asked. It now runs as a proper background transfer, with
+  its progress in the notification shade for as long as it lasts. And if it
+  is stopped anyway — by the system, or by the app being closed — coming back
+  to Nex picks it up from the byte it reached rather than from the beginning.
 
 ## v1.5.4
 
