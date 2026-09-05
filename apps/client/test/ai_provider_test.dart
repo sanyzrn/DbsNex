@@ -582,6 +582,106 @@ void main() {
   });
 
   _translateGroup();
+  _recapGroup();
+}
+
+/// The recap changed jobs. It used to be an observation about what someone
+/// had been writing — a second decorative line under the headline, which is
+/// already one — and its job now is to say what is due, what is unfinished
+/// and what they were in the middle of. What is testable without a model is
+/// what it asks for and what it is allowed to say back.
+void _recapGroup() {
+  CloudAIAdapter adapter(String reply, {void Function(http.Request)? onSend}) =>
+      CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.openai,
+          apiKey: 'k',
+        ),
+        client: MockClient((request) async {
+          onSend?.call(request);
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': reply},
+                },
+              ],
+            }),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+      );
+
+  group('the daily recap', () {
+    test('says as much as there is to say about, and no more', () {
+      // A fixed budget was wrong in both directions: too little for a
+      // fortnight of notes with two things due, and too much on a day with
+      // one line in it — a card that fills the same four lines every morning
+      // is a card people stop reading.
+      expect(CloudAIAdapter.recapWords(1), 25);
+      expect(CloudAIAdapter.recapWords(20), 85);
+      for (var i = 1; i < 40; i++) {
+        expect(
+          CloudAIAdapter.recapWords(i + 1),
+          greaterThanOrEqualTo(CloudAIAdapter.recapWords(i)),
+          reason: 'more to say about is never less room to say it',
+        );
+      }
+    });
+
+    test('asks for the budget it was handed, and forbids invention', () async {
+      late http.Request seen;
+      await adapter('a recap', onSend: (r) => seen = r).digest(
+        'DUE in 6h | text | pick up the prescription',
+        words: 45,
+      );
+
+      final prompt = jsonEncode(
+        (jsonDecode(seen.body) as Map<String, dynamic>)['messages'],
+      );
+      expect(prompt, contains('At most 45 words'));
+      // The shape of the source is described rather than left to be
+      // inferred: those lines are abbreviated to save tokens, and an
+      // abbreviation a model has to guess at is one it will guess wrong.
+      expect(prompt, contains(r'`when | kind | text`'));
+      // New, and load-bearing. A wrong joke about your notes is a bad line;
+      // a wrong claim that something is due tomorrow is a missed
+      // appointment.
+      expect(prompt, contains('Never state anything that is not in the lines'));
+    });
+
+    test('a reply over the budget is cut to it', () async {
+      // Models treat "at most" as a suggestion, which is why the number is
+      // enforced on the way out as well as asked for on the way in.
+      final long = List.generate(60, (i) => 'word$i').join(' ');
+      final recap = await adapter(long).digest('today | text | x', words: 25);
+
+      expect(recap, isNotNull);
+      expect(recap!.split(' '), hasLength(25));
+    });
+
+    test('ordinary prose survives the repetition guard', () async {
+      // The guard exists to catch token soup, and it used to reject any line
+      // using the same word three times — right for a six-word headline and
+      // wrong for eighty words of English, where a sixth "the" is not a
+      // stuck decoder. Rejecting it would blank the card precisely on the
+      // days it has most to report.
+      const real =
+          'The plumber has not called back and the shopping list still has '
+          'the bread and the milk on it. The flat above is being rewired on '
+          'the fourteenth, and the prescription is waiting at the chemist '
+          'until the end of the week.';
+      expect(await adapter(real).digest('today | text | x', words: 85), real);
+    });
+
+    test('token soup is still refused', () async {
+      expect(
+        await adapter('aaaaaa aaaaaa aaaaaa').digest('today | text | x'),
+        isNull,
+      );
+    });
+  });
 }
 
 void _translateGroup() {

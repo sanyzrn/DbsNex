@@ -34,6 +34,23 @@ Working convention:
 
 ## Unreleased
 
+- **The daily recap now reminds you of your notes instead of remarking on
+  them.** It used to be a line about what you had been writing lately, which
+  is a second decorative sentence in an app that already has one above it. It
+  now leads with what is due or overdue, then what is unfinished — a shopping
+  list with three items left is unfinished business — and only then what you
+  were in the middle of. It could not have done that before: it was only ever
+  shown the text of your twenty newest notes, with no dates and no reminders
+  in it at all, so a reminder set last month for tomorrow morning was
+  invisible to it. It is now told which notes are due and when, and it is
+  told not to say anything it was not told.
+
+- **And it says as much as there is to say.** The recap was capped at thirty
+  words whether you had one note or a fortnight of them. It now runs from a
+  clause on a quiet day to a short paragraph on a full one — and the morning
+  notification can be opened out to read all of it, rather than showing the
+  first line and hiding the rest.
+
 - **The text selection menu is Nex's own again.** Selecting a word in a note
   offered Ask Copilot, Ask ChatGPT, Translate, Read aloud, Ask Grok, Ask
   Perplexity, Ask Kimi and Ask DeepSeek before it offered Bold — Android lets
