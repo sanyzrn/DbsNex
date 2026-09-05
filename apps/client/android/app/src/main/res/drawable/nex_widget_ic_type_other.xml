@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Unknown type: the timeline's catch-all is Icons.all_inclusive_outlined, an
+  infinity of two overlapping rings — kept here so an unfamiliar type never
+  borrows the text glyph and pretends to be something it is not.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="@color/nex_widget_text_dim"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:pathData="M4.8,12 A4,4 0 1,0 12.8,12 A4,4 0 1,0 4.8,12" />
+    <path
+        android:strokeColor="@color/nex_widget_text_dim"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:pathData="M11.2,12 A4,4 0 1,0 19.2,12 A4,4 0 1,0 11.2,12" />
+</vector>

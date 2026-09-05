@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Nex mark, in the accent — the same line-art paths as the notification
+  icon (ic_stat_nex): an outer arc over the top, an inner arc under it, and
+  the dot in the middle. Vectors in a widget resolve colors from this app's
+  resources, so the launcher's inflating this layout still picks up the
+  widget theme (values-night, values-v31) as configured.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="@color/nex_widget_accent"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:pathData="M20.2,12 A8.2,8.2 0 0,1 3.8,12 A8.2,8.2 0 0,1 12,3.8" />
+    <path
+        android:strokeColor="@color/nex_widget_accent"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:pathData="M7,12 A5,5 0 0,1 17,12 A5,5 0 0,1 12,17" />
+    <path
+        android:fillColor="@color/nex_widget_accent"
+        android:pathData="M12,12m-1.9,0a1.9,1.9 0 1,0 3.8,0a1.9,1.9 0 1,0 -3.8,0" />
+</vector>

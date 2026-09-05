@@ -259,6 +259,23 @@ class TimelineScreenState extends State<TimelineScreen>
         (_) => _sayTooLarge(refused),
       );
     }
+    // Both halves of a widget tap, in the same two worlds and for the same
+    // reason: the Capture tile asks for the capture sheet, a Timeline row
+    // asks for the note it is showing. A tap that cold-started the app
+    // arrives while this screen is still being built, so it waits in the
+    // bridge until there is something here to answer it.
+    widget.osCapture?.onCaptureRequested = _openCaptureFromOs;
+    widget.osCapture?.onOpenNoteRequested = _openNoteFromOs;
+    final requested = widget.osCapture?.takeRequest();
+    if (requested != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (requested.isCapture) {
+          _openCaptureFromOs();
+        } else {
+          _openNoteFromOs(requested.noteId!);
+        }
+      });
+    }
     // And both halves of a tapped download. Here rather than in the app
     // widget because opening a screen needs a Navigator, and the app widget
     // sits above the one this route lives in.
@@ -2198,6 +2215,40 @@ class TimelineScreenState extends State<TimelineScreen>
     if (_swipe.openCard == null) return false;
     _swipe.closeAll();
     return true;
+  }
+
+  void _openCaptureFromOs() {
+    if (!mounted) return;
+    unawaited(openCapture());
+  }
+
+  void _openNoteFromOs(String noteId) {
+    if (!mounted) return;
+    unawaited(_openNoteById(noteId));
+  }
+
+  /// One note by id, the way a card tap opens it.
+  ///
+  /// A Timeline widget row *is* a card, so tapping it lands on the same
+  /// sheet. The lookup is the only thing the ordinary path does not need: a
+  /// row that cold-started the app is asking for a note this screen has not
+  /// loaded yet. When it is already here this is exactly a card tap, undo
+  /// toast and all; when it is not, the sheet loads the note by id itself
+  /// and the only thing missing is the undo a delete would have offered —
+  /// which is honest, since there is nothing on this screen to undo it back
+  /// into.
+  Future<void> _openNoteById(String noteId) async {
+    final known = _all?.where((note) => note.id == noteId).firstOrNull;
+    if (known != null) return _openNote(known);
+    await nexShowSheet<DetailResult>(
+      context: context,
+      builder: (_) => NoteDetailSheet(
+        services: widget.services,
+        preferences: widget.preferences,
+        noteId: noteId,
+      ),
+    );
+    await widget.services.refreshTimeline();
   }
 
   Future<void> _openNote(Note note) async {

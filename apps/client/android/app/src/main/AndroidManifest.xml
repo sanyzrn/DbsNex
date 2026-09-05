@@ -167,10 +167,49 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".CaptureWidgetProvider" android:exported="true" android:label="Nex Capture">
-            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+        <!--
+          The Capture widget. Its label is a string resource rather than a
+          literal now, because the widget picker renders the receiver's own
+          label and a hardcoded one is English on a Persian phone.
+
+          LOCALE_CHANGED is declared for both widgets, and it is not
+          decoration: RemoteViews carry the *rendered* text, not a resource
+          reference, so a device that switches language would otherwise keep
+          showing whatever words its widgets were last built with.
+        -->
+        <receiver
+            android:name=".CaptureWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_capture_picker_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/capture_widget_info" />
         </receiver>
+
+        <!--
+          The Timeline widget: the top of the timeline with a capture button
+          in its header. Its rows come from TimelineWidgetService, which reads
+          the snapshot file the Dart side writes — the widget never opens the
+          database. BIND_REMOTEVIEWS is the platform's own guard: only the
+          system, acting for a host launcher, may bind the service.
+        -->
+        <receiver
+            android:name=".TimelineWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_timeline_picker_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/timeline_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".TimelineWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
         <meta-data android:name="flutterEmbedding" android:value="2" />
     </application>
 </manifest>

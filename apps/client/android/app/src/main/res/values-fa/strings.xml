@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- هر کلمه‌ای که ویجت‌ها می‌توانند نشان بدهند — قرینهٔ values/strings.xml.
+     عبارت‌های زمان نسبی همان دسته‌بندی کارت‌های خط زمانی را دنبال می‌کنند
+     (الان، ۵ دقیقه قبل، ۵ ساعت قبل و بعدتر). نام «Nex» در هر دو زبان یکی است. -->
+<resources>
+    <string name="widget_capture_picker_label">ثبت Nex</string>
+    <string name="widget_timeline_picker_label">خط زمانی Nex</string>
+
+    <string name="widget_capture_label">ثبت</string>
+    <string name="widget_capture_description">ثبت یک فکر، بدون باز کردن Nex</string>
+    <string name="widget_timeline_description">بالای خط زمانی شما، همراه با دکمهٔ ثبت</string>
+
+    <string name="widget_a11y_capture">ثبت در Nex</string>
+    <string name="widget_a11y_open_app">باز کردن Nex</string>
+
+    <string name="widget_locked_title">Nex قفل است</string>
+    <string name="widget_locked_a11y">Nex قفل است. برای دیدن یادداشت‌ها، Nex را باز کنید.</string>
+
+    <string name="widget_empty_title">هنوز چیزی اینجا نیست.</string>
+    <string name="widget_empty_hint">اولین ثبت شما همین‌جا می‌نشیند.</string>
+    <string name="widget_empty_a11y">هنوز چیزی ثبت نشده است. اولین ثبت شما همین‌جا می‌نشیند.</string>
+
+    <string name="widget_type_text">متن</string>
+    <string name="widget_type_voice">صدا</string>
+    <string name="widget_type_photo">عکس</string>
+    <string name="widget_type_file">فایل</string>
+    <string name="widget_type_checklist">چک‌لیست</string>
+    <string name="widget_type_link">لینک</string>
+
+    <string name="widget_time_now">الان</string>
+    <string name="widget_time_minutes">%1$d دقیقه قبل</string>
+    <string name="widget_time_hours">%1$d ساعت قبل</string>
+    <string name="widget_time_days">%1$d روز قبل</string>
+    <string name="widget_time_weeks">%1$d هفته قبل</string>
+    <string name="widget_time_months">%1$d ماه قبل</string>
+    <string name="widget_time_years">%1$d سال قبل</string>
+</resources>

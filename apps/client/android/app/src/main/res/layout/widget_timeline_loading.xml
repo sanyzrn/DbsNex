@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The list's loading view. The factory reads a small local file and answers
+  in well under a frame, but the ListView shows its loading view on every
+  rebind — the platform default is a spinner, which is exactly the kind of
+  attention Nex does not ask for. A blank spacer of one row's height keeps
+  the list calm while it binds.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="48dp" />

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One row of the Timeline widget: type glyph, one line of the note's own
+  words, and how long ago it was touched.
+
+  Fixed height like a timeline card, so the list stays even whether the note
+  is a word or a paragraph — the preview truncates at one line rather than
+  growing the row. The whole row is the tap target; the note id is filled in
+  at tap time through the widget's PendingIntent template.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/nex_widget_row_root"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:layoutDirection="locale"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:background="?android:attr/selectableItemBackground"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp">
+
+    <ImageView
+        android:id="@+id/nex_widget_row_icon"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/nex_widget_ic_type_text" />
+
+    <TextView
+        android:id="@+id/nex_widget_row_preview"
+        style="@style/NexWidget.RowPreview"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:ellipsize="end"
+        android:maxLines="1" />
+
+    <TextView
+        android:id="@+id/nex_widget_row_time"
+        style="@style/NexWidget.RowTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:maxLines="1" />
+</LinearLayout>

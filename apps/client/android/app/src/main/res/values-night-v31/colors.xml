@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The dark halves of the Android 12+ palette: a dark card, light text, and
+     a lighter accent step carrying the dark glyph. -->
+<resources>
+    <color name="nex_widget_accent">@android:color/system_accent1_200</color>
+    <color name="nex_widget_card">@android:color/system_neutral1_900</color>
+    <color name="nex_widget_text">@android:color/system_neutral1_50</color>
+    <color name="nex_widget_text_dim">@android:color/system_neutral2_400</color>
+    <color name="nex_widget_stroke">@android:color/system_neutral1_700</color>
+</resources>
