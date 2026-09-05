@@ -13,6 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
+import android.view.WindowManager
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -86,6 +87,24 @@ class MainActivity : FlutterFragmentActivity() {
         channel = MethodChannel(engine.dartExecutor.binaryMessenger, "nex/os_capture")
         channel?.setMethodCallHandler { call, result -> when (call.method) {
             "takePending" -> { result.success(pending); pending = null }
+            // Whether the OS may capture what this window is showing.
+            //
+            // FLAG_SECURE is the only thing that blanks the recents thumbnail
+            // and refuses a screenshot; there is no Flutter-side equivalent,
+            // because the frame the system grabs is taken outside the app.
+            // Set from Dart because the app lock it follows is a preference
+            // Dart owns, and re-applied whenever that preference changes.
+            //
+            // Handlers run on the main thread, which is where a window flag
+            // has to be set, so no hop is needed here.
+            "setSecure" -> {
+                if (call.argument<Boolean>("on") == true) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+                result.success(null)
+            }
             "pickFile" -> {
                 picker = result
                 startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {

@@ -34,6 +34,19 @@ Working convention:
 
 ## Unreleased
 
+- **The app lock no longer shows your notes while it is asking who you are.**
+  With liquid glass or a background pattern on, the timeline was readable
+  straight through the unlock prompt — every note on screen, behind the thing
+  that was supposed to be hiding them. The lock screen is now opaque whatever
+  the appearance settings say.
+
+- **Nex is now hidden from the recent-apps screen while the lock is on.** The
+  lock asked for a fingerprint to open the app, and then Android showed a
+  picture of your timeline in the app switcher to anyone who pressed the
+  square. Turning the lock on now also blanks that thumbnail and blocks
+  screenshots, for as long as it stays on — the security screen says so. With
+  the lock off nothing changes: screenshots keep working as they always have.
+
 ## v1.5.3
 
 - **Attachments are now limited to 100 MB, with a message that says so.**

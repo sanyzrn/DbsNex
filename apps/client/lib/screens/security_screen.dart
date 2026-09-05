@@ -106,6 +106,17 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
+            const SizedBox(height: NexSpacing.sm),
+            // Said here because it is a visible consequence of the switch
+            // above and not of anything the user did afterwards: someone whose
+            // screenshot comes out black deserves to have been told why, on
+            // the screen where they turned it on.
+            Text(
+              l10n.securityScreenshotBlocked,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       ),

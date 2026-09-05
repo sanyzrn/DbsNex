@@ -380,6 +380,12 @@ abstract class AppLocalizations {
   /// **'Authentication is handled by your device. Nex never receives or stores your passcode or biometric data.'**
   String get securityLocalOnly;
 
+  /// No description provided for @securityScreenshotBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'While the lock is on, Nex is also hidden from the recent-apps screen and screenshots of it are blocked.'**
+  String get securityScreenshotBlocked;
+
   /// No description provided for @securityPasscodeUnavailable.
   ///
   /// In en, this message translates to:

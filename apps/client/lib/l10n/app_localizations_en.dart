@@ -161,6 +161,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Authentication is handled by your device. Nex never receives or stores your passcode or biometric data.';
 
   @override
+  String get securityScreenshotBlocked =>
+      'While the lock is on, Nex is also hidden from the recent-apps screen and screenshots of it are blocked.';
+
+  @override
   String get securityPasscodeUnavailable =>
       'Set up a device passcode, PIN, or pattern first.';
 
