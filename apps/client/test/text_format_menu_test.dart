@@ -1,3 +1,7 @@
+// `debugDefaultTargetPlatformOverride` only. `widgets.dart` re-exports
+// foundation through a `show` list that carries `TargetPlatform` and not the
+// override beside it, so material alone does not reach it.
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
