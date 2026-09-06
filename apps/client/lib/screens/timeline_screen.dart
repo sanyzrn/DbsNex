@@ -234,11 +234,7 @@ class TimelineScreenState extends State<TimelineScreen>
       // "I had to restart it" report. Every mutation path already refreshes
       // the timeline, so this is the one place that has to notice.
       unawaited(_loadFilterTags());
-      if (!_aiSummaryRequested && value.isNotEmpty) {
-        _aiSummaryRequested = true;
-        unawaited(_loadAiSummary());
-        unawaited(_loadAiHeadline());
-      }
+      _requestAiHeader(value);
     });
     WidgetsBinding.instance.addObserver(this);
     _search.addListener(_onSearchChanged);
@@ -784,6 +780,30 @@ class TimelineScreenState extends State<TimelineScreen>
   /// stream alone is not a replacement: it is a broadcast stream, so anything
   /// emitted before initState subscribes is dropped — a refresh that happens
   /// during startup left the timeline empty.
+  /// Asks for the header's recap and headline, once, as soon as there is
+  /// anything to describe — from whichever delivery arrives first.
+  ///
+  /// This used to hang off the timeline stream alone, and that was a race the
+  /// screen could lose without anything looking wrong. `_timelineController`
+  /// is a broadcast controller, so an event fired before anyone is listening
+  /// is not queued, it is gone — and `NexServices.bootstrap` fires one, from
+  /// a `unawaited(refreshTimeline())`, long before this screen exists. The
+  /// notes themselves were never at risk, because [_loadTimeline] fetches
+  /// them directly rather than waiting to be told; only the recap was, and it
+  /// then sat blank until the *next* event happened to come along — a
+  /// capture, or leaving the app and coming back. That could be minutes, and
+  /// what a person saw in the meantime was a card saying there was nothing to
+  /// summarise on a library full of notes.
+  ///
+  /// So the trigger goes where the data does. Both paths call this, the flag
+  /// makes it once, and whichever gets there first wins.
+  void _requestAiHeader(List<Note> delivered) {
+    if (_aiSummaryRequested || delivered.isEmpty) return;
+    _aiSummaryRequested = true;
+    unawaited(_loadAiSummary());
+    unawaited(_loadAiHeadline());
+  }
+
   Future<void> _loadTimeline() async {
     // Both sides of this matter and neither replaces the other: the failure
     // state below is what a read that never returns needs, and the tour check
@@ -796,6 +816,7 @@ class TimelineScreenState extends State<TimelineScreen>
         _all = loaded;
         notes = _visible(loaded);
       });
+      _requestAiHeader(loaded);
       _tourWhenReady();
     } on Object {
       // A read that never comes back used to look identical to one still
