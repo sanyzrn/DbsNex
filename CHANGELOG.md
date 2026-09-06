@@ -34,13 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v1.6.1
+
 - **The Timeline widget works.** It never has: the one placed on a home
-  screen showed "Problem loading widget" instead of your notes, from the day
-  it shipped. Its layout used a spacer view that Android does not allow a
-  widget to draw — the app built, installed and ran perfectly well, and only
-  the home screen ever saw the failure. The spacer is gone, and the build now
-  refuses any widget layout with the same problem in it. The Capture widget
-  was never affected.
+  screen showed "Can't load widget" instead of your notes, from the day it
+  shipped. Its layout used a spacer view that Android does not allow a widget
+  to draw — the app built, installed and ran perfectly well, and only the home
+  screen ever saw the failure. The spacer is gone, and the build now refuses
+  any widget layout with the same problem in it. The Capture widget was never
+  affected, which is why one of the two always worked.
 
 ## v1.6.0
 
