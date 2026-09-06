@@ -215,6 +215,29 @@ jobs:
             exit 1
           fi
 
+  widget-layouts:
+    name: Widget layouts must be inflatable by RemoteViews
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      # The Timeline widget shipped in v1.5.5 and never rendered once. Its
+      # layout used <Space> to push the capture button to the far end, which
+      # compiles, lints, links and installs — and which RemoteViews refuses
+      # to inflate, because it admits only classes carrying the framework's
+      # @RemoteView annotation. Every check in this file passed while the
+      # widget showed "Problem loading widget" on the home screen.
+      #
+      # No SDK, no emulator: the failure is decidable from the layout text
+      # against a list taken from AOSP, so it costs five seconds and catches
+      # the whole class.
+      - name: Assert widget layouts only name @RemoteView classes
+        run: python3 tools/check_widget_layouts.py
+      # The guard's own tests, including the layout exactly as it shipped
+      # broken — a checker that quietly stops checking is worse than none.
+      - name: Check the checker
+        run: python3 tools/check_widget_layouts_test.py
+
   flutter-ai-package:
     name: packages/ai (analyze + test)
     runs-on: ubuntu-latest
@@ -738,6 +761,7 @@ jobs:
       - changes
       - dart-packages
       - core-boundary
+      - widget-layouts
       - flutter-ai-package
       - flutter-ui-package
       - client-android
