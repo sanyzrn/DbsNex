@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+- **The daily recap no longer says it has nothing on a library full of
+  notes.** Opening Nex fresh could leave the card sitting on "nothing to
+  summarise yet" for minutes, with the recap it already had appearing later
+  by itself — usually the moment you captured something or came back from
+  another app. Your notes were never affected and nothing was lost or
+  re-fetched: the card was waiting to be told the library had loaded, and the
+  message telling it had already gone past. It now asks the moment the notes
+  are actually there.
+
 ## v1.5.5
 
 - **There is a second widget: the top of your timeline on the home screen.**
