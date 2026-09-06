@@ -37,18 +37,32 @@
             android:importantForAccessibility="no"
             android:src="@drawable/nex_widget_ic_mark" />
 
+        <!--
+          The title takes the free space instead of a spacer taking it.
+
+          There used to be a <Space> here doing the pushing, and it is why
+          this widget never rendered at all: RemoteViews inflates through a
+          filter that admits only classes carrying the framework's
+          @RemoteView annotation, and android.widget.Space does not have it
+          (nor does a plain <View>). Every other class in these layouts does.
+          The launcher threw InflateException and showed "Problem loading
+          widget" — a runtime failure, in a file that compiles, that no build
+          or test in this repo could see. See the widget-layout guard in CI,
+          which now fails the build instead.
+
+          A weighted TextView is the fix and the better layout anyway: one
+          view fewer, and a long app name ellipsises against the capture
+          button rather than shoving it off the edge.
+        -->
         <TextView
             android:id="@+id/nex_widget_title"
             style="@style/NexWidget.Title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/app_name" />
-
-        <Space
             android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:ellipsize="end"
+            android:text="@string/app_name" />
 
         <FrameLayout
             android:id="@+id/nex_widget_capture_badge"
