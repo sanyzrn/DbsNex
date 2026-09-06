@@ -442,11 +442,14 @@ class _Preview extends StatelessWidget {
         // and not enough to tell you what a note said: a captured thought is
         // usually a sentence, and a sentence is usually wider than a phone.
         //
-        // Expanded, there is no limit and nothing to ellipsise: the whole
-        // point of asking for it is that the note is longer than two lines
-        // and you want to read it without opening anything.
-        maxLines: expanded ? null : nexCardPreviewLines,
-        overflow: expanded ? TextOverflow.clip : TextOverflow.ellipsis,
+        // Expanded, the card grows to the note — up to
+        // [nexCardExpandedMaxLines]. The point of asking for it is that the
+        // note is longer than two lines and you want to read it without
+        // opening anything; the ceiling is there because a note long enough
+        // to need scrolling is one the card cannot show anyway, and trying
+        // costs the rest of the timeline its place on screen.
+        maxLines: expanded ? nexCardExpandedMaxLines : nexCardPreviewLines,
+        overflow: TextOverflow.ellipsis,
         textDirection: direction,
         textAlign: direction == TextDirection.rtl
             ? TextAlign.right
@@ -466,7 +469,10 @@ class _Preview extends StatelessWidget {
 /// is a card telling you nothing.
 ///
 /// The ordering holds when expanded too: a seven-item list still leads with
-/// what is left to do. That is the same list, not a different view of it.
+/// what is left to do. That is the same list, not a different view of it —
+/// and an expanded card is bounded by [nexCardExpandedMaxLines] like any
+/// other, so a hundred-item shopping list carries "+88" on its last line
+/// rather than swallowing the timeline.
 class _ChecklistPreview extends StatelessWidget {
   const _ChecklistPreview({required this.items, required this.expanded});
 
@@ -479,9 +485,9 @@ class _ChecklistPreview extends StatelessWidget {
       ...items.where((item) => !item.done),
       ...items.where((item) => item.done),
     ];
-    final shown = expanded
-        ? ordered
-        : ordered.take(nexCardPreviewLines).toList();
+    final shown = ordered
+        .take(expanded ? nexCardExpandedMaxLines : nexCardPreviewLines)
+        .toList();
     final remaining = ordered.length - shown.length;
 
     return SizedBox(

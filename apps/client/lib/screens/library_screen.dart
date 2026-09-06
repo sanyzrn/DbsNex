@@ -61,7 +61,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
             onTap: () => Navigator.push(
               context,
               NexPageRoute<void>(
-                builder: (_) => TagManagerScreen(services: services),
+                builder: (_) => TagManagerScreen(
+                  services: services,
+                  preferences: widget.preferences,
+                ),
               ),
             ),
           ),

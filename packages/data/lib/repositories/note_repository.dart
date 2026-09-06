@@ -170,33 +170,50 @@ WHERE id = ? AND deleted_at IS NULL
               .first['count']
           as int;
 
+  /// Leaves `updated_at` alone, for the reason spelled out on [_bumpNote]:
+  /// it is what the timeline sorts on, so it means "when this note last said
+  /// something different". Deleting a note does not change what it says, and
+  /// the pair of timestamps that used to move here is what sent an undone
+  /// delete to the top of the list wearing a "now" badge — the note came back
+  /// somewhere it had never been. `deleted_at` is the delete's own timestamp
+  /// and Trash sorts on that, so nothing needed the edit clock.
+  ///
+  /// Sync is unaffected: `rev` and `sync_state` still move, and
+  /// the merger decides a delete in its tombstone branch — which is
+  /// reached before any timestamp is compared — so a delete never needed a
+  /// newer `updated_at` to win.
   void softDelete(String noteId) {
     final now = DateTime.now().toUtc().toIso8601String();
     db.execute(
       '''
 UPDATE notes
-SET deleted_at = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
+SET deleted_at = ?, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [now, now, if (localDeviceId != null) localDeviceId, noteId],
+      [now, if (localDeviceId != null) localDeviceId, noteId],
     );
     db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
   }
 
   /// Undo a soft-delete within the toast window (FR-2.6).
+  ///
+  /// Undo means undo: the note comes back exactly where it was, keeping the
+  /// `updated_at` [softDelete] deliberately did not touch. Restoring it to
+  /// the top of the timeline instead was the visible half of the same bug —
+  /// the row was newer than the note, so the list put it first and the card
+  /// said it had just been written.
   void undelete(String noteId) {
-    final now = DateTime.now().toUtc().toIso8601String();
     final rows = db.select('SELECT * FROM notes WHERE id = ?', [noteId]);
     if (rows.isEmpty) return;
     db.execute(
       '''
 UPDATE notes
-SET deleted_at = NULL, updated_at = ?, rev = rev + 1, sync_state = 'pending'
+SET deleted_at = NULL, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [now, if (localDeviceId != null) localDeviceId, noteId],
+      [if (localDeviceId != null) localDeviceId, noteId],
     );
     // Re-derived from the whole restored row, not just the text body: a
     // checklist, a voice note with its transcript, a photo with OCR text and

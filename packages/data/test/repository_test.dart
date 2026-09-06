@@ -56,6 +56,51 @@ void main() {
       expect(repo.getById(note.id, includeDeleted: true)?.isDeleted, isTrue);
     });
 
+    test('undo puts the note back where it was, not at the top', () {
+      // Three notes a day apart, so position in the timeline is a fact about
+      // the data rather than about how fast the test runs.
+      final old = repo.insert(
+        makeText('oldest', at: DateTime.utc(2026, 1, 1)),
+      );
+      final middle = repo.insert(
+        makeText('middle', at: DateTime.utc(2026, 1, 2)),
+      );
+      final newest = repo.insert(
+        makeText('newest', at: DateTime.utc(2026, 1, 3)),
+      );
+
+      repo.softDelete(middle.id);
+      repo.undelete(middle.id);
+
+      expect(
+        repo.listTimeline().map((n) => n.id),
+        [newest.id, middle.id, old.id],
+      );
+      // And the card reads as what it is: a note from the 2nd, not one
+      // written just now.
+      expect(
+        repo.getById(middle.id)!.updatedAt,
+        DateTime.utc(2026, 1, 2),
+      );
+    });
+
+    test('delete and undo still reach other devices', () {
+      // The timestamp stands still; the sync fields must not. Without this
+      // the fix above would quietly turn a delete into a local-only one.
+      final note = repo.insert(makeText('syncs'));
+      repo.markSynced(note.id);
+
+      repo.softDelete(note.id);
+      final deleted = repo.getById(note.id, includeDeleted: true)!;
+      expect(deleted.syncState, SyncState.pending);
+      expect(deleted.rev, greaterThan(note.rev));
+
+      repo.undelete(note.id);
+      final restored = repo.getById(note.id)!;
+      expect(restored.syncState, SyncState.pending);
+      expect(restored.rev, greaterThan(deleted.rev));
+    });
+
     test('tag attach and detach', () {
       final note = repo.insert(makeText('tagged'));
       final tag = repo.upsertTag(name: 'Work', color: tagAccentPalette.first);

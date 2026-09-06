@@ -190,6 +190,22 @@
   "backgroundAurora": "Aurora",
   "backgroundRipple": "Ripple",
   "backgroundWeave": "Weave",
+  "backgroundDots": "Dots",
+  "@backgroundDots": {
+    "description": "Background preset: a sparse dot grid"
+  },
+  "backgroundDusk": "Dusk",
+  "@backgroundDusk": {
+    "description": "Background preset: one accent wash rising off the bottom edge"
+  },
+  "backgroundTopography": "Topography",
+  "@backgroundTopography": {
+    "description": "Background preset: contour lines"
+  },
+  "backgroundPrism": "Prism",
+  "@backgroundPrism": {
+    "description": "Background preset: wide diagonal bands of colour"
+  },
   "accentColorSetting": "Accent color",
   "@accentColorSetting": {
     "description": "Settings row that opens the accent-colour picker"
@@ -1073,10 +1089,6 @@
   "@customColor": {
     "description": "Heading above the free color sliders"
   },
-  "saturation": "Saturation",
-  "@saturation": {
-    "description": "Color picker slider label"
-  },
   "brightness": "Brightness",
   "@brightness": {
     "description": "Color picker slider label"
@@ -1084,6 +1096,14 @@
   "noColor": "No color",
   "@noColor": {
     "description": "The tag carries no accent"
+  },
+  "defaultColor": "Default",
+  "@defaultColor": {
+    "description": "The colour picker's escape hatch when the thing being coloured always has one — choosing it restores the shipped accent"
+  },
+  "recentColors": "Recently used",
+  "@recentColors": {
+    "description": "Heading above the row of colours picked before"
   },
   "color": "Color",
   "@color": {

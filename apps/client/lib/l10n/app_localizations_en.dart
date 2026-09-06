@@ -500,6 +500,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backgroundWeave => 'Weave';
 
   @override
+  String get backgroundDots => 'Dots';
+
+  @override
+  String get backgroundDusk => 'Dusk';
+
+  @override
+  String get backgroundTopography => 'Topography';
+
+  @override
+  String get backgroundPrism => 'Prism';
+
+  @override
   String get accentColorSetting => 'Accent color';
 
   @override
@@ -1334,13 +1346,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customColor => 'Custom';
 
   @override
-  String get saturation => 'Saturation';
-
-  @override
   String get brightness => 'Brightness';
 
   @override
   String get noColor => 'No color';
+
+  @override
+  String get defaultColor => 'Default';
+
+  @override
+  String get recentColors => 'Recently used';
 
   @override
   String get color => 'Color';

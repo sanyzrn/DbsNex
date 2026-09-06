@@ -1,10 +1,25 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
 import 'nex_tokens.dart';
 
-enum NexBackgroundPattern { plain, aurora, ripple, weave }
+/// The backdrop the whole app sits on.
+///
+/// Order is the order they are offered in: the quiet ones first, then the
+/// ones that are unmistakably a choice. Names are stored, so an entry can be
+/// added anywhere but never renamed — see [NexBackgroundPatternWire].
+enum NexBackgroundPattern {
+  plain,
+  aurora,
+  ripple,
+  weave,
+  dots,
+  dusk,
+  topography,
+  prism,
+}
 
 extension NexBackgroundPatternWire on NexBackgroundPattern {
   String get wireName => name;
@@ -308,6 +323,18 @@ class _BackgroundPainter extends CustomPainter {
       case NexBackgroundPattern.weave:
         _paintWeave(canvas, size);
         return;
+      case NexBackgroundPattern.dots:
+        _paintDots(canvas, size);
+        return;
+      case NexBackgroundPattern.dusk:
+        _paintDusk(canvas, size);
+        return;
+      case NexBackgroundPattern.topography:
+        _paintTopography(canvas, size);
+        return;
+      case NexBackgroundPattern.prism:
+        _paintPrism(canvas, size);
+        return;
     }
   }
 
@@ -362,6 +389,125 @@ class _BackgroundPainter extends CustomPainter {
         paint,
       );
     }
+  }
+
+  /// Graph paper, at the density of a notebook rather than a spreadsheet.
+  ///
+  /// The quietest thing that is still visibly *something*: a grid of dots
+  /// carries no direction and no focal point, so nothing on top of it has to
+  /// compete with it. 26 apart is far enough that a line of text crosses only
+  /// a handful.
+  void _paintDots(Canvas canvas, Size size) {
+    const step = 26.0;
+    final paint = Paint()
+      ..color = (_dark ? Colors.white : Colors.black).withValues(alpha: 0.06);
+    for (var y = step / 2; y < size.height; y += step) {
+      for (var x = step / 2; x < size.width; x += step) {
+        canvas.drawCircle(Offset(x, y), 1.1, paint);
+      }
+    }
+  }
+
+  /// One wash of accent rising off the bottom edge.
+  ///
+  /// Aurora with a single bloom and no colours of its own — the timeline
+  /// starts at the top and ends here, so the only tinted part of the screen
+  /// is the part with the least on it.
+  void _paintDusk(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, size.height * 0.45, size.width, size.height);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            accent.withValues(alpha: _dark ? 0.20 : 0.13),
+            accent.withValues(alpha: 0),
+          ],
+        ).createShader(rect),
+    );
+  }
+
+  /// Contour lines, the way a map draws a hill.
+  ///
+  /// Deliberately not concentric circles — [_paintRipple] already is one, and
+  /// what makes a contour read as terrain is that no two rings are the same
+  /// shape. Each ring is a circle whose radius is bent by a fixed pair of
+  /// sines, so the drawing is elaborate and entirely deterministic: no seed,
+  /// no stored state, and the same picture on every repaint.
+  void _paintTopography(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1
+      ..color = accent.withValues(alpha: _dark ? 0.13 : 0.10);
+    final center = Offset(size.width * 0.62, size.height * 0.34);
+    const steps = 72;
+    for (var ring = 0; ring < 11; ring++) {
+      final base = 40.0 + ring * 46;
+      final path = Path();
+      for (var i = 0; i <= steps; i++) {
+        final angle = i / steps * 2 * math.pi;
+        // Two waves at different frequencies, drifting per ring, so the
+        // rings nest without ever running parallel.
+        final wobble =
+            math.sin(angle * 3 + ring * 0.6) * (10 + ring * 2.2) +
+            math.sin(angle * 5 - ring * 0.35) * 6;
+        final radius = base + wobble;
+        final point = Offset(
+          center.dx + math.cos(angle) * radius,
+          center.dy + math.sin(angle) * radius * 0.82,
+        );
+        if (i == 0) {
+          path.moveTo(point.dx, point.dy);
+        } else {
+          path.lineTo(point.dx, point.dy);
+        }
+      }
+      path.close();
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  /// Wide diagonal bands of colour, edges dissolved into each other.
+  ///
+  /// The loudest of the set and the only one that does not take its colour
+  /// from the accent: the point of it is the spread between the bands, which
+  /// a single hue cannot produce. Still built from gradients that reach zero
+  /// at both ends, so it is a tint across the screen rather than stripes on
+  /// it — text sits on top of it as readably as on any of the others.
+  void _paintPrism(Canvas canvas, Size size) {
+    final alpha = _dark ? 0.22 : 0.15;
+    final bands = <(Color, double)>[
+      (accent, -0.15),
+      (const Color(0xFFEC4899), 0.18),
+      (const Color(0xFFF59E0B), 0.52),
+      (const Color(0xFF10B981), 0.86),
+    ];
+    // Rotated about the centre so the bands run corner to corner whatever
+    // the screen's proportions are.
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.rotate(-math.pi / 5);
+    canvas.translate(-size.width / 2, -size.height / 2);
+    final span = size.longestSide * 1.6;
+    final width = span / 2.6;
+    for (final band in bands) {
+      final left = -size.width * 0.3 + band.$2 * span;
+      final rect = Rect.fromLTWH(left, -span * 0.3, width, span * 1.6);
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..shader = LinearGradient(
+            colors: [
+              band.$1.withValues(alpha: 0),
+              band.$1.withValues(alpha: alpha),
+              band.$1.withValues(alpha: 0),
+            ],
+          ).createShader(rect),
+      );
+    }
+    canvas.restore();
   }
 
   @override

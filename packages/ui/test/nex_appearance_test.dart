@@ -59,6 +59,16 @@ void main() {
     expect(find.text('Glass'), findsOneWidget);
   });
 
+  test('the preset list only ever grows', () {
+    // Wire names are stored, so a rename or a reorder that changes one turns
+    // every device already carrying it back to Plain on the next launch.
+    // These are the ones that have shipped.
+    expect(
+      NexBackgroundPattern.values.map((p) => p.wireName),
+      containsAll(<String>['plain', 'aurora', 'ripple', 'weave']),
+    );
+  });
+
   testWidgets('every background preset paints behind its child', (
     tester,
   ) async {
@@ -75,6 +85,35 @@ void main() {
       expect(find.text('Content'), findsOneWidget);
       if (pattern != NexBackgroundPattern.plain) {
         expect(find.byType(CustomPaint), findsWidgets);
+      }
+    }
+  });
+
+  testWidgets('every background preset paints in both themes', (tester) async {
+    // A preset is a picture drawn with alpha over whatever ground the theme
+    // gives it, so one tuned only against white disappears — or shouts — on
+    // black. Painting is exercised here rather than only built: a bad shader
+    // or a malformed path throws inside `paint`, which a widget that is never
+    // rasterised will never reach.
+    for (final theme in [nexLightTheme(), nexDarkTheme()]) {
+      for (final pattern in NexBackgroundPattern.values) {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: theme,
+            home: RepaintBoundary(
+              child: NexAppBackground(
+                pattern: pattern,
+                child: const Text('Content'),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: '${pattern.wireName} threw while painting',
+        );
       }
     }
   });

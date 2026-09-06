@@ -130,6 +130,41 @@ void main() {
       expect(tester.getSize(find.byType(NoteCard)).height, collapsed);
     });
 
+    testWidgets('a very long checklist stops at the ceiling', (
+      tester,
+    ) async {
+      // The setting is for reading a note without opening it, not for
+      // handing one note the whole screen. Past the ceiling the card says
+      // how much it is holding back, exactly as a collapsed one does.
+      await tester.pumpWidget(
+        host(checklist(nexCardExpandedMaxLines + 8), expanded: true),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('item $nexCardExpandedMaxLines'), findsOneWidget);
+      expect(find.text('item ${nexCardExpandedMaxLines + 1}'), findsNothing);
+      expect(find.text('+8'), findsOneWidget);
+    });
+
+    testWidgets('an enormous text note cannot outgrow the ceiling', (
+      tester,
+    ) async {
+      // Twice the words is not twice the card once both are past the
+      // ceiling. Without the cap this grew without limit and pushed the rest
+      // of the timeline off screen.
+      final long = textNote(List.filled(300, 'word').join(' '));
+      final enormous = textNote(List.filled(600, 'word').join(' '));
+
+      await tester.pumpWidget(host(long, expanded: true));
+      await tester.pumpAndSettle();
+      final grown = tester.getSize(find.byType(NoteCard)).height;
+
+      await tester.pumpWidget(host(enormous, expanded: true));
+      await tester.pumpAndSettle();
+
+      expect(tester.getSize(find.byType(NoteCard)).height, grown);
+    });
+
     testWidgets('a long text note is not cut off when expanded', (
       tester,
     ) async {

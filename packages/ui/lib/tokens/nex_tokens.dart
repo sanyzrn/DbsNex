@@ -271,6 +271,20 @@ const nexCardLeadingSize = 48.0;
 /// usually wider than a phone.
 const nexCardPreviewLines = 2;
 
+/// The ceiling on a card asked to show its whole note.
+///
+/// "Show in full" shipped with no limit at all, which is only the right
+/// answer while every note is short. A long one turned its card into a page:
+/// the rest of the timeline was pushed off the bottom, and scrolling past a
+/// note you had already read cost as much as reading it. Twelve lines is
+/// about a phone-screen's worth — enough that the setting still does what it
+/// is for on the notes people actually turn it on for, and a floor under how
+/// far one note can push everything else away.
+///
+/// Past the ceiling the card ellipsises, exactly as an unexpanded one does,
+/// and the note itself is still one tap away.
+const nexCardExpandedMaxLines = 12;
+
 /// One line of the preview, at the theme's bodyLarge line height.
 ///
 /// A constant rather than a measurement, because the card's height has to be
