@@ -500,6 +500,18 @@ class AppLocalizationsFa extends AppLocalizations {
   String get backgroundWeave => 'بافت';
 
   @override
+  String get backgroundDots => 'نقطه‌چین';
+
+  @override
+  String get backgroundDusk => 'شامگاه';
+
+  @override
+  String get backgroundTopography => 'توپوگرافی';
+
+  @override
+  String get backgroundPrism => 'منشور';
+
+  @override
   String get accentColorSetting => 'رنگ تاکید';
 
   @override
@@ -1334,13 +1346,16 @@ class AppLocalizationsFa extends AppLocalizations {
   String get customColor => 'دلخواه';
 
   @override
-  String get saturation => 'غلظت';
-
-  @override
   String get brightness => 'روشنایی';
 
   @override
   String get noColor => 'بدون رنگ';
+
+  @override
+  String get defaultColor => 'پیش‌فرض';
+
+  @override
+  String get recentColors => 'استفاده‌شده‌های اخیر';
 
   @override
   String get color => 'رنگ';

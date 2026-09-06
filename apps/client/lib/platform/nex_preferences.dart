@@ -10,6 +10,13 @@ import 'ai_provider.dart';
 import 'chat_history.dart';
 import 'package:uuid/uuid.dart';
 
+/// How many colours a picker remembers between visits.
+///
+/// Eight is one row on a phone. A history that wraps to a second row stops
+/// being a history and becomes a palette, which is what the shipped swatches
+/// already are.
+const nexRecentColorLimit = 8;
+
 /// The actions a swipe edge can be bound to.
 ///
 /// `none` is a real choice, not an absence: a user who wants one gesture and
@@ -318,6 +325,17 @@ class NexPreferences extends ChangeNotifier {
   /// [NexAccentPalette].
   String? get accentSeed => _prefs.getString('appearance.accent_seed');
 
+  /// The `#RRGGBB` colours most recently chosen in a colour picker, newest
+  /// first.
+  ///
+  /// Tag colours are how a user encodes their own meaning (ADR-021), and
+  /// meaning repeats: the second "urgent" tag wants the first one's red. The
+  /// shipped swatches cannot carry that, because the colour someone settles
+  /// on is by definition one the five did not anticipate — so the picker
+  /// remembers what was actually picked.
+  List<String> get recentColors =>
+      _prefs.getStringList('appearance.recent_colors') ?? const [];
+
   /// A multiplier on top of the system's own text scale, not a replacement
   /// for it — someone who already runs a larger system font can still make
   /// Nex itself a little bigger or smaller on top of that. 1.0 is "as the
@@ -454,6 +472,22 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setBackgroundPattern(NexBackgroundPattern value) async {
     await _prefs.setString('appearance.background_pattern', value.wireName);
+    notifyListeners();
+  }
+
+  /// Moves [color] to the front of [recentColors], keeping the list to
+  /// [nexRecentColorLimit].
+  ///
+  /// Re-picking a colour already in the list promotes it rather than
+  /// duplicating it, so the row stays eight *distinct* colours instead of
+  /// filling up with the one being used most.
+  Future<void> rememberColor(String color) async {
+    final normalised = color.toUpperCase();
+    final next = [
+      normalised,
+      ...recentColors.where((c) => c.toUpperCase() != normalised),
+    ].take(nexRecentColorLimit).toList();
+    await _prefs.setStringList('appearance.recent_colors', next);
     notifyListeners();
   }
 

@@ -968,6 +968,30 @@ abstract class AppLocalizations {
   /// **'Weave'**
   String get backgroundWeave;
 
+  /// Background preset: a sparse dot grid
+  ///
+  /// In en, this message translates to:
+  /// **'Dots'**
+  String get backgroundDots;
+
+  /// Background preset: one accent wash rising off the bottom edge
+  ///
+  /// In en, this message translates to:
+  /// **'Dusk'**
+  String get backgroundDusk;
+
+  /// Background preset: contour lines
+  ///
+  /// In en, this message translates to:
+  /// **'Topography'**
+  String get backgroundTopography;
+
+  /// Background preset: wide diagonal bands of colour
+  ///
+  /// In en, this message translates to:
+  /// **'Prism'**
+  String get backgroundPrism;
+
   /// Settings row that opens the accent-colour picker
   ///
   /// In en, this message translates to:
@@ -2321,12 +2345,6 @@ abstract class AppLocalizations {
   /// Color picker slider label
   ///
   /// In en, this message translates to:
-  /// **'Saturation'**
-  String get saturation;
-
-  /// Color picker slider label
-  ///
-  /// In en, this message translates to:
   /// **'Brightness'**
   String get brightness;
 
@@ -2335,6 +2353,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No color'**
   String get noColor;
+
+  /// The colour picker's escape hatch when the thing being coloured always has one — choosing it restores the shipped accent
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get defaultColor;
+
+  /// Heading above the row of colours picked before
+  ///
+  /// In en, this message translates to:
+  /// **'Recently used'**
+  String get recentColors;
 
   /// Tag manager menu entry that opens the color picker
   ///

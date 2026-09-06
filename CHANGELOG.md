@@ -43,6 +43,34 @@ Working convention:
   message telling it had already gone past. It now asks the moment the notes
   are actually there.
 
+- **Undoing a delete puts the note back where it was.** It used to reappear
+  at the very top of the timeline stamped "now", as though it had just been
+  written — a note from last month came back somewhere it had never been.
+  Delete and undo now leave the note's own time alone, so undo really is an
+  undo. Trash still lists what you deleted in the order you deleted it.
+
+- **"Show in full" has a ceiling.** A card asked to show its whole note had
+  no limit at all, so one long note could take the entire screen and push
+  everything under it out of reach. It now shows up to twelve lines and
+  trails off, exactly as a collapsed card does — and a long checklist says
+  how many items it is holding back.
+
+- **The colour picker is new.** Three sliders — hue, saturation, brightness —
+  are gone, replaced by a colour wheel you can put a finger anywhere on. The
+  hex code underneath can be read off or typed in, for a colour that has to
+  match something outside Nex, and the colours you picked before are offered
+  under the built-in ones. Tag colours and the app accent both use it.
+
+- **The accent picker no longer offers "No color".** Nex always has an accent
+  — something is drawing the caret right now — so the choice that actually
+  resets it now says "Default" and shows the colour it goes back to, instead
+  of an empty crossed-out circle.
+
+- **Four more backgrounds.** Two quiet ones in the register of the others —
+  Dots, a sparse grid, and Dusk, a single wash of your accent rising off the
+  bottom edge — and two that are unmistakably a choice: Topography, contour
+  lines like a map, and Prism, wide diagonal bands of colour.
+
 ## v1.5.5
 
 - **There is a second widget: the top of your timeline on the home screen.**

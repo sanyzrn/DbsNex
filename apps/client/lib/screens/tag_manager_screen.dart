@@ -7,15 +7,24 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../widgets/nex_dialog.dart';
+import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../widgets/tag_color_picker.dart';
 
 class TagManagerScreen extends StatefulWidget {
-  const TagManagerScreen({super.key, required this.services});
+  const TagManagerScreen({
+    super.key,
+    required this.services,
+    required this.preferences,
+  });
 
   // Takes the service facade, not LibraryMaintenance: maintenance runs inside
   // the database isolate and the UI cannot hold an instance of it.
   final NexServices services;
+
+  /// Only for the colour picker's recently-used row, which is stored per
+  /// device rather than with the tag.
+  final NexPreferences preferences;
 
   @override
   State<TagManagerScreen> createState() => _TagManagerScreenState();
@@ -151,6 +160,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       final chosen = await TagColorPicker.show(
         context,
         initial: value.tag.color,
+        preferences: widget.preferences,
       );
       // A dismissal is not a choice; only an explicit Save clears a colour.
       if (chosen != null) {

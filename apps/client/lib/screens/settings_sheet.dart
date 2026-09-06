@@ -584,6 +584,10 @@ String _backgroundLabel(AppLocalizations l10n, NexBackgroundPattern pattern) =>
       NexBackgroundPattern.aurora => l10n.backgroundAurora,
       NexBackgroundPattern.ripple => l10n.backgroundRipple,
       NexBackgroundPattern.weave => l10n.backgroundWeave,
+      NexBackgroundPattern.dots => l10n.backgroundDots,
+      NexBackgroundPattern.dusk => l10n.backgroundDusk,
+      NexBackgroundPattern.topography => l10n.backgroundTopography,
+      NexBackgroundPattern.prism => l10n.backgroundPrism,
     };
 
 /// Opens one setting's choices as their own sheet, and applies the pick.
@@ -1433,6 +1437,13 @@ class _AccentColorRow extends StatelessWidget {
       // already on screen rather than jumping to an unrelated hue.
       initial: preferences.accentSeed ?? _hex(NexColors.accentLight),
       title: l10n.accentColorPickerTitle,
+      preferences: preferences,
+      // The app always has an accent — something is drawing the caret right
+      // now — so "no colour" was never one of the answers here. The picker
+      // was offering it anyway, as a crossed-out empty dot, for what is
+      // actually "back to the one Nex ships with". Naming the colour lets the
+      // swatch show it.
+      defaultColor: NexColors.accentLight,
     );
     if (result == null) return;
     await preferences.setAccentSeed(result.color);

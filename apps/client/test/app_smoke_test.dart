@@ -928,8 +928,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TagColorPicker), findsOneWidget);
 
-    // The first swatch is "no colour"; the second is the palette's first
-    // real entry.
+    // The first swatch is the escape hatch — "Default" here, since an app
+    // accent is never absent — and the second is the palette's first entry.
     final swatches = find.descendant(
       of: find.byType(TagColorPicker),
       matching: find.byType(InkWell),
