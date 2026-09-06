@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.6.0
+
 - **The daily recap no longer says it has nothing on a library full of
   notes.** Opening Nex fresh could leave the card sitting on "nothing to
   summarise yet" for minutes, with the recap it already had appearing later
