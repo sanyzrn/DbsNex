@@ -34,12 +34,16 @@ Working convention:
 
 ## Unreleased
 
+## v1.6.2
+
 - **The colour wheel hands back the colour you touched.** The disc was drawn a
   quarter turn out of step with the arithmetic behind it, so the marker sat on
-  green and the picker chose orange, sat on blue and chose green. The wheel was
-  being rotated twice — once by the gradient and once again on top of it — and
-  now there is one rotation that the paint, the marker and your finger all read
-  from.
+  green and the picker chose orange, sat on blue and chose green. Underneath
+  that, the quarter of the disc between twelve and three o'clock was not really
+  a spectrum at all — it was one flat red wedge, because that part of the
+  circle fell outside the range the gradient was given. Both are fixed, and the
+  paint, the marker and your finger now read from one number instead of three
+  that had to agree.
 
 - **Setting a reminder is one screen.** It was a list of four shortcuts and a
   "Pick a time…" row that opened the calendar dialog, then the clock dialog —
