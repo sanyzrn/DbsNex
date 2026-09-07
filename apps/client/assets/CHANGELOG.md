@@ -34,6 +34,27 @@ Working convention:
 
 ## Unreleased
 
+## v1.6.2
+
+- **The colour wheel hands back the colour you touched.** The disc was drawn a
+  quarter turn out of step with the arithmetic behind it, so the marker sat on
+  green and the picker chose orange, sat on blue and chose green. Underneath
+  that, the quarter of the disc between twelve and three o'clock was not really
+  a spectrum at all — it was one flat red wedge, because that part of the
+  circle fell outside the range the gradient was given. Both are fixed, and the
+  paint, the marker and your finger now read from one number instead of three
+  that had to agree.
+
+- **Setting a reminder is one screen.** It was a list of four shortcuts and a
+  "Pick a time…" row that opened the calendar dialog, then the clock dialog —
+  and backing out of the clock threw the date away. Now the day, the hour and
+  the minute are three columns you scroll, the button underneath says exactly
+  what it will do ("Remind tomorrow at 09:00"), and the four shortcuts are
+  still there as chips that move the wheels rather than closing the sheet, so
+  "tomorrow morning, but at eight" is a tap and a flick. A time that has
+  already gone by cannot be set any more — it used to be accepted and then
+  quietly dropped.
+
 ## v1.6.1
 
 - **The Timeline widget works.** It never has: the one placed on a home

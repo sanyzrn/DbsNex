@@ -4,7 +4,6 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'due_label.dart';
-import 'reminder_picker.dart';
 
 /// The card's screen-reader strings, in the language the user chose.
 ///

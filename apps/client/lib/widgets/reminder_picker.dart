@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
-import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import 'due_label.dart';
 import 'nex_dialog.dart';
 import '../platform/nex_services.dart';
-import 'due_label.dart';
 import 'nex_banner.dart';
-import 'nex_time_picker.dart';
+import 'reminder_wheel.dart';
 
 /// Asks when a note should come back, and sets or clears the alarm.
 ///
@@ -26,23 +25,10 @@ Future<bool> nexPickReminder({
 }) async {
   final l10n = AppLocalizations.of(context);
   final now = DateTime.now();
-  final choices = <(String, DateTime?)>[
-    (l10n.remindLater, now.add(const Duration(hours: 1))),
-    (
-      l10n.remindEvening,
-      DateTime(now.year, now.month, now.day, 20).isAfter(now)
-          ? DateTime(now.year, now.month, now.day, 20)
-          // Past eight already: "this evening" can only mean tomorrow's.
-          : DateTime(now.year, now.month, now.day + 1, 20),
-    ),
-    (l10n.remindTomorrow, DateTime(now.year, now.month, now.day + 1, 9)),
-    (l10n.remindNextWeek, DateTime(now.year, now.month, now.day + 7, 9)),
-  ];
 
-  // Carried out of the sheet rather than returned with the time, because a
-  // repeat is chosen *before* the shortcut that closes the sheet — the four
-  // shortcuts are the answer to "when", and this is the answer to "how often"
-  // beside them.
+  // Carried out of the sheet rather than returned beside the time, because
+  // the sheet has one exit and it is the button: the repeat is part of the
+  // same answer, chosen before it.
   var repeat = note.dueRepeat;
 
   // The standard sheet chrome (glass surface, drag handle, keyboard inset),
@@ -51,164 +37,18 @@ Future<bool> nexPickReminder({
   // corner rounding and a different handle than every sheet beside it.
   final picked = await nexShowSheet<DateTime?>(
     context: context,
-    builder: (sheetContext) => StatefulBuilder(
-      builder: (sheetContext, setSheetState) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // What is already set, before the list of things that would replace
-            // it. Without this the sheet asked someone to change a reminder they
-            // had no way of reading — the only informed thing they could do to
-            // it was delete it.
-            if (note.dueAt case final due?)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  NexSpacing.md,
-                  NexSpacing.md,
-                  NexSpacing.md,
-                  NexSpacing.sm,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.remindChange,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: NexSpacing.xs),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.notifications_active_outlined,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: NexSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            l10n.remindCurrent(
-                              note.dueRepeat == NoteRepeat.once
-                                  ? nexDueExact(sheetContext, due)
-                                  : l10n.remindRepeatingAt(
-                                      nexDueExact(sheetContext, due),
-                                      nexRepeatLabel(l10n, note.dueRepeat),
-                                    ),
-                            ),
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            if (note.dueAt != null) const Divider(height: 1),
-            // How often, above when. A reminder that repeats is still set at a
-            // time, so this modifies the four shortcuts below rather than
-            // replacing them — and it is a segmented row rather than four more
-            // list rows, which would have doubled the height of the sheet to
-            // say one word.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                NexSpacing.md,
-                NexSpacing.sm,
-                NexSpacing.md,
-                NexSpacing.sm,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.repeat,
-                    size: 18,
-                    color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: NexSpacing.sm),
-                  Text(
-                    l10n.remindRepeat,
-                    style: Theme.of(sheetContext).textTheme.bodyMedium,
-                  ),
-                  const Spacer(),
-                  SegmentedButton<NoteRepeat>(
-                    showSelectedIcon: false,
-                    style: const ButtonStyle(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    segments: [
-                      ButtonSegment(
-                        value: NoteRepeat.once,
-                        label: Text(l10n.remindRepeatOnce),
-                      ),
-                      ButtonSegment(
-                        value: NoteRepeat.daily,
-                        label: Text(l10n.remindRepeatDaily),
-                      ),
-                      ButtonSegment(
-                        value: NoteRepeat.weekly,
-                        label: Text(l10n.remindRepeatWeekly),
-                      ),
-                    ],
-                    selected: {repeat},
-                    onSelectionChanged: (value) =>
-                        setSheetState(() => repeat = value.first),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            for (final (label, at) in choices)
-              ListTile(
-                leading: const Icon(Icons.schedule),
-                title: Text(label),
-                onTap: () => Navigator.pop(sheetContext, at),
-              ),
-            ListTile(
-              leading: const Icon(Icons.event),
-              title: Text(l10n.remindPick),
-              onTap: () async {
-                final date = await nexPickDate(
-                  sheetContext,
-                  first: now,
-                  last: now.add(const Duration(days: 365 * 5)),
-                  initial: now.add(const Duration(days: 1)),
-                );
-                if (date == null || !sheetContext.mounted) return;
-                final time = await nexPickTime(
-                  sheetContext,
-                  initial: const TimeOfDay(hour: 9, minute: 0),
-                );
-                // Backing out of the clock is backing out, the same as
-                // backing out of the calendar one line above. It used to fall
-                // through to `?? 9` and set nine o'clock — a reminder at an
-                // hour nobody chose, from a dialog someone had just
-                // dismissed, announced as "Reminder set".
-                if (time == null || !sheetContext.mounted) return;
-                Navigator.pop(
-                  sheetContext,
-                  DateTime(
-                    date.year,
-                    date.month,
-                    date.day,
-                    time.hour,
-                    time.minute,
-                  ),
-                );
-              },
-            ),
-            if (note.dueAt != null)
-              ListTile(
-                leading: const Icon(Icons.notifications_off_outlined),
-                title: Text(l10n.remindClear),
-                // Null is a real answer here, so the sheet has to be able to
-                // tell "cleared" from "dismissed" — which is what the sentinel
-                // below is for.
-                onTap: () => Navigator.pop(sheetContext, _clearReminder),
-              ),
-          ],
-        ),
+    builder: (sheetContext) => SafeArea(
+      child: ReminderWheel(
+        note: note,
+        now: now,
+        onSubmit: (when, chosenRepeat) {
+          repeat = chosenRepeat;
+          Navigator.pop(sheetContext, when);
+        },
+        // Null is a real answer here, so the sheet has to be able to tell
+        // "cleared" from "dismissed" — which is what the sentinel below is
+        // for.
+        onClear: () => Navigator.pop(sheetContext, _clearReminder),
       ),
     ),
   );
@@ -283,15 +123,3 @@ String nexUntilLabel(AppLocalizations l10n, DateTime when) {
 /// A sentinel meaning "take the reminder away", told apart from a dismissed
 /// sheet by identity rather than by value.
 final _clearReminder = DateTime.utc(1970);
-
-/// "Every day", "Every week" — or nothing at all for a one-off.
-///
-/// Beside a time rather than instead of one: a repeating reminder still has a
-/// first firing, and "every week" without saying which day and hour is not an
-/// answer anybody can check.
-String nexRepeatLabel(AppLocalizations l10n, NoteRepeat repeat) =>
-    switch (repeat) {
-      NoteRepeat.once => l10n.remindRepeatOnce,
-      NoteRepeat.daily => l10n.remindRepeatDaily,
-      NoteRepeat.weekly => l10n.remindRepeatWeekly,
-    };

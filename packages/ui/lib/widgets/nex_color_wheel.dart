@@ -18,6 +18,39 @@ import '../tokens/nex_tokens.dart';
 /// one axis a flat disc has nowhere to put, so it stays a slider — see
 /// [NexBrightnessSlider].
 class NexColorWheel extends StatelessWidget {
+  /// Where hue 0 — red — sits, as an angle from the positive x-axis.
+  ///
+  /// Quarter turn anticlockwise, so red is at the top: that is where every
+  /// colour wheel anyone has already used puts it. Everything else on this
+  /// disc is derived from this one number — [offsetForHue] places the thumb,
+  /// [hueForOffset] reads a touch, and the painter starts its sweep here —
+  /// because the three of them disagreeing is exactly the bug this replaced.
+  ///
+  /// The disc used to be rotated twice: `startAngle: -pi/2` on the sweep
+  /// *and* a `GradientRotation(-pi/2)` on top of it. The paint came out a
+  /// quarter turn from the arithmetic, so the thumb sat on green and handed
+  /// back orange. Both halves were individually reasonable, which is why it
+  /// survived review — and why the convention is a constant now rather than a
+  /// literal repeated in three places.
+  static const startAngle = -math.pi / 2;
+
+  /// The point on the disc a colour belongs at, relative to its centre.
+  static Offset offsetForHue(double hue, double saturation, double radius) {
+    final radians = startAngle + hue * math.pi / 180;
+    return Offset(
+      math.cos(radians) * saturation * radius,
+      math.sin(radians) * saturation * radius,
+    );
+  }
+
+  /// The colour a touch landed on. Inverse of [offsetForHue], and tested
+  /// against it rather than trusted.
+  static double hueForOffset(Offset fromCentre) {
+    final radians = math.atan2(fromCentre.dy, fromCentre.dx) - startAngle;
+    final degrees = radians * 180 / math.pi;
+    return (degrees % 360 + 360) % 360;
+  }
+
   const NexColorWheel({
     super.key,
     required this.hue,
@@ -49,28 +82,18 @@ class NexColorWheel extends StatelessWidget {
 
   void _handle(Offset local) {
     final radius = diameter / 2;
-    final dx = local.dx - radius;
-    final dy = local.dy - radius;
-    final distance = math.sqrt(dx * dx + dy * dy);
+    final fromCentre = local - Offset(radius, radius);
     // Clamped rather than ignored: a drag that runs off the edge should pin
     // to the rim and keep tracking, not stop dead the moment it leaves.
-    final nextSaturation = (distance / radius).clamp(0.0, 1.0);
-    // atan2 measures from the positive x-axis counter-clockwise; the painter
-    // sweeps clockwise from the top, so the same +90 offset applies to both
-    // and the thumb lands on the colour under the finger.
-    var angle = math.atan2(dy, dx) * 180 / math.pi + 90;
-    if (angle < 0) angle += 360;
-    onChanged(angle % 360, nextSaturation);
+    final nextSaturation = (fromCentre.distance / radius).clamp(0.0, 1.0);
+    onChanged(hueForOffset(fromCentre), nextSaturation);
   }
 
   @override
   Widget build(BuildContext context) {
     final radius = diameter / 2;
-    final radians = (hue - 90) * math.pi / 180;
-    final thumb = Offset(
-      radius + math.cos(radians) * saturation * radius,
-      radius + math.sin(radians) * saturation * radius,
-    );
+    final thumb =
+        Offset(radius, radius) + offsetForHue(hue, saturation, radius);
     final selected = HSVColor.fromAHSV(1, hue, saturation, value).toColor();
     return Semantics(
       slider: true,
@@ -150,19 +173,32 @@ class _WheelPainter extends CustomPainter {
     final center = Offset(radius, radius);
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    // Hue: a full turn of the spectrum. Starting at -90° puts red at the top,
-    // which is where every colour wheel people have already used puts it.
+    // Hue: a full turn of the spectrum, rotated so hue 0 lands where
+    // NexColorWheel says it does.
+    //
+    // Rotated by `transform`, and *not* by moving `startAngle`. The two look
+    // interchangeable and are not: a sweep's angle domain is [0, 2pi), so a
+    // start of -pi/2 leaves the quadrant between twelve and three o'clock
+    // outside the range, where TileMode.clamp paints it the last colour.
+    // That quadrant came out a flat red wedge — and the disc had *both* this
+    // rotation and that start angle, so it was a quarter turn out of step
+    // as well. The pixel test in nex_color_wheel_test.dart is what found the
+    // second half; the arithmetic alone could not see it, because the
+    // arithmetic was not what was wrong.
+    //
+    // 12° steps rather than 30: a sweep interpolates its stops in RGB, and
+    // the straight line from red to yellow through RGB dips darker than
+    // either. Wide steps made that visible as dull bands between the
+    // primaries.
     canvas.drawCircle(
       center,
       radius,
       Paint()
         ..shader = SweepGradient(
-          startAngle: -math.pi / 2,
-          endAngle: math.pi * 1.5,
-          transform: const GradientRotation(-math.pi / 2),
+          transform: const GradientRotation(NexColorWheel.startAngle),
           colors: [
-            for (var i = 0; i <= 360; i += 30)
-              HSVColor.fromAHSV(1, i % 360, 1, 1).toColor(),
+            for (var i = 0; i <= 360; i += 12)
+              HSVColor.fromAHSV(1, (i % 360).toDouble(), 1, 1).toColor(),
           ],
         ).createShader(rect),
     );
