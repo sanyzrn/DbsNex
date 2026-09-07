@@ -1982,6 +1982,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remindClear => 'Remove reminder';
 
   @override
+  String get remindTitle => 'Set a reminder';
+
+  @override
+  String get remindDayToday => 'Today';
+
+  @override
+  String get remindDayTomorrow => 'Tomorrow';
+
+  @override
+  String remindActionToday(Object time) {
+    return 'Remind today at $time';
+  }
+
+  @override
+  String remindActionTomorrow(Object time) {
+    return 'Remind tomorrow at $time';
+  }
+
+  @override
+  String remindActionOn(Object date, Object time) {
+    return 'Remind on $date at $time';
+  }
+
+  @override
+  String get remindPast => 'That moment has already gone by';
+
+  @override
   String get nudgeTitle => 'Daily nudge';
 
   @override

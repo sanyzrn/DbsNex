@@ -3470,6 +3470,48 @@ abstract class AppLocalizations {
   /// **'Remove reminder'**
   String get remindClear;
 
+  /// Heading of the reminder sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Set a reminder'**
+  String get remindTitle;
+
+  /// First row of the reminder sheet's day wheel
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get remindDayToday;
+
+  /// Second row of the reminder sheet's day wheel
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get remindDayTomorrow;
+
+  /// Primary button of the reminder sheet when the chosen day is today
+  ///
+  /// In en, this message translates to:
+  /// **'Remind today at {time}'**
+  String remindActionToday(Object time);
+
+  /// Primary button of the reminder sheet when the chosen day is tomorrow
+  ///
+  /// In en, this message translates to:
+  /// **'Remind tomorrow at {time}'**
+  String remindActionTomorrow(Object time);
+
+  /// Primary button of the reminder sheet for any other day
+  ///
+  /// In en, this message translates to:
+  /// **'Remind on {date} at {time}'**
+  String remindActionOn(Object date, Object time);
+
+  /// Shown in place of the reminder sheet's button when the chosen time is in the past
+  ///
+  /// In en, this message translates to:
+  /// **'That moment has already gone by'**
+  String get remindPast;
+
   /// Settings row for the once-a-day notification
   ///
   /// In en, this message translates to:

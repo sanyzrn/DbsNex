@@ -1983,6 +1983,33 @@ class AppLocalizationsFa extends AppLocalizations {
   String get remindClear => 'حذف یادآوری';
 
   @override
+  String get remindTitle => 'تنظیم یادآور';
+
+  @override
+  String get remindDayToday => 'امروز';
+
+  @override
+  String get remindDayTomorrow => 'فردا';
+
+  @override
+  String remindActionToday(Object time) {
+    return 'امروز ساعت $time یادآوری کن';
+  }
+
+  @override
+  String remindActionTomorrow(Object time) {
+    return 'فردا ساعت $time یادآوری کن';
+  }
+
+  @override
+  String remindActionOn(Object date, Object time) {
+    return '$date ساعت $time یادآوری کن';
+  }
+
+  @override
+  String get remindPast => 'آن لحظه گذشته است';
+
+  @override
   String get nudgeTitle => 'یادآور روزانه';
 
   @override

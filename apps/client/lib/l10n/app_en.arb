@@ -1772,6 +1772,52 @@
     "description": "Opens a date and time picker"
   },
   "remindClear": "Remove reminder",
+  "remindTitle": "Set a reminder",
+  "@remindTitle": {
+      "description": "Heading of the reminder sheet"
+  },
+  "remindDayToday": "Today",
+  "@remindDayToday": {
+      "description": "First row of the reminder sheet's day wheel"
+  },
+  "remindDayTomorrow": "Tomorrow",
+  "@remindDayTomorrow": {
+      "description": "Second row of the reminder sheet's day wheel"
+  },
+  "remindActionToday": "Remind today at {time}",
+  "@remindActionToday": {
+      "description": "Primary button of the reminder sheet when the chosen day is today",
+      "placeholders": {
+          "time": {
+              "type": "String"
+          }
+      }
+  },
+  "remindActionTomorrow": "Remind tomorrow at {time}",
+  "@remindActionTomorrow": {
+      "description": "Primary button of the reminder sheet when the chosen day is tomorrow",
+      "placeholders": {
+          "time": {
+              "type": "String"
+          }
+      }
+  },
+  "remindActionOn": "Remind on {date} at {time}",
+  "@remindActionOn": {
+      "description": "Primary button of the reminder sheet for any other day",
+      "placeholders": {
+          "date": {
+              "type": "String"
+          },
+          "time": {
+              "type": "String"
+          }
+      }
+  },
+  "remindPast": "That moment has already gone by",
+  "@remindPast": {
+      "description": "Shown in place of the reminder sheet's button when the chosen time is in the past"
+  },
   "@remindClear": {
     "description": "Clears the note's reminder"
   },

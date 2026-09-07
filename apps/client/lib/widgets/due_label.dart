@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nex_core/nex_core.dart';
 
 import '../l10n/app_localizations.dart';
 
@@ -56,3 +57,15 @@ String nexDueExact(BuildContext context, DateTime due) {
   if (days == 1) return l10n.remindWhenTomorrow(time);
   return l10n.remindWhenOn(material.formatMediumDate(local), time);
 }
+
+/// "Every day", "Every week" — or nothing at all for a one-off.
+///
+/// Beside a time rather than instead of one: a repeating reminder still has a
+/// first firing, and "every week" without saying which day and hour is not an
+/// answer anybody can check.
+String nexRepeatLabel(AppLocalizations l10n, NoteRepeat repeat) =>
+    switch (repeat) {
+      NoteRepeat.once => l10n.remindRepeatOnce,
+      NoteRepeat.daily => l10n.remindRepeatDaily,
+      NoteRepeat.weekly => l10n.remindRepeatWeekly,
+    };
