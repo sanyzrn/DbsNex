@@ -72,6 +72,14 @@ void main() {
           pixels[offset + 2],
         ),
       );
+      // A grey pixel reports hue 0 — the same answer as red. Without this
+      // the red sample would pass on a capture that came back blank, which
+      // is the one sample the disc's own bug did not disturb.
+      expect(
+        colour.saturation,
+        greaterThan(0.3),
+        reason: 'sampled a colourless pixel, not the disc',
+      );
       hue = colour.hue;
       image.dispose();
     });
@@ -89,8 +97,17 @@ void main() {
     await tester.pumpWidget(host(0, 1));
     await tester.pumpAndSettle();
 
-    // Red at the top, then clockwise through the spectrum. Before the fix the
-    // top painted hue 90 and this failed by the exact quarter turn.
+    // Red at the top, then clockwise through the spectrum.
+    //
+    // Two separate bugs were caught here. The disc was rotated twice, so the
+    // paint sat a quarter turn from the arithmetic; and it was rotated by
+    // moving the sweep's `startAngle` negative, which puts the quadrant
+    // between twelve and three o'clock outside the gradient's [0, 2pi)
+    // domain — TileMode.clamp painted that whole wedge the last colour, so
+    // 60° from the top came back red.
+    //
+    // Sampling every 60° is what covers both: an offset shows up anywhere,
+    // and the clamped wedge only shows up inside it.
     for (final expected in [0.0, 60.0, 120.0, 180.0, 240.0, 300.0]) {
       final painted = await paintedHueAt(tester, expected);
       expect(

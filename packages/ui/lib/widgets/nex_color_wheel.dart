@@ -173,10 +173,18 @@ class _WheelPainter extends CustomPainter {
     final center = Offset(radius, radius);
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    // Hue: a full turn of the spectrum, begun where NexColorWheel says hue 0
-    // lives. No `transform:` — the sweep's own start angle is the rotation,
-    // and adding a GradientRotation on top of it was the quarter turn that
-    // put the paint out of step with the thumb.
+    // Hue: a full turn of the spectrum, rotated so hue 0 lands where
+    // NexColorWheel says it does.
+    //
+    // Rotated by `transform`, and *not* by moving `startAngle`. The two look
+    // interchangeable and are not: a sweep's angle domain is [0, 2pi), so a
+    // start of -pi/2 leaves the quadrant between twelve and three o'clock
+    // outside the range, where TileMode.clamp paints it the last colour.
+    // That quadrant came out a flat red wedge — and the disc had *both* this
+    // rotation and that start angle, so it was a quarter turn out of step
+    // as well. The pixel test in nex_color_wheel_test.dart is what found the
+    // second half; the arithmetic alone could not see it, because the
+    // arithmetic was not what was wrong.
     //
     // 12° steps rather than 30: a sweep interpolates its stops in RGB, and
     // the straight line from red to yellow through RGB dips darker than
@@ -187,8 +195,7 @@ class _WheelPainter extends CustomPainter {
       radius,
       Paint()
         ..shader = SweepGradient(
-          startAngle: NexColorWheel.startAngle,
-          endAngle: NexColorWheel.startAngle + 2 * math.pi,
+          transform: const GradientRotation(NexColorWheel.startAngle),
           colors: [
             for (var i = 0; i <= 360; i += 12)
               HSVColor.fromAHSV(1, (i % 360).toDouble(), 1, 1).toColor(),
