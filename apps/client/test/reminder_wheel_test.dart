@@ -41,17 +41,19 @@ void main() {
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: MediaQuery(
-          // Pinned, so the button's wording does not depend on whichever clock
-          // the machine running the test happens to prefer.
-          data: const MediaQueryData(alwaysUse24HourFormat: true),
-          child: Scaffold(
-            body: ReminderWheel(
-              note: value,
-              now: now,
-              onSubmit: (when, _) => submitted = when,
-              onClear: () => cleared = true,
-            ),
+        // Pinned through `builder`, not by wrapping `home` in a bare
+        // MediaQueryData — that one replaces the whole thing, size included,
+        // and lays the sheet out in a window zero pixels across.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: ReminderWheel(
+            note: value,
+            now: now,
+            onSubmit: (when, _) => submitted = when,
+            onClear: () => cleared = true,
           ),
         ),
       ),
@@ -104,10 +106,21 @@ void main() {
   testWidgets('a time already gone by cannot be set', (tester) async {
     await pump(tester, note());
 
-    // Roll the hour back past 10:15 — three hours down from 11:00 is 08:00,
-    // this morning. The scheduler drops a past-due one-off, so a live button
-    // here would report success for an alarm that never exists.
-    await tester.drag(find.byKey(ReminderWheel.hourKey), const Offset(0, 132));
+    // Roll the hour back three rows: 11:15 becomes 08:15, this morning. The
+    // scheduler drops a past-due one-off, so a live button here would report
+    // success for an alarm that never exists.
+    //
+    // Moved by hand rather than with `drag`, which releases at speed: the
+    // hour column loops, so a fling that overshoots does not stop at 00 — it
+    // comes round to the evening and lands on a time that is still ahead.
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(ReminderWheel.hourKey)),
+    );
+    for (var step = 0; step < 12; step++) {
+      await gesture.moveBy(const Offset(0, 11));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await gesture.up();
     await tester.pumpAndSettle();
 
     expect(find.text('That moment has already gone by'), findsOneWidget);

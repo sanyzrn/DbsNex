@@ -234,7 +234,7 @@ class _ReminderWheelState extends State<ReminderWheel> {
           itemExtent: _itemExtent,
           children: [
             _Wheel(
-              key: dayKey,
+              key: ReminderWheel.dayKey,
               flex: 5,
               controller: _dayController,
               itemExtent: _itemExtent,
@@ -243,7 +243,7 @@ class _ReminderWheelState extends State<ReminderWheel> {
               builder: (context, index) => _dayLabel(context, index),
             ),
             _Wheel(
-              key: hourKey,
+              key: ReminderWheel.hourKey,
               flex: 2,
               controller: _hourController,
               itemExtent: _itemExtent,
@@ -256,7 +256,7 @@ class _ReminderWheelState extends State<ReminderWheel> {
               ),
             ),
             _Wheel(
-              key: minuteKey,
+              key: ReminderWheel.minuteKey,
               flex: 2,
               controller: _minuteController,
               itemExtent: _itemExtent,

@@ -3,6 +3,9 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+// RenderRepaintBoundary is not one of the render objects widgets.dart
+// re-exports, and reading pixels is the whole point of this file.
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -49,16 +52,18 @@ void main() {
     );
     late double hue;
     await tester.runAsync(() async {
-      final image = await boundary.toImage();
-      final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      final pixels = Uint8List.view(data!.buffer);
-      final radius = diameter / 2;
+      final ui.Image image = await boundary.toImage();
+      final ByteData? data = await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      );
+      final Uint8List pixels = data!.buffer.asUint8List();
+      const double radius = diameter / 2;
       // Well outside the white centre and inside the rim, so the sample is
       // the hue and not the saturation ramp or an antialiased edge.
       final radians = (degrees - 90) * math.pi / 180;
-      final x = (radius + math.cos(radians) * radius * 0.8).round();
-      final y = (radius + math.sin(radians) * radius * 0.8).round();
-      final offset = (y * image.width + x) * 4;
+      final int x = (radius + math.cos(radians) * radius * 0.8).round();
+      final int y = (radius + math.sin(radians) * radius * 0.8).round();
+      final int offset = (y * image.width + x) * 4;
       final colour = HSVColor.fromColor(
         Color.fromARGB(
           255,
