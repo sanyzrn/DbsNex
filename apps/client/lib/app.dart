@@ -106,6 +106,12 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   }
 
   /// Closes the lock, and writes that down.
+  ///
+  /// The write is not awaited, and cannot be: this is reached from
+  /// `didChangeAppLifecycleState`, which is synchronous. That is safe because
+  /// of how the platform stores it — Android flushes pending preference
+  /// writes as part of stopping the activity, which is the very moment this
+  /// runs — but it does mean the value is not readable back on the next line.
   void _lock() {
     unawaited(widget.preferences.setAppLockClosed(true));
     if (mounted) setState(() => _locked = true);

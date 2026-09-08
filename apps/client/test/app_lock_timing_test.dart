@@ -67,9 +67,15 @@ void main() {
   });
   tearDown(() => messenger.setMockMethodCallHandler(channel, null));
 
+  /// Backgrounds the app and lets the write that follows actually land.
+  ///
+  /// `didChangeAppLifecycleState` is a synchronous callback, so the lock
+  /// state is written without being awaited — there is nothing to await it
+  /// from. A single `pump` gets the rebuild but not the platform-channel
+  /// round trip behind `SharedPreferences`, which is why this settles.
   Future<void> leave(WidgetTester tester) async {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    await tester.pump();
+    await tester.pumpAndSettle();
   }
 
   bool gateIsUp(WidgetTester tester) =>
