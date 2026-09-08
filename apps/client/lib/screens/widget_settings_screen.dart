@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:nex_core/nex_core.dart';
+// NoteType arrives through nex_data, which re-exports nex_core — importing
+// both is what `unnecessary_import` is for.
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
