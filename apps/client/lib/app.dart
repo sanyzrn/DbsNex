@@ -24,10 +24,23 @@ class NexApp extends StatefulWidget {
     required this.services,
     required this.preferences,
     this.osCapture,
+    this.appLock,
   });
   final NexServices services;
   final NexPreferences preferences;
   final OsCaptureBridge? osCapture;
+
+  /// The biometric prompt, injectable so a test can decide what it answers.
+  ///
+  /// A real one talks to the OS, and in a widget test that means a plugin
+  /// nobody registered: the call still returns false, but *when* it returns is
+  /// up to the message loop. The launch unlock attempt is therefore sometimes
+  /// still in flight when the test does the next thing, and [_unlocking] —
+  /// which suppresses locking on the way out, so that the system's own
+  /// fingerprint sheet does not count as leaving the app — silently swallows
+  /// it. Handing the test a prompt that answers immediately removes the race
+  /// rather than papering over it with another pump.
+  final AppLockService? appLock;
   @override
   State<NexApp> createState() => _NexAppState();
 }
@@ -43,7 +56,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     onDownloadStatus: _showDownloadNotification,
   );
   late final _feedback = FeedbackService(preferences: widget.preferences);
-  final _appLock = AppLockService();
+  late final AppLockService _appLock = widget.appLock ?? AppLockService();
   bool _locked = false;
   bool _unlocking = false;
 

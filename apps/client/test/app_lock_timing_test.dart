@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
+import 'package:nex_client/platform/app_lock.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
@@ -84,7 +85,11 @@ void main() {
   testWidgets('immediately: leaving closes it', (tester) async {
     final services = await boot({'security.lock_timing': 'immediately'});
     await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _AlwaysRefused(),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -100,7 +105,11 @@ void main() {
   testWidgets('only when I ask: leaving does not close it', (tester) async {
     final services = await boot({'security.lock_timing': 'manual'});
     await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _AlwaysRefused(),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -125,7 +134,11 @@ void main() {
           .millisecondsSinceEpoch,
     });
     await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _AlwaysRefused(),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -145,7 +158,11 @@ void main() {
           .millisecondsSinceEpoch,
     });
     await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _AlwaysRefused(),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -162,7 +179,11 @@ void main() {
       'security.lock_closed': true,
     });
     await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _AlwaysRefused(),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -178,10 +199,30 @@ void main() {
       'security.lock_grace_seconds': 60,
     });
     await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _AlwaysRefused(),
+      ),
     );
     await tester.pumpAndSettle();
 
     expect(gateIsUp(tester), isTrue);
   });
+}
+
+/// A prompt that refuses, and does it before the next line of the test runs.
+///
+/// None of these tests is about the fingerprint — they are about when the gate
+/// goes up. What they cannot tolerate is an unlock attempt still in flight
+/// when the app is backgrounded, because that is deliberately treated as "the
+/// system's own sheet is up", not as leaving, and the lock is then not closed.
+/// A real `local_auth` in a test process answers false too, just not at any
+/// particular moment.
+class _AlwaysRefused extends AppLockService {
+  @override
+  Future<bool> authenticate({
+    required String reason,
+    required bool biometricOnly,
+  }) async => false;
 }
