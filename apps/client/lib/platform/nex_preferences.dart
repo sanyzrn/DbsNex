@@ -347,6 +347,11 @@ class NexPreferences extends ChangeNotifier {
     return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
   }
 
+  /// Where the sponsor card's picture was written, or null for a card with
+  /// none. A path rather than the bytes: preferences are read on every build
+  /// and half a megabyte does not belong in them.
+  String? get sponsorImagePath => _prefs.getString('sponsor.image_path');
+
   /// Sponsor card ids the user has put away. Kept forever — the list is a
   /// handful of short strings, and forgetting one means showing somebody a
   /// card they have already said no to.
@@ -578,6 +583,14 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setSponsorFetchedAt(DateTime value) =>
       _prefs.setInt('sponsor.fetched_at', value.millisecondsSinceEpoch);
+
+  Future<void> setSponsorImagePath(String? value) async {
+    if (value == null) {
+      await _prefs.remove('sponsor.image_path');
+    } else {
+      await _prefs.setString('sponsor.image_path', value);
+    }
+  }
 
   Future<void> setSponsorDismissed(Set<String> value) =>
       _prefs.setStringList('sponsor.dismissed', value.toList()..sort());

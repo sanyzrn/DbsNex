@@ -1,11 +1,26 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/sponsor.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// flutter_test registers no plugin for `getApplicationSupportPath`, which is
+/// where the sponsor's picture is cached.
+class _FakePathProvider extends PathProviderPlatform
+    with MockPlatformInterfaceMixin {
+  _FakePathProvider(this.path);
+  final String path;
+
+  @override
+  Future<String?> getApplicationSupportPath() async => path;
+}
 
 /// The rule this file exists for: **when there is nothing to show, nothing
 /// appears.** Every way the fetch or the file can go wrong has to end in the
@@ -168,12 +183,20 @@ void main() {
       );
       await service.refresh();
 
-      expect(service.visible(languageCode: 'en')?.id, 'c1');
+      expect(
+        preferences.sponsorPayload,
+        isNotNull,
+        reason: 'the card that was there is not thrown away by a bad network',
+      );
       expect(
         preferences.sponsorFetchedAt,
         isNull,
         reason: 'so the next launch tries again instead of waiting a day',
       );
+      // It is kept, and it is not shown: nothing has ever been fetched, so
+      // there is no successful check to be recent. See the "going quiet"
+      // group for the rule.
+      expect(service.visible(languageCode: 'en'), isNull);
     });
 
     test('a body far too large is not a card', () async {
@@ -233,6 +256,149 @@ void main() {
       await service.refresh(force: true);
 
       expect(service.visible(languageCode: 'en'), isNull);
+    });
+  });
+
+  group('pictures', () {
+    late NexPreferences preferences;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      preferences = await NexPreferences.load();
+      final tmp = Directory.systemTemp.createTempSync('nex_sponsor_');
+      addTearDown(() {
+        if (tmp.existsSync()) tmp.deleteSync(recursive: true);
+      });
+      PathProviderPlatform.instance = _FakePathProvider(tmp.path);
+    });
+
+    /// A one-pixel GIF: real bytes with a real magic number, so the format
+    /// check is exercised rather than mocked around.
+    final gif = Uint8List.fromList([
+      0x47, 0x49, 0x46, 0x38, 0x39, 0x61, //
+      0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00,
+    ]);
+
+    String withImage() => jsonEncode({
+      'id': 'c1',
+      'title': 'A local bookshop',
+      'image': 'https://example.com/banner.gif',
+    });
+
+    NexSponsorService service(
+      http.Response Function(http.Request request) respond,
+    ) => NexSponsorService(
+      preferences: preferences,
+      client: MockClient((request) async => respond(request)),
+      now: () => now,
+    );
+
+    test('the picture is fetched and kept beside the card', () async {
+      final s = service(
+        (request) => request.url.path.endsWith('.gif')
+            ? http.Response.bytes(gif, 200)
+            : http.Response(withImage(), 200),
+      );
+      await s.refresh();
+
+      expect(s.image, isNotNull);
+      expect(s.visible(languageCode: 'en')?.id, 'c1');
+      expect(preferences.sponsorImagePath, isNotNull);
+    });
+
+    test('a card whose picture will not come is not shown at all', () async {
+      // Better an empty space than a banner with a hole where its design was.
+      final s = service(
+        (request) => request.url.path.endsWith('.gif')
+            ? http.Response('', 404)
+            : http.Response(withImage(), 200),
+      );
+      await s.refresh();
+
+      expect(s.visible(languageCode: 'en'), isNull);
+      expect(preferences.sponsorPayload, isNull);
+    });
+
+    test('an HTML error page is not a picture', () async {
+      // What a captive portal answers with, and what caching would leave: a
+      // card that can never draw.
+      final s = service(
+        (request) => request.url.path.endsWith('.gif')
+            ? http.Response('<!doctype html><html>Blocked</html>', 200)
+            : http.Response(withImage(), 200),
+      );
+      await s.refresh();
+
+      expect(s.visible(languageCode: 'en'), isNull);
+    });
+
+    test('a picture over the ceiling is refused', () async {
+      final huge = Uint8List.fromList([
+        ...gif,
+        ...List.filled(NexSponsorService.maxImageBytes, 0),
+      ]);
+      final s = service(
+        (request) => request.url.path.endsWith('.gif')
+            ? http.Response.bytes(huge, 200)
+            : http.Response(withImage(), 200),
+      );
+      await s.refresh();
+
+      expect(s.visible(languageCode: 'en'), isNull);
+    });
+
+    test('a card with no picture needs none', () async {
+      final s = service((_) => http.Response(card(), 200));
+      await s.refresh();
+
+      expect(s.image, isNull);
+      expect(s.visible(languageCode: 'en')?.id, 'c1');
+    });
+  });
+
+  group('going quiet', () {
+    late NexPreferences preferences;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      preferences = await NexPreferences.load();
+    });
+
+    test('a card stops showing once the last fetch is old', () async {
+      // The offline rule. There is no connectivity plugin and no wish for
+      // one: a phone that cannot reach the host stops refreshing, the last
+      // answer ages out, and the card goes — rather than a campaign that
+      // ended in March sitting in the timeline of a phone that has had its
+      // data off since then.
+      await preferences.setSponsorPayload(card());
+      await preferences.setSponsorFetchedAt(now);
+
+      NexSponsorService at(DateTime when) => NexSponsorService(
+        preferences: preferences,
+        client: MockClient((_) async => http.Response('', 500)),
+        now: () => when,
+      );
+
+      expect(at(now).visible(languageCode: 'en')?.id, 'c1');
+      expect(
+        at(now.add(const Duration(hours: 47))).visible(languageCode: 'en'),
+        isNotNull,
+        reason: 'one missed check is not enough to lose a running card',
+      );
+      expect(
+        at(now.add(const Duration(hours: 49))).visible(languageCode: 'en'),
+        isNull,
+      );
+    });
+
+    test('a device that has never fetched shows nothing', () async {
+      await preferences.setSponsorPayload(card());
+      final s = NexSponsorService(
+        preferences: preferences,
+        client: MockClient((_) async => http.Response('', 500)),
+        now: () => now,
+      );
+      expect(s.visible(languageCode: 'en'), isNull);
     });
   });
 }

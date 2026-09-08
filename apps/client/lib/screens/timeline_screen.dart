@@ -233,9 +233,19 @@ class TimelineScreenState extends State<TimelineScreen>
     // Fire and forget, and deliberately not awaited anywhere: the card that
     // is already cached draws on this frame, and a fetch that never comes
     // back changes nothing on screen.
-    unawaited(_sponsor.refresh().then((_) {
-      if (mounted) setState(() {});
-    }));
+    // The picture from last time first, so a card fetched yesterday draws on
+    // this frame instead of a second later; then the network, at most daily.
+    unawaited(
+      _sponsor
+          .restoreCachedImage()
+          .then((_) {
+            if (mounted) setState(() {});
+            return _sponsor.refresh();
+          })
+          .then((_) {
+            if (mounted) setState(() {});
+          }),
+    );
     subscription = widget.services.timelineStream.listen((value) {
       if (!mounted) return;
       setState(() {
@@ -1448,6 +1458,7 @@ class TimelineScreenState extends State<TimelineScreen>
     if (sponsor == null) return null;
     return SponsorCard(
       sponsor: sponsor,
+      image: _sponsor.image,
       onOpen: () => unawaited(_openSponsor(sponsor)),
       onDismiss: () => unawaited(_dismissSponsor(sponsor)),
     );

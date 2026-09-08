@@ -58,9 +58,11 @@ Working convention:
   the user the moment it exists, and no app can change it afterwards.
 
 - **Nex stays free.** There is no paid tier and nothing is held back. In its
-  place the timeline can carry a single sponsor card, the size of one note and
-  clearly marked as what it is. It appears only when there is actually
-  something to show — no card, no gap, no placeholder — it never reads or
+  place the timeline can carry a single sponsor card, exactly the size of one
+  note and clearly marked as what it is — words, or a picture that fills it.
+  It appears only when there is actually something to show — no card, no gap,
+  no placeholder — and it goes quiet on a phone that has been off the network,
+  rather than leaving a finished campaign sitting there. It never reads or
   sends anything about your notes, and hiding one hides it for good.
 
 ## v1.6.2
