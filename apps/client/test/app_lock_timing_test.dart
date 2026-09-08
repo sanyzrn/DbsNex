@@ -79,6 +79,21 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Brings the app back the way the OS does.
+  ///
+  /// One `resumed` is not enough: the framework asserts on the jump, because
+  /// a real return climbs back out through the states it went down through.
+  Future<void> comeBack(WidgetTester tester) async {
+    for (final state in [
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+    await tester.pumpAndSettle();
+  }
+
   bool gateIsUp(WidgetTester tester) =>
       find.byKey(appLockBarrierKey).evaluate().isNotEmpty;
 
@@ -215,15 +230,20 @@ void main() {
     expect(gateIsUp(tester), isFalse, reason: 'the grace has not run out');
 
     await tester.pump(const Duration(seconds: 61));
-    // Settled for the same reason `leave` settles: the write behind the flag
-    // is not awaited from a timer callback either.
-    await tester.pumpAndSettle();
-    expect(gateIsUp(tester), isTrue);
+    // A moment more for the write behind the flag, which is not awaited from
+    // a timer callback any more than from a lifecycle one.
+    await tester.pump(const Duration(milliseconds: 100));
     expect(
       preferences.appLockClosed,
       isTrue,
-      reason: 'written down, so the widget and the next launch both see it',
+      reason: 'closed while away, and written down for the widget to read',
     );
+
+    // The gate is not *drawn* until the app comes back, because a
+    // backgrounded app is not given frames — which is exactly when nobody is
+    // looking at it. Coming back is the moment that matters.
+    await comeBack(tester);
+    expect(gateIsUp(tester), isTrue);
   });
 
   testWidgets('unlocking is not undone by the prompt closing', (tester) async {
@@ -246,13 +266,19 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(gateIsUp(tester), isFalse, reason: 'the prompt was answered');
 
-    // What Android sends when the sheet comes down.
+    // The sheet comes down. Only `inactive` and `resumed` — a dialog over the
+    // activity never stops it, which is the whole reason the bug existed: the
+    // branch that records leaving watches for `paused` and `hidden`, so
+    // nothing recorded that Nex had been open in between.
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
 
-    expect(gateIsUp(tester), isFalse);
+    expect(
+      gateIsUp(tester),
+      isFalse,
+      reason: 'the prompt was answered once, and that answer stands',
+    );
     expect(preferences.appLockClosed, isFalse);
   });
 
@@ -293,13 +319,15 @@ class _AlwaysRefused extends AppLockService {
   }) async => false;
 }
 
-/// A prompt that accepts — and pauses the app on its way up, the way the
-/// real one does.
+/// A prompt that accepts — and takes the foreground on its way up, the way
+/// the real one does.
 ///
-/// That detail is the test: Android backgrounds Nex to put its own sheet in
-/// front, so the pause arrives while an unlock is in flight and is ignored on
-/// purpose. What comes back afterwards is a bare `resumed`, with nothing
-/// having recorded that the app was ever open in between.
+/// That detail is the test. Android's fingerprint sheet is a dialog over the
+/// activity, so Nex goes `inactive` and no further: the branch that records
+/// leaving is watching for `paused` and `hidden`, and never runs. What comes
+/// back afterwards is a `resumed` with nothing having recorded that the app
+/// was open in between — which is how a timestamp from ten minutes ago got
+/// measured again, and again.
 class _PromptThatTakesTheForeground extends AppLockService {
   _PromptThatTakesTheForeground(this.tester);
 
@@ -310,7 +338,7 @@ class _PromptThatTakesTheForeground extends AppLockService {
     required String reason,
     required bool biometricOnly,
   }) async {
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     return true;
   }
 }

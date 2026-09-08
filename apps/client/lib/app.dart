@@ -174,6 +174,10 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       // process that was frozen or killed while away never got to run it, and
       // the wall clock does not care either way.
       if (!_locked &&
+          // An unlock in flight is not a return from being away: the
+          // fingerprint sheet is a dialog over the activity, so the resume it
+          // ends with arrives before the answer does.
+          !_unlocking &&
           widget.preferences.appLockEnabled &&
           widget.preferences.appLockTiming == AppLockTiming.after &&
           nexLockGraceHasRunOut(widget.preferences)) {
