@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.7.0
+
 - **The widget can be told what to show.** Settings → Home screen widget picks
   which kinds of note appear — only checklists, only photos, any combination —
   and narrows it to one tag. Left alone it does what it always did: the top of
