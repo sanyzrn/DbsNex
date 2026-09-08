@@ -37,7 +37,6 @@ class SponsorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     // The card's own colour, falling back to the accent — a card whose author
     // did not choose one is still allowed to be coloured.
@@ -49,7 +48,6 @@ class SponsorCard extends StatelessWidget {
       tint.withValues(alpha: theme.brightness == Brightness.dark ? 0.18 : 0.10),
       theme.colorScheme.surface,
     );
-    final body = sponsor.body;
     final picture = image;
     return Padding(
       padding: nexCardInsets,
