@@ -11,6 +11,7 @@ import 'platform/download_notice.dart';
 import 'platform/feedback_service.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
+import 'platform/nex_widget.dart';
 import 'platform/os_capture_bridge.dart';
 import 'platform/secure_window.dart';
 import 'platform/update_service.dart';
@@ -25,6 +26,7 @@ class NexApp extends StatefulWidget {
     required this.preferences,
     this.osCapture,
     this.appLock,
+    this.widgets,
   });
   final NexServices services;
   final NexPreferences preferences;
@@ -41,6 +43,15 @@ class NexApp extends StatefulWidget {
   /// it. Handing the test a prompt that answers immediately removes the race
   /// rather than papering over it with another pump.
   final AppLockService? appLock;
+
+  /// The home-screen widget's snapshot writer, so the gate can tell it that
+  /// the lock moved.
+  ///
+  /// The lock's open/closed flag is written without notifying listeners —
+  /// waking every listener in the app is not the right answer to a lock
+  /// state — so the one listener that does care is told directly. Null in a
+  /// test, and on any platform with no widgets to feed.
+  final NexWidgetBridge? widgets;
   @override
   State<NexApp> createState() => _NexAppState();
 }
@@ -60,6 +71,10 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   bool _locked = false;
   bool _unlocking = false;
 
+  /// Closes the lock while the app is in the background, for the "after a
+  /// while" timing. Cancelled the moment the app comes back.
+  Timer? _graceTimer;
+
   /// What the window flag was last set to, so that a preference change with
   /// nothing to do with the lock — every one of them arrives at [_refresh] —
   /// does not go back to the platform to say the same thing again.
@@ -68,7 +83,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _locked = _shouldBeLockedOnLaunch();
+    _locked = nexLockClosedOnLaunch(widget.preferences);
+    // Written down as well as held: the flag is what the widget's snapshot
+    // reads to decide whether it may carry notes, and what a process death at
+    // the gate leaves behind.
+    if (_locked) unawaited(widget.preferences.setAppLockClosed(true));
     _applyWindowSecrecy();
     widget.preferences.addListener(_refresh);
     _updates.addListener(_announceDownload);
@@ -90,34 +109,6 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     if (_locked) WidgetsBinding.instance.addPostFrameCallback((_) => _unlock());
   }
 
-  /// Whether a cold start opens onto the lock.
-  ///
-  /// A launch is not a resume: the process died, so nothing is in memory and
-  /// the only record of where the lock stood is the one written to disk. All
-  /// three timings answer this from persisted facts — a lock that was closed
-  /// stays closed, and a grace period is measured against the wall clock
-  /// rather than against how long this process happened to live.
-  bool _shouldBeLockedOnLaunch() {
-    final preferences = widget.preferences;
-    if (!preferences.appLockEnabled) return false;
-    if (preferences.appLockClosed) return true;
-    return switch (preferences.appLockTiming) {
-      AppLockTiming.immediately => true,
-      AppLockTiming.manual => false,
-      AppLockTiming.after => _graceHasRunOut(),
-    };
-  }
-
-  bool _graceHasRunOut() {
-    final left = widget.preferences.appLockLeftAt;
-    // Never recorded leaving — a first launch, or an install that predates
-    // this setting. Locking is the safe answer to not knowing.
-    if (left == null) return true;
-    final away = DateTime.now().difference(left);
-    return away.isNegative ||
-        away.inSeconds >= widget.preferences.appLockGraceSeconds;
-  }
-
   /// Closes the lock, and writes that down.
   ///
   /// The write is not awaited, and cannot be: this is reached from
@@ -126,8 +117,37 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   /// writes as part of stopping the activity, which is the very moment this
   /// runs — but it does mean the value is not readable back on the next line.
   void _lock() {
+    _graceTimer?.cancel();
     unawaited(widget.preferences.setAppLockClosed(true));
+    // The home screen is the one place a closed lock is visible from outside
+    // the app, so it is told at once rather than at the next refresh.
+    unawaited(widget.widgets?.refresh());
     if (mounted) setState(() => _locked = true);
+  }
+
+  /// Closes the lock while the app is away, rather than waiting to be asked
+  /// on the way back.
+  ///
+  /// "Lock after five minutes" was decided entirely on resume: correct for
+  /// the person coming back to the app, and wrong for everything else that
+  /// can see a library the app still considers open — the widget above all,
+  /// which would have gone on showing notes for as long as the process
+  /// happened to live.
+  ///
+  /// A timer in a backgrounded app is not a promise. Android freezes cached
+  /// processes and kills them freely, so this fires only when the process
+  /// outlives the grace period; when it does not, the wall-clock check on the
+  /// next launch reaches the same answer from [NexPreferences.appLockLeftAt].
+  /// Two paths to one outcome, neither of them relied on alone.
+  void _armGrace() {
+    _graceTimer?.cancel();
+    if (widget.preferences.appLockTiming != AppLockTiming.after) return;
+    _graceTimer = Timer(
+      Duration(seconds: widget.preferences.appLockGraceSeconds),
+      () {
+        if (!_locked && widget.preferences.appLockEnabled) _lock();
+      },
+    );
   }
 
   @override
@@ -144,18 +164,26 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       unawaited(widget.preferences.setAppLockLeftAt(DateTime.now()));
       if (widget.preferences.appLockTiming == AppLockTiming.immediately) {
         _lock();
+      } else {
+        _armGrace();
       }
     }
     if (state == AppLifecycleState.resumed) {
-      // `after` decides here rather than on the way out: the question it
-      // asks is how long the app was away, and that is not known until it
-      // comes back.
+      _graceTimer?.cancel();
+      // `after` is answered here too, and not only by the timer above: a
+      // process that was frozen or killed while away never got to run it, and
+      // the wall clock does not care either way.
       if (!_locked &&
           widget.preferences.appLockEnabled &&
           widget.preferences.appLockTiming == AppLockTiming.after &&
-          _graceHasRunOut()) {
+          nexLockGraceHasRunOut(widget.preferences)) {
         _lock();
       }
+      // The grace is spent. Leaving it at the old timestamp is what made the
+      // lock ask for a fingerprint over and over: the system's own prompt
+      // pauses and resumes the app, and every one of those resumes measured
+      // the same long-past moment, re-locked, and prompted again.
+      unawaited(widget.preferences.setAppLockLeftAt(DateTime.now()));
       if (_locked) unawaited(_unlock());
       unawaited(_updates.maybeCheck());
       // Android stops the process shortly after the app leaves the screen,
@@ -181,6 +209,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _graceTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     widget.preferences.removeListener(_refresh);
     _updates.removeListener(_announceDownload);
@@ -231,6 +260,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     _unlocking = false;
     if (!unlocked) return;
     unawaited(widget.preferences.setAppLockClosed(false));
+    // The grace runs from the moment the lock opened. Without this, an
+    // unlock that took longer than the grace period would be undone by the
+    // resume that follows the prompt closing.
+    unawaited(widget.preferences.setAppLockLeftAt(DateTime.now()));
+    unawaited(widget.widgets?.refresh());
     if (mounted) setState(() => _locked = false);
   }
 

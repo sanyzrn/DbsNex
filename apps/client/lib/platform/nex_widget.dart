@@ -83,10 +83,29 @@ class NexWidgetSnapshot {
   /// glance is the wrong tool anyway.
   static const int scanDepth = 200;
 
-  /// Whether the app lock is on. When it is, [notes] is always empty — this
-  /// is decided here, at write time, so a locked library's content never
-  /// reaches the file at all rather than being hidden after the fact.
+  /// Whether the widget must draw its locked state. When it does, [notes] is
+  /// always empty — decided at write time, so a locked library's content
+  /// never reaches the file at all rather than being hidden after the fact.
   final bool appLock;
+
+  /// Whether a snapshot may carry notes at all.
+  ///
+  /// Three facts, and the order they are asked in is the whole rule:
+  ///
+  /// - no lock, nothing to hide from;
+  /// - a lock the user has told the widget to ignore, and it is their home
+  ///   screen and their decision;
+  /// - otherwise the notes are shown exactly while the lock is *open*.
+  ///
+  /// That last clause is the fix for a lock that closes after an hour: the
+  /// widget used to empty itself the moment the lock was switched on and stay
+  /// empty for the fifty-nine minutes the library was open, which reads as a
+  /// broken widget rather than as a locked one.
+  static bool hidesNotes({
+    required bool lockEnabled,
+    required bool showWhenLocked,
+    required bool lockClosed,
+  }) => lockEnabled && !showWhenLocked && lockClosed;
 
   final DateTime generatedAt;
   final List<NexWidgetNotePreview> notes;
@@ -214,14 +233,33 @@ class NexWidgetBridge {
     await _write();
   }
 
-  /// The one preference that changes what the widget may show.
+  /// Whether the snapshot must go out with no notes in it.
+  ///
+  /// Not "is the app lock switched on", which is what this used to ask and
+  /// was wrong: a lock set to close after an hour left the widget empty for
+  /// the fifty-nine minutes the library was open, which is not a lock, it is
+  /// a widget that does not work. The question is whether the lock is closed
+  /// *now* — the flag the gate writes, and one that survives the process
+  /// dying, so a phone that was killed while locked does not come back with
+  /// its notes on the home screen.
+  bool get _hidden => NexWidgetSnapshot.hidesNotes(
+    lockEnabled: preferences.appLockEnabled,
+    showWhenLocked: preferences.widgetShowWhenLocked,
+    lockClosed: preferences.appLockClosed,
+  );
+
+  /// The preferences that change what the widget may show.
   ///
   /// Preferences change for a hundred reasons that have nothing to do with
-  /// the widget; only the lock's on/off does, and only when it actually
-  /// flips. This fires on every change and writes on the flip.
+  /// the widget; only these do, and only when they actually flip. This fires
+  /// on every change and writes on the flip.
+  ///
+  /// The lock *closing* does not arrive here — that write is deliberately
+  /// silent, because waking every listener in the app is not the right answer
+  /// to a lock state — so the gate calls [refresh] instead.
   void _onPreferencesChanged() {
     if (_disposed) return;
-    final lock = preferences.appLockEnabled;
+    final lock = _hidden;
     final filter = _filterSignature;
     // The lock is written straight through rather than debounced: content
     // must leave the file the moment it is switched on, and 300ms of a
@@ -246,6 +284,15 @@ class NexWidgetBridge {
       '${(preferences.widgetTypes.toList()..sort()).join(',')}'
       '|${preferences.widgetTagId ?? ''}';
 
+  /// Writes now, for a change this bridge cannot see coming.
+  ///
+  /// The lock closing and opening is the only such change: it is written
+  /// without notifying listeners, on purpose, so the gate says so directly.
+  /// Straight through rather than debounced — when the lock closes, notes
+  /// have to leave the file, and 300ms of a locked library's notes still on
+  /// disk is 300ms too many.
+  Future<void> refresh() => _write();
+
   /// Coalesces a burst of refreshes (a capture fires several: commit,
   /// enrichment, receipt) into one file write and one broadcast.
   void _schedule() {
@@ -259,10 +306,10 @@ class NexWidgetBridge {
     try {
       final file = _file;
       if (file == null) return;
-      final lock = preferences.appLockEnabled;
-      // Only when unlocked does the snapshot need notes; the query is
-      // skipped entirely for a locked library, so unlocking is the only way
-      // content ever reaches the file.
+      final lock = _hidden;
+      // Only when the notes may be shown does the snapshot need them; the
+      // query is skipped entirely otherwise, so a hidden library's content
+      // never reaches the file rather than being filtered out of it later.
       final types = preferences.widgetTypes;
       // No filter, no reason to read past what fits: the first rows of the
       // timeline are the answer, and that is the overwhelmingly common case.

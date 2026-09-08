@@ -209,6 +209,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get widgetSettingsScanNote => 'With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.';
 
   @override
+  String get widgetSettingsWhenLocked => 'Show notes while Nex is locked';
+
+  @override
+  String get widgetSettingsWhenLockedHint => 'Off, the widget empties itself whenever the lock closes. On, your notes stay on the home screen, where anyone holding the phone can read them.';
+
+  @override
   String get securityLockNow => 'Lock now';
 
   @override

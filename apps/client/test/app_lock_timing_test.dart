@@ -190,6 +190,72 @@ void main() {
     expect(gateIsUp(tester), isTrue);
   });
 
+  testWidgets('after a while: the lock closes while the app is away', (
+    tester,
+  ) async {
+    // It used to be decided only on the way back in, which is invisible to
+    // everyone except the person returning — the home-screen widget went on
+    // showing a library the app still considered open.
+    final services = await boot({
+      'security.lock_timing': 'after',
+      'security.lock_grace_seconds': 60,
+      'security.lock_left_at': DateTime.now().millisecondsSinceEpoch,
+    });
+    await tester.pumpWidget(
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _AlwaysRefused(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(gateIsUp(tester), isFalse, reason: 'just left, still inside it');
+
+    await leave(tester);
+    expect(gateIsUp(tester), isFalse, reason: 'the grace has not run out');
+
+    await tester.pump(const Duration(seconds: 61));
+    // Settled for the same reason `leave` settles: the write behind the flag
+    // is not awaited from a timer callback either.
+    await tester.pumpAndSettle();
+    expect(gateIsUp(tester), isTrue);
+    expect(
+      preferences.appLockClosed,
+      isTrue,
+      reason: 'written down, so the widget and the next launch both see it',
+    );
+  });
+
+  testWidgets('unlocking is not undone by the prompt closing', (tester) async {
+    // The bug: the OS fingerprint sheet pauses and resumes the app, and every
+    // one of those resumes measured the same long-past `leftAt`, decided the
+    // grace had run out, re-locked and prompted again — fingerprint after
+    // fingerprint with no way out but force-stopping Nex.
+    final services = await boot({
+      'security.lock_timing': 'after',
+      'security.lock_grace_seconds': 60,
+      'security.lock_left_at': DateTime.now()
+          .subtract(const Duration(minutes: 10))
+          .millisecondsSinceEpoch,
+    });
+    await tester.pumpWidget(
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _PromptThatTakesTheForeground(tester),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(gateIsUp(tester), isFalse, reason: 'the prompt was answered');
+
+    // What Android sends when the sheet comes down.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(gateIsUp(tester), isFalse);
+    expect(preferences.appLockClosed, isFalse);
+  });
+
   testWidgets('never left, never recorded: a first launch locks', (
     tester,
   ) async {
@@ -225,4 +291,26 @@ class _AlwaysRefused extends AppLockService {
     required String reason,
     required bool biometricOnly,
   }) async => false;
+}
+
+/// A prompt that accepts — and pauses the app on its way up, the way the
+/// real one does.
+///
+/// That detail is the test: Android backgrounds Nex to put its own sheet in
+/// front, so the pause arrives while an unlock is in flight and is ignored on
+/// purpose. What comes back afterwards is a bare `resumed`, with nothing
+/// having recorded that the app was ever open in between.
+class _PromptThatTakesTheForeground extends AppLockService {
+  _PromptThatTakesTheForeground(this.tester);
+
+  final WidgetTester tester;
+
+  @override
+  Future<bool> authenticate({
+    required String reason,
+    required bool biometricOnly,
+  }) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    return true;
+  }
 }

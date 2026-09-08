@@ -208,6 +208,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get widgetSettingsScanNote => 'با فیلتر روشن، ویجت از میان تازه‌ترین یادداشت‌ها نتیجه نشان می‌دهد، نه با جست‌وجوی کل کتابخانه.';
 
   @override
+  String get widgetSettingsWhenLocked => 'نمایش یادداشت‌ها وقتی Nex قفل است';
+
+  @override
+  String get widgetSettingsWhenLockedHint => 'خاموش باشد، ویجت هر بار که قفل بسته می‌شود خالی می‌شود. روشن باشد، یادداشت‌ها روی صفحهٔ اصلی می‌مانند و هرکس گوشی دستش باشد می‌تواند بخواندشان.';
+
+  @override
   String get securityLockNow => 'همین حالا قفل کن';
 
   @override

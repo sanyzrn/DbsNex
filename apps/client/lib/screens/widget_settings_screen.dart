@@ -157,6 +157,22 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                       ),
                   ],
                 ),
+              // Only under a lock that is actually on. With no lock there is
+              // no state for this to describe, and a switch that cannot mean
+              // anything still has to be read before it can be dismissed.
+              if (widget.preferences.appLockEnabled) ...[
+                const SizedBox(height: NexSpacing.lg),
+                NexSwitchTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.lock_outline),
+                  title: Text(l10n.widgetSettingsWhenLocked),
+                  subtitle: Text(l10n.widgetSettingsWhenLockedHint),
+                  value: widget.preferences.widgetShowWhenLocked,
+                  onChanged: (value) => unawaited(
+                    widget.preferences.setWidgetShowWhenLocked(value),
+                  ),
+                ),
+              ],
               const SizedBox(height: NexSpacing.lg),
               Text(
                 l10n.widgetSettingsScanNote,
