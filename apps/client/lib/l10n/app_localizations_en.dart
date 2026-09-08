@@ -162,6 +162,95 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get securityScreenshotBlocked =>
+
+  @override
+  String get sponsorLabel => 'SPONSORED';
+
+  @override
+  String get sponsorDismiss => 'Hide this';
+
+  @override
+  String get notificationSoundReminders => 'Reminder sound';
+
+  @override
+  String get notificationSoundDaily => 'Daily digest sound';
+
+  @override
+  String get notificationSoundSubtitle => 'Sound, vibration and importance, in Android settings';
+
+  @override
+  String get notificationSoundUnavailable => 'This phone has no screen for that.';
+
+  @override
+  String get widgetSettingsTitle => 'Home screen widget';
+
+  @override
+  String get widgetSettingsSubtitle => 'What the widget shows';
+
+  @override
+  String get widgetSettingsIntro => 'By default the widget shows the top of your timeline. These narrow it down.';
+
+  @override
+  String get widgetSettingsKinds => 'Kinds of note';
+
+  @override
+  String get widgetSettingsEverything => 'Everything';
+
+  @override
+  String get widgetSettingsTag => 'Tag';
+
+  @override
+  String get widgetSettingsAnyTag => 'Any tag';
+
+  @override
+  String get widgetSettingsNoTags => 'No tags yet.';
+
+  @override
+  String get widgetSettingsScanNote => 'With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.';
+
+  @override
+  String get securityLockNow => 'Lock now';
+
+  @override
+  String get securityLockWhen => 'Lock when';
+
+  @override
+  String get securityLockImmediately => 'As soon as I leave';
+
+  @override
+  String get securityLockImmediatelyHint => 'Every time Nex goes to the background';
+
+  @override
+  String get securityLockAfterTitle => 'After a while';
+
+  @override
+  String securityLockAfter(Object delay) {
+    return 'After $delay';
+  }
+
+  @override
+  String get securityLockAfterHint => 'A quick trip to another app will not ask again';
+
+  @override
+  String get securityLockManual => 'Only when I ask';
+
+  @override
+  String get securityLockManualHint => 'Nex stays open until you tap the lock';
+
+  @override
+  String securityLockSeconds(int count) {
+    return '$count seconds';
+  }
+
+  @override
+  String securityLockMinutes(int count) {
+    return '$count minutes';
+  }
+
+  @override
+  String securityLockHours(int count) {
+    return '$count hour';
+  }
       'While the lock is on, Nex is also hidden from the recent-apps screen and screenshots of it are blocked.';
 
   @override

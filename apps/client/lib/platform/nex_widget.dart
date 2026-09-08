@@ -64,10 +64,24 @@ class NexWidgetSnapshot {
   /// while bounding what a note costs the file.
   static const int maxPreviewLength = 160;
 
-  /// How much of the timeline the widget may see. The largest useful shape
-  /// (four cells tall) shows about six rows under its header; ten covers it
-  /// with margin and keeps the file flat whatever the library weighs.
-  static const int maxNotes = 10;
+  /// How much of the timeline the widget may see.
+  ///
+  /// The tallest shape the launcher will now give it is six cells, which is
+  /// about eight rows under the header, so ten was a ceiling the widget could
+  /// actually reach. Fifteen covers it with margin and still keeps the file
+  /// flat whatever the library weighs.
+  static const int maxNotes = 15;
+
+  /// How far down the timeline the writer looks for [maxNotes] matches.
+  ///
+  /// Only relevant when a filter is on: with no filter the first fifteen
+  /// notes are the answer. With one, the widget shows the newest matches
+  /// *within the most recent two hundred notes* rather than searching the
+  /// whole library — a bounded read that costs the same on a library of two
+  /// hundred notes and one of twenty thousand. Someone whose last photo was
+  /// three hundred notes ago is looking at a library where a home-screen
+  /// glance is the wrong tool anyway.
+  static const int scanDepth = 200;
 
   /// Whether the app lock is on. When it is, [notes] is always empty — this
   /// is decided here, at write time, so a locked library's content never
@@ -91,6 +105,21 @@ class NexWidgetSnapshot {
   /// this file's. Whitespace collapses so a multi-line note costs one row,
   /// and the cut is hard at [maxPreviewLength]: the widget ellipsizes at
   /// its own edge, and a snapshot is not the place to carry a whole note.
+  /// Keeps only what the widget was asked to show.
+  ///
+  /// Types are filtered here rather than in SQL because the widget's slice is
+  /// small and the timeline's ordering — pinned first, then most recently
+  /// touched — is a property of that one query. Re-deriving it in a second
+  /// query with a type clause would be two definitions of "the top of the
+  /// timeline", and the widget exists to show the same list the app does.
+  ///
+  /// The tag *is* filtered in SQL, because the timeline query already takes
+  /// one and doing it twice would be the invention this avoids.
+  static List<Note> filter(List<Note> notes, Set<String> types) =>
+      types.isEmpty
+      ? notes
+      : notes.where((note) => types.contains(note.type.wireName)).toList();
+
   static NexWidgetSnapshot build({
     required bool appLock,
     required List<Note> notes,
@@ -169,6 +198,7 @@ class NexWidgetBridge {
   Timer? _timer;
   StreamSubscription<List<Note>>? _subscription;
   bool? _lastWrittenLock;
+  String? _lastWrittenFilter;
   bool _disposed = false;
 
   /// Writes the first snapshot and subscribes for the rest of the app's run.
@@ -192,11 +222,29 @@ class NexWidgetBridge {
   void _onPreferencesChanged() {
     if (_disposed) return;
     final lock = preferences.appLockEnabled;
+    final filter = _filterSignature;
+    // The lock is written straight through rather than debounced: content
+    // must leave the file the moment it is switched on, and 300ms of a
+    // locked library's notes still on disk is 300ms too many.
     if (_lastWrittenLock != null && _lastWrittenLock != lock) {
       _timer?.cancel();
       unawaited(_write());
+      return;
     }
+    // The filters can wait for the debounce — nothing is exposed by showing
+    // the wrong slice for a moment, and the widget settings screen changes
+    // them a chip at a time.
+    if (_lastWrittenFilter != null && _lastWrittenFilter != filter) _schedule();
   }
+
+  /// What the widget was last told to show, as one comparable string.
+  ///
+  /// A signature rather than the values themselves: this is asked on every
+  /// preference change of any kind, and the only question is whether it
+  /// differs from last time.
+  String get _filterSignature =>
+      '${(preferences.widgetTypes.toList()..sort()).join(',')}'
+      '|${preferences.widgetTagId ?? ''}';
 
   /// Coalesces a burst of refreshes (a capture fires several: commit,
   /// enrichment, receipt) into one file write and one broadcast.
@@ -215,11 +263,24 @@ class NexWidgetBridge {
       // Only when unlocked does the snapshot need notes; the query is
       // skipped entirely for a locked library, so unlocking is the only way
       // content ever reaches the file.
+      final types = preferences.widgetTypes;
+      // No filter, no reason to read past what fits: the first rows of the
+      // timeline are the answer, and that is the overwhelmingly common case.
+      final depth = types.isEmpty
+          ? NexWidgetSnapshot.maxNotes
+          : NexWidgetSnapshot.scanDepth;
       final notes = lock
           ? const <Note>[]
-          : await services.timeline(limit: NexWidgetSnapshot.maxNotes);
+          : NexWidgetSnapshot.filter(
+              await services.timeline(
+                limit: depth,
+                tagId: preferences.widgetTagId,
+              ),
+              types,
+            );
       final snapshot = NexWidgetSnapshot.build(appLock: lock, notes: notes);
       _lastWrittenLock = lock;
+      _lastWrittenFilter = _filterSignature;
       // Atomic swap. The reader runs whenever the launcher pleases; a
       // half-written file must never be the thing it finds.
       final temp = File('${file.path}.tmp');

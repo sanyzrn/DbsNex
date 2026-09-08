@@ -161,6 +161,95 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get securityScreenshotBlocked =>
+
+  @override
+  String get sponsorLabel => 'حمایت‌شده';
+
+  @override
+  String get sponsorDismiss => 'پنهانش کن';
+
+  @override
+  String get notificationSoundReminders => 'صدای یادآور';
+
+  @override
+  String get notificationSoundDaily => 'صدای خلاصهٔ روزانه';
+
+  @override
+  String get notificationSoundSubtitle => 'صدا، لرزش و اهمیت، در تنظیمات اندروید';
+
+  @override
+  String get notificationSoundUnavailable => 'این گوشی چنین صفحه‌ای ندارد.';
+
+  @override
+  String get widgetSettingsTitle => 'ویجت صفحهٔ خانه';
+
+  @override
+  String get widgetSettingsSubtitle => 'ویجت چه چیزی نشان دهد';
+
+  @override
+  String get widgetSettingsIntro => 'به‌طور پیش‌فرض ویجت ابتدای تایم‌لاین را نشان می‌دهد. اینها محدودش می‌کنند.';
+
+  @override
+  String get widgetSettingsKinds => 'نوع یادداشت';
+
+  @override
+  String get widgetSettingsEverything => 'همه';
+
+  @override
+  String get widgetSettingsTag => 'برچسب';
+
+  @override
+  String get widgetSettingsAnyTag => 'هر برچسبی';
+
+  @override
+  String get widgetSettingsNoTags => 'هنوز برچسبی نیست.';
+
+  @override
+  String get widgetSettingsScanNote => 'با فیلتر روشن، ویجت از میان تازه‌ترین یادداشت‌ها نتیجه نشان می‌دهد، نه با جست‌وجوی کل کتابخانه.';
+
+  @override
+  String get securityLockNow => 'همین حالا قفل کن';
+
+  @override
+  String get securityLockWhen => 'زمان قفل‌شدن';
+
+  @override
+  String get securityLockImmediately => 'به‌محض خروج';
+
+  @override
+  String get securityLockImmediatelyHint => 'هر بار که نکس به پس‌زمینه می‌رود';
+
+  @override
+  String get securityLockAfterTitle => 'پس از مدتی';
+
+  @override
+  String securityLockAfter(Object delay) {
+    return 'پس از $delay';
+  }
+
+  @override
+  String get securityLockAfterHint => 'رفتن کوتاه به اپ دیگر دوباره نمی‌پرسد';
+
+  @override
+  String get securityLockManual => 'فقط وقتی خودم بخواهم';
+
+  @override
+  String get securityLockManualHint => 'نکس باز می‌ماند تا وقتی قفل را بزنی';
+
+  @override
+  String securityLockSeconds(int count) {
+    return '$count ثانیه';
+  }
+
+  @override
+  String securityLockMinutes(int count) {
+    return '$count دقیقه';
+  }
+
+  @override
+  String securityLockHours(int count) {
+    return '$count ساعت';
+  }
       'تا وقتی قفل روشن است، Nex از صفحهٔ برنامه‌های اخیر هم پنهان می‌ماند و گرفتن اسکرین‌شات از آن مسدود می‌شود.';
 
   @override

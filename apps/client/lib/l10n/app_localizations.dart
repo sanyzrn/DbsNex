@@ -386,6 +386,168 @@ abstract class AppLocalizations {
   /// **'While the lock is on, Nex is also hidden from the recent-apps screen and screenshots of it are blocked.'**
   String get securityScreenshotBlocked;
 
+  /// Small label at the top of the sponsor card, saying what it is
+  ///
+  /// In en, this message translates to:
+  /// **'SPONSORED'**
+  String get sponsorLabel;
+
+  /// Tooltip of the sponsor card's dismiss button
+  ///
+  /// In en, this message translates to:
+  /// **'Hide this'**
+  String get sponsorDismiss;
+
+  /// Settings row that opens the OS notification-channel screen for reminders
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder sound'**
+  String get notificationSoundReminders;
+
+  /// Settings row that opens the OS notification-channel screen for the daily digest
+  ///
+  /// In en, this message translates to:
+  /// **'Daily digest sound'**
+  String get notificationSoundDaily;
+
+  /// Explains that the sound choice lives in the OS settings
+  ///
+  /// In en, this message translates to:
+  /// **'Sound, vibration and importance, in Android settings'**
+  String get notificationSoundSubtitle;
+
+  /// Shown when the OS notification settings could not be opened
+  ///
+  /// In en, this message translates to:
+  /// **'This phone has no screen for that.'**
+  String get notificationSoundUnavailable;
+
+  /// Title of the widget settings screen and its row in Settings
+  ///
+  /// In en, this message translates to:
+  /// **'Home screen widget'**
+  String get widgetSettingsTitle;
+
+  /// Settings row subtitle for the widget screen
+  ///
+  /// In en, this message translates to:
+  /// **'What the widget shows'**
+  String get widgetSettingsSubtitle;
+
+  /// Explains what the widget settings do
+  ///
+  /// In en, this message translates to:
+  /// **'By default the widget shows the top of your timeline. These narrow it down.'**
+  String get widgetSettingsIntro;
+
+  /// Heading above the note-type filter chips
+  ///
+  /// In en, this message translates to:
+  /// **'Kinds of note'**
+  String get widgetSettingsKinds;
+
+  /// Chip that clears the note-type filter
+  ///
+  /// In en, this message translates to:
+  /// **'Everything'**
+  String get widgetSettingsEverything;
+
+  /// Heading above the tag filter chips
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get widgetSettingsTag;
+
+  /// Chip that clears the tag filter
+  ///
+  /// In en, this message translates to:
+  /// **'Any tag'**
+  String get widgetSettingsAnyTag;
+
+  /// Shown in place of the tag chips when the library has no tags
+  ///
+  /// In en, this message translates to:
+  /// **'No tags yet.'**
+  String get widgetSettingsNoTags;
+
+  /// Explains the bounded scan the filtered widget does
+  ///
+  /// In en, this message translates to:
+  /// **'With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.'**
+  String get widgetSettingsScanNote;
+
+  /// Tooltip of the lock button on the timeline
+  ///
+  /// In en, this message translates to:
+  /// **'Lock now'**
+  String get securityLockNow;
+
+  /// Security row that chooses when the app lock re-arms
+  ///
+  /// In en, this message translates to:
+  /// **'Lock when'**
+  String get securityLockWhen;
+
+  /// App lock re-arms the moment the app is backgrounded
+  ///
+  /// In en, this message translates to:
+  /// **'As soon as I leave'**
+  String get securityLockImmediately;
+
+  /// Explains the immediate lock timing
+  ///
+  /// In en, this message translates to:
+  /// **'Every time Nex goes to the background'**
+  String get securityLockImmediatelyHint;
+
+  /// App lock re-arms only after a delay
+  ///
+  /// In en, this message translates to:
+  /// **'After a while'**
+  String get securityLockAfterTitle;
+
+  /// Summary of the delayed lock timing on the security row
+  ///
+  /// In en, this message translates to:
+  /// **'After {delay}'**
+  String securityLockAfter(Object delay);
+
+  /// Explains the delayed lock timing
+  ///
+  /// In en, this message translates to:
+  /// **'A quick trip to another app will not ask again'**
+  String get securityLockAfterHint;
+
+  /// App lock re-arms only on the explicit lock button
+  ///
+  /// In en, this message translates to:
+  /// **'Only when I ask'**
+  String get securityLockManual;
+
+  /// Explains the manual lock timing
+  ///
+  /// In en, this message translates to:
+  /// **'Nex stays open until you tap the lock'**
+  String get securityLockManualHint;
+
+  /// A lock delay under a minute
+  ///
+  /// In en, this message translates to:
+  /// **'{count} seconds'**
+  String securityLockSeconds(int count);
+
+  /// A lock delay in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'{count} minutes'**
+  String securityLockMinutes(int count);
+
+  /// A lock delay in hours
+  ///
+  /// In en, this message translates to:
+  /// **'{count} hour'**
+  String securityLockHours(int count);
+
   /// No description provided for @securityPasscodeUnavailable.
   ///
   /// In en, this message translates to:

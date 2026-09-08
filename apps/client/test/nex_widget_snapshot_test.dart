@@ -133,4 +133,36 @@ void main() {
       expect(notes['updatedAt'], now.millisecondsSinceEpoch);
     });
   });
+
+  group('NexWidgetSnapshot.filter', () {
+    final mixed = [
+      note('a', NoteType.text, 'a thought'),
+      note('b', NoteType.photo, null, caption: 'the receipt'),
+      note('c', NoteType.checklist, '- [ ] milk'),
+      note('d', NoteType.text, 'another thought'),
+    ];
+
+    test('no kinds chosen means no filter, not an empty widget', () {
+      // The encoding this rests on: "none selected" cannot sensibly mean
+      // "show nothing", because a permanently empty widget is not a thing
+      // anyone would choose.
+      expect(NexWidgetSnapshot.filter(mixed, const {}), mixed);
+    });
+
+    test('keeps only the kinds asked for, in the order they arrived', () {
+      final photos = NexWidgetSnapshot.filter(mixed, const {'photo'});
+      expect(photos.map((n) => n.id), ['b']);
+
+      final both = NexWidgetSnapshot.filter(mixed, const {'text', 'checklist'});
+      expect(
+        both.map((n) => n.id),
+        ['a', 'c', 'd'],
+        reason: 'the widget shows the timeline, not a re-sorted copy of it',
+      );
+    });
+
+    test('a kind the library has none of gives an empty widget, not a crash', () {
+      expect(NexWidgetSnapshot.filter(mixed, const {'voice'}), isEmpty);
+    });
+  });
 }
