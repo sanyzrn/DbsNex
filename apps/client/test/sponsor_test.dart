@@ -202,6 +202,30 @@ void main() {
       expect(asked, 2, reason: 'unless asked outright');
     });
 
+    test('caching a card does not wake every listener in the app', () async {
+      // The bug this is here for, which took a "pumpAndSettle timed out" to
+      // find: these writes used to notify, so a background HTTP reply
+      // rebuilt the whole app — including the lock gate, whose unlock button
+      // is a spinner while a fingerprint is pending. An infinite animation,
+      // caused by a cache write, on a screen with nothing to do with either.
+      //
+      // The card is not a setting. The one screen that shows it calls
+      // setState itself.
+      var woken = 0;
+      // Held in a variable: `removeListener` matches by identity, so passing
+      // a fresh closure removes nothing and leaves the listener attached to
+      // a preferences object the next test rebuilds.
+      void count() => woken++;
+      preferences.addListener(count);
+      addTearDown(() => preferences.removeListener(count));
+
+      final service = serviceReturning((_) => http.Response(card(), 200));
+      await service.refresh();
+      await service.dismiss('c1');
+
+      expect(woken, 0);
+    });
+
     test('dismissing survives the next fetch of the same card', () async {
       final service = serviceReturning((_) => http.Response(card(), 200));
       await service.refresh();

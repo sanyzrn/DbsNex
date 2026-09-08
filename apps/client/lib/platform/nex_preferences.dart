@@ -555,22 +555,32 @@ class NexPreferences extends ChangeNotifier {
   Future<void> setLiquidGlass(bool value) =>
       _setBool('appearance.liquid_glass', value);
 
+  /// All three are deliberately silent — no [notifyListeners].
+  ///
+  /// This is a cache, not a setting. Every listener on this object rebuilds
+  /// the whole app, and the one screen that shows a sponsor card already
+  /// calls `setState` itself after a fetch or a dismissal, so a notification
+  /// here buys nothing and costs a full rebuild triggered by a background
+  /// network reply.
+  ///
+  /// It also cost more than that, which is why this note exists. The reply
+  /// arrives while the app lock may still be waiting on a fingerprint, and
+  /// the rebuild it caused redrew the lock gate — whose unlock button is a
+  /// spinner while authentication is pending. An infinite animation, from a
+  /// cache write, on a screen that has nothing to do with either.
   Future<void> setSponsorPayload(String? value) async {
     if (value == null) {
       await _prefs.remove('sponsor.payload');
     } else {
       await _prefs.setString('sponsor.payload', value);
     }
-    notifyListeners();
   }
 
   Future<void> setSponsorFetchedAt(DateTime value) =>
       _prefs.setInt('sponsor.fetched_at', value.millisecondsSinceEpoch);
 
-  Future<void> setSponsorDismissed(Set<String> value) async {
-    await _prefs.setStringList('sponsor.dismissed', value.toList()..sort());
-    notifyListeners();
-  }
+  Future<void> setSponsorDismissed(Set<String> value) =>
+      _prefs.setStringList('sponsor.dismissed', value.toList()..sort());
 
   Future<void> setWidgetTypes(Set<String> value) async {
     await _prefs.setStringList('widget.types', value.toList()..sort());
