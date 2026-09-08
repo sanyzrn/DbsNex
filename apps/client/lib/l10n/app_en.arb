@@ -51,6 +51,134 @@
   "securityBiometricSubtitle": "Require an enrolled fingerprint, face, or Windows Hello instead of passcode fallback.",
   "securityLocalOnly": "Authentication is handled by your device. Nex never receives or stores your passcode or biometric data.",
   "securityScreenshotBlocked": "While the lock is on, Nex is also hidden from the recent-apps screen and screenshots of it are blocked.",
+  "sponsorLabel": "SPONSORED",
+  "@sponsorLabel": {
+      "description": "Small label at the top of the sponsor card, saying what it is"
+  },
+  "sponsorDismiss": "Hide this",
+  "@sponsorDismiss": {
+      "description": "Tooltip of the sponsor card's dismiss button"
+  },
+  "notificationSoundReminders": "Reminder sound",
+  "@notificationSoundReminders": {
+      "description": "Settings row that opens the OS notification-channel screen for reminders"
+  },
+  "notificationSoundDaily": "Daily digest sound",
+  "@notificationSoundDaily": {
+      "description": "Settings row that opens the OS notification-channel screen for the daily digest"
+  },
+  "notificationSoundSubtitle": "Sound, vibration and importance, in Android settings",
+  "@notificationSoundSubtitle": {
+      "description": "Explains that the sound choice lives in the OS settings"
+  },
+  "notificationSoundUnavailable": "This phone has no screen for that.",
+  "@notificationSoundUnavailable": {
+      "description": "Shown when the OS notification settings could not be opened"
+  },
+  "widgetSettingsTitle": "Home screen widget",
+  "@widgetSettingsTitle": {
+      "description": "Title of the widget settings screen and its row in Settings"
+  },
+  "widgetSettingsSubtitle": "What the widget shows",
+  "@widgetSettingsSubtitle": {
+      "description": "Settings row subtitle for the widget screen"
+  },
+  "widgetSettingsIntro": "By default the widget shows the top of your timeline. These narrow it down.",
+  "@widgetSettingsIntro": {
+      "description": "Explains what the widget settings do"
+  },
+  "widgetSettingsKinds": "Kinds of note",
+  "@widgetSettingsKinds": {
+      "description": "Heading above the note-type filter chips"
+  },
+  "widgetSettingsEverything": "Everything",
+  "@widgetSettingsEverything": {
+      "description": "Chip that clears the note-type filter"
+  },
+  "widgetSettingsTag": "Tag",
+  "@widgetSettingsTag": {
+      "description": "Heading above the tag filter chips"
+  },
+  "widgetSettingsAnyTag": "Any tag",
+  "@widgetSettingsAnyTag": {
+      "description": "Chip that clears the tag filter"
+  },
+  "widgetSettingsNoTags": "No tags yet.",
+  "@widgetSettingsNoTags": {
+      "description": "Shown in place of the tag chips when the library has no tags"
+  },
+  "widgetSettingsScanNote": "With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.",
+  "@widgetSettingsScanNote": {
+      "description": "Explains the bounded scan the filtered widget does"
+  },
+  "securityLockNow": "Lock now",
+  "@securityLockNow": {
+      "description": "Tooltip of the lock button on the timeline"
+  },
+  "securityLockWhen": "Lock when",
+  "@securityLockWhen": {
+      "description": "Security row that chooses when the app lock re-arms"
+  },
+  "securityLockImmediately": "As soon as I leave",
+  "@securityLockImmediately": {
+      "description": "App lock re-arms the moment the app is backgrounded"
+  },
+  "securityLockImmediatelyHint": "Every time Nex goes to the background",
+  "@securityLockImmediatelyHint": {
+      "description": "Explains the immediate lock timing"
+  },
+  "securityLockAfterTitle": "After a while",
+  "@securityLockAfterTitle": {
+      "description": "App lock re-arms only after a delay"
+  },
+  "securityLockAfter": "After {delay}",
+  "@securityLockAfter": {
+      "description": "Summary of the delayed lock timing on the security row",
+      "placeholders": {
+          "delay": {
+              "type": "String"
+          }
+      }
+  },
+  "securityLockAfterHint": "A quick trip to another app will not ask again",
+  "@securityLockAfterHint": {
+      "description": "Explains the delayed lock timing"
+  },
+  "securityLockManual": "Only when I ask",
+  "@securityLockManual": {
+      "description": "App lock re-arms only on the explicit lock button"
+  },
+  "securityLockManualHint": "Nex stays open until you tap the lock",
+  "@securityLockManualHint": {
+      "description": "Explains the manual lock timing"
+  },
+  "securityLockSeconds": "{count} seconds",
+  "@securityLockSeconds": {
+      "description": "A lock delay under a minute",
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "securityLockMinutes": "{count} minutes",
+  "@securityLockMinutes": {
+      "description": "A lock delay in minutes",
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "securityLockHours": "{count} hour",
+  "@securityLockHours": {
+      "description": "A lock delay in hours",
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
   "securityPasscodeUnavailable": "Set up a device passcode, PIN, or pattern first.",
   "securityBiometricUnavailable": "No enrolled fingerprint or other biometric was found.",
   "securityAuthenticateReason": "Unlock Nex to protect your notes",

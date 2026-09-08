@@ -34,6 +34,39 @@ Working convention:
 
 ## Unreleased
 
+## v1.7.0
+
+- **The widget can be told what to show.** Settings → Home screen widget picks
+  which kinds of note appear — only checklists, only photos, any combination —
+  and narrows it to one tag. Left alone it does what it always did: the top of
+  your timeline.
+
+- **The widget can be made much bigger.** It stopped at about three cells in
+  either direction, which is smaller than most launchers will let you drag it.
+  It now goes to five wide and six tall, and shows more of the timeline as it
+  grows.
+
+- **The lock no longer asks every single time.** It used to close the instant
+  Nex left the screen, so switching to a browser to copy a link and coming
+  straight back cost a fingerprint. There are three choices now, under Security:
+  as soon as you leave, after a delay you pick, or only when you tap the new
+  lock button at the top of the timeline. Whichever you choose survives Android
+  stopping the app in the background — a lock you closed stays closed.
+
+- **Reminder sounds.** Settings → Notifications now opens Android's own screen
+  for the reminder channel, where the sound, the vibration and how loudly it
+  interrupts are all yours to set — including any ringtone on the phone. It is
+  the OS's screen rather than one of ours because Android hands a channel to
+  the user the moment it exists, and no app can change it afterwards.
+
+- **Nex stays free.** There is no paid tier and nothing is held back. In its
+  place the timeline can carry a single sponsor card, exactly the size of one
+  note and clearly marked as what it is — words, or a picture that fills it.
+  It appears only when there is actually something to show — no card, no gap,
+  no placeholder — and it goes quiet on a phone that has been off the network,
+  rather than leaving a finished campaign sitting there. It never reads or
+  sends anything about your notes, and hiding one hides it for good.
+
 ## v1.6.2
 
 - **The colour wheel hands back the colour you touched.** The disc was drawn a

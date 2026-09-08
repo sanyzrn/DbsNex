@@ -208,6 +208,56 @@ class NexReminders {
     }
   }
 
+  /// Declares the channels up front instead of letting the first
+  /// notification create them.
+  ///
+  /// Two reasons, and the second is the one that matters. A channel that does
+  /// not exist yet has nothing for the system's own notification settings to
+  /// show, so "choose a sound" would open an empty screen on a phone where
+  /// no reminder had ever fired. And a channel's sound, vibration and
+  /// importance belong to the *user* from the moment it exists — Android will
+  /// not let an app change them afterwards, by design — so the only honest
+  /// place to offer those choices is the OS screen this makes reachable.
+  ///
+  /// Creating a channel that already exists is a no-op that keeps whatever
+  /// the user has set, which is what makes this safe to run on every launch.
+  Future<void> _createChannels() async {
+    if (!Platform.isAndroid) return;
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    if (android == null) return;
+    try {
+      await android.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _channelId,
+          'Reminders',
+          description: 'Notes you asked Nex to bring back up',
+          importance: Importance.high,
+        ),
+      );
+      await android.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _dailyChannelId,
+          'Daily digest',
+          description: 'One reminder a day, at a time you chose',
+          importance: Importance.defaultImportance,
+        ),
+      );
+    } catch (error) {
+      // Same rule as the exact-alarm probe above: a startup step that failed
+      // must not land in [lastError], which answers "did the alarm I just
+      // asked for get taken". The channels are created again on the next
+      // launch, and the plugin creates one implicitly when it posts anyway.
+      _initialisationWarning ??= 'channels: $error';
+    }
+  }
+
+  /// The channel ids the settings screen can send someone to.
+  static const remindersChannel = _channelId;
+  static const dailyChannel = _dailyChannelId;
+
   Future<void> _initialise() async {
     tz_data.initializeTimeZones();
     // Loading the database is only half of it. Without this `tz.local` is
@@ -248,6 +298,7 @@ class NexReminders {
         if (payload != null && payload.isNotEmpty) onOpenNote?.call(payload);
       },
     );
+    await _createChannels();
     // Asked, not assumed, and before anything is scheduled. `canSchedule…`
     // only reads the current state — it shows nobody a prompt — which is what
     // makes it safe here, where a permission request would not be.

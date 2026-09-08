@@ -13,6 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
+import android.provider.Settings
 import android.view.WindowManager
 import android.widget.Toast
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -123,6 +124,24 @@ open class MainActivity : FlutterFragmentActivity() {
             "pushWidgets" -> {
                 NexWidgetActions.refreshAll(applicationContext)
                 result.success(null)
+            }
+            // Hands the sound, vibration and importance of a notification
+            // channel back to the OS screen that owns them.
+            //
+            // Not an in-app picker, and not because one would be more work:
+            // Android freezes a channel's sound the moment the channel
+            // exists, and nothing an app does afterwards can change it. An
+            // in-app list would appear to work, write a preference, and be
+            // ignored by every notification after the first. The system
+            // screen is also strictly better — it can offer every ringtone
+            // on the device, which a bundled list never could.
+            "openChannelSettings" -> {
+                val channel = call.argument<String>("channel")
+                if (channel.isNullOrEmpty()) {
+                    result.success(false)
+                    return@setMethodCallHandler
+                }
+                result.success(openChannelSettings(channel))
             }
             "isShareWindow" -> result.success(closesAfterShare)
             // Say what happened to the share, and close the window if this is
@@ -540,6 +559,40 @@ open class MainActivity : FlutterFragmentActivity() {
      * Dart treats that as "measure it after copying", which is what it had to
      * do for every file before this existed.
      */
+    /**
+     * Opens the system's settings for one notification channel, falling back
+     * to the app's notification settings and then to the app's own settings
+     * page.
+     *
+     * Three levels because each one can fail for a reason that is not the
+     * app's fault: channels only exist from Android 8, a launcher or a ROM
+     * may have no activity for the channel screen at all, and the caller
+     * needs a plain yes or no either way. Returning false lets Dart say
+     * something rather than leaving a settings row that does nothing when
+     * tapped.
+     */
+    private fun openChannelSettings(channel: String): Boolean {
+        val intents = mutableListOf<Intent>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            intents += Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                .putExtra(Settings.EXTRA_CHANNEL_ID, channel)
+            intents += Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        }
+        intents += Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData(Uri.fromParts("package", packageName, null))
+        for (intent in intents) {
+            try {
+                startActivity(intent)
+                return true
+            } catch (_: Exception) {
+                // Try the next one down.
+            }
+        }
+        return false
+    }
+
     private fun describeUri(uri: Uri): Map<String, String> = mapOf(
         "uri" to uri.toString(),
         "filename" to (displayName(uri) ?: "shared-${System.currentTimeMillis()}"),

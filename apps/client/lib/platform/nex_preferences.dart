@@ -10,6 +10,26 @@ import 'ai_provider.dart';
 import 'chat_history.dart';
 import 'package:uuid/uuid.dart';
 
+/// When the app lock puts itself back on.
+///
+/// The lock used to re-arm the instant the app left the screen, which is the
+/// safe default and, for someone switching to a browser to copy a link and
+/// coming straight back, five fingerprints a minute. These are the three
+/// answers that actually differ: at once, after a while, or never on its own.
+enum AppLockTiming { immediately, after, manual }
+
+extension AppLockTimingWire on AppLockTiming {
+  String get wireName => name;
+
+  static AppLockTiming fromWire(String? value) =>
+      AppLockTiming.values.firstWhere(
+        (timing) => timing.name == value,
+        // The behaviour that shipped, for a device that has never seen this
+        // setting: a lock nobody configured should be the strict one.
+        orElse: () => AppLockTiming.immediately,
+      );
+}
+
 /// How many colours a picker remembers between visits.
 ///
 /// Eight is one row on a phone. A history that wraps to a second row stops
@@ -315,6 +335,46 @@ class NexPreferences extends ChangeNotifier {
 
   bool get liquidGlass => _prefs.getBool('appearance.liquid_glass') ?? false;
 
+  /// The sponsor card's raw JSON as last fetched, or null for none.
+  ///
+  /// Stored as the file rather than as parsed fields: the parser is the one
+  /// place that decides what a valid card is, and keeping the source means a
+  /// build that learns a new field can read a file fetched by the last one.
+  String? get sponsorPayload => _prefs.getString('sponsor.payload');
+
+  DateTime? get sponsorFetchedAt {
+    final value = _prefs.getInt('sponsor.fetched_at');
+    return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
+  }
+
+  /// Where the sponsor card's picture was written, or null for a card with
+  /// none. A path rather than the bytes: preferences are read on every build
+  /// and half a megabyte does not belong in them.
+  String? get sponsorImagePath => _prefs.getString('sponsor.image_path');
+
+  /// Sponsor card ids the user has put away. Kept forever — the list is a
+  /// handful of short strings, and forgetting one means showing somebody a
+  /// card they have already said no to.
+  Set<String> get sponsorDismissed =>
+      (_prefs.getStringList('sponsor.dismissed') ?? const <String>[]).toSet();
+
+  /// Which note types the home-screen widget may show, by wire name.
+  ///
+  /// Empty means all of them, which is both the default and the honest
+  /// encoding: a widget filtered to nothing would be a widget that is
+  /// permanently empty, so "none selected" can only sensibly mean "no filter".
+  Set<String> get widgetTypes =>
+      (_prefs.getStringList('widget.types') ?? const <String>[]).toSet();
+
+  /// Which tag the widget is limited to, or null for the whole timeline.
+  String? get widgetTagId => _prefs.getString('widget.tag_id');
+
+  /// The tag's name, kept beside its id so the settings row can say which
+  /// tag without a database read on every rebuild. A tag renamed elsewhere
+  /// leaves this stale until the row is opened again, which is a cosmetic
+  /// cost paid to keep a synchronous getter synchronous.
+  String? get widgetTagName => _prefs.getString('widget.tag_name');
+
   NexBackgroundPattern get backgroundPattern =>
       NexBackgroundPatternWire.fromWire(
         _prefs.getString('appearance.background_pattern'),
@@ -416,6 +476,36 @@ class NexPreferences extends ChangeNotifier {
   bool get appLockBiometricOnly =>
       _prefs.getBool('security.biometric_only') ?? false;
 
+  AppLockTiming get appLockTiming =>
+      AppLockTimingWire.fromWire(_prefs.getString('security.lock_timing'));
+
+  /// How long [AppLockTiming.after] waits, in seconds.
+  ///
+  /// Seconds rather than minutes because the useful values are short: the
+  /// case this exists for is a trip to another app and straight back, not an
+  /// afternoon away.
+  int get appLockGraceSeconds =>
+      _prefs.getInt('security.lock_grace_seconds') ?? 60;
+
+  /// Whether the lock is currently closed, remembered across a process death.
+  ///
+  /// Without this, "lock only when I ask" would come undone by Android
+  /// stopping the app: the flag lives in memory, the process goes, and the
+  /// library opens unlocked next time. It is set when the lock closes and
+  /// cleared when it opens, so the answer survives whatever the OS does in
+  /// between.
+  bool get appLockClosed => _prefs.getBool('security.lock_closed') ?? false;
+
+  /// When the app last went to the background, for [AppLockTiming.after].
+  ///
+  /// Also persisted, and for the same reason: the grace period has to be
+  /// measured against wall-clock time, not against how long this particular
+  /// process happened to survive.
+  DateTime? get appLockLeftAt {
+    final value = _prefs.getInt('security.lock_left_at');
+    return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
+  }
+
   /// [displayName] cut to its first two words, for the places that render it
   /// inside a line of running text.
   ///
@@ -469,6 +559,57 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setLiquidGlass(bool value) =>
       _setBool('appearance.liquid_glass', value);
+
+  /// All three are deliberately silent — no [notifyListeners].
+  ///
+  /// This is a cache, not a setting. Every listener on this object rebuilds
+  /// the whole app, and the one screen that shows a sponsor card already
+  /// calls `setState` itself after a fetch or a dismissal, so a notification
+  /// here buys nothing and costs a full rebuild triggered by a background
+  /// network reply.
+  ///
+  /// It also cost more than that, which is why this note exists. The reply
+  /// arrives while the app lock may still be waiting on a fingerprint, and
+  /// the rebuild it caused redrew the lock gate — whose unlock button is a
+  /// spinner while authentication is pending. An infinite animation, from a
+  /// cache write, on a screen that has nothing to do with either.
+  Future<void> setSponsorPayload(String? value) async {
+    if (value == null) {
+      await _prefs.remove('sponsor.payload');
+    } else {
+      await _prefs.setString('sponsor.payload', value);
+    }
+  }
+
+  Future<void> setSponsorFetchedAt(DateTime value) =>
+      _prefs.setInt('sponsor.fetched_at', value.millisecondsSinceEpoch);
+
+  Future<void> setSponsorImagePath(String? value) async {
+    if (value == null) {
+      await _prefs.remove('sponsor.image_path');
+    } else {
+      await _prefs.setString('sponsor.image_path', value);
+    }
+  }
+
+  Future<void> setSponsorDismissed(Set<String> value) =>
+      _prefs.setStringList('sponsor.dismissed', value.toList()..sort());
+
+  Future<void> setWidgetTypes(Set<String> value) async {
+    await _prefs.setStringList('widget.types', value.toList()..sort());
+    notifyListeners();
+  }
+
+  Future<void> setWidgetTag({String? id, String? name}) async {
+    if (id == null) {
+      await _prefs.remove('widget.tag_id');
+      await _prefs.remove('widget.tag_name');
+    } else {
+      await _prefs.setString('widget.tag_id', id);
+      await _prefs.setString('widget.tag_name', name ?? '');
+    }
+    notifyListeners();
+  }
 
   Future<void> setBackgroundPattern(NexBackgroundPattern value) async {
     await _prefs.setString('appearance.background_pattern', value.wireName);
@@ -763,6 +904,32 @@ class NexPreferences extends ChangeNotifier {
     await _prefs.setBool('security.app_lock', value);
     if (!value) await _prefs.setBool('security.biometric_only', false);
     notifyListeners();
+  }
+
+  Future<void> setAppLockTiming(AppLockTiming value) async {
+    await _prefs.setString('security.lock_timing', value.wireName);
+    notifyListeners();
+  }
+
+  Future<void> setAppLockGraceSeconds(int value) async {
+    await _prefs.setInt('security.lock_grace_seconds', value);
+    notifyListeners();
+  }
+
+  /// Records the lock closing or opening.
+  ///
+  /// Deliberately silent — no [notifyListeners]. The lock gate is the thing
+  /// that sets this, and telling it that something changed while it is
+  /// changing it is how a rebuild loop starts.
+  Future<void> setAppLockClosed(bool value) =>
+      _prefs.setBool('security.lock_closed', value);
+
+  Future<void> setAppLockLeftAt(DateTime? value) async {
+    if (value == null) {
+      await _prefs.remove('security.lock_left_at');
+    } else {
+      await _prefs.setInt('security.lock_left_at', value.millisecondsSinceEpoch);
+    }
   }
 
   Future<void> setAppLockBiometricOnly(bool value) async {

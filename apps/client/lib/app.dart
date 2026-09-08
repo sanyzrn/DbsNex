@@ -24,10 +24,23 @@ class NexApp extends StatefulWidget {
     required this.services,
     required this.preferences,
     this.osCapture,
+    this.appLock,
   });
   final NexServices services;
   final NexPreferences preferences;
   final OsCaptureBridge? osCapture;
+
+  /// The biometric prompt, injectable so a test can decide what it answers.
+  ///
+  /// A real one talks to the OS, and in a widget test that means a plugin
+  /// nobody registered: the call still returns false, but *when* it returns is
+  /// up to the message loop. The launch unlock attempt is therefore sometimes
+  /// still in flight when the test does the next thing, and [_unlocking] —
+  /// which suppresses locking on the way out, so that the system's own
+  /// fingerprint sheet does not count as leaving the app — silently swallows
+  /// it. Handing the test a prompt that answers immediately removes the race
+  /// rather than papering over it with another pump.
+  final AppLockService? appLock;
   @override
   State<NexApp> createState() => _NexAppState();
 }
@@ -43,7 +56,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     onDownloadStatus: _showDownloadNotification,
   );
   late final _feedback = FeedbackService(preferences: widget.preferences);
-  final _appLock = AppLockService();
+  late final AppLockService _appLock = widget.appLock ?? AppLockService();
   bool _locked = false;
   bool _unlocking = false;
 
@@ -55,7 +68,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _locked = widget.preferences.appLockEnabled;
+    _locked = _shouldBeLockedOnLaunch();
     _applyWindowSecrecy();
     widget.preferences.addListener(_refresh);
     _updates.addListener(_announceDownload);
@@ -77,6 +90,46 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     if (_locked) WidgetsBinding.instance.addPostFrameCallback((_) => _unlock());
   }
 
+  /// Whether a cold start opens onto the lock.
+  ///
+  /// A launch is not a resume: the process died, so nothing is in memory and
+  /// the only record of where the lock stood is the one written to disk. All
+  /// three timings answer this from persisted facts — a lock that was closed
+  /// stays closed, and a grace period is measured against the wall clock
+  /// rather than against how long this process happened to live.
+  bool _shouldBeLockedOnLaunch() {
+    final preferences = widget.preferences;
+    if (!preferences.appLockEnabled) return false;
+    if (preferences.appLockClosed) return true;
+    return switch (preferences.appLockTiming) {
+      AppLockTiming.immediately => true,
+      AppLockTiming.manual => false,
+      AppLockTiming.after => _graceHasRunOut(),
+    };
+  }
+
+  bool _graceHasRunOut() {
+    final left = widget.preferences.appLockLeftAt;
+    // Never recorded leaving — a first launch, or an install that predates
+    // this setting. Locking is the safe answer to not knowing.
+    if (left == null) return true;
+    final away = DateTime.now().difference(left);
+    return away.isNegative ||
+        away.inSeconds >= widget.preferences.appLockGraceSeconds;
+  }
+
+  /// Closes the lock, and writes that down.
+  ///
+  /// The write is not awaited, and cannot be: this is reached from
+  /// `didChangeAppLifecycleState`, which is synchronous. That is safe because
+  /// of how the platform stores it — Android flushes pending preference
+  /// writes as part of stopping the activity, which is the very moment this
+  /// runs — but it does mean the value is not readable back on the next line.
+  void _lock() {
+    unawaited(widget.preferences.setAppLockClosed(true));
+    if (mounted) setState(() => _locked = true);
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if ((state == AppLifecycleState.paused ||
@@ -84,9 +137,25 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
         widget.preferences.appLockEnabled &&
         !_unlocking &&
         mounted) {
-      setState(() => _locked = true);
+      // Leaving is recorded whatever the timing, because the timing can
+      // change while the app is away: someone who switches to "after a
+      // minute" mid-afternoon should not find that Nex has no idea when it
+      // was last open.
+      unawaited(widget.preferences.setAppLockLeftAt(DateTime.now()));
+      if (widget.preferences.appLockTiming == AppLockTiming.immediately) {
+        _lock();
+      }
     }
     if (state == AppLifecycleState.resumed) {
+      // `after` decides here rather than on the way out: the question it
+      // asks is how long the app was away, and that is not known until it
+      // comes back.
+      if (!_locked &&
+          widget.preferences.appLockEnabled &&
+          widget.preferences.appLockTiming == AppLockTiming.after &&
+          _graceHasRunOut()) {
+        _lock();
+      }
       if (_locked) unawaited(_unlock());
       unawaited(_updates.maybeCheck());
       // Android stops the process shortly after the app leaves the screen,
@@ -121,7 +190,10 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   }
 
   void _refresh() {
-    if (!widget.preferences.appLockEnabled) _locked = false;
+    if (!widget.preferences.appLockEnabled) {
+      _locked = false;
+      unawaited(widget.preferences.setAppLockClosed(false));
+    }
     _applyWindowSecrecy();
     setState(() {});
   }
@@ -157,7 +229,9 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       biometricOnly: widget.preferences.appLockBiometricOnly,
     );
     _unlocking = false;
-    if (mounted && unlocked) setState(() => _locked = false);
+    if (!unlocked) return;
+    unawaited(widget.preferences.setAppLockClosed(false));
+    if (mounted) setState(() => _locked = false);
   }
 
   /// Puts the download in the notification shade, where it can be watched
@@ -378,6 +452,9 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
               preferences: prefs,
               osCapture: widget.osCapture,
               updates: _updates,
+              // The gate lives here, so closing it does too. The timeline
+              // only has to offer the button.
+              onLock: _lock,
             )
           : OnboardingScreen(preferences: prefs),
     );

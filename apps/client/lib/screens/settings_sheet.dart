@@ -15,6 +15,7 @@ import '../widgets/tag_color_picker.dart';
 import '../platform/ai_provider.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/nex_preferences.dart';
+import '../platform/notification_settings.dart';
 import '../platform/nex_services.dart';
 import '../platform/reminders.dart';
 import '../platform/update_service.dart';
@@ -26,6 +27,7 @@ import 'assistant_screen.dart';
 import 'intelligence_screen.dart';
 import 'profile_screen.dart';
 import 'security_screen.dart';
+import 'widget_settings_screen.dart';
 import 'update_sheet.dart';
 
 /// The v1 preference surface.
@@ -222,6 +224,20 @@ class SettingsSheet extends StatelessWidget {
             context,
             NexPageRoute<void>(
               builder: (_) => SecurityScreen(preferences: preferences),
+            ),
+          ),
+        ),
+        _Row(
+          icon: Icons.widgets_outlined,
+          title: l10n.widgetSettingsTitle,
+          value: _widgetFilterSummary(l10n, preferences),
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => WidgetSettingsScreen(
+                preferences: preferences,
+                services: services,
+              ),
             ),
           ),
         ),
@@ -516,6 +532,29 @@ class SettingsSheet extends StatelessWidget {
             ).format(context),
             onTap: () => unawaited(_pickNudgeTime(context)),
           ),
+        // Sound, vibration and importance live on the OS side of the line —
+        // see [NexNotificationSettings] for why an in-app picker would only
+        // pretend to work — so these two rows are doors to the right screen
+        // rather than controls of their own.
+        if (NexNotificationSettings.supported) ...[
+          _Row(
+            icon: Icons.music_note_outlined,
+            title: l10n.notificationSoundReminders,
+            value: l10n.notificationSoundSubtitle,
+            onTap: () => unawaited(
+              _openChannel(context, NexReminders.remindersChannel),
+            ),
+          ),
+          if (preferences.dailyNudge)
+            _Row(
+              icon: Icons.music_note_outlined,
+              title: l10n.notificationSoundDaily,
+              value: l10n.notificationSoundSubtitle,
+              onTap: () => unawaited(
+                _openChannel(context, NexReminders.dailyChannel),
+              ),
+            ),
+        ],
       ],
     ),
     _Section(
@@ -577,6 +616,38 @@ String _aiLanguageLabel(AppLocalizations l10n, AiOutputLanguage value) =>
       AiOutputLanguage.english => l10n.aiOutputLanguageEnglish,
       AiOutputLanguage.persian => l10n.aiOutputLanguagePersian,
     };
+
+/// Sends the user to the OS screen, and says so when there isn't one.
+///
+/// A row that silently does nothing is worse than a row that is not there;
+/// this one is offered on Android and still has to survive a ROM with no
+/// activity behind the intent.
+Future<void> _openChannel(BuildContext context, String channelId) async {
+  final l10n = AppLocalizations.of(context);
+  final opened = await NexNotificationSettings.open(channelId);
+  if (opened || !context.mounted) return;
+  nexShowBanner(
+    context,
+    message: l10n.notificationSoundUnavailable,
+    kind: NexBannerKind.failed,
+  );
+}
+
+/// What the widget is currently filtered to, in one line.
+///
+/// Says the filters rather than the screen's name: the row is worth opening
+/// when it does not say "Everything", and worth leaving alone when it does.
+String _widgetFilterSummary(
+  AppLocalizations l10n,
+  NexPreferences preferences,
+) {
+  final types = preferences.widgetTypes;
+  final tag = preferences.widgetTagName;
+  final kinds = types.isEmpty
+      ? l10n.widgetSettingsEverything
+      : types.map(l10n.noteType).join(', ');
+  return tag == null || tag.isEmpty ? kinds : '$kinds · $tag';
+}
 
 String _backgroundLabel(AppLocalizations l10n, NexBackgroundPattern pattern) =>
     switch (pattern) {

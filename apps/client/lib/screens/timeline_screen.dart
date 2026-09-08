@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -16,6 +17,7 @@ import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import 'update_sheet.dart';
 import '../platform/nex_services.dart';
+import '../platform/sponsor.dart';
 import '../platform/route_observer.dart';
 import '../platform/note_search.dart';
 import '../platform/os_capture_bridge.dart';
@@ -33,6 +35,7 @@ import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/search_field_header.dart';
+import '../widgets/sponsor_card.dart';
 import '../widgets/search_filter_sheet.dart';
 import '../widgets/search_results.dart';
 import '../widgets/reminder_picker.dart';
@@ -51,6 +54,7 @@ class TimelineScreen extends StatefulWidget {
     required this.preferences,
     this.osCapture,
     this.updates,
+    this.onLock,
   });
   final NexServices services;
   final NexPreferences preferences;
@@ -58,6 +62,13 @@ class TimelineScreen extends StatefulWidget {
 
   /// Null in tests that do not care about updates.
   final UpdateService? updates;
+
+  /// Closes the app lock now, without waiting for the app to be left.
+  ///
+  /// Null where there is no gate to close — the tests that build this screen
+  /// on its own, and any host that is not [NexApp]. The button is offered
+  /// only when there is both a lock turned on and something to close it.
+  final VoidCallback? onLock;
   @override
   State<TimelineScreen> createState() => TimelineScreenState();
 }
@@ -208,10 +219,33 @@ class TimelineScreenState extends State<TimelineScreen>
   /// would ask the provider again.
   bool _aiSummaryRequested = false;
 
+  /// The card that is not a note. Read from cache on the first frame so it
+  /// never pops in under a thumb, then refreshed at most once a day — see
+  /// [NexSponsorService].
+  late final NexSponsorService _sponsor = NexSponsorService(
+    preferences: widget.preferences,
+  );
+
   @override
   void initState() {
     super.initState();
     _collapsedGroups = widget.preferences.collapsedTimelineGroups;
+    // Fire and forget, and deliberately not awaited anywhere: the card that
+    // is already cached draws on this frame, and a fetch that never comes
+    // back changes nothing on screen.
+    // The picture from last time first, so a card fetched yesterday draws on
+    // this frame instead of a second later; then the network, at most daily.
+    unawaited(
+      _sponsor
+          .restoreCachedImage()
+          .then((_) {
+            if (mounted) setState(() {});
+            return _sponsor.refresh();
+          })
+          .then((_) {
+            if (mounted) setState(() {});
+          }),
+    );
     subscription = widget.services.timelineStream.listen((value) {
       if (!mounted) return;
       setState(() {
@@ -1405,6 +1439,52 @@ class TimelineScreenState extends State<TimelineScreen>
     );
   }
 
+  /// The sponsor card, when there is one to show.
+  ///
+  /// Null on every path that means "nothing to show" — no file, an
+  /// unparseable one, dates that have passed, another language, or one this
+  /// person has already dismissed. Absence is silent by design: there is no
+  /// placeholder and no error, because a card that failed to arrive and a
+  /// day with no campaign are the same thing to the reader.
+  ///
+  /// Held back while searching or filtering: those are moments when somebody
+  /// is looking for one specific note, and a card in the way of the answer is
+  /// the worst possible time to ask for attention.
+  Widget? _sponsorCard() {
+    if (_searching || _filtering) return null;
+    final sponsor = _sponsor.visible(
+      languageCode: Localizations.localeOf(context).languageCode,
+    );
+    if (sponsor == null) return null;
+    return SponsorCard(
+      sponsor: sponsor,
+      image: _sponsor.image,
+      onOpen: () => unawaited(_openSponsor(sponsor)),
+      onDismiss: () => unawaited(_dismissSponsor(sponsor)),
+    );
+  }
+
+  Future<void> _openSponsor(NexSponsor sponsor) async {
+    final url = sponsor.url;
+    if (url == null) return;
+    final uri = Uri.tryParse(url);
+    // Only the two schemes a card has any business using. A file:// or
+    // intent:// url in a document fetched from a server is not a link, it is
+    // an attempt at something else.
+    if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) return;
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // No browser, or one that refused. Nothing to say about it.
+    }
+  }
+
+  Future<void> _dismissSponsor(NexSponsor sponsor) async {
+    if (widget.preferences.haptics) HapticFeedback.lightImpact();
+    await _sponsor.dismiss(sponsor.id);
+    if (mounted) setState(() {});
+  }
+
   /// Opens the assistant with one date run as its whole context.
   ///
   /// Same shape as asking about a single note, and for the same reason: the
@@ -1660,6 +1740,19 @@ class TimelineScreenState extends State<TimelineScreen>
         titleSpacing: NexSpacing.md,
         title: const _WordmarkTile(),
         actions: [
+          // First, so it never moves. The icons after it come and go with
+          // settings — the search icon appears only when the field is off —
+          // and a control that locks the library is the wrong one to have
+          // slide under a thumb that was aiming at something else.
+          if (widget.preferences.appLockEnabled && widget.onLock != null)
+            IconButton(
+              tooltip: l10n.securityLockNow,
+              icon: const Icon(Icons.lock_outline),
+              onPressed: () {
+                if (widget.preferences.haptics) HapticFeedback.mediumImpact();
+                widget.onLock!.call();
+              },
+            ),
           // The icon comes back exactly when the field it used to duplicate
           // is not on screen. It was removed because it pointed at something
           // already visible; with the field switched off, it is the only way
@@ -1849,6 +1942,15 @@ class TimelineScreenState extends State<TimelineScreen>
                                 ),
                               ),
                             ),
+                          // Above the list rather than spliced into it.
+                          // `SliverList` matches its children by index — the
+                          // fold animation depends on that — so a card that
+                          // comes and goes inside it would renumber every row
+                          // under it. Its own sliver has no such problem, and
+                          // "the first card" is an honest place for something
+                          // that is not a note.
+                          if (_sponsorCard() case final card?)
+                            SliverToBoxAdapter(child: card),
                           ..._bodySlivers(l10n),
                           // The capture button floats over the list, and on a
                           // device with a three-button navigation bar the system's
