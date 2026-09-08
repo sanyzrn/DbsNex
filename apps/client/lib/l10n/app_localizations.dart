@@ -476,6 +476,18 @@ abstract class AppLocalizations {
   /// **'With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.'**
   String get widgetSettingsScanNote;
 
+  /// Switch that lets the widget keep showing notes while the app lock is closed
+  ///
+  /// In en, this message translates to:
+  /// **'Show notes while Nex is locked'**
+  String get widgetSettingsWhenLocked;
+
+  /// Explains both sides of the show-while-locked switch
+  ///
+  /// In en, this message translates to:
+  /// **'Off, the widget empties itself whenever the lock closes. On, your notes stay on the home screen, where anyone holding the phone can read them.'**
+  String get widgetSettingsWhenLockedHint;
+
   /// Tooltip of the lock button on the timeline
   ///
   /// In en, this message translates to:

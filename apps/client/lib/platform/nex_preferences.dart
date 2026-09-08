@@ -366,6 +366,21 @@ class NexPreferences extends ChangeNotifier {
   Set<String> get widgetTypes =>
       (_prefs.getStringList('widget.types') ?? const <String>[]).toSet();
 
+  /// Whether the widget keeps its notes while the library is locked.
+  ///
+  /// Off by default, and off is the strict reading: the snapshot empties the
+  /// moment the lock closes, so a phone lying on a table shows the widget's
+  /// empty state rather than the top of someone's timeline.
+  ///
+  /// It is a choice rather than a rule because the honest answer depends on
+  /// the phone. A lock set to close after an hour is protecting against
+  /// someone picking the phone up later, not against the person holding it —
+  /// and for them a widget that is blank whenever the lock happens to be
+  /// closed is a widget that is usually blank. Whoever turned the lock on is
+  /// the one who knows which of those they meant.
+  bool get widgetShowWhenLocked =>
+      _prefs.getBool('widget.show_when_locked') ?? false;
+
   /// Which tag the widget is limited to, or null for the whole timeline.
   String? get widgetTagId => _prefs.getString('widget.tag_id');
 
@@ -597,6 +612,11 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setWidgetTypes(Set<String> value) async {
     await _prefs.setStringList('widget.types', value.toList()..sort());
+    notifyListeners();
+  }
+
+  Future<void> setWidgetShowWhenLocked(bool value) async {
+    await _prefs.setBool('widget.show_when_locked', value);
     notifyListeners();
   }
 

@@ -66,6 +66,8 @@
   "widgetSettingsAnyTag": "هر برچسبی",
   "widgetSettingsNoTags": "هنوز برچسبی نیست.",
   "widgetSettingsScanNote": "با فیلتر روشن، ویجت از میان تازه‌ترین یادداشت‌ها نتیجه نشان می‌دهد، نه با جست‌وجوی کل کتابخانه.",
+  "widgetSettingsWhenLocked": "نمایش یادداشت‌ها وقتی Nex قفل است",
+  "widgetSettingsWhenLockedHint": "خاموش باشد، ویجت هر بار که قفل بسته می‌شود خالی می‌شود. روشن باشد، یادداشت‌ها روی صفحهٔ اصلی می‌مانند و هرکس گوشی دستش باشد می‌تواند بخواندشان.",
   "securityLockNow": "همین حالا قفل کن",
   "securityLockWhen": "زمان قفل‌شدن",
   "securityLockImmediately": "به‌محض خروج",

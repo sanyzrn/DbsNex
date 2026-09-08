@@ -36,6 +36,22 @@ Working convention:
 
 ## v1.7.0
 
+- **The widget stops emptying itself for a lock that is not closed.** With the
+  app lock on, the widget showed nothing at all — even with the lock set to
+  close after an hour, and even while Nex was wide open. It now hides the
+  notes exactly while the lock is closed, and Settings → Home screen widget
+  has a switch for people who would rather it never hid them at all.
+
+- **"Lock after a while" now locks after a while.** It was decided only when
+  you came back to Nex, so a phone left on a table stayed unlocked as far as
+  everything outside the app was concerned — the widget included. The lock
+  now closes while you are away, at the time you set.
+
+- **The lock stops asking for the same fingerprint over and over.** Android
+  backgrounds Nex to show its own fingerprint sheet, and every return from
+  that sheet was read as another long absence: unlock, and it locked itself
+  again and asked again. Answering it once is enough now.
+
 - **The widget can be told what to show.** Settings → Home screen widget picks
   which kinds of note appear — only checklists, only photos, any combination —
   and narrows it to one tag. Left alone it does what it always did: the top of

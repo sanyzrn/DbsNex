@@ -79,6 +79,21 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Brings the app back the way the OS does.
+  ///
+  /// One `resumed` is not enough: the framework asserts on the jump, because
+  /// a real return climbs back out through the states it went down through.
+  Future<void> comeBack(WidgetTester tester) async {
+    for (final state in [
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+    await tester.pumpAndSettle();
+  }
+
   bool gateIsUp(WidgetTester tester) =>
       find.byKey(appLockBarrierKey).evaluate().isNotEmpty;
 
@@ -190,6 +205,83 @@ void main() {
     expect(gateIsUp(tester), isTrue);
   });
 
+  testWidgets('after a while: the lock closes while the app is away', (
+    tester,
+  ) async {
+    // It used to be decided only on the way back in, which is invisible to
+    // everyone except the person returning — the home-screen widget went on
+    // showing a library the app still considered open.
+    final services = await boot({
+      'security.lock_timing': 'after',
+      'security.lock_grace_seconds': 60,
+      'security.lock_left_at': DateTime.now().millisecondsSinceEpoch,
+    });
+    await tester.pumpWidget(
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _AlwaysRefused(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(gateIsUp(tester), isFalse, reason: 'just left, still inside it');
+
+    await leave(tester);
+    expect(gateIsUp(tester), isFalse, reason: 'the grace has not run out');
+
+    await tester.pump(const Duration(seconds: 61));
+    // A moment more for the write behind the flag, which is not awaited from
+    // a timer callback any more than from a lifecycle one.
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(
+      preferences.appLockClosed,
+      isTrue,
+      reason: 'closed while away, and written down for the widget to read',
+    );
+
+    // The gate is not *drawn* until the app comes back, because a
+    // backgrounded app is not given frames — which is exactly when nobody is
+    // looking at it. Coming back is the moment that matters.
+    await comeBack(tester);
+    expect(gateIsUp(tester), isTrue);
+  });
+
+  testWidgets('unlocking is not undone by the prompt closing', (tester) async {
+    // The bug: the OS fingerprint sheet pauses and resumes the app, and every
+    // one of those resumes measured the same long-past `leftAt`, decided the
+    // grace had run out, re-locked and prompted again — fingerprint after
+    // fingerprint with no way out but force-stopping Nex.
+    final services = await boot({
+      'security.lock_timing': 'after',
+      'security.lock_grace_seconds': 60,
+      'security.lock_left_at': DateTime.now()
+          .subtract(const Duration(minutes: 10))
+          .millisecondsSinceEpoch,
+    });
+    await tester.pumpWidget(
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _PromptThatTakesTheForeground(tester),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The sheet comes down. Only `inactive` and `resumed` — a dialog over the
+    // activity never stops it, which is the whole reason the bug existed: the
+    // branch that records leaving watches for `paused` and `hidden`, so
+    // nothing recorded that Nex had been open in between.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(
+      gateIsUp(tester),
+      isFalse,
+      reason: 'the prompt was answered once, and that answer stands',
+    );
+    expect(preferences.appLockClosed, isFalse);
+  });
+
   testWidgets('never left, never recorded: a first launch locks', (
     tester,
   ) async {
@@ -225,4 +317,28 @@ class _AlwaysRefused extends AppLockService {
     required String reason,
     required bool biometricOnly,
   }) async => false;
+}
+
+/// A prompt that accepts — and takes the foreground on its way up, the way
+/// the real one does.
+///
+/// That detail is the test. Android's fingerprint sheet is a dialog over the
+/// activity, so Nex goes `inactive` and no further: the branch that records
+/// leaving is watching for `paused` and `hidden`, and never runs. What comes
+/// back afterwards is a `resumed` with nothing having recorded that the app
+/// was open in between — which is how a timestamp from ten minutes ago got
+/// measured again, and again.
+class _PromptThatTakesTheForeground extends AppLockService {
+  _PromptThatTakesTheForeground(this.tester);
+
+  final WidgetTester tester;
+
+  @override
+  Future<bool> authenticate({
+    required String reason,
+    required bool biometricOnly,
+  }) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    return true;
+  }
 }

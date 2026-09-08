@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
 import 'l10n/app_localizations.dart';
+import 'platform/app_lock.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/nex_widget.dart';
@@ -101,6 +102,11 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     //
     // Its failures are swallowed inside it: a widget that cannot refresh is
     // an absence on a home screen, never a reason for the app not to open.
+    // Settle where the lock stands before the first snapshot is written.
+    // The gate reaches the same answer a frame later, but the widget's file
+    // is written here — and a locked library whose notes sat in it until the
+    // first frame would be a lock with a hole in it.
+    await preferences.setAppLockClosed(nexLockClosedOnLaunch(preferences));
     final widgets = NexWidgetBridge(services: services, preferences: preferences);
     try {
       await widgets.start();
@@ -212,6 +218,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
             services: value.services,
             preferences: value.preferences,
             osCapture: value.bridge,
+            widgets: value.widgets,
           ),
         );
       }

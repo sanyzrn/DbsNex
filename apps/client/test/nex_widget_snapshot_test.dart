@@ -165,4 +165,41 @@ void main() {
       expect(NexWidgetSnapshot.filter(mixed, const {'voice'}), isEmpty);
     });
   });
+
+  group('NexWidgetSnapshot.hidesNotes', () {
+    bool hides({
+      bool lockEnabled = true,
+      bool showWhenLocked = false,
+      bool lockClosed = true,
+    }) => NexWidgetSnapshot.hidesNotes(
+      lockEnabled: lockEnabled,
+      showWhenLocked: showWhenLocked,
+      lockClosed: lockClosed,
+    );
+
+    test('no lock means nothing to hide from', () {
+      expect(hides(lockEnabled: false), isFalse);
+      expect(
+        hides(lockEnabled: false, lockClosed: false),
+        isFalse,
+        reason: 'a library with no lock is never a locked one',
+      );
+    });
+
+    test('an open lock shows the notes', () {
+      // The bug this is here for: "lock after an hour" emptied the widget the
+      // moment the lock was switched on, and kept it empty for the hour the
+      // library was open. Someone who has not been away has not locked
+      // anything.
+      expect(hides(lockClosed: false), isFalse);
+    });
+
+    test('a closed lock takes the notes off the home screen', () {
+      expect(hides(), isTrue);
+    });
+
+    test('unless the user said to leave them there', () {
+      expect(hides(showWhenLocked: true), isFalse);
+    });
+  });
 }

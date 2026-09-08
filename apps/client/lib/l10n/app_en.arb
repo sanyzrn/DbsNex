@@ -108,6 +108,14 @@
       "description": "Shown in place of the tag chips when the library has no tags"
   },
   "widgetSettingsScanNote": "With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.",
+  "widgetSettingsWhenLocked": "Show notes while Nex is locked",
+  "@widgetSettingsWhenLocked": {
+      "description": "Switch that lets the widget keep showing notes while the app lock is closed"
+  },
+  "widgetSettingsWhenLockedHint": "Off, the widget empties itself whenever the lock closes. On, your notes stay on the home screen, where anyone holding the phone can read them.",
+  "@widgetSettingsWhenLockedHint": {
+      "description": "Explains both sides of the show-while-locked switch"
+  },
   "@widgetSettingsScanNote": {
       "description": "Explains the bounded scan the filtered widget does"
   },
