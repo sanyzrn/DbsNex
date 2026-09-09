@@ -34,7 +34,7 @@ Working convention:
 
 ## Unreleased
 
-## v1.7.0
+## v1.7.1
 
 - **The widget stops emptying itself for a lock that is not closed.** With the
   app lock on, the widget showed nothing at all — even with the lock set to
