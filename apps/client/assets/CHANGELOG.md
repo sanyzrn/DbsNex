@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.8.0
+
 - **A checklist can be edited.** It could be ticked and nothing else — a typo
   stayed a typo, a forgotten item stayed forgotten. Edit opens the list the
   same way you wrote it, one item per line: Enter adds one, deleting the line
