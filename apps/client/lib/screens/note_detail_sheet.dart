@@ -1565,10 +1565,13 @@ class _DetailAction extends StatelessWidget {
           child: SizedBox(
             width: nexMinTapTarget,
             height: nexMinTapTarget,
+            // The theme is for [glyph], which has no parameters of its own
+            // to be told with; the [Icon] keeps being told directly, because
+            // "is this one red" is a thing the tests read off the widget.
             child: Center(
               child: IconTheme.merge(
                 data: IconThemeData(size: 20, color: color),
-                child: glyph ?? Icon(icon),
+                child: glyph ?? Icon(icon, size: 20, color: color),
               ),
             ),
           ),
