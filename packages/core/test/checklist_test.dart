@@ -153,4 +153,53 @@ void main() {
     // Every other type answers null, so callers need no type check.
     expect(note.copyWith().linkUrl, 'https://example.com/a');
   });
+
+  group('restoreTicks', () {
+    List<ChecklistItem> lines(List<String> texts) => [
+      for (final text in texts) ChecklistItem(text: text, done: false),
+    ];
+
+    test('a line that survived the edit keeps its tick', () {
+      final before = parseChecklist('- [x] milk\n- [ ] bread');
+      final after = restoreTicks(lines(['milk', 'bread', 'eggs']), before);
+
+      expect(after.map((i) => i.text), ['milk', 'bread', 'eggs']);
+      expect(after.map((i) => i.done), [true, false, false]);
+    });
+
+    test('a retyped line is a new line, and starts unticked', () {
+      // Also how a tick is cleared from inside the editor, which is worth
+      // having rather than surprising.
+      final before = parseChecklist('- [x] milk');
+      expect(restoreTicks(lines(['milk 2L']), before).single.done, isFalse);
+    });
+
+    test('two identical lines, one ticked, come back one ticked', () {
+      final before = parseChecklist('- [x] call\n- [ ] call');
+      final after = restoreTicks(lines(['call', 'call']), before);
+
+      expect(after.where((i) => i.done), hasLength(1));
+    });
+
+    test('order follows the edit, not what it was before', () {
+      final before = parseChecklist('- [x] a\n- [ ] b');
+      final after = restoreTicks(lines(['b', 'a']), before);
+
+      expect(after.map((i) => i.text), ['b', 'a']);
+      expect(after.map((i) => i.done), [false, true]);
+    });
+
+    test('a deleted line takes its tick with it', () {
+      final before = parseChecklist('- [x] gone\n- [x] kept');
+      final after = restoreTicks(lines(['kept']), before);
+
+      expect(after.single.text, 'kept');
+      expect(after.single.done, isTrue);
+    });
+
+    test('whitespace is not a different line', () {
+      final before = parseChecklist('- [x] milk');
+      expect(restoreTicks(lines(['  milk  ']), before).single.done, isTrue);
+    });
+  });
 }

@@ -20,10 +20,29 @@ import 'nex_dialog.dart';
 ///
 /// Enter always breaks a line here, whatever the Enter-submits preference is
 /// set to: this is the one capture where a newline is the whole point.
+///
+/// The same sheet edits an existing list. Pass [initial] and it opens with
+/// those items, one per line, and says Save instead of Capture. A second
+/// editor was the alternative and would have been a second answer to "what
+/// does a checklist look like while you are writing it" — and the answer
+/// this one gives (lines, not rows) is the reason adding, removing and
+/// retyping items all work here without a single affordance to discover.
+///
+/// The ticks are not in the text and cannot be: they are carried across by
+/// `restoreTicks` when the caller saves. Ticking is what the detail sheet is
+/// for, and putting `[x]` markers in front of every line to preserve them
+/// would have made the editor show its storage format.
 class ChecklistCaptureSheet extends StatefulWidget {
-  const ChecklistCaptureSheet({super.key, required this.preferences});
+  const ChecklistCaptureSheet({
+    super.key,
+    required this.preferences,
+    this.initial,
+  });
 
   final NexPreferences preferences;
+
+  /// The items to open with, for an edit. Null is a fresh capture.
+  final List<ChecklistItem>? initial;
 
   @override
   State<ChecklistCaptureSheet> createState() => _ChecklistCaptureSheetState();
@@ -35,6 +54,17 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet> {
   @override
   void initState() {
     super.initState();
+    final initial = widget.initial;
+    if (initial != null) {
+      final lines = [for (final item in initial) item.text].join('\n');
+      // Caret at the end, explicitly: the field autofocuses, and an edit that
+      // opens with the cursor in front of the first word is one that starts
+      // by making you scroll to where you meant to type.
+      _text.value = TextEditingValue(
+        text: lines,
+        selection: TextSelection.collapsed(offset: lines.length),
+      );
+    }
     _text.addListener(() => setState(() {}));
   }
 
@@ -43,6 +73,8 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet> {
     _text.dispose();
     super.dispose();
   }
+
+  bool get _editing => widget.initial != null;
 
   List<ChecklistItem> get _items => parseChecklist(_text.text);
 
@@ -115,9 +147,15 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet> {
               // Disabled rather than hidden while empty: the button is where
               // the eye already is, and a control that vanishes is worse to
               // find again than one that is visibly not ready yet.
-              onPressed: count == 0 ? null : _submit,
-              icon: const Icon(Icons.arrow_upward, size: 18),
-              label: Text(l10n.capture),
+              // An edit may legitimately empty the list — that is how the
+              // last line gets deleted — so only a fresh capture needs
+              // something in it before the button means anything.
+              onPressed: count == 0 && !_editing ? null : _submit,
+              icon: Icon(
+                _editing ? Icons.check : Icons.arrow_upward,
+                size: 18,
+              ),
+              label: Text(_editing ? l10n.save : l10n.capture),
             ),
           ),
         ],

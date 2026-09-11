@@ -4,14 +4,20 @@
   words, and how long ago it was touched.
 
   Fixed height like a timeline card, so the list stays even whether the note
-  is a word or a paragraph — the preview truncates at one line rather than
+  is a word or a paragraph — the preview truncates at two lines rather than
   growing the row. The whole row is the tap target; the note id is filled in
   at tap time through the widget's PendingIntent template.
+
+  Two lines rather than one, and the height is the old 48dp plus exactly one
+  line of 14sp text. That keeps the space *between* rows identical — it was
+  never a margin, it is the room left over inside each row — while giving a
+  note enough of itself to be recognised. One line of a glance-sized preview
+  was a title and nothing else.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/nex_widget_row_root"
     android:layout_width="match_parent"
-    android:layout_height="48dp"
+    android:layout_height="64dp"
     android:layoutDirection="locale"
     android:gravity="center_vertical"
     android:orientation="horizontal"
@@ -34,7 +40,7 @@
         android:layout_weight="1"
         android:layout_marginStart="12dp"
         android:ellipsize="end"
-        android:maxLines="1" />
+        android:maxLines="2" />
 
     <TextView
         android:id="@+id/nex_widget_row_time"

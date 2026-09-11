@@ -16,9 +16,10 @@ import android.widget.RemoteViews
  * Nex is a timeline, not a folder tree — one reverse-chronological stream is
  * the product's whole organization story. The widget shows exactly that: the
  * first rows of the stream, in the order the app puts them in (pinned first,
- * then most recently touched), each row the same 48dp height with a type
- * glyph, a one-line preview and a relative time — the same anatomy, buckets
- * and vocabulary as an in-app card, compressed to a glance.
+ * then most recently touched, unless the widget has been told to ignore
+ * pinning), each row the same 64dp height with a type glyph, a two-line
+ * preview and a relative time — the same anatomy, buckets and vocabulary as
+ * an in-app card, compressed to a glance.
  *
  * Everything it knows comes from the snapshot file Dart writes
  * ([NexWidgetSnapshot]); the widget never touches SQLite, and the file is

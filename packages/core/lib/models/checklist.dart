@@ -71,6 +71,40 @@ String formatChecklist(List<ChecklistItem> items) => [
       '- [${item.done ? 'x' : ' '}] ${item.text.trim()}',
 ].join('\n');
 
+/// Carries the ticks from [previous] over to a freshly edited list.
+///
+/// An editor is a list of lines, which is the right shape for writing a
+/// checklist and the wrong shape for carrying what has been done: the lines
+/// come back with no state at all, and saving them as-is would untick
+/// everything someone had ticked off.
+///
+/// A line matches by its text, and each previous item is spent once — so two
+/// identical lines, one ticked, come back with exactly one ticked. Anything
+/// retyped is a new line and starts unticked, which is also how you clear a
+/// tick without leaving the editor.
+List<ChecklistItem> restoreTicks(
+  List<ChecklistItem> edited,
+  List<ChecklistItem> previous,
+) {
+  final ticked = <String, int>{};
+  for (final item in previous) {
+    if (!item.done) continue;
+    ticked.update(item.text.trim(), (count) => count + 1, ifAbsent: () => 1);
+  }
+  final restored = <ChecklistItem>[];
+  for (final item in edited) {
+    final key = item.text.trim();
+    final left = ticked[key] ?? 0;
+    if (left == 0) {
+      restored.add(item);
+      continue;
+    }
+    ticked[key] = left - 1;
+    restored.add(ChecklistItem(text: item.text, done: true));
+  }
+  return restored;
+}
+
 /// How many of [items] are ticked, and how many there are.
 ({int done, int total}) checklistProgress(List<ChecklistItem> items) =>
     (done: items.where((item) => item.done).length, total: items.length);

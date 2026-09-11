@@ -166,6 +166,52 @@ void main() {
     });
   });
 
+  group('NexWidgetSnapshot.byRecency', () {
+    test('lets the pins go, newest first', () {
+      // The list arrives in the timeline's order — pinned first, whatever
+      // their dates — and comes back in the order the dates alone give.
+      final pinnedButOld = note(
+        'pinned',
+        NoteType.text,
+        'old',
+        updatedAt: now.subtract(const Duration(days: 30)),
+      );
+      final middle = note(
+        'middle',
+        NoteType.text,
+        'middle',
+        updatedAt: now.subtract(const Duration(days: 2)),
+      );
+      final newest = note('newest', NoteType.text, 'new', updatedAt: now);
+
+      expect(
+        NexWidgetSnapshot.byRecency([
+          pinnedButOld,
+          newest,
+          middle,
+        ]).map((n) => n.id),
+        ['newest', 'middle', 'pinned'],
+      );
+    });
+
+    test('leaves the list it was given alone', () {
+      // The caller's list is the timeline's own, and sorting it in place
+      // would reorder whatever else is reading it.
+      final given = [
+        note('a', NoteType.text, 'a', updatedAt: now),
+        note(
+          'b',
+          NoteType.text,
+          'b',
+          updatedAt: now.add(const Duration(days: 1)),
+        ),
+      ];
+      NexWidgetSnapshot.byRecency(given);
+
+      expect(given.map((n) => n.id), ['a', 'b']);
+    });
+  });
+
   group('NexWidgetSnapshot.hidesNotes', () {
     bool hides({
       bool lockEnabled = true,

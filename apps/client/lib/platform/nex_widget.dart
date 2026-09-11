@@ -59,10 +59,10 @@ class NexWidgetSnapshot {
   /// falls back to its empty state rather than rendering half a schema.
   static const int version = 1;
 
-  /// The longest preview one row carries. The widget's row shows one line at
-  /// 14sp — roughly ninety glyphs — so 160 keeps the full line plus margin
-  /// while bounding what a note costs the file.
-  static const int maxPreviewLength = 160;
+  /// The longest preview one row carries. The widget's row shows two lines at
+  /// 14sp — roughly ninety glyphs each — so 200 keeps both full lines plus
+  /// margin while bounding what a note costs the file.
+  static const int maxPreviewLength = 200;
 
   /// How much of the timeline the widget may see.
   ///
@@ -82,6 +82,14 @@ class NexWidgetSnapshot {
   /// three hundred notes ago is looking at a library where a home-screen
   /// glance is the wrong tool anyway.
   static const int scanDepth = 200;
+
+  /// How many notes can hold a pin at once, from `NoteRepository.pinNote`.
+  ///
+  /// Here because a widget told to ignore pinning has to read this many rows
+  /// further down: the first [maxNotes] rows of a pinned-first query are not
+  /// the newest [maxNotes] notes when up to five old pins are sitting on top
+  /// of them.
+  static const int maxPinned = 5;
 
   /// Whether the widget must draw its locked state. When it does, [notes] is
   /// always empty — decided at write time, so a locked library's content
@@ -134,6 +142,16 @@ class NexWidgetSnapshot {
   ///
   /// The tag *is* filtered in SQL, because the timeline query already takes
   /// one and doing it twice would be the invention this avoids.
+  /// The same notes with the pins let go, most recently touched first.
+  ///
+  /// Not a second query. "Pinned first, then most recently touched" is one
+  /// SQL ordering, and asking the database for a differently-ordered timeline
+  /// would be a second definition of the widget's list — the thing
+  /// [filter] exists to avoid. Undoing the pinning in Dart keeps one
+  /// definition and one read.
+  static List<Note> byRecency(List<Note> notes) =>
+      [...notes]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
   static List<Note> filter(List<Note> notes, Set<String> types) =>
       types.isEmpty
       ? notes
@@ -282,7 +300,8 @@ class NexWidgetBridge {
   /// differs from last time.
   String get _filterSignature =>
       '${(preferences.widgetTypes.toList()..sort()).join(',')}'
-      '|${preferences.widgetTagId ?? ''}';
+      '|${preferences.widgetTagId ?? ''}'
+      '|${preferences.widgetPinnedFirst}';
 
   /// Writes now, for a change this bridge cannot see coming.
   ///
@@ -311,20 +330,25 @@ class NexWidgetBridge {
       // query is skipped entirely otherwise, so a hidden library's content
       // never reaches the file rather than being filtered out of it later.
       final types = preferences.widgetTypes;
+      final pinnedFirst = preferences.widgetPinnedFirst;
       // No filter, no reason to read past what fits: the first rows of the
       // timeline are the answer, and that is the overwhelmingly common case.
+      // The exception is a widget ignoring pins, which has to see past the
+      // pins it is about to demote.
       final depth = types.isEmpty
-          ? NexWidgetSnapshot.maxNotes
+          ? NexWidgetSnapshot.maxNotes +
+                (pinnedFirst ? 0 : NexWidgetSnapshot.maxPinned)
           : NexWidgetSnapshot.scanDepth;
-      final notes = lock
+      final timeline = lock
           ? const <Note>[]
-          : NexWidgetSnapshot.filter(
-              await services.timeline(
-                limit: depth,
-                tagId: preferences.widgetTagId,
-              ),
-              types,
+          : await services.timeline(
+              limit: depth,
+              tagId: preferences.widgetTagId,
             );
+      final notes = NexWidgetSnapshot.filter(
+        pinnedFirst ? timeline : NexWidgetSnapshot.byRecency(timeline),
+        types,
+      );
       final snapshot = NexWidgetSnapshot.build(appLock: lock, notes: notes);
       _lastWrittenLock = lock;
       _lastWrittenFilter = _filterSignature;

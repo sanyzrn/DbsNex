@@ -34,6 +34,26 @@ Working convention:
 
 ## Unreleased
 
+- **A checklist can be edited.** It could be ticked and nothing else — a typo
+  stayed a typo, a forgotten item stayed forgotten. Edit opens the list the
+  same way you wrote it, one item per line: Enter adds one, deleting the line
+  removes it, and whatever you had already ticked off stays ticked.
+
+- **The widget shows two lines of each note.** One line was a title and
+  nothing else, which for most notes is not enough to tell them apart. The
+  rows are a step lighter as well, so a full widget reads as a list rather
+  than a wall of text. The spacing is unchanged.
+
+- **The widget can ignore pinning.** Settings → Home screen widget: pinned
+  notes can sit at the top the way they do in Nex, or stay wherever their own
+  date puts them. Left alone it does what it always did.
+
+- **The assistant looks like a different mode of the app.** The light that
+  runs around the screen when you hold the capture button now leaves a thread
+  of itself there for as long as the assistant is open. The Summarize button
+  has a new icon too — the old one was a page with lines on it, the same as
+  every other note icon beside it.
+
 ## v1.7.1
 
 - **The widget stops emptying itself for a lock that is not closed.** With the

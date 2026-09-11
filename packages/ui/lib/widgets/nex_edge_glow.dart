@@ -98,6 +98,96 @@ class _EdgeGlowPainter extends CustomPainter {
       old.progress != progress || old.colors != colors;
 }
 
+/// The same light, left at a whisper for as long as its child is on screen.
+///
+/// The hold that opens the assistant ends in a glow that fades out, and what
+/// comes up afterwards looks like any other sheet. Keeping a thread of the
+/// same spectrum around the display is how the app says it is still in that
+/// mode — the way a call in progress keeps a bar at the top rather than
+/// trusting you to remember.
+///
+/// [intensity] is a [NexEdgeGlow] progress, and the default is deliberately
+/// near the bottom of its range: at 0.16 the bloom has not opened at all and
+/// what is left is a hairline at about a fifth of full brightness. Anything
+/// higher stops being a border and starts being a frame around the content.
+///
+/// Reduce-motion keeps the line and drops the fade. The line is not motion —
+/// it is a static edge, closer to a status bar than to an animation — and
+/// removing it would take away the only thing saying which mode the app is
+/// in.
+class NexAmbientEdgeGlow extends StatefulWidget {
+  const NexAmbientEdgeGlow({
+    super.key,
+    required this.child,
+    required this.colors,
+    this.intensity = 0.16,
+  });
+
+  final Widget child;
+  final List<Color> colors;
+  final double intensity;
+
+  @override
+  State<NexAmbientEdgeGlow> createState() => _NexAmbientEdgeGlowState();
+}
+
+class _NexAmbientEdgeGlowState extends State<NexAmbientEdgeGlow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fade = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 360),
+  );
+
+  OverlayEntry? _glow;
+  bool _asked = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_asked) return;
+    _asked = true;
+    // After the frame, not during it. This runs while the tree is being
+    // built, and inserting an overlay entry marks the Overlay itself dirty —
+    // which is a "setState called during build" the moment the route this
+    // sits in is the thing currently building.
+    final still = MediaQuery.disableAnimationsOf(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final entry = OverlayEntry(
+        builder: (context) => Positioned.fill(
+          child: AnimatedBuilder(
+            animation: _fade,
+            builder: (context, _) => NexEdgeGlow(
+              progress: _fade.value * widget.intensity,
+              colors: widget.colors,
+            ),
+          ),
+        ),
+      );
+      Overlay.of(context, rootOverlay: true).insert(entry);
+      _glow = entry;
+      if (still) {
+        _fade.value = 1;
+      } else {
+        _fade.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Before the controller, for the reason [NexLongPressGlowState] documents:
+    // the overlay's builder reads it every frame.
+    _glow?.remove();
+    _glow = null;
+    _fade.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
 /// Drives a [NexEdgeGlow] from a long press, and reports when it completes.
 ///
 /// The glow grows for [holdDuration] while the finger is down. Letting go

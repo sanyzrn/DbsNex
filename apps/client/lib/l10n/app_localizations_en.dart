@@ -209,6 +209,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get widgetSettingsScanNote => 'With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.';
 
   @override
+  String get widgetSettingsPinnedFirst => 'Pinned notes first';
+
+  @override
+  String get widgetSettingsPinnedFirstHint => 'On, pinned notes sit at the top the way they do in Nex. Off, they stay wherever their own date puts them, as though they were not pinned.';
+
+  @override
   String get widgetSettingsWhenLocked => 'Show notes while Nex is locked';
 
   @override

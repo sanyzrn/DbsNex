@@ -366,6 +366,17 @@ class NexPreferences extends ChangeNotifier {
   Set<String> get widgetTypes =>
       (_prefs.getStringList('widget.types') ?? const <String>[]).toSet();
 
+  /// Whether the widget floats pinned notes to the top, the way the timeline
+  /// does.
+  ///
+  /// On by default, because the widget's promise is "the top of your
+  /// timeline" and the timeline pins. Off is for someone who pins inside the
+  /// app for a different reason than they use the widget for: pinned notes
+  /// then sit wherever their own date puts them, as though they were not
+  /// pinned at all, and the widget is purely the most recent thing that
+  /// happened.
+  bool get widgetPinnedFirst => _prefs.getBool('widget.pinned_first') ?? true;
+
   /// Whether the widget keeps its notes while the library is locked.
   ///
   /// Off by default, and off is the strict reading: the snapshot empties the
@@ -612,6 +623,11 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> setWidgetTypes(Set<String> value) async {
     await _prefs.setStringList('widget.types', value.toList()..sort());
+    notifyListeners();
+  }
+
+  Future<void> setWidgetPinnedFirst(bool value) async {
+    await _prefs.setBool('widget.pinned_first', value);
     notifyListeners();
   }
 

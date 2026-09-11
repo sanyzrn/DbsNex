@@ -157,6 +157,17 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                       ),
                   ],
                 ),
+              const SizedBox(height: NexSpacing.lg),
+              NexSwitchTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.push_pin_outlined),
+                title: Text(l10n.widgetSettingsPinnedFirst),
+                subtitle: Text(l10n.widgetSettingsPinnedFirstHint),
+                value: widget.preferences.widgetPinnedFirst,
+                onChanged: (value) => unawaited(
+                  widget.preferences.setWidgetPinnedFirst(value),
+                ),
+              ),
               // Only under a lock that is actually on. With no lock there is
               // no state for this to describe, and a switch that cannot mean
               // anything still has to be read before it can be dismissed.
