@@ -1479,7 +1479,9 @@ void main() {
 
       // No provider is reachable from a test, so this resolves to the failure
       // line — which is enough to swap the suggestions out for the thread.
-      await tester.tap(find.byIcon(Icons.summarize_outlined));
+      // By type rather than by icon: the summarise glyph is painted, because
+      // no Material one says what it does.
+      await tester.tap(find.byType(NexSummariseIcon));
       await tester.pumpAndSettle();
 
       expect(bodyController(), same(beforeSending));

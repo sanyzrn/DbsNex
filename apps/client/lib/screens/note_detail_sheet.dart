@@ -24,6 +24,7 @@ import '../platform/nex_services.dart';
 import '../platform/pdf_preview.dart';
 import '../platform/reminders.dart';
 import '../platform/video_preview.dart';
+import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/tag_picker.dart';
@@ -386,6 +387,36 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty || trimmed == note.content) return;
     await widget.services.updateNote(note.id, trimmed);
+    await widget.services.refreshTimeline();
+    await _reload();
+  }
+
+  /// Editing a checklist: the same sheet it was written in, seeded.
+  ///
+  /// There was no way to fix a typo, add the thing you forgot, or drop a line
+  /// — a checklist could be ticked and nothing else. Reusing the capture
+  /// sheet rather than building a row-per-item editor is what makes all three
+  /// of those the same gesture: it is a field of lines, so adding is Enter
+  /// and removing is deleting the line.
+  ///
+  /// The ticks come back across by [restoreTicks]: the editor carries text
+  /// and nothing else, and saving what it returns as-is would untick the
+  /// whole list.
+  Future<void> _editChecklist() async {
+    final note = _note;
+    final preferences = widget.preferences;
+    if (note == null || note.type != NoteType.checklist) return;
+    if (preferences == null) return;
+    final before = note.checklistItems;
+    final edited = await nexShowSheet<List<ChecklistItem>>(
+      context: context,
+      builder: (_) =>
+          ChecklistCaptureSheet(preferences: preferences, initial: before),
+    );
+    if (edited == null) return;
+    final content = formatChecklist(restoreTicks(edited, before));
+    if (content == note.content) return;
+    await widget.services.updateNote(note.id, content);
     await widget.services.refreshTimeline();
     await _reload();
   }
@@ -1077,6 +1108,17 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           label: l10n.edit,
                           onPressed: _editContent,
                         ),
+                      // Needs the preferences the sheet it opens reads its
+                      // haptics from. Everywhere a checklist is opened from
+                      // has them; a caller that does not gets the sheet it
+                      // had before rather than a button that cannot work.
+                      if (note.type == NoteType.checklist &&
+                          widget.preferences != null)
+                        _DetailAction(
+                          icon: Icons.edit_outlined,
+                          label: l10n.edit,
+                          onPressed: _editChecklist,
+                        ),
                       if (note.type == NoteType.link)
                         _DetailAction(
                           icon: Icons.open_in_new,
@@ -1187,9 +1229,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           when preferences.effectiveAiCapabilities.summarization &&
                               aiTextAvailableWith(preferences.aiProvider))
                         _DetailAction(
-                          // Was the sparkle, which now belongs to the
-                          // assistant. This one says what it does.
-                          icon: Icons.summarize_outlined,
+                          // A page with a sparkle on it. `summarize` is a
+                          // page with lines, which is what the note icons in
+                          // this same row already are — it named the content,
+                          // not the action.
+                          glyph: const NexSummariseIcon(),
                           label: l10n.summarize,
                           accent: true,
                           // Null while one is already running, so a slow
@@ -1474,14 +1518,21 @@ class _ActionRow extends StatelessWidget {
 /// apart from — the sheet's background is already the only thing behind it.
 class _DetailAction extends StatelessWidget {
   const _DetailAction({
-    required this.icon,
+    this.icon,
+    this.glyph,
     required this.label,
     required this.onPressed,
     this.destructive = false,
     this.accent = false,
-  });
+  }) : assert(icon != null || glyph != null, 'an action needs something to show');
 
-  final IconData icon;
+  final IconData? icon;
+
+  /// For the one action whose meaning no Material glyph carries. Rendered
+  /// inside this row's own [IconTheme], so it is sized and coloured with the
+  /// rest rather than having to be told twice.
+  final Widget? glyph;
+
   final String label;
   final VoidCallback? onPressed;
 
@@ -1514,7 +1565,15 @@ class _DetailAction extends StatelessWidget {
           child: SizedBox(
             width: nexMinTapTarget,
             height: nexMinTapTarget,
-            child: Center(child: Icon(icon, size: 20, color: color)),
+            // The theme is for [glyph], which has no parameters of its own
+            // to be told with; the [Icon] keeps being told directly, because
+            // "is this one red" is a thing the tests read off the widget.
+            child: Center(
+              child: IconTheme.merge(
+                data: IconThemeData(size: 20, color: color),
+                child: glyph ?? Icon(icon, size: 20, color: color),
+              ),
+            ),
           ),
         ),
       ),

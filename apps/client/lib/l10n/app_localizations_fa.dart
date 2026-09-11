@@ -208,6 +208,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get widgetSettingsScanNote => 'با فیلتر روشن، ویجت از میان تازه‌ترین یادداشت‌ها نتیجه نشان می‌دهد، نه با جست‌وجوی کل کتابخانه.';
 
   @override
+  String get widgetSettingsPinnedFirst => 'یادداشت‌های سنجاق‌شده اول';
+
+  @override
+  String get widgetSettingsPinnedFirstHint => 'روشن باشد، سنجاق‌شده‌ها مثل خود Nex بالا می‌نشینند. خاموش باشد، همان‌جایی می‌مانند که تاریخشان می‌گوید، انگار اصلاً سنجاق نشده‌اند.';
+
+  @override
   String get widgetSettingsWhenLocked => 'نمایش یادداشت‌ها وقتی Nex قفل است';
 
   @override

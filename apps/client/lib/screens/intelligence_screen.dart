@@ -176,7 +176,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
               ),
             ),
             _Capability(
-              icon: Icons.summarize_outlined,
+              glyph: const NexSummariseIcon(),
               title: l10n.summarization,
               subtitle: l10n.summarizationSubtitle,
               value: capabilities.summarization,
@@ -278,7 +278,8 @@ class _Heading extends StatelessWidget {
 /// your provider cannot do it".
 class _Capability extends StatelessWidget {
   const _Capability({
-    required this.icon,
+    this.icon,
+    this.glyph,
     required this.title,
     required this.subtitle,
     required this.value,
@@ -286,7 +287,11 @@ class _Capability extends StatelessWidget {
     required this.onChanged,
   });
 
-  final IconData icon;
+  final IconData? icon;
+
+  /// For a capability whose meaning no Material glyph carries.
+  final Widget? glyph;
+
   final String title;
   final String subtitle;
   final bool value;
@@ -304,7 +309,7 @@ class _Capability extends StatelessWidget {
         horizontal: NexSpacing.lg,
         vertical: NexSpacing.sm,
       ),
-      secondary: Icon(icon),
+      secondary: glyph ?? Icon(icon),
       title: Text(title),
       subtitle: Text(supported ? subtitle : l10n.notSupportedByProvider),
       value: supported && value,

@@ -27,8 +27,15 @@
         <item name="android:maxLines">1</item>
     </style>
 
+    <!--
+        A step lighter than the rest of the ramp. At two lines per row the
+        preview is the only thing on the widget with any quantity of text,
+        and at regular weight a screenful of it read as a wall rather than
+        as a list. Light is still perfectly legible at 14sp, and it leaves
+        the title as the only bold thing on the surface.
+    -->
     <style name="NexWidget.RowPreview" parent="">
-        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:fontFamily">sans-serif-light</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textColor">@color/nex_widget_text</item>
     </style>

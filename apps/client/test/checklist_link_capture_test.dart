@@ -189,6 +189,55 @@ void main() {
     expect(find.byIcon(Icons.title), findsNothing);
   });
 
+  testWidgets('the detail sheet edits the list, and the ticks survive', (
+    tester,
+  ) async {
+    // A checklist could be ticked and nothing else: no way to fix a typo, add
+    // the thing you forgot, or drop a line. The editor is the capture sheet
+    // seeded with the list, so all three are the same gesture — and the one
+    // thing it cannot carry by itself is what has been done, which is what
+    // the second half of this checks.
+    tester.view.physicalSize = const Size(900, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final note = (await services.captureChecklist(const [
+      ChecklistItem(text: 'milk', done: true),
+      ChecklistItem(text: 'bread', done: false),
+    ]))!;
+    await services.refreshTimeline();
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('milk').first);
+    await tester.pumpAndSettle();
+
+    final edit = find.byTooltip('Edit');
+    await tester.ensureVisible(edit);
+    await tester.pumpAndSettle();
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+
+    // Lines, not the storage format: no `- [x]` reaches the person editing.
+    final field = find.byType(TextField).last;
+    expect(tester.widget<TextField>(field).controller!.text, 'milk\nbread');
+
+    await tester.enterText(field, 'milk\neggs');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final saved = (await services.getById(note.id))!.checklistItems;
+    expect(saved.map((i) => i.text), ['milk', 'eggs']);
+    expect(
+      saved.map((i) => i.done),
+      [true, false],
+      reason: 'milk was ticked before the edit and was not retyped',
+    );
+  });
+
   group('parseLinkPreview', () {
     test('prefers Open Graph, in either attribute order', () {
       const html = '''

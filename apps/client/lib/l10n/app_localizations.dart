@@ -476,6 +476,18 @@ abstract class AppLocalizations {
   /// **'With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.'**
   String get widgetSettingsScanNote;
 
+  /// Switch that floats pinned notes to the top of the widget
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned notes first'**
+  String get widgetSettingsPinnedFirst;
+
+  /// Explains both sides of the pinned-first switch
+  ///
+  /// In en, this message translates to:
+  /// **'On, pinned notes sit at the top the way they do in Nex. Off, they stay wherever their own date puts them, as though they were not pinned.'**
+  String get widgetSettingsPinnedFirstHint;
+
   /// Switch that lets the widget keep showing notes while the app lock is closed
   ///
   /// In en, this message translates to:

@@ -108,6 +108,14 @@
       "description": "Shown in place of the tag chips when the library has no tags"
   },
   "widgetSettingsScanNote": "With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.",
+  "widgetSettingsPinnedFirst": "Pinned notes first",
+  "@widgetSettingsPinnedFirst": {
+      "description": "Switch that floats pinned notes to the top of the widget"
+  },
+  "widgetSettingsPinnedFirstHint": "On, pinned notes sit at the top the way they do in Nex. Off, they stay wherever their own date puts them, as though they were not pinned.",
+  "@widgetSettingsPinnedFirstHint": {
+      "description": "Explains both sides of the pinned-first switch"
+  },
   "widgetSettingsWhenLocked": "Show notes while Nex is locked",
   "@widgetSettingsWhenLocked": {
       "description": "Switch that lets the widget keep showing notes while the app lock is closed"
