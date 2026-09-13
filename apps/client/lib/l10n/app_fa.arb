@@ -289,6 +289,19 @@
     "description": "Confirm button on the edit and caption dialogs"
   },
   "editNote": "ویرایش یادداشت",
+  "editorFullScreen": "تمام‌صفحه",
+  "editorSmaller": "کوچک‌تر",
+  "aiEditTools": "ویرایش با هوش مصنوعی",
+  "aiEditAutoStyle": "استایل خودکار",
+  "aiEditFix": "اصلاح نگارش",
+  "aiEditFormal": "رسمی",
+  "aiEditFriendly": "صمیمی",
+  "aiEditConcise": "کوتاه‌تر",
+  "aiEditSimple": "ساده",
+  "aiEditApplied": "ویرایش‌شده با هوش مصنوعی",
+  "aiEditUndo": "بازگرداندن",
+  "aiEditFailed": "آن ویرایش برنگشت. متن شما دست‌نخورده است.",
+  "aiEditUnchanged": "چیزی برای تغییر نبود — همین‌طور خوب است.",
   "@editNote": {
     "description": "Title of the edit-note dialog"
   },

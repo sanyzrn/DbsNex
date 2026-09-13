@@ -820,6 +820,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editNote => 'Edit note';
 
   @override
+  String get editorFullScreen => 'Full screen';
+
+  @override
+  String get editorSmaller => 'Smaller';
+
+  @override
+  String get aiEditTools => 'Edit with AI';
+
+  @override
+  String get aiEditAutoStyle => 'Auto style';
+
+  @override
+  String get aiEditFix => 'Fix writing';
+
+  @override
+  String get aiEditFormal => 'Formal';
+
+  @override
+  String get aiEditFriendly => 'Friendly';
+
+  @override
+  String get aiEditConcise => 'Shorter';
+
+  @override
+  String get aiEditSimple => 'Plain';
+
+  @override
+  String get aiEditApplied => 'Edited by AI';
+
+  @override
+  String get aiEditUndo => 'Undo';
+
+  @override
+  String get aiEditFailed => 'That edit did not come back. Your text is unchanged.';
+
+  @override
+  String get aiEditUnchanged => 'Nothing to change — it already reads well.';
+
+  @override
   String get caption => 'Caption';
 
   @override

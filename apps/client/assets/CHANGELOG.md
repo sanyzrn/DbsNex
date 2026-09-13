@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+- **The note editor is a proper editor.** It was a dialog with three lines in
+  it that could not grow. It opens from the bottom like everything else now,
+  and a button turns it into a full-height editor for a note that needs the
+  room.
+
+- **AI can edit a note's words, when you ask it to.** With a model available —
+  a provider or one downloaded onto the phone — the editor offers **Auto
+  style**, which adds headings and bold without changing a word, alongside
+  **Fix writing**, **Formal**, **Friendly**, **Shorter** and **Plain**. Nothing
+  is saved until you save, and one tap puts the text back the way it was.
+
 ## v1.8.1
 
 - **The status bar reads properly again.** The clock, the battery and the
