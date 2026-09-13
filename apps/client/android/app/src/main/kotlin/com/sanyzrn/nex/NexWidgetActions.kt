@@ -12,11 +12,12 @@ import android.os.Build
  * Every way a tap on a widget reaches the app, and every way the app pushes
  * fresh views back out.
  *
- * All three actions land on [MainActivity] because that is where the Dart
- * bridge lives: the activity queues the request as a pending payload and the
- * running engine delivers it into the same capture path as in-app capture
- * (FR-8.3 — OS surfaces are held to the same zero-decision rules). Text
- * capture and share-intent already worked this way; open-note joins them.
+ * Every one of these actions lands on [MainActivity] because that is where
+ * the Dart bridge lives: the activity queues the request as a pending payload
+ * and the running engine delivers it into the same path as the in-app
+ * equivalent (FR-8.3 — OS surfaces are held to the same zero-decision rules).
+ * Text capture and share-intent worked this way first; open-note and
+ * refresh-recap joined them.
  */
 object NexWidgetActions {
 
@@ -34,12 +35,26 @@ object NexWidgetActions {
 
     const val EXTRA_NOTE_ID = MainActivity.EXTRA_NOTE_ID
 
+    /**
+     * Asks Dart for a fresh assistant brief — the Recap widget's refresh
+     * button.
+     *
+     * It opens the app, and there is no version of it that does not. Writing
+     * a brief means asking a model; a widget provider is a broadcast
+     * receiver with about ten seconds to live and no Flutter engine behind
+     * it, so nothing in this process can produce one. The button therefore
+     * does the honest thing — it brings the timeline up, which re-asks the
+     * way its own refresh button does and pushes the new snapshot back out.
+     */
+    const val ACTION_REFRESH_RECAP = MainActivity.ACTION_REFRESH_RECAP
+
     // Distinct request codes so the three PendingIntents can never collide:
     // PendingIntent matching is by request code and intent, and the open-note
     // template must stay separate from everything a plain tap can trigger.
     private const val RC_OPEN_APP = 0x4E650001
     private const val RC_TEXT_CAPTURE = 0x4E650002
     private const val RC_OPEN_NOTE = 0x4E650003
+    private const val RC_REFRESH_RECAP = 0x4E650004
 
     private val launchFlags =
         Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -66,6 +81,16 @@ object NexWidgetActions {
 
     fun textCapture(context: Context): PendingIntent = activity(context, RC_TEXT_CAPTURE) {
         textCaptureIntent(context)
+    }
+
+    /** Opens the timeline and asks it for a new brief (FR-8 / ADR-027). */
+    fun refreshRecapIntent(context: Context): Intent =
+        Intent(context, MainActivity::class.java)
+            .setAction(ACTION_REFRESH_RECAP)
+            .addFlags(launchFlags)
+
+    fun refreshRecap(context: Context): PendingIntent = activity(context, RC_REFRESH_RECAP) {
+        refreshRecapIntent(context)
     }
 
     /**
@@ -96,7 +121,7 @@ object NexWidgetActions {
     )
 
     /**
-     * Asks both widget providers to rebuild their views from the snapshot.
+     * Asks every widget provider to rebuild its views from the snapshot.
      *
      * An explicit broadcast carrying the widget ids routes through
      * [BroadcastReceiver] to `onUpdate` — the same path the system uses, so
@@ -106,7 +131,12 @@ object NexWidgetActions {
      */
     fun refreshAll(context: Context) {
         val manager = AppWidgetManager.getInstance(context) ?: return
-        for (provider in listOf(CaptureWidgetProvider::class.java, TimelineWidgetProvider::class.java)) {
+        val providers = listOf(
+            CaptureWidgetProvider::class.java,
+            TimelineWidgetProvider::class.java,
+            RecapWidgetProvider::class.java,
+        )
+        for (provider in providers) {
             val ids = manager.getAppWidgetIds(ComponentName(context, provider))
             if (ids.isEmpty()) continue
             val update = Intent(context, provider).apply {

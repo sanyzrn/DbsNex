@@ -2102,6 +2102,33 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantConfirmSetting => 'این تنظیم را عوض کنم؟';
 
   @override
+  String get assistantConfirmRemind => 'این یادآور را بگذارم؟';
+
+  @override
+  String get assistantConfirmRemindClear => 'یادآور این یادداشت را بردارم؟';
+
+  @override
+  String get assistantConfirmPin => 'این یادداشت را بالا سنجاق کنم؟';
+
+  @override
+  String get assistantConfirmUnpin => 'سنجاق این یادداشت را بردارم؟';
+
+  @override
+  String get assistantConfirmTitle => 'برای این یادداشت عنوان بگذارم؟';
+
+  @override
+  String get assistantConfirmTitleClear => 'عنوان این یادداشت را بردارم؟';
+
+  @override
+  String get assistantConfirmRestore => 'این یادداشت را از حذف‌شده‌ها برگردانم؟';
+
+  @override
+  String get assistantConfirmRenameTag => 'نام این تگ را همه‌جا عوض کنم؟';
+
+  @override
+  String get assistantConfirmTagColor => 'رنگ این تگ را عوض کنم؟';
+
+  @override
   String get remind => 'یادآوری';
 
   @override

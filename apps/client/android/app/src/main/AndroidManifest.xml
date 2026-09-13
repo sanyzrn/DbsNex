@@ -206,6 +206,24 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/timeline_widget_info" />
         </receiver>
 
+        <!--
+          The Recap widget: the assistant's brief on its own. It reads the
+          same snapshot file the Timeline widget does and needs no service of
+          its own, because there is no list in it — one TextView holds the
+          whole thing. Its refresh button sends REFRESH_RECAP to MainActivity,
+          which is the only process that can ask a model for a new one.
+        -->
+        <receiver
+            android:name=".RecapWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_recap_picker_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/recap_widget_info" />
+        </receiver>
+
         <service
             android:name=".TimelineWidgetService"
             android:exported="false"

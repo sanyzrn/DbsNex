@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:nex_core/nex_core.dart';
 
 /// What the assistant is allowed to do to someone's notes.
 enum AssistantActionKind {
@@ -26,6 +27,33 @@ enum AssistantActionKind {
 
   /// One app setting, from a short list this app is willing to hand over.
   setting,
+
+  /// When a note should come back up, or that it should stop coming back up.
+  ///
+  /// The verb an assistant is for, and the one this list was missing. The
+  /// daily brief is built almost entirely out of what is due and what is
+  /// overdue, so an assistant that can read that list and not add to it was
+  /// describing a job it could not do.
+  remind,
+
+  /// A note held at the top of the timeline, or let go.
+  pin,
+
+  /// A note's title set or cleared.
+  title,
+
+  /// A note brought back out of Recently Deleted.
+  ///
+  /// The only write here that *undoes* damage rather than doing any, which
+  /// is why it is worth having even though nothing else about the trash is
+  /// reachable from a conversation.
+  restore,
+
+  /// A tag renamed, everywhere it is worn.
+  renameTag,
+
+  /// A tag's colour.
+  tagColor,
 }
 
 /// One thing the assistant has asked to do, already parsed and validated.
@@ -48,6 +76,11 @@ class AssistantAction {
     this.index,
     this.settingKey,
     this.settingValue,
+    this.at,
+    this.repeat = NoteRepeat.once,
+    this.flag,
+    this.items = const [],
+    this.tagName,
   });
 
   final AssistantActionKind kind;
@@ -70,6 +103,37 @@ class AssistantAction {
   final String? settingKey;
   final String? settingValue;
 
+  /// When [AssistantActionKind.remind] should fire.
+  ///
+  /// Null is not "unset" here, it is the instruction: a remind action with
+  /// no time on it is the one that clears the reminder. There is nothing
+  /// else a dateless reminder could mean, so it does not need a second flag
+  /// to say which it is.
+  final DateTime? at;
+
+  final NoteRepeat repeat;
+
+  /// True to pin, false to unpin. Null for every other kind.
+  ///
+  /// A field rather than two kinds, because the confirmation card, the
+  /// executor and the parser would all have to carry the pair around and
+  /// nothing about the two directions differs except the verb.
+  final bool? flag;
+
+  /// A checklist's lines, when [AssistantActionKind.create] is making one.
+  ///
+  /// "Make me a shopping list with bread, milk and eggs" used to come back
+  /// as a text note with three lines in it — which looks almost right and is
+  /// not a checklist: nothing in it can be ticked.
+  final List<String> items;
+
+  /// The tag a library-wide tag action is about, by name.
+  ///
+  /// By name and not by id, for the same reason [addTags] is: the model only
+  /// ever sees tag names, and an id it had to invent is an id it would
+  /// invent. Resolved against the real list when the action runs.
+  final String? tagName;
+
   /// Whether this changes anything. A search does not, so it is carried out
   /// as soon as it arrives; everything else waits for the user.
   bool get isRead => kind == AssistantActionKind.search;
@@ -77,12 +141,44 @@ class AssistantAction {
 
 /// The settings the assistant is allowed to change.
 ///
-/// A list rather than a rule, and a short one. "Let it change settings" is a
-/// sentence that quietly includes the API key, the sync endpoint and the
+/// A list rather than a rule. "Let it change settings" is a sentence that
+/// quietly includes the API key, the sync endpoint, the app lock and the
 /// retention policy, and none of those should ever move because a model read
-/// a sentence a certain way. These four are all reversible in one tap from
-/// the screen the user is already looking at.
-const assistantSettableKeys = {'theme', 'language', 'ai_language'};
+/// a sentence a certain way.
+///
+/// What is on the list is everything that passes three tests: a person
+/// changes it by hand from a settings screen, it is visible the moment it
+/// changes, and it is reversible in one tap from the screen they are already
+/// looking at. That is the whole rule, and it is what lets the list grow
+/// without the argument being had again each time.
+///
+/// What stays off it, and always will: the app lock and its timing (a lock a
+/// conversation can open is not a lock), the AI provider and its key, the
+/// sync endpoint and its token, the entitlement, and anything that deletes —
+/// backups, retention, the trash.
+const assistantSettableKeys = {
+  'theme',
+  'language',
+  'ai_language',
+  // Appearance. Each of these is a switch or a slider on the Appearance
+  // screen and shows its effect on the frame after it changes.
+  'text_size',
+  'background',
+  'accent',
+  'comfort_mode',
+  'haptics',
+  // The timeline's own furniture — the four parts of the home screen a
+  // person can already turn off one at a time.
+  'show_greeting',
+  'show_digest',
+  'show_search',
+  'show_tags',
+  // The morning notification and when it arrives. "Wake me with the digest
+  // at eight" is a sentence people say to an assistant, and it is two taps
+  // in settings.
+  'daily_nudge',
+  'daily_nudge_time',
+};
 
 /// The instruction block appended to the system prompt when acting is on.
 ///
@@ -120,9 +216,47 @@ a fenced block tagged `nex` containing one JSON object:
 ```nex
 {"action": "setting", "key": "theme", "value": "dark"}
 ```
+```nex
+{"action": "remind", "id": "<note id>", "at": "2026-03-14T09:00", "repeat": "once"}
+```
+```nex
+{"action": "pin", "id": "<note id>", "pinned": true}
+```
+```nex
+{"action": "title", "id": "<note id>", "text": "Boiler"}
+```
+```nex
+{"action": "restore", "id": "<note id>"}
+```
+```nex
+{"action": "rename_tag", "tag": "work", "name": "job"}
+```
+```nex
+{"action": "tag_color", "tag": "work", "color": "#1D4ED8"}
+```
 
-Settings you may change, and nothing else: `theme` (light/dark/system),
-`language` (en/fa/system), `ai_language` (auto/en/fa).
+A `create` makes a checklist instead of a text note when you send items:
+
+```nex
+{"action": "create", "items": ["bread", "milk", "eggs"]}
+```
+
+`remind` sets when a note comes back up. `at` is local time,
+`YYYY-MM-DDTHH:MM`, and must be in the future — work it out from the current
+time given below, and never send a date you were not able to work out. `repeat`
+is `once`, `daily` or `weekly`. **Leave `at` out entirely to cancel a
+reminder**, and send nothing else with it. `title` with no `text` clears the
+title. `restore` only works on a note that is in Recently Deleted.
+
+Settings you may change, and nothing else:
+`theme` (light/dark/system), `language` (en/fa/system),
+`ai_language` (auto/en/fa),
+`text_size` (small/default/large/larger),
+`background` (plain/aurora/ripple/weave/dots/dusk/topography/prism),
+`accent` (a `#RRGGBB` colour, or `default`),
+`comfort_mode` (on/off), `haptics` (on/off),
+`show_greeting`, `show_digest`, `show_search`, `show_tags` (on/off),
+`daily_nudge` (on/off), `daily_nudge_time` (`HH:MM`).
 
 When you need a note that is not in the list below, look for it first and
 wait for the result before doing anything else:
@@ -250,7 +384,16 @@ AssistantAction? _action(Map<Object?, Object?> decoded) {
   final id = _string(decoded['id']);
   final text = _string(decoded['text']);
   final index = decoded['index'];
+  final items = _strings(decoded['items']);
   return switch (_string(decoded['action'])?.toLowerCase()) {
+    // Items first: a create that carries both is a checklist whose lines the
+    // model also wrote out as prose, and the checklist is the thing that was
+    // asked for.
+    'create' when items.isNotEmpty => AssistantAction(
+      kind: AssistantActionKind.create,
+      items: items,
+      text: items.join('\n'),
+    ),
     'create' when text != null => AssistantAction(
       kind: AssistantActionKind.create,
       text: text,
@@ -286,8 +429,111 @@ AssistantAction? _action(Map<Object?, Object?> decoded) {
       index: index,
     ),
     'setting' => _settingAction(decoded),
+    'remind' || 'reminder' when id != null => _remindAction(decoded, id),
+    // `pinned` decides which way, and its absence means pin: "pin this" is
+    // the request people make, and a model that leaves the field off has
+    // still said which one it meant.
+    'pin' when id != null => AssistantAction(
+      kind: AssistantActionKind.pin,
+      noteId: id,
+      flag: _bool(decoded['pinned']) ?? true,
+    ),
+    'unpin' when id != null => AssistantAction(
+      kind: AssistantActionKind.pin,
+      noteId: id,
+      flag: false,
+    ),
+    // No text is the instruction, not a malformed action: it clears the
+    // title. Same shape as remind's missing `at`.
+    'title' when id != null => AssistantAction(
+      kind: AssistantActionKind.title,
+      noteId: id,
+      text: text,
+    ),
+    'restore' || 'undelete' when id != null => AssistantAction(
+      kind: AssistantActionKind.restore,
+      noteId: id,
+    ),
+    'rename_tag' when _string(decoded['tag']) != null => _renameTagAction(
+      decoded,
+    ),
+    'tag_color' when _string(decoded['tag']) != null => _tagColorAction(
+      decoded,
+    ),
     _ => null,
   };
+}
+
+/// A reminder, or the removal of one.
+///
+/// A time that cannot be read is not a reminder with a default — it is a
+/// clear, which is the opposite of what was asked for. So an `at` that is
+/// present and unparseable refuses the whole action rather than quietly
+/// becoming the cancel branch.
+AssistantAction? _remindAction(Map<Object?, Object?> decoded, String id) {
+  final raw = decoded['at'];
+  if (raw == null) {
+    return AssistantAction(kind: AssistantActionKind.remind, noteId: id);
+  }
+  final text = _string(raw);
+  if (text == null) return null;
+  // Local time, deliberately. The prompt asks for `YYYY-MM-DDTHH:MM` with no
+  // zone, and `DateTime.parse` reads that as local — which is what somebody
+  // saying "nine on Friday" means. A model that sends a `Z` is taken at its
+  // word and converted, because it said something specific.
+  final parsed = DateTime.tryParse(text);
+  if (parsed == null) return null;
+  return AssistantAction(
+    kind: AssistantActionKind.remind,
+    noteId: id,
+    at: parsed.isUtc ? parsed.toLocal() : parsed,
+    repeat: NoteRepeat.fromWire(_string(decoded['repeat'])?.toLowerCase()),
+  );
+}
+
+AssistantAction? _renameTagAction(Map<Object?, Object?> decoded) {
+  final tag = _string(decoded['tag']);
+  final name = _string(decoded['name']) ?? _string(decoded['text']);
+  // Renaming a tag to what it is already called is not a change, and
+  // renaming it to nothing is a tag nobody can see.
+  if (tag == null || name == null) return null;
+  if (tag.toLowerCase() == name.toLowerCase()) return null;
+  return AssistantAction(
+    kind: AssistantActionKind.renameTag,
+    tagName: tag,
+    text: name,
+  );
+}
+
+/// A tag's colour, which must be a `#RRGGBB` this app can actually paint.
+///
+/// `default` clears it back to the shipped colour — the same thing the
+/// picker's own reset does, and the only way to undo a colour by talking.
+AssistantAction? _tagColorAction(Map<Object?, Object?> decoded) {
+  final tag = _string(decoded['tag']);
+  final color = _string(decoded['color']) ?? _string(decoded['value']);
+  if (tag == null || color == null) return null;
+  final normalised = color.toLowerCase() == 'default'
+      ? null
+      : _hexColor(color);
+  if (normalised == null && color.toLowerCase() != 'default') return null;
+  return AssistantAction(
+    kind: AssistantActionKind.tagColor,
+    tagName: tag,
+    text: normalised,
+  );
+}
+
+/// `#RRGGBB`, upper case, or null when it is not one.
+///
+/// Accepts a missing `#` because models drop it, and nothing else: a colour
+/// is stored and later parsed by the theme, and "blue" stored in that slot
+/// is a tag that renders as no colour at all with nothing to say why.
+String? _hexColor(String value) {
+  final body = value.startsWith('#') ? value.substring(1) : value;
+  if (body.length != 6) return null;
+  if (!RegExp(r'^[0-9a-fA-F]{6}$').hasMatch(body)) return null;
+  return '#${body.toUpperCase()}';
 }
 
 /// Only the keys this app has agreed to hand over, and only with a value.
@@ -315,6 +561,13 @@ AssistantAction? _tagAction(Map<Object?, Object?> decoded, String id) {
     removeTags: remove,
   );
 }
+
+/// A JSON boolean, or null when the field was absent or was something else.
+///
+/// Only a real boolean counts. `"pinned": "false"` is a model that wrote the
+/// wrong type, and reading a non-empty string as true would turn it into the
+/// opposite of what it asked for.
+bool? _bool(Object? value) => value is bool ? value : null;
 
 String? _string(Object? value) {
   if (value is! String) return null;

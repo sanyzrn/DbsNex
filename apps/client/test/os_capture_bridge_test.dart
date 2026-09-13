@@ -372,6 +372,48 @@ void main() {
     expect(opened, 'note-7');
   });
 
+  test('the Recap widget asks the app for a new brief', () async {
+    // The refresh button on a home screen cannot write a brief — nothing in
+    // that process can ask a model anything — so what it actually does is
+    // open Nex and ask the timeline. This is that request arriving.
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    var refreshes = 0;
+    var captures = 0;
+    String? opened;
+    bridge.onRecapRefreshRequested = () => refreshes++;
+    bridge.onCaptureRequested = () => captures++;
+    bridge.onOpenNoteRequested = (id) => opened = id;
+    await bridge.start();
+
+    await bridge.handle({'type': 'refresh_recap'});
+    expect(refreshes, 1);
+    // And it is not any of the other two. A refresh that opened the capture
+    // sheet would be the widget doing something nobody pressed.
+    expect(captures, 0);
+    expect(opened, isNull);
+    expect(await db.timeline(limit: 50), isEmpty);
+  });
+
+  test('a refresh that launched the app waits for a screen', () async {
+    // The common case, in fact: there is nothing to refresh a brief with
+    // until the timeline exists, and tapping the button is usually what
+    // starts the app.
+    native.pending = {'type': 'refresh_recap'};
+
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+
+    final waiting = bridge.takeRequest();
+    expect(waiting, isNotNull);
+    expect(waiting!.isRecapRefresh, isTrue);
+    // Not a capture. Both carry no note id, and reading "no id" as "open the
+    // capture sheet" is exactly the confusion `isCapture` has to rule out.
+    expect(waiting.isCapture, isFalse);
+    expect(bridge.takeRequest(), isNull);
+  });
+
   test('a widget tap that launched the app waits for a screen', () async {
     // The other world, and the common one: tapping the tile is what starts
     // the app, so the request is drained during bootstrap with no timeline

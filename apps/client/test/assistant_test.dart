@@ -189,6 +189,172 @@ Sure, here you go:
       }
     });
 
+    test('a reminder is a date and a repeat', () {
+      // The verb an assistant is actually for, and the one this protocol was
+      // missing while the daily brief was built almost entirely out of what
+      // is due.
+      final action = parseAssistantAction(
+        '{"action":"remind","id":"n-1","at":"2026-03-14T09:00",'
+        '"repeat":"weekly"}',
+      );
+      expect(action?.kind, AssistantActionKind.remind);
+      expect(action?.noteId, 'n-1');
+      expect(action?.at, DateTime(2026, 3, 14, 9));
+      expect(action?.at?.isUtc, isFalse, reason: 'nine means nine here');
+      expect(action?.repeat, NoteRepeat.weekly);
+    });
+
+    test('a reminder with no date is the one that cancels it', () {
+      final action = parseAssistantAction('{"action":"remind","id":"n-1"}');
+      expect(action?.kind, AssistantActionKind.remind);
+      expect(action?.at, isNull);
+    });
+
+    test('a date that cannot be read is refused, not treated as a cancel', () {
+      // The failure this prevents is the worst one available here: the user
+      // asked for a reminder, the model wrote a date wrong, and the app
+      // silently removed the reminder they already had.
+      expect(
+        parseAssistantAction('{"action":"remind","id":"n-1","at":"friday"}'),
+        isNull,
+      );
+      expect(
+        parseAssistantAction('{"action":"remind","id":"n-1","at":""}'),
+        isNull,
+      );
+    });
+
+    test('an unknown repeat is once, not a parse failure', () {
+      final action = parseAssistantAction(
+        '{"action":"remind","id":"n-1","at":"2026-03-14T09:00",'
+        '"repeat":"fortnightly"}',
+      );
+      expect(action?.repeat, NoteRepeat.once);
+    });
+
+    test('pin goes both ways, and defaults to pinning', () {
+      expect(
+        parseAssistantAction('{"action":"pin","id":"n-1"}')?.flag,
+        isTrue,
+        reason: '"pin this" said which one it meant',
+      );
+      expect(
+        parseAssistantAction('{"action":"pin","id":"n-1","pinned":false}')
+            ?.flag,
+        isFalse,
+      );
+      final unpin = parseAssistantAction('{"action":"unpin","id":"n-1"}');
+      expect(unpin?.kind, AssistantActionKind.pin);
+      expect(unpin?.flag, isFalse);
+    });
+
+    test('a title with no text clears it', () {
+      expect(
+        parseAssistantAction('{"action":"title","id":"n-1","text":"Boiler"}')
+            ?.text,
+        'Boiler',
+      );
+      final cleared = parseAssistantAction('{"action":"title","id":"n-1"}');
+      expect(cleared?.kind, AssistantActionKind.title);
+      expect(cleared?.text, isNull);
+    });
+
+    test('a restore names a note that is deliberately not in the library', () {
+      final action = parseAssistantAction('{"action":"restore","id":"n-9"}');
+      expect(action?.kind, AssistantActionKind.restore);
+      expect(action?.noteId, 'n-9');
+    });
+
+    test('a create with items is a checklist, not a note with lines in it', () {
+      // "A shopping list with bread, milk and eggs" used to come back as a
+      // text note — which looks almost right and has nothing to tick.
+      final action = parseAssistantAction(
+        '{"action":"create","items":["bread","milk","eggs"]}',
+      );
+      expect(action?.kind, AssistantActionKind.create);
+      expect(action?.items, ['bread', 'milk', 'eggs']);
+      // And still carries the text, so the confirmation card can show what
+      // is about to be written without knowing it is a checklist.
+      expect(action?.text, 'bread\nmilk\neggs');
+    });
+
+    test('a tag rename needs two different names', () {
+      final action = parseAssistantAction(
+        '{"action":"rename_tag","tag":"work","name":"job"}',
+      );
+      expect(action?.kind, AssistantActionKind.renameTag);
+      expect(action?.tagName, 'work');
+      expect(action?.text, 'job');
+      // Renaming a tag to itself is not a change, and renaming it to nothing
+      // is a tag nobody can see.
+      expect(
+        parseAssistantAction(
+          '{"action":"rename_tag","tag":"work","name":"Work"}',
+        ),
+        isNull,
+      );
+      expect(parseAssistantAction('{"action":"rename_tag","tag":"work"}'), isNull);
+    });
+
+    test('a tag colour must be one the app can paint', () {
+      expect(
+        parseAssistantAction(
+          '{"action":"tag_color","tag":"work","color":"1d4ed8"}',
+        )?.text,
+        '#1D4ED8',
+        reason: 'the missing hash is a thing models do, not a bad colour',
+      );
+      expect(
+        parseAssistantAction(
+          '{"action":"tag_color","tag":"work","color":"default"}',
+        )?.text,
+        isNull,
+        reason: 'clearing it back to the shipped colour',
+      );
+      // "blue" stored in that slot is a tag that renders as no colour at all
+      // with nothing on screen to say why.
+      for (final bad in ['blue', '#12', '#GGGGGG']) {
+        expect(
+          parseAssistantAction(
+            '{"action":"tag_color","tag":"work","color":"$bad"}',
+          ),
+          isNull,
+          reason: '$bad is not a colour this app can store',
+        );
+      }
+    });
+
+    test('the settings list grew and its boundary did not move', () {
+      // Everything on the list passes the same three tests: changed by hand
+      // from a settings screen, visible the moment it changes, reversible in
+      // one tap. These are the ones that do not.
+      for (final key in [
+        'api_key',
+        'sync_url',
+        'ai.key.openai',
+        'retention',
+        'app_lock',
+        'app_lock_timing',
+        'ai_provider',
+        'entitlement',
+      ]) {
+        expect(
+          parseAssistantAction('{"action":"setting","key":"$key","value":"x"}'),
+          isNull,
+          reason: '$key is not the assistant\'s to change',
+        );
+      }
+      // And a few that are.
+      for (final key in ['text_size', 'daily_nudge', 'accent', 'show_tags']) {
+        expect(
+          parseAssistantAction(
+            '{"action":"setting","key":"$key","value":"x"}',
+          )?.settingKey,
+          key,
+        );
+      }
+    });
+
     test('prose around a block survives without the block', () {
       const reply =
           'Deleting that one.\n```nex\n{"action":"delete","id":"a"}\n```';
@@ -223,6 +389,32 @@ Sure, here you go:
       // a picture beside every noun; the cap is what makes it punctuation.
       expect(prompt, contains('emoji'));
       expect(prompt, contains('At most one per line'));
+    });
+
+    test('an acting assistant is told what day it is', () {
+      // Load-bearing exactly once `remind` existed. "Friday at nine" cannot
+      // be turned into a date by something that does not know today's, and a
+      // model with no clock does not refuse — it picks a date out of its
+      // training data and sets an alarm for a day in the past.
+      final prompt = adapter().chatSystemPrompt(
+        AiChatOptions(canAct: true, now: DateTime(2026, 3, 12, 14, 5)),
+      );
+      expect(prompt, contains('2026-03-12T14:05'));
+      // The weekday too: it is half of what people say, and deriving it from
+      // the date is arithmetic no model should have to be right about.
+      expect(prompt, contains('Thursday'));
+      expect(prompt, contains('must be in the future'));
+    });
+
+    test('the clock is only there when it can be used', () {
+      // A chat that cannot act cannot set a reminder, so the date is one
+      // more line of context spent on nothing.
+      expect(
+        adapter().chatSystemPrompt(
+          AiChatOptions(now: DateTime(2026, 3, 12, 14, 5)),
+        ),
+        isNot(contains('2026-03-12')),
+      );
     });
 
     test('the action vocabulary is absent unless acting is on', () {

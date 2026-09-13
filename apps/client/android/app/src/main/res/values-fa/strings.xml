@@ -5,13 +5,16 @@
 <resources>
     <string name="widget_capture_picker_label">ثبت Nex</string>
     <string name="widget_timeline_picker_label">خط زمانی Nex</string>
+    <string name="widget_recap_picker_label">خلاصهٔ Nex</string>
 
     <string name="widget_capture_label">ثبت</string>
     <string name="widget_capture_description">ثبت یک فکر، بدون باز کردن Nex</string>
     <string name="widget_timeline_description">بالای خط زمانی شما، همراه با دکمهٔ ثبت</string>
+    <string name="widget_recap_description">آنچه روی دستتان مانده، در چند خط</string>
 
     <string name="widget_a11y_capture">ثبت در Nex</string>
     <string name="widget_a11y_open_app">باز کردن Nex</string>
+    <string name="widget_a11y_recap_refresh">باز کردن Nex و نوشتن خلاصهٔ تازه</string>
 
     <string name="widget_locked_title">Nex قفل است</string>
     <string name="widget_locked_a11y">Nex قفل است. برای دیدن یادداشت‌ها، Nex را باز کنید.</string>
@@ -19,6 +22,12 @@
     <string name="widget_empty_title">هنوز چیزی اینجا نیست.</string>
     <string name="widget_empty_hint">اولین ثبت شما همین‌جا می‌نشیند.</string>
     <string name="widget_empty_a11y">هنوز چیزی ثبت نشده است. اولین ثبت شما همین‌جا می‌نشیند.</string>
+
+    <string name="widget_recap_title">خلاصه هوشمند</string>
+    <string name="widget_recap_locked_title">Nex قفل است</string>
+    <string name="widget_recap_locked_a11y">Nex قفل است. برای دیدن خلاصه، Nex را باز کنید.</string>
+    <string name="widget_recap_empty_title">هنوز خلاصه‌ای نیست.</string>
+    <string name="widget_recap_empty_hint">روی تازه‌سازی بزنید تا Nex یکی بنویسد.</string>
 
     <string name="widget_type_text">متن</string>
     <string name="widget_type_voice">صدا</string>

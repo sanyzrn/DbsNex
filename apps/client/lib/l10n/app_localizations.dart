@@ -3692,6 +3692,60 @@ abstract class AppLocalizations {
   /// **'Change this setting?'**
   String get assistantConfirmSetting;
 
+  /// Confirmation for an assistant-proposed reminder
+  ///
+  /// In en, this message translates to:
+  /// **'Set this reminder?'**
+  String get assistantConfirmRemind;
+
+  /// Confirmation for clearing a reminder
+  ///
+  /// In en, this message translates to:
+  /// **'Stop this note reminding you?'**
+  String get assistantConfirmRemindClear;
+
+  /// Confirmation for pinning a note
+  ///
+  /// In en, this message translates to:
+  /// **'Pin this note to the top?'**
+  String get assistantConfirmPin;
+
+  /// Confirmation for unpinning a note
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin this note?'**
+  String get assistantConfirmUnpin;
+
+  /// Confirmation for setting a note's title
+  ///
+  /// In en, this message translates to:
+  /// **'Give this note a title?'**
+  String get assistantConfirmTitle;
+
+  /// Confirmation for clearing a note's title
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this note\'s title?'**
+  String get assistantConfirmTitleClear;
+
+  /// Confirmation for restoring a deleted note
+  ///
+  /// In en, this message translates to:
+  /// **'Bring this note back from Recently Deleted?'**
+  String get assistantConfirmRestore;
+
+  /// Confirmation for renaming a tag
+  ///
+  /// In en, this message translates to:
+  /// **'Rename this tag everywhere it is used?'**
+  String get assistantConfirmRenameTag;
+
+  /// Confirmation for changing a tag's colour
+  ///
+  /// In en, this message translates to:
+  /// **'Change this tag\'s colour?'**
+  String get assistantConfirmTagColor;
+
   /// Note action that sets a reminder
   ///
   /// In en, this message translates to:

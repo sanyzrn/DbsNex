@@ -1943,6 +1943,42 @@
   "@assistantConfirmSetting": {
     "description": "Confirmation for an assistant-proposed settings change"
   },
+  "assistantConfirmRemind": "Set this reminder?",
+  "@assistantConfirmRemind": {
+    "description": "Confirmation for an assistant-proposed reminder"
+  },
+  "assistantConfirmRemindClear": "Stop this note reminding you?",
+  "@assistantConfirmRemindClear": {
+    "description": "Confirmation for clearing a reminder"
+  },
+  "assistantConfirmPin": "Pin this note to the top?",
+  "@assistantConfirmPin": {
+    "description": "Confirmation for pinning a note"
+  },
+  "assistantConfirmUnpin": "Unpin this note?",
+  "@assistantConfirmUnpin": {
+    "description": "Confirmation for unpinning a note"
+  },
+  "assistantConfirmTitle": "Give this note a title?",
+  "@assistantConfirmTitle": {
+    "description": "Confirmation for setting a note's title"
+  },
+  "assistantConfirmTitleClear": "Remove this note's title?",
+  "@assistantConfirmTitleClear": {
+    "description": "Confirmation for clearing a note's title"
+  },
+  "assistantConfirmRestore": "Bring this note back from Recently Deleted?",
+  "@assistantConfirmRestore": {
+    "description": "Confirmation for restoring a deleted note"
+  },
+  "assistantConfirmRenameTag": "Rename this tag everywhere it is used?",
+  "@assistantConfirmRenameTag": {
+    "description": "Confirmation for renaming a tag"
+  },
+  "assistantConfirmTagColor": "Change this tag's colour?",
+  "@assistantConfirmTagColor": {
+    "description": "Confirmation for changing a tag's colour"
+  },
   "remind": "Remind",
   "@remind": {
     "description": "Note action that sets a reminder"

@@ -2101,6 +2101,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantConfirmSetting => 'Change this setting?';
 
   @override
+  String get assistantConfirmRemind => 'Set this reminder?';
+
+  @override
+  String get assistantConfirmRemindClear => 'Stop this note reminding you?';
+
+  @override
+  String get assistantConfirmPin => 'Pin this note to the top?';
+
+  @override
+  String get assistantConfirmUnpin => 'Unpin this note?';
+
+  @override
+  String get assistantConfirmTitle => 'Give this note a title?';
+
+  @override
+  String get assistantConfirmTitleClear => 'Remove this note\'s title?';
+
+  @override
+  String get assistantConfirmRestore => 'Bring this note back from Recently Deleted?';
+
+  @override
+  String get assistantConfirmRenameTag => 'Rename this tag everywhere it is used?';
+
+  @override
+  String get assistantConfirmTagColor => 'Change this tag\'s colour?';
+
+  @override
   String get remind => 'Remind';
 
   @override

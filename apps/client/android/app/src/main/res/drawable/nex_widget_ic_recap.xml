@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The brief's own glyph: a page with a sparkle coming through its corner.
+
+  The same drawing as `NexSummariseIcon` in packages/ui, path for path, so
+  the thing the app calls a summary and the thing the home screen calls a
+  summary are visibly one thing. The page stops short at the bottom right
+  rather than being drawn whole — the sparkle occupies that corner, and an
+  outline running behind it crosses its strokes twice at this size.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- The page, with its folded corner. -->
+    <path
+        android:strokeColor="@color/nex_widget_accent"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M12.6,2.6 L5.4,2.6 Q4.2,2.6 4.2,3.8 L4.2,17.8 Q4.2,19 5.4,19 L10.4,19 M15.8,6.2 L15.8,11.2 M12.6,2.6 L15.8,5.8 M12.6,2.6 L12.6,5.8 L15.8,5.8" />
+    <!-- Three lines of writing, the last one short: a paragraph, not a form. -->
+    <path
+        android:strokeColor="@color/nex_widget_accent"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:pathData="M7,8.6 L13.2,8.6 M7,11.4 L13.2,11.4 M7,14.2 L10.6,14.2" />
+    <!-- The glint. Four points with the sides pulled in at the waist, which
+         is what keeps it from reading as a diamond. -->
+    <path
+        android:strokeColor="@color/nex_widget_accent"
+        android:strokeWidth="1.7"
+        android:strokeLineJoin="round"
+        android:pathData="M16.6,11.2 Q17.744,15.256 21.8,16.4 Q17.744,17.544 16.6,21.6 Q15.456,17.544 11.4,16.4 Q15.456,15.256 16.6,11.2 Z" />
+    <path
+        android:strokeColor="@color/nex_widget_accent"
+        android:strokeWidth="1.7"
+        android:strokeLineJoin="round"
+        android:pathData="M21,8 Q21.572,10.028 23.6,10.6 Q21.572,11.172 21,13.2 Q20.428,11.172 18.4,10.6 Q20.428,10.028 21,8 Z" />
+</vector>

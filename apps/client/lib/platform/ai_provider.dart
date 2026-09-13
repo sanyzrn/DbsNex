@@ -285,6 +285,7 @@ class AiChatOptions {
     this.responseStyle = AiResponseStyle.natural,
     this.userName = '',
     this.userIntroduction = '',
+    this.now,
   });
 
   final AiCreativity creativity;
@@ -310,6 +311,17 @@ class AiChatOptions {
   /// "Ask" is the whole word: nothing it returns is applied without the user
   /// pressing a button. See [assistantActionPrompt].
   final bool canAct;
+
+  /// What time it is where the user is.
+  ///
+  /// Load-bearing only once the assistant could set a reminder, and then
+  /// completely: "remind me Friday at nine" cannot be turned into a date by
+  /// something that does not know what day it is today. A model with no
+  /// clock either refuses, or — the failure this exists to prevent — picks a
+  /// date out of its training data and sets an alarm for a day in the past.
+  ///
+  /// Injectable so the prompt is testable. Null means now.
+  final DateTime? now;
 
   /// The user's own standing instruction, in their words — "answer with a bit
   /// of humour", "always in Persian", "keep it to three lines".
@@ -786,6 +798,22 @@ class CloudAIAdapter implements AIAdapter {
     return _summarize(text);
   }
 
+  /// One sentence about a piece of text that is not (yet) a note.
+  ///
+  /// The bookmark path has a page's title and excerpt in hand and wants the
+  /// same one-line summary [summarize] gives a note. It used to call
+  /// [digest] for it, which was always a slight misfit and became a plain
+  /// bug when the brief became a list: a saved link would have come back
+  /// described as an emoji-led reminder of something waiting on you.
+  ///
+  /// Null rather than an empty [Summary], because the one caller's question
+  /// is "is there a sentence to store".
+  Future<String?> summarizeText(String text) async {
+    if (!canAnswerText || text.trim().isEmpty) return null;
+    final summary = await _summarize(text);
+    return summary.text.isEmpty ? null : summary.text;
+  }
+
   Future<Summary> _summarize(String text) async {
     final reply = await _complete(
       'Summarise the note in one sentence, shorter than the original. '
@@ -795,24 +823,6 @@ class CloudAIAdapter implements AIAdapter {
     );
     return Summary(text: reply?.trim() ?? '');
   }
-
-  /// How much the recap may say, given how much there is to say about.
-  ///
-  /// A fixed budget was the wrong shape in both directions. Thirty words is
-  /// too little for a library with a fortnight of notes and two things due,
-  /// and it is too much on a Tuesday when someone has written one line — a
-  /// card that fills the same four lines every single morning is a card
-  /// people stop reading, and padding a quiet day into four lines is exactly
-  /// the corporate filler the prompt spends a sentence forbidding.
-  ///
-  /// So the ceiling follows the material. These are ceilings, not targets:
-  /// the prompt says "at most", and a good recap of two notes is one clause.
-  static int recapWords(int noteCount) => switch (noteCount) {
-    <= 2 => 25,
-    <= 6 => 45,
-    <= 12 => 65,
-    _ => 85,
-  };
 
   /// The recap the timeline shows when the app is opened.
   ///
@@ -835,18 +845,26 @@ class CloudAIAdapter implements AIAdapter {
   /// A wrong joke about your notes is a bad line. A wrong claim that
   /// something is due tomorrow is a missed appointment.
   ///
-  /// [words] is stated in the prompt *and* enforced on the way out by
-  /// [_clamped]: models treat "at most" as a suggestion.
+  /// Its *shape* changed with it. It is a short list now, not a paragraph:
+  /// one thing per line, each led by an emoji, overdue first. Somebody
+  /// opening a notes app in the morning is checking whether anything needs
+  /// them, and prose makes them read the whole thing to find out.
+  ///
+  /// [lines] is stated in the prompt *and* enforced on the way out by
+  /// [nexTidyBrief], because models treat "at most" as a suggestion and
+  /// reach for a bullet or a heading the moment they are asked for a list.
+  /// Asking every model this app talks to — the small ones on the phone
+  /// included — to behave every time is a wish; the tidier is arithmetic.
   Future<String?> digest(
     String recentNotesText, {
-    int words = 30,
+    int lines = 3,
     Duration? timeout,
   }) async {
     if (!canAnswerText || recentNotesText.trim().isEmpty) return null;
     final reply = await _complete(
-      'You write the short recap a notes app shows someone when they open '
-      'it. Its job is to put them back in touch with their own notes: what '
-      'is due, what is unfinished, what they were in the middle of. '
+      'You are the assistant in a notes app, telling someone what is waiting '
+      'on them. Not a summary of their week — a short list of the things '
+      'they would want to be reminded of, in the order they matter. '
       // The shape is described rather than left to be inferred: these lines
       // are abbreviated to save tokens, and an abbreviation a model has to
       // guess at is one it will eventually guess wrong.
@@ -855,25 +873,36 @@ class CloudAIAdapter implements AIAdapter {
       '2d" — and those lines come first; the rest are newest first. On a '
       'checklist, "3/5 left" means three of its five items are still '
       'unticked. '
-      'Lead with anything due or overdue, then anything unfinished, then '
-      'what they have been writing about. Name the real things, not the '
-      'categories they belong to — "the cooler and the plane tickets", not '
-      '"errands and travel plans". At most $words words, in whole sentences. '
-      'The tone is a friend who has read your notes and is telling you what '
+      'Answer with at most $lines lines. One thing per line, each beginning '
+      'with a single emoji that fits it, then a short sentence. Overdue '
+      'first, then what is due soon, then what is unfinished, then anything '
+      'worth being reminded of. Say what to do where there is something to '
+      'do: "Call the plumber — overdue by two days", not "you have an '
+      'overdue reminder". Name the real things, not the categories they '
+      'belong to — "the cooler and the plane tickets", not "errands and '
+      'travel plans". '
+      'Fewer lines when there is less: if only one thing is waiting, answer '
+      'with one line. Never pad to the limit. '
+      'The tone is somebody who has read your notes and is telling you what '
       'is in them: dry, warm, plain. Never motivational, never corporate, '
-      'never flattering, no advice, no questions. Never state anything that '
-      'is not in the lines you were given — no invented dates, times or '
-      'tasks. No preamble, no heading, no bullet points, no quotes, no '
-      'emoji. Write in one language only. '
-      'Reply with the recap only. ${outputLanguage.promptRule}',
+      'never flattering, no advice they did not write down themselves, no '
+      'questions. Never state anything that is not in the lines you were '
+      'given — no invented dates, times or tasks. '
+      'No preamble, no heading, no bullet or number in front of a line, no '
+      'quotes, no markdown. One emoji per line and never more. Write in one '
+      'language only. '
+      'Reply with the lines only. ${outputLanguage.promptRule}',
       recentNotesText,
       // Room for the whole budget and then some, because a reply cut off by
-      // the token ceiling ends mid-word and [_clamped] cannot tell that from
+      // the token ceiling ends mid-word and the tidier cannot tell that from
       // a model that simply stopped.
-      maxTokens: (words * 8).clamp(200, 800),
+      maxTokens: (lines * 60).clamp(200, 800),
       timeout: timeout,
     );
-    return _plausible(_clamped(reply, words), shortLine: false);
+    // Line-aware, unlike the word clamp this replaced: that one collapsed
+    // every run of whitespace in the reply, newlines included, which turned
+    // a list back into the paragraph it was asked not to be.
+    return _plausible(nexTidyBrief(reply, maxLines: lines), shortLine: false);
   }
 
   /// The one-line headline over the timeline: a mood, not a summary.
@@ -1067,7 +1096,18 @@ class CloudAIAdapter implements AIAdapter {
         'stop there.',
       );
     }
-    if (options.canAct) parts.add(assistantActionPrompt);
+    if (options.canAct) {
+      parts.add(assistantActionPrompt);
+      // Right after the protocol, because it is what makes one line of it
+      // usable: `remind` asks for a concrete local date, and a model with no
+      // clock cannot turn "Friday" into one. ISO with a weekday, because the
+      // weekday is half of what people say and deriving it from the date is
+      // arithmetic no model should have to be right about.
+      parts.add(
+        'It is now ${_nowLine(options.now ?? DateTime.now())}. Every date '
+        'you send must be worked out from this, and must be in the future.',
+      );
+    }
     parts.add(outputLanguage.promptRule);
     if (options.notesContext.trim().isNotEmpty) {
       parts.add(
@@ -1078,6 +1118,28 @@ class CloudAIAdapter implements AIAdapter {
       parts.add('The user has no notes yet.');
     }
     return parts.join('\n\n');
+  }
+
+  /// The clock line, as `2026-03-12T14:05, a Thursday`.
+  ///
+  /// Local, never UTC: every reminder in this app is set in the time the
+  /// person is standing in, and a prompt that said 11:05Z would have the
+  /// model doing zone arithmetic it has no way to get right.
+  static String _nowLine(DateTime now) {
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    String two(int value) => value.toString().padLeft(2, '0');
+    final date =
+        '${now.year}-${two(now.month)}-${two(now.day)}'
+        'T${two(now.hour)}:${two(now.minute)}';
+    return '$date, a ${days[now.weekday - 1]}';
   }
 
   Future<String?> chat(

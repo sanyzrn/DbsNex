@@ -20,14 +20,30 @@ import 'nex_services.dart';
 /// screen exists — in which case it waits for [OsCaptureBridge.takeRequest].
 /// The reminder launch path has this exact shape already.
 class PendingOsRequest {
-  const PendingOsRequest.capture() : noteId = null;
+  const PendingOsRequest.capture() : noteId = null, isRecapRefresh = false;
 
-  const PendingOsRequest.openNote(String this.noteId);
+  const PendingOsRequest.openNote(String this.noteId)
+    : isRecapRefresh = false;
+
+  /// The Recap widget's refresh button, which is a request to open the app.
+  ///
+  /// It cannot be anything else. Writing a new brief means asking a model,
+  /// and a widget provider is a broadcast receiver with no Flutter engine
+  /// behind it and about ten seconds to live — there is nothing in that
+  /// process that could produce a sentence. So the button does the honest
+  /// version of what it looks like it does: it opens Nex, the timeline
+  /// re-asks the way its own refresh button does, and the new brief lands on
+  /// the home screen through the snapshot a moment later.
+  const PendingOsRequest.refreshRecap()
+    : noteId = null,
+      isRecapRefresh = true;
 
   /// The note to open, or null for "open text capture".
   final String? noteId;
 
-  bool get isCapture => noteId == null;
+  final bool isRecapRefresh;
+
+  bool get isCapture => noteId == null && !isRecapRefresh;
 }
 
 /// What was refused, and how big it was.
@@ -105,6 +121,9 @@ class OsCaptureBridge {
   /// Called when a Timeline widget row asks to open the note it shows.
   void Function(String noteId)? onOpenNoteRequested;
 
+  /// Called when the Recap widget's refresh button asks for a new brief.
+  void Function()? onRecapRefreshRequested;
+
   PendingOsRequest? _request;
 
   /// The request that arrived before anything was listening, once.
@@ -123,7 +142,10 @@ class OsCaptureBridge {
   void _dispatch(PendingOsRequest request) {
     final open = onOpenNoteRequested;
     final capture = onCaptureRequested;
-    if (request.isCapture) {
+    final recap = onRecapRefreshRequested;
+    if (request.isRecapRefresh) {
+      if (recap != null) return recap();
+    } else if (request.isCapture) {
       if (capture != null) return capture();
     } else if (open != null) {
       return open(request.noteId!);
@@ -256,6 +278,9 @@ class OsCaptureBridge {
         final id = (payload['id'] as String?)?.trim() ?? '';
         if (id.isEmpty) return;
         _dispatch(PendingOsRequest.openNote(id));
+        return;
+      case 'refresh_recap':
+        _dispatch(const PendingOsRequest.refreshRecap());
         return;
       case 'shared_text':
         final text = (payload['text'] as String?)?.trim() ?? '';
