@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.10.0
+
 - **The daily digest reads like an assistant now.** It was a paragraph about
   your week. It is a short list of the things actually waiting on you —
   overdue first, then what is due soon, then what is unfinished — one line
