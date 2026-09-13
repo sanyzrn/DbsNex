@@ -148,6 +148,16 @@ class AssistantAction {
   /// invent. Resolved against the real list when the action runs.
   final String? tagName;
 
+  /// How often a [AssistantActionKind.commitment] comes round, and the count
+  /// that goes with it — "every 8 hours" is [NexCadence.hours] and 8.
+  final NexCadence? cadence;
+  final int? every;
+
+  /// Which standing obligation an action is about, by the name it is stored
+  /// under. Like [tagName] and for the same reason: names are all the model
+  /// is ever shown, and an id it had to invent is an id it would invent.
+  final String? commitmentName;
+
   /// Whether this changes anything. A search does not, so it is carried out
   /// as soon as it arrives; everything else waits for the user.
   bool get isRead => kind == AssistantActionKind.search;
