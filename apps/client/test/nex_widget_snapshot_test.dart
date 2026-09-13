@@ -107,6 +107,50 @@ void main() {
       // reader could dig out, because nothing was written in.
     });
 
+    test('a locked library carries no brief either', () {
+      // A brief is made of what the notes say, so it is note content wearing
+      // a different shape. The Recap widget would otherwise sit on a locked
+      // phone's home screen reading out what is overdue.
+      final snapshot = NexWidgetSnapshot.build(
+        appLock: true,
+        now: now,
+        recap: '⏰ Call the plumber, overdue by two days.',
+        notes: const [],
+      );
+
+      expect(snapshot.recap, isEmpty);
+      expect(snapshot.toJson()['recap'], '');
+    });
+
+    test('the brief survives as the lines it was written in', () {
+      // The whole point of the rewrite: the recap is a list now, and a
+      // snapshot that collapsed it would hand the widget back the paragraph
+      // it stopped being.
+      const brief = '⏰ Call the plumber, overdue by two days.\n'
+          '📋 Shopping: bread and milk still on the list.';
+      final snapshot = NexWidgetSnapshot.build(
+        appLock: false,
+        now: now,
+        recap: '  $brief  ',
+        notes: const [],
+      );
+
+      expect(snapshot.recap, brief);
+    });
+
+    test('no brief is an empty string, not a missing field', () {
+      // The Android reader asks for "recap" with a default; a null here
+      // would be a JSON null it would have to guess about.
+      final snapshot = NexWidgetSnapshot.build(
+        appLock: false,
+        now: now,
+        notes: const [],
+      );
+
+      expect(snapshot.recap, '');
+      expect(snapshot.toJson()['recap'], '');
+    });
+
     test('an empty library still produces a usable snapshot', () {
       final snapshot = NexWidgetSnapshot.build(appLock: false, now: now, notes: const []);
 
@@ -122,8 +166,14 @@ void main() {
       );
 
       final json = snapshot.toJson();
+      // Version 2, which is the version that added the brief. The Android
+      // reader accepts 1 and 2 and refuses anything above; a bump here that
+      // the Kotlin side has not been told about is a widget that goes blank
+      // on every phone the moment it updates.
+      expect(json['version'], 2);
       expect(json['version'], NexWidgetSnapshot.version);
       expect(json['appLock'], isFalse);
+      expect(json.containsKey('recap'), isTrue);
       final notes = (json['notes'] as List).single as Map<String, Object?>;
       // The row's display text is the checklist's items on one line — what
       // the card shows — never the raw markdown.

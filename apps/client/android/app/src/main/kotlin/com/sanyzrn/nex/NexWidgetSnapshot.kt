@@ -33,6 +33,8 @@ data class NexWidgetSnapshot(
     val appLock: Boolean,
     val generatedAt: Long,
     val notes: List<NexWidgetNote>,
+    /** The assistant's brief, as lines. Empty when there is none. */
+    val recap: String,
 ) {
     data class NexWidgetNote(
         val id: String,
@@ -42,8 +44,18 @@ data class NexWidgetSnapshot(
     )
 
     companion object {
-        /** Bumped only when the field set changes in a way the reader must notice. */
-        const val SCHEMA_VERSION = 1
+        /**
+         * Bumped when the field set changes. The reader accepts this and
+         * everything before it.
+         *
+         * Version 2 added [recap]. Reading version 1 has to keep working, and
+         * the reason is a window of a few seconds rather than a hypothetical:
+         * the file on disk during an upgrade is whatever the *old* app wrote,
+         * and the launcher can draw a widget from it before the new app has
+         * ever run. Refusing it would mean "Can't load widget" on every phone
+         * that updated Nex, until the app was next opened.
+         */
+        const val SCHEMA_VERSION = 2
 
         /** The snapshot file, or null when there is nothing to show yet. */
         fun read(context: Context): NexWidgetSnapshot? {
@@ -61,7 +73,11 @@ data class NexWidgetSnapshot(
         internal fun parse(json: String): NexWidgetSnapshot? {
             return try {
                 val root = JSONObject(json)
-                if (root.optInt("version") != SCHEMA_VERSION) return null
+                val version = root.optInt("version")
+                // A newer file than this build understands is not readable;
+                // an older one is, field by field, with the fields it does
+                // not have taking their defaults.
+                if (version < 1 || version > SCHEMA_VERSION) return null
                 val appLock = root.optBoolean("appLock", false)
                 val generatedAt = root.optLong("generatedAt", 0L)
                 val rawNotes = root.optJSONArray("notes") ?: JSONArray()
@@ -80,7 +96,10 @@ data class NexWidgetSnapshot(
                         )
                     }
                 }
-                NexWidgetSnapshot(appLock, generatedAt, notes)
+                // Never carried while the lock is closed, the same rule the
+                // notes follow: a brief is made of what the notes say.
+                val recap = if (appLock) "" else root.optString("recap", "")
+                NexWidgetSnapshot(appLock, generatedAt, notes, recap)
             } catch (_: Exception) {
                 null
             }

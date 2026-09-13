@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Recap widget: the assistant's brief and nothing else.
+
+  A second widget rather than a panel on the Timeline one, because they
+  answer different questions. The Timeline widget says what you wrote; this
+  says what is waiting on you — a few emoji-led lines, the same text the
+  recap card at the top of the timeline is showing. Somebody who wants one
+  does not necessarily want the other, and a home screen is where that
+  choice belongs.
+
+  Header — the brief's glyph, its title, and the refresh button at the far
+  end. Below it one of three bodies the provider swaps between: the brief,
+  the locked notice, or the prompt to go and make one. The header stays in
+  all three, because the refresh button is exactly what somebody with no
+  brief yet needs to reach.
+
+  The brief's own TextView carries no maxLines. The widget is resizable and
+  the launcher decides how tall it is; letting the text run and be clipped
+  by the box is the behaviour that makes a taller widget show more, which is
+  what resizing one is for. `ellipsize` is deliberately absent for the same
+  reason — an ellipsis would need a line count to sit at the end of.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/nex_recap_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layoutDirection="locale"
+    android:orientation="vertical"
+    android:background="@drawable/nex_widget_bg_card">
+
+    <LinearLayout
+        android:id="@+id/nex_recap_header"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingEnd="8dp">
+
+        <ImageView
+            android:id="@+id/nex_recap_glyph"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/nex_widget_ic_recap" />
+
+        <!--
+          Weighted, not pushed by a spacer: android.widget.Space is not
+          @RemoteView and a layout using one never inflates at all. See the
+          long note in widget_timeline.xml, and the CI guard that now fails
+          the build instead of letting it reach a home screen.
+        -->
+        <TextView
+            android:id="@+id/nex_recap_title"
+            style="@style/NexWidget.Title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:ellipsize="end" />
+
+        <FrameLayout
+            android:id="@+id/nex_recap_refresh"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="@drawable/nex_widget_bg_badge">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/nex_widget_ic_refresh" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/nex_recap_body"
+        style="@style/NexWidget.Recap"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="12dp" />
+
+    <LinearLayout
+        android:id="@+id/nex_recap_locked"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/nex_widget_ic_lock" />
+
+        <TextView
+            android:id="@+id/nex_recap_locked_text"
+            style="@style/NexWidget.Message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/nex_recap_empty"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/nex_recap_empty_title"
+            style="@style/NexWidget.EmptyTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/nex_recap_empty_hint"
+            style="@style/NexWidget.Message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center" />
+    </LinearLayout>
+</LinearLayout>

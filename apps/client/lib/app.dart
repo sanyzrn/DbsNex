@@ -562,6 +562,10 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
               preferences: prefs,
               osCapture: widget.osCapture,
               updates: _updates,
+              // So a freshly written recap reaches the home screen. Notes
+              // get there on their own — the bridge watches the timeline
+              // stream — but the recap is filed without notifying anyone.
+              widgets: widget.widgets,
               // The gate lives here, so closing it does too. The timeline
               // only has to offer the button.
               onLock: _lock,

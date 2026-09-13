@@ -319,6 +319,12 @@ open class MainActivity : FlutterFragmentActivity() {
             }
             return
         }
+        // The Recap widget's refresh button. No payload: it is a request, not
+        // data. The timeline answers it by forcing its own recap refresh,
+        // which is the only place in the app that can ask a model anything.
+        if (intent?.action == ACTION_REFRESH_RECAP) {
+            return enqueue(mapOf("type" to "refresh_recap"), live)
+        }
         if (intent?.action != Intent.ACTION_SEND) return
         val stream = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
         if (stream == null) {
@@ -627,5 +633,8 @@ open class MainActivity : FlutterFragmentActivity() {
         /** Sent by a Timeline widget row; carries [EXTRA_NOTE_ID]. */
         const val ACTION_OPEN_NOTE = "com.sanyzrn.nex.OPEN_NOTE"
         const val EXTRA_NOTE_ID = "note_id"
+
+        /** Sent by the Recap widget's refresh button; carries nothing. */
+        const val ACTION_REFRESH_RECAP = "com.sanyzrn.nex.REFRESH_RECAP"
     }
 }

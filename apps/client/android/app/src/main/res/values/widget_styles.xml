@@ -46,6 +46,20 @@
         <item name="android:textColor">@color/nex_widget_text_dim</item>
     </style>
 
+    <!--
+        The brief itself. A step up from the row preview because it is the
+        only thing on that widget — there is no list for it to be one line
+        of — and generously leaded, because emoji-led lines with no leading
+        run together into a paragraph, which is the shape the brief was
+        rewritten to stop being.
+    -->
+    <style name="NexWidget.Recap" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/nex_widget_text</item>
+        <item name="android:lineSpacingMultiplier">1.45</item>
+    </style>
+
     <style name="NexWidget.Message" parent="">
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:textSize">14sp</item>

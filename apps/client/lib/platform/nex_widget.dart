@@ -52,12 +52,16 @@ class NexWidgetSnapshot {
     required this.appLock,
     required this.generatedAt,
     required this.notes,
+    this.recap = '',
   });
 
   /// Bumped only when the field set changes in a way the Android reader must
-  /// notice. An unknown version is treated as no snapshot at all: the widget
-  /// falls back to its empty state rather than rendering half a schema.
-  static const int version = 1;
+  /// notice. A *newer* version than a reader understands is treated as no
+  /// snapshot at all: the widget falls back to its empty state rather than
+  /// rendering half a schema. An older one is read field by field.
+  ///
+  /// Version 2 added [recap].
+  static const int version = 2;
 
   /// The longest preview one row carries. The widget's row shows two lines at
   /// 14sp — roughly ninety glyphs each — so 200 keeps both full lines plus
@@ -118,6 +122,21 @@ class NexWidgetSnapshot {
   final DateTime generatedAt;
   final List<NexWidgetNotePreview> notes;
 
+  /// The assistant's brief, as the lines it was written in, or empty when
+  /// there is none to show.
+  ///
+  /// A copy of what the timeline's recap card is showing, not a second
+  /// generation of it. Nothing on the home screen can ask a model anything:
+  /// a widget provider is a broadcast receiver with about ten seconds to
+  /// live and no Flutter engine behind it, so the only brief it can render
+  /// is one the app has already written down. That is why the Recap widget's
+  /// refresh button opens Nex instead of refreshing in place — see
+  /// [PendingOsRequest.refreshRecap].
+  ///
+  /// Hidden with the notes and by the same rule: a brief is made of what the
+  /// notes say, so a locked library must not leave one on the home screen.
+  final String recap;
+
   /// The pure part of the job, so the rules below are testable without a
   /// device, a database or a platform channel.
   ///
@@ -174,11 +193,13 @@ class NexWidgetSnapshot {
   static NexWidgetSnapshot build({
     required bool appLock,
     required List<Note> notes,
+    String recap = '',
     DateTime? now,
   }) {
     if (appLock) {
       // No content leaves the app while the lock is on. Not an empty-looking
-      // widget with the data still inside — the file itself holds none.
+      // widget with the data still inside — the file itself holds none. The
+      // brief goes with them: it is made of what the notes say.
       return NexWidgetSnapshot(
         appLock: true,
         generatedAt: now ?? DateTime.now(),
@@ -188,6 +209,7 @@ class NexWidgetSnapshot {
     return NexWidgetSnapshot(
       appLock: false,
       generatedAt: now ?? DateTime.now(),
+      recap: recap.trim(),
       notes: [
         for (final note in notes.take(maxNotes))
           NexWidgetNotePreview(
@@ -211,6 +233,7 @@ class NexWidgetSnapshot {
     'version': version,
     'appLock': appLock,
     'generatedAt': generatedAt.millisecondsSinceEpoch,
+    'recap': recap,
     'notes': [for (final note in notes) note.toJson()],
   };
 }
@@ -319,8 +342,12 @@ class NexWidgetBridge {
 
   /// Writes now, for a change this bridge cannot see coming.
   ///
-  /// The lock closing and opening is the only such change: it is written
-  /// without notifying listeners, on purpose, so the gate says so directly.
+  /// Two of those, and both are preferences written deliberately without
+  /// notifying listeners — so the two writers say so directly instead:
+  ///
+  /// - the lock closing and opening, which the gate reports;
+  /// - a fresh recap, which the timeline reports once it has filed one.
+  ///
   /// Straight through rather than debounced — when the lock closes, notes
   /// have to leave the file, and 300ms of a locked library's notes still on
   /// disk is 300ms too many.
@@ -362,7 +389,13 @@ class NexWidgetBridge {
         types,
         tagIds: tagIds,
       );
-      final snapshot = NexWidgetSnapshot.build(appLock: lock, notes: notes);
+      final snapshot = NexWidgetSnapshot.build(
+        appLock: lock,
+        notes: notes,
+        // Whatever the recap card is showing. Written, not generated: see
+        // [NexWidgetSnapshot.recap].
+        recap: preferences.aiDaySummaryText ?? '',
+      );
       _lastWrittenLock = lock;
       _lastWrittenFilter = _filterSignature;
       // Atomic swap. The reader runs whenever the launcher pleases; a

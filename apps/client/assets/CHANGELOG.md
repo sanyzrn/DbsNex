@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+- **The daily digest reads like an assistant now.** It was a paragraph about
+  your week. It is a short list of the things actually waiting on you —
+  overdue first, then what is due soon, then what is unfinished — one line
+  each, and no longer than it needs to be. A quiet day gets one line, not
+  four padded ones.
+
+- **A new home-screen widget for the digest alone.** Just the brief and a
+  refresh button, in whatever size you resize it to. Tapping refresh opens Nex
+  and writes a new one: making a digest means asking the model, and a widget
+  has nothing to ask with. Nothing shows there while the app lock is closed.
+
 ## v1.9.0
 
 - **The note editor is a proper editor.** It was a dialog with three lines in

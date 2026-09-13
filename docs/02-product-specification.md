@@ -167,6 +167,8 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-8.1 A home-screen widget (Android) opens directly into text capture, bypassing the need to open the app first.
 - FR-8.2 An Android share-intent target accepts text, links, or photos shared from other apps directly into Nex as a new capture, with the same zero-mandatory-fields, auto-save behavior as in-app capture (FR-1.6–1.7).
 - FR-8.3 These surfaces are held to the same performance and zero-decision principles as in-app Quick Capture — see [ADR-027](./10-decisions.md#adr-027--os-level-capture-surfaces-home-screen-widget-share-intent-added-to-v1x-scope).
+- FR-8.4 A second widget shows the top of the timeline, and a third shows the assistant's daily brief on its own. Both read a snapshot file the app writes; neither ever opens the library database, and neither carries any note content — brief included — while the app lock is closed.
+- FR-8.5 The brief widget's refresh button opens Nex and asks the timeline for a new brief. It cannot do otherwise: writing one is a model call, and a widget has no engine to make it with. The button says so in its accessibility label rather than appearing to work in place.
 
 ---
 

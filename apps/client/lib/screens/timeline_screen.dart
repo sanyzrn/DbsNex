@@ -17,6 +17,7 @@ import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import 'update_sheet.dart';
 import '../platform/nex_services.dart';
+import '../platform/nex_widget.dart';
 import '../platform/sponsor.dart';
 import '../platform/route_observer.dart';
 import '../platform/note_search.dart';
@@ -55,10 +56,19 @@ class TimelineScreen extends StatefulWidget {
     this.osCapture,
     this.updates,
     this.onLock,
+    this.widgets,
   });
   final NexServices services;
   final NexPreferences preferences;
   final OsCaptureBridge? osCapture;
+
+  /// Feeds the home-screen widgets, so a fresh recap reaches them.
+  ///
+  /// Null in tests and on any platform with no widgets. The bridge watches
+  /// the timeline stream by itself and needs no help with notes; the recap
+  /// is the one thing it cannot see coming, because it is filed without
+  /// notifying listeners on purpose — see [NexWidgetBridge.refresh].
+  final NexWidgetBridge? widgets;
 
   /// Null in tests that do not care about updates.
   final UpdateService? updates;
@@ -300,10 +310,13 @@ class TimelineScreenState extends State<TimelineScreen>
     // bridge until there is something here to answer it.
     widget.osCapture?.onCaptureRequested = _openCaptureFromOs;
     widget.osCapture?.onOpenNoteRequested = _openNoteFromOs;
+    widget.osCapture?.onRecapRefreshRequested = _refreshRecapFromOs;
     final requested = widget.osCapture?.takeRequest();
     if (requested != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (requested.isCapture) {
+        if (requested.isRecapRefresh) {
+          _refreshRecapFromOs();
+        } else if (requested.isCapture) {
           _openCaptureFromOs();
         } else {
           _openNoteFromOs(requested.noteId!);
@@ -475,12 +488,10 @@ class TimelineScreenState extends State<TimelineScreen>
     try {
       text = await adapter.digest(
         source,
-        // Counted off the source rather than off the library: what the recap
+        // Counted off the source rather than off the library: what the brief
         // is allowed to say follows what it was actually given, and the
         // source caps how many notes that is.
-        words: CloudAIAdapter.recapWords(
-          '\n'.allMatches(source).length + 1,
-        ),
+        lines: nexBriefLines('\n'.allMatches(source).length + 1),
         // A tap gets the full budget; the one that runs itself on launch does
         // not. On a network that is joined but not connected, ninety seconds
         // of spinner at the top of the timeline is what "the app loads slowly"
@@ -520,12 +531,19 @@ class TimelineScreenState extends State<TimelineScreen>
     }
     if (text != null && text.isNotEmpty) {
       unawaited(
-        prefs.setAiDaySummary(
-          text: text,
-          dateKey: today,
-          at: DateTime.now(),
-          source: fingerprint,
-        ),
+        prefs
+            .setAiDaySummary(
+              text: text,
+              dateKey: today,
+              at: DateTime.now(),
+              source: fingerprint,
+            )
+            // After it is on file, not before: the bridge reads the
+            // preference rather than being handed the string, so pushing
+            // first would write the snapshot from the old brief. This is the
+            // whole of how a new recap reaches the home screen — the recap
+            // is filed without notifying listeners, so nothing else would.
+            .then((_) => widget.widgets?.refresh()),
       );
     }
     _refreshDailyNudge();
@@ -1352,7 +1370,7 @@ class TimelineScreenState extends State<TimelineScreen>
     if (source.trim().isEmpty) return;
     final adapter = _aiAdapter();
     try {
-      final summary = await adapter.digest(source);
+      final summary = await adapter.summarizeText(source);
       if (summary != null && summary.isNotEmpty) {
         await widget.services.summarizeInto(noteId, summary);
         if (mounted) await widget.services.refreshTimeline();
@@ -2444,6 +2462,21 @@ class TimelineScreenState extends State<TimelineScreen>
   void _openNoteFromOs(String noteId) {
     if (!mounted) return;
     unawaited(_openNoteById(noteId));
+  }
+
+  /// The Recap widget's refresh button, landing where it was always going to
+  /// land: this screen's own refresh, forced past the cache exactly as the
+  /// recap card's button forces it.
+  ///
+  /// The app comes to the front to do it, and that is the feature rather
+  /// than a compromise. A brief is a model call, the home screen has no
+  /// engine to make one with, and a button that silently opened an app would
+  /// be worse than one that visibly does — so the tap lands on the timeline,
+  /// the card spins where the reader can see it, and the new brief reaches
+  /// the widget through the snapshot a moment later.
+  void _refreshRecapFromOs() {
+    if (!mounted) return;
+    unawaited(_loadAiSummary(force: true));
   }
 
   /// One note by id, the way a card tap opens it.

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Recap widget.
+
+  Three cells wide by two tall on placement — the header plus three or four
+  lines, which is the whole of what a brief is allowed to be — and resizable
+  from there. The body is one TextView with no line cap, so a taller box
+  simply shows more of a long brief and a shorter one clips it; that is
+  what makes resizing worth offering at all.
+
+  The maxima are dp because the manifest has no other unit for them, and a
+  launcher cell is 70dp minus a 30dp gutter: five wide is 320dp, four tall
+  is 250dp. Four rather than the Timeline widget's six, because there is a
+  fixed amount of text here and a box taller than it is empty space.
+
+  updatePeriodMillis is 0, the same as the other two and for the same
+  reason: nothing here goes stale on a clock. A brief changes when the app
+  writes a new one, and the app pushes it out the moment it does.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:maxResizeWidth="320dp"
+    android:maxResizeHeight="250dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_recap"
+    android:previewImage="@drawable/nex_widget_preview_recap"
+    android:previewLayout="@layout/widget_recap"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_recap_description" />
