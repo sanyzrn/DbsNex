@@ -166,6 +166,84 @@ void main() {
     });
   });
 
+  group('NexWidgetSnapshot.filter by tag', () {
+    Note tagged(String id, List<Tag> tags) => Note(
+      id: id,
+      type: NoteType.text,
+      content: id,
+      tags: tags,
+      createdAt: now,
+      updatedAt: now,
+      deviceId: 'test',
+      rev: 1,
+      syncState: SyncState.pending,
+    );
+
+    final work = Tag(id: 't1', name: 'Work', createdAt: now);
+    final errands = Tag(id: 't2', name: 'Errands', createdAt: now);
+    final idle = Tag(id: 't3', name: 'Someday', createdAt: now);
+
+    final library = [
+      tagged('a', [work]),
+      tagged('b', [errands]),
+      tagged('c', [idle]),
+      tagged('d', [work, errands]),
+      tagged('e', const []),
+    ];
+
+    test('several tags mean any of them, not all of them', () {
+      // One tag was never how anybody files. Somebody keeping Work and
+      // Errands wants both on the home screen and neither of the other six,
+      // and a note only has to wear one of them to belong there.
+      expect(
+        NexWidgetSnapshot.filter(
+          library,
+          const {},
+          tagIds: const {'t1', 't2'},
+        ).map((n) => n.id),
+        ['a', 'b', 'd'],
+      );
+    });
+
+    test('no tags chosen is no tag filter', () {
+      expect(NexWidgetSnapshot.filter(library, const {}), library);
+    });
+
+    test('kinds and tags narrow together', () {
+      final mixed = [
+        ...library,
+        Note(
+          id: 'photo',
+          type: NoteType.photo,
+          caption: 'a receipt',
+          tags: [work],
+          createdAt: now,
+          updatedAt: now,
+          deviceId: 'test',
+          rev: 1,
+          syncState: SyncState.pending,
+        ),
+      ];
+
+      expect(
+        NexWidgetSnapshot.filter(
+          mixed,
+          const {'photo'},
+          tagIds: const {'t1'},
+        ).map((n) => n.id),
+        ['photo'],
+        reason: 'a photo, and tagged Work — both, not either',
+      );
+    });
+
+    test('a tag nothing wears gives an empty widget, not a crash', () {
+      expect(
+        NexWidgetSnapshot.filter(library, const {}, tagIds: const {'gone'}),
+        isEmpty,
+      );
+    });
+  });
+
   group('NexWidgetSnapshot.byRecency', () {
     test('lets the pins go, newest first', () {
       // The list arrives in the timeline's order — pinned first, whatever

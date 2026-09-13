@@ -214,9 +214,13 @@ class TimelineScreenState extends State<TimelineScreen>
   /// The tour itself, while it is running.
   OverlayEntry? _tour;
 
-  /// Requesting either string is a cold-launch thing, not a per-note-change
-  /// thing — without this latch, every capture re-firing [timelineStream]
-  /// would ask the provider again.
+  /// The headline is a cold-launch thing, not a per-note-change thing —
+  /// without this latch, every capture re-firing [timelineStream] would ask
+  /// the provider for a new greeting.
+  ///
+  /// The recap is no longer behind it: it has a cadence of its own now (see
+  /// [recapInterval]), and being asked on every delivery is how it notices
+  /// that the day has moved on.
   bool _aiSummaryRequested = false;
 
   /// The card that is not a note. Read from cache on the first frame so it
@@ -437,8 +441,8 @@ class TimelineScreenState extends State<TimelineScreen>
     outputLanguage: widget.preferences.aiOutputLanguage,
   );
 
-  /// Fetches (or restores) today's recap. Called once, the first time the
-  /// timeline stream delivers any notes — see [_aiSummaryRequested].
+  /// Fetches (or restores) the recap. Called on every timeline delivery; what
+  /// keeps that from being a provider call per keystroke is [_recapIsStale].
   ///
   /// Silently does nothing when AI is off or unconfigured: this panel is
   /// additive chrome, never a reason to show an error on the app's home
@@ -451,15 +455,20 @@ class TimelineScreenState extends State<TimelineScreen>
     final prefs = widget.preferences;
     if (!_aiHeaderAvailable) return;
     final today = _aiSummaryDateKey();
-    if (!force && prefs.aiDaySummaryDate == today) {
-      final cached = prefs.aiDaySummaryText;
-      if (mounted && cached != null && cached.isNotEmpty) {
-        setState(() => _aiSummaryText = cached);
-      }
-      return;
+    // Whatever is on file goes up first, stale or not. A recap from this
+    // morning is worth reading while a newer one is being written, and it is
+    // certainly worth more than an empty card.
+    final cached = prefs.aiDaySummaryText;
+    if (mounted &&
+        cached != null &&
+        cached.isNotEmpty &&
+        cached != _aiSummaryText) {
+      setState(() => _aiSummaryText = cached);
     }
     final source = _aiRecapSource();
     if (source.isEmpty) return;
+    final fingerprint = recapFingerprint(source);
+    if (!force && !_recapIsStale(fingerprint)) return;
     if (mounted) setState(() => _aiSummaryLoading = true);
     final adapter = _aiAdapter();
     String? text;
@@ -472,6 +481,11 @@ class TimelineScreenState extends State<TimelineScreen>
         words: CloudAIAdapter.recapWords(
           '\n'.allMatches(source).length + 1,
         ),
+        // A tap gets the full budget; the one that runs itself on launch does
+        // not. On a network that is joined but not connected, ninety seconds
+        // of spinner at the top of the timeline is what "the app loads slowly"
+        // turns out to mean.
+        timeout: force ? null : CloudAIAdapter.ambientTimeout,
       );
     } catch (_) {
       text = null;
@@ -505,7 +519,14 @@ class TimelineScreenState extends State<TimelineScreen>
       );
     }
     if (text != null && text.isNotEmpty) {
-      unawaited(prefs.setAiDaySummary(text: text, dateKey: today));
+      unawaited(
+        prefs.setAiDaySummary(
+          text: text,
+          dateKey: today,
+          at: DateTime.now(),
+          source: fingerprint,
+        ),
+      );
     }
     _refreshDailyNudge();
   }
@@ -555,7 +576,12 @@ class TimelineScreenState extends State<TimelineScreen>
       // Unlike the recap, an empty library is not a reason to skip this: the
       // line is a mood, and "you have not written anything yet" is a mood the
       // prompt handles on its own.
-      text = await adapter.headline(_aiHeadlineSource(), language: language);
+      text = await adapter.headline(
+        _aiHeadlineSource(),
+        language: language,
+        // Same rule as the recap: a tap waits, a launch does not.
+        timeout: force ? null : CloudAIAdapter.ambientTimeout,
+      );
     } catch (_) {
       text = null;
     } finally {
@@ -618,6 +644,69 @@ class TimelineScreenState extends State<TimelineScreen>
 
   String _aiSummaryDateKey() =>
       NexPreferences.daySummaryDateKey(DateTime.now());
+
+  /// How often the recap may be regenerated.
+  ///
+  /// It used to be once a calendar day, which meant a recap written at nine
+  /// in the morning still described nine in the morning at bedtime. An hour
+  /// is the other end of what is reasonable: it is a cadence somebody can
+  /// predict, and it is nowhere near often enough to be felt in a battery or
+  /// a bill.
+  ///
+  /// The interval is a floor, not a schedule. Nothing is asked for unless the
+  /// notes being summarised have actually changed, so an app left open all
+  /// afternoon with nothing written into it makes no requests at all.
+  static const recapInterval = Duration(hours: 1);
+
+  bool _recapIsStale(String fingerprint) => recapNeedsRefresh(
+    at: widget.preferences.aiDaySummaryAt,
+    text: widget.preferences.aiDaySummaryText,
+    storedSource: widget.preferences.aiDaySummarySource,
+    fingerprint: fingerprint,
+    now: DateTime.now(),
+  );
+
+  /// Whether the recap on file has stopped describing the notes it was made
+  /// from, long enough ago to be worth asking again.
+  ///
+  /// Both halves matter and they are not interchangeable. Time alone would
+  /// spend a provider call every hour on a library nobody has touched; change
+  /// alone would spend one on every line typed into a long note. Asked for
+  /// only when both are true, an app open all afternoon with nothing written
+  /// into it makes no requests, and one being written into all afternoon
+  /// makes one an hour.
+  ///
+  /// Static and given everything it needs, because it is the rule rather than
+  /// a helper — a rule worth reading on its own and testing without a screen.
+  static bool recapNeedsRefresh({
+    required DateTime? at,
+    required String? text,
+    required String? storedSource,
+    required String fingerprint,
+    required DateTime now,
+  }) {
+    // Nothing on file, or nothing that says when — either way there is
+    // nothing to measure against.
+    if (at == null || text == null || text.isEmpty) return true;
+    if (storedSource == fingerprint) return false;
+    return !now.difference(at).isNegative &&
+        now.difference(at) >= recapInterval;
+  }
+
+  /// A stable fingerprint of what a recap was written from.
+  ///
+  /// FNV-1a rather than `hashCode`, which Dart does not promise to keep
+  /// stable between runs — and a fingerprint that changes when the process
+  /// restarts would ask the provider for a new recap on every cold launch,
+  /// which is the opposite of the point.
+  @visibleForTesting
+  static String recapFingerprint(String source) {
+    var hash = 0x811c9dc5;
+    for (final unit in source.codeUnits) {
+      hash = ((hash ^ unit) * 0x01000193) & 0xFFFFFFFF;
+    }
+    return '${source.length}:${hash.toRadixString(16)}';
+  }
 
   /// Re-arms the once-a-day notification with whatever Nex knows right now.
   ///
@@ -832,9 +921,16 @@ class TimelineScreenState extends State<TimelineScreen>
   /// So the trigger goes where the data does. Both paths call this, the flag
   /// makes it once, and whichever gets there first wins.
   void _requestAiHeader(List<Note> delivered) {
-    if (_aiSummaryRequested || delivered.isEmpty) return;
-    _aiSummaryRequested = true;
+    if (delivered.isEmpty) return;
+    // The recap is allowed to re-ask. Its own gate decides whether the notes
+    // have moved on and whether an hour has passed, so calling it on every
+    // delivery costs a hash and buys a recap that keeps up with the day.
     unawaited(_loadAiSummary());
+    // The headline is not. It is a mood for the day with a day key of its
+    // own, and re-rolling it on every capture would make the top of the
+    // screen restless.
+    if (_aiSummaryRequested) return;
+    _aiSummaryRequested = true;
     unawaited(_loadAiHeadline());
   }
 

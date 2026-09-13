@@ -71,6 +71,10 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   bool _locked = false;
   bool _unlocking = false;
 
+  /// Whether the app is the thing on screen. Drives [_windowShouldBeSecure],
+  /// which has to be on before Android takes the recents picture.
+  bool _foreground = true;
+
   /// Closes the lock while the app is in the background, for the "after a
   /// while" timing. Cancelled the moment the app comes back.
   Timer? _graceTimer;
@@ -123,6 +127,8 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // the app, so it is told at once rather than at the next refresh.
     unawaited(widget.widgets?.refresh());
     if (mounted) setState(() => _locked = true);
+    // The gate going up is one of the two things secrecy follows.
+    _applyWindowSecrecy();
   }
 
   /// Closes the lock while the app is away, rather than waiting to be asked
@@ -152,6 +158,11 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Before anything else, and on `inactive` rather than on `paused`: the
+    // recents picture is taken once the app is stopped, and the flag that
+    // blanks it has to be set before then, not while it is being taken.
+    _foreground = state == AppLifecycleState.resumed;
+    _applyWindowSecrecy();
     if ((state == AppLifecycleState.paused ||
             state == AppLifecycleState.hidden) &&
         widget.preferences.appLockEnabled &&
@@ -231,19 +242,34 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     setState(() {});
   }
 
-  /// Follows the app lock, on and off.
+  /// Withholds the window from the OS while there is something to withhold.
   ///
   /// The lock stops someone opening the app. On its own it does nothing about
   /// the copy of the timeline Android keeps for the recents screen — which is
-  /// a picture of the notes, taken before the lock gate was ever drawn, and
-  /// readable without unlocking anything. `FLAG_SECURE` is what blanks it, and
-  /// blocks screenshots while it is on.
+  /// a picture of the notes, taken outside the app, off a frame Dart never
+  /// draws, and readable without unlocking anything. `FLAG_SECURE` is the only
+  /// thing that blanks it.
   ///
-  /// Not always on: someone who never turned the lock on has not asked to lose
-  /// screenshots of their own notes. Turning it on is the point at which the
-  /// user has said these are private.
+  /// It used to simply follow the lock being switched on, which made the flag
+  /// permanent for anybody who uses one — and `FLAG_SECURE` also blocks
+  /// screenshots. Somebody with the lock set to "only when I ask", sitting in
+  /// front of their own unlocked notes, could not photograph their own screen.
+  /// That is not what they asked for by turning a lock on.
+  ///
+  /// So it follows what is actually exposed:
+  ///
+  /// - **locked** — the gate is up, and a screenshot taken over it would be of
+  ///   the gate anyway, but the window behind it is still the library;
+  /// - **not in the foreground** — this is the moment the recents picture is
+  ///   taken. The flag goes on at `inactive`, which arrives before the app is
+  ///   stopped and therefore before the snapshot;
+  /// - otherwise, in the foreground and open, the screen is the user's to
+  ///   capture.
+  bool get _windowShouldBeSecure =>
+      widget.preferences.appLockEnabled && (_locked || !_foreground);
+
   void _applyWindowSecrecy() {
-    final wanted = widget.preferences.appLockEnabled;
+    final wanted = _windowShouldBeSecure;
     if (_secureWindow == wanted) return;
     _secureWindow = wanted;
     unawaited(NexSecureWindow.setSecure(wanted));
@@ -270,6 +296,9 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     unawaited(widget.preferences.setAppLockLeftAt(DateTime.now()));
     unawaited(widget.widgets?.refresh());
     if (mounted) setState(() => _locked = false);
+    // And the gate coming down is the other. An unlocked app in the
+    // foreground is the user's own screen to photograph.
+    _applyWindowSecrecy();
   }
 
   /// Puts the download in the notification shade, where it can be watched
@@ -346,6 +375,48 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   /// What the device would pick when the user has not chosen a language.
   ///
   /// `Localizations.localeOf` is not available above the [MaterialApp], so the
+  /// What the status and navigation bar icons were last told to be.
+  ///
+  /// The same shape as [_secureWindow], and for the same reason: this is a
+  /// platform call, `build` runs for a hundred reasons, and repeating it is
+  /// a channel round trip to say what was already said.
+  Brightness? _barIcons;
+
+  /// Paints the system bars' icons for *Nex's* theme, not the platform's.
+  ///
+  /// Android picks light or dark status bar icons from the system's own
+  /// theme, and an app is expected to say otherwise for itself. Nex never
+  /// did, so a phone in dark mode running Nex in light mode drew white icons
+  /// on a white header: the clock, the battery and the signal bars simply
+  /// disappeared. The reverse disappeared too, on a light phone with Nex in
+  /// dark.
+  ///
+  /// Both bars, because edge-to-edge means the gesture bar sits on the app's
+  /// own background as well.
+  void _applyOverlayStyle(BuildContext context, ThemeMode mode) {
+    final dark = switch (mode) {
+      ThemeMode.dark => true,
+      ThemeMode.light => false,
+      ThemeMode.system =>
+        MediaQuery.platformBrightnessOf(context) == Brightness.dark,
+    };
+    // The *icons*, not the background: on a dark app the icons are light.
+    final icons = dark ? Brightness.light : Brightness.dark;
+    if (_barIcons == icons) return;
+    _barIcons = icons;
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: icons,
+        // iOS reads the *background* it is drawn over rather than the icons.
+        statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: icons,
+        systemNavigationBarContrastEnforced: false,
+      ),
+    );
+  }
+
   /// platform's own preference is resolved against the locales this app
   /// actually ships.
   Locale? _systemLocale(BuildContext context) {
@@ -374,6 +445,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     final transparentScaffold =
         prefs.liquidGlass ||
         prefs.backgroundPattern != NexBackgroundPattern.plain;
+    _applyOverlayStyle(context, prefs.themeMode);
     return MaterialApp(
       scaffoldMessengerKey: _messengerKey,
       // The timeline listens on this to know when it has been covered and

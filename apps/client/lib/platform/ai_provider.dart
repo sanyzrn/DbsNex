@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:meta/meta.dart';
 import 'package:nex_core/nex_core.dart';
 
@@ -374,7 +375,7 @@ class CloudAIAdapter implements AIAdapter {
     this.outputLanguage = AiOutputLanguage.auto,
     http.Client? client,
     @visibleForTesting ChatAdapter? localModel,
-  }) : _client = client ?? http.Client(),
+  }) : _client = client ?? _defaultClient(),
        _ownsClient = client == null,
        _localOverride = localModel;
 
@@ -436,6 +437,28 @@ class CloudAIAdapter implements AIAdapter {
   /// answer, and a request that is still in flight is not a failure — the
   /// previous thirty seconds turned "slow" into "this feature does not work".
   static const _textTimeout = Duration(seconds: 90);
+
+  /// The budget for what the app asks for without being asked: the recap and
+  /// the headline, which draw themselves on launch.
+  ///
+  /// Nobody is waiting on these the way they wait on an answer they typed a
+  /// question for, and they are the wrong thing to spend ninety seconds of
+  /// spinner on. A card that gives up at twenty seconds and leaves yesterday's
+  /// recap in place is a card that works; the same card still spinning a
+  /// minute and a half after launch is an app that looks broken.
+  static const ambientTimeout = Duration(seconds: 20);
+
+  /// How long a connection may take to establish, as opposed to answer.
+  ///
+  /// The case this is for is a network that is joined but not connected — the
+  /// hotel Wi-Fi nobody paid for, the office VLAN with no route out. DNS
+  /// answers, the socket opens, and nothing ever comes back. Without this the
+  /// wait is the platform's own, which on Android runs into minutes, and every
+  /// request the app makes on launch waits it out.
+  static const connectTimeout = Duration(seconds: 8);
+
+  static http.Client _defaultClient() =>
+      IOClient(HttpClient()..connectionTimeout = connectTimeout);
 
   /// Longer still: the request carries a whole audio or image file.
   static const _mediaTimeout = Duration(minutes: 3);
@@ -506,6 +529,7 @@ class CloudAIAdapter implements AIAdapter {
     int maxTokens = 300,
     Uint8List? media,
     String? mediaMimeType,
+    Duration? timeout,
   }) async {
     if (!config.isUsable) {
       // No provider. If a model is on the phone this still has an answer —
@@ -589,7 +613,7 @@ class CloudAIAdapter implements AIAdapter {
 
     final response = await _client
         .post(_chatUri, headers: _headers, body: jsonEncode(body))
-        .timeout(media == null ? _textTimeout : _mediaTimeout);
+        .timeout(timeout ?? (media == null ? _textTimeout : _mediaTimeout));
     if (response.statusCode != 200) {
       _lastFailure = (
         status: response.statusCode,
@@ -813,7 +837,11 @@ class CloudAIAdapter implements AIAdapter {
   ///
   /// [words] is stated in the prompt *and* enforced on the way out by
   /// [_clamped]: models treat "at most" as a suggestion.
-  Future<String?> digest(String recentNotesText, {int words = 30}) async {
+  Future<String?> digest(
+    String recentNotesText, {
+    int words = 30,
+    Duration? timeout,
+  }) async {
     if (!canAnswerText || recentNotesText.trim().isEmpty) return null;
     final reply = await _complete(
       'You write the short recap a notes app shows someone when they open '
@@ -843,6 +871,7 @@ class CloudAIAdapter implements AIAdapter {
       // the token ceiling ends mid-word and [_clamped] cannot tell that from
       // a model that simply stopped.
       maxTokens: (words * 8).clamp(200, 800),
+      timeout: timeout,
     );
     return _plausible(_clamped(reply, words), shortLine: false);
   }
@@ -861,6 +890,7 @@ class CloudAIAdapter implements AIAdapter {
   Future<String?> headline(
     String recentNotesText, {
     AiOutputLanguage? language,
+    Duration? timeout,
   }) async {
     if (!canAnswerText) return null;
     final reply = await _complete(
@@ -889,6 +919,7 @@ class CloudAIAdapter implements AIAdapter {
           : 'The local time is ${DateTime.now().hour}:00. Their recent '
                 'notes:\n$recentNotesText',
       maxTokens: 60,
+      timeout: timeout,
     );
     return _plausible(_clamped(reply, 6));
   }

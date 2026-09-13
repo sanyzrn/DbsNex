@@ -106,6 +106,7 @@ class NexPreferences extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await _migrateAiProviderStorage(prefs);
     await _migrateSponsorDismissals(prefs);
+    await _migrateWidgetTag(prefs);
     // Nobody who already has a library gets walked through an introduction to
     // it. The store holding any key at all is exactly "this app has run
     // before": `load()` is the first thing bootstrap does, ahead of the device
@@ -231,6 +232,20 @@ class NexPreferences extends ChangeNotifier {
     await prefs.remove('ai.key');
     await prefs.remove('ai.baseUrl');
     await prefs.remove('ai.model');
+  }
+
+  /// One-time move from the widget's single tag filter to the set of them.
+  static Future<void> _migrateWidgetTag(SharedPreferences prefs) async {
+    final id = prefs.getString('widget.tag_id');
+    if (id == null) return;
+    if (!prefs.containsKey('widget.tags')) {
+      await prefs.setString(
+        'widget.tags',
+        jsonEncode({id: prefs.getString('widget.tag_name') ?? ''}),
+      );
+    }
+    await prefs.remove('widget.tag_id');
+    await prefs.remove('widget.tag_name');
   }
 
   /// One-time move from the permanent list of dismissed card ids to the dated
@@ -438,14 +453,30 @@ class NexPreferences extends ChangeNotifier {
   bool get widgetShowWhenLocked =>
       _prefs.getBool('widget.show_when_locked') ?? false;
 
-  /// Which tag the widget is limited to, or null for the whole timeline.
-  String? get widgetTagId => _prefs.getString('widget.tag_id');
+  /// Which tags the widget is limited to, as id to name. Empty is the whole
+  /// timeline.
+  ///
+  /// A set rather than one tag, because one tag is not how anybody files:
+  /// somebody who keeps Work and Errands wants both on the home screen and
+  /// neither of the other six. The names ride along so the settings row can
+  /// say which tags without a database read on every rebuild — a tag renamed
+  /// elsewhere leaves this stale until the screen is opened again, which is a
+  /// cosmetic cost paid to keep a synchronous getter synchronous.
+  Map<String, String> get widgetTags {
+    final raw = _prefs.getString('widget.tags');
+    if (raw == null) return const {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return const {};
+      return {
+        for (final entry in decoded.entries) '${entry.key}': '${entry.value}',
+      };
+    } catch (_) {
+      return const {};
+    }
+  }
 
-  /// The tag's name, kept beside its id so the settings row can say which
-  /// tag without a database read on every rebuild. A tag renamed elsewhere
-  /// leaves this stale until the row is opened again, which is a cosmetic
-  /// cost paid to keep a synchronous getter synchronous.
-  String? get widgetTagName => _prefs.getString('widget.tag_name');
+  Set<String> get widgetTagIds => widgetTags.keys.toSet();
 
   NexBackgroundPattern get backgroundPattern =>
       NexBackgroundPatternWire.fromWire(
@@ -710,13 +741,11 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setWidgetTag({String? id, String? name}) async {
-    if (id == null) {
-      await _prefs.remove('widget.tag_id');
-      await _prefs.remove('widget.tag_name');
+  Future<void> setWidgetTags(Map<String, String> value) async {
+    if (value.isEmpty) {
+      await _prefs.remove('widget.tags');
     } else {
-      await _prefs.setString('widget.tag_id', id);
-      await _prefs.setString('widget.tag_name', name ?? '');
+      await _prefs.setString('widget.tags', jsonEncode(value));
     }
     notifyListeners();
   }
@@ -1315,12 +1344,40 @@ class NexPreferences extends ChangeNotifier {
   String? get aiDaySummaryText => _prefs.getString('ai.daySummary.text');
   String? get aiDaySummaryDate => _prefs.getString('ai.daySummary.date');
 
+  /// When the recap on file was written, and a fingerprint of the notes it
+  /// was written from.
+  ///
+  /// Together they are what turns "once a calendar day" into a cadence: the
+  /// timeline re-asks only when both the notes have moved on *and* enough
+  /// time has passed since the last answer. A day was too coarse — a recap
+  /// written at nine in the morning described nine in the morning until
+  /// midnight — and re-asking on every capture would spend a provider call on
+  /// every line anybody types.
+  DateTime? get aiDaySummaryAt {
+    final value = _prefs.getInt('ai.daySummary.at');
+    return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
+  }
+
+  String? get aiDaySummarySource => _prefs.getString('ai.daySummary.source');
+
+  /// [at] and [source] default to "written now, from notes this does not
+  /// claim to recognise": a caller that only has a string to file — a test,
+  /// or any future path that is not the timeline's own — gets a recap that is
+  /// treated as current and left alone until the interval is up, rather than
+  /// one the next launch immediately re-asks for.
   Future<void> setAiDaySummary({
     required String text,
     required String dateKey,
+    DateTime? at,
+    String source = '',
   }) async {
     await _prefs.setString('ai.daySummary.text', text);
     await _prefs.setString('ai.daySummary.date', dateKey);
+    await _prefs.setInt(
+      'ai.daySummary.at',
+      (at ?? DateTime.now()).millisecondsSinceEpoch,
+    );
+    await _prefs.setString('ai.daySummary.source', source);
   }
 
   /// The key a recap is filed under: the local calendar day it describes.
