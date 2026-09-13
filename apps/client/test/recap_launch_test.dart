@@ -95,14 +95,16 @@ void main() {
   group('when the recap is worth asking for again', () {
     final now = DateTime.utc(2026, 9, 13, 12);
 
+    /// [ago] is how long before [now] the recap on file was written, and null
+    /// is "there is nothing on file" — expressed as one parameter rather than
+    /// two so a test cannot ask for both.
     bool needs({
-      DateTime? at,
+      Duration? ago = Duration.zero,
       String? text = 'yesterday evening',
       String? storedSource = 'abc',
       String fingerprint = 'abc',
-      Duration ago = Duration.zero,
     }) => TimelineScreenState.recapNeedsRefresh(
-      at: at ?? now.subtract(ago),
+      at: ago == null ? null : now.subtract(ago),
       text: text,
       storedSource: storedSource,
       fingerprint: fingerprint,
@@ -110,7 +112,7 @@ void main() {
     );
 
     test('nothing on file is always worth asking for', () {
-      expect(needs(at: null), isTrue);
+      expect(needs(ago: null), isTrue);
       expect(needs(text: null), isTrue);
       expect(needs(text: ''), isTrue);
     });
@@ -138,7 +140,7 @@ void main() {
       // leave a recap stamped in the future. That is not a reason to spend a
       // provider call.
       expect(
-        needs(storedSource: 'older', at: now.add(const Duration(hours: 5))),
+        needs(storedSource: 'older', ago: const Duration(hours: -5)),
         isFalse,
       );
     });
