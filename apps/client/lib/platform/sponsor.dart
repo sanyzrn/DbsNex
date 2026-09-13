@@ -165,6 +165,22 @@ class NexSponsorService {
   /// card that is still running.
   static const maxAge = Duration(hours: 48);
 
+  /// How long hiding a card keeps it hidden.
+  ///
+  /// A close button on a banner means "not now". It used to mean "never" —
+  /// one tap and that card was gone from that phone for good, which is both
+  /// more than anybody intends by it and, for the one card paying for a free
+  /// app, an expensive misreading.
+  ///
+  /// A day, matched to [refreshInterval]: long enough that dismissing it is
+  /// worth doing — it stays gone for the rest of the session and the evening
+  /// after it, however many times Android restarts the app in between —
+  /// and short enough that a campaign someone waved off on Monday is not
+  /// invisible to them for the rest of its run.
+  ///
+  /// Per card, by id, so waving off one campaign says nothing about the next.
+  static const dismissalCoolOff = Duration(hours: 24);
+
   /// The ceiling on a picture. Half a megabyte is a generous animated WebP
   /// and a very large still; a card is not worth more of somebody's data
   /// than that, and the check happens before the bytes are kept rather than
@@ -225,10 +241,23 @@ class NexSponsorService {
     return sponsor.visibleAt(
           now: _now(),
           languageCode: languageCode,
-          dismissed: preferences.sponsorDismissed,
+          dismissed: _dismissed,
         )
         ? sponsor
         : null;
+  }
+
+  /// The cards still inside their [dismissalCoolOff].
+  ///
+  /// Read through rather than stored as a set: the answer changes with the
+  /// clock and not with anything this app does, so there is nothing to
+  /// invalidate and no moment at which to invalidate it.
+  Set<String> get _dismissed {
+    final now = _now();
+    return {
+      for (final entry in preferences.sponsorDismissals.entries)
+        if (now.difference(entry.value) < dismissalCoolOff) entry.key,
+    };
   }
 
   /// Points [image] at a picture already on disk from a previous run.
@@ -359,6 +388,9 @@ class NexSponsorService {
     return false;
   }
 
-  Future<void> dismiss(String id) =>
-      preferences.setSponsorDismissed({...preferences.sponsorDismissed, id});
+  Future<void> dismiss(String id) => preferences.dismissSponsor(
+    id,
+    at: _now(),
+    keepFor: dismissalCoolOff,
+  );
 }

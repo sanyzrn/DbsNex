@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -104,6 +105,7 @@ class NexPreferences extends ChangeNotifier {
   static Future<NexPreferences> load() async {
     final prefs = await SharedPreferences.getInstance();
     await _migrateAiProviderStorage(prefs);
+    await _migrateSponsorDismissals(prefs);
     // Nobody who already has a library gets walked through an introduction to
     // it. The store holding any key at all is exactly "this app has run
     // before": `load()` is the first thing bootstrap does, ahead of the device
@@ -231,6 +233,25 @@ class NexPreferences extends ChangeNotifier {
     await prefs.remove('ai.model');
   }
 
+  /// One-time move from the permanent list of dismissed card ids to the dated
+  /// map [sponsorDismissals] reads.
+  ///
+  /// Stamped with now rather than dropped: someone who hid a card yesterday
+  /// under the old rules should get one more cool-off out of it, not find it
+  /// back in their timeline because they installed an update.
+  static Future<void> _migrateSponsorDismissals(SharedPreferences prefs) async {
+    final legacy = prefs.getStringList('sponsor.dismissed');
+    if (legacy == null) return;
+    if (legacy.isNotEmpty && !prefs.containsKey('sponsor.dismissed_at')) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      await prefs.setString(
+        'sponsor.dismissed_at',
+        jsonEncode({for (final id in legacy) id: now}),
+      );
+    }
+    await prefs.remove('sponsor.dismissed');
+  }
+
   /// Stable, globally-unique device identity.
   ///
   /// Identity used to be derived from Platform.localHostname, which returns the
@@ -352,11 +373,36 @@ class NexPreferences extends ChangeNotifier {
   /// and half a megabyte does not belong in them.
   String? get sponsorImagePath => _prefs.getString('sponsor.image_path');
 
-  /// Sponsor card ids the user has put away. Kept forever — the list is a
-  /// handful of short strings, and forgetting one means showing somebody a
-  /// card they have already said no to.
-  Set<String> get sponsorDismissed =>
-      (_prefs.getStringList('sponsor.dismissed') ?? const <String>[]).toSet();
+  /// When each sponsor card was last put away, by card id.
+  ///
+  /// A date rather than a bare list, because a dismissal is "not now", not
+  /// "never". Hiding a card used to hide it for good, which is the wrong
+  /// reading of a close button on a banner — nobody means "never show this
+  /// again as long as I own this phone" by it, and for the one card that
+  /// keeps the app free it is an expensive thing to get wrong. How long the
+  /// dismissal holds is [NexSponsorService.dismissalCoolOff]'s to say; this
+  /// only remembers when it happened.
+  ///
+  /// A malformed or half-written value reads as no dismissals at all. The
+  /// cost of getting that wrong is one card shown once too often, which is
+  /// the right way round for a failure nobody can see.
+  Map<String, DateTime> get sponsorDismissals {
+    final raw = _prefs.getString('sponsor.dismissed_at');
+    if (raw == null) return const {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return const {};
+      return {
+        for (final entry in decoded.entries)
+          if (entry.value is int)
+            '${entry.key}': DateTime.fromMillisecondsSinceEpoch(
+              entry.value as int,
+            ),
+      };
+    } catch (_) {
+      return const {};
+    }
+  }
 
   /// Which note types the home-screen widget may show, by wire name.
   ///
@@ -618,8 +664,36 @@ class NexPreferences extends ChangeNotifier {
     }
   }
 
-  Future<void> setSponsorDismissed(Set<String> value) =>
-      _prefs.setStringList('sponsor.dismissed', value.toList()..sort());
+  /// Puts [id] away as of [at], and forgets the dismissals that have run out.
+  ///
+  /// The time comes from the caller rather than from `DateTime.now()` here:
+  /// the service that owns this rule already has a clock, and a store that
+  /// reads one of its own would answer a different question than the one the
+  /// service asks — which is exactly the shape of a bug that only shows up
+  /// under test, where the two clocks are not the same clock.
+  ///
+  /// The housekeeping is here rather than on a schedule because this is the
+  /// only moment the map changes and the only moment anyone is waiting on it.
+  /// Without it the map would keep an entry for every campaign ever
+  /// dismissed, forever, to answer a question none of them can still affect.
+  ///
+  /// Silent, like the rest of the sponsor cache: the timeline calls
+  /// `setState` for itself, and a card being put away is not a reason to
+  /// rebuild every screen in the app.
+  Future<void> dismissSponsor(
+    String id, {
+    required DateTime at,
+    required Duration keepFor,
+  }) async {
+    final now = at;
+    final kept = {
+      for (final entry in sponsorDismissals.entries)
+        if (now.difference(entry.value) < keepFor)
+          entry.key: entry.value.millisecondsSinceEpoch,
+      id: now.millisecondsSinceEpoch,
+    };
+    await _prefs.setString('sponsor.dismissed_at', jsonEncode(kept));
+  }
 
   Future<void> setWidgetTypes(Set<String> value) async {
     await _prefs.setStringList('widget.types', value.toList()..sort());

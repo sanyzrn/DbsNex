@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+- **Hiding a sponsor card no longer hides it for good.** Tapping the close
+  button used to mean "never show this one again on this phone", which is more
+  than anybody means by a close button. It now means "not now": the card goes
+  for the rest of the session and the day, and comes back afterwards if the
+  campaign is still running. Hiding one card still says nothing about the
+  next.
+
 ## v1.8.0
 
 - **A checklist can be edited.** It could be ticked and nothing else — a typo

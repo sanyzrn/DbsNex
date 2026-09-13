@@ -136,6 +136,39 @@ void main() {
     });
   });
 
+  group('the dismissals that were already stored', () {
+    test('a permanent dismissal becomes a dated one, and is not lost', () async {
+      // Under the old rules this list meant "never again". Dropping it on
+      // upgrade would put a card somebody hid yesterday straight back in
+      // front of them; keeping it as-is would mean the old rule outliving
+      // itself. It is stamped with now, so each one gets a last cool-off.
+      SharedPreferences.setMockInitialValues({
+        'sponsor.dismissed': ['c1', 'c2'],
+      });
+      final preferences = await NexPreferences.load();
+
+      final dismissals = preferences.sponsorDismissals;
+      expect(dismissals.keys, unorderedEquals(['c1', 'c2']));
+      expect(
+        DateTime.now().difference(dismissals['c1']!).inMinutes,
+        lessThan(1),
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(
+        prefs.getStringList('sponsor.dismissed'),
+        isNull,
+        reason: 'the old key is gone, so the migration runs once',
+      );
+    });
+
+    test('nothing stored stays nothing', () async {
+      SharedPreferences.setMockInitialValues({});
+      final preferences = await NexPreferences.load();
+      expect(preferences.sponsorDismissals, isEmpty);
+    });
+  });
+
   group('the service', () {
     late NexPreferences preferences;
 
@@ -256,6 +289,63 @@ void main() {
       await service.refresh(force: true);
 
       expect(service.visible(languageCode: 'en'), isNull);
+    });
+
+    test('a dismissal runs out, and the card comes back', () async {
+      // Hiding a card used to hide it for good. A close button on a banner
+      // means "not now" — nobody taps it meaning "never again on this phone",
+      // and for the one card paying for a free app that reading is expensive.
+      final service = serviceReturning((_) => http.Response(card(), 200));
+      await service.refresh();
+      await service.dismiss('c1');
+      expect(service.visible(languageCode: 'en'), isNull);
+
+      // An hour short of the cool-off is still an hour short of it: whatever
+      // Android did to the process in between, the session that dismissed it
+      // does not get it back.
+      final sameDay = serviceReturning(
+        (_) => http.Response(card(), 200),
+        at: now.add(const Duration(hours: 23)),
+      );
+      expect(sameDay.visible(languageCode: 'en'), isNull);
+
+      final tomorrow = serviceReturning(
+        (_) => http.Response(card(), 200),
+        at: now.add(NexSponsorService.dismissalCoolOff),
+      );
+      // Fetched within `maxAge` of this clock, so freshness is not what is
+      // being measured here.
+      expect(tomorrow.visible(languageCode: 'en')?.id, 'c1');
+    });
+
+    test('waving off one campaign says nothing about the next', () async {
+      final service = serviceReturning((_) => http.Response(card(), 200));
+      await service.refresh();
+      await service.dismiss('c1');
+
+      final next = serviceReturning(
+        (_) => http.Response(card(id: 'c2'), 200),
+      );
+      await next.refresh(force: true);
+
+      expect(next.visible(languageCode: 'en')?.id, 'c2');
+    });
+
+    test('a dismissal that has run out is forgotten, not kept forever', () async {
+      // The map answers one question — is this card inside its cool-off — so
+      // an entry that can no longer change the answer is a row that grows the
+      // file for every campaign this phone will ever see.
+      final service = serviceReturning((_) => http.Response(card(), 200));
+      await service.dismiss('c1');
+      expect(preferences.sponsorDismissals.keys, ['c1']);
+
+      final later = serviceReturning(
+        (_) => http.Response(card(), 200),
+        at: now.add(const Duration(hours: 25)),
+      );
+      await later.dismiss('c2');
+
+      expect(preferences.sponsorDismissals.keys, ['c2']);
     });
   });
 
