@@ -38,7 +38,7 @@ campaign ends, and the app clears its cache when it sees one.
 
 | field | required | what it does |
 |---|---|---|
-| `id` | yes | Remembered when somebody hides the card. **Reusing an id brings a dismissed card back for everyone who hid it** — a new campaign wants a new id. |
+| `id` | yes | What a dismissal is recorded against, so hiding one campaign says nothing about the next. A new campaign wants a new id. |
 | `title` | yes | One line. Also the screen-reader label for a card that is all picture. |
 | `body` | no | A second line, under the title. Dropped on a card with a picture, which has no room for it. |
 | `color` | no | `#RRGGBB`. Tints the wordy card; ignored when there is a picture. Defaults to the app's accent. |
@@ -76,7 +76,23 @@ placeholder, no error:
   shows while the last **successful** fetch is recent — an old campaign must
   not live on in the timeline of a phone that has been off the network)
 - the card's dates have passed, or it is for another language
-- the reader has hidden it
+- the reader hid it in the last 24 hours
+
+## Hiding a card
+
+The close button means **not now**, not never. A dismissal is recorded against
+the card's `id` with the time it happened, and holds for 24 hours — so it is
+gone for the rest of the session and the evening after it, however many times
+Android restarts the app in between, and back the next day if the campaign is
+still running.
+
+It used to mean never: one tap and that card was gone from that phone for
+good. That is more than anyone intends by a close button, and for the one card
+paying for a free app it is an expensive thing to get wrong.
+
+Dismissals that have run out are dropped the next time one is recorded, so the
+stored map holds what is still in force and not a row per campaign this phone
+has ever seen.
 
 ## Cadence
 
