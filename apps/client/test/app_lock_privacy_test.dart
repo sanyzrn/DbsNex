@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
+import 'package:nex_client/platform/app_lock.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
@@ -34,11 +35,13 @@ void main() {
   Future<NexServices> boot({
     required bool appLock,
     bool liquidGlass = false,
+    String timing = 'immediately',
   }) async {
     SharedPreferences.setMockInitialValues({
       'onboarding.complete': true,
       'onboarding.tour_complete': true,
       'security.app_lock': appLock,
+      'security.lock_timing': timing,
       'appearance.liquid_glass': liquidGlass,
     });
     final tmp = Directory.systemTemp.createTempSync('nex_app_lock_');
@@ -112,15 +115,40 @@ void main() {
     expect(tester.getSize(gate), tester.getSize(find.byType(NexApp)));
   });
 
-  testWidgets('the lock decides whether the OS may capture the window', (
+  /// Sends the app away and brings it back the way the OS does, through the
+  /// states in between.
+  Future<void> background(WidgetTester tester) async {
+    for (final state in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> foreground(WidgetTester tester) async {
+    for (final state in [
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('what is exposed decides whether the OS may capture the window', (
     tester,
   ) async {
     // `FLAG_SECURE` is the only thing that blanks the recents thumbnail —
     // that picture is taken outside the app, off a frame Dart never draws, so
-    // nothing painted here can hide from it. It follows the lock rather than
-    // being always on: someone who never asked for a lock has not asked to
-    // lose screenshots of their own notes either.
-    final services = await boot(appLock: false);
+    // nothing painted here can hide from it. It also blocks screenshots,
+    // which is why it cannot simply follow the lock being switched on:
+    // somebody with the lock set to "only when I ask", sitting in front of
+    // their own unlocked notes, could not photograph their own screen.
+    final services = await boot(appLock: false, timing: 'manual');
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -130,7 +158,23 @@ void main() {
     calls.clear();
     await preferences.setAppLockEnabled(true);
     await tester.pump();
+    expect(
+      secureCalls(),
+      isEmpty,
+      reason: 'a lock that is not closed, on a screen in front of its owner',
+    );
+
+    // Leaving is the moment the recents picture is taken.
+    await background(tester);
     expect(secureCalls(), [true]);
+
+    calls.clear();
+    await foreground(tester);
+    expect(
+      secureCalls(),
+      [false],
+      reason: 'back, and still unlocked — this timing never closes it',
+    );
 
     // Every preference change arrives at the same listener, so one that has
     // nothing to do with the lock must not go back to the platform to repeat
@@ -139,10 +183,34 @@ void main() {
     await preferences.setLiquidGlass(true);
     await tester.pump();
     expect(secureCalls(), isEmpty);
+  });
 
-    await preferences.setAppLockEnabled(false);
-    await tester.pump();
-    expect(secureCalls(), [false], reason: 'turned off, and given back');
+  testWidgets('a closed lock withholds the window in the foreground too', (
+    tester,
+  ) async {
+    // The other half of the rule. With this timing, leaving closes the lock,
+    // so coming back lands on the gate — and the window behind the gate is
+    // still the library.
+    final services = await boot(appLock: true, timing: 'immediately');
+    await tester.pumpWidget(
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _NeverUnlocks(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await background(tester);
+    calls.clear();
+    await foreground(tester);
+
+    expect(find.byKey(appLockBarrierKey), findsOneWidget);
+    expect(
+      secureCalls(),
+      isEmpty,
+      reason: 'still withheld, so there is nothing new to say',
+    );
   });
 
   test('a platform with no native half is an absence, not a failure', () async {
@@ -158,4 +226,13 @@ void main() {
     );
     await expectLater(NexSecureWindow.setSecure(true), completes);
   });
+}
+
+/// A prompt that is never answered, so the gate stays up for the test.
+class _NeverUnlocks extends AppLockService {
+  @override
+  Future<bool> authenticate({
+    required String reason,
+    required bool biometricOnly,
+  }) async => false;
 }

@@ -34,6 +34,37 @@ Working convention:
 
 ## Unreleased
 
+## v1.8.1
+
+- **The status bar reads properly again.** The clock, the battery and the
+  signal bars are drawn by Android in light or dark to suit *its* theme, not
+  Nex's — so a phone in dark mode with Nex set to light lost them into the
+  white header, and the other way round lost them into the black one. They now
+  follow the theme you picked inside Nex.
+
+- **You can take a screenshot of your own notes.** Turning the app lock on
+  used to block screenshots for good, even with the lock set to "only when I
+  ask" and the library sitting open in front of you. Screenshots work while
+  you are in the app and it is unlocked; the recent-apps preview is still
+  blanked, and so is a screenshot taken over the lock.
+
+- **The widget can show several tags.** Tapping a tag adds it, tapping it
+  again drops it, and the widget shows notes wearing any of them — Work and
+  Errands on the home screen, and none of the other six.
+
+- **Opening the app on a network that is not really connected.** Joined to the
+  Wi-Fi, no way out to the internet: the recap and the greeting at the top of
+  the timeline used to sit there spinning for a minute and a half before
+  giving up, because they were waiting on the same budget a question you typed
+  gets. They give up in twenty seconds now, and leave the last recap where it
+  was.
+
+- **The recap keeps up with the day.** It was written once a calendar day, so
+  a recap made at nine in the morning still described nine in the morning at
+  bedtime. It now refreshes at most once an hour, and only when the notes it
+  is summarising have actually changed — an app sitting open with nothing
+  written into it asks for nothing at all.
+
 - **Hiding a sponsor card no longer hides it for good.** Tapping the close
   button used to mean "never show this one again on this phone", which is more
   than anybody means by a close button. It now means "not now": the card goes

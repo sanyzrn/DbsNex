@@ -140,8 +140,11 @@ class NexWidgetSnapshot {
   /// query with a type clause would be two definitions of "the top of the
   /// timeline", and the widget exists to show the same list the app does.
   ///
-  /// The tag *is* filtered in SQL, because the timeline query already takes
-  /// one and doing it twice would be the invention this avoids.
+  /// Tags are filtered here too, now that there can be several of them. The
+  /// timeline query takes one tag, and asking it several times would be
+  /// several timelines to merge — with the pinned-first ordering to redo by
+  /// hand across the lot of them, which is the invention this avoids. A note
+  /// matches if it wears any of the chosen tags.
   /// The same notes with the pins let go, most recently touched first.
   ///
   /// Not a second query. "Pinned first, then most recently touched" is one
@@ -152,10 +155,21 @@ class NexWidgetSnapshot {
   static List<Note> byRecency(List<Note> notes) =>
       [...notes]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
-  static List<Note> filter(List<Note> notes, Set<String> types) =>
-      types.isEmpty
-      ? notes
-      : notes.where((note) => types.contains(note.type.wireName)).toList();
+  static List<Note> filter(
+    List<Note> notes,
+    Set<String> types, {
+    Set<String> tagIds = const {},
+  }) {
+    if (types.isEmpty && tagIds.isEmpty) return notes;
+    return notes
+        .where(
+          (note) =>
+              (types.isEmpty || types.contains(note.type.wireName)) &&
+              (tagIds.isEmpty ||
+                  note.tags.any((tag) => tagIds.contains(tag.id))),
+        )
+        .toList();
+  }
 
   static NexWidgetSnapshot build({
     required bool appLock,
@@ -300,7 +314,7 @@ class NexWidgetBridge {
   /// differs from last time.
   String get _filterSignature =>
       '${(preferences.widgetTypes.toList()..sort()).join(',')}'
-      '|${preferences.widgetTagId ?? ''}'
+      '|${(preferences.widgetTagIds.toList()..sort()).join(',')}'
       '|${preferences.widgetPinnedFirst}';
 
   /// Writes now, for a change this bridge cannot see coming.
@@ -330,24 +344,23 @@ class NexWidgetBridge {
       // query is skipped entirely otherwise, so a hidden library's content
       // never reaches the file rather than being filtered out of it later.
       final types = preferences.widgetTypes;
+      final tagIds = preferences.widgetTagIds;
       final pinnedFirst = preferences.widgetPinnedFirst;
       // No filter, no reason to read past what fits: the first rows of the
       // timeline are the answer, and that is the overwhelmingly common case.
       // The exception is a widget ignoring pins, which has to see past the
       // pins it is about to demote.
-      final depth = types.isEmpty
+      final depth = types.isEmpty && tagIds.isEmpty
           ? NexWidgetSnapshot.maxNotes +
                 (pinnedFirst ? 0 : NexWidgetSnapshot.maxPinned)
           : NexWidgetSnapshot.scanDepth;
       final timeline = lock
           ? const <Note>[]
-          : await services.timeline(
-              limit: depth,
-              tagId: preferences.widgetTagId,
-            );
+          : await services.timeline(limit: depth);
       final notes = NexWidgetSnapshot.filter(
         pinnedFirst ? timeline : NexWidgetSnapshot.byRecency(timeline),
         types,
+        tagIds: tagIds,
       );
       final snapshot = NexWidgetSnapshot.build(appLock: lock, notes: notes);
       _lastWrittenLock = lock;

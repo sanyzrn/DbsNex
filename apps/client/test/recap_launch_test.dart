@@ -9,6 +9,7 @@ import 'package:nex_client/platform/ai_provider.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
+import 'package:nex_client/screens/timeline_screen.dart';
 
 import 'support/in_process_db.dart';
 
@@ -89,5 +90,82 @@ void main() {
     // The recap is what was missing. No model is reached for this: the cache
     // is filed under today, so the card is restored from it.
     expect(find.text(recap), findsOneWidget);
+  });
+
+  group('when the recap is worth asking for again', () {
+    final now = DateTime.utc(2026, 9, 13, 12);
+
+    /// [ago] is how long before [now] the recap on file was written, and null
+    /// is "there is nothing on file" — expressed as one parameter rather than
+    /// two so a test cannot ask for both.
+    bool needs({
+      Duration? ago = Duration.zero,
+      String? text = 'yesterday evening',
+      String? storedSource = 'abc',
+      String fingerprint = 'abc',
+    }) => TimelineScreenState.recapNeedsRefresh(
+      at: ago == null ? null : now.subtract(ago),
+      text: text,
+      storedSource: storedSource,
+      fingerprint: fingerprint,
+      now: now,
+    );
+
+    test('nothing on file is always worth asking for', () {
+      expect(needs(ago: null), isTrue);
+      expect(needs(text: null), isTrue);
+      expect(needs(text: ''), isTrue);
+    });
+
+    test('notes that have not moved are never re-summarised', () {
+      // The half that keeps this cheap. An app left open all afternoon with
+      // nothing written into it asks for nothing, however long it sits there.
+      expect(needs(ago: const Duration(days: 3)), isFalse);
+    });
+
+    test('notes that have moved wait out the interval', () {
+      // And the half that keeps it from being a request per keystroke.
+      expect(
+        needs(storedSource: 'older', ago: const Duration(minutes: 20)),
+        isFalse,
+      );
+      expect(
+        needs(storedSource: 'older', ago: TimelineScreenState.recapInterval),
+        isTrue,
+      );
+    });
+
+    test('a clock that went backwards is not an hour', () {
+      // A phone that corrects its time, or crosses a time zone westward, can
+      // leave a recap stamped in the future. That is not a reason to spend a
+      // provider call.
+      expect(
+        needs(storedSource: 'older', ago: const Duration(hours: -5)),
+        isFalse,
+      );
+    });
+  });
+
+  group('the recap fingerprint', () {
+    test('the same notes give the same answer, every run', () {
+      // `hashCode` would not: Dart makes no promise about it across runs, and
+      // a fingerprint that changes on restart would ask for a new recap on
+      // every cold launch.
+      expect(
+        TimelineScreenState.recapFingerprint('a note\nanother'),
+        TimelineScreenState.recapFingerprint('a note\nanother'),
+      );
+    });
+
+    test('a changed note changes it', () {
+      expect(
+        TimelineScreenState.recapFingerprint('a note'),
+        isNot(TimelineScreenState.recapFingerprint('a note!')),
+      );
+      expect(
+        TimelineScreenState.recapFingerprint('ab'),
+        isNot(TimelineScreenState.recapFingerprint('ba')),
+      );
+    });
   });
 }

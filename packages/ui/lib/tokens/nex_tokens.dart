@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../widgets/nex_swipe_back.dart';
 import 'nex_accent_palette.dart';
@@ -523,6 +524,22 @@ ThemeData _theme({
       elevation: 0,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
+      // Said outright rather than estimated from the bar's own colour. An
+      // app bar that is transparent, or glass over whatever is behind it,
+      // gives Flutter nothing to estimate from — and the estimate is what
+      // decides whether the clock and the battery are drawn light or dark.
+      // They follow this theme, which is the one the user chose, not the
+      // platform's.
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: dark
+            ? Brightness.light
+            : Brightness.dark,
+        systemNavigationBarContrastEnforced: false,
+      ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: liquidGlass

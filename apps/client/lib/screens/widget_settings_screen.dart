@@ -52,6 +52,20 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
     setState(() => _tags = tags);
   }
 
+  /// One tag on or off, leaving the rest alone.
+  ///
+  /// No "all tags selected means no filter" rule here, unlike the kinds
+  /// above: the kinds are a closed set this app defines, so selecting every
+  /// one of them is genuinely the same as selecting none. Tags are the user's
+  /// own and a new one appears whenever they make it — somebody who has
+  /// deliberately ticked all four of their tags has said something different
+  /// from "whatever I happen to have".
+  Future<void> _toggleTag(Tag tag) async {
+    final tags = Map<String, String>.from(widget.preferences.widgetTags);
+    if (tags.remove(tag.id) == null) tags[tag.id] = tag.name;
+    await widget.preferences.setWidgetTags(tags);
+  }
+
   Future<void> _toggle(NoteType type) async {
     final types = widget.preferences.widgetTypes;
     final wire = type.wireName;
@@ -77,7 +91,7 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
         animation: widget.preferences,
         builder: (context, _) {
           final types = widget.preferences.widgetTypes;
-          final tagId = widget.preferences.widgetTagId;
+          final tags = widget.preferences.widgetTags;
           return ListView(
             padding: const EdgeInsets.all(NexSpacing.md),
             children: [
@@ -130,9 +144,9 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                   children: [
                     FilterChip(
                       label: Text(l10n.widgetSettingsAnyTag),
-                      selected: tagId == null,
+                      selected: tags.isEmpty,
                       onSelected: (_) =>
-                          unawaited(widget.preferences.setWidgetTag()),
+                          unawaited(widget.preferences.setWidgetTags(const {})),
                     ),
                     for (final usage in _tags!)
                       FilterChip(
@@ -145,15 +159,11 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                                 radius: 6,
                               ),
                         label: Text(usage.tag.name),
-                        selected: tagId == usage.tag.id,
-                        // Tapping the tag already chosen clears it, so the
-                        // filter can be undone without hunting for "Any".
-                        onSelected: (_) => unawaited(
-                          widget.preferences.setWidgetTag(
-                            id: tagId == usage.tag.id ? null : usage.tag.id,
-                            name: usage.tag.name,
-                          ),
-                        ),
+                        selected: tags.containsKey(usage.tag.id),
+                        // Each chip is its own on and off, the way the kinds
+                        // above already are: tapping a chosen tag drops it,
+                        // and dropping the last one is the same as "Any".
+                        onSelected: (_) => unawaited(_toggleTag(usage.tag)),
                       ),
                   ],
                 ),

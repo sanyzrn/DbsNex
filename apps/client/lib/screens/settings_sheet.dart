@@ -642,11 +642,11 @@ String _widgetFilterSummary(
   NexPreferences preferences,
 ) {
   final types = preferences.widgetTypes;
-  final tag = preferences.widgetTagName;
+  final tags = preferences.widgetTags.values.where((n) => n.isNotEmpty);
   final kinds = types.isEmpty
       ? l10n.widgetSettingsEverything
       : types.map(l10n.noteType).join(', ');
-  return tag == null || tag.isEmpty ? kinds : '$kinds · $tag';
+  return tags.isEmpty ? kinds : '$kinds · ${tags.join(', ')}';
 }
 
 String _backgroundLabel(AppLocalizations l10n, NexBackgroundPattern pattern) =>
