@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.9.0
+
 - **The note editor is a proper editor.** It was a dialog with three lines in
   it that could not grow. It opens from the bottom like everything else now,
   and a button turns it into a full-height editor for a note that needs the
