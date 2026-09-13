@@ -97,6 +97,19 @@ abstract interface class NexDb {
 
   Future<List<Tag>> listTags();
 
+  /* ------------------------------------------- recurring obligations */
+
+  /// Every live commitment, soonest first.
+  Future<List<NexCommitment>> listCommitments();
+
+  /// Writes one, inserting or replacing by id.
+  Future<NexCommitment> saveCommitment(NexCommitment commitment);
+
+  /// Marks one met and rolls it forward. Null when there is no such one.
+  Future<NexCommitment?> markCommitmentMet(String id, {DateTime? at});
+
+  Future<void> deleteCommitment(String id);
+
   Future<void> setTagColor({required String tagId, String? color});
 
   Future<void> setDueAt(String noteId, DateTime? when, {NoteRepeat repeat});

@@ -332,6 +332,7 @@ class TimelineScreenState extends State<TimelineScreen>
     }
     unawaited(_loadTimeline());
     unawaited(_loadFilterTags());
+    unawaited(_loadCommitments());
     // After the first frame, because every stop measures a real widget and
     // none of them has been laid out yet at this point.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -767,7 +768,27 @@ class TimelineScreenState extends State<TimelineScreen>
   /// notes were the wrong twenty. The whole list goes in rather than a
   /// pre-cut slice, because the choosing is the part that matters and it
   /// needs everything to choose from.
-  String _aiRecapSource() => nexRecapSource(_all ?? notes);
+  /// The standing obligations, as the brief last saw them.
+  ///
+  /// Held in a field rather than read inside [_aiRecapSource], because that
+  /// method is synchronous and is called to *decide whether* to ask the model
+  /// — a database read there would make the staleness check asynchronous and
+  /// put a query on a path that mostly concludes "nothing has changed". They
+  /// are refreshed when the screen loads and whenever the commitments screen
+  /// closes, which is every moment they can have changed.
+  List<NexCommitment> _commitments = const [];
+
+  Future<void> _loadCommitments() async {
+    try {
+      final all = await widget.services.commitments();
+      if (mounted) setState(() => _commitments = all);
+    } catch (_) {
+      // A brief without them is still a brief.
+    }
+  }
+
+  String _aiRecapSource() =>
+      nexRecapSource(_all ?? notes, commitments: _commitments);
 
   /// Collapses the card's body on the first real scroll, the way the Figma
   /// redesign asked for — reading a note is not the moment for a recap.
@@ -1919,14 +1940,22 @@ class TimelineScreenState extends State<TimelineScreen>
             key: _settingsAnchor,
             updates: widget.updates,
             tooltip: l10n.settings,
-            onPressed: () => nexShowSheet<void>(
-              context: context,
-              builder: (_) => SettingsSheet(
-                services: widget.services,
-                preferences: widget.preferences,
-                updates: widget.updates,
-              ),
-            ),
+            // Awaited so the commitments can be re-read on the way back.
+            // They are reachable only from Settings, they are not on the
+            // timeline stream that refreshes everything else, and a brief
+            // that had not noticed the one just added would look broken to
+            // the person who had just added it.
+            onPressed: () async {
+              await nexShowSheet<void>(
+                context: context,
+                builder: (_) => SettingsSheet(
+                  services: widget.services,
+                  preferences: widget.preferences,
+                  updates: widget.updates,
+                ),
+              );
+              await _loadCommitments();
+            },
           ),
         ],
       ),

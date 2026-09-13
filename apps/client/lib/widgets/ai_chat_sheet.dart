@@ -661,6 +661,21 @@ class _AiChatSheetState extends State<AiChatSheet> {
             await _renameTag(action);
           case AssistantActionKind.tagColor:
             await _setTagColor(action);
+          case AssistantActionKind.commitment:
+            await _saveCommitment(action);
+          case AssistantActionKind.commitmentMet:
+            // Rolls it forward rather than finishing it — the difference
+            // between a commitment and a reminder, in one call. Existence was
+            // settled before any of this set ran.
+            final met = await _commitmentByName(action.commitmentName);
+            if (met != null) {
+              await widget.services.markCommitmentMet(met.id);
+            }
+          case AssistantActionKind.commitmentDelete:
+            final gone = await _commitmentByName(action.commitmentName);
+            if (gone != null) {
+              await widget.services.deleteCommitment(gone.id);
+            }
           case AssistantActionKind.search:
             break;
         }
@@ -731,6 +746,22 @@ class _AiChatSheetState extends State<AiChatSheet> {
       };
       if (!tagNames.every(known.contains)) return false;
     }
+    // The two commitment actions that act on an existing one. A `commitment`
+    // is left out on purpose: it creates as readily as it edits, so a name
+    // that is not there yet is the ordinary case rather than a mistake.
+    final named = <String>{
+      for (final action in actions)
+        if (action.kind == AssistantActionKind.commitmentMet ||
+            action.kind == AssistantActionKind.commitmentDelete)
+          if (action.commitmentName case final name?) name.toLowerCase(),
+    };
+    if (named.isNotEmpty) {
+      final known = {
+        for (final one in await widget.services.commitments())
+          one.title.toLowerCase(),
+      };
+      if (!named.every(known.contains)) return false;
+    }
     if (restoring.isEmpty) return true;
     final deleted = {
       for (final note in await widget.services.deletedNotes()) note.id,
@@ -755,6 +786,60 @@ class _AiChatSheetState extends State<AiChatSheet> {
     // Null is `default` — the colour cleared, which is a thing the picker
     // can do and so is a thing that can be asked for.
     await widget.services.setTagColor(tagId: tag.id, color: action.text);
+  }
+
+  /// Creates a standing obligation, or edits the one already under that name.
+  ///
+  /// Same name means same thing, deliberately: a model asked twice about the
+  /// rent should not leave two rents behind, and "change the insurance to
+  /// every two years" is the same sentence as setting it up.
+  Future<void> _saveCommitment(AssistantAction action) async {
+    final name = action.commitmentName!;
+    final cadence = action.cadence!;
+    final every = action.every ?? 1;
+    final now = DateTime.now();
+    final existing = await _commitmentByName(name);
+    if (existing != null) {
+      await widget.services.saveCommitment(
+        existing.copyWith(
+          title: name,
+          cadence: cadence,
+          every: every,
+          // No date given means leave it where it is. Editing the cadence
+          // should not move the next occurrence the user already agreed to.
+          dueAt: action.at,
+          updatedAt: now,
+        ),
+      );
+      return;
+    }
+    await widget.services.saveCommitment(
+      NexCommitment(
+        id: newUuidV7(),
+        title: name,
+        cadence: cadence,
+        every: every,
+        // Tomorrow morning when the model did not say. Not "now": a
+        // commitment due the instant it is created is overdue before the
+        // confirmation card has closed.
+        dueAt:
+            action.at ??
+            DateTime(now.year, now.month, now.day, 9)
+                .add(const Duration(days: 1)),
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+  }
+
+  /// The commitment stored under [name], case-insensitively.
+  Future<NexCommitment?> _commitmentByName(String? name) async {
+    if (name == null) return null;
+    final lowered = name.toLowerCase();
+    for (final one in await widget.services.commitments()) {
+      if (one.title.toLowerCase() == lowered) return one;
+    }
+    return null;
   }
 
   Future<Tag?> _tagNamed(String? name) async {
@@ -1530,6 +1615,10 @@ class _ActionCard extends StatelessWidget {
         AssistantActionKind.restore => l10n.assistantConfirmRestore,
         AssistantActionKind.renameTag => l10n.assistantConfirmRenameTag,
         AssistantActionKind.tagColor => l10n.assistantConfirmTagColor,
+        AssistantActionKind.commitment => l10n.assistantConfirmCommitment,
+        AssistantActionKind.commitmentMet => l10n.assistantConfirmCommitmentMet,
+        AssistantActionKind.commitmentDelete =>
+          l10n.assistantConfirmCommitmentDelete,
         // Never shown: a search is carried out on arrival, not confirmed.
         AssistantActionKind.search => '',
       };
@@ -1561,12 +1650,31 @@ class _ActionCard extends StatelessWidget {
     AssistantActionKind.renameTag => '${action.tagName} → ${action.text}',
     AssistantActionKind.tagColor =>
       '${action.tagName} → ${action.text ?? 'default'}',
+    // The cadence and the date, because those are the whole of what is being
+    // agreed to. "Set up a recurring item?" with neither is a card asking
+    // somebody to approve something they cannot see.
+    AssistantActionKind.commitment => [
+      action.commitmentName ?? '',
+      if (action.cadence case final cadence?)
+        '· ${_cadenceWire(cadence, action.every ?? 1)}',
+      if (action.at case final at?) '· ${_whenLabel(at)}',
+    ].join(' '),
+    AssistantActionKind.commitmentMet ||
+    AssistantActionKind.commitmentDelete => action.commitmentName ?? '',
     AssistantActionKind.pin ||
     AssistantActionKind.restore ||
     AssistantActionKind.delete ||
     AssistantActionKind.check ||
     AssistantActionKind.search => '',
   };
+
+  /// "every 8 hours", for the confirmation card.
+  ///
+  /// Deliberately not the localised [nexCadenceLabel]: this sits next to a
+  /// raw date in the same line, and the card's job here is to show exactly
+  /// what was asked for rather than to read well.
+  static String _cadenceWire(NexCadence cadence, int every) =>
+      every == 1 ? 'every ${cadence.name}' : 'every $every ${cadence.name}';
 
   /// A due date as `2026-03-14 09:00`.
   ///

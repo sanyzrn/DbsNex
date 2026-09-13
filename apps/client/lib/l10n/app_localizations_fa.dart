@@ -2102,6 +2102,190 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantConfirmSetting => 'این تنظیم را عوض کنم؟';
 
   @override
+  @override
+  String get assistantConfirmCommitment => 'این مورد تکرارشونده را بگذارم؟';
+
+  @override
+  String get assistantConfirmCommitmentMet => 'این را انجام‌شده بزنم و ببرم به دفعهٔ بعد؟';
+
+  @override
+  String get assistantConfirmCommitmentDelete => 'این مورد تکرارشونده را بردارم؟';
+
+  String get commitmentsTitle => 'موارد تکرارشونده';
+
+  @override
+  String get commitmentsSubtitle => 'قبض‌ها، تمدیدها، دارو — چیزهایی که دوباره برمی‌گردند';
+
+  @override
+  String get commitmentsEmpty => 'هنوز چیزی نیست.\nبیمه، اجاره، قرص هر هشت ساعت.';
+
+  @override
+  String get commitmentAdd => 'افزودن مورد تکرارشونده';
+
+  @override
+  String get commitmentEdit => 'ویرایش مورد تکرارشونده';
+
+  @override
+  String get commitmentDeleteTitle => 'این مورد تکرارشونده حذف شود؟';
+
+  @override
+  String get commitmentMarkMet => 'انجام شد — برو به دفعهٔ بعد';
+
+  @override
+  String get commitmentPaused => 'متوقف';
+
+  @override
+  String get commitmentTitleLabel => 'چه کاری';
+
+  @override
+  String get commitmentTitleHint => 'بیمهٔ ماشین';
+
+  @override
+  String get commitmentEvery => 'هر چند وقت';
+
+  @override
+  String get commitmentCount => 'هر';
+
+  @override
+  String get commitmentNextDue => 'دفعهٔ بعد';
+
+  @override
+  String get commitmentLead => 'چقدر زودتر یادم بیاور';
+
+  @override
+  String get commitmentAuto => 'خودکار';
+
+  @override
+  String get commitmentLeadNone => 'وقتی سررسید شد';
+
+  @override
+  String get commitmentWindow => 'فقط در این ساعت‌ها';
+
+  @override
+  String get commitmentWindowOff => 'هر ساعتی، حتی وقتی خوابی';
+
+  @override
+  String get commitmentWindowFrom => 'از';
+
+  @override
+  String get commitmentWindowTo => 'تا';
+
+  @override
+  String commitmentTally(int done, int total) {
+    return '$done از $total امروز';
+  }
+
+  @override
+  String commitmentDueIn(String span) {
+    return '$span دیگر';
+  }
+
+  @override
+  String commitmentOverdue(String span) {
+    return '$span عقب افتاده';
+  }
+
+  @override
+  String commitmentLeadAuto(String span) {
+    return 'خودکار ($span)';
+  }
+
+  @override
+  String cadenceHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'هر $count ساعت',
+      one: 'هر ساعت',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cadenceDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'هر $count روز',
+      one: 'هر روز',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cadenceWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'هر $count هفته',
+      one: 'هر هفته',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cadenceMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'هر $count ماه',
+      one: 'هر ماه',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cadenceYears(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'هر $count سال',
+      one: 'هر سال',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String spanMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count دقیقه',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String spanHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ساعت',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String spanDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count روز',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String spanMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ماه',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get assistantConfirmRemind => 'این یادآور را بگذارم؟';
 
   @override

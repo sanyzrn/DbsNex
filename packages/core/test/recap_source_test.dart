@@ -165,4 +165,146 @@ void main() {
 
     expect(lines, ['today | text | something']);
   });
+
+  group('the standing commitments', () {
+    NexCommitment commitment({
+      required String title,
+      required NexCadence cadence,
+      int every = 1,
+      required Duration until,
+      Duration? lead,
+      int? windowStart,
+      int? windowEnd,
+      int metToday = 0,
+      String? metTodayOn,
+    }) => NexCommitment(
+      id: title,
+      title: title,
+      cadence: cadence,
+      every: every,
+      dueAt: now.add(until),
+      lead: lead,
+      windowStart: windowStart,
+      windowEnd: windowEnd,
+      metToday: metToday,
+      metTodayOn: metTodayOn,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    List<String> withCommitments(List<NexCommitment> all, {int limit = 20}) =>
+        nexRecapSource(const [], commitments: all, now: now, limit: limit)
+            .split('\n')
+            .where((line) => line.isNotEmpty)
+            .toList();
+
+    test('only the ones close enough to matter are sent', () {
+      // The whole reason a commitment carries a lead time. An insurance
+      // renewal eleven months out costs a token on every single brief between
+      // now and then and tells nobody anything.
+      final lines = withCommitments([
+        commitment(
+          title: 'car insurance',
+          cadence: NexCadence.years,
+          until: const Duration(days: 300),
+        ),
+        commitment(
+          title: 'rent',
+          cadence: NexCadence.months,
+          until: const Duration(days: 1),
+        ),
+      ]);
+
+      expect(lines, hasLength(1));
+      expect(lines.single, contains('rent'));
+    });
+
+    test('they come before the notes, soonest first', () {
+      // Everything that reaches the source is already past its lead time, so
+      // it is by construction more pressing than a note somebody wrote on
+      // Tuesday.
+      final source = nexRecapSource(
+        [note(id: 'n1', content: 'a thought', age: const Duration(hours: 2))],
+        commitments: [
+          commitment(
+            title: 'rent',
+            cadence: NexCadence.months,
+            until: const Duration(days: 1),
+          ),
+          commitment(
+            title: 'tablet',
+            cadence: NexCadence.hours,
+            every: 8,
+            until: const Duration(minutes: 30),
+          ),
+        ],
+        now: now,
+      );
+      final lines = source.split('\n');
+
+      expect(lines[0], contains('tablet'), reason: 'due in half an hour');
+      expect(lines[1], contains('rent'), reason: 'due tomorrow');
+      expect(lines[2], contains('a thought'));
+    });
+
+    test('the middle column says how often, not what type', () {
+      // It is the fact that tells the model how to talk about it: "the rent
+      // is due on Friday" and "you have had three glasses today" are
+      // different sentences, and the difference is the cadence.
+      expect(
+        withCommitments([
+          commitment(
+            title: 'rent',
+            cadence: NexCadence.months,
+            until: const Duration(hours: 20),
+          ),
+        ]).single,
+        'DUE in 20h | every month | rent',
+      );
+      expect(
+        withCommitments([
+          commitment(
+            title: 'insurance',
+            cadence: NexCadence.years,
+            until: const Duration(days: 3),
+            lead: const Duration(days: 7),
+          ),
+        ]).single,
+        'DUE in 3d | every year | insurance',
+      );
+    });
+
+    test('an hourly one is a single line with its tally, not six lines', () {
+      // Six identical entries saying water is due is not a brief, it is a
+      // broken one.
+      final lines = withCommitments([
+        commitment(
+          title: 'drink water',
+          cadence: NexCadence.hours,
+          every: 2,
+          until: Duration.zero,
+          windowStart: 8 * 60,
+          windowEnd: 23 * 60,
+          metToday: 3,
+          metTodayOn: nexDayKey(now),
+        ),
+      ]);
+
+      expect(lines, hasLength(1));
+      expect(lines.single, 'DUE now | every 2h · 3 of 7 today | drink water');
+    });
+
+    test('something missed says so, and says for how long', () {
+      expect(
+        withCommitments([
+          commitment(
+            title: 'rent',
+            cadence: NexCadence.months,
+            until: const Duration(days: -2),
+          ),
+        ]).single,
+        'DUE overdue 2d | every month | rent',
+      );
+    });
+  });
 }

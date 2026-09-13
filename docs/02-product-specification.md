@@ -163,6 +163,15 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-9.1 Settings accepts an optional name. When set, the Timeline's title becomes a greeting that follows the time of day; when empty, the title is the app's name and nothing else changes.
 - FR-9.2 It is decoration and only decoration. It is stored on the device, never sent with a sync or an AI request, never used to address the user anywhere outside the app, and never turned into a notification, a streak or a prompt to come back — that would be exactly the engagement loop [`01-product-vision.md`](./01-product-vision.md) rules out.
 
+### FR-10 — Recurring Obligations
+
+- FR-10.1 Nex holds the things that come back round — a yearly insurance renewal, a monthly bill, a tablet every eight hours, water every two. Each has what it is, how often, when it is next due, and how far ahead it is worth being told.
+- FR-10.2 **They are not notes and never appear on the timeline.** A tablet three times a day is ninety rows a month in a stream whose whole claim is that it is worth scrolling. They are reached from Settings and surface in the daily brief.
+- FR-10.3 Marking one done rolls it forward to its next turn rather than finishing it. This is the difference between a commitment and a note's reminder, which is spent once it has rung.
+- FR-10.4 How far ahead each is raised follows its cadence unless the user says otherwise — a year's notice is worth a week, a month's a couple of days, an hourly one a quarter of its gap. The default is not a rule: it can be set per item.
+- FR-10.5 A cadence finer than a day may carry a waking window, so water every two hours does not come round three times while its owner is asleep. In the brief such an item is one line with a tally ("3 of 7 today"), never one line per occurrence.
+- FR-10.6 The assistant can create, change, tick off and remove them, under the same confirm-before-anything-happens rule as every other action it may take (FR-8.3, `09-ai.md`).
+
 ### FR-8 — OS-Level Capture Surfaces
 - FR-8.1 A home-screen widget (Android) opens directly into text capture, bypassing the need to open the app first.
 - FR-8.2 An Android share-intent target accepts text, links, or photos shared from other apps directly into Nex as a new capture, with the same zero-mandatory-fields, auto-save behavior as in-app capture (FR-1.6–1.7).

@@ -34,6 +34,27 @@ Working convention:
 
 ## Unreleased
 
+- **Nex now holds the things that come back round.** The insurance every year,
+  the rent every month, a tablet every eight hours, a glass of water every two.
+  Settings → Recurring. Each one knows how often it comes round, when it is
+  next due, and how far ahead you want telling — a year's notice gets a week,
+  a month's a couple of days, and you can change any of it.
+
+- **They stay off your timeline, and turn up in the digest instead.** That is
+  the point of them: a tablet three times a day would be ninety cards a month.
+  Marking one done does not finish it, it moves it to its next turn — and
+  works out the date for you, including keeping the rent on the 31st in the
+  months that have one.
+
+- **Something every couple of hours can be told when you sleep.** Water every
+  two hours would otherwise come round while you are in bed. Give it waking
+  hours and it stays inside them, and the digest shows it as one line with a
+  count — "3 of 7 today" — rather than seven separate nags.
+
+- **The assistant can set them up, tick them off and remove them**, the same
+  way it handles everything else: it asks, and nothing happens until you press
+  the button.
+
 ## v1.10.0
 
 - **The daily digest reads like an assistant now.** It was a paragraph about

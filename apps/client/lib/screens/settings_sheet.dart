@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/commitments_sheet.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/nex_dialog.dart';
@@ -206,6 +207,23 @@ class SettingsSheet extends StatelessWidget {
           title: l10n.guideTitle,
           value: l10n.guideSubtitle,
           onTap: () => unawaited(GuideScreen.show(context)),
+        ),
+      ],
+    ),
+    // Its own section, above Security. These are somebody's standing
+    // obligations — the insurance, the rent, the tablet — and they are
+    // deliberately not on the timeline, which means Settings is the only
+    // place they can be reached from. Buried under another heading they
+    // would be a feature nobody found.
+    _Section(
+      title: l10n.commitmentsTitle,
+      children: [
+        _Row(
+          icon: Icons.event_repeat_outlined,
+          title: l10n.commitmentsTitle,
+          value: l10n.commitmentsSubtitle,
+          onTap: () =>
+              unawaited(CommitmentsSheet.show(context, services: services)),
         ),
       ],
     ),
