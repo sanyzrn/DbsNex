@@ -285,6 +285,7 @@ class AiChatOptions {
     this.responseStyle = AiResponseStyle.natural,
     this.userName = '',
     this.userIntroduction = '',
+    this.now,
   });
 
   final AiCreativity creativity;
@@ -310,6 +311,17 @@ class AiChatOptions {
   /// "Ask" is the whole word: nothing it returns is applied without the user
   /// pressing a button. See [assistantActionPrompt].
   final bool canAct;
+
+  /// What time it is where the user is.
+  ///
+  /// Load-bearing only once the assistant could set a reminder, and then
+  /// completely: "remind me Friday at nine" cannot be turned into a date by
+  /// something that does not know what day it is today. A model with no
+  /// clock either refuses, or — the failure this exists to prevent — picks a
+  /// date out of its training data and sets an alarm for a day in the past.
+  ///
+  /// Injectable so the prompt is testable. Null means now.
+  final DateTime? now;
 
   /// The user's own standing instruction, in their words — "answer with a bit
   /// of humour", "always in Persian", "keep it to three lines".
@@ -1084,7 +1096,18 @@ class CloudAIAdapter implements AIAdapter {
         'stop there.',
       );
     }
-    if (options.canAct) parts.add(assistantActionPrompt);
+    if (options.canAct) {
+      parts.add(assistantActionPrompt);
+      // Right after the protocol, because it is what makes one line of it
+      // usable: `remind` asks for a concrete local date, and a model with no
+      // clock cannot turn "Friday" into one. ISO with a weekday, because the
+      // weekday is half of what people say and deriving it from the date is
+      // arithmetic no model should have to be right about.
+      parts.add(
+        'It is now ${_nowLine(options.now ?? DateTime.now())}. Every date '
+        'you send must be worked out from this, and must be in the future.',
+      );
+    }
     parts.add(outputLanguage.promptRule);
     if (options.notesContext.trim().isNotEmpty) {
       parts.add(
@@ -1095,6 +1118,28 @@ class CloudAIAdapter implements AIAdapter {
       parts.add('The user has no notes yet.');
     }
     return parts.join('\n\n');
+  }
+
+  /// The clock line, as `2026-03-12T14:05, a Thursday`.
+  ///
+  /// Local, never UTC: every reminder in this app is set in the time the
+  /// person is standing in, and a prompt that said 11:05Z would have the
+  /// model doing zone arithmetic it has no way to get right.
+  static String _nowLine(DateTime now) {
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    String two(int value) => value.toString().padLeft(2, '0');
+    final date =
+        '${now.year}-${two(now.month)}-${two(now.day)}'
+        'T${two(now.hour)}:${two(now.minute)}';
+    return '$date, a ${days[now.weekday - 1]}';
   }
 
   Future<String?> chat(

@@ -606,7 +606,14 @@ class _AiChatSheetState extends State<AiChatSheet> {
       for (final action in actions) {
         switch (action.kind) {
           case AssistantActionKind.create:
-            await widget.services.captureText(action.text!);
+            if (action.items.isNotEmpty) {
+              await widget.services.captureChecklist([
+                for (final line in action.items)
+                  ChecklistItem(text: line, done: false),
+              ]);
+            } else {
+              await widget.services.captureText(action.text!);
+            }
           case AssistantActionKind.edit:
             await widget.services.updateNote(action.noteId!, action.text!);
           case AssistantActionKind.delete:
@@ -624,6 +631,36 @@ class _AiChatSheetState extends State<AiChatSheet> {
             );
           case AssistantActionKind.setting:
             await _applySetting(action);
+          case AssistantActionKind.remind:
+            // Both halves at once, the way the reminder picker does it —
+            // `setDueAt` schedules or cancels the alarm behind the date, so
+            // nothing here has to know that a reminder is two things.
+            await widget.services.setDueAt(
+              action.noteId!,
+              action.at,
+              repeat: action.repeat,
+            );
+          case AssistantActionKind.pin:
+            if (action.flag ?? true) {
+              // Five pins is the library's limit, and `pinNote` answers
+              // false rather than throwing when it is reached. Left
+              // unchecked that is the same bug the id check above exists
+              // for: a card that says "Done" over a timeline that has not
+              // moved, and a reader whose next act is to believe it.
+              if (!await widget.services.pinNote(action.noteId!)) {
+                throw StateError('the library already has five pinned notes');
+              }
+            } else {
+              await widget.services.unpinNote(action.noteId!);
+            }
+          case AssistantActionKind.title:
+            await widget.services.setTitle(action.noteId!, action.text);
+          case AssistantActionKind.restore:
+            await widget.services.undelete(action.noteId!);
+          case AssistantActionKind.renameTag:
+            await _renameTag(action);
+          case AssistantActionKind.tagColor:
+            await _setTagColor(action);
           case AssistantActionKind.search:
             break;
         }
@@ -652,18 +689,82 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// action that can be half-right — two real ids and one invented.
   ///
   /// A create carries no id and a search is never in this list, so an empty
-  /// set of targets is a legitimate answer of "nothing to check".
+  /// set of note targets is a legitimate answer of "nothing to check". The
+  /// two tag-wide actions name a tag rather than a note and are checked the
+  /// same way lower down, by name: a tag the model invented would otherwise
+  /// be a rename that changed nothing and reported "Done".
+  ///
+  /// A restore is checked against the trash instead, because its target is
+  /// by definition a note `getById` will not return: it is the one action
+  /// whose id being absent from the library is the *reason* for it. Against
+  /// the trash's own page of most-recent deletions, which is what the
+  /// Recently Deleted screen shows and therefore the only notes the model
+  /// could have been told about in the first place.
   Future<bool> _targetsExist(List<AssistantAction> actions) async {
     final targets = <String>{
-      for (final action in actions) ...[
-        if (action.noteId case final id?) id,
-        ...action.noteIds,
-      ],
+      for (final action in actions)
+        if (action.kind != AssistantActionKind.restore) ...[
+          if (action.noteId case final id?) id,
+          ...action.noteIds,
+        ],
     };
     for (final id in targets) {
       if (await widget.services.getById(id) == null) return false;
     }
-    return true;
+    final restoring = <String>{
+      for (final action in actions)
+        if (action.kind == AssistantActionKind.restore)
+          if (action.noteId case final id?) id,
+    };
+    // Tags are named rather than identified, so "there is a tag called
+    // this" is the same question `getById` answers for a note — and a tag
+    // the model invented would otherwise be a rename that changed nothing
+    // and said "Done".
+    final tagNames = <String>{
+      for (final action in actions)
+        if (action.tagName case final name?) name.toLowerCase(),
+    };
+    if (tagNames.isNotEmpty) {
+      final known = {
+        for (final tag in await widget.services.listTags())
+          tag.name.toLowerCase(),
+      };
+      if (!tagNames.every(known.contains)) return false;
+    }
+    if (restoring.isEmpty) return true;
+    final deleted = {
+      for (final note in await widget.services.deletedNotes()) note.id,
+    };
+    return restoring.every(deleted.contains);
+  }
+
+  /// Renames a tag everywhere it is worn, found by the name the model used.
+  ///
+  /// By name because that is all the model ever sees — the notes it is given
+  /// carry tag names, never tag ids — and case-insensitively because "Work"
+  /// and "work" are the same tag to everybody except a string comparison.
+  Future<void> _renameTag(AssistantAction action) async {
+    final tag = await _tagNamed(action.tagName);
+    if (tag == null || action.text == null) return;
+    await widget.services.renameTag(tag.id, action.text!);
+  }
+
+  Future<void> _setTagColor(AssistantAction action) async {
+    final tag = await _tagNamed(action.tagName);
+    if (tag == null) return;
+    // Null is `default` — the colour cleared, which is a thing the picker
+    // can do and so is a thing that can be asked for.
+    await widget.services.setTagColor(tagId: tag.id, color: action.text);
+  }
+
+  Future<Tag?> _tagNamed(String? name) async {
+    if (name == null) return null;
+    final lowered = name.toLowerCase();
+    final tags = await widget.services.listTags();
+    for (final tag in tags) {
+      if (tag.name.toLowerCase() == lowered) return tag;
+    }
+    return null;
   }
 
   /// Opens the assistant's own settings over the chat.
@@ -785,7 +886,89 @@ class _AiChatSheetState extends State<AiChatSheet> {
         if (language != null) {
           await widget.preferences.setAiOutputLanguage(language);
         }
+      // The four sizes the settings screen offers and no others. A free
+      // number would let a model store 4.0 and hand back a phone whose text
+      // does not fit on it — and a size nobody can reach by hand is not a
+      // size this app has.
+      case 'text_size':
+        final scale = switch (value) {
+          'small' => 0.9,
+          'default' || 'normal' || 'medium' => 1.0,
+          'large' => 1.15,
+          'larger' || 'largest' => 1.3,
+          _ => null,
+        };
+        if (scale != null) await widget.preferences.setUiScale(scale);
+      case 'background':
+        for (final pattern in NexBackgroundPattern.values) {
+          if (pattern.wireName != value) continue;
+          await widget.preferences.setBackgroundPattern(pattern);
+          break;
+        }
+      // Already normalised to `#RRGGBB` by the parser, or null for the
+      // shipped accent.
+      case 'accent':
+        if (value == 'default') {
+          await widget.preferences.setAccentSeed(null);
+        } else if (value != null && _hexSeed.hasMatch(value)) {
+          await widget.preferences.setAccentSeed(value.toUpperCase());
+        }
+      case 'comfort_mode':
+        if (_onOff(value) case final on?) {
+          await widget.preferences.setComfortMode(on);
+        }
+      case 'haptics':
+        if (_onOff(value) case final on?) {
+          await widget.preferences.setHaptics(on);
+        }
+      case 'show_greeting':
+        if (_onOff(value) case final on?) {
+          await widget.preferences.setShowGreeting(on);
+        }
+      case 'show_digest':
+        if (_onOff(value) case final on?) {
+          await widget.preferences.setShowDaySummary(on);
+        }
+      case 'show_search':
+        if (_onOff(value) case final on?) {
+          await widget.preferences.setShowSearchField(on);
+        }
+      case 'show_tags':
+        if (_onOff(value) case final on?) {
+          await widget.preferences.setShowTagRow(on);
+        }
+      case 'daily_nudge':
+        if (_onOff(value) case final on?) {
+          await widget.preferences.setDailyNudge(on);
+        }
+      case 'daily_nudge_time':
+        if (_minutesOfDay(value) case final minutes?) {
+          await widget.preferences.setDailyNudgeMinutes(minutes);
+        }
     }
+  }
+
+  /// `#RRGGBB`. Checked here as well as at parse time, for the reason the
+  /// method's own comment gives: the parser guarantees the key, this
+  /// guarantees the value.
+  static final _hexSeed = RegExp(r'^#[0-9a-fA-F]{6}$');
+
+  /// The several words a model reaches for when it means yes or no.
+  static bool? _onOff(String? value) => switch (value) {
+    'on' || 'true' || 'yes' || 'enabled' => true,
+    'off' || 'false' || 'no' || 'disabled' => false,
+    _ => null,
+  };
+
+  /// `HH:MM` as minutes past midnight, or null when it is not a time.
+  static int? _minutesOfDay(String? value) {
+    if (value == null) return null;
+    final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(value.trim());
+    if (match == null) return null;
+    final hour = int.parse(match.group(1)!);
+    final minute = int.parse(match.group(2)!);
+    if (hour > 23 || minute > 59) return null;
+    return hour * 60 + minute;
   }
 
   Future<void> _applyTags(AssistantAction action) async {
@@ -1332,6 +1515,21 @@ class _ActionCard extends StatelessWidget {
         AssistantActionKind.toChecklist => l10n.assistantConfirmChecklist,
         AssistantActionKind.check => l10n.assistantConfirmCheck,
         AssistantActionKind.setting => l10n.assistantConfirmSetting,
+        // Setting one and clearing one are different enough to be worth
+        // different words: "stop reminding me" confirmed with "Set a
+        // reminder?" is a card that says the opposite of what it does.
+        AssistantActionKind.remind => action.at == null
+            ? l10n.assistantConfirmRemindClear
+            : l10n.assistantConfirmRemind,
+        AssistantActionKind.pin => (action.flag ?? true)
+            ? l10n.assistantConfirmPin
+            : l10n.assistantConfirmUnpin,
+        AssistantActionKind.title => action.text == null
+            ? l10n.assistantConfirmTitleClear
+            : l10n.assistantConfirmTitle,
+        AssistantActionKind.restore => l10n.assistantConfirmRestore,
+        AssistantActionKind.renameTag => l10n.assistantConfirmRenameTag,
+        AssistantActionKind.tagColor => l10n.assistantConfirmTagColor,
         // Never shown: a search is carried out on arrival, not confirmed.
         AssistantActionKind.search => '',
       };
@@ -1350,10 +1548,36 @@ class _ActionCard extends StatelessWidget {
     ].join('  '),
     AssistantActionKind.setting =>
       '${action.settingKey} → ${action.settingValue}',
+    // The date, spelled out. A reminder card that did not show *when* would
+    // be asking somebody to approve an alarm they cannot see the time of,
+    // which is the one thing about a reminder that matters.
+    AssistantActionKind.remind => action.at == null
+        ? ''
+        : [
+            _whenLabel(action.at!),
+            if (action.repeat != NoteRepeat.once) '· ${action.repeat.wireName}',
+          ].join(' '),
+    AssistantActionKind.title => action.text ?? '',
+    AssistantActionKind.renameTag => '${action.tagName} → ${action.text}',
+    AssistantActionKind.tagColor =>
+      '${action.tagName} → ${action.text ?? 'default'}',
+    AssistantActionKind.pin ||
+    AssistantActionKind.restore ||
     AssistantActionKind.delete ||
     AssistantActionKind.check ||
     AssistantActionKind.search => '',
   };
+
+  /// A due date as `2026-03-14 09:00`.
+  ///
+  /// Not a relative label ("in two days"), which is what the timeline cards
+  /// use: this is the moment somebody is about to commit to, and "Friday"
+  /// is exactly the word that was ambiguous enough to need confirming.
+  static String _whenLabel(DateTime when) {
+    String two(int value) => value.toString().padLeft(2, '0');
+    return '${when.year}-${two(when.month)}-${two(when.day)} '
+        '${two(when.hour)}:${two(when.minute)}';
+  }
 
   @override
   Widget build(BuildContext context) {
