@@ -497,6 +497,58 @@
     "description": "Confirm button on the edit and caption dialogs"
   },
   "editNote": "Edit note",
+  "editorFullScreen": "Full screen",
+  "@editorFullScreen": {
+      "description": "Tooltip of the editor button that grows the sheet to fill the screen"
+  },
+  "editorSmaller": "Smaller",
+  "@editorSmaller": {
+      "description": "Tooltip of the editor button that shrinks the full-screen editor back to a sheet"
+  },
+  "aiEditTools": "Edit with AI",
+  "@aiEditTools": {
+      "description": "Heading above the row of AI editing actions"
+  },
+  "aiEditAutoStyle": "Auto style",
+  "@aiEditAutoStyle": {
+      "description": "AI action that adds headings and bold without changing the words"
+  },
+  "aiEditFix": "Fix writing",
+  "@aiEditFix": {
+      "description": "AI action that corrects spelling, grammar and punctuation only"
+  },
+  "aiEditFormal": "Formal",
+  "@aiEditFormal": {
+      "description": "AI action that rewrites the note formally"
+  },
+  "aiEditFriendly": "Friendly",
+  "@aiEditFriendly": {
+      "description": "AI action that rewrites the note warmly and plainly"
+  },
+  "aiEditConcise": "Shorter",
+  "@aiEditConcise": {
+      "description": "AI action that rewrites the note in fewer words"
+  },
+  "aiEditSimple": "Plain",
+  "@aiEditSimple": {
+      "description": "AI action that rewrites the note in plain language"
+  },
+  "aiEditApplied": "Edited by AI",
+  "@aiEditApplied": {
+      "description": "Label of the bar offering to undo an AI edit"
+  },
+  "aiEditUndo": "Undo",
+  "@aiEditUndo": {
+      "description": "Button that puts the text back the way it was before the AI edit"
+  },
+  "aiEditFailed": "That edit did not come back. Your text is unchanged.",
+  "@aiEditFailed": {
+      "description": "Banner shown when an AI edit fails"
+  },
+  "aiEditUnchanged": "Nothing to change — it already reads well.",
+  "@aiEditUnchanged": {
+      "description": "Banner shown when an AI edit returns the same text"
+  },
   "@editNote": {
     "description": "Title of the edit-note dialog"
   },

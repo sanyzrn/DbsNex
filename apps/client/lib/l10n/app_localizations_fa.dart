@@ -821,6 +821,45 @@ class AppLocalizationsFa extends AppLocalizations {
   String get editNote => 'ویرایش یادداشت';
 
   @override
+  String get editorFullScreen => 'تمام‌صفحه';
+
+  @override
+  String get editorSmaller => 'کوچک‌تر';
+
+  @override
+  String get aiEditTools => 'ویرایش با هوش مصنوعی';
+
+  @override
+  String get aiEditAutoStyle => 'استایل خودکار';
+
+  @override
+  String get aiEditFix => 'اصلاح نگارش';
+
+  @override
+  String get aiEditFormal => 'رسمی';
+
+  @override
+  String get aiEditFriendly => 'صمیمی';
+
+  @override
+  String get aiEditConcise => 'کوتاه‌تر';
+
+  @override
+  String get aiEditSimple => 'ساده';
+
+  @override
+  String get aiEditApplied => 'ویرایش‌شده با هوش مصنوعی';
+
+  @override
+  String get aiEditUndo => 'بازگرداندن';
+
+  @override
+  String get aiEditFailed => 'آن ویرایش برنگشت. متن شما دست‌نخورده است.';
+
+  @override
+  String get aiEditUnchanged => 'چیزی برای تغییر نبود — همین‌طور خوب است.';
+
+  @override
   String get caption => 'شرح';
 
   @override

@@ -25,10 +25,10 @@ import '../platform/pdf_preview.dart';
 import '../platform/reminders.dart';
 import '../platform/video_preview.dart';
 import '../widgets/checklist_capture_sheet.dart';
+import '../widgets/note_editor_sheet.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/tag_picker.dart';
-import '../widgets/text_format_menu.dart';
 import '../widgets/translate_sheet.dart';
 
 /// What the sheet reports back when it closes.
@@ -337,53 +337,21 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   /// Editing a text note in place. `updateNote` existed on every layer down to
   /// the repository, but no screen ever called it — a captured note could not
   /// be corrected after the fact.
+  ///
+  /// The editor itself is [NoteEditorSheet]: a sheet that can fill the screen,
+  /// with the AI edits on it when there is a model to ask. It was an
+  /// `AlertDialog` with three lines in it, which is the shape a question has
+  /// rather than the shape of somebody's writing.
   Future<void> _editContent() async {
     final note = _note;
+    final preferences = widget.preferences;
     if (note == null || note.type != NoteType.text) return;
-    final l10n = AppLocalizations.of(context);
-    final controller = TextEditingController(text: note.content ?? '');
-    final value = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.editNote),
-        content: NexDialogBody(
-          // Persian content in an English-locale app used to render
-          // left-aligned: the field followed the ambient (LTR) Directionality
-          // rather than the script actually typed into it. Re-evaluated on
-          // every keystroke, the same way the capture box already does.
-          child: StatefulBuilder(
-            builder: (context, setDialogState) => TextField(
-              controller: controller,
-              autofocus: true,
-              maxLines: null,
-              minLines: 3,
-              keyboardType: TextInputType.multiline,
-              textDirection: nexDirectionOf(controller.text),
-              textAlign: TextAlign.start,
-              // See the same field in capture_sheet.dart: BoxWidthStyle.max
-              // (the default) paints a double-tap word selection out to the
-              // end of the line on Persian text.
-              selectionWidthStyle: BoxWidthStyle.tight,
-              // The same selection menu the capture sheet has: a note is
-              // formatted where it is written, and it is written in both.
-              contextMenuBuilder: nexFormatContextMenuBuilder(context),
-              onChanged: (_) => setDialogState(() {}),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
+    if (preferences == null) return;
+    final value = await NoteEditorSheet.show(
+      context,
+      initial: note.content ?? '',
+      preferences: preferences,
     );
-    controller.dispose();
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty || trimmed == note.content) return;
     await widget.services.updateNote(note.id, trimmed);
@@ -1102,7 +1070,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         label: l10n.copy,
                         onPressed: _copyText,
                       ),
-                      if (isText)
+                      // The editor needs the preferences it reads the AI
+                      // settings off. Everywhere a note is opened from has
+                      // them; a caller without them keeps the note readable
+                      // rather than offering a button that cannot open.
+                      if (isText && widget.preferences != null)
                         _DetailAction(
                           icon: Icons.edit_outlined,
                           label: l10n.edit,

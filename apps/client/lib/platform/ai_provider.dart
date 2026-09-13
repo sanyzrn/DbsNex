@@ -967,6 +967,32 @@ class CloudAIAdapter implements AIAdapter {
     return _notGarbled(translated);
   }
 
+  /// One note, edited — the whole of it in, the whole of it back.
+  ///
+  /// What each style means and what it is forbidden from doing lives in
+  /// [NexRewriteStyle]; this is only the call. Null on anything that is not an
+  /// answer, the same as every other request here: the editor keeps what the
+  /// person had and says the rewrite did not happen.
+  ///
+  /// The token ceiling is generous in both directions. A rewrite is roughly
+  /// the length of its source, and a ceiling that clips one ends mid-sentence
+  /// in somebody's note — which is worse than no answer, because it looks like
+  /// an answer.
+  Future<String?> rewrite(String text, {required NexRewriteStyle style}) async {
+    final source = text.trim();
+    if (!canAnswerText || source.isEmpty) return null;
+    final reply = await _complete(
+      style.prompt,
+      source,
+      maxTokens: math.min(4000, 300 + source.length),
+      // A person is watching this one and waiting on it, so it gets the full
+      // budget rather than the ambient one.
+    );
+    final edited = reply?.trim();
+    if (edited == null || edited.isEmpty) return null;
+    return _notGarbled(edited);
+  }
+
   /// A real multi-turn exchange, normalised across all three wire shapes.
   ///
   /// Not built on [_complete]: that takes exactly one user turn, which is the

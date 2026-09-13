@@ -1520,6 +1520,84 @@ abstract class AppLocalizations {
   /// **'Edit note'**
   String get editNote;
 
+  /// Tooltip of the editor button that grows the sheet to fill the screen
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get editorFullScreen;
+
+  /// Tooltip of the editor button that shrinks the full-screen editor back to a sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Smaller'**
+  String get editorSmaller;
+
+  /// Heading above the row of AI editing actions
+  ///
+  /// In en, this message translates to:
+  /// **'Edit with AI'**
+  String get aiEditTools;
+
+  /// AI action that adds headings and bold without changing the words
+  ///
+  /// In en, this message translates to:
+  /// **'Auto style'**
+  String get aiEditAutoStyle;
+
+  /// AI action that corrects spelling, grammar and punctuation only
+  ///
+  /// In en, this message translates to:
+  /// **'Fix writing'**
+  String get aiEditFix;
+
+  /// AI action that rewrites the note formally
+  ///
+  /// In en, this message translates to:
+  /// **'Formal'**
+  String get aiEditFormal;
+
+  /// AI action that rewrites the note warmly and plainly
+  ///
+  /// In en, this message translates to:
+  /// **'Friendly'**
+  String get aiEditFriendly;
+
+  /// AI action that rewrites the note in fewer words
+  ///
+  /// In en, this message translates to:
+  /// **'Shorter'**
+  String get aiEditConcise;
+
+  /// AI action that rewrites the note in plain language
+  ///
+  /// In en, this message translates to:
+  /// **'Plain'**
+  String get aiEditSimple;
+
+  /// Label of the bar offering to undo an AI edit
+  ///
+  /// In en, this message translates to:
+  /// **'Edited by AI'**
+  String get aiEditApplied;
+
+  /// Button that puts the text back the way it was before the AI edit
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get aiEditUndo;
+
+  /// Banner shown when an AI edit fails
+  ///
+  /// In en, this message translates to:
+  /// **'That edit did not come back. Your text is unchanged.'**
+  String get aiEditFailed;
+
+  /// Banner shown when an AI edit returns the same text
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to change — it already reads well.'**
+  String get aiEditUnchanged;
+
   /// Caption section heading in the detail sheet
   ///
   /// In en, this message translates to:

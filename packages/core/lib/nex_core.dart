@@ -55,6 +55,7 @@ export 'ai/enrichment_service.dart';
 export 'ai/import/context_import_draft.dart';
 export 'ai/on_device_ai_adapter.dart';
 export 'ai/recap_source.dart';
+export 'ai/rewrite_style.dart';
 export 'ai/tools/nex_tool_registry.dart';
 export 'ai/tools/tool_call.dart';
 export 'ai/tools/tool_definition.dart';
