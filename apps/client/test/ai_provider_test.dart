@@ -316,6 +316,61 @@ void main() {
       expect(AiProvider.none.hearsAudio, isFalse);
     });
 
+    test('a provider only claims embeddings it can actually serve', () {
+      // Same rule as `hearsAudio` directly above, which was already applied
+      // to OpenRouter and not to this: unavailable beats a wrong answer.
+      // `_embed` asks one specific OpenAI embedding model for by name, and
+      // nothing makes that model reachable through a chat-completions
+      // router — so claiming it turned "semantic search is not offered here"
+      // into "semantic search is broken here", which is the FR-8b.4 failure.
+      expect(AiProvider.openrouter.embeds, isFalse);
+      expect(AiProvider.anthropic.embeds, isFalse);
+      expect(AiProvider.none.embeds, isFalse);
+
+      expect(AiProvider.openai.embeds, isTrue);
+      expect(AiProvider.gemini.embeds, isTrue);
+      // The user picked this endpoint and declared it OpenAI-shaped. The app
+      // has no way to know better than they do.
+      expect(AiProvider.custom.embeds, isTrue);
+    });
+
+    test('the embedding model is one value, not two literals', () {
+      // The fingerprint that decides whether stored vectors are still
+      // comparable is built from this, and the request sends it. If they
+      // could ever disagree, the library would keep vectors it believes are
+      // from a model that did not make them.
+      expect(
+        const AiProviderConfig(
+          provider: AiProvider.gemini,
+          apiKey: 'k',
+        ).embeddingModel,
+        'text-embedding-004',
+      );
+      expect(
+        const AiProviderConfig(
+          provider: AiProvider.openai,
+          apiKey: 'k',
+        ).embeddingModel,
+        'text-embedding-3-small',
+      );
+      // Endpoint as well as model: the same provider and the same model name
+      // behind a different host is not a promise of the same vectors. Two
+      // customs, so the endpoint is the only thing that differs and the
+      // assertion cannot pass on the provider name alone.
+      const here = AiProviderConfig(
+        provider: AiProvider.custom,
+        apiKey: 'k',
+        baseUrl: 'https://one.example/v1',
+      );
+      const there = AiProviderConfig(
+        provider: AiProvider.custom,
+        apiKey: 'k',
+        baseUrl: 'https://two.example/v1',
+      );
+      expect(here.embeddingModel, there.embeddingModel, reason: 'same model');
+      expect(here.embeddingSpace, isNot(there.embeddingSpace));
+    });
+
     test('a media note with no derived text is not sent anywhere', () {
       var called = false;
       final now = DateTime.now().toUtc();

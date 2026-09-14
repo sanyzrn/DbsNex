@@ -139,6 +139,24 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                   ),
                 ),
               ),
+              // Both fields above go to the provider in every chat system
+              // prompt, which is what makes them work and is not obvious from
+              // looking at them. The name under Settings > profile genuinely
+              // never leaves the device (FR-9.2), and the docs say so in
+              // words broad enough to be read as covering these two as well —
+              // so the difference gets said here, where the typing happens.
+              Padding(
+                padding: const EdgeInsetsDirectional.only(
+                  start: NexSpacing.sm,
+                  top: NexSpacing.xs,
+                ),
+                child: Text(
+                  l10n.assistantAboutYouNote,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             ],
           ),
           _Group(

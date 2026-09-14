@@ -20,6 +20,7 @@
   "@groupDeleted": {"placeholders": {"count": {"type": "int"}}},
   "assistantVoiceGroup": "چطور حرف بزند",
   "assistantReachGroup": "چه چیزی را می‌بیند",
+  "assistantAboutYouNote": "همراه پیام‌هایت برای پرووایدری که انتخاب کرده‌ای فرستاده می‌شود.",
   "assistantAboutYouGroup": "دربارهٔ شما",
   "assistantProfileIntro": "کمی از خودتان به دستیار بگویید و بعد لحنی را انتخاب کنید که برایتان مناسب است. این اطلاعات فقط همراه سؤال‌های دستیار فرستاده می‌شوند.",
   "assistantCallMe": "شما را چه صدا کند؟",

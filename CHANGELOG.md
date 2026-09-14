@@ -47,6 +47,16 @@ Working convention:
   that means nothing. They are now thrown away and rebuilt when the provider
   or the endpoint changes.
 
+- **OpenRouter no longer offers search by meaning that it cannot do.** It was
+  listed as supporting it and then failed when you searched. It now says so up
+  front, in the same place every other capability is listed.
+
+- **The assistant's "About you" says where it goes.** The name and
+  introduction you give the assistant are sent with your messages — that is
+  what makes them work — but nothing on the panel said so, and the name under
+  your profile genuinely never leaves the device. One line now tells the two
+  apart.
+
 ## v1.11.0
 
 - **Nex now holds the things that come back round.** The insurance every year,

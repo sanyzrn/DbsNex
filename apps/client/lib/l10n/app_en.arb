@@ -20,6 +20,10 @@
   "@groupDeleted": {"placeholders": {"count": {"type": "int"}}},
   "assistantVoiceGroup": "How it talks",
   "assistantReachGroup": "What it can see",
+  "assistantAboutYouNote": "Included with your messages to the provider you choose.",
+  "@assistantAboutYouNote": {
+    "description": "Says that the assistant's name and introduction reach the AI provider"
+  },
   "assistantAboutYouGroup": "About you",
   "assistantProfileIntro": "Give the assistant a little context about you, then choose the voice that feels right. These details are sent only with assistant questions.",
   "assistantCallMe": "What should it call you?",

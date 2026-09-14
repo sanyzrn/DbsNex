@@ -204,6 +204,12 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'About you'**
+  /// Says that the assistant's name and introduction reach the AI provider
+  ///
+  /// In en, this message translates to:
+  /// **'Included with your messages to the provider you choose.'**
+  String get assistantAboutYouNote;
+
   String get assistantAboutYouGroup;
 
   /// No description provided for @assistantProfileIntro.

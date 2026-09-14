@@ -524,7 +524,6 @@ class NexDbWorker implements NexDb {
   /* ------------------------------------------------------ backup / export */
 
   @override
-  @override
   Future<void> setDueAt(
     String noteId,
     DateTime? when, {

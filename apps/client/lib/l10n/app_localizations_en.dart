@@ -66,6 +66,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantReachGroup => 'What it can see';
 
   @override
+  @override
+  String get assistantAboutYouNote => 'Included with your messages to the provider you choose.';
+
   String get assistantAboutYouGroup => 'About you';
 
   @override

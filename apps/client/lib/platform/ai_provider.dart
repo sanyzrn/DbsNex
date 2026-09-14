@@ -85,9 +85,19 @@ extension AiProviderWire on AiProvider {
   bool get hearsAudio => this == AiProvider.gemini || this == AiProvider.openai;
 
   /// Whether embeddings are available, for semantic search.
+  ///
+  /// OpenRouter is deliberately not on this list, by the same rule
+  /// [hearsAudio] states one line up: unavailable beats a wrong answer. It
+  /// routes chat completions across many models, and `_embed` asks for one
+  /// specific OpenAI embedding model by name — nothing makes that model
+  /// reachable through the router. Claiming the capability turned that into
+  /// a request that fails when somebody searches, rather than a feature that
+  /// says up front it is not offered here, which is what FR-8b.4 asks for.
+  ///
+  /// Custom stays: its endpoint is one the user chose and declared
+  /// OpenAI-shaped, and the app has no way to know better than they do.
   bool get embeds =>
       this == AiProvider.openai ||
-      this == AiProvider.openrouter ||
       this == AiProvider.custom ||
       this == AiProvider.gemini;
 
