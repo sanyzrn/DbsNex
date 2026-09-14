@@ -902,6 +902,42 @@ ON CONFLICT(note_id) DO UPDATE SET
     );
   }
 
+  /// Which model's vector space the stored embeddings belong to.
+  ///
+  /// A fingerprint rather than the model name alone, because the space is
+  /// decided by the endpoint as well: the same model name behind a different
+  /// base URL is not a promise of the same vectors.
+  ///
+  /// Null when nothing has ever been embedded, which is not the same as a
+  /// space that does not match — the first write simply records one.
+  String? get embeddingSpace {
+    final rows = db.select(
+      "SELECT value FROM nex_meta WHERE key = 'embedding_space'",
+    );
+    return rows.isEmpty ? null : rows.first['value'] as String?;
+  }
+
+  /// Records the space and, when it has changed, throws the old vectors away.
+  ///
+  /// Throwing them away is the whole point and is not a loss worth avoiding:
+  /// an embedding is derived, re-derivable, and the backfill re-embeds every
+  /// note that has no vector. Keeping them would mean scoring one model's
+  /// vectors against another's, which `_cosine` will happily do and get
+  /// confidently wrong.
+  ///
+  /// Returns true when the vectors were cleared, so the caller can say so.
+  bool setEmbeddingSpace(String fingerprint) {
+    final current = embeddingSpace;
+    if (current == fingerprint) return false;
+    if (current != null) db.execute('DELETE FROM note_embeddings');
+    db.execute(
+      "INSERT OR REPLACE INTO nex_meta (key, value) "
+      "VALUES ('embedding_space', ?)",
+      [fingerprint],
+    );
+    return current != null;
+  }
+
   @override
   List<double>? getEmbedding(String noteId) {
     final rows = db.select(

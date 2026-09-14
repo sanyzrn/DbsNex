@@ -40,6 +40,13 @@ Working convention:
   queued behind it before it reached the disk. Capture and the timeline now go
   straight past that work instead of lining up behind it.
 
+- **Changing your AI provider no longer poisons search by meaning.** The
+  vectors Nex builds to find notes by meaning only make sense to the model
+  that made them. Switching provider left the old ones in place and compared
+  them against the new model's — which produces a confident similarity score
+  that means nothing. They are now thrown away and rebuilt when the provider
+  or the endpoint changes.
+
 ## v1.11.0
 
 - **Nex now holds the things that come back round.** The insurance every year,

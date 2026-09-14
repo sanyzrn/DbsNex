@@ -979,6 +979,20 @@ class NexDbWorker implements NexDb {
                   )
                 : const OnDeviceAIAdapter(),
           );
+          // A vector is only comparable to vectors from the same model and
+          // the same endpoint. Swap either and every stored embedding becomes
+          // a number from a different space — which `_cosine` will still
+          // score, truncating to the shorter of the two, and hand back a
+          // confident similarity that means nothing. Equal dimensions are the
+          // dangerous case, because nothing about the result looks wrong.
+          //
+          // Only when the new provider can actually embed. Turning AI off
+          // makes the config unusable, and that must not be read as a change
+          // of space: switching off and on again would otherwise throw away
+          // every vector in the library for nothing.
+          if (config.isUsable && config.provider.embeds) {
+            repo.setEmbeddingSpace(config.embeddingSpace);
+          }
         }),
         _DbCommand.sync => await () async {
           final client = SyncClient(
