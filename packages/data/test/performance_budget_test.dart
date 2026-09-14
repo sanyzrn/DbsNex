@@ -5,29 +5,35 @@ import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-/// The two engineering budgets from `02-product-specification.md` that can
-/// honestly be gated on a shared CI runner.
+/// The engineering budgets from `02-product-specification.md`, at the sizes
+/// the app is actually used at.
 ///
-/// The document named four and said all four were "enforced in CI". None of
-/// them was: no job in the pipeline timed anything. Two of the four are now
-/// enforced here, and the other two — cold start, and the capture sheet
-/// reaching a typable state — have been rewritten as usability-validated
-/// targets, because measuring them needs a real device and a shared runner
-/// would be timing the runner rather than the app. A gate that goes red at
-/// random teaches people to re-run it, which is worse than no gate.
+/// **These are not the first.** `apps/client/test/app_smoke_test.dart` has
+/// carried a search budget (1 000 notes, 200 ms) and a durable-write budget
+/// (300 ms) for some time. A review of this repository reported the budgets
+/// as entirely unenforced, having grepped the workflow files for a job named
+/// after them — and the engineer verifying that claim repeated the same grep
+/// and agreed. There is no such job; the tests are ordinary tests inside the
+/// suites CI already runs. Both readings were wrong in the same way, which is
+/// why the doc now says where to look.
 ///
-/// **Why these two can be gated honestly.** Both are pure Dart against a
-/// local SQLite file: no Flutter, no emulator, no network. And both have
-/// roughly two orders of magnitude of headroom — a synchronous SQLite insert
-/// is well under a millisecond against a 300 ms budget — so the thresholds
-/// catch an algorithmic regression (a lost index, a full-table scan, a write
-/// moved off the fast path) without being sensitive to how loaded the
-/// machine is.
+/// What this file adds is size and stability:
 ///
-/// The runs take the **best** of several rather than an average, deliberately.
-/// The question is what the code costs, and a scheduling hiccup on a shared
-/// runner is not that. A regression makes every run slow, so the best one
-/// moves too.
+/// - the durable-write budget on a **full library**. The existing one writes
+///   into an empty database, so an index dropped or a trigger rewriting more
+///   than it needs would not show there — and that is the shape a capture
+///   regression actually takes.
+/// - **best-of-N instead of a single run.** One stopwatch reading on a shared
+///   runner is one sample of a machine somebody else is also using. A real
+///   regression makes every run slow, so the best one moves too; a
+///   scheduling hiccup does not.
+/// - pure Dart, so these run in the Flutter-free job as well.
+///
+/// The two budgets that are *not* here — cold start, and the capture sheet
+/// reaching a typable state — are device-bound. Timing them on a shared
+/// runner measures the runner, and a gate that reddens at random teaches
+/// people to re-run it, which is worse than no gate. They are validated by
+/// usability testing, and the spec says so.
 void main() {
   late Directory tmp;
   late NexDatabase db;

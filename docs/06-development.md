@@ -153,7 +153,7 @@ Testing effort is weighted toward the parts of the system where a regression mos
 | UI components | Render, tap, assert state; accessibility, keyboard, reduced-motion | Medium |
 | Performance | Automated timing assertions on capture-to-save and query-to-result | High — regressions here are regressions of the core value proposition, gated in CI |
 
-CI gates on: unit + integration test suites, the two measurable performance budgets (write durability and search latency — see `packages/data/test/performance_budget_test.dart`), and lint/type-check passing. No feature merges if it regresses either. The two device-bound budgets — cold start and capture-sheet readiness — are validated by usability testing rather than gated, for the reason [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements) gives.
+CI gates on: unit + integration test suites, the two measurable performance budgets (write durability and search latency — in `app_smoke_test.dart` and `packages/data/test/performance_budget_test.dart`), and lint/type-check passing. No feature merges if it regresses either. They are ordinary tests rather than a job of their own, so grepping the workflow files for them finds nothing; look in the suites. The two device-bound budgets — cold start and capture-sheet readiness — are validated by usability testing rather than gated, for the reason [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements) gives.
 
 ---
 

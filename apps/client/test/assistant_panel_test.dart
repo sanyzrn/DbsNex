@@ -19,6 +19,15 @@ void main() {
   });
 
   testWidgets('the panel opens over the chat and lays out', (tester) async {
+    // The same tall viewport its sibling below already uses, and for the same
+    // reason: the panel is a lazy `ListView`, so a group past the fold is not
+    // built at all and `find.text` cannot see it. At the default 800x600 this
+    // test was really asserting "the panel is short enough", which is not
+    // what it is for — one line of helper text added to the first group was
+    // enough to push the last group out and fail it.
+    tester.view.physicalSize = const Size(800, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('en'),

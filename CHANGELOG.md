@@ -57,12 +57,12 @@ Working convention:
   your profile genuinely never leaves the device. One line now tells the two
   apart.
 
-- **Two of the speed promises are now actually checked on every change.** The
-  docs said the capture and search budgets were enforced automatically. They
-  were not — nothing measured anything. Writing a note and searching the
-  library are now both timed against their stated limits on every change,
-  including against a two-thousand-note library. The two that need a real
-  phone to measure honestly are described as what they are instead.
+- **The speed promises are checked at a realistic size now.** Writing a note
+  and searching were already timed against their limits on every change;
+  writing is now also timed against a two-thousand-note library, which is
+  where a slowdown would actually show. The two promises that need a real
+  phone to measure honestly are described as what they are instead of being
+  listed as if a machine checked them.
 
 ## v1.11.0
 

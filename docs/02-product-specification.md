@@ -186,13 +186,15 @@ Nex is a cross-platform capture application built around a single timeline of no
 There are two distinct kinds of performance requirement in this document, and they are deliberately not conflated (see [ADR-017](./10-decisions.md#adr-017--separate-user-facing-goals-from-engineering-performance-budgets)):
 
 - **User-facing goals** describe what the product promises to a person and are validated through usability testing.
-- **Engineering performance budgets** are stricter, machine-measurable numbers, chosen so that real-world variance (device speed, note volume) still lands comfortably inside the user-facing goal. Two of them are enforced in CI; two are not, and the table says which. The split is not laziness — it is what can be measured honestly on a shared runner. A local SQLite write and an FTS query are pure Dart with two orders of magnitude of headroom, so a threshold catches an algorithmic regression without being sensitive to how loaded the machine is. Cold start and the capture sheet reaching a typable state need a real device; timing them on a shared CI runner measures the runner, and a gate that goes red at random teaches people to re-run it, which is worse than no gate.
+- **Engineering performance budgets** are stricter, machine-measurable numbers, chosen so that real-world variance (device speed, note volume) still lands comfortably inside the user-facing goal. Two of them are enforced by tests CI runs on every change; two are not, and the table says which. The split is what can be measured honestly on a shared runner. A local SQLite write and an FTS query are pure Dart with two orders of magnitude of headroom, so a threshold catches an algorithmic regression without being sensitive to how loaded the machine is. Cold start and the capture sheet reaching a typable state need a real device; timing them on a shared CI runner measures the runner, and a gate that goes red at random teaches people to re-run it, which is worse than no gate.
 
 | Category | User-facing goal | Engineering budget | Enforced |
 |---|---|---|---|
-| **Capture** | Feels instant; < 3 s app-open to stored note | Local write durable within 300 ms of content change | **CI** — `packages/data/test/performance_budget_test.dart`, on an empty library and on a 2 000-note one |
+| **Capture** | Feels instant; < 3 s app-open to stored note | Local write durable within 300 ms of content change | **Tests, run by CI** — `app_smoke_test.dart` ("Durable write budget"), and `packages/data/test/performance_budget_test.dart` for the same write into a 2 000-note library |
 | **Capture** | — | Cold start to capture-ready < 1.5 s; capture flow start-to-content-ready < 1 s | Usability testing on a real device |
-| **Search / Find** | Feels instant; < 3 s to locate a note | Local query latency < 200 ms, index-backed (FTS5), regardless of corpus size at personal scale | **CI** — same file, over a 2 001-note corpus |
+| **Search / Find** | Feels instant; < 3 s to locate a note | Local query latency < 200 ms, index-backed (FTS5), regardless of corpus size at personal scale | **Tests, run by CI** — `app_smoke_test.dart` ("Search budget", 1 000 notes) and `performance_budget_test.dart` (2 001 notes) |
+
+There is no CI *job* named for these, which is why they are easy to look for and miss — they are ordinary tests inside the suites the client and data jobs already run. A review of this repository concluded the budgets were unenforced by grepping the workflow files, and so did the engineer checking that claim; both were wrong in the same way.
 
 | Category | Requirement |
 |---|---|

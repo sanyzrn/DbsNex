@@ -98,7 +98,7 @@ The capture path never touches the network. The sync engine observes local chang
 
 ### Search
 
-Search executes entirely against the local store. Text notes are indexed at write time (SQLite FTS5) so query latency stays flat regardless of corpus size at personal-use volumes — this is the engineering budget behind the user-facing "find instantly" promise, gated in CI by `packages/data/test/performance_budget_test.dart` (see [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements)).
+Search executes entirely against the local store. Text notes are indexed at write time (SQLite FTS5) so query latency stays flat regardless of corpus size at personal-use volumes — this is the engineering budget behind the user-facing "find instantly" promise, gated by tests CI runs on every change — `app_smoke_test.dart` and `packages/data/test/performance_budget_test.dart` (see [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements)).
 
 ```mermaid
 sequenceDiagram
