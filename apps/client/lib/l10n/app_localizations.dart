@@ -2672,6 +2672,12 @@ abstract class AppLocalizations {
   /// **'Model'**
   String get model;
 
+  /// That a weak cloud model gives weak results
+  ///
+  /// In en, this message translates to:
+  /// **'The model named here is what does the thinking, so it decides how good the results are. A small or cheap model summarises poorly and follows instructions loosely — pick one of the provider\'s capable models.'**
+  String get modelChoiceHint;
+
   /// Button that verifies the configuration
   ///
   /// In en, this message translates to:
@@ -3193,6 +3199,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nex can run a language model on this phone, so chat works with no internet and nothing you type leaves the device. It is a large download and it stays on your phone until you remove it.'**
   String get localModelExplained;
+
+  /// That the on-device model's speed depends on the phone
+  ///
+  /// In en, this message translates to:
+  /// **'It runs on this phone\'s own processor, so how well it works depends on the phone. On an older or slower device the replies come slowly, and on one short of memory the model may not start at all.'**
+  String get localModelDeviceCaveat;
 
   /// Button that starts the model download
   ///

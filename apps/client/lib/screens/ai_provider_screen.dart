@@ -291,6 +291,23 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               ),
               onChanged: (_) => setState(() => _result = null),
             ),
+            const SizedBox(height: NexSpacing.sm),
+            // Under the field, because this is the field it is about. Every
+            // provider here sells models across an order of magnitude of
+            // capability at the same endpoint, and the cheap end genuinely
+            // cannot do what Nex asks of it — a summary is a judgement, and a
+            // tool call is an instruction followed exactly. A key that
+            // connects and then answers badly is the hardest kind of setup to
+            // debug from the outside, so the choice is named here rather than
+            // left to whichever id the person had to hand.
+            Text(
+              l10n.modelChoiceHint,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textDirection: nexDirectionOf(l10n.modelChoiceHint),
+              textAlign: TextAlign.start,
+            ),
           ],
           if (_result != null) ...[
             const SizedBox(height: NexSpacing.lg),

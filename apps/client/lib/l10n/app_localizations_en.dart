@@ -1520,6 +1520,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get model => 'Model';
 
   @override
+  String get modelChoiceHint =>
+      'The model named here is what does the thinking, so it decides how good the results are. A small or cheap model summarises poorly and follows instructions loosely — pick one of the provider\'s capable models.';
+
+  @override
   String get testConnection => 'Test connection';
 
   @override
@@ -1821,6 +1825,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get localModelExplained =>
       'Nex can run a language model on this phone, so chat works with no internet and nothing you type leaves the device. It is a large download and it stays on your phone until you remove it.';
+
+  @override
+  String get localModelDeviceCaveat =>
+      'It runs on this phone\'s own processor, so how well it works depends on the phone. On an older or slower device the replies come slowly, and on one short of memory the model may not start at all.';
 
   @override
   String localModelDownload(String size) {

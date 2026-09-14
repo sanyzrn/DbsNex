@@ -78,6 +78,29 @@ Working convention:
   turn up — now has a button that opens the list directly. Settings still has
   it too.
 
+- **Selecting text works properly again.** Dragging a selection handle in the
+  note editor, the caption box or the assistant's message box fought back: the
+  field was being rebuilt underneath the drag, several times a second, because
+  it was watching the whole text box rather than the one thing it needed. Every
+  writing box in Nex now also runs in the direction of what is typed into it —
+  the words, the hint and the selection handles all on the same side, instead
+  of the text turning one way and its handles the other.
+
+- **A brief in two languages reads in two languages.** A smart brief that
+  mentions a Persian note and an English one was aligned all one way, by
+  whichever language its first line happened to be in. Each line now sits the
+  way that line is written.
+
+- **The on-device model says what it needs from your phone.** It runs on the
+  phone's own processor, so a slower or older device answers slowly and one
+  short of memory may not start it at all. That is now said before the download
+  rather than discovered after it.
+
+- **Choosing a cloud model comes with a word of advice.** The model you name is
+  what does the work, and a small or cheap one summarises poorly and follows
+  instructions loosely. The setup screen now says so, under the field it is
+  about.
+
 ## v1.11.0
 
 - **Nex now holds the things that come back round.** The insurance every year,

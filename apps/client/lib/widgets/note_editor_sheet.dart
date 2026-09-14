@@ -84,6 +84,7 @@ class _NoteEditorSheetState extends State<NoteEditorSheet> {
   @override
   void initState() {
     super.initState();
+    _lastText = _text.text;
     _text.addListener(_onChanged);
   }
 
@@ -94,9 +95,26 @@ class _NoteEditorSheetState extends State<NoteEditorSheet> {
     super.dispose();
   }
 
-  /// Only the things the chrome shows: whether Save is allowed, and which way
-  /// the text runs.
-  void _onChanged() => setState(() {});
+  /// The text as the chrome below last saw it.
+  ///
+  /// A `TextEditingController` notifies its listeners when the **selection**
+  /// moves as well as when the text does, and this listener rebuilt the whole
+  /// sheet on every one of them. Dragging a selection handle is a stream of
+  /// selection changes, so the field was being rebuilt underneath the drag,
+  /// frame after frame — which is what made selecting text in here feel like
+  /// it was fighting back, in both languages.
+  ///
+  /// Nothing the rebuild is for depends on the selection: it is whether Save
+  /// is allowed, and whether there is anything for the AI actions to work on.
+  /// So the text is what is watched.
+  String _lastText = '';
+
+  /// Only the things the chrome shows: whether Save is allowed, and whether
+  /// there is text to rewrite. Direction is [NexAutoDirection]'s job now.
+  void _onChanged() {
+    if (_text.text == _lastText) return;
+    setState(() => _lastText = _text.text);
+  }
 
   bool get _aiAvailable =>
       widget.preferences.aiEnabled &&
@@ -172,33 +190,38 @@ class _NoteEditorSheetState extends State<NoteEditorSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final field = TextField(
+    final field = NexAutoDirection(
       controller: _text,
-      autofocus: true,
       // Persian content in an English-locale app used to render left-aligned:
       // the field followed the ambient (LTR) Directionality rather than the
-      // script actually typed into it. Re-evaluated on every keystroke, the
-      // same way the capture box does.
-      textDirection: nexDirectionOf(_text.text),
-      textAlign: TextAlign.start,
-      textAlignVertical: TextAlignVertical.top,
-      keyboardType: TextInputType.multiline,
-      // Expanded, the field fills what it is given and scrolls inside it;
-      // collapsed, it grows with the text up to the box below.
-      expands: _expanded,
-      maxLines: null,
-      minLines: _expanded ? null : 3,
-      // See the same field in capture_sheet.dart: BoxWidthStyle.max (the
-      // default) paints a double-tap word selection out to the end of the
-      // line on Persian text.
-      selectionWidthStyle: BoxWidthStyle.tight,
-      // The same selection menu the capture sheet has: a note is formatted
-      // where it is written, and it is written in both.
-      contextMenuBuilder: nexFormatContextMenuBuilder(context),
-      // Read-only while a model is holding it. Not disabled — the text stays
-      // selectable and the same colour, because it is still the note.
-      readOnly: _running != null,
-      decoration: const InputDecoration(border: InputBorder.none),
+      // script actually typed into it. [NexAutoDirection] supplies a
+      // `Directionality` rather than only the argument below, so the
+      // selection handles and the context menu agree with the paragraph they
+      // are attached to — see its own doc for why that was the painful half.
+      builder: (context, direction) => TextField(
+        controller: _text,
+        autofocus: true,
+        textDirection: direction,
+        textAlign: TextAlign.start,
+        textAlignVertical: TextAlignVertical.top,
+        keyboardType: TextInputType.multiline,
+        // Expanded, the field fills what it is given and scrolls inside it;
+        // collapsed, it grows with the text up to the box below.
+        expands: _expanded,
+        maxLines: null,
+        minLines: _expanded ? null : 3,
+        // See the same field in capture_sheet.dart: BoxWidthStyle.max (the
+        // default) paints a double-tap word selection out to the end of the
+        // line on Persian text.
+        selectionWidthStyle: BoxWidthStyle.tight,
+        // The same selection menu the capture sheet has: a note is formatted
+        // where it is written, and it is written in both.
+        contextMenuBuilder: nexFormatContextMenuBuilder(context),
+        // Read-only while a model is holding it. Not disabled — the text stays
+        // selectable and the same colour, because it is still the note.
+        readOnly: _running != null,
+        decoration: const InputDecoration(border: InputBorder.none),
+        ),
     );
 
     // The height comes from the constraints rather than from the screen's:

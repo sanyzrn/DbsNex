@@ -2910,21 +2910,14 @@ class _AiDaySummaryPanel extends StatelessWidget {
     }
     return Opacity(
       opacity: loading ? 0.45 : 1,
-      child: SizedBox(
-        // Full width, so a Persian recap reaches the right edge rather than
-        // hugging whichever edge its first character happens to start at.
-        width: double.infinity,
-        child: Text(
-          value,
-          style: theme.textTheme.bodyMedium,
-          // The recap is written in the language of the notes, which is not
-          // necessarily the language of the interface around it — so it takes
-          // its direction from itself, and `start` then means the right edge
-          // in Persian and the left in English.
-          textDirection: nexDirectionOf(value),
-          textAlign: TextAlign.start,
-        ),
-      ),
+      // The recap is written in the language of the notes, which is not
+      // necessarily the language of the interface around it — and it is the
+      // one place in the app most likely to be written in both at once, since
+      // it is assembled from a library that mixes them. [NexBodyText] gives
+      // each line the direction that line is written in, so an English line
+      // in a Persian brief is not dragged to the right edge by the line above
+      // it.
+      child: NexBodyText(value, style: theme.textTheme.bodyMedium),
     );
   }
 }

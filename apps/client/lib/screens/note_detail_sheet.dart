@@ -524,16 +524,20 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       builder: (ctx) => AlertDialog(
         title: Text(l10n.caption),
         content: NexDialogBody(
-          child: StatefulBuilder(
-            builder: (context, setDialogState) => TextField(
+          // [NexAutoDirection] rather than a `StatefulBuilder` re-reading the
+          // controller: it rebuilds only when the direction actually changes,
+          // and it owns the `Directionality` so the hint sits on the same side
+          // as the caption being typed.
+          child: NexAutoDirection(
+            controller: controller,
+            builder: (context, direction) => TextField(
               controller: controller,
               autofocus: true,
               maxLines: 3,
-              textDirection: nexDirectionOf(controller.text),
+              textDirection: direction,
               textAlign: TextAlign.start,
               selectionWidthStyle: BoxWidthStyle.tight,
               decoration: InputDecoration(hintText: l10n.captionHint),
-              onChanged: (_) => setDialogState(() {}),
             ),
           ),
         ),
