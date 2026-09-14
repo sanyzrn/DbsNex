@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+- **Writing a note never waits for the AI any more.** Transcribing a recording,
+  reading a photo or searching by meaning can take a provider up to three
+  minutes — and while one of those was running, the *next* note you typed was
+  queued behind it before it reached the disk. Capture and the timeline now go
+  straight past that work instead of lining up behind it.
+
 ## v1.11.0
 
 - **Nex now holds the things that come back round.** The insurance every year,
