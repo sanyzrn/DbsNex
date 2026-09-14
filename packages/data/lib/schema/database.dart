@@ -182,6 +182,47 @@ CREATE TABLE IF NOT EXISTS note_embeddings (
 );
 ''');
 
+    // The recurring obligations — the insurance, the rent, the tablet every
+    // eight hours. Deliberately a table of their own rather than notes with a
+    // repeating reminder: see `NexCommitment` in packages/core for the three
+    // reasons, of which the load-bearing one is that they do not belong on
+    // the timeline.
+    //
+    // In the database rather than in preferences, and the deciding fact is
+    // the backup: `NexBackupArchive` copies `nex.sqlite` and the media, and
+    // nothing else. Somebody's list of standing obligations is their data,
+    // not a setting, and losing it on a restore would be losing data.
+    //
+    // Shaped like `notes` where it can be (id, timestamps, soft-delete,
+    // device_id, rev) so it can ride the same sync machinery later without a
+    // schema redesign — the same reasoning `memory_records` below follows.
+    db.execute('''
+CREATE TABLE IF NOT EXISTS commitments (
+  id TEXT PRIMARY KEY NOT NULL,
+  title TEXT NOT NULL,
+  cadence TEXT NOT NULL,
+  every INTEGER NOT NULL,
+  due_at TEXT NOT NULL,
+  lead_seconds INTEGER,
+  window_start INTEGER,
+  window_end INTEGER,
+  last_met_at TEXT,
+  met_today INTEGER NOT NULL DEFAULT 0,
+  met_today_on TEXT,
+  paused INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  device_id TEXT NOT NULL DEFAULT '',
+  rev INTEGER NOT NULL DEFAULT 1
+);
+''');
+    // The one query this table is ever asked: what is live, soonest first.
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_commitments_due '
+      'ON commitments(deleted_at, due_at);',
+    );
+
     // Records one-off data migrations, so a seed that the user has since
     // edited or deleted is never quietly put back.
     db.execute('''

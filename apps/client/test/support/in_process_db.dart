@@ -29,6 +29,7 @@ class InProcessDb implements NexDb {
     _capture = CaptureService(_repo, deviceId: deviceId);
     _tags = TagService(_repo);
     _search = SearchService(_repo);
+    _commitments = SqliteCommitmentRepository(_db, localDeviceId: deviceId);
     // Same composition as the real worker: the purge paths only delete
     // attachment files they can prove live under the media directory.
     _maintenance = LibraryMaintenance(
@@ -66,6 +67,7 @@ class InProcessDb implements NexDb {
   late final SqliteNoteRepository _repo;
   late final CaptureService _capture;
   late final TagService _tags;
+  late final SqliteCommitmentRepository _commitments;
   late final SearchService _search;
   late final LibraryMaintenance _maintenance;
   late final EnrichmentService _enrichment;
@@ -210,6 +212,23 @@ class InProcessDb implements NexDb {
 
   @override
   Future<List<Tag>> listTags() async => _tags.listTags();
+
+  // The real repository against the real table, not a stub: the arithmetic
+  // these exercise is the point of having them, and a fake that stored a list
+  // would test nothing.
+  @override
+  Future<List<NexCommitment>> listCommitments() async => _commitments.list();
+
+  @override
+  Future<NexCommitment> saveCommitment(NexCommitment commitment) async =>
+      _commitments.save(commitment);
+
+  @override
+  Future<NexCommitment?> markCommitmentMet(String id, {DateTime? at}) async =>
+      _commitments.markMet(id, at: at);
+
+  @override
+  Future<void> deleteCommitment(String id) async => _commitments.delete(id);
 
   @override
   Future<void> setTagColor({required String tagId, String? color}) async =>

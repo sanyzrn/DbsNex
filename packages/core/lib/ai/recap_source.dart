@@ -1,3 +1,4 @@
+import '../models/commitment.dart';
 import '../models/note.dart';
 
 /// What the daily recap is given to work from.
@@ -28,6 +29,15 @@ import '../models/note.dart';
 /// worth mentioning thing in the library and would never have been in it.
 String nexRecapSource(
   List<Note> notes, {
+  /// The recurring obligations — the insurance, the rent, the tablet — that
+  /// are not notes and are not on the timeline, but are exactly the sort of
+  /// thing a brief exists to raise.
+  ///
+  /// Only the ones actually waiting are sent, by each one's own lead time, so
+  /// an insurance renewal eleven months out costs nothing and the same
+  /// renewal five days out is in front of the notes. See
+  /// [NexCommitment.isWaiting].
+  List<NexCommitment> commitments = const [],
   DateTime? now,
   int limit = 20,
 
@@ -40,7 +50,8 @@ String nexRecapSource(
   /// nineteen were meant to share.
   int maxTextLength = 160,
 }) {
-  final at = (now ?? DateTime.now()).toUtc();
+  final local = now ?? DateTime.now();
+  final at = local.toUtc();
   final live = [for (final note in notes) if (note.deletedAt == null) note];
 
   bool waiting(Note note) {
@@ -68,6 +79,20 @@ String nexRecapSource(
   ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
   final lines = <String>[];
+  // Commitments first, unconditionally. Every one that reaches this point is
+  // already past its lead time — that is what put it here — so it is by
+  // construction more pressing than a note somebody wrote on Tuesday. They
+  // are few (one line each, and only the waiting ones) so they cannot crowd
+  // the notes out of the budget the way a long library could.
+  final waitingNow = [
+    for (final commitment in commitments)
+      if (commitment.isWaiting(local)) commitment,
+  ]..sort((a, b) => a.dueAt.compareTo(b.dueAt));
+  for (final commitment in waitingNow) {
+    if (lines.length >= limit) break;
+    lines.add(_commitmentLine(commitment, local));
+  }
+
   for (final note in [...due, ...open, ...rest]) {
     if (lines.length >= limit) break;
     final text = _oneLine(note.displayText, maxTextLength);
@@ -76,6 +101,57 @@ String nexRecapSource(
     lines.add('$when | ${_kind(note)} | $text');
   }
   return lines.join('\n');
+}
+
+/// One commitment, in the same three-column shape the notes use.
+///
+/// ```
+/// DUE in 5d | every year | car insurance
+/// DUE overdue 2d | every month | rent
+/// DUE now | every 2h · 3 of 7 today | drink water
+/// ```
+///
+/// The middle column carries the cadence rather than a note type, because
+/// that is the fact that tells the model how to talk about it: "the insurance
+/// is due in five days" and "you have had three glasses today" are different
+/// sentences, and the difference is entirely in how often the thing happens.
+///
+/// The hourly ones carry their tally and are deliberately one line, not one
+/// line per glass. Six identical entries saying water is due is not a brief,
+/// it is a broken one.
+String _commitmentLine(NexCommitment commitment, DateTime now) {
+  final away = commitment.dueAt.difference(now);
+  final when = away.isNegative
+      ? 'DUE overdue ${_span(-away)}'
+      : away.inMinutes < 1
+      ? 'DUE now'
+      : 'DUE in ${_span(away)}';
+  final cadence = _cadenceLabel(commitment);
+  final tally = commitment.timesPerDay;
+  final middle = tally == null
+      ? cadence
+      : '$cadence · ${commitment.metOn(now)} of $tally today';
+  return '$when | $middle | ${_oneLine(commitment.title, 80)}';
+}
+
+String _cadenceLabel(NexCommitment commitment) {
+  final unit = switch (commitment.cadence) {
+    NexCadence.hours => 'h',
+    NexCadence.days => 'd',
+    NexCadence.weeks => 'w',
+    NexCadence.months => 'month',
+    NexCadence.years => 'year',
+  };
+  if (commitment.every == 1) {
+    return switch (commitment.cadence) {
+      NexCadence.hours => 'every hour',
+      NexCadence.days => 'every day',
+      NexCadence.weeks => 'every week',
+      NexCadence.months => 'every month',
+      NexCadence.years => 'every year',
+    };
+  }
+  return 'every ${commitment.every}$unit';
 }
 
 /// The left column: when it is due, or failing that, when it was written.

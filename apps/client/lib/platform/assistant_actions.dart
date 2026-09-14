@@ -54,6 +54,17 @@ enum AssistantActionKind {
 
   /// A tag's colour.
   tagColor,
+
+  /// A standing obligation created or changed — the insurance, the rent, the
+  /// tablet every eight hours. Not a note; see [NexCommitment].
+  commitment,
+
+  /// One of those ticked off, which rolls it forward rather than finishing
+  /// it. The difference between a commitment and a reminder in one verb.
+  commitmentMet,
+
+  /// One of those removed.
+  commitmentDelete,
 }
 
 /// One thing the assistant has asked to do, already parsed and validated.
@@ -81,6 +92,9 @@ class AssistantAction {
     this.flag,
     this.items = const [],
     this.tagName,
+    this.cadence,
+    this.every,
+    this.commitmentName,
   });
 
   final AssistantActionKind kind;
@@ -133,6 +147,16 @@ class AssistantAction {
   /// ever sees tag names, and an id it had to invent is an id it would
   /// invent. Resolved against the real list when the action runs.
   final String? tagName;
+
+  /// How often a [AssistantActionKind.commitment] comes round, and the count
+  /// that goes with it — "every 8 hours" is [NexCadence.hours] and 8.
+  final NexCadence? cadence;
+  final int? every;
+
+  /// Which standing obligation an action is about, by the name it is stored
+  /// under. Like [tagName] and for the same reason: names are all the model
+  /// is ever shown, and an id it had to invent is an id it would invent.
+  final String? commitmentName;
 
   /// Whether this changes anything. A search does not, so it is carried out
   /// as soon as it arrives; everything else waits for the user.
@@ -234,6 +258,15 @@ a fenced block tagged `nex` containing one JSON object:
 ```nex
 {"action": "tag_color", "tag": "work", "color": "#1D4ED8"}
 ```
+```nex
+{"action": "commitment", "name": "car insurance", "every": 1, "unit": "years", "at": "2027-03-14T09:00"}
+```
+```nex
+{"action": "commitment_met", "name": "drink water"}
+```
+```nex
+{"action": "commitment_delete", "name": "gym membership"}
+```
 
 A `create` makes a checklist instead of a text note when you send items:
 
@@ -247,6 +280,15 @@ time given below, and never send a date you were not able to work out. `repeat`
 is `once`, `daily` or `weekly`. **Leave `at` out entirely to cancel a
 reminder**, and send nothing else with it. `title` with no `text` clears the
 title. `restore` only works on a note that is in Recently Deleted.
+
+`commitment` is for the things that come back round — a yearly insurance
+renewal, the rent, a tablet every eight hours, water every two. They are not
+notes and never appear on the timeline. `unit` is `hours`, `days`, `weeks`,
+`months` or `years`, and `at` is when it next falls due, in the same local
+`YYYY-MM-DDTHH:MM` shape as a reminder. Sending the same `name` again edits
+the one that is already there rather than making a second. Use
+`commitment_met` when they say they have done one — it rolls forward to the
+next turn by itself, so never send a new date for that.
 
 Settings you may change, and nothing else:
 `theme` (light/dark/system), `language` (en/fa/system),
@@ -460,9 +502,72 @@ AssistantAction? _action(Map<Object?, Object?> decoded) {
     'tag_color' when _string(decoded['tag']) != null => _tagColorAction(
       decoded,
     ),
+    'commitment' when _string(decoded['name']) != null => _commitmentAction(
+      decoded,
+    ),
+    'commitment_met' when _string(decoded['name']) != null => AssistantAction(
+      kind: AssistantActionKind.commitmentMet,
+      commitmentName: _string(decoded['name']),
+    ),
+    'commitment_delete' when _string(decoded['name']) != null =>
+      AssistantAction(
+        kind: AssistantActionKind.commitmentDelete,
+        commitmentName: _string(decoded['name']),
+      ),
     _ => null,
   };
 }
+
+/// A standing obligation, created or changed.
+///
+/// The cadence is required and the date is not: editing one to say "actually
+/// it is every three months" should not force the model to restate a due date
+/// it was never told. A missing date means "leave it where it is" on an edit,
+/// and the app picks one on a create.
+AssistantAction? _commitmentAction(Map<Object?, Object?> decoded) {
+  final name = _string(decoded['name']);
+  if (name == null) return null;
+  final unit = _string(decoded['unit'])?.toLowerCase();
+  // No default cadence. "Every what?" has no sensible guess — a wrong one is
+  // an insurance renewal quietly set to every day — so an action that does
+  // not say is not an action.
+  if (unit == null || !_cadences.containsKey(unit)) return null;
+  final at = _string(decoded['at']);
+  final parsed = at == null ? null : DateTime.tryParse(at);
+  // Present but unreadable is a refusal, not a fallback: same rule as a
+  // reminder's date, and for the same reason.
+  if (at != null && parsed == null) return null;
+  return AssistantAction(
+    kind: AssistantActionKind.commitment,
+    commitmentName: name,
+    cadence: _cadences[unit],
+    every: switch (decoded['every']) {
+      final int value when value >= 1 => value.clamp(1, 1000),
+      _ => 1,
+    },
+    at: parsed == null
+        ? null
+        : (parsed.isUtc ? parsed.toLocal() : parsed),
+  );
+}
+
+/// The units the protocol names, mapped to the cadences the app has.
+///
+/// Spelled out rather than matched against `NexCadence.values` by name, so
+/// that renaming an enum case cannot silently change what a model is allowed
+/// to say — the prompt above is the contract, and it is a string.
+const _cadences = <String, NexCadence>{
+  'hours': NexCadence.hours,
+  'hour': NexCadence.hours,
+  'days': NexCadence.days,
+  'day': NexCadence.days,
+  'weeks': NexCadence.weeks,
+  'week': NexCadence.weeks,
+  'months': NexCadence.months,
+  'month': NexCadence.months,
+  'years': NexCadence.years,
+  'year': NexCadence.years,
+};
 
 /// A reminder, or the removal of one.
 ///

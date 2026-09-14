@@ -424,6 +424,21 @@ class NexServices {
 
   Future<List<Tag>> listTags() => worker.listTags();
 
+  /* ------------------------------------------- recurring obligations */
+
+  /// The standing obligations — the insurance, the rent, the tablet every
+  /// eight hours. Not notes and not on the timeline; see [NexCommitment].
+  Future<List<NexCommitment>> commitments() => worker.listCommitments();
+
+  Future<NexCommitment> saveCommitment(NexCommitment commitment) =>
+      worker.saveCommitment(commitment);
+
+  /// Met, and rolled forward to its next turn.
+  Future<NexCommitment?> markCommitmentMet(String id, {DateTime? at}) =>
+      worker.markCommitmentMet(id, at: at);
+
+  Future<void> deleteCommitment(String id) => worker.deleteCommitment(id);
+
   Future<void> setTagColor({required String tagId, String? color}) =>
       worker.setTagColor(tagId: tagId, color: color);
 

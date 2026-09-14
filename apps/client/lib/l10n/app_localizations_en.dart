@@ -2101,6 +2101,194 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantConfirmSetting => 'Change this setting?';
 
   @override
+  @override
+  String get assistantConfirmCommitment => 'Set up this recurring item?';
+
+  @override
+  String get assistantConfirmCommitmentMet => 'Mark this done and roll it forward?';
+
+  @override
+  String get assistantConfirmCommitmentDelete => 'Remove this recurring item?';
+
+  String get commitmentsTitle => 'Recurring';
+
+  @override
+  String get commitmentsSubtitle => 'Bills, renewals, medication — things that come back round';
+
+  @override
+  String get commitmentsEmpty => 'Nothing recurring yet.\nInsurance, rent, a tablet every eight hours.';
+
+  @override
+  String get commitmentAdd => 'Add a recurring item';
+
+  @override
+  String get commitmentEdit => 'Edit recurring item';
+
+  @override
+  String get commitmentDeleteTitle => 'Delete this recurring item?';
+
+  @override
+  String get commitmentMarkMet => 'Done — roll it forward';
+
+  @override
+  String get commitmentPaused => 'paused';
+
+  @override
+  String get commitmentTitleLabel => 'What';
+
+  @override
+  String get commitmentTitleHint => 'Car insurance';
+
+  @override
+  String get commitmentEvery => 'How often';
+
+  @override
+  String get commitmentCount => 'Every';
+
+  @override
+  String get commitmentNextDue => 'Next time';
+
+  @override
+  String get commitmentLead => 'Tell me ahead of time';
+
+  @override
+  String get commitmentAuto => 'Automatic';
+
+  @override
+  String get commitmentLeadNone => 'When it is due';
+
+  @override
+  String get commitmentWindow => 'Only during these hours';
+
+  @override
+  String get commitmentWindowOff => 'Any hour, including while you sleep';
+
+  @override
+  String get commitmentWindowFrom => 'From';
+
+  @override
+  String get commitmentWindowTo => 'Until';
+
+  @override
+  String commitmentTally(int done, int total) {
+    return '$done of $total today';
+  }
+
+  @override
+  String commitmentDueIn(String span) {
+    return 'due in $span';
+  }
+
+  @override
+  String commitmentOverdue(String span) {
+    return '$span overdue';
+  }
+
+  @override
+  String commitmentLeadAuto(String span) {
+    return 'Automatic ($span)';
+  }
+
+  @override
+  String cadenceHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'every $count hours',
+      one: 'every hour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cadenceDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'every $count days',
+      one: 'every day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cadenceWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'every $count weeks',
+      one: 'every week',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cadenceMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'every $count months',
+      one: 'every month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cadenceYears(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'every $count years',
+      one: 'every year',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String spanMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minutes',
+      one: '1 minute',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String spanHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hours',
+      one: '1 hour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String spanDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String spanMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count months',
+      one: '1 month',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get assistantConfirmRemind => 'Set this reminder?';
 
   @override

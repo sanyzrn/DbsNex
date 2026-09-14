@@ -3692,6 +3692,222 @@ abstract class AppLocalizations {
   /// **'Change this setting?'**
   String get assistantConfirmSetting;
 
+  /// Title of the recurring-obligations screen
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring'**
+  /// Confirmation for an assistant-proposed recurring item
+  ///
+  /// In en, this message translates to:
+  /// **'Set up this recurring item?'**
+  String get assistantConfirmCommitment;
+
+  /// Confirmation for ticking a recurring item off
+  ///
+  /// In en, this message translates to:
+  /// **'Mark this done and roll it forward?'**
+  String get assistantConfirmCommitmentMet;
+
+  /// Confirmation for deleting a recurring item
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this recurring item?'**
+  String get assistantConfirmCommitmentDelete;
+
+  String get commitmentsTitle;
+
+  /// Settings row subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Bills, renewals, medication — things that come back round'**
+  String get commitmentsSubtitle;
+
+  /// Empty state
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing recurring yet.\nInsurance, rent, a tablet every eight hours.'**
+  String get commitmentsEmpty;
+
+  /// Add button
+  ///
+  /// In en, this message translates to:
+  /// **'Add a recurring item'**
+  String get commitmentAdd;
+
+  /// Editor title
+  ///
+  /// In en, this message translates to:
+  /// **'Edit recurring item'**
+  String get commitmentEdit;
+
+  /// Delete confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this recurring item?'**
+  String get commitmentDeleteTitle;
+
+  /// Mark-met button
+  ///
+  /// In en, this message translates to:
+  /// **'Done — roll it forward'**
+  String get commitmentMarkMet;
+
+  /// Paused state
+  ///
+  /// In en, this message translates to:
+  /// **'paused'**
+  String get commitmentPaused;
+
+  /// Title field label
+  ///
+  /// In en, this message translates to:
+  /// **'What'**
+  String get commitmentTitleLabel;
+
+  /// Title field hint
+  ///
+  /// In en, this message translates to:
+  /// **'Car insurance'**
+  String get commitmentTitleHint;
+
+  /// Cadence field label
+  ///
+  /// In en, this message translates to:
+  /// **'How often'**
+  String get commitmentEvery;
+
+  /// Cadence count label
+  ///
+  /// In en, this message translates to:
+  /// **'Every'**
+  String get commitmentCount;
+
+  /// Due date row
+  ///
+  /// In en, this message translates to:
+  /// **'Next time'**
+  String get commitmentNextDue;
+
+  /// Lead time row
+  ///
+  /// In en, this message translates to:
+  /// **'Tell me ahead of time'**
+  String get commitmentLead;
+
+  /// Lead time: follow the cadence
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get commitmentAuto;
+
+  /// Lead time: zero
+  ///
+  /// In en, this message translates to:
+  /// **'When it is due'**
+  String get commitmentLeadNone;
+
+  /// Waking window switch
+  ///
+  /// In en, this message translates to:
+  /// **'Only during these hours'**
+  String get commitmentWindow;
+
+  /// Waking window off
+  ///
+  /// In en, this message translates to:
+  /// **'Any hour, including while you sleep'**
+  String get commitmentWindowOff;
+
+  /// Window start
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get commitmentWindowFrom;
+
+  /// Window end
+  ///
+  /// In en, this message translates to:
+  /// **'Until'**
+  String get commitmentWindowTo;
+
+  /// How many times an hourly item has been done today
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} today'**
+  String commitmentTally(int done, int total);
+
+  /// Time until due
+  ///
+  /// In en, this message translates to:
+  /// **'due in {span}'**
+  String commitmentDueIn(String span);
+
+  /// Time past due
+  ///
+  /// In en, this message translates to:
+  /// **'{span} overdue'**
+  String commitmentOverdue(String span);
+
+  /// Lead time following the cadence
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic ({span})'**
+  String commitmentLeadAuto(String span);
+
+  /// Hourly cadence
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{every hour} other{every {count} hours}}'**
+  String cadenceHours(int count);
+
+  /// Daily cadence
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{every day} other{every {count} days}}'**
+  String cadenceDays(int count);
+
+  /// Weekly cadence
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{every week} other{every {count} weeks}}'**
+  String cadenceWeeks(int count);
+
+  /// Monthly cadence
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{every month} other{every {count} months}}'**
+  String cadenceMonths(int count);
+
+  /// Yearly cadence
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{every year} other{every {count} years}}'**
+  String cadenceYears(int count);
+
+  /// A span in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 minute} other{{count} minutes}}'**
+  String spanMinutes(int count);
+
+  /// A span in hours
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 hour} other{{count} hours}}'**
+  String spanHours(int count);
+
+  /// A span in days
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day} other{{count} days}}'**
+  String spanDays(int count);
+
+  /// A span in months
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month} other{{count} months}}'**
+  String spanMonths(int count);
+
   /// Confirmation for an assistant-proposed reminder
   ///
   /// In en, this message translates to:

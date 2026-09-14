@@ -355,6 +355,83 @@ Sure, here you go:
       }
     });
 
+    test('a recurring item needs to say how often', () {
+      // "Every what?" has no sensible guess, and a wrong one is an insurance
+      // renewal quietly set to every day.
+      final yearly = parseAssistantAction(
+        '{"action":"commitment","name":"car insurance","every":1,'
+        '"unit":"years","at":"2027-03-14T09:00"}',
+      );
+      expect(yearly?.kind, AssistantActionKind.commitment);
+      expect(yearly?.commitmentName, 'car insurance');
+      expect(yearly?.cadence, NexCadence.years);
+      expect(yearly?.every, 1);
+      expect(yearly?.at, DateTime(2027, 3, 14, 9));
+
+      expect(
+        parseAssistantAction('{"action":"commitment","name":"x","every":1}'),
+        isNull,
+        reason: 'no unit is not an action',
+      );
+      expect(
+        parseAssistantAction(
+          '{"action":"commitment","name":"x","unit":"fortnights"}',
+        ),
+        isNull,
+      );
+    });
+
+    test('a recurring item may be edited without restating its date', () {
+      // Saying "make it every three months" should not force the model to
+      // repeat a due date it was never told.
+      final action = parseAssistantAction(
+        '{"action":"commitment","name":"rent","every":3,"unit":"months"}',
+      );
+      expect(action?.cadence, NexCadence.months);
+      expect(action?.every, 3);
+      expect(action?.at, isNull);
+    });
+
+    test('a date that cannot be read refuses the whole thing', () {
+      expect(
+        parseAssistantAction(
+          '{"action":"commitment","name":"rent","unit":"months","at":"soon"}',
+        ),
+        isNull,
+      );
+    });
+
+    test('done and gone name the item rather than carrying a date', () {
+      // Ticking one off rolls it forward by itself — the app works out when,
+      // and a date from the model here would be the model overriding
+      // arithmetic it cannot see.
+      final met = parseAssistantAction(
+        '{"action":"commitment_met","name":"drink water"}',
+      );
+      expect(met?.kind, AssistantActionKind.commitmentMet);
+      expect(met?.commitmentName, 'drink water');
+      expect(met?.at, isNull);
+
+      final gone = parseAssistantAction(
+        '{"action":"commitment_delete","name":"gym membership"}',
+      );
+      expect(gone?.kind, AssistantActionKind.commitmentDelete);
+      expect(gone?.commitmentName, 'gym membership');
+    });
+
+    test('singular and plural units are both accepted', () {
+      // Models write both, and refusing one of them is a feature that works
+      // half the time.
+      for (final unit in ['hour', 'hours']) {
+        expect(
+          parseAssistantAction(
+            '{"action":"commitment","name":"tablet","every":8,"unit":"$unit"}',
+          )?.cadence,
+          NexCadence.hours,
+        );
+      }
+    });
+
     test('prose around a block survives without the block', () {
       const reply =
           'Deleting that one.\n```nex\n{"action":"delete","id":"a"}\n```';

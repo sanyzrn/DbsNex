@@ -13,6 +13,8 @@ library;
 export 'package:nex_core/nex_core.dart'
     show
         MemoryKind,
+        NexCadence,
+        NexCommitment,
         MemoryRecord,
         MemorySource,
         Note,
@@ -27,6 +29,7 @@ export 'package:nex_core/nex_core.dart'
         sha256OfBytes,
         sha256OfFile;
 
+export 'repositories/commitment_repository.dart';
 export 'repositories/library_maintenance.dart';
 export 'repositories/memory_repository.dart';
 export 'repositories/note_repository.dart';

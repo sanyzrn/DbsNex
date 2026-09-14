@@ -60,6 +60,11 @@ enum _DbCommand {
   purgeAllDeleted,
   tagUsage,
   renameTag,
+  // Recurring obligations — see NexCommitment in packages/core.
+  listCommitments,
+  saveCommitment,
+  markCommitmentMet,
+  deleteCommitment,
   mergeTag,
   deleteTag,
   nearestMiss,
@@ -492,6 +497,27 @@ class NexDbWorker implements NexDb {
   Future<List<Tag>> listTags() => _send<List<Tag>>(_DbCommand.listTags);
 
   @override
+  Future<List<NexCommitment>> listCommitments() =>
+      _send<List<NexCommitment>>(_DbCommand.listCommitments);
+
+  @override
+  Future<NexCommitment> saveCommitment(NexCommitment commitment) =>
+      _send<NexCommitment>(_DbCommand.saveCommitment, {
+        'commitment': commitment,
+      });
+
+  @override
+  Future<NexCommitment?> markCommitmentMet(String id, {DateTime? at}) =>
+      _send<NexCommitment?>(_DbCommand.markCommitmentMet, {
+        'id': id,
+        'at': at,
+      });
+
+  @override
+  Future<void> deleteCommitment(String id) =>
+      _send<void>(_DbCommand.deleteCommitment, {'id': id});
+
+  @override
   Future<void> setTagColor({required String tagId, String? color}) =>
       _send<void>(_DbCommand.setTagColor, {'tagId': tagId, 'color': color});
 
@@ -707,6 +733,10 @@ class NexDbWorker implements NexDb {
     final tags = TagService(repo);
     final search = SearchService(repo);
     final maintenance = LibraryMaintenance(repo, mediaRoot: boot.mediaDir);
+    final commitments = SqliteCommitmentRepository(
+      db,
+      localDeviceId: boot.deviceId,
+    );
     final enrichment = EnrichmentService(
       repo: repo,
       adapter: boot.adapter,
@@ -826,6 +856,17 @@ class NexDbWorker implements NexDb {
           color: arg('color') as String?,
         ),
         _DbCommand.listTags => tags.listTags(),
+        _DbCommand.listCommitments => commitments.list(),
+        _DbCommand.saveCommitment => commitments.save(
+          arg('commitment')! as NexCommitment,
+        ),
+        _DbCommand.markCommitmentMet => commitments.markMet(
+          arg('id')! as String,
+          at: arg('at') as DateTime?,
+        ),
+        _DbCommand.deleteCommitment => _voided(
+          () => commitments.delete(arg('id')! as String),
+        ),
         _DbCommand.setTagColor => _voided(
           () => tags.setColor(
             tagId: arg('tagId')! as String,
