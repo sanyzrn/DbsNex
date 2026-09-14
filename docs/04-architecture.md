@@ -55,7 +55,7 @@ flowchart LR
     Data[Data Layer<br/>Local Store, Schema, Repository, Sync Client] --> Backend
     Backend[(Backend API<br/>dormant in v1)]
 
-    AI[AI Layer - optional, v3+<br/>Transcription, OCR, Tag Suggestion, Semantic Search] -. reads/writes via Core .-> Core
+    AI[AI Layer - optional, ships in v1.x<br/>Transcription, OCR, Tag Suggestion, Semantic Search, Assistant] -. reads/writes via Core .-> Core
 ```
 
 | Layer | Responsibility | Notes |
@@ -98,7 +98,7 @@ The capture path never touches the network. The sync engine observes local chang
 
 ### Search
 
-Search executes entirely against the local store. Text notes are indexed at write time (SQLite FTS5) so query latency stays flat regardless of corpus size at personal-use volumes — this is the CI-enforced engineering budget behind the user-facing "find instantly" promise (see [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements)).
+Search executes entirely against the local store. Text notes are indexed at write time (SQLite FTS5) so query latency stays flat regardless of corpus size at personal-use volumes — this is the engineering budget behind the user-facing "find instantly" promise, gated in CI by `packages/data/test/performance_budget_test.dart` (see [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements)).
 
 ```mermaid
 sequenceDiagram
@@ -146,7 +146,7 @@ Conflict resolution is **not uniformly last-writer-wins at the record level** �
 | Conflict | Rule | Why |
 |---|---|---|
 | Scalar fields (`content`, `media_uri`) edited on two devices | Last-writer-wins by `updated_at` / `rev` | These fields are rarely collaboratively edited; simple LWW is sufficient and keeps v1 sync logic small. |
-| Tags added/removed concurrently on two devices | **Union-merge** — the resulting tag set is the union of both devices' tag sets; a tag is never silently dropped because it lost a whole-record LWW race | A note's body and its tags are edited independently and asynchronously in normal use (e.g., tag it on the phone while editing text on desktop); collapsing both into one LWW decision would silently lose a tag half the time. See [ADR-020](./10-decisions.md#adr-020--union-merge-for-concurrent-tag-edits). |
+| Tags added/removed concurrently on two devices | **Union-merge** — the resulting tag set is the union of both devices' tag sets; a tag is never silently dropped because it lost a whole-record LWW race | A note's body and its tags are edited independently and asynchronously in normal use (e.g., tag it on the phone while editing text on desktop); collapsing both into one LWW decision would silently lose a tag half the time. See [ADR-020](./10-decisions.md#adr-020--union-merge-for-concurrent-tag-edits-not-whole-record-last-writer-wins). |
 | Deleted on one device, edited on another | Deletion wins (tombstone), edit recoverable from history | Consistent, predictable, and sync-safe. |
 | Media differences | Reconciled by `media_hash`; identical content is deduplicated, never re-uploaded | Saves bandwidth and storage; avoids duplicate captures across devices that happen to hold the same file. |
 
@@ -185,7 +185,7 @@ Nex's scalability profile is intentionally personal-scale, not enterprise-scale.
 2. **Writes are optimistic and immediate.** The UI reflects a successful capture before any background process (sync, AI) has even started.
 3. **Search is index-backed, not scan-backed.** Full-text and filter queries use database indexes; there is no "search everything, filter in memory" fallback in the main path.
 4. **Media stays off the hot path.** Large binary content never blocks the database transaction that records the note's existence.
-5. **AI is asynchronous and cancellable.** Any AI-layer operation (v3+) runs after capture completes and can fail or be disabled without affecting the note that already exists.
+5. **AI is asynchronous and cancellable.** Any AI-layer operation runs after capture completes and can fail or be disabled without affecting the note that already exists.
 6. **Cold start is a first-class metric.** The Timeline renders from local data alone, before any network or AI initialization occurs.
 7. **Engineering budgets are stricter than the user-facing promise, by design** (see [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements)) — this margin is what keeps the 3-second promise true under real-world device and data variance.
 

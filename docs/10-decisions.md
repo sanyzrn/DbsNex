@@ -94,7 +94,7 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 - **Decision:** All AI capabilities ship in v3, sequenced after the Timeline/capture/search MVP (v1) and cross-device sync (v2) are both stable.
 - **Rationale:** Speed and reliability of capture and sync are the product's foundation; AI is explicitly optional and additive and should be layered onto a proven base.
 - **Alternatives Considered:** Introduce lightweight on-device tag suggestions earlier (e.g., v1.x) — rejected to keep milestones focused and avoid partial, inconsistent AI coverage before the intelligence layer is designed holistically.
-- **Status:** Accepted, planned for v3.
+- **Status:** **Superseded in practice during v1.x.** The rejected alternative is what happened, and more of it: transcription, OCR, summarisation, semantic search, the daily brief, the chat assistant and an on-device model track all ship in v1.x. [ADR-031](#adr-031--local-ai-ships-as-an-android-build-flavor-of-appsclient-not-a-separate-app) publishes the `ai` flavour as a release of its own, and [`09-ai.md`](./09-ai.md) is the current account of what exists. The deferral held for exactly as long as the reasoning behind it did — capture and find were proven first — and then stopped being true without this entry being amended, which is the drift this status line now closes.
 
 ---
 
@@ -154,7 +154,7 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 - **Decision:** UI text is externalized from day one (a non-functional requirement, see [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements)), with Persian named explicitly as the first language pack target post-v1 — but no Persian UI ships as part of the v1 MVP feature set itself.
 - **Rationale:** Guarantees the door stays open for the product's own origin language without inflating v1 scope or delaying the core capture/find promise.
 - **Alternatives Considered:** Ship Persian alongside English in v1 — rejected as scope creep unrelated to the two core MVP goals; localization work competes for the same engineering time as capture/search polish.
-- **Status:** Accepted, v1 (infrastructure only); language pack itself unscheduled, tracked post-v1.
+- **Status:** **Superseded in practice during v1.x.** Persian is not a post-v1 language pack; it ships, with full right-to-left layout, complete EN/FA string sets, Vazirmatn bundled, per-note text direction and Persian digits in the home-screen widgets. The decision's own goal — keep the door open without inflating v1 — was met, and then the door was walked through.
 
 ---
 
@@ -174,7 +174,7 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 - **Decision:** Treat "under 3 seconds" as the user-facing product promise (validated via usability testing) and define separate, stricter, machine-measurable engineering budgets — e.g., local search query latency under 200ms — enforced in CI.
 - **Rationale:** Collapsing the two into one number either sets engineering a target too loose to reliably deliver a promise that *feels* instant (3 seconds of query time would not feel instant), or forces product to justify a CI-gate number to end users in ways that don't map onto their actual experience. Separating them lets engineering hold itself to a bar with margin for real-world device and data variance, while product keeps a single clean, testable promise.
 - **Alternatives Considered:** One shared number for both audiences — rejected per above; simpler to write down, but weaker as either a product promise or an engineering contract.
-- **Status:** Accepted. See [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements) for the concrete budgets.
+- **Status:** Accepted, with one correction to the wording above. The decision — two separate numbers for two separate audiences — stands and is the right one. "Enforced in CI" was true of the intent and, for four years, of nothing else: no job in the pipeline timed anything until `packages/data/test/performance_budget_test.dart` was added. Two of the budgets are now genuinely gated there. The other two are device-bound and are validated by usability testing instead; [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements) says which is which and why.
 
 ---
 

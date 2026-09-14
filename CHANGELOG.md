@@ -57,6 +57,13 @@ Working convention:
   your profile genuinely never leaves the device. One line now tells the two
   apart.
 
+- **Two of the speed promises are now actually checked on every change.** The
+  docs said the capture and search budgets were enforced automatically. They
+  were not — nothing measured anything. Writing a note and searching the
+  library are now both timed against their stated limits on every change,
+  including against a two-thousand-note library. The two that need a real
+  phone to measure honestly are described as what they are instead.
+
 ## v1.11.0
 
 - **Nex now holds the things that come back round.** The insurance every year,

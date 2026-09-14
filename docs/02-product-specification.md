@@ -170,7 +170,7 @@ Nex is a cross-platform capture application built around a single timeline of no
 - FR-10.3 Marking one done rolls it forward to its next turn rather than finishing it. This is the difference between a commitment and a note's reminder, which is spent once it has rung.
 - FR-10.4 How far ahead each is raised follows its cadence unless the user says otherwise — a year's notice is worth a week, a month's a couple of days, an hourly one a quarter of its gap. The default is not a rule: it can be set per item.
 - FR-10.5 A cadence finer than a day may carry a waking window, so water every two hours does not come round three times while its owner is asleep. In the brief such an item is one line with a tally ("3 of 7 today"), never one line per occurrence.
-- FR-10.6 The assistant can create, change, tick off and remove them, under the same confirm-before-anything-happens rule as every other action it may take (FR-8.3, `09-ai.md`).
+- FR-10.6 The assistant can create, change, tick off and remove them, under the same confirm-before-anything-happens rule as every other action it may take (see [`09-ai.md`](./09-ai.md#what-the-assistant-may-do), which is where that rule lives).
 
 ### FR-8 — OS-Level Capture Surfaces
 - FR-8.1 A home-screen widget (Android) opens directly into text capture, bypassing the need to open the app first.
@@ -186,12 +186,13 @@ Nex is a cross-platform capture application built around a single timeline of no
 There are two distinct kinds of performance requirement in this document, and they are deliberately not conflated (see [ADR-017](./10-decisions.md#adr-017--separate-user-facing-goals-from-engineering-performance-budgets)):
 
 - **User-facing goals** describe what the product promises to a person and are validated through usability testing.
-- **Engineering performance budgets** are stricter, machine-measurable numbers enforced in CI, chosen so that real-world variance (device speed, note volume) still lands comfortably inside the user-facing goal.
+- **Engineering performance budgets** are stricter, machine-measurable numbers, chosen so that real-world variance (device speed, note volume) still lands comfortably inside the user-facing goal. Two of them are enforced in CI; two are not, and the table says which. The split is not laziness — it is what can be measured honestly on a shared runner. A local SQLite write and an FTS query are pure Dart with two orders of magnitude of headroom, so a threshold catches an algorithmic regression without being sensitive to how loaded the machine is. Cold start and the capture sheet reaching a typable state need a real device; timing them on a shared CI runner measures the runner, and a gate that goes red at random teaches people to re-run it, which is worse than no gate.
 
-| Category | User-facing goal | Engineering budget (CI-enforced) |
-|---|---|---|
-| **Capture** | Feels instant; < 3 s app-open to stored note | Cold start to capture-ready < 1.5 s; capture flow start-to-content-ready < 1 s; local write durable within 300 ms of content change |
-| **Search / Find** | Feels instant; < 3 s to locate a note | Local query latency < 200 ms, index-backed (FTS5), regardless of corpus size at personal scale |
+| Category | User-facing goal | Engineering budget | Enforced |
+|---|---|---|---|
+| **Capture** | Feels instant; < 3 s app-open to stored note | Local write durable within 300 ms of content change | **CI** — `packages/data/test/performance_budget_test.dart`, on an empty library and on a 2 000-note one |
+| **Capture** | — | Cold start to capture-ready < 1.5 s; capture flow start-to-content-ready < 1 s | Usability testing on a real device |
+| **Search / Find** | Feels instant; < 3 s to locate a note | Local query latency < 200 ms, index-backed (FTS5), regardless of corpus size at personal scale | **CI** — same file, over a 2 001-note corpus |
 
 | Category | Requirement |
 |---|---|
@@ -272,7 +273,7 @@ erDiagram
     TAG ||--o{ NOTE_TAG : has
     NOTE {
         uuid id PK "UUIDv7 - client-generated, time-ordered"
-        string type "text | voice | photo"
+        string type "text | voice | photo | file | checklist | link"
         text content "text body, or null for voice/photo"
         string media_uri "local URI for voice/photo, or null for text"
         string media_hash "content hash of media file, for dedupe/sync"
@@ -313,7 +314,7 @@ Sync is **not** a v1 user-facing feature, but the data layer is built as if it w
 
 - **v1:** Local-first storage only. Every record already has a UUIDv7, timestamps, `device_id`, `rev`, and `media_hash`. A minimal backend API surface exists (even if unused by the client) so the contract is proven early.
 - **v2:** Real sync between Android and Windows (first item of v2, not the last).
-  - **Conflict resolution is field-aware, not record-blind:** the note's scalar fields (`content`, `media_uri`) resolve by last-writer-wins keyed on `updated_at` / `rev`. **Tags resolve by union-merge**, not last-writer-wins — if Device A adds a tag while Device B edits the note body concurrently, both changes survive; a tag is never silently dropped because it lost a last-writer-wins race on the whole record. See [ADR-020](./10-decisions.md#adr-020--union-merge-for-concurrent-tag-edits).
+  - **Conflict resolution is field-aware, not record-blind:** the note's scalar fields (`content`, `media_uri`) resolve by last-writer-wins keyed on `updated_at` / `rev`. **Tags resolve by union-merge**, not last-writer-wins — if Device A adds a tag while Device B edits the note body concurrently, both changes survive; a tag is never silently dropped because it lost a last-writer-wins race on the whole record. See [ADR-020](./10-decisions.md#adr-020--union-merge-for-concurrent-tag-edits-not-whole-record-last-writer-wins).
   - **Media sync is content-addressed:** uploads are keyed by `media_hash`, so identical files are deduplicated across devices rather than re-uploaded.
   - Soft-deletes replicate as tombstones across devices.
 - **v2.x:** iOS client joins the same sync backend.

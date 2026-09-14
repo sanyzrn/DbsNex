@@ -153,7 +153,7 @@ Testing effort is weighted toward the parts of the system where a regression mos
 | UI components | Render, tap, assert state; accessibility, keyboard, reduced-motion | Medium |
 | Performance | Automated timing assertions on capture-to-save and query-to-result | High — regressions here are regressions of the core value proposition, gated in CI |
 
-CI gates on: unit + integration test suites, capture/search performance budgets, and lint/type-check passing. No feature merges if it regresses the capture or find performance budget.
+CI gates on: unit + integration test suites, the two measurable performance budgets (write durability and search latency — see `packages/data/test/performance_budget_test.dart`), and lint/type-check passing. No feature merges if it regresses either. The two device-bound budgets — cold start and capture-sheet readiness — are validated by usability testing rather than gated, for the reason [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements) gives.
 
 ---
 
@@ -161,7 +161,7 @@ CI gates on: unit + integration test suites, capture/search performance budgets,
 
 - **Trunk-based development** on `main`, with short-lived feature branches (`type/short-description`).
 - **Pull requests required** for all changes; at least one review approval before merge.
-- **CI must pass** (typecheck, lint, unit/integration tests, performance budget checks) before merge. Branch protection requires exactly one check, `CI green`, which aggregates every job.
+- **CI must pass** (typecheck, lint, unit/integration tests, the two performance-budget tests) before merge. Branch protection requires exactly one check, `CI green`, which aggregates every job.
 - **CI runs only what a change can break.** A `changes` job diffs the pull request against its base and gates the rest: a Flutter-only change skips the backend suite and the PostgreSQL sync matrix; a documentation-only change skips essentially everything; and the debug APK build — four of the nine minutes the Android job costs — runs only when `android/` or some `pubspec.yaml` changed, since analyze and the tests already cover a Dart-only edit. The release workflow always runs the full matrix: a release must verify everything. Touching `.github/` also runs everything, since the pipeline is what would otherwise ship untested.
 
 - **CI does not run on pushes to `main`.** It used to, which meant every merge verified the same tree twice — once as a pull request and again a second later — for about half of all the minutes this repository spends. Both ends are still covered without it: a `pull_request` run checks out `refs/pull/N/merge`, so what gets verified is what `main` will become, and `release.yml` runs this whole workflow through its `verify` job before building, so nothing ships without a full pass over the exact tree being released. The cost is that `main` is not re-checked at the moment of merging: if two pull requests each pass against an older `main` and then interleave, the combination is first checked at release time.

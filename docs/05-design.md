@@ -89,7 +89,7 @@ All four combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode
 
 ---
 
-## Typography and Colour
+## The Typeface
 
 The interface is set in **one typeface on every platform** — Inter, with Vazirmatn for
 Persian, both shipped as assets. Leaving it to the OS meant Roboto on Android, Segoe UI
@@ -171,7 +171,7 @@ Animation exists only to **confirm**, never to **delight for its own sake**.
 Accessibility is core functionality, not a compliance checkbox — a slow or confusing experience for any user contradicts Nex's core promise.
 
 - **Contrast:** WCAG 2.1 AA (4.5:1 body text, 3:1 large text) in both palettes.
-- **Tap targets:** Minimum 44×44pt, most critically the `+` action and the voice stop control.
+- **Tap targets:** Minimum 48×48 dp — Material's floor, and the value `nexMinTapTarget` carries and `accessibility_test.dart` asserts. Most critically the `+` action and the voice stop control.
 - **Screen reader support:** Every icon-only control has a descriptive accessible label; Timeline cards announce content type, preview/transcription placeholder, timestamp, and tags in one coherent read-out.
 - **Dynamic type:** UI text scales with system font-size settings without breaking layout or truncating input.
 - **Voice capture alternative:** Text and photo capture remain full alternatives for users who cannot or prefer not to use audio input.
