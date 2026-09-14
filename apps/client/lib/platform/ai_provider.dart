@@ -85,9 +85,19 @@ extension AiProviderWire on AiProvider {
   bool get hearsAudio => this == AiProvider.gemini || this == AiProvider.openai;
 
   /// Whether embeddings are available, for semantic search.
+  ///
+  /// OpenRouter is deliberately not on this list, by the same rule
+  /// [hearsAudio] states one line up: unavailable beats a wrong answer. It
+  /// routes chat completions across many models, and `_embed` asks for one
+  /// specific OpenAI embedding model by name — nothing makes that model
+  /// reachable through the router. Claiming the capability turned that into
+  /// a request that fails when somebody searches, rather than a feature that
+  /// says up front it is not offered here, which is what FR-8b.4 asks for.
+  ///
+  /// Custom stays: its endpoint is one the user chose and declared
+  /// OpenAI-shaped, and the app has no way to know better than they do.
   bool get embeds =>
       this == AiProvider.openai ||
-      this == AiProvider.openrouter ||
       this == AiProvider.custom ||
       this == AiProvider.gemini;
 
@@ -111,6 +121,27 @@ class AiProviderConfig {
   final String apiKey;
   final String baseUrl;
   final String model;
+
+  /// The model this provider's embeddings actually come from.
+  ///
+  /// Not [model]: that is the *chat* model, and the embedding endpoint takes
+  /// its own. Spelled here rather than at the call site so the literal
+  /// appears once — `_embed` sends it, and the embedding-space fingerprint
+  /// is built from it, and those two must never be able to disagree about
+  /// which space the stored vectors belong to.
+  String get embeddingModel => switch (provider.format) {
+    AiWireFormat.gemini => 'text-embedding-004',
+    _ => 'text-embedding-3-small',
+  };
+
+  /// What decides whether two sets of stored vectors are comparable.
+  ///
+  /// The endpoint as well as the model, because the same model name behind a
+  /// different base URL is not a promise of the same vectors — a
+  /// self-hosted or proxied endpoint is free to serve something else
+  /// entirely under a familiar name.
+  String get embeddingSpace =>
+      '${provider.wireName}|$resolvedBaseUrl|$embeddingModel';
 
   String get resolvedBaseUrl {
     final value = baseUrl.trim().isEmpty
@@ -1475,11 +1506,11 @@ class CloudAIAdapter implements AIAdapter {
             // and any diagnostics that print the request line.
             Uri.parse(
               '${config.resolvedBaseUrl}'
-              '/v1beta/models/text-embedding-004:embedContent',
+              '/v1beta/models/${config.embeddingModel}:embedContent',
             ),
             headers: _headers,
             body: jsonEncode({
-              'model': 'models/text-embedding-004',
+              'model': 'models/${config.embeddingModel}',
               'content': {
                 'parts': [
                   {'text': text},
@@ -1505,7 +1536,10 @@ class CloudAIAdapter implements AIAdapter {
         .post(
           Uri.parse('${config.resolvedBaseUrl}/v1/embeddings'),
           headers: _headers,
-          body: jsonEncode({'model': 'text-embedding-3-small', 'input': text}),
+          body: jsonEncode({
+            'model': config.embeddingModel,
+            'input': text,
+          }),
         )
         .timeout(_textTimeout);
     if (response.statusCode != 200) {

@@ -318,8 +318,22 @@ class EnrichmentService {
     }
   }
 
+  /// Similarity, or NaN when the two are not comparable.
+  ///
+  /// This used to truncate to the shorter of the two and score whatever was
+  /// left, which is a number rather than an answer: half of one model's
+  /// vector against half of another's says nothing about the notes. Callers
+  /// already drop NaN, so refusing is the behaviour they were written for.
+  ///
+  /// A length check is the backstop, not the fix. The dangerous case is two
+  /// different models with the *same* dimensions — 1536 is common — where
+  /// nothing about the shapes reveals the mismatch. That one is handled
+  /// where it can be: the stored vectors are thrown away when the provider
+  /// or endpoint changes, so the library only ever holds one space at a
+  /// time. See `setEmbeddingSpace`.
   double _cosine(List<double> a, List<double> b) {
-    final n = a.length < b.length ? a.length : b.length;
+    if (a.length != b.length) return double.nan;
+    final n = a.length;
     if (n == 0) return double.nan;
     var dot = 0.0, na = 0.0, nb = 0.0;
     for (var i = 0; i < n; i++) {

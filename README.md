@@ -25,7 +25,7 @@ Files shared to Nex from another app land the same way as ones picked inside it.
 
 **Timeline** — one reverse-chronological stream, no folders. Cards are a fixed height, so
 the list stays even. Swipe an edge for delete or add-tag; hold and drag to reorder; one
-note at a time can be pinned to the top.
+up to five notes can be pinned to the top.
 
 **Find** — SQLite FTS5 full-text search, plus tag, content-type and date filters with
 tappable chips beside the search field (the `tag:`/`type:` operators still work in the

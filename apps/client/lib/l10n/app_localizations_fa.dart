@@ -66,6 +66,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantReachGroup => 'چه چیزی را می‌بیند';
 
   @override
+  @override
+  String get assistantAboutYouNote => 'همراه پیام‌هایت برای پرووایدری که انتخاب کرده‌ای فرستاده می‌شود.';
+
   String get assistantAboutYouGroup => 'دربارهٔ شما';
 
   @override

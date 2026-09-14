@@ -34,6 +34,36 @@ Working convention:
 
 ## Unreleased
 
+- **Writing a note never waits for the AI any more.** Transcribing a recording,
+  reading a photo or searching by meaning can take a provider up to three
+  minutes — and while one of those was running, the *next* note you typed was
+  queued behind it before it reached the disk. Capture and the timeline now go
+  straight past that work instead of lining up behind it.
+
+- **Changing your AI provider no longer poisons search by meaning.** The
+  vectors Nex builds to find notes by meaning only make sense to the model
+  that made them. Switching provider left the old ones in place and compared
+  them against the new model's — which produces a confident similarity score
+  that means nothing. They are now thrown away and rebuilt when the provider
+  or the endpoint changes.
+
+- **OpenRouter no longer offers search by meaning that it cannot do.** It was
+  listed as supporting it and then failed when you searched. It now says so up
+  front, in the same place every other capability is listed.
+
+- **The assistant's "About you" says where it goes.** The name and
+  introduction you give the assistant are sent with your messages — that is
+  what makes them work — but nothing on the panel said so, and the name under
+  your profile genuinely never leaves the device. One line now tells the two
+  apart.
+
+- **The speed promises are checked at a realistic size now.** Writing a note
+  and searching were already timed against their limits on every change;
+  writing is now also timed against a two-thousand-note library, which is
+  where a slowdown would actually show. The two promises that need a real
+  phone to measure honestly are described as what they are instead of being
+  listed as if a machine checked them.
+
 ## v1.11.0
 
 - **Nex now holds the things that come back round.** The insurance every year,

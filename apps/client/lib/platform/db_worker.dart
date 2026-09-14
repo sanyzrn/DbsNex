@@ -524,7 +524,6 @@ class NexDbWorker implements NexDb {
   /* ------------------------------------------------------ backup / export */
 
   @override
-  @override
   Future<void> setDueAt(
     String noteId,
     DateTime? when, {
@@ -979,6 +978,20 @@ class NexDbWorker implements NexDb {
                   )
                 : const OnDeviceAIAdapter(),
           );
+          // A vector is only comparable to vectors from the same model and
+          // the same endpoint. Swap either and every stored embedding becomes
+          // a number from a different space — which `_cosine` will still
+          // score, truncating to the shorter of the two, and hand back a
+          // confident similarity that means nothing. Equal dimensions are the
+          // dangerous case, because nothing about the result looks wrong.
+          //
+          // Only when the new provider can actually embed. Turning AI off
+          // makes the config unusable, and that must not be read as a change
+          // of space: switching off and on again would otherwise throw away
+          // every vector in the library for nothing.
+          if (config.isUsable && config.provider.embeds) {
+            repo.setEmbeddingSpace(config.embeddingSpace);
+          }
         }),
         _DbCommand.sync => await () async {
           final client = SyncClient(
@@ -997,31 +1010,92 @@ class NexDbWorker implements NexDb {
       };
     }
 
-    // One request handled at a time. The listener is not `async` — several
-    // handlers await (import reads a file, sync talks over HTTP, enrichment
-    // talks to a provider) — and a raw async listener interleaved them: a
+    // One request handled at a time — with one exception, below. The listener
+    // is not `async` because several handlers await (import reads a file,
+    // sync talks over HTTP), and a raw async listener interleaved them: a
     // capture could run against the database mid-import, and a close could
     // dispose the handle under a handler still mid-await. Chaining each
     // request onto the tail of the last keeps ordering honest. The chain is
     // fault-tolerant on purpose: a failed request must not poison the queue.
     var tail = Future<void>.value();
+
+    // Set once the close command has been served, so nothing new is started
+    // in the background after it.
+    var closed = false;
+
+    // Background work still waiting on a provider.
+    final inFlight = <Future<void>>{};
+
+    Future<void> serve(_DbRequest message) async {
+      try {
+        final result = await dispatch(message);
+        boot.sendPort.send(_DbResponse(message.id, result, null, null));
+      } catch (e, stack) {
+        boot.sendPort.send(
+          _DbResponse(message.id, null, e.toString(), stack.toString()),
+        );
+      }
+    }
+
     requests.listen((message) {
       if (message is! _DbRequest) return;
+      // The exception, and the reason it exists: these wait on a model, and
+      // a model is allowed 90 seconds for text and three minutes for media.
+      // On the chain, every one of those seconds is a second a capture would
+      // spend queued behind it — and a capture is the one thing in this app
+      // that is never allowed to wait. `scheduleEnrichment` already says
+      // "never awaited by capture UI", and that was true of the caller and
+      // false of the queue underneath it.
+      if (_background.contains(message.command) && !closed) {
+        late final Future<void> work;
+        work = serve(message).whenComplete(() => inFlight.remove(work));
+        inFlight.add(work);
+        return;
+      }
       tail = tail.then((_) async {
-        try {
-          final result = await dispatch(message);
-          boot.sendPort.send(_DbResponse(message.id, result, null, null));
-
-          if (message.command == _DbCommand.close) {
-            db.close();
-            requests.close();
+        await serve(message);
+        if (message.command == _DbCommand.close) {
+          closed = true;
+          // Give whatever is mid-request a moment to come back before the
+          // handle goes. Bounded, because the thing it is waiting for may be
+          // three minutes of provider timeout and shutdown cannot be: past
+          // the grace, a resumed handler finds a disposed database and
+          // throws, which `serve` catches. A stuck network call must not be
+          // able to hold the app open.
+          if (inFlight.isNotEmpty) {
+            await Future.wait(inFlight).timeout(
+              _closeGrace,
+              onTimeout: () => const <void>[],
+            );
           }
-        } catch (e, stack) {
-          boot.sendPort.send(
-            _DbResponse(message.id, null, e.toString(), stack.toString()),
-          );
+          db.close();
+          requests.close();
         }
       });
     });
   }
+
+  /// The commands that wait on a provider rather than on the database.
+  ///
+  /// These run off the queue. Safe because this is one isolate and Dart is
+  /// single-threaded: the only place another command can interleave is an
+  /// `await`, and at every one of those these are parked on HTTP holding no
+  /// transaction. Each writes at most one row of one note when it returns,
+  /// and SQLite's own atomicity covers that.
+  ///
+  /// Deliberately not on this list: `sync`, `importNotes` and `importArchive`.
+  /// All three write in bulk across many rows, which is exactly the
+  /// multi-step sequence the chain exists to keep whole — and sync already
+  /// caps itself at 30 seconds for this same reason.
+  static const _background = {
+    _DbCommand.enrichNote,
+    _DbCommand.backfillEnrichment,
+    _DbCommand.suggestTags,
+    _DbCommand.summarize,
+    _DbCommand.relatedNotes,
+    _DbCommand.semanticSearch,
+  };
+
+  /// How long a close waits for background work before disposing the handle.
+  static const _closeGrace = Duration(seconds: 2);
 }
