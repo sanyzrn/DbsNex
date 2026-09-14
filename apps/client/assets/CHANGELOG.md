@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.11.0
+
 - **Nex now holds the things that come back round.** The insurance every year,
   the rent every month, a tablet every eight hours, a glass of water every two.
   Settings → Recurring. Each one knows how often it comes round, when it is
