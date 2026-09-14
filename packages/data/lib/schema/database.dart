@@ -210,6 +210,7 @@ CREATE TABLE IF NOT EXISTS commitments (
   met_today INTEGER NOT NULL DEFAULT 0,
   met_today_on TEXT,
   paused INTEGER NOT NULL DEFAULT 0,
+  notify INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   deleted_at TEXT,
@@ -222,6 +223,15 @@ CREATE TABLE IF NOT EXISTS commitments (
       'CREATE INDEX IF NOT EXISTS idx_commitments_due '
       'ON commitments(deleted_at, due_at);',
     );
+
+    // Whether a standing obligation rings when it falls due. Added after the
+    // table shipped, so the `IF NOT EXISTS` above will not put it on a
+    // database that already has one — every commitment created in 1.11.0
+    // lives in exactly such a database. Defaulting to 1 means those start
+    // notifying, which is what somebody who set up a recurring reminder was
+    // expecting in the first place. After the CREATE, not before it: on a
+    // fresh database there would otherwise be no table to alter.
+    _addColumnIfMissing('commitments', 'notify', 'INTEGER NOT NULL DEFAULT 1');
 
     // Records one-off data migrations, so a seed that the user has since
     // edited or deleted is never quietly put back.

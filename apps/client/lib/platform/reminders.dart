@@ -925,6 +925,79 @@ class NexReminders {
     } catch (_) {}
   }
 
+  /// A standing obligation's own alarm, at the moment it next falls due.
+  ///
+  /// A **one-shot**, re-armed whenever the commitment moves. The OS can only
+  /// repeat on a clock face (`time`) or a weekday (`dayOfWeekAndTime`), and
+  /// neither describes "every eight hours" or "every month" — so rather than
+  /// use a repeat that fits two of the five cadences and silently misfits the
+  /// rest, each occurrence is scheduled on its own and the next one is set
+  /// when this one is met, when the app launches, or when the commitment is
+  /// edited.
+  ///
+  /// The cost of that is honest and worth stating: if the app is never opened
+  /// and the notification never tapped, only the next occurrence fires. For a
+  /// yearly renewal that is irrelevant; for water every two hours it means
+  /// the chain needs the app to be opened sometimes, which it will be,
+  /// because tapping the notification opens it.
+  Future<void> scheduleCommitment(NexCommitment commitment) async {
+    if (!supported) return;
+    lastError = null;
+    await initialise();
+    await cancelCommitment(commitment.id);
+    if (!commitment.notify || commitment.paused) return;
+    final at = commitment.dueAt;
+    // Already past: the moment was missed while the app was not running, and
+    // firing now would be a surprise hours late. It still shows as overdue on
+    // the screen and in the brief, which is the honest place for it.
+    if (!at.isAfter(DateTime.now())) return;
+    try {
+      await _plugin.zonedSchedule(
+        id: commitmentIdFor(commitment.id),
+        title: _clamp(commitment.title, 60),
+        scheduledDate: scheduledDateFor(at.toUtc()),
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            'Reminders',
+            channelDescription: 'Notes you asked Nex to bring back up',
+            importance: Importance.high,
+            priority: Priority.high,
+            visibility: hideOnLockScreen?.call() ?? false
+                ? NotificationVisibility.secret
+                : null,
+          ),
+          iOS: const DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: _scheduleMode,
+        payload: commitment.id,
+      );
+      onDiagnostic?.call(
+        'commitment ${commitment.id} -> ${at.toIso8601String()} '
+        '(${tz.local.name})',
+      );
+    } catch (error) {
+      lastError = error.toString();
+    }
+  }
+
+  Future<void> cancelCommitment(String commitmentId) async {
+    if (!supported) return;
+    await initialise();
+    try {
+      await _plugin.cancel(id: commitmentIdFor(commitmentId));
+    } catch (_) {}
+  }
+
+  /// A commitment's alarm id.
+  ///
+  /// Prefixed before hashing so a commitment and a note that happen to share
+  /// an id — nothing stops that, both are UUIDs from the same generator —
+  /// cannot land on the same alarm and cancel each other.
+  @visibleForTesting
+  static int commitmentIdFor(String commitmentId) =>
+      idFor('commitment:$commitmentId');
+
   Future<void> cancel(String noteId) async {
     if (!supported) return;
     await initialise();
@@ -948,11 +1021,26 @@ class NexReminders {
   /// record, so anything the record does not ask for goes. Reserved ids (the
   /// daily nudge, the download, the diagnostics) are never touched — none of
   /// them is a note, so none of them is in the library to be asked for.
-  Future<void> syncFromLibrary(List<Note> upcoming) async {
+  ///
+  /// [commitments] is not optional in spirit, only in signature. The prune
+  /// cancels every pending alarm it cannot account for, so a standing
+  /// obligation's alarm is destroyed by the next launch unless this list is
+  /// what it is checked against. That is the trap in adding a second kind of
+  /// thing that owns an alarm: the sweep has to learn about it in the same
+  /// change, or the feature works until the app is restarted.
+  Future<void> syncFromLibrary(
+    List<Note> upcoming, {
+    List<NexCommitment> commitments = const [],
+  }) async {
     if (!supported) return;
     await initialise();
 
-    final wanted = <int>{for (final note in upcoming) _idFor(note.id)};
+    final wanted = <int>{
+      for (final note in upcoming) _idFor(note.id),
+      for (final commitment in commitments)
+        if (commitment.notify && !commitment.paused)
+          commitmentIdFor(commitment.id),
+    };
     try {
       final pending = await _plugin.pendingNotificationRequests();
       for (final request in pending) {
@@ -973,6 +1061,9 @@ class NexReminders {
 
     for (final note in upcoming) {
       await schedule(note);
+    }
+    for (final commitment in commitments) {
+      await scheduleCommitment(commitment);
     }
   }
 

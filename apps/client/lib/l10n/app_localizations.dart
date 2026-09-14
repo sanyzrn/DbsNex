@@ -3720,6 +3720,24 @@ abstract class AppLocalizations {
   /// **'Remove this recurring item?'**
   String get assistantConfirmCommitmentDelete;
 
+  /// Switch: whether a recurring item sends a notification
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me'**
+  String get commitmentNotify;
+
+  /// Notification switch, on
+  ///
+  /// In en, this message translates to:
+  /// **'A notification when it falls due'**
+  String get commitmentNotifyOn;
+
+  /// Notification switch, off
+  ///
+  /// In en, this message translates to:
+  /// **'Only in the digest and on this screen'**
+  String get commitmentNotifyOff;
+
   String get commitmentsTitle;
 
   /// Settings row subtitle

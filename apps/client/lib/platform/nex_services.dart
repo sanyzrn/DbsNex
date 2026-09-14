@@ -378,7 +378,14 @@ class NexServices {
   Future<void> restoreReminders() async {
     if (!NexReminders.supported) return;
     try {
-      await reminders.syncFromLibrary(await worker.upcomingReminders());
+      // Commitments as well as notes, and not as an afterthought: the sweep
+      // inside cancels every pending alarm it cannot account for, so leaving
+      // them out of this call is what would destroy their alarms on the next
+      // launch.
+      await reminders.syncFromLibrary(
+        await worker.upcomingReminders(),
+        commitments: await worker.listCommitments(),
+      );
     } catch (_) {
       // A library that cannot be read here is a library the timeline will
       // fail to read too, and that path already reports it.
@@ -430,14 +437,32 @@ class NexServices {
   /// eight hours. Not notes and not on the timeline; see [NexCommitment].
   Future<List<NexCommitment>> commitments() => worker.listCommitments();
 
-  Future<NexCommitment> saveCommitment(NexCommitment commitment) =>
-      worker.saveCommitment(commitment);
+  /// Writes it and moves its alarm to match.
+  ///
+  /// Both halves together, the way [setDueAt] does it for a note: a due date
+  /// with no alarm behind it is a reminder that never arrives, and an alarm
+  /// with no commitment behind it is one that cannot be cancelled.
+  Future<NexCommitment> saveCommitment(NexCommitment commitment) async {
+    final saved = await worker.saveCommitment(commitment);
+    await reminders.scheduleCommitment(saved);
+    return saved;
+  }
 
-  /// Met, and rolled forward to its next turn.
-  Future<NexCommitment?> markCommitmentMet(String id, {DateTime? at}) =>
-      worker.markCommitmentMet(id, at: at);
+  /// Met, and rolled forward to its next turn — alarm included.
+  ///
+  /// The reschedule is the whole reason this cannot be fire-and-forget: the
+  /// due date has just moved, so the alarm standing behind the old one is now
+  /// wrong. `scheduleCommitment` cancels before it schedules.
+  Future<NexCommitment?> markCommitmentMet(String id, {DateTime? at}) async {
+    final next = await worker.markCommitmentMet(id, at: at);
+    if (next != null) await reminders.scheduleCommitment(next);
+    return next;
+  }
 
-  Future<void> deleteCommitment(String id) => worker.deleteCommitment(id);
+  Future<void> deleteCommitment(String id) async {
+    await worker.deleteCommitment(id);
+    await reminders.cancelCommitment(id);
+  }
 
   Future<void> setTagColor({required String tagId, String? color}) =>
       worker.setTagColor(tagId: tagId, color: color);

@@ -318,6 +318,7 @@ class _CommitmentEditorState extends State<CommitmentEditor> {
   late DateTime _dueAt =
       widget.existing?.dueAt ?? _defaultDue(DateTime.now());
   late Duration? _lead = widget.existing?.lead;
+  late bool _notify = widget.existing?.notify ?? true;
   late bool _window =
       widget.existing?.windowStart != null &&
       widget.existing?.windowEnd != null;
@@ -379,6 +380,7 @@ class _CommitmentEditorState extends State<CommitmentEditor> {
             lead: _lead,
             windowStart: _window ? _windowStart : null,
             windowEnd: _window ? _windowEnd : null,
+            notify: _notify,
             createdAt: now,
             updatedAt: now,
           )
@@ -392,6 +394,7 @@ class _CommitmentEditorState extends State<CommitmentEditor> {
             windowStart: _window ? _windowStart : null,
             windowEnd: _window ? _windowEnd : null,
             clearWindow: !_window,
+            notify: _notify,
             updatedAt: now,
           );
     await widget.services.saveCommitment(commitment);
@@ -518,6 +521,15 @@ class _CommitmentEditorState extends State<CommitmentEditor> {
                       : Duration(hours: value),
                 ),
               ),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.commitmentNotify),
+              subtitle: Text(
+                _notify ? l10n.commitmentNotifyOn : l10n.commitmentNotifyOff,
+              ),
+              value: _notify,
+              onChanged: (value) => setState(() => _notify = value),
             ),
             if (hourly) ...[
               SwitchListTile(

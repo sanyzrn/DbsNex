@@ -2113,6 +2113,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get assistantConfirmCommitmentDelete => 'Remove this recurring item?';
 
+  @override
+  String get commitmentNotify => 'Remind me';
+
+  @override
+  String get commitmentNotifyOn => 'A notification when it falls due';
+
+  @override
+  String get commitmentNotifyOff => 'Only in the digest and on this screen';
+
   String get commitmentsTitle => 'Recurring';
 
   @override

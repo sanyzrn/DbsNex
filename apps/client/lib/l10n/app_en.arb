@@ -1955,6 +1955,18 @@
   "@assistantConfirmCommitmentDelete": {
     "description": "Confirmation for deleting a recurring item"
   },
+  "commitmentNotify": "Remind me",
+  "@commitmentNotify": {
+    "description": "Switch: whether a recurring item sends a notification"
+  },
+  "commitmentNotifyOn": "A notification when it falls due",
+  "@commitmentNotifyOn": {
+    "description": "Notification switch, on"
+  },
+  "commitmentNotifyOff": "Only in the digest and on this screen",
+  "@commitmentNotifyOff": {
+    "description": "Notification switch, off"
+  },
   "commitmentsTitle": "Recurring",
   "@commitmentsTitle": {"description": "Title of the recurring-obligations screen"},
   "commitmentsSubtitle": "Bills, renewals, medication — things that come back round",
