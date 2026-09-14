@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.12.0
+
 - **Writing a note never waits for the AI any more.** Transcribing a recording,
   reading a photo or searching by meaning can take a provider up to three
   minutes — and while one of those was running, the *next* note you typed was
