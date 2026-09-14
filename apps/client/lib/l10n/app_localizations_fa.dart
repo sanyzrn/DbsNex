@@ -1520,6 +1520,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get model => 'مدل';
 
   @override
+  String get modelChoiceHint =>
+      'هر مدلی که این‌جا می‌نویسید همان است که کار را انجام می‌دهد، پس کیفیت نتیجه به آن بستگی دارد. مدل‌های کوچک یا ارزان خلاصهٔ ضعیف می‌دهند و دستورها را دقیق دنبال نمی‌کنند — یکی از مدل‌های قوی همان سرویس را انتخاب کنید.';
+
+  @override
   String get testConnection => 'تست اتصال';
 
   @override
@@ -1822,6 +1826,10 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get localModelExplained =>
       'Nex می‌تواند یک مدل زبانی را روی همین گوشی اجرا کند، طوری که چت بدون اینترنت کار کند و هیچ‌چیزی که می‌نویسید از دستگاه بیرون نرود. حجمش زیاد است و تا وقتی خودتان پاکش نکنید روی گوشی می‌ماند.';
+
+  @override
+  String get localModelDeviceCaveat =>
+      'روی پردازندهٔ همین گوشی اجرا می‌شود، پس کیفیت کارش به خود گوشی بستگی دارد. روی دستگاه قدیمی‌تر یا کندتر جواب‌ها دیر می‌آیند، و اگر حافظه کم بیاید ممکن است مدل اصلاً بالا نیاید.';
 
   @override
   String localModelDownload(String size) {

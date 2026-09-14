@@ -166,7 +166,7 @@ class NexBodyText extends StatelessWidget {
   }
 }
 
-/// Rebuilds a text field as the script being typed into it changes.
+/// Runs a text field in the direction of the script being typed into it.
 ///
 /// A `TextField` takes its direction from the ambient [Directionality] — the
 /// interface language — unless it is told otherwise, and the interface
@@ -174,9 +174,22 @@ class NexBodyText extends StatelessWidget {
 /// left-to-right field is laid out around the wrong base direction, so it
 /// scrambles as it is written and settles the moment it is saved.
 ///
-/// The rebuild has to happen per keystroke, which is why this listens to the
-/// controller rather than taking a string: the direction is a property of
-/// text that does not exist yet.
+/// **It supplies a [Directionality], not just a `textDirection` argument**,
+/// and that distinction is the whole reason this is a widget rather than a
+/// function call. Setting `textDirection:` on the field turns the *glyphs*
+/// and leaves everything built around them resolving against the ambient
+/// direction: the decoration's padding, the hint, and — the one that is
+/// actually painful — the selection handles, the magnifier and the context
+/// menu, which are built from the field's context. Persian text in an
+/// English interface got a right-to-left paragraph with a left-to-right
+/// selection overlay on top of it, so the handles came up on the wrong ends
+/// and dragging one ran the selection the wrong way. Owning the direction
+/// for the whole subtree is what makes those agree.
+///
+/// The builder still receives the direction, because the field should pass it
+/// on as `textDirection:` too — with both set they cannot drift, and the
+/// argument is what pins the paragraph when the ambient one is inherited from
+/// somewhere this widget does not own.
 ///
 /// ```dart
 /// NexAutoDirection(
@@ -190,9 +203,25 @@ class NexBodyText extends StatelessWidget {
 /// ```
 ///
 /// A null direction means the text carries none of its own — it is empty, or
-/// it is a number — and the field should keep the ambient one. That is what
-/// puts a placeholder at the right edge in Persian and the left in English.
-class NexAutoDirection extends StatelessWidget {
+/// it is a number — and the field keeps the ambient one. That is what puts a
+/// placeholder at the right edge in Persian and the left in English.
+///
+/// Two things it is careful about, both learned the hard way:
+///
+/// - **It rebuilds on a change of direction, not on a change of value.** A
+///   `TextEditingController` notifies its listeners when the *selection*
+///   moves, not only when the text does — so a `ValueListenableBuilder` on one
+///   rebuilds the field on every frame of a handle drag, and a selection being
+///   dragged through a widget that is being rebuilt under it is a selection
+///   that fights back. Nothing below depends on the value, only on the
+///   direction, so that is what is watched.
+/// - **The [Directionality] is always there**, carrying the ambient direction
+///   when the text has none of its own. Inserting or removing a widget changes
+///   the shape of the tree, and the element below it is rebuilt from scratch —
+///   which, for a focused field, means losing focus and selection at the
+///   moment the first letter is typed, exactly when the direction stops being
+///   null.
+class NexAutoDirection extends StatefulWidget {
   const NexAutoDirection({
     super.key,
     required this.controller,
@@ -203,10 +232,48 @@ class NexAutoDirection extends StatelessWidget {
   final Widget Function(BuildContext context, TextDirection? direction) builder;
 
   @override
-  Widget build(BuildContext context) =>
-      ValueListenableBuilder<TextEditingValue>(
-        valueListenable: controller,
-        builder: (context, value, _) =>
-            builder(context, nexDirectionOf(value.text)),
-      );
+  State<NexAutoDirection> createState() => _NexAutoDirectionState();
+}
+
+class _NexAutoDirectionState extends State<NexAutoDirection> {
+  TextDirection? _direction;
+
+  @override
+  void initState() {
+    super.initState();
+    _direction = nexDirectionOf(widget.controller.text);
+    widget.controller.addListener(_reread);
+  }
+
+  @override
+  void didUpdateWidget(NexAutoDirection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+    oldWidget.controller.removeListener(_reread);
+    widget.controller.addListener(_reread);
+    _direction = nexDirectionOf(widget.controller.text);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_reread);
+    super.dispose();
+  }
+
+  void _reread() {
+    final next = nexDirectionOf(widget.controller.text);
+    if (next == _direction) return;
+    setState(() => _direction = next);
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+    textDirection: _direction ?? Directionality.of(context),
+    child: Builder(
+      // A `Builder`, so the field is built *under* the `Directionality` above
+      // and reads it — `context` here is the one this widget was built with,
+      // which still carries the old direction.
+      builder: (inner) => widget.builder(inner, _direction),
+    ),
+  );
 }

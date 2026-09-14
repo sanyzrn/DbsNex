@@ -232,38 +232,48 @@ class _CaptureSheetState extends State<CaptureSheet> {
                   close();
                   return KeyEventResult.handled;
                 },
-                child: TextField(
+                // Direction comes from the script being typed, and it is
+                // supplied as a `Directionality` around the field rather than
+                // only as an argument to it — see [NexAutoDirection]. The
+                // argument alone turned the text and left the selection
+                // handles resolving against the interface language, so a
+                // Persian note in an English app got its handles on the wrong
+                // ends and dragging one ran the wrong way.
+                child: NexAutoDirection(
                   controller: controller,
-                  autofocus: true,
-                  minLines: 3,
-                  maxLines: null,
-                  // Null while the field is empty, which leaves the ambient
-                  // direction in place — that is what puts the placeholder at
-                  // the right edge in Persian instead of the left. Once there
-                  // is text it follows the script being typed, so `start` is
-                  // the correct end in either language.
-                  textDirection: nexDirectionOf(controller.text),
-                  textAlign: TextAlign.start,
-                  // Default is BoxWidthStyle.max, which pads a selection's highlight
-                  // out to the far edge of its line on Persian text — double-tapping
-                  // a word painted a bar running to the end of the line, empty space
-                  // included, even though the selection itself (and copy) was always
-                  // just the word.
-                  selectionWidthStyle: BoxWidthStyle.tight,
-                  // Bold, italic and the rest, appended to the platform's own
-                  // Cut/Copy/Paste rather than replacing them.
-                  contextMenuBuilder: nexFormatContextMenuBuilder(context),
-                  decoration: InputDecoration(
-                    hintText: l10n.captureHint,
-                    border: InputBorder.none,
+                  builder: (context, direction) => TextField(
+                    controller: controller,
+                    autofocus: true,
+                    minLines: 3,
+                    maxLines: null,
+                    // Null while the field is empty, which leaves the ambient
+                    // direction in place — that is what puts the placeholder at
+                    // the right edge in Persian instead of the left. Once there
+                    // is text it follows the script being typed, so `start` is
+                    // the correct end in either language.
+                    textDirection: direction,
+                    textAlign: TextAlign.start,
+                    // Default is BoxWidthStyle.max, which pads a selection's highlight
+                    // out to the far edge of its line on Persian text — double-tapping
+                    // a word painted a bar running to the end of the line, empty space
+                    // included, even though the selection itself (and copy) was always
+                    // just the word.
+                    selectionWidthStyle: BoxWidthStyle.tight,
+                    // Bold, italic and the rest, appended to the platform's own
+                    // Cut/Copy/Paste rather than replacing them.
+                    contextMenuBuilder: nexFormatContextMenuBuilder(context),
+                    decoration: InputDecoration(
+                      hintText: l10n.captureHint,
+                      border: InputBorder.none,
+                    ),
+                    textInputAction: widget.preferences.enterSubmitsCapture
+                        ? TextInputAction.send
+                        : TextInputAction.newline,
+                    onChanged: changed,
+                    onSubmitted: widget.preferences.enterSubmitsCapture
+                        ? (_) => close()
+                        : null,
                   ),
-                  textInputAction: widget.preferences.enterSubmitsCapture
-                      ? TextInputAction.send
-                      : TextInputAction.newline,
-                  onChanged: changed,
-                  onSubmitted: widget.preferences.enterSubmitsCapture
-                      ? (_) => close()
-                      : null,
                 ),
               ),
             ),

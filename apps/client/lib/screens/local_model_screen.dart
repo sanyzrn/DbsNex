@@ -231,6 +231,19 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
                   l10n.localModelExplained,
                   style: theme.textTheme.bodyMedium,
                 ),
+                const SizedBox(height: NexSpacing.sm),
+                // Said before the download, not after it. This model runs on
+                // the phone's own processor, and a two-gigabyte download that
+                // then answers a sentence a minute — or will not load at all —
+                // reads as a broken app rather than as a device that cannot
+                // carry it. The blockers below refuse the cases that can be
+                // detected; speed is not one of them, so it is said out loud.
+                Text(
+                  l10n.localModelDeviceCaveat,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: NexSpacing.lg),
                 if (!support.supported || store == null)
                   _Blocked(
