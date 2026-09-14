@@ -2114,6 +2114,15 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get assistantConfirmCommitmentDelete => 'این مورد تکرارشونده را بردارم؟';
 
+  @override
+  String get commitmentNotify => 'یادم بینداز';
+
+  @override
+  String get commitmentNotifyOn => 'وقتی سررسید شد یک نوتیف';
+
+  @override
+  String get commitmentNotifyOff => 'فقط در خلاصه و همین صفحه';
+
   String get commitmentsTitle => 'موارد تکرارشونده';
 
   @override

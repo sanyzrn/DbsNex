@@ -29,6 +29,7 @@ import '../widgets/capture_sheet.dart';
 import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/commit_receipt.dart';
+import '../widgets/commitments_sheet.dart';
 import '../widgets/note_spotlight.dart';
 import '../widgets/empty_timeline.dart';
 import '../widgets/first_run_tour.dart';
@@ -1837,6 +1838,11 @@ class TimelineScreenState extends State<TimelineScreen>
               collapsed: _aiSummaryCollapsed,
               semanticLabel: l10n.aiDaySummarySemanticLabel,
               refreshTooltip: l10n.aiDaySummaryRefresh,
+              manageTooltip: l10n.commitmentsTitle,
+              onManageCommitments: () async {
+                await CommitmentsSheet.show(context, services: widget.services);
+                await _loadCommitments();
+              },
               toggleTooltip: _aiSummaryCollapsed
                   ? l10n.aiDaySummaryExpand
                   : l10n.aiDaySummaryCollapse,
@@ -2734,6 +2740,8 @@ class _AiDaySummaryPanel extends StatelessWidget {
     required this.toggleTooltip,
     required this.onRefresh,
     required this.onToggle,
+    required this.manageTooltip,
+    this.onManageCommitments,
   });
 
   final String title;
@@ -2748,6 +2756,17 @@ class _AiDaySummaryPanel extends StatelessWidget {
   /// Null while a request is already in flight — see the call site.
   final VoidCallback? onRefresh;
   final VoidCallback onToggle;
+
+  /// Opens the recurring items.
+  ///
+  /// Here because this card is where they actually appear: the brief is the
+  /// surface that says the insurance is due on Friday, so it is the surface
+  /// somebody is looking at when they think "I should add the other one".
+  /// They were reachable only from Settings, which is where the app's own
+  /// configuration lives — and a list of somebody's bills and medication is
+  /// their data, not a setting.
+  final VoidCallback? onManageCommitments;
+  final String manageTooltip;
 
   /// The header row's height, open or closed — see the build method.
   static const _headerHeight = 40.0;
@@ -2822,13 +2841,24 @@ class _AiDaySummaryPanel extends StatelessWidget {
                     // for a refresh to change, and a button that rewrites
                     // something you cannot see is a button that does nothing
                     // you can tell.
-                    if (!collapsed)
+                    if (!collapsed) ...[
+                      if (onManageCommitments case final open?)
+                        IconButton(
+                          tooltip: manageTooltip,
+                          onPressed: open,
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(
+                            Icons.event_repeat_outlined,
+                            size: 20,
+                          ),
+                        ),
                       IconButton(
                         tooltip: refreshTooltip,
                         onPressed: onRefresh,
                         visualDensity: VisualDensity.compact,
                         icon: const Icon(Icons.refresh, size: 20),
                       ),
+                    ],
                   ],
                 ),
               ),

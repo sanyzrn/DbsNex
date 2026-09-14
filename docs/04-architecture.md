@@ -46,23 +46,31 @@ This choice is deliberate: the core problem is **lost and scattered ideas**. A p
 
 ## Modular Architecture
 
-The system is organized into independently testable modules with a strict dependency direction: UI depends on Core, Core depends on Data — never the reverse.
+The system is organized into independently testable modules with a strict dependency direction: **UI depends on Core, and Data depends on Core. Core depends on nothing.**
+
+That is dependency inversion, not the naive stack it is often drawn as, and the difference is the point. Core owns the *interfaces* — `packages/core/lib/ports/` holds `NoteRepository`, `SyncPort` and `MemoryRepository`, and `packages/core/lib/ai/ai_adapter.dart` holds `AIAdapter` — and the layers around it implement them: `SqliteNoteRepository` and `SyncClient` in `packages/data`, `CloudAIAdapter` in the client. Every file in `packages/data` imports `nex_core`; no file in `packages/core` imports `nex_data`, and CI asserts it (the `packages/core must not re-export the storage layer` job).
+
+Two things follow, and both are load-bearing rather than tidy:
+
+- **Core is testable with no database at all.** The business rules are exercised against whatever implements the port, which is why `packages/core` runs under plain `dart test` with no SQLite, no emulator and no Flutter.
+- **The AI layer's deletability uses the same shape.** `AIAdapter` is a port in Core; the implementations are elsewhere and can be removed. "AI can be deleted from the build" is the same property as "storage can be swapped", stated about a different port.
 
 ```mermaid
 flowchart LR
     UI[UI Layer<br/>Timeline, Capture, Search, Note Detail] --> Core
-    Core[Core Domain Layer<br/>Capture, Tagging, Search, Sync Orchestration] --> Data
-    Data[Data Layer<br/>Local Store, Schema, Repository, Sync Client] --> Backend
+    Core[Core Domain Layer<br/>Capture, Tagging, Search, Sync Orchestration<br/>owns the ports the others implement]
+    Data[Data Layer<br/>Local Store, Schema, Repository, Sync Client] -- implements NoteRepository, SyncPort --> Core
+    Data --> Backend
     Backend[(Backend API<br/>dormant in v1)]
 
-    AI[AI Layer - optional, ships in v1.x<br/>Transcription, OCR, Tag Suggestion, Semantic Search, Assistant] -. reads/writes via Core .-> Core
+    AI[AI Layer - optional, ships in v1.x<br/>Transcription, OCR, Tag Suggestion, Semantic Search, Assistant] -- implements AIAdapter --> Core
 ```
 
 | Layer | Responsibility | Notes |
 |---|---|---|
 | **UI Layer** | Renders Timeline, Capture flow, Search, Note Detail. No persistence or business logic. | Shared across platforms via `packages/ui`. |
-| **Core Domain Layer** | Capture orchestration, tag management, search query composition, sync orchestration (what to sync, when, conflict policy). | Platform-agnostic; pure business logic, fully unit-testable without a UI or database. |
-| **Data Layer** | Local persistent storage (SQLite), repository interfaces, the sync client. | Owns the schema described in [`02-product-specification.md`](./02-product-specification.md#data-model). |
+| **Core Domain Layer** | Capture orchestration, tag management, search query composition, sync orchestration (what to sync, when, conflict policy). **Owns the ports** — `NoteRepository`, `AIAdapter`, `SyncPort` — that the layers below implement. | Platform-agnostic; pure business logic, fully unit-testable without a UI or database, because it names its collaborators rather than importing them. |
+| **Data Layer** | Local persistent storage (SQLite), the concrete repositories, the sync client. Implements Core's ports; defines none of its own. | Owns the schema described in [`02-product-specification.md`](./02-product-specification.md#data-model). |
 | **Backend (minimal)** | Small REST/JSON API plus PostgreSQL, providing durable multi-device storage and conflict-aware replication. | Present from v1 as infrastructure, not exercised until v2 sync ships. |
 | **AI Layer (optional)** | Transcription, OCR, tag suggestion, semantic search, summarization. | Strictly additive; communicates with Core through well-defined, asynchronous, non-blocking interfaces. Fully removable without breaking any other layer. |
 

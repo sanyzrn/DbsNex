@@ -59,6 +59,7 @@ class NexCommitment {
     this.metToday = 0,
     this.metTodayOn,
     this.paused = false,
+    this.notify = true,
     this.rev = 1,
   });
 
@@ -109,6 +110,15 @@ class NexCommitment {
   final String? metTodayOn;
 
   final bool paused;
+
+  /// Whether this one rings when it falls due.
+  ///
+  /// On by default, because setting something up to come back round and not
+  /// wanting to be told is the unusual case — but it is a real case, and the
+  /// hourly cadences are why. Water every two hours is seven notifications a
+  /// day, which is the difference between a useful app and one somebody
+  /// silences at the OS level, taking every other reminder with it.
+  final bool notify;
 
   /// Bumped on every local change, so these rows can ride the same sync
   /// machinery the notes do when it reaches them. Nothing reads it yet.
@@ -200,6 +210,7 @@ class NexCommitment {
     int? metToday,
     String? metTodayOn,
     bool? paused,
+    bool? notify,
     DateTime? updatedAt,
   }) => NexCommitment(
     id: id,
@@ -216,6 +227,7 @@ class NexCommitment {
     metToday: metToday ?? this.metToday,
     metTodayOn: metTodayOn ?? this.metTodayOn,
     paused: paused ?? this.paused,
+    notify: notify ?? this.notify,
     rev: rev + 1,
   );
 }

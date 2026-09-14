@@ -58,7 +58,7 @@ nex/
 └── README.md
 ```
 
-Each `packages/*` module is independently unit-testable and has no dependency on `apps/client` or `apps/backend`. `packages/core` and `packages/data` are plain Dart with zero Flutter/widget dependency, so Core domain logic can be tested with `dart test` alone, with no simulator, emulator, or widget test harness required. **Dependency rule:** `apps/* → packages/core → packages/data`. `packages/ui` depends on Flutter; `packages/ai` and the sync client are optional leaves — nothing in the capture path may import them.
+Each `packages/*` module is independently unit-testable and has no dependency on `apps/client` or `apps/backend`. `packages/core` and `packages/data` are plain Dart with zero Flutter/widget dependency, so Core domain logic can be tested with `dart test` alone, with no simulator, emulator, or widget test harness required. **Dependency rule:** `apps/* → packages/core`, and `packages/data → packages/core`. Core depends on nothing — it owns the ports (`packages/core/lib/ports/`) and Data implements them. The arrow does not run from Core to Data, and CI asserts that it does not: the `core-boundary` job fails the build if `packages/core` imports, re-exports or depends on `nex_data`. This is what lets Core be tested with `dart test` and no database at all. `packages/ui` depends on Flutter; `packages/ai` and the sync client are optional leaves — nothing in the capture path may import them.
 
 ---
 

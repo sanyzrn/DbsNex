@@ -62,8 +62,8 @@ class SqliteCommitmentRepository {
 INSERT OR REPLACE INTO commitments (
   id, title, cadence, every, due_at, lead_seconds,
   window_start, window_end, last_met_at, met_today, met_today_on,
-  paused, created_at, updated_at, deleted_at, device_id, rev
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
+  paused, notify, created_at, updated_at, deleted_at, device_id, rev
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
 ''',
       [
         commitment.id,
@@ -78,6 +78,7 @@ INSERT OR REPLACE INTO commitments (
         commitment.metToday,
         commitment.metTodayOn,
         commitment.paused ? 1 : 0,
+        commitment.notify ? 1 : 0,
         commitment.createdAt.toUtc().toIso8601String(),
         commitment.updatedAt.toUtc().toIso8601String(),
         localDeviceId ?? '',
@@ -138,6 +139,7 @@ INSERT OR REPLACE INTO commitments (
     metToday: (row['met_today'] as int?) ?? 0,
     metTodayOn: row['met_today_on'] as String?,
     paused: ((row['paused'] as int?) ?? 0) != 0,
+    notify: ((row['notify'] as int?) ?? 1) != 0,
     createdAt: _local(row['created_at'] as String)!,
     updatedAt: _local(row['updated_at'] as String)!,
     rev: (row['rev'] as int?) ?? 1,

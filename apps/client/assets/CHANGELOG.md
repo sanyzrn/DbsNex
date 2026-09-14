@@ -64,6 +64,18 @@ Working convention:
   phone to measure honestly are described as what they are instead of being
   listed as if a machine checked them.
 
+- **Recurring commitments can ring on their own.** Until now a commitment only
+  reached you through the morning brief. Each one can now raise its own
+  notification at the moment it comes due — the eight-hourly tablet, the
+  monthly instalment — and each one has its own switch, so the ones you only
+  want mentioned in the brief stay silent.
+
+- **Recurring commitments are where you actually see them.** Setting them up
+  was buried in Settings, which is not where anyone looks after the first
+  time. The brief card at the top of the timeline — the place commitments
+  turn up — now has a button that opens the list directly. Settings still has
+  it too.
+
 ## v1.11.0
 
 - **Nex now holds the things that come back round.** The insurance every year,
