@@ -45,6 +45,13 @@ void main() {
       deviceId: 'test',
       mediaDir: mediaDir,
       adapter: const _HangingAdapter(),
+      // Named, now that `spawn`'s default is `allOff`. Without it the worker
+      // refuses semantic search before it ever reaches the adapter, and
+      // `semanticSearch` returns `const []` at once — which is precisely the
+      // early return the `answered` check below exists to rule out. The test
+      // would have passed for the wrong reason; instead it failed, which is
+      // the right way round.
+      capabilities: AiCapabilities.allOn,
     );
   }
 
