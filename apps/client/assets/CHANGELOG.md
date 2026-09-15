@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.13.0
+
 - **Search no longer claims to find things by meaning when it cannot.** With no
   AI provider set up, a search that found nothing still offered a list under
   "matches by meaning". Those matches were produced by a hash of the text —
