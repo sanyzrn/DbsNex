@@ -204,12 +204,29 @@ class NexBackupArchive {
   ///
   /// A row whose file already exists at the stored path is left alone — the
   /// common case for a backup restored on the device that made it. For the
-  /// rest, the file that actually arrived in the restore is matched by name:
-  /// first the full relative path the row implies (for a backup with
-  /// subdirectories), then the basename (for the flat media directory this
-  /// app writes). A row whose file made it into neither is left exactly as
+  /// rest, the file that actually arrived in the restore is matched by the
+  /// longest tail of the stored path that exists under [mediaDir], down to
+  /// the bare basename. A row whose file matches nothing is left exactly as
   /// it is — rewriting it to a path that does not exist would turn "stale
   /// path, file findable" into "wrong path, file gone".
+  ///
+  /// **Longest tail, not basename, and not two probes.** The archive keeps
+  /// whatever structure the media directory had (`listSync(recursive: true)`
+  /// plus a path relative to the media root), so a row pointing at
+  /// `…/media/2026/05/photo.jpg` should match `2026/05/photo.jpg` under the
+  /// new root in preference to a bare `photo.jpg`, which may well belong to
+  /// a different note.
+  ///
+  /// The tail has to be searched for rather than computed, because the row
+  /// holds an absolute path into the *old* sandbox and nothing here knows
+  /// where that sandbox's media root was. This is what the previous version
+  /// was reaching for and did not reach: it asked for
+  /// `p.relative(stored, from: p.dirname(stored))`, which is the definition
+  /// of `p.basename(stored)` — the relative path from a file's own directory
+  /// to that file is its name. So its "full relative path" probe and its
+  /// "basename" fallback were the same string, and the fallback could never
+  /// find anything the first had not. Nothing noticed because this app writes
+  /// media flat and a same-device restore returns at the early exit above.
   static void _remapMediaUris(String liveDbPath, String mediaDir) {
     if (!File(liveDbPath).existsSync()) return;
     final db = sqlite3.open(liveDbPath);
@@ -221,14 +238,18 @@ class NexBackupArchive {
         final stored = row['media_uri']! as String;
         if (File(stored).existsSync()) continue;
 
-        final relative = p.relative(stored, from: p.dirname(stored));
+        final segments = p.split(stored);
         File? candidate;
-        final nested = File(p.join(mediaDir, relative));
-        if (nested.existsSync()) {
-          candidate = nested;
-        } else {
-          final flat = File(p.join(mediaDir, p.basename(stored)));
-          if (flat.existsSync()) candidate = flat;
+        // From the longest tail down to the basename. The first segment is
+        // the root (`/`, or a drive), which is never part of a path relative
+        // to the media directory, so the search starts one in.
+        for (var take = segments.length - 1; take >= 1; take--) {
+          final tail = p.joinAll(segments.sublist(segments.length - take));
+          final file = File(p.join(mediaDir, tail));
+          if (file.existsSync()) {
+            candidate = file;
+            break;
+          }
         }
         if (candidate != null) {
           db.execute('UPDATE notes SET media_uri = ? WHERE id = ?', [

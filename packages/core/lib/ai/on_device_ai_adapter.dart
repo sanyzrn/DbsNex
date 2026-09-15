@@ -1,8 +1,3 @@
-import 'dart:convert';
-import 'dart:math' as math;
-import 'dart:typed_data';
-
-import 'package:crypto/crypto.dart';
 import '../models/note.dart';
 
 import 'ai_adapter.dart';
@@ -12,9 +7,7 @@ import 'ai_adapter.dart';
 /// Lives in `packages/core` so apps/client can wire it via DI without depending
 /// on optional `packages/ai`. Deterministic local heuristics; no network.
 class OnDeviceAIAdapter implements AIAdapter {
-  const OnDeviceAIAdapter({this.embeddingDims = 32});
-
-  final int embeddingDims;
+  const OnDeviceAIAdapter();
 
   /// Tokens that are never useful as tags (content-type names, filler, stubs).
   static const Set<String> _stopwords = {
@@ -81,7 +74,33 @@ class OnDeviceAIAdapter implements AIAdapter {
 
   @override
   Future<Vector>? embed(String text) {
-    return Future(() => Vector(_hashEmbed(text, embeddingDims)));
+    // Deliberately unavailable, for the same reason [transcribe] and [ocr]
+    // are — and this one shipped, which the other two did not.
+    //
+    // It used to answer with 32 doubles derived from the SHA-256 of the text:
+    // deterministic, correctly normalised, and carrying no similarity
+    // structure whatsoever. Two notes about the same subject scored no closer
+    // than two unrelated ones, and changing a single character produced a
+    // completely different vector. The comment above it called this "good
+    // enough for cosine demos", which was true — a demo is where it was.
+    //
+    // What made it a defect rather than a placeholder is where the numbers
+    // went. They were stored, and then surfaced under their own heading in
+    // search — `l10n.semanticMatches` — whenever a keyword search came back
+    // empty. Reachable with no provider configured at all, because the worker
+    // falls back to this adapter whenever the provider config is unusable. So
+    // somebody searched, found nothing, and was shown "semantic matches: 3"
+    // under a label asserting the app had understood their notes. That is the
+    // failure docs/09-ai.md's own rule exists to prevent: semantic results
+    // must be distinguishable from keyword ones "so users can calibrate trust
+    // appropriately". They were distinguishable. What was being distinguished
+    // was noise.
+    //
+    // Null is the honest answer. `embed` is nullable by contract, semantic
+    // search over a library with no vectors returns nothing rather than
+    // breaking, and the backfill's own "stop when nothing was written" check
+    // means this costs one query per pass rather than a loop.
+    return null;
   }
 
   @override
@@ -153,27 +172,6 @@ class OnDeviceAIAdapter implements AIAdapter {
     return head;
   }
 
-  /// Tiny deterministic embedding from SHA-256 — good enough for cosine demos.
-  static List<double> _hashEmbed(String text, int dims) {
-    final digest = sha256.convert(utf8.encode(text.toLowerCase().trim()));
-    final bytes = Uint8List.fromList(digest.bytes);
-    final out = List<double>.filled(dims, 0);
-    for (var i = 0; i < dims; i++) {
-      final b = bytes[i % bytes.length];
-      out[i] = (b / 255.0) * 2 - 1;
-    }
-    var norm = 0.0;
-    for (final v in out) {
-      norm += v * v;
-    }
-    norm = math.sqrt(norm);
-    if (norm > 0) {
-      for (var i = 0; i < dims; i++) {
-        out[i] /= norm;
-      }
-    }
-    return out;
-  }
 }
 
 /// Gates cloud-backed adapters behind explicit per-capability opt-in (09-ai.md).

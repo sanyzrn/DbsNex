@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:nex_ai/nex_ai.dart';
@@ -24,8 +25,59 @@ class _ProviderStubAIAdapter implements AIAdapter {
   Future<OCRText>? ocr(ImageRef image) async =>
       const OCRText(text: 'readable receipt total 42');
 
+  /// A real fake, on two fixed axes, rather than the on-device adapter.
+  ///
+  /// It used to delegate here too, and the on-device adapter answered with a
+  /// vector derived from the SHA-256 of the text. That vector had no
+  /// similarity structure at all, so the two tests below — "semantic search
+  /// returns scored hits" and "related notes use embeddings" — were passing on
+  /// numbers that could not mean what they were being read as. They passed
+  /// because a hash of one string is as close to a hash of another as
+  /// anything else is, and 0.3 is not a high bar.
+  ///
+  /// Cosine similarity only cares about angle, so two axes are enough to
+  /// prove the search path: notes about shopping land on one, notes about
+  /// programming on the other, and neither test needs a model to say so. This
+  /// is the same shape `note_search_test.dart` uses one layer up, and the same
+  /// rule the doc comment above this class already states about transcripts —
+  /// a test must not lean on the adapter fabricating an answer.
   @override
-  Future<Vector>? embed(String text) => _onDevice.embed(text);
+  Future<Vector>? embed(String text) async {
+    const shopping = {
+      'buy',
+      'milk',
+      'eggs',
+      'store',
+      'food',
+      'market',
+      'purchase',
+      'groceries',
+      'grocery',
+      'bread',
+      'list',
+    };
+    const programming = {
+      'rust',
+      'programming',
+      'ownership',
+      'borrow',
+      'checker',
+      'lang',
+      'memory',
+      'safety',
+    };
+    var a = 0.0;
+    var b = 0.0;
+    for (final word in text.toLowerCase().split(RegExp(r'[^a-z]+'))) {
+      if (shopping.contains(word)) a += 1;
+      if (programming.contains(word)) b += 1;
+    }
+    // Neither: a direction of its own, so it is not silently similar to
+    // everything.
+    if (a == 0 && b == 0) return const Vector([0.5, 0.5]);
+    final length = math.sqrt(a * a + b * b);
+    return Vector([a / length, b / length]);
+  }
 
   @override
   Future<List<TagSuggestion>>? suggestTags(Note note) =>

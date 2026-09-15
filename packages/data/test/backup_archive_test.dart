@@ -77,6 +77,55 @@ void main() {
     reopened.close();
   });
 
+  test('a nested row is remapped to its nested file, not a same-named one', () {
+    // The case the "nested, then flat" fallback in `_remapMediaUris` was
+    // written for, and could not serve. It asked for
+    // `p.relative(stored, from: p.dirname(stored))` — which is the definition
+    // of `p.basename(stored)`, since the relative path from a file's own
+    // directory to that file is its name. So both of its probes were the
+    // same string, and a row pointing at `…/media/thumbs/a.jpg` could only
+    // ever be matched by a bare `a.jpg`.
+    //
+    // Two files with the same name, one of them nested, is what makes the
+    // difference visible: matching by basename picks the wrong one, silently,
+    // and the note comes back showing somebody else's photo.
+    final nested = Directory(p.join(mediaDir, 'thumbs'))
+      ..createSync(recursive: true);
+    File(p.join(nested.path, 'a.jpg')).writeAsBytesSync([9, 9, 9]);
+    File(p.join(mediaDir, 'a.jpg')).writeAsBytesSync([1, 1, 1]);
+    repo.insert(photoNote('nested', p.join('thumbs', 'a.jpg')));
+    repo.insert(photoNote('flat', 'a.jpg'));
+
+    final backup = repo.backup(backupDir, mediaDir: mediaDir);
+    db.close();
+    File(dbPath).deleteSync();
+    Directory(mediaDir).deleteSync(recursive: true);
+    final newMediaDir = p.join(tmp.path, 'support2', 'media');
+    Directory(newMediaDir).createSync(recursive: true);
+
+    NexBackupArchive.restore(
+      liveDbPath: dbPath,
+      mediaDir: newMediaDir,
+      backupFile: backup.path,
+    );
+
+    final reopened = NexDatabase.open(dbPath);
+    final repo2 = SqliteNoteRepository(reopened);
+    expect(
+      repo2.getById('nested')!.mediaUri,
+      p.join(newMediaDir, 'thumbs', 'a.jpg'),
+    );
+    expect(repo2.getById('flat')!.mediaUri, p.join(newMediaDir, 'a.jpg'));
+    // And each is the file it was, not the one it shares a name with.
+    expect(File(repo2.getById('nested')!.mediaUri!).readAsBytesSync(), [
+      9,
+      9,
+      9,
+    ]);
+    expect(File(repo2.getById('flat')!.mediaUri!).readAsBytesSync(), [1, 1, 1]);
+    reopened.close();
+  });
+
   test('a stale rollback journal is swept by restore, not replayed', () {
     // A -journal left beside the live file is treated by SQLite as hot for
     // whatever file it sits next to; after a swap it would roll *old* pages

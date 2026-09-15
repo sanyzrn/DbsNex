@@ -265,6 +265,13 @@ class Note {
     int? rev,
     SyncState? syncState,
     List<Tag>? tags,
+    DateTime? pinnedAt,
+    bool clearPinnedAt = false,
+    DateTime? dueAt,
+    bool clearDueAt = false,
+    NoteRepeat? dueRepeat,
+    int? sortOrder,
+    bool clearSortOrder = false,
   }) {
     return Note(
       id: id,
@@ -287,6 +294,26 @@ class Note {
       rev: rev ?? this.rev,
       syncState: syncState ?? this.syncState,
       tags: tags ?? this.tags,
+      // The four that used to be missing.
+      //
+      // They are not optional extras on this type: [pinnedAt] and
+      // [sortOrder] are what the timeline orders by, and [dueAt] with
+      // [dueRepeat] is the whole of what the reminder scheduler reads. A copy
+      // that dropped them silently reverted all four to their defaults — a
+      // pinned note came back unpinned, a note with an alarm came back
+      // without one, and nothing anywhere said so.
+      //
+      // Nothing reached that: every write in the repository goes through a
+      // dedicated method (`pinNote`, `setDueAt`, `updateContent`,
+      // `_bumpNote`), and `insert(Note)` is the only Note-taking write. So
+      // this was latent rather than lost. It is closed here because the shape
+      // of the failure is the bad one — it would have surfaced as "the
+      // reminder disappeared", days later, with no error and no diff to
+      // point at.
+      pinnedAt: clearPinnedAt ? null : (pinnedAt ?? this.pinnedAt),
+      dueAt: clearDueAt ? null : (dueAt ?? this.dueAt),
+      dueRepeat: dueRepeat ?? this.dueRepeat,
+      sortOrder: clearSortOrder ? null : (sortOrder ?? this.sortOrder),
     );
   }
 

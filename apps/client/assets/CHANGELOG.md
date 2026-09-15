@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+- **Search no longer claims to find things by meaning when it cannot.** With no
+  AI provider set up, a search that found nothing still offered a list under
+  "matches by meaning". Those matches were produced by a hash of the text —
+  numbers with no relationship to what a note is about, so two notes on the
+  same subject scored no closer than two unrelated ones. Nex now says it has
+  nothing rather than offering that.
+
+- **Turning the intelligence layer off now takes effect immediately.** There
+  was a moment at startup, before the setting had been read, when background
+  work could run with every AI capability enabled regardless of the switch.
+
 - **Tapping a widget takes you to the timeline.** It used to take you back to
   wherever you had last been in Nex — so if you had closed the app on the
   Settings screen, tapping the brief on your home screen opened Settings.

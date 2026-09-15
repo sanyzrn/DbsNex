@@ -39,6 +39,14 @@ class InProcessDb implements NexDb {
     _enrichment = EnrichmentService(
       repo: _repo,
       adapter: adapter ?? const NullAIAdapter(),
+      // Named, now that the default is nothing.
+      //
+      // This double stands in for the real worker, which is handed its
+      // capabilities in its boot message; the tests that care about one being
+      // off call `setAiCapabilities` themselves. Inheriting "all six" from an
+      // omitted argument is exactly the fail-open this constructor's default
+      // was changed to stop, so the harness says what it wants out loud.
+      capabilities: AiCapabilities.allOn,
     );
   }
 
