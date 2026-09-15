@@ -100,7 +100,15 @@ void main() {
     // the real fix rather than this: cosine used to truncate to the shorter
     // of the two and score what was left, which turns "these are from
     // different models" into a confident number.
-    final service = EnrichmentService(repo: repo, adapter: const _NoAdapter());
+    // Named, now that the constructor's default is `allOff`. Without it
+    // `relatedNotes` refuses before it reaches a vector at all, and the
+    // control below — the half of this test that makes the empty result
+    // underneath mean "refused" rather than "never works" — fails first.
+    final service = EnrichmentService(
+      repo: repo,
+      adapter: const _NoAdapter(),
+      capabilities: AiCapabilities.allOn,
+    );
 
     // First the control, without which this test proves nothing: same space,
     // identical vectors, and the machinery does find the match. An empty

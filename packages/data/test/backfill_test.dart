@@ -108,7 +108,15 @@ void main() {
       media(NoteType.voice, 'clip$i.m4a');
     }
     final adapter = _FailingAdapter();
-    final service = EnrichmentService(repo: repo, adapter: adapter);
+    // Named, now that the constructor's default is `allOff`: the assertion
+    // below is that the adapter was reached exactly once, and a service that
+    // refuses before reaching it at all would read as the same number for the
+    // opposite reason.
+    final service = EnrichmentService(
+      repo: repo,
+      adapter: adapter,
+      capabilities: AiCapabilities.allOn,
+    );
 
     final done = await service.backfill();
 
@@ -122,7 +130,15 @@ void main() {
     final service = EnrichmentService(
       repo: repo,
       adapter: adapter,
-      capabilities: const AiCapabilities(transcription: false, ocr: false),
+      // These two off and the rest on, which is what this test is about —
+      // spelled as a subtraction from `allOn` rather than as two flags on a
+      // constructor whose default is now `false`, where it would have meant
+      // "everything off" and proved nothing about transcription in
+      // particular.
+      capabilities: AiCapabilities.allOn.copyWith(
+        transcription: false,
+        ocr: false,
+      ),
     );
 
     expect(await service.backfill(), 0);
