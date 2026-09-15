@@ -218,7 +218,7 @@ class NexDbWorker implements NexDb {
     required String deviceId,
     required String mediaDir,
     AIAdapter adapter = const NullAIAdapter(),
-    AiCapabilities capabilities = const AiCapabilities(),
+    AiCapabilities capabilities = AiCapabilities.allOff,
   }) async {
     final responses = ReceivePort();
     final incoming = responses.asBroadcastStream();

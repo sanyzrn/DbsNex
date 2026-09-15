@@ -100,7 +100,7 @@ void main() {
       enrichment = EnrichmentService(
         repo: repo,
         adapter: const OnDeviceAIAdapter(),
-        capabilities: const AiCapabilities(),
+        capabilities: AiCapabilities.allOn,
       );
     });
 

@@ -121,7 +121,15 @@ class NexServices {
       deviceId: id,
       mediaDir: mediaDir,
       adapter: aiAdapter ?? AIAdapterBinding.instance,
-      capabilities: preferences.aiCapabilities,
+      // `effective`, not the raw switches. The raw ones are what the
+      // intelligence screen shows; they say nothing about whether the master
+      // switch is on, and reading them here handed the worker all six
+      // capabilities even with the layer turned off. The correction did
+      // arrive — `setAiCapabilities` a few lines into bootstrap — but it
+      // arrives across at least one await boundary, and a background
+      // `enrichNote` scheduled inside that window ran with everything
+      // enabled. A window is not a defence.
+      capabilities: preferences.effectiveAiCapabilities,
     );
 
     final services = NexServices._(

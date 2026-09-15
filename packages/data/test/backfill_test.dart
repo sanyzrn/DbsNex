@@ -89,7 +89,7 @@ void main() {
     final service = EnrichmentService(
       repo: repo,
       adapter: _WorkingAdapter(),
-      capabilities: const AiCapabilities(),
+      capabilities: AiCapabilities.allOn,
     );
 
     final done = await service.backfill();

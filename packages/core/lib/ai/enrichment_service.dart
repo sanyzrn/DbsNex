@@ -15,7 +15,7 @@ class EnrichmentService {
   EnrichmentService({
     required NoteRepository repo,
     AIAdapter adapter = const NullAIAdapter(),
-    AiCapabilities capabilities = const AiCapabilities(),
+    AiCapabilities capabilities = AiCapabilities.allOff,
   }) : _repo = repo,
        _adapter = adapter,
        _capabilities = capabilities;
