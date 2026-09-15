@@ -19,11 +19,43 @@ import 'nex_services.dart';
 /// reason: live, while a screen is listening, or during bootstrap, before any
 /// screen exists — in which case it waits for [OsCaptureBridge.takeRequest].
 /// The reminder launch path has this exact shape already.
+/// What the OS asked for.
+///
+/// An enum rather than a pair of booleans, which is what this was: three
+/// kinds fit in two flags only by accident, and the fourth — "just bring the
+/// timeline up" — is the one that showed it. Every arm is named, so adding
+/// another means the switch in [OsCaptureBridge._dispatch] stops compiling
+/// rather than silently falling through to "open a note" with no note.
+enum PendingOsRequestKind {
+  /// The Capture widget's tile: open the capture sheet (FR-8.1).
+  capture,
+
+  /// A Timeline widget row: open the note it is showing.
+  openNote,
+
+  /// The Recap widget's refresh button: write a new brief.
+  refreshRecap,
+
+  /// A plain tap on a widget — its header, or its background.
+  ///
+  /// It carries no errand beyond "be the app", and it used to carry no
+  /// payload either: the intent had no action, so Dart was never told it had
+  /// happened. Android then did what it does for any launch of a running
+  /// task — it brought the task back exactly as it was left. Somebody who had
+  /// last been in Settings tapped the brief on their home screen and arrived
+  /// in Settings, which is a perfectly reasonable thing for Android to do and
+  /// not at all what the tap meant.
+  openTimeline,
+}
+
+/// One of those requests, with whatever it carries.
 class PendingOsRequest {
-  const PendingOsRequest.capture() : noteId = null, isRecapRefresh = false;
+  const PendingOsRequest.capture()
+    : kind = PendingOsRequestKind.capture,
+      noteId = null;
 
   const PendingOsRequest.openNote(String this.noteId)
-    : isRecapRefresh = false;
+    : kind = PendingOsRequestKind.openNote;
 
   /// The Recap widget's refresh button, which is a request to open the app.
   ///
@@ -35,15 +67,22 @@ class PendingOsRequest {
   /// re-asks the way its own refresh button does, and the new brief lands on
   /// the home screen through the snapshot a moment later.
   const PendingOsRequest.refreshRecap()
-    : noteId = null,
-      isRecapRefresh = true;
+    : kind = PendingOsRequestKind.refreshRecap,
+      noteId = null;
 
-  /// The note to open, or null for "open text capture".
+  const PendingOsRequest.openTimeline()
+    : kind = PendingOsRequestKind.openTimeline,
+      noteId = null;
+
+  final PendingOsRequestKind kind;
+
+  /// The note to open. Non-null exactly when [kind] is
+  /// [PendingOsRequestKind.openNote].
   final String? noteId;
 
-  final bool isRecapRefresh;
+  bool get isCapture => kind == PendingOsRequestKind.capture;
 
-  bool get isCapture => noteId == null && !isRecapRefresh;
+  bool get isRecapRefresh => kind == PendingOsRequestKind.refreshRecap;
 }
 
 /// What was refused, and how big it was.
@@ -124,6 +163,9 @@ class OsCaptureBridge {
   /// Called when the Recap widget's refresh button asks for a new brief.
   void Function()? onRecapRefreshRequested;
 
+  /// Called when a plain tap on a widget asks for the timeline itself.
+  void Function()? onOpenTimelineRequested;
+
   PendingOsRequest? _request;
 
   /// The request that arrived before anything was listening, once.
@@ -140,17 +182,27 @@ class OsCaptureBridge {
   /// same object that disagree about which one they keep is a difference
   /// somebody would eventually have to work out from the source.
   void _dispatch(PendingOsRequest request) {
-    final open = onOpenNoteRequested;
-    final capture = onCaptureRequested;
-    final recap = onRecapRefreshRequested;
-    if (request.isRecapRefresh) {
-      if (recap != null) return recap();
-    } else if (request.isCapture) {
-      if (capture != null) return capture();
-    } else if (open != null) {
-      return open(request.noteId!);
-    }
-    _request = request;
+    final handled = switch (request.kind) {
+      PendingOsRequestKind.capture => _call(onCaptureRequested),
+      PendingOsRequestKind.refreshRecap => _call(onRecapRefreshRequested),
+      PendingOsRequestKind.openTimeline => _call(onOpenTimelineRequested),
+      PendingOsRequestKind.openNote => switch (onOpenNoteRequested) {
+        final open? => _run(() => open(request.noteId!)),
+        null => false,
+      },
+    };
+    if (!handled) _request = request;
+  }
+
+  /// Runs [handler] if there is one, and says whether it ran.
+  static bool _call(void Function()? handler) => switch (handler) {
+    final handler? => _run(handler),
+    null => false,
+  };
+
+  static bool _run(void Function() body) {
+    body();
+    return true;
   }
 
   RejectedShare? _rejection;
@@ -281,6 +333,9 @@ class OsCaptureBridge {
         return;
       case 'refresh_recap':
         _dispatch(const PendingOsRequest.refreshRecap());
+        return;
+      case 'open_timeline':
+        _dispatch(const PendingOsRequest.openTimeline());
         return;
       case 'shared_text':
         final text = (payload['text'] as String?)?.trim() ?? '';

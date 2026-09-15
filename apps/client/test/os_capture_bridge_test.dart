@@ -414,6 +414,57 @@ void main() {
     expect(bridge.takeRequest(), isNull);
   });
 
+  test('a plain widget tap asks for the timeline and nothing else', () async {
+    // A tap on a widget's header or background. It used to carry no action
+    // at all, so Dart was never told it had happened, and Android resumed the
+    // task exactly as it was left — somebody whose last act in Nex was
+    // opening Settings tapped the brief and arrived in Settings.
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    var timelines = 0;
+    var refreshes = 0;
+    var captures = 0;
+    String? opened;
+    bridge.onOpenTimelineRequested = () => timelines++;
+    bridge.onRecapRefreshRequested = () => refreshes++;
+    bridge.onCaptureRequested = () => captures++;
+    bridge.onOpenNoteRequested = (id) => opened = id;
+    await bridge.start();
+
+    await bridge.handle({'type': 'open_timeline'});
+    expect(timelines, 1);
+    // And it is none of the other three. This is the request that carries no
+    // errand, so every way of mistaking it for one that does — writing a
+    // brief nobody asked for, opening a capture sheet — is a widget acting
+    // on its own.
+    expect(refreshes, 0);
+    expect(captures, 0);
+    expect(opened, isNull);
+    expect(await db.timeline(limit: 50), isEmpty);
+  });
+
+  test('a plain widget tap that launched the app waits for a screen', () async {
+    // Cold start: there is no timeline to bring forward yet, so the request
+    // waits in the bridge exactly as the other three do.
+    native.pending = {'type': 'open_timeline'};
+
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+
+    final waiting = bridge.takeRequest();
+    expect(waiting, isNotNull);
+    expect(waiting!.kind, PendingOsRequestKind.openTimeline);
+    // The two booleans that used to be the whole type. Neither is true here,
+    // and reading "not a capture and not a refresh" as "open a note" is what
+    // the enum exists to stop: `noteId` is null and the old chain ended in
+    // `request.noteId!`.
+    expect(waiting.isCapture, isFalse);
+    expect(waiting.isRecapRefresh, isFalse);
+    expect(waiting.noteId, isNull);
+    expect(bridge.takeRequest(), isNull);
+  });
+
   test('a widget tap that launched the app waits for a screen', () async {
     // The other world, and the common one: tapping the tile is what starts
     // the app, so the request is drained during bootstrap with no timeline

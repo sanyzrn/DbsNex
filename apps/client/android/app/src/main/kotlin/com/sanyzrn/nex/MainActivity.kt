@@ -325,6 +325,11 @@ open class MainActivity : FlutterFragmentActivity() {
         if (intent?.action == ACTION_REFRESH_RECAP) {
             return enqueue(mapOf("type" to "refresh_recap"), live)
         }
+        // A widget tapped anywhere that is not one of its buttons. No errand
+        // at all — the timeline simply has to be what the tap lands on.
+        if (intent?.action == ACTION_OPEN_TIMELINE) {
+            return enqueue(mapOf("type" to "open_timeline"), live)
+        }
         if (intent?.action != Intent.ACTION_SEND) return
         val stream = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
         if (stream == null) {
@@ -636,5 +641,21 @@ open class MainActivity : FlutterFragmentActivity() {
 
         /** Sent by the Recap widget's refresh button; carries nothing. */
         const val ACTION_REFRESH_RECAP = "com.sanyzrn.nex.REFRESH_RECAP"
+
+        /**
+         * Sent by a plain tap on any widget — a header, a background.
+         *
+         * It asks for nothing except the app, which is why the intent used to
+         * have no action at all. That turned out to be the bug: with no
+         * action there was nothing to tell Dart apart from an ordinary
+         * launcher launch, so nothing told the timeline to come forward, and
+         * Android resumed the task exactly as it was left. A tap on the brief
+         * landed in Settings if that is where the app had last been.
+         *
+         * The launcher icon keeps its own actionless intent. Resuming where
+         * you left off is right for the icon and wrong for a widget: one says
+         * "back to Nex", the other says "this thing here".
+         */
+        const val ACTION_OPEN_TIMELINE = "com.sanyzrn.nex.OPEN_TIMELINE"
     }
 }
