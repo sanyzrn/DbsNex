@@ -34,6 +34,13 @@ Working convention:
 
 ## Unreleased
 
+- **Tapping a widget takes you to the timeline.** It used to take you back to
+  wherever you had last been in Nex — so if you had closed the app on the
+  Settings screen, tapping the brief on your home screen opened Settings.
+  Every way into Nex from outside it now lands where the tap meant: a
+  reminder on its note, the Capture tile on a new note, the brief's refresh on
+  the brief.
+
 ## v1.12.0
 
 - **Writing a note never waits for the AI any more.** Transcribing a recording,

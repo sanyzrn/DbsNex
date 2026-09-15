@@ -312,15 +312,19 @@ class TimelineScreenState extends State<TimelineScreen>
     widget.osCapture?.onCaptureRequested = _openCaptureFromOs;
     widget.osCapture?.onOpenNoteRequested = _openNoteFromOs;
     widget.osCapture?.onRecapRefreshRequested = _refreshRecapFromOs;
+    widget.osCapture?.onOpenTimelineRequested = _openTimelineFromOs;
     final requested = widget.osCapture?.takeRequest();
     if (requested != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (requested.isRecapRefresh) {
-          _refreshRecapFromOs();
-        } else if (requested.isCapture) {
-          _openCaptureFromOs();
-        } else {
-          _openNoteFromOs(requested.noteId!);
+        switch (requested.kind) {
+          case PendingOsRequestKind.refreshRecap:
+            _refreshRecapFromOs();
+          case PendingOsRequestKind.capture:
+            _openCaptureFromOs();
+          case PendingOsRequestKind.openTimeline:
+            _openTimelineFromOs();
+          case PendingOsRequestKind.openNote:
+            _openNoteFromOs(requested.noteId!);
         }
       });
     }
@@ -865,6 +869,9 @@ class TimelineScreenState extends State<TimelineScreen>
   /// is the other way for a card to be absent from a list that contains it.
   void _spotlight(String noteId) {
     if (!mounted) return;
+    // A tapped reminder is an OS surface like any other: it means "show me
+    // this note", and it cannot do that from underneath Settings.
+    _surfaceTimeline();
     setState(() {
       if (_searching) _exitSearch();
       _spotlightId = noteId;
@@ -1024,6 +1031,9 @@ class TimelineScreenState extends State<TimelineScreen>
   void _openUpdate() {
     final service = widget.updates;
     if (service == null || !mounted) return;
+    // From a notification, so the same rule as every other OS surface: the
+    // sheet opens on the timeline, not on top of wherever the app was left.
+    _surfaceTimeline();
     unawaited(
       UpdateSheet.show(
         context,
@@ -2489,13 +2499,45 @@ class TimelineScreenState extends State<TimelineScreen>
     return true;
   }
 
+  /// Brings the timeline itself to the front, before an OS surface acts on
+  /// it.
+  ///
+  /// Every path below arrives from outside the app — a widget, a
+  /// notification — and lands on this screen because this is where the
+  /// answer lives. But "this screen" was not necessarily what was on screen:
+  /// Android resumes a task exactly as it was left, so somebody whose last
+  /// act in Nex was opening Settings tapped a widget and arrived in Settings,
+  /// with the sheet the tap asked for opening behind it or not at all.
+  ///
+  /// So anything stacked over the timeline is dismissed first. That is the
+  /// same thing the system back gesture does to those routes, one at a time,
+  /// and it discards nothing the back gesture would have kept — a capture in
+  /// progress is already saved, and an editor that has not been saved is
+  /// already thrown away by a back press. Nothing is dismissed when the
+  /// timeline is already what is showing, which is the ordinary case.
+  void _surfaceTimeline() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) navigator.popUntil((route) => route.isFirst);
+  }
+
+  /// A plain tap on a widget: no errand, just the app.
+  ///
+  /// It does exactly the surfacing above and nothing else — which is the
+  /// whole of what was missing, and why this looks like an empty method.
+  void _openTimelineFromOs() {
+    if (!mounted) return;
+    _surfaceTimeline();
+  }
+
   void _openCaptureFromOs() {
     if (!mounted) return;
+    _surfaceTimeline();
     unawaited(openCapture());
   }
 
   void _openNoteFromOs(String noteId) {
     if (!mounted) return;
+    _surfaceTimeline();
     unawaited(_openNoteById(noteId));
   }
 
@@ -2511,6 +2553,8 @@ class TimelineScreenState extends State<TimelineScreen>
   /// the widget through the snapshot a moment later.
   void _refreshRecapFromOs() {
     if (!mounted) return;
+    // The card that is about to spin has to be the card in front of you.
+    _surfaceTimeline();
     unawaited(_loadAiSummary(force: true));
   }
 

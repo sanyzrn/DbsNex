@@ -59,9 +59,27 @@ object NexWidgetActions {
     private val launchFlags =
         Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
 
-    /** Opens the timeline, exactly as the launcher icon does. */
+    /**
+     * Asks for the timeline itself — a tap on a widget's header or
+     * background.
+     */
+    const val ACTION_OPEN_TIMELINE = MainActivity.ACTION_OPEN_TIMELINE
+
+    /**
+     * Opens the timeline.
+     *
+     * It carries [ACTION_OPEN_TIMELINE] rather than nothing, and that is the
+     * difference between "open Nex" and "open Nex where it was last left".
+     * An actionless intent is what the launcher icon sends, and Android
+     * answers it by resuming the task as it stood — so a tap on the brief
+     * arrived in Settings for anyone whose last act in the app was opening
+     * Settings. With an action, Dart hears about the tap and the timeline
+     * comes forward.
+     */
     fun openAppIntent(context: Context): Intent =
-        Intent(context, MainActivity::class.java).addFlags(launchFlags)
+        Intent(context, MainActivity::class.java)
+            .setAction(ACTION_OPEN_TIMELINE)
+            .addFlags(launchFlags)
 
     /** Opens the timeline straight into text capture (FR-8.1 / ADR-027). */
     fun textCaptureIntent(context: Context): Intent =
