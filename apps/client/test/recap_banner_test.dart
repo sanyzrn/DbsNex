@@ -93,14 +93,21 @@ void main() {
       reason: 'nobody asked for this one',
     );
 
-    // The other half, which must keep working: a tap that visibly does
-    // nothing is what a broken button looks like, so the tap is answered.
+    // The other half, which must keep working: a gesture that visibly does
+    // nothing is what a broken control looks like, so the ask is answered.
     // It also closes the other way out of the assertion above: this proves
-    // the whole path is live — a provider configured, the card on screen, the
-    // request made, the failure noticed, the banner raised. The launch
+    // the whole path is live — a provider configured, the recap on screen,
+    // the request made, the failure noticed, the banner raised. The launch
     // attempt runs the same method against the same source, so silence there
     // is the rule being applied and not the code never running.
-    await tester.tap(find.byTooltip(l10n.aiDaySummaryRefresh));
+    //
+    // A pull rather than a tap. The button this used to press is gone with
+    // the card it sat on; asking for a new recap is the pull now.
+    await tester.fling(
+      find.text('something worth summarising'),
+      const Offset(0, 300),
+      1000,
+    );
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.recapRefreshFailed), findsOneWidget);

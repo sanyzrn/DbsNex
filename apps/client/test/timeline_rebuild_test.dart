@@ -1107,12 +1107,18 @@ void main() {
   ) async {
     await services.captureText('a note from today');
 
+    // The recap has no icon of its own any more — it is a paragraph, not a
+    // card with a sparkle on it — so what stands in for it here is its key.
+    // That is also the more honest marker: it was the sparkle that was being
+    // looked for before, and a sparkle is a glyph anything could start using.
+    final recap = find.byKey(const ValueKey('timeline-recap'));
+
     // AI off entirely — the default.
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.auto_awesome), findsNothing);
+    expect(recap, findsNothing);
 
     // AI on, but no provider configured — still nothing to show, and
     // nothing tries to reach a network the app has no address for.
@@ -1121,7 +1127,7 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.auto_awesome), findsNothing);
+    expect(recap, findsNothing);
   });
 
   group('a tapped reminder', () {

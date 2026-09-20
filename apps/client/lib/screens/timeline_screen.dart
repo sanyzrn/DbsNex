@@ -222,6 +222,26 @@ class TimelineScreenState extends State<TimelineScreen>
   final _libraryAnchor = GlobalKey();
   final _settingsAnchor = GlobalKey();
 
+  /// How wide the timeline's column of cards gets on a window with room to
+  /// spare, and therefore how wide the bottom bar gets: the two are the same
+  /// column, and a bar that ran past the cards it belongs to would read as
+  /// belonging to the window instead.
+  static const _timelineColumnWidth = 760.0;
+
+  /// What the bottom bar leaves at each end. Apple's toolbar spends 28 here;
+  /// the capsules inside it are the same pills the kit draws, so the margin
+  /// around them is the kit's too.
+  static const _bottomBarInset = 28.0;
+
+  /// The widest the bar's own contents ever get: two capsules of two, and
+  /// capture between them. Derived from the pieces rather than measured, so
+  /// it cannot quietly stop matching them.
+  static const _bottomBarContentWidth =
+      _capsuleOfTwo * 2 + nexCaptureFabSize + NexSpacing.contentGap * 2;
+
+  static const _capsuleOfTwo =
+      NexGlassCapsule.height * 2 + NexGlassCapsule.gap;
+
   /// The tour itself, while it is running.
   OverlayEntry? _tour;
 
@@ -1839,30 +1859,18 @@ class TimelineScreenState extends State<TimelineScreen>
           if (showSummary) ...[
             const SizedBox(height: NexSpacing.sm),
             _AiDaySummaryPanel(
-              title: l10n.aiDaySummaryTitle,
+              // Keyed so a test can say "the recap is on screen" without
+              // reaching for a glyph. It used to be found by its sparkle,
+              // which is a thing any other surface could start wearing.
+              key: const ValueKey('timeline-recap'),
               loading: _aiSummaryLoading,
               text: _aiSummaryText,
               emptyLabel: l10n.aiDaySummaryEmpty,
               collapsed: _aiSummaryCollapsed,
               semanticLabel: l10n.aiDaySummarySemanticLabel,
-              refreshTooltip: l10n.aiDaySummaryRefresh,
-              manageTooltip: l10n.commitmentsTitle,
-              onManageCommitments: () async {
-                await CommitmentsSheet.show(context, services: widget.services);
-                await _loadCommitments();
-              },
               toggleTooltip: _aiSummaryCollapsed
                   ? l10n.aiDaySummaryExpand
                   : l10n.aiDaySummaryCollapse,
-              // Disabled mid-request rather than queueing a second one: two
-              // in flight means whichever finishes last wins, which is not
-              // necessarily the one the last tap asked for.
-              onRefresh: _aiSummaryLoading
-                  ? null
-                  : () {
-                      nexBump();
-                      unawaited(_loadAiSummary(force: true));
-                    },
               onToggle: _toggleAiSummary,
             ),
           ],
@@ -1875,6 +1883,10 @@ class TimelineScreenState extends State<TimelineScreen>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final glass = context.nexVisualStyle.liquidGlass;
+    // The same condition the header uses to decide whether to draw the recap
+    // at all. It decides here whether the pull is wired up, because the pull
+    // exists to rewrite the recap and nothing else.
+    final showSummary = _aiHeaderAvailable && widget.preferences.showDaySummary;
     return Scaffold(
       appBar: AppBar(
         // Transparent so the blur below has the list to work on rather than a
@@ -1927,50 +1939,11 @@ class TimelineScreenState extends State<TimelineScreen>
               if (mounted) setState(() {});
             },
           ),
-          // Content lives here, preferences live behind the gear. Trash and
-          // Tags were reachable only through Settings, and neither is a
-          // preference — one of them holds the user's own deleted notes.
-          IconButton(
-            key: _libraryAnchor,
-            tooltip: l10n.libraryTitle,
-            icon: const Icon(Icons.inventory_2_outlined),
-            // Awaited, and the timeline reloads on the way back. Tags and
-            // Trash both live behind here and both change what this screen
-            // shows, and neither of them refreshes it on its own.
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                NexPageRoute<void>(
-                  builder: (_) => LibraryScreen(
-                    services: widget.services,
-                    preferences: widget.preferences,
-                  ),
-                ),
-              );
-              await _refresh();
-            },
-          ),
-          _SettingsButton(
-            key: _settingsAnchor,
-            updates: widget.updates,
-            tooltip: l10n.settings,
-            // Awaited so the commitments can be re-read on the way back.
-            // They are reachable only from Settings, they are not on the
-            // timeline stream that refreshes everything else, and a brief
-            // that had not noticed the one just added would look broken to
-            // the person who had just added it.
-            onPressed: () async {
-              await nexShowSheet<void>(
-                context: context,
-                builder: (_) => SettingsSheet(
-                  services: widget.services,
-                  preferences: widget.preferences,
-                  updates: widget.updates,
-                ),
-              );
-              await _loadCommitments();
-            },
-          ),
+          // The library and the gear used to be here. They are the two things
+          // on this screen somebody reaches for with a thumb rather than with
+          // their eyes, and the top-right corner of a phone is the one place
+          // a thumb cannot go — see [_bottomBar], which is where they live
+          // now.
         ],
       ),
       // Android's back gesture leaves search before it leaves the screen.
@@ -2008,117 +1981,133 @@ class TimelineScreenState extends State<TimelineScreen>
                 child: Center(
                   // One column, and the filter row is inside it. It used to be a
                   // sibling *above* this, so on a wide window the pills started at
-                  // the window edge while the cards sat in a 760px column — two
+                  // the window edge while the cards sat in a narrower column — two
                   // things that belong to each other, visibly unaligned.
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 760),
-                    // No pull-to-refresh. There is nothing left for it to do:
-                    // the timeline is a broadcast stream that every mutation path
-                    // already re-fires, the filter row reloads on the same event,
-                    // and "Sync now" lives in Settings where a sync server is
-                    // configured in the first place. A pull that re-reads data
-                    // which is already current is a gesture that does nothing —
-                    // and this screen's own history says why that is worse than
-                    // no gesture: the pull used to be "reveal the search field",
-                    // and it was replaced precisely because it never revealed
-                    // anything.
+                    constraints: const BoxConstraints(
+                      maxWidth: _timelineColumnWidth,
+                    ),
+                    // The pull rewrites the recap, and that is the only thing
+                    // it does.
+                    //
+                    // For a long time there was no pull here at all, and the
+                    // reasoning held: the timeline is a broadcast stream that
+                    // every mutation path already re-fires, the filter row
+                    // reloads on the same event, and "Sync now" lives in
+                    // Settings where a sync server is configured. A pull that
+                    // re-reads data which is already current does nothing,
+                    // and this screen's own history says why that is worse
+                    // than no gesture — the pull used to be "reveal the
+                    // search field", and it was replaced precisely because it
+                    // never revealed anything.
+                    //
+                    // The recap is the one thing on this screen that does not
+                    // refresh itself: it is asked for at most once an hour,
+                    // and until now the only way to ask sooner was a button
+                    // sitting on the card. With the card gone, the gesture
+                    // inherits the job — and it is still attached to a real
+                    // one, so it is only wired up when there is a recap on
+                    // screen to rewrite.
                     child: NotificationListener<ScrollNotification>(
                       onNotification: _onScroll,
-                      child: CustomScrollView(
-                        controller: _scroll,
-                        // Always scrollable, so a short list still bounces rather
-                        // than feeling locked.
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        slivers: [
-                          // The headline and the recap card, above the search
-                          // field. Both collapse to nothing rather than leaving
-                          // the list, the same reason the two headers below do.
-                          SliverToBoxAdapter(
-                            key: const ValueKey('timeline-header'),
-                            child: NexInertWhileSwiped(
-                              controller: _swipe,
-                              child: AnimatedSize(
-                                duration: NexMotion.slow,
-                                curve: NexMotion.curve,
-                                alignment: Alignment.topCenter,
-                                child: _searching
-                                    ? const SizedBox.shrink()
-                                    : _header(l10n),
-                              ),
-                            ),
-                          ),
-                          // Both headers are always in the list, keyed, and collapse
-                          // to zero extent rather than leaving it. A sliver list that
-                          // changes length while another sliver changes its pinning
-                          // leaves the viewport painting a child it never laid out.
-                          // Kept in the list while a search is running even
-                          // when it is switched off, or the field the app bar
-                          // icon just asked for would not exist.
-                          if (widget.preferences.showSearchField || _searching)
-                            SliverPersistentHeader(
-                              key: const ValueKey('search-header'),
-                              delegate: SearchFieldHeader(
-                                anchor: _searchAnchor,
-                                controller: _search.query,
-                                focusNode: _searchFocus,
-                                searching: _searching,
-                                onTap: () => unawaited(revealSearch()),
-                                onChanged: (_) => _search.schedule(),
-                                onClear: _exitSearch,
-                                filterCount: _search.activeFilterCount,
-                                onShowFilters: () => unawaited(
-                                  nexShowSearchFilterSheet(
-                                    context,
-                                    search: _search,
-                                  ),
+                      child: _wrapInRefresh(
+                        enabled: showSummary,
+                        child: CustomScrollView(
+                          controller: _scroll,
+                          // Always scrollable, so a short list still bounces rather
+                          // than feeling locked.
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          slivers: [
+                            // The headline and the recap card, above the search
+                            // field. Both collapse to nothing rather than leaving
+                            // the list, the same reason the two headers below do.
+                            SliverToBoxAdapter(
+                              key: const ValueKey('timeline-header'),
+                              child: NexInertWhileSwiped(
+                                controller: _swipe,
+                                child: AnimatedSize(
+                                  duration: NexMotion.slow,
+                                  curve: NexMotion.curve,
+                                  alignment: Alignment.topCenter,
+                                  child: _searching
+                                      ? const SizedBox.shrink()
+                                      : _header(l10n),
                                 ),
                               ),
                             ),
-                          if (widget.preferences.showTagRow)
-                            SliverPersistentHeader(
-                              key: const ValueKey('filter-header'),
-                              pinned: true,
-                              delegate: _FilterRowHeader(
-                                visible: !_searching,
-                                child: NexInertWhileSwiped(
-                                  controller: _swipe,
-                                  child: TagFilterRow(
-                                    tags: filterTags,
-                                    selectedTagId: selectedTagId,
-                                    allLabel: l10n.all,
-                                    leading: _FilterButton(
-                                      active:
-                                          selectedType != null ||
-                                          onlyReminders,
-                                      onPressed: () =>
-                                          unawaited(_pickFilters()),
+                            // Both headers are always in the list, keyed, and collapse
+                            // to zero extent rather than leaving it. A sliver list that
+                            // changes length while another sliver changes its pinning
+                            // leaves the viewport painting a child it never laid out.
+                            // Kept in the list while a search is running even
+                            // when it is switched off, or the field the app bar
+                            // icon just asked for would not exist.
+                            if (widget.preferences.showSearchField || _searching)
+                              SliverPersistentHeader(
+                                key: const ValueKey('search-header'),
+                                delegate: SearchFieldHeader(
+                                  anchor: _searchAnchor,
+                                  controller: _search.query,
+                                  focusNode: _searchFocus,
+                                  searching: _searching,
+                                  onTap: () => unawaited(revealSearch()),
+                                  onChanged: (_) => _search.schedule(),
+                                  onClear: _exitSearch,
+                                  filterCount: _search.activeFilterCount,
+                                  onShowFilters: () => unawaited(
+                                    nexShowSearchFilterSheet(
+                                      context,
+                                      search: _search,
                                     ),
-                                    onSelected: (value) =>
-                                        unawaited(_selectTag(value)),
                                   ),
                                 ),
                               ),
+                            if (widget.preferences.showTagRow)
+                              SliverPersistentHeader(
+                                key: const ValueKey('filter-header'),
+                                pinned: true,
+                                delegate: _FilterRowHeader(
+                                  visible: !_searching,
+                                  child: NexInertWhileSwiped(
+                                    controller: _swipe,
+                                    child: TagFilterRow(
+                                      tags: filterTags,
+                                      selectedTagId: selectedTagId,
+                                      allLabel: l10n.all,
+                                      leading: _FilterButton(
+                                        active:
+                                            selectedType != null ||
+                                            onlyReminders,
+                                        onPressed: () =>
+                                            unawaited(_pickFilters()),
+                                      ),
+                                      onSelected: (value) =>
+                                          unawaited(_selectTag(value)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            // Above the list rather than spliced into it.
+                            // `SliverList` matches its children by index — the
+                            // fold animation depends on that — so a card that
+                            // comes and goes inside it would renumber every row
+                            // under it. Its own sliver has no such problem, and
+                            // "the first card" is an honest place for something
+                            // that is not a note.
+                            if (_sponsorCard() case final card?)
+                              SliverToBoxAdapter(child: card),
+                            ..._bodySlivers(l10n),
+                            // The capture button floats over the list, and on a
+                            // device with a three-button navigation bar the system's
+                            // own bar sits under that — the last card has to clear
+                            // both, or it cannot be read or tapped.
+                            SliverToBoxAdapter(
+                              child: SizedBox(
+                                height: nexFabClearance + nexBottomInset(context),
+                              ),
                             ),
-                          // Above the list rather than spliced into it.
-                          // `SliverList` matches its children by index — the
-                          // fold animation depends on that — so a card that
-                          // comes and goes inside it would renumber every row
-                          // under it. Its own sliver has no such problem, and
-                          // "the first card" is an honest place for something
-                          // that is not a note.
-                          if (_sponsorCard() case final card?)
-                            SliverToBoxAdapter(child: card),
-                          ..._bodySlivers(l10n),
-                          // The capture button floats over the list, and on a
-                          // device with a three-button navigation bar the system's
-                          // own bar sits under that — the last card has to clear
-                          // both, or it cannot be read or tapped.
-                          SliverToBoxAdapter(
-                            child: SizedBox(
-                              height: nexFabClearance + nexBottomInset(context),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -2135,43 +2124,207 @@ class TimelineScreenState extends State<TimelineScreen>
           ],
         ),
       ),
+      // The whole bottom bar goes in the Scaffold's floating slot, not in
+      // `bottomNavigationBar`. A navigation bar is laid out *beside* the
+      // body, so the list would stop at its top edge and the glass would
+      // have nothing behind it but the page — the same mistake documented on
+      // [NexGlassBar] for the top. Floating keeps the timeline running under
+      // it, which is the only arrangement in which any of this is glass.
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      // Capture is a timeline action. Left up while searching, it read as
-      // part of the search flow itself rather than what it actually still
+      // Capture is a timeline action. Left up while searching, the bar read
+      // as part of the search flow itself rather than what it actually still
       // did — open a fresh note, unrelated to whatever was just searched.
-      floatingActionButton: _searching
-          ? null
-          // Hold the capture button to reach the assistant. It earns the
-          // gesture rather than a second button on the same screen: capture
-          // and "ask about what I captured" are the same intent at different
-          // lengths, and this screen has one primary action, not two.
-          //
-          // Only when there is a provider to answer — a long press that opens
-          // a chat which cannot reply is worse than one that does nothing.
-          // Not the accent. Tapping this button and holding it are different
-          // things, and lighting the same blue for both said they were the
-          // same. Every assistant with an entrance uses a spectrum for this
-          // reason — see [nexAssistantSpectrum].
-          : NexLongPressGlow(
-              colors: nexAssistantSpectrum,
-              onHoldStart: _tick,
-              onTriggered: () {
-                if (_claimedBySwipe()) return;
-                _openAssistant();
-              },
-              child: NexGlassSurface(
-                borderRadius: BorderRadius.circular(nexCaptureFabSize / 2),
-                child: FloatingActionButton(
-                  key: _captureAnchor,
+      floatingActionButton: _searching ? null : _bottomBar(l10n),
+    );
+  }
+
+  /// The bar along the bottom: two pairs of actions in glass, and capture
+  /// between them.
+  ///
+  /// The pairing is the arrangement, not decoration. On one side the two
+  /// things that change what is on the screen — the recurring items and the
+  /// assistant; on the other the two that change the app — the library and
+  /// its settings. Capture sits between them because it is neither, and
+  /// because it is the only thing here anybody does more than once a day.
+  ///
+  /// It does not mirror in Persian. Every other row in the app does, and
+  /// should, because it is made of words; this one is made of four fixed
+  /// places at the bottom edge of the screen, and which thumb reaches which
+  /// is not a fact about the language being read.
+  Widget _bottomBar(AppLocalizations l10n) {
+    // Floored at what the bar actually contains. `spaceBetween` in a box
+    // narrower than its children does not squeeze them, it overflows, and
+    // Apple's 28-a-side margin is more than a 320-wide phone can pay: the
+    // four buttons and capture come to 268, and the margins would leave 264.
+    // Below the floor the margins give way; the buttons do not.
+    final width = math.max(
+      _bottomBarContentWidth,
+      math.min(MediaQuery.sizeOf(context).width, _timelineColumnWidth) -
+          _bottomBarInset * 2,
+    );
+    return SizedBox(
+      width: width,
+      child: Row(
+        // Explicit, rather than by wrapping the bar in a `Directionality`:
+        // this fixes the order of these four places without also telling
+        // every tooltip underneath which way its words run.
+        textDirection: TextDirection.ltr,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          NexGlassCapsule(
+            children: [
+              NexCapsuleAction(
+                icon: Icons.event_repeat_outlined,
+                tooltip: l10n.commitmentsTitle,
+                onPressed: () async {
+                  if (_claimedBySwipe()) return;
+                  _tick();
+                  await CommitmentsSheet.show(
+                    context,
+                    services: widget.services,
+                  );
+                  await _loadCommitments();
+                },
+              ),
+              // A button that opens a chat which cannot reply is worse than
+              // no button, so it is not drawn at all until something is
+              // configured to answer — see [_openAssistant], which has
+              // always made the same check silently.
+              if (AiChatSheet.availableFor(widget.preferences))
+                NexCapsuleAction(
+                  icon: Icons.auto_awesome,
+                  tooltip: l10n.assistant,
                   onPressed: () {
                     if (_claimedBySwipe()) return;
-                    openCapture();
+                    _openAssistant();
                   },
-                  tooltip: l10n.capture,
-                  child: const Icon(Icons.add, size: 32),
                 ),
+            ],
+          ),
+          // Hold capture to reach the assistant. The gesture stays even
+          // though the assistant now has a button of its own: it has been
+          // the way in for long enough that removing it would cost
+          // somebody a habit, and it costs nothing to keep.
+          //
+          // Not the accent. Tapping this button and holding it are
+          // different things, and lighting the same blue for both said
+          // they were the same. Every assistant with an entrance uses a
+          // spectrum for this reason — see [nexAssistantSpectrum].
+          NexLongPressGlow(
+            colors: nexAssistantSpectrum,
+            onHoldStart: _tick,
+            onTriggered: () {
+              if (_claimedBySwipe()) return;
+              _openAssistant();
+            },
+            child: NexGlassSurface(
+              borderRadius: BorderRadius.circular(nexCaptureFabSize / 2),
+              child: FloatingActionButton(
+                key: _captureAnchor,
+                onPressed: () {
+                  if (_claimedBySwipe()) return;
+                  openCapture();
+                },
+                tooltip: l10n.capture,
+                child: const Icon(Icons.add, size: 32),
               ),
             ),
+          ),
+          NexGlassCapsule(
+            children: [
+              NexCapsuleAction(
+                key: _libraryAnchor,
+                icon: Icons.inventory_2_outlined,
+                tooltip: l10n.libraryTitle,
+                // Awaited, and the timeline reloads on the way back. Tags
+                // and Trash both live behind here and both change what this
+                // screen shows, and neither refreshes it on its own.
+                onPressed: () async {
+                  if (_claimedBySwipe()) return;
+                  await Navigator.push(
+                    context,
+                    NexPageRoute<void>(
+                      builder: (_) => LibraryScreen(
+                        services: widget.services,
+                        preferences: widget.preferences,
+                      ),
+                    ),
+                  );
+                  await _refresh();
+                },
+              ),
+              NexCapsuleAction(
+                key: _settingsAnchor,
+                icon: Icons.settings_outlined,
+                tooltip: l10n.settings,
+                badge: _updateDot(l10n),
+                // Awaited so the commitments can be re-read on the way
+                // back: they are not on the timeline stream that refreshes
+                // everything else, and a brief that had not noticed the one
+                // just added would look broken to whoever just added it.
+                onPressed: () async {
+                  if (_claimedBySwipe()) return;
+                  await nexShowSheet<void>(
+                    context: context,
+                    builder: (_) => SettingsSheet(
+                      services: widget.services,
+                      preferences: widget.preferences,
+                      updates: widget.updates,
+                    ),
+                  );
+                  await _loadCommitments();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Wraps the timeline in a pull-to-refresh that rewrites the recap, or
+  /// hands [child] straight back when there is no recap on screen.
+  ///
+  /// The `enabled` branch is not a nicety. A pull that does nothing is worse
+  /// than no pull — this screen has the scar to prove it — so the gesture is
+  /// only attached where it has something to do.
+  Widget _wrapInRefresh({required bool enabled, required Widget child}) {
+    if (!enabled) return child;
+    final scheme = Theme.of(context).colorScheme;
+    return RefreshIndicator(
+      color: scheme.primary,
+      backgroundColor: scheme.surfaceContainerLowest,
+      // Not `force: true` on a request already in flight: two in flight means
+      // whichever finishes last wins, which is not necessarily the one the
+      // pull asked for. The spinner still runs, and it is the honest picture
+      // — something is being written, just not a second something.
+      onRefresh: () async {
+        if (_aiSummaryLoading) return;
+        nexBump();
+        await _loadAiSummary(force: true);
+      },
+      child: child,
+    );
+  }
+
+  /// The dot on the gear, or nothing.
+  ///
+  /// Rebuilt from the update service rather than from this screen's state, so
+  /// a check that finishes while the timeline is idle still shows.
+  Widget? _updateDot(AppLocalizations l10n) {
+    final service = widget.updates;
+    if (service == null) return null;
+    return AnimatedBuilder(
+      animation: service,
+      builder: (context, _) => service.hasUpdate
+          // TalkBack users get the one fact the dot carries — the only
+          // update signal in the app was invisible to them.
+          ? Semantics(
+              label: l10n.updateAvailableBadge,
+              child: const ExcludeSemantics(child: NexBadgeDot()),
+            )
+          : const SizedBox.shrink(),
     );
   }
 
@@ -2675,61 +2828,56 @@ class _GreetingLine extends StatelessWidget {
   }
 }
 
-/// The AI recap card: a header row that is always there, and a body that the
-/// chevron folds away.
+/// The recap, as the page's opening paragraph rather than as an object on it.
 ///
-/// Collapsing used to remove the card outright and leave a chip in the app bar
-/// as the way back — a control nowhere near the thing it controlled, and one
-/// that only existed once there was cached text to point at. The header row
-/// stays put now, so the chevron that closed it is the chevron that reopens
-/// it, in the same place, always.
+/// There is no box. No fill, no border, no radius, no shadow — what separates
+/// this from the timeline under it is typography and space, which is how a
+/// lede is separated from the article in every publication that has ever
+/// printed one. The card it replaces was the third grey rectangle stacked
+/// down the top of the screen, after the search field and the tag chips, and
+/// three greys read as three materials whatever their corner radii agree on.
 ///
-/// No dashed border, unlike the Nex_ui mock: that reads there as "content
-/// goes here" — a Figma placeholder convention for an empty slot, not a
-/// finished look meant to ship. A filled card matches how every other
-/// elevated surface in the app is drawn.
+/// The only mark left is a rule down the start edge, in the accent at a third
+/// of its strength. It says one thing — a model wrote this, the notes below
+/// it are yours — and it says it without spending a row of the screen on a
+/// heading, which is what the sparkle and the word "Daily Digest" were doing.
+///
+/// Nothing here is a button any more, and none of the three that left was
+/// lost:
+///   * the recurring items are in the bottom bar, next to the assistant;
+///   * refresh is the pull, which now has something to do — see the comment
+///     on the timeline's `RefreshIndicator`;
+///   * folding it away is still a tap, on the text itself.
 class _AiDaySummaryPanel extends StatelessWidget {
   const _AiDaySummaryPanel({
-    required this.title,
+    super.key,
     required this.loading,
     required this.text,
     required this.emptyLabel,
     required this.collapsed,
     required this.semanticLabel,
-    required this.refreshTooltip,
     required this.toggleTooltip,
-    required this.onRefresh,
     required this.onToggle,
-    required this.manageTooltip,
-    this.onManageCommitments,
   });
 
-  final String title;
   final bool loading;
   final String? text;
   final String emptyLabel;
   final bool collapsed;
   final String semanticLabel;
-  final String refreshTooltip;
   final String toggleTooltip;
-
-  /// Null while a request is already in flight — see the call site.
-  final VoidCallback? onRefresh;
   final VoidCallback onToggle;
 
-  /// Opens the recurring items.
-  ///
-  /// Here because this card is where they actually appear: the brief is the
-  /// surface that says the insurance is due on Friday, so it is the surface
-  /// somebody is looking at when they think "I should add the other one".
-  /// They were reachable only from Settings, which is where the app's own
-  /// configuration lives — and a list of somebody's bills and medication is
-  /// their data, not a setting.
-  final VoidCallback? onManageCommitments;
-  final String manageTooltip;
+  /// How wide the accent rule is, and how far the words stand off it.
+  static const _ruleWidth = 2.0;
+  static const _ruleGap = 12.0;
 
-  /// The header row's height, open or closed — see the build method.
-  static const _headerHeight = 40.0;
+  /// What the first line is set at, relative to the rest.
+  ///
+  /// A lede, not a heading: the same face and the same weight, one step up in
+  /// size. Anything more and it becomes the title this deliberately does not
+  /// have.
+  static const _ledeScale = 1.12;
 
   @override
   Widget build(BuildContext context) {
@@ -2739,145 +2887,146 @@ class _AiDaySummaryPanel extends StatelessWidget {
       container: true,
       label: semanticLabel,
       button: true,
-      // The whole card is the toggle. A chevron is a small target for a
-      // gesture with one meaning at any moment — open it, or fold it away —
-      // and every part of the card that is not the refresh button now does
-      // that. The chevron itself is gone: with the card doing the work it
-      // was a second control for the same thing.
-      child: NexTappable(
+      // What the tap does, which used to be a tooltip on a chevron that no
+      // longer exists. A screen reader is the one place the affordance still
+      // has to be spelled out: sighted readers get a paragraph that folds,
+      // and there is nothing about a paragraph that needs explaining.
+      hint: toggleTooltip,
+      child: GestureDetector(
+        // Not a [NexTappable]: that draws a pressed fill on a shape, and the
+        // whole point here is that there is no shape. The gesture is on the
+        // words, the way tapping a paragraph to fold it away should be.
+        behavior: HitTestBehavior.opaque,
         onTap: onToggle,
-        semanticLabel: toggleTooltip,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(NexRadius.pill),
-        ),
-        child: Container(
-          width: double.infinity,
-          // Directional. `fromLTRB` does not mirror, so in Persian the
-          // sparkle — which is the row's *start* child, and therefore on the
-          // right — was sitting in the 4-pixel inset meant for the refresh
-          // button while the text below it kept a wider one. The two edges
-          // that are supposed to line up were the two that did not.
+        child: Padding(
           padding: const EdgeInsetsDirectional.fromSTEB(
-            NexSpacing.cardInset,
             NexSpacing.xs,
             NexSpacing.xs,
             NexSpacing.xs,
+            NexSpacing.sm,
           ),
-          decoration: BoxDecoration(
-            // The same fill the notes below it use, not the elevated tone.
-            // Three different greys stacked down the top of the screen —
-            // recap, search field, tag chips — read as three separate
-            // materials; one reads as one surface with things on it.
-            color: scheme.surfaceContainerLowest,
-            // The search field's curvature, not the card radius used
-            // elsewhere. These two sit directly above one another and were
-            // visibly a step apart — 20 against the field's 24.
-            borderRadius: BorderRadius.circular(NexRadius.pill),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Fixed, and the same open or closed. The refresh button is
-              // what gave this row its height, so dropping it on collapse
-              // shrank the whole card to a thin strip that no longer read as
-              // the same object folding away — and left a tap target barely
-              // taller than the word inside it. 40 is the height that button
-              // was setting anyway, so open is unchanged and closed now
-              // matches it.
-              SizedBox(
-                height: _headerHeight,
-                child: Row(
-                  children: [
-                    Icon(Icons.auto_awesome, size: 18, color: scheme.primary),
-                    // The words "Daily Digest" are gone. The sparkle is the
-                    // app's mark for anything a model wrote, this card is the
-                    // only place it appears on the timeline, and a heading
-                    // above two lines of text was naming something already
-                    // named. Semantics still carry the title for anyone who
-                    // cannot see the glyph.
-                    const Spacer(),
-                    // Refresh only while it is open, and it is then the only
-                    // button on the card: closed, there is nothing on screen
-                    // for a refresh to change, and a button that rewrites
-                    // something you cannot see is a button that does nothing
-                    // you can tell.
-                    if (!collapsed) ...[
-                      if (onManageCommitments case final open?)
-                        IconButton(
-                          tooltip: manageTooltip,
-                          onPressed: open,
-                          visualDensity: VisualDensity.compact,
-                          icon: const Icon(
-                            Icons.event_repeat_outlined,
-                            size: 20,
+          child: AnimatedSize(
+            duration: NexMotion.slow,
+            curve: NexMotion.curve,
+            alignment: Alignment.topCenter,
+            child: collapsed
+                ? _CollapsedRecap(label: _firstLine ?? emptyLabel)
+                : IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          width: _ruleWidth,
+                          margin: const EdgeInsetsDirectional.only(
+                            end: _ruleGap,
+                          ),
+                          decoration: BoxDecoration(
+                            color: scheme.primary.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(
+                              _ruleWidth / 2,
+                            ),
                           ),
                         ),
-                      IconButton(
-                        tooltip: refreshTooltip,
-                        onPressed: onRefresh,
-                        visualDensity: VisualDensity.compact,
-                        icon: const Icon(Icons.refresh, size: 20),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              AnimatedSize(
-                duration: NexMotion.slow,
-                curve: NexMotion.curve,
-                alignment: Alignment.topCenter,
-                child: collapsed
-                    ? const SizedBox(width: double.infinity)
-                    : Padding(
-                        // Start at zero, so the first character sits on the
-                        // card's own inset and under the sparkle above it.
-                        padding: const EdgeInsetsDirectional.fromSTEB(
-                          0,
-                          NexSpacing.xs,
-                          NexSpacing.sm,
-                          NexSpacing.sm,
-                        ),
-                        child: _summaryBody(theme),
-                      ),
-              ),
-            ],
+                        Expanded(child: _body(theme)),
+                      ],
+                    ),
+                  ),
           ),
         ),
       ),
     );
   }
 
-  Widget _summaryBody(ThemeData theme) {
+  /// The recap's opening sentence, for the folded state.
+  String? get _firstLine {
+    final value = text?.trim();
+    if (value == null || value.isEmpty) return null;
+    final end = value.indexOf('\n');
+    return end == -1 ? value : value.substring(0, end);
+  }
+
+  Widget _body(ThemeData theme) {
     final value = text;
+    // Defaulted rather than carried around as a nullable: the lede's size is
+    // this one's times a factor, and `base?.copyWith(base.fontSize ...)` does
+    // not compile — a `?.` does not promote its own receiver inside its
+    // arguments.
+    final base = theme.textTheme.bodyMedium ?? const TextStyle(fontSize: 14);
+    final body = base.copyWith(height: 1.45);
     if (value == null) {
-      return loading
-          ? const Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                NexSkeleton(height: 16),
-                SizedBox(height: NexSpacing.xs),
-                NexSkeleton(height: 16),
-              ],
-            )
-          : Text(
-              emptyLabel,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.start,
-              textDirection: nexDirectionOf(emptyLabel),
-            );
+      // No skeleton bars. They were the last thing in here shaped like a
+      // box, and two grey rectangles at the top of a first launch could be
+      // anything; the sentence that says there is nothing to summarise yet
+      // is the same sentence either way, so it is simply dimmed while the
+      // first one is being written.
+      return AnimatedOpacity(
+        opacity: loading ? 0.5 : 1,
+        duration: NexMotion.slow,
+        curve: NexMotion.curve,
+        child: Text(
+          emptyLabel,
+          style: body.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          textAlign: TextAlign.start,
+          textDirection: nexDirectionOf(emptyLabel),
+        ),
+      );
     }
-    return Opacity(
+    final lines = value.trim().split('\n');
+    final lede = lines.first;
+    final rest = lines.skip(1).join('\n').trim();
+    // Cross-faded rather than dimmed and left in place: a rewrite replaces
+    // the text, and a paragraph that goes translucent and comes back with
+    // different words in it is the honest picture of that.
+    return AnimatedOpacity(
       opacity: loading ? 0.45 : 1,
-      // The recap is written in the language of the notes, which is not
-      // necessarily the language of the interface around it — and it is the
-      // one place in the app most likely to be written in both at once, since
-      // it is assembled from a library that mixes them. [NexBodyText] gives
-      // each line the direction that line is written in, so an English line
-      // in a Persian brief is not dragged to the right edge by the line above
-      // it.
-      child: NexBodyText(value, style: theme.textTheme.bodyMedium),
+      duration: NexMotion.slow,
+      curve: NexMotion.curve,
+      child: Column(
+        // Min, because this sits in an [IntrinsicHeight] row: a column that
+        // asks for all the height there is has no intrinsic height to give.
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            lede,
+            style: body.copyWith(fontSize: (base.fontSize ?? 14) * _ledeScale),
+            textDirection: nexDirectionOf(lede),
+          ),
+          if (rest.isNotEmpty) ...[
+            const SizedBox(height: NexSpacing.sm),
+            // Per line, because the recap is written in the language of the
+            // notes and the notes are the one place in this app most likely
+            // to be in both at once — see [NexBodyText].
+            NexBodyText(rest, style: body),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The recap folded away: one line, truncated, with no rule beside it.
+///
+/// The rule stays behind on purpose. Open, it marks a block of generated
+/// prose; closed, there is no block, and a two-pixel accent stripe next to a
+/// single grey line reads as a status colour on a row — which is a different
+/// claim than the one it is there to make.
+class _CollapsedRecap extends StatelessWidget {
+  const _CollapsedRecap({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+      textDirection: nexDirectionOf(label),
     );
   }
 }
@@ -3030,56 +3179,6 @@ class _FilteredEmpty extends StatelessWidget {
           TextButton(onPressed: onClear, child: Text(l10n.clearFilters)),
         ],
       ),
-    );
-  }
-}
-
-/// The settings icon, with a dot when an update is waiting.
-///
-/// A dot rather than a notification or a dialog: the release is not urgent and
-/// nothing about it should interrupt a capture. Settings is where a person
-/// goes to look, so that is where the app says there is something to see.
-class _SettingsButton extends StatelessWidget {
-  const _SettingsButton({
-    super.key,
-    required this.updates,
-    required this.tooltip,
-    required this.onPressed,
-  });
-
-  final UpdateService? updates;
-  final String tooltip;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final service = updates;
-    final button = IconButton(
-      tooltip: tooltip,
-      icon: const Icon(Icons.settings_outlined),
-      onPressed: onPressed,
-    );
-    if (service == null) return button;
-    return AnimatedBuilder(
-      animation: service,
-      builder: (context, _) {
-        final badge = service.hasUpdate
-            ? PositionedDirectional(
-                top: 12,
-                end: 10,
-                // TalkBack users get the one fact the dot carries — the only
-                // update signal in the app was invisible to them.
-                child: Semantics(
-                  label: AppLocalizations.of(context).updateAvailableBadge,
-                  child: const ExcludeSemantics(child: NexBadgeDot()),
-                ),
-              )
-            : null;
-        return Stack(
-          alignment: Alignment.center,
-          children: [button, if (badge != null) badge],
-        );
-      },
     );
   }
 }
