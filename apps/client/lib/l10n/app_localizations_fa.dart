@@ -2033,6 +2033,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistant => 'دستیار';
 
   @override
+  String get assistantNeedsIntelligence => 'دستیار به روشن بودن هوش نیاز دارد.';
+
+  @override
+  String get assistantTurnOnIntelligence => 'روشن کن';
+
+  @override
   String get assistantSubtitle => 'پروفایل شما، سبک پاسخ و آنچه می‌بیند';
 
   @override

@@ -1007,6 +1007,8 @@
   "chatNewConversation": "گفت‌وگوی تازه",
   "chatClearHistory": "حذف همه گفت‌وگوها",
   "assistant": "دستیار",
+  "assistantNeedsIntelligence": "دستیار به روشن بودن هوش نیاز دارد.",
+  "assistantTurnOnIntelligence": "روشن کن",
   "assistantSubtitle": "پروفایل شما، سبک پاسخ و آنچه می‌بیند",
   "assistantCreativity": "خلاقیت",
   "assistantCreativityPrecise": "دقیق",

@@ -645,6 +645,14 @@ ThemeData _theme({
         minimumSize: const Size(nexMinTapTarget, nexMinTapTarget),
         padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
         shape: const StadiumBorder(),
+        // The strong accent, not the plain one. `primary` is drawn to be read
+        // *on* the page — a 2px ring, a word of link text — and Material fills
+        // a button with it, where it then has to carry a label instead. In
+        // light that is white on #0084F7, which is 3.72:1 and under the floor;
+        // on #006DCC it is 5.17:1. `scaffold_test.dart` has asserted that
+        // second number since before this button existed.
+        backgroundColor: accentStrong,
+        foregroundColor: onAccent,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(

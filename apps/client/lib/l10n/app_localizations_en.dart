@@ -2031,6 +2031,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistant => 'Assistant';
 
   @override
+  String get assistantNeedsIntelligence => 'The assistant needs intelligence turned on.';
+
+  @override
+  String get assistantTurnOnIntelligence => 'Turn on';
+
+  @override
   String get assistantSubtitle =>
       'Your profile, response style, and what it can see';
 

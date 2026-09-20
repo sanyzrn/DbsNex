@@ -7,10 +7,13 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
+import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/ai_provider.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
+import 'package:nex_client/screens/timeline_screen.dart';
+import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:nex_client/widgets/nex_banner.dart';
 
 import 'support/in_process_db.dart';
@@ -79,13 +82,15 @@ void main() {
 
       double x(Finder f) => tester.getCenter(f).dx;
       final recurring = x(find.byIcon(Icons.event_repeat_outlined));
+      final assistant = x(find.byIcon(Icons.auto_awesome));
       // By type, not by its glyph: `Icons.add` is the sort of icon another
       // surface starts wearing, and there is exactly one capture button.
       final capture = x(find.byType(FloatingActionButton));
       final library = x(find.byIcon(Icons.inventory_2_outlined));
       final settings = x(find.byIcon(Icons.settings_outlined));
 
-      expect(recurring, lessThan(capture), reason: 'recurring is left, $locale');
+      expect(recurring, lessThan(assistant), reason: 'recurring is first, $locale');
+      expect(assistant, lessThan(capture), reason: 'assistant is second, $locale');
       expect(capture, lessThan(library), reason: 'capture is middle, $locale');
       expect(library, lessThan(settings), reason: 'settings is last, $locale');
     }
@@ -118,6 +123,7 @@ void main() {
     await open(tester);
     for (final icon in [
       Icons.event_repeat_outlined,
+      Icons.auto_awesome,
       Icons.inventory_2_outlined,
       Icons.settings_outlined,
     ]) {
@@ -133,6 +139,32 @@ void main() {
       expect(slot.width, greaterThanOrEqualTo(nexMinTapTarget));
       expect(slot.height, greaterThanOrEqualTo(nexMinTapTarget));
     }
+  });
+
+  testWidgets('the assistant keeps its place with nothing to answer it', (
+    tester,
+  ) async {
+    // Nothing is configured in this file's setUp, which is the state most
+    // installs are in. The button used to vanish there, leaving the left
+    // capsule half the width of the right one.
+    await open(tester);
+    expect(find.byIcon(Icons.auto_awesome), findsOneWidget);
+
+    final capsules = find.byType(NexGlassCapsule);
+    expect(
+      tester.getRect(capsules.at(0)).width,
+      closeTo(tester.getRect(capsules.at(1)).width, 1),
+      reason: 'two pairs, so two capsules of the same width',
+    );
+
+    // And the tap says so rather than opening a chat that cannot reply.
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(TimelineScreen)),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.assistantNeedsIntelligence), findsOneWidget);
+    expect(find.byType(AiChatSheet), findsNothing);
   });
 
   testWidgets('the recap has nothing filled behind it', (tester) async {

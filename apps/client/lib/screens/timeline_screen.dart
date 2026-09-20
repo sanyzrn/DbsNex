@@ -44,6 +44,7 @@ import '../widgets/reminder_picker.dart';
 import '../widgets/swipe_actions.dart';
 import '../widgets/tag_picker.dart';
 import 'home_layout_sheet.dart';
+import 'intelligence_screen.dart';
 import 'library_screen.dart';
 import 'note_detail_sheet.dart';
 import 'photo_preview_screen.dart';
@@ -420,6 +421,15 @@ class TimelineScreenState extends State<TimelineScreen>
     // Null is "not loaded yet" rather than "empty" — see [_all]. Either way
     // there is nothing to point at, and the next load comes back here.
     if (_all?.isEmpty ?? true) return;
+    // And only while the timeline is the screen being looked at. Both things
+    // that make the tour due — a first note arriving on the stream, a cold
+    // launch finishing its read — can land seconds after launch, by which
+    // time somebody may well have opened Settings. The tour went up over the
+    // sheet anyway and pointed at four controls that were not on the screen:
+    // its stops measure `GlobalKey`s on *this* screen's widgets, which are
+    // still laid out underneath, so nothing failed loudly. [didPopNext] asks
+    // again when the timeline comes back.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
     final l10n = AppLocalizations.of(context);
     final overlay = Overlay.maybeOf(context);
     if (overlay == null) return;
@@ -676,6 +686,25 @@ class TimelineScreenState extends State<TimelineScreen>
         history: widget.preferences.chatHistory,
       ),
     );
+  }
+
+  /// The screen where the assistant is switched on, from the notice that
+  /// says it is not.
+  ///
+  /// Awaited, and the timeline rebuilds on the way back: turning intelligence
+  /// on is exactly the change that makes the button this came from start
+  /// doing something else.
+  Future<void> _openIntelligence() async {
+    await Navigator.push(
+      context,
+      NexPageRoute<void>(
+        builder: (_) => IntelligenceScreen(
+          services: widget.services,
+          preferences: widget.preferences,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   void _toggleAiSummary() {
@@ -1254,7 +1283,6 @@ class TimelineScreenState extends State<TimelineScreen>
   }
 
   @override
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final route = ModalRoute.of(context);
@@ -1270,6 +1298,16 @@ class TimelineScreenState extends State<TimelineScreen>
   /// without it.
   @override
   void didPushNext() => unawaited(_retireSpentReminders());
+
+  /// The timeline is back in front, so the walk-through may be due again.
+  ///
+  /// It is due exactly when this screen is the one being looked at, and the
+  /// two moments that can make it due — the first note arriving, and a cold
+  /// launch finishing its read — can both land while somebody is in Settings
+  /// or the Library. [_maybeStartTour] now declines in that case, which would
+  /// leave the tour never shown at all without somewhere to ask again.
+  @override
+  void didPopNext() => _tourWhenReady();
 
   /// Leaving the app counts as leaving the timeline.
   ///
@@ -2187,19 +2225,41 @@ class TimelineScreenState extends State<TimelineScreen>
                   await _loadCommitments();
                 },
               ),
-              // A button that opens a chat which cannot reply is worse than
-              // no button, so it is not drawn at all until something is
-              // configured to answer — see [_openAssistant], which has
-              // always made the same check silently.
-              if (AiChatSheet.availableFor(widget.preferences))
-                NexCapsuleAction(
-                  icon: Icons.auto_awesome,
-                  tooltip: l10n.assistant,
-                  onPressed: () {
-                    if (_claimedBySwipe()) return;
+              // Always drawn, even with nothing configured to answer. It used
+              // to appear only when the assistant was usable, which left the
+              // leading capsule one slot wide on most installs and two on
+              // some: the bar visibly lopsided, and its buttons in different
+              // places on different phones. A place in a bar is a promise
+              // about where to put a thumb, and a place that comes and goes
+              // is not one.
+              //
+              // What changes is the answer, not the button. With no provider
+              // a tap says so and offers the screen that fixes it, which is
+              // better than both of the things this used to do — open a chat
+              // that cannot reply, or show nothing at all.
+              NexCapsuleAction(
+                icon: Icons.auto_awesome,
+                tooltip: l10n.assistant,
+                onPressed: () {
+                  if (_claimedBySwipe()) return;
+                  if (AiChatSheet.availableFor(widget.preferences)) {
                     _openAssistant();
-                  },
-                ),
+                    return;
+                  }
+                  _tick();
+                  nexShowBanner(
+                    context,
+                    // `ai`, because that is what it is about. There is no
+                    // `info` kind and this is not a failure: nothing was
+                    // attempted and nothing went wrong.
+                    kind: NexBannerKind.ai,
+                    haptics: widget.preferences.haptics,
+                    message: l10n.assistantNeedsIntelligence,
+                    actionLabel: l10n.assistantTurnOnIntelligence,
+                    onAction: () => unawaited(_openIntelligence()),
+                  );
+                },
+              ),
             ],
           ),
           // Hold capture to reach the assistant. The gesture stays even

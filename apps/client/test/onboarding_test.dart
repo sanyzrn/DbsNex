@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -65,6 +66,39 @@ void main() {
     }
     fail('never reached the setup step');
   }
+
+  testWidgets('the Next button can be read in either theme', (tester) async {
+    // The bug this pins was invisible to the token tests, because it was not
+    // a token: the label was handed `textTheme.titleSmall`, whose colour is
+    // the page's ink, and that overrode the foreground the button sets. In
+    // the dark theme it came out near-white on a pale blue — 1.82:1 — while
+    // the arrow beside it, which takes no colour of its own and therefore
+    // kept the button's, looked right.
+    for (final mode in [ThemeMode.light, ThemeMode.dark]) {
+      await preferences.setThemeMode(mode);
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      final label = tester.widget<Text>(find.text('Next'));
+      final button = tester.element(find.byType(FilledButton));
+      final scheme = Theme.of(button).colorScheme;
+      final ink = label.style?.color;
+      expect(
+        ink,
+        isNotNull,
+        reason:
+            'a label with no colour of its own inherits the page ink, which '
+            'is the whole failure — $mode',
+      );
+      expect(
+        nexContrastRatio(ink!, scheme.primaryContainer),
+        greaterThanOrEqualTo(4.5),
+        reason: 'Next is unreadable on its own fill in $mode',
+      );
+    }
+  });
 
   testWidgets('a first launch opens on onboarding, not the timeline', (
     tester,

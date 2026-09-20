@@ -219,7 +219,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 : l10n.onboardingNext,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleSmall,
+                            // Size and weight from the type scale, colour
+                            // from the button. `titleSmall` carries the
+                            // page's ink, and handing the whole style over
+                            // put that ink on the accent: near-white on a
+                            // pale blue, 1.82:1, which is what the button
+                            // looked like in the dark theme. The arrow beside
+                            // it was right all along — an `Icon` with no
+                            // colour takes the button's, which is the thing
+                            // this label was overriding.
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onPrimary,
+                            ),
                           ),
                         ),
                       ),

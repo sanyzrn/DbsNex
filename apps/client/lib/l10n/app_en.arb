@@ -1848,6 +1848,22 @@
   "@assistant": {
     "description": "Settings row opening the assistant's own settings"
   },
+  "assistantNeedsIntelligence": "The assistant needs intelligence turned on.",
+  "@assistantNeedsIntelligence": {
+    "description": "Shown when the assistant button is tapped while nothing is configured to answer."
+  },
+  "assistantTurnOnIntelligence": "Turn on",
+  "@assistantTurnOnIntelligence": {
+    "description": "Action on that notice: opens the intelligence settings."
+  },
+  "assistantNeedsIntelligence": "The assistant needs intelligence turned on.",
+  "@assistantNeedsIntelligence": {
+    "description": "Shown when the assistant button is tapped while no provider is configured to answer."
+  },
+  "assistantTurnOnIntelligence": "Turn on",
+  "@assistantTurnOnIntelligence": {
+    "description": "Action on that notice: opens the intelligence settings."
+  },
   "assistantSubtitle": "Your profile, response style, and what it can see",
   "@assistantSubtitle": {
     "description": "Subtitle of the assistant settings row"

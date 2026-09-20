@@ -3560,6 +3560,19 @@ abstract class AppLocalizations {
   /// **'Assistant'**
   String get assistant;
 
+  /// Shown when the assistant button is tapped while nothing is configured to
+  /// answer.
+  ///
+  /// In en, this message translates to:
+  /// **'The assistant needs intelligence turned on.'**
+  String get assistantNeedsIntelligence;
+
+  /// Action on that notice: opens the intelligence settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on'**
+  String get assistantTurnOnIntelligence;
+
   /// Subtitle of the assistant settings row
   ///
   /// In en, this message translates to:
