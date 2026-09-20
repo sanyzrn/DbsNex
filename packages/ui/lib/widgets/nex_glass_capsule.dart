@@ -15,6 +15,9 @@ import '../tokens/nex_appearance.dart';
 /// along the bottom of a screen read as four unrelated things; two pills of
 /// two read as two pairs, which is what they are — the things that change
 /// what you are looking at, and the things that change the app.
+///
+/// [children] are laid out left to right in every language. This is a bar of
+/// places, not a line of words — see the note on the `Row` below.
 class NexGlassCapsule extends StatelessWidget {
   const NexGlassCapsule({super.key, required this.children});
 
@@ -37,6 +40,11 @@ class NexGlassCapsule extends StatelessWidget {
     final row = Material(
       type: MaterialType.transparency,
       child: Row(
+        // A capsule does not mirror, so neither does the row inside it. The
+        // bar this belongs to is four fixed places along the bottom edge of
+        // a screen, and a pair that swapped ends when the language did would
+        // move the gear under the thumb that had learned the library.
+        textDirection: TextDirection.ltr,
         mainAxisSize: MainAxisSize.min,
         children: [
           for (var i = 0; i < children.length; i++) ...[
