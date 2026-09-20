@@ -65,6 +65,9 @@ void main() {
   testWidgets('a recap nobody asked for fails quietly; a tap is answered', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -103,11 +106,22 @@ void main() {
     //
     // A pull rather than a tap. The button this used to press is gone with
     // the card it sat on; asking for a new recap is the pull now.
+    //
+    // The window above is tall for this reason. The brief is a card above
+    // the notes now, so the note sits low enough that on an 800x600 default
+    // a 300-pixel pull off it runs past the bottom of the window and the
+    // gesture is never completed — which looks exactly like a refresh that
+    // did nothing.
     await tester.fling(
       find.text('something worth summarising'),
-      const Offset(0, 300),
+      const Offset(0, 260),
       1000,
     );
+    // The indicator's own three stages: the scroll settles, the spinner
+    // settles into place, and `onRefresh` is called. `pumpAndSettle` alone
+    // has raced this in Flutter's own tests for years.
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.recapRefreshFailed), findsOneWidget);
