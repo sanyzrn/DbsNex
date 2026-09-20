@@ -397,8 +397,25 @@ class _GlassEdgePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final shape = borderRadius.toRRect(Offset.zero & size);
+    // How far outside the shape a shadow can reach, so the clip's outer
+    // rectangle is big enough to hold all of them. Blur is doubled because a
+    // Gaussian carries visibly past its radius.
+    var reach = 1.0;
+    for (final shadow in shadows) {
+      reach = math.max(
+        reach,
+        shadow.offset.distance + shadow.spreadRadius + shadow.blurRadius * 2,
+      );
+    }
+    // Everything except the shape itself, as an even-odd path. `clipRRect`
+    // takes no `clipOp` — only `clipRect` does — so subtracting a rounded
+    // rectangle has to be said this way.
+    final outside = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect((Offset.zero & size).inflate(reach + 1))
+      ..addRRect(shape);
     canvas.save();
-    canvas.clipRRect(shape, clipOp: ClipOp.difference);
+    canvas.clipPath(outside);
     for (final shadow in shadows) {
       if (shadow.color.a == 0) continue;
       canvas.drawRRect(

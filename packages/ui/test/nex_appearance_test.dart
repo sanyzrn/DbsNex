@@ -195,9 +195,9 @@ Color _compose(NexGlassWash wash, Color backdrop) {
   }
   out = Color.from(
     alpha: 1,
-    red: math.min(1.0, out.r + wash.lift.r * wash.lift.a),
-    green: math.min(1.0, out.g + wash.lift.g * wash.lift.a),
-    blue: math.min(1.0, out.b + wash.lift.b * wash.lift.a),
+    red: _unit(out.r + wash.lift.r * wash.lift.a),
+    green: _unit(out.g + wash.lift.g * wash.lift.a),
+    blue: _unit(out.b + wash.lift.b * wash.lift.a),
   );
   return _luminosityOver(wash.anchor, out);
 }
@@ -229,11 +229,15 @@ Color _luminosityOver(Color source, Color backdrop) {
   final a = source.a;
   return Color.from(
     alpha: 1,
-    red: r * a + backdrop.r * (1 - a),
-    green: g * a + backdrop.g * (1 - a),
-    blue: b * a + backdrop.b * (1 - a),
+    red: _unit(r * a + backdrop.r * (1 - a)),
+    green: _unit(g * a + backdrop.g * (1 - a)),
+    blue: _unit(b * a + backdrop.b * (1 - a)),
   );
 }
+
+/// ClipColor and the additive step can both land a hair outside the cube on
+/// float error, and `Color.from` is not the place to find that out.
+double _unit(double v) => v.clamp(0.0, 1.0);
 
 double _contrast(Color a, Color b) {
   final la = _relativeLuminance(a);
