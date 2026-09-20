@@ -262,7 +262,13 @@ const nexFabClearance = nexCaptureFabSize + NexSpacing.lg * 2;
 /// last card ends rather than at a number somebody liked the look of. Taller
 /// than the bar itself on purpose: a fade as short as the thing it sits under
 /// has a visible top edge, which is the one thing it must not have.
-const nexBottomScrim = nexFabClearance + NexSpacing.xl;
+///
+/// Three of those rather than one, which is the second pass at this. At one
+/// the fade began and ended inside the bar's own height — so a card sliding
+/// up behind the bar met the darkening and the bar at the same moment, and
+/// the scrim had nowhere to do its job. It has to start well above whatever
+/// it is protecting, or it is a fill with a soft edge rather than a fade.
+const nexBottomScrim = nexFabClearance + NexSpacing.xl * 3;
 
 /// How wide a focus ring is drawn, and how far it stands off its control.
 ///

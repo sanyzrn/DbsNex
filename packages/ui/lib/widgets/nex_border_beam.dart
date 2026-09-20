@@ -33,12 +33,12 @@ class NexBorderBeam extends StatefulWidget {
     required this.child,
     this.borderRadius = const BorderRadius.all(Radius.circular(NexRadius.lg)),
     this.colors = nexAssistantSpectrum,
-    this.thickness = 1.5,
+    this.thickness = 1.0,
     this.strength = 0.7,
     this.active = true,
     this.laps = 4,
     this.token,
-    this.period = const Duration(milliseconds: 2200),
+    this.period = const Duration(milliseconds: 3600),
   });
 
   final Widget child;
@@ -48,6 +48,11 @@ class NexBorderBeam extends StatefulWidget {
   final List<Color> colors;
 
   /// How wide the lit line is. The glow around it is derived from this.
+  ///
+  /// A hairline, and narrower than it was. At 1.5 with the wider glow this
+  /// used to carry, the band round the brief read as a coloured frame rather
+  /// than as a light going round one — a border the card had, instead of
+  /// something happening to it.
   final double thickness;
 
   /// 0–1. Scales the glow's spread and its opacity together, because those
@@ -69,6 +74,10 @@ class NexBorderBeam extends StatefulWidget {
   /// How long one lap takes. Unhurried on purpose: this sits beside text
   /// somebody is reading, and anything quick enough to notice is quick enough
   /// to compete with the words.
+  ///
+  /// 3600ms rather than 2200. At the shorter lap the light was travelling
+  /// fast enough to be the thing in the corner of your eye while you read
+  /// the brief, which is the opposite of what a mark is for.
   final Duration period;
 
   @override
@@ -188,8 +197,8 @@ class _BeamPainter extends CustomPainter {
       Paint()
         ..shader = sweep(0.55 * strength)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = thickness + 6 * strength
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 3 + 5 * strength),
+        ..strokeWidth = thickness + 3.5 * strength
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 + 3 * strength),
     );
     canvas.drawRRect(
       shape,

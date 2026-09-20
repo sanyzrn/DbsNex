@@ -3313,7 +3313,15 @@ class _BottomScrim extends StatelessWidget {
     // The ceiling is per theme because the floor is. On a near-black page a
     // black scrim is invisible until it is strong; on a cream one it is
     // visible immediately, and the same number would look like a smudge.
-    final ceiling = dark ? 0.55 : 0.16;
+    //
+    // 0.55 was not strong enough to be worth drawing: on a #131312 page it
+    // takes the bottom of the screen to rgb 8, which is a shade of black
+    // sitting on black. At 0.85 it reaches 3, and the difference is the last
+    // line of a card actually going quiet behind the bar instead of merely
+    // dimming. Light moves far less — black over a warm page is not a shadow
+    // there, it is dirt, and the page is pale enough that a little goes a
+    // long way.
+    final ceiling = dark ? 0.85 : 0.22;
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -3321,10 +3329,13 @@ class _BottomScrim extends StatelessWidget {
           end: Alignment.topCenter,
           colors: [
             Colors.black.withValues(alpha: ceiling),
-            Colors.black.withValues(alpha: ceiling * 0.35),
+            Colors.black.withValues(alpha: ceiling * 0.3),
             Colors.black.withValues(alpha: 0),
           ],
-          stops: const [0, 0.45, 1],
+          // The middle stop comes down as the band grows taller: the dark end
+          // belongs to the bar, and what is above it is a tail that has to
+          // arrive at nothing without ever being a line.
+          stops: const [0, 0.38, 1],
         ),
       ),
     );
