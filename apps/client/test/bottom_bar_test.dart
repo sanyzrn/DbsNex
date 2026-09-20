@@ -167,33 +167,34 @@ void main() {
     expect(find.byType(AiChatSheet), findsNothing);
   });
 
-  testWidgets('the recap has nothing filled behind it', (tester) async {
-    // A provider is what puts the recap on screen at all. The key is never
-    // used: `flutter_test` answers every request with a 400, and a recap
-    // that failed to generate still occupies its place on the page.
+  testWidgets('the brief is the first card, and the sponsor is not', (
+    tester,
+  ) async {
+    // A provider is what puts the brief on screen at all. The key is never
+    // used: `flutter_test` answers every request with a 400, and a brief that
+    // failed to generate still occupies its place on the page.
     await preferences.setAiEnabled(true);
     await preferences.setAiProvider(
       const AiProviderConfig(provider: AiProvider.openai, apiKey: 'k'),
     );
     await open(tester);
 
-    final recap = find.byKey(const ValueKey('timeline-recap'));
-    expect(recap, findsOneWidget);
+    final brief = find.byKey(const ValueKey('timeline-recap'));
+    expect(brief, findsOneWidget);
 
-    for (final element in find
-        .descendant(of: recap, matching: find.byType(DecoratedBox))
-        .evaluate()) {
-      final decoration = (element.widget as DecoratedBox).decoration;
-      if (decoration is! BoxDecoration) continue;
-      if ((decoration.color?.a ?? 0) == 0) continue;
-      // One filled shape is allowed in here, and it is two pixels wide: the
-      // accent rule down the start edge. Anything wider that carries a fill
-      // is the card coming back.
-      expect(
-        (element.renderObject! as RenderBox).size.width,
-        lessThanOrEqualTo(4),
-        reason: 'the recap is a paragraph, not a card',
-      );
-    }
+    // Above the notes, in the slot the sponsor card was built for.
+    expect(
+      tester.getRect(brief).top,
+      lessThan(tester.getRect(find.byType(NoteCard).first).top),
+      reason: 'the first card on the page is the app reading the day back',
+    );
+
+    // And it grows with its text rather than taking a note card's height:
+    // the rule that pins a sponsor card is about a card selling something.
+    expect(
+      tester.getRect(brief).height,
+      lessThan(nexCardHeightFor(tester.element(brief))),
+      reason: 'two lines of prose should not occupy a full card',
+    );
   });
 }

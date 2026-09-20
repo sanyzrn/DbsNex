@@ -1653,6 +1653,56 @@ class TimelineScreenState extends State<TimelineScreen>
     );
   }
 
+  /// The brief, as the first card above the notes.
+  ///
+  /// It has the note card's insets and corner, and none of its height rule.
+  /// The sponsor card the slot was built for is pinned to exactly one card's
+  /// height on purpose — a banner taller than the things around it has
+  /// stopped being an item in a list and started being an interruption — but
+  /// that reasoning is about a card selling something. This one is the app
+  /// reading the day back, and how long it is depends entirely on how much
+  /// there was to say. So it grows with its text.
+  ///
+  /// No icon, and no heading. The sparkle used to sit at the top of this and
+  /// it was naming something already named: it is the only generated surface
+  /// on the timeline, and the light going round its edge says so without
+  /// spending a row of the screen.
+  Widget _briefCard(AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
+    const corner = BorderRadius.all(Radius.circular(NexRadius.lg));
+    return Padding(
+      padding: nexCardInsets,
+      child: NexBorderBeam(
+        borderRadius: corner,
+        // Brightest while it is being written, then down to a glow that can
+        // be read past. The light is a provenance mark, not a notification.
+        strength: _aiSummaryLoading ? 0.85 : 0.45,
+        // Nothing to mark while it is folded away, and a lap running under a
+        // single grey line is an animation with no subject.
+        active: !_aiSummaryCollapsed,
+        child: NexGlassSurface(
+          borderRadius: corner,
+          fallbackColor: scheme.surfaceContainerLowest,
+          child: _AiDaySummaryPanel(
+            // Keyed so a test can say "the brief is on screen" without
+            // reaching for a glyph. It used to be found by its sparkle,
+            // which is a thing any other surface could start wearing.
+            key: const ValueKey('timeline-recap'),
+            loading: _aiSummaryLoading,
+            text: _aiSummaryText,
+            emptyLabel: l10n.aiDaySummaryEmpty,
+            collapsed: _aiSummaryCollapsed,
+            semanticLabel: l10n.aiDaySummarySemanticLabel,
+            toggleTooltip: _aiSummaryCollapsed
+                ? l10n.aiDaySummaryExpand
+                : l10n.aiDaySummaryCollapse,
+            onToggle: _toggleAiSummary,
+          ),
+        ),
+      ),
+    );
+  }
+
   /// The sponsor card, when there is one to show.
   ///
   /// Null on every path that means "nothing to show" — no file, an
@@ -1841,7 +1891,6 @@ class TimelineScreenState extends State<TimelineScreen>
   Widget _header(AppLocalizations l10n) {
     final theme = Theme.of(context);
     final showGreeting = widget.preferences.showGreeting;
-    final showSummary = _aiHeaderAvailable && widget.preferences.showDaySummary;
     final greeting = showGreeting
         ? _greeting(l10n, aiPhrase: _aiHeadlineText)
         : null;
@@ -1850,7 +1899,9 @@ class TimelineScreenState extends State<TimelineScreen>
     // text second, rather than appearing from nowhere later and pushing the
     // card below it down.
     final showLine = showGreeting && (greeting != null || _aiHeaderAvailable);
-    if (!showLine && !showSummary) return const SizedBox.shrink();
+    // The brief used to live here too. It is its own card now, in the slot
+    // above the notes — see [_briefCard].
+    if (!showLine) return const SizedBox.shrink();
     final headlineStyle = theme.textTheme.headlineSmall?.copyWith(
       fontWeight: FontWeight.w600,
       height: 1.25,
@@ -1904,24 +1955,6 @@ class TimelineScreenState extends State<TimelineScreen>
                 ),
               ),
             ),
-          if (showSummary) ...[
-            const SizedBox(height: NexSpacing.sm),
-            _AiDaySummaryPanel(
-              // Keyed so a test can say "the recap is on screen" without
-              // reaching for a glyph. It used to be found by its sparkle,
-              // which is a thing any other surface could start wearing.
-              key: const ValueKey('timeline-recap'),
-              loading: _aiSummaryLoading,
-              text: _aiSummaryText,
-              emptyLabel: l10n.aiDaySummaryEmpty,
-              collapsed: _aiSummaryCollapsed,
-              semanticLabel: l10n.aiDaySummarySemanticLabel,
-              toggleTooltip: _aiSummaryCollapsed
-                  ? l10n.aiDaySummaryExpand
-                  : l10n.aiDaySummaryCollapse,
-              onToggle: _toggleAiSummary,
-            ),
-          ],
         ],
       ),
     );
@@ -2142,9 +2175,20 @@ class TimelineScreenState extends State<TimelineScreen>
                             // under it. Its own sliver has no such problem, and
                             // "the first card" is an honest place for something
                             // that is not a note.
+                            //
+                            // What sits here is the brief. The slot was built
+                            // for the sponsor card and it is the right shape
+                            // for the wrong thing: the first card on the
+                            // screen should be the app's own reading of the
+                            // day, not an advertisement.
+                            if (showSummary)
+                              SliverToBoxAdapter(child: _briefCard(l10n)),
+                            ..._bodySlivers(l10n),
+                            // And the sponsor goes last, under the notes.
+                            // Nothing about a card that pays for itself earns
+                            // the top of somebody's own page.
                             if (_sponsorCard() case final card?)
                               SliverToBoxAdapter(child: card),
-                            ..._bodySlivers(l10n),
                             // The capture button floats over the list, and on a
                             // device with a three-button navigation bar the system's
                             // own bar sits under that — the last card has to clear
@@ -2161,6 +2205,22 @@ class TimelineScreenState extends State<TimelineScreen>
                   ),
                 ),
               ),
+            ),
+            // A scrim under the bar, so the four buttons are not read against
+            // whatever line of a note happens to be passing behind them.
+            //
+            // It fades to nothing well before the top of its band, which is
+            // what keeps it off the cards: a hard edge anywhere in the list
+            // would read as a rule drawn across somebody's note. Black
+            // because it was asked for, but nowhere near as much of it in
+            // light, where black over a warm page is not a shadow, it is
+            // dirt.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: nexBottomScrim + nexBottomInset(context),
+              child: const IgnorePointer(child: _BottomScrim()),
             ),
             Positioned(
               left: 0,
@@ -2898,19 +2958,21 @@ class _GreetingLine extends StatelessWidget {
   }
 }
 
-/// The recap, as the page's opening paragraph rather than as an object on it.
+/// The brief: the first card above the notes, in the slot the sponsor card
+/// used to have.
 ///
-/// There is no box. No fill, no border, no radius, no shadow — what separates
-/// this from the timeline under it is typography and space, which is how a
-/// lede is separated from the article in every publication that has ever
-/// printed one. The card it replaces was the third grey rectangle stacked
-/// down the top of the screen, after the search field and the tag chips, and
-/// three greys read as three materials whatever their corner radii agree on.
+/// It went through being a grey card with three buttons on it, then a bare
+/// paragraph with a rule down its edge, and it is a card again — but not the
+/// same one. What the first version got wrong was the chrome, not the shape:
+/// a heading naming something already named, a sparkle, and three controls
+/// for things that belong elsewhere. Those are all gone and they are what is
+/// staying gone. What it has instead is a light travelling round its border,
+/// which says a model wrote this without spending a row of the screen saying
+/// it in words.
 ///
-/// The only mark left is a rule down the start edge, in the accent at a third
-/// of its strength. It says one thing — a model wrote this, the notes below
-/// it are yours — and it says it without spending a row of the screen on a
-/// heading, which is what the sparkle and the word "Daily Digest" were doing.
+/// It does not take a card's fixed height. That rule exists so a sponsor
+/// card cannot become an interruption; this one is the app reading the day
+/// back, and how tall it is depends on how much there was to say.
 ///
 /// Nothing here is a button any more, and none of the three that left was
 /// lost:
@@ -2938,10 +3000,6 @@ class _AiDaySummaryPanel extends StatelessWidget {
   final String toggleTooltip;
   final VoidCallback onToggle;
 
-  /// How wide the accent rule is, and how far the words stand off it.
-  static const _ruleWidth = 2.0;
-  static const _ruleGap = 12.0;
-
   /// What the first line is set at, relative to the rest.
   ///
   /// A lede, not a heading: the same face and the same weight, one step up in
@@ -2952,7 +3010,6 @@ class _AiDaySummaryPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     return Semantics(
       container: true,
       label: semanticLabel,
@@ -2963,44 +3020,27 @@ class _AiDaySummaryPanel extends StatelessWidget {
       // and there is nothing about a paragraph that needs explaining.
       hint: toggleTooltip,
       child: GestureDetector(
-        // Not a [NexTappable]: that draws a pressed fill on a shape, and the
-        // whole point here is that there is no shape. The gesture is on the
-        // words, the way tapping a paragraph to fold it away should be.
+        // Not a [NexTappable]: its pressed fill is drawn on the shape it is
+        // given, and the shape here belongs to the glass surface outside it,
+        // which would end up with a grey wash over its own material.
         behavior: HitTestBehavior.opaque,
         onTap: onToggle,
         child: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(
-            NexSpacing.xs,
-            NexSpacing.xs,
-            NexSpacing.xs,
-            NexSpacing.sm,
-          ),
+          // A card's inset now that this is a card. It used to be a
+          // paragraph loose on the page, where the only thing keeping it off
+          // the edge was the header's own margin.
+          padding: const EdgeInsets.all(NexSpacing.cardInset),
           child: AnimatedSize(
             duration: NexMotion.slow,
             curve: NexMotion.curve,
             alignment: Alignment.topCenter,
+            // No rule down the edge any more, and still no heading. The
+            // light going round the card says the same thing the rule did —
+            // a model wrote this — and two marks for one fact is one mark
+            // too many.
             child: collapsed
                 ? _CollapsedRecap(label: _firstLine ?? emptyLabel)
-                : IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          width: _ruleWidth,
-                          margin: const EdgeInsetsDirectional.only(
-                            end: _ruleGap,
-                          ),
-                          decoration: BoxDecoration(
-                            color: scheme.primary.withValues(alpha: 0.35),
-                            borderRadius: BorderRadius.circular(
-                              _ruleWidth / 2,
-                            ),
-                          ),
-                        ),
-                        Expanded(child: _body(theme)),
-                      ],
-                    ),
-                  ),
+                : _body(theme),
           ),
         ),
       ),
@@ -3248,6 +3288,39 @@ class _FilteredEmpty extends StatelessWidget {
           const SizedBox(height: 4),
           TextButton(onPressed: onClear, child: Text(l10n.clearFilters)),
         ],
+      ),
+    );
+  }
+}
+
+/// The fade behind the bottom bar.
+///
+/// Three stops rather than two. A straight ramp from black to nothing puts
+/// half its darkness across the middle of the band, which is exactly where
+/// the last note card sits; weighting it to the bottom keeps the tone under
+/// the buttons and leaves the cards alone.
+class _BottomScrim extends StatelessWidget {
+  const _BottomScrim();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    // The ceiling is per theme because the floor is. On a near-black page a
+    // black scrim is invisible until it is strong; on a cream one it is
+    // visible immediately, and the same number would look like a smudge.
+    final ceiling = dark ? 0.55 : 0.16;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            Colors.black.withValues(alpha: ceiling),
+            Colors.black.withValues(alpha: ceiling * 0.35),
+            Colors.black.withValues(alpha: 0),
+          ],
+          stops: const [0, 0.45, 1],
+        ),
       ),
     );
   }

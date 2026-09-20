@@ -268,17 +268,37 @@ class NexGlassSurface extends StatelessWidget {
     required this.child,
     this.borderRadius = const BorderRadius.all(Radius.circular(NexRadius.xl)),
     this.padding,
+    this.fallbackColor,
   });
 
   final Widget child;
   final BorderRadius borderRadius;
   final EdgeInsetsGeometry? padding;
 
+  /// What to draw outside the glass appearance.
+  ///
+  /// Null keeps the old behaviour — nothing at all, for a caller that is
+  /// already sitting on a surface of its own and only wanted the blur when
+  /// there was one. Anything that floats over the page has to pass a colour,
+  /// or it is text on whatever line of somebody's note happens to be behind
+  /// it for every reader who has glass switched off.
+  final Color? fallbackColor;
+
   @override
   Widget build(BuildContext context) {
     final visual = context.nexVisualStyle;
     if (!visual.liquidGlass) {
-      return Padding(padding: padding ?? EdgeInsets.zero, child: child);
+      final ground = fallbackColor;
+      final body = Padding(padding: padding ?? EdgeInsets.zero, child: child);
+      if (ground == null) return body;
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: ground,
+          borderRadius: borderRadius,
+          border: Border.all(color: visual.glassBorder),
+        ),
+        child: body,
+      );
     }
     if (MediaQuery.highContrastOf(context)) {
       final opaqueSurface = Color.alphaBlend(
