@@ -733,23 +733,37 @@ ThemeData _theme({
       NexVisualStyle(
         liquidGlass: liquidGlass,
         baseColor: background,
-        // The light films are Apple's own, read out of the iOS 27 UI kit;
-        // the dark ones are the same four steps solved for a dark anchor.
-        // Both were checked against every backdrop a panel can land on before
-        // they were written down — from pure black to pure white, and through
-        // a saturated accent and the danger red — and the worst contrast the
-        // ink ever sees is 4.96:1 in light and 4.64:1 in dark. See
-        // [NexGlassWash] for what each film is for.
+        // Four steps, described in [NexGlassWash]; the dark set is the same
+        // four solved for a dark anchor. Both were checked against every
+        // backdrop a panel can land on — pure black to pure white, through a
+        // saturated accent and the danger red — before they were written
+        // down.
         //
         // The dark ceiling is set by the comfort theme, not the plain one:
         // its ink is #E4DACA rather than #F2F2F3, which needs the material to
         // stay under rgb 97 even with a white note behind it. That is why the
         // black film is 0.60 and not the 0.46 the plain dark theme would take.
         //
-        // The white film is 0.32 rather than Apple's 0.25 for one reason: a
-        // note can carry a user-chosen colour, so a near-black surface really
-        // can end up behind a panel here, and at 0.25 that case comes out at
-        // 4.11:1. Seven hundredths buys the whole range back.
+        // The light set started as Apple's own — the iOS 27 kit's 0.25/0.32
+        // over a #F8F8F8 anchor at 0.20 — and no longer is, for a reason that
+        // is arithmetic rather than taste. Apple's numbers pin the result near
+        // white, and this app's light page *is* near white: a panel over it
+        // came out rgb 247 against a page of 245. Two values out of 255 is not
+        // a material, it is a rounding error, and no amount of rim or shadow
+        // rescues a panel whose fill is the page.
+        //
+        // So the anchor comes down to #BCBCBC at 0.34 and the two films go up
+        // to 0.33/0.42 to hold the band together. A panel now lands at rgb 224
+        // over the light page and 220 over the comfort one — a contrast of
+        // 1.21:1 and 1.11:1 against what it floats on, which is the presence
+        // the dark theme already had at 1.13:1 and the only theme anyone said
+        // looked right. Legibility went up rather than down: the worst the ink
+        // ever sees is 5.56:1, against 4.68:1 before.
+        //
+        // What it costs is translucency — 39% of the backdrop survives the
+        // films, where 51% did. A note's colour still tints the glass and the
+        // blur is still sigma 10, so it is still a material you can see
+        // through; it is simply no longer one you cannot see.
         glassWash: dark
             ? NexGlassWash(
                 films: [
@@ -761,11 +775,11 @@ ThemeData _theme({
               )
             : NexGlassWash(
                 films: [
-                  Colors.black.withValues(alpha: 0.25),
-                  Colors.white.withValues(alpha: 0.32),
+                  Colors.black.withValues(alpha: 0.33),
+                  Colors.white.withValues(alpha: 0.42),
                 ],
                 lift: const Color(0xFF444444).withValues(alpha: 0.6),
-                anchor: const Color(0xFFF8F8F8).withValues(alpha: 0.2),
+                anchor: const Color(0xFFBCBCBC).withValues(alpha: 0.34),
               ),
         glassOpaque: card,
         // Apple's #D0D0D0 in light. In dark a grey sliver would vanish, so
@@ -776,14 +790,25 @@ ThemeData _theme({
             : const Color(0xFFD0D0D0),
         // A hairline. In light the rim is a dark one — a white edge on a pale
         // surface is invisible where it matters and glaring where it does not.
+        //
+        // 14% and 16%, up from 7% and 10%. This is also the line drawn round
+        // every note card when glass is on, and at 7% of black on a pale page
+        // it was a border in the source and nothing on the screen.
         glassBorder: dark
-            ? Colors.white.withValues(alpha: 0.10)
-            : Colors.black.withValues(alpha: 0.07),
-        // Almost nothing, which is the point. Apple's is black at 2%. The
-        // 40%/12% this used to be, blurred 30 and dropped 12, is a Material
-        // card's shadow, and it was doing most of the work of making these
-        // panels read as cards rather than as glass.
-        glassShadow: Colors.black.withValues(alpha: dark ? 0.06 : 0.02),
+            ? Colors.white.withValues(alpha: 0.16)
+            : Colors.black.withValues(alpha: 0.14),
+        // Nearly nothing, which is the point. The 40%/12% this used to be,
+        // blurred 30 and dropped 12, is a Material card's shadow, and it was
+        // doing most of the work of making these panels read as cards rather
+        // than as glass.
+        //
+        // Nudged from Apple's 2% to 5% (9% in dark) all the same. A panel
+        // lying on a flat page has no content passing behind it to refract,
+        // so the only thing separating it from the page is its own edge —
+        // and at 2% over a blur the drop was a shadow the eye never found.
+        // Still a tenth of a card's, which is the line the appearance test
+        // holds it to.
+        glassShadow: Colors.black.withValues(alpha: dark ? 0.09 : 0.05),
         // Low enough that the backdrop is still a picture and not a fog, high
         // enough that nothing behind the glass can be read as text: a sigma
         // of 10 smears a glyph stroke across five times its own width. The 32

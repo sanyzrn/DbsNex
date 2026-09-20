@@ -43,16 +43,22 @@ extension NexBackgroundPatternWire on NexBackgroundPattern {
 /// seeing through it at all — a tint at 86% over a sigma-32 blur, which is a
 /// painted panel wearing a blur, not glass.
 ///
-/// Apple's own kit does something better, and these are its numbers, read out
-/// of the iOS 27 UI kit's `Button - Liquid Glass` (`Refraction 70 · Frost 6 ·
-/// Opacity 25`). Two flat films squeeze the backdrop's range toward the
-/// middle, an additive film lifts the floor, and a luminosity film pins the
-/// result's brightness while leaving the backdrop's hue alone. What comes out
-/// is translucent — a blue note behind the glass really does tint it blue —
-/// and yet lands inside a band narrow enough that one text colour reads on
-/// all of it. In light the whole span from a black backdrop to a white one
-/// comes out between rgb 148 and 252, which is 4.96:1 to 14.7:1 against the
-/// light theme's ink.
+/// Apple's own kit does something better, and the structure here is its
+/// structure, read out of the iOS 27 UI kit's `Button - Liquid Glass`
+/// (`Refraction 70 · Frost 6 · Opacity 25`). Two flat films squeeze the
+/// backdrop's range toward the middle, an additive film lifts the floor, and
+/// a luminosity film pins the result's brightness while leaving the
+/// backdrop's hue alone. What comes out is translucent — a blue note behind
+/// the glass really does tint it blue — and yet lands inside a band narrow
+/// enough that one text colour reads on all of it.
+///
+/// Where this departs from the kit is *where* that band sits, and the reason
+/// is in `nex_tokens.dart` beside the numbers: Apple's light band is pinned
+/// near white, and a panel on a near-white page that comes out near white is
+/// a material nobody can see. The band was moved down until a panel reads as
+/// a shape lying on the page. In light it now spans rgb 161 to 222 — 5.9:1 to
+/// 11.3:1 against the light theme's ink, both better than the numbers it
+/// replaced.
 @immutable
 class NexGlassWash {
   const NexGlassWash({
