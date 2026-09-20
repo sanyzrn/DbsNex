@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.14.0
+
 - **A brighter blue.** The accent is `#0084F7` now — the blue that was asked
   for, four units short of `#08F` so that a focus ring still clears the
   legibility floor on Comfort Mode's warm background.
