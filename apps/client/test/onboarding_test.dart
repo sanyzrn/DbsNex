@@ -82,8 +82,10 @@ void main() {
       await tester.pumpAndSettle();
 
       final label = tester.widget<Text>(find.text('Next'));
-      final button = tester.element(find.byType(FilledButton));
-      final scheme = Theme.of(button).colorScheme;
+      // From the label's own element, not `find.byType(FilledButton)`:
+      // `FilledButton.icon` builds a `_FilledButtonWithIcon`, and `byType`
+      // compares runtime types exactly, so that finder matches nothing.
+      final scheme = Theme.of(tester.element(find.text('Next'))).colorScheme;
       final ink = label.style?.color;
       expect(
         ink,

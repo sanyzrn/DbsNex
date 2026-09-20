@@ -2146,6 +2146,29 @@ class AppLocalizationsFa extends AppLocalizations {
   String get commitmentsEmpty => 'هنوز چیزی نیست.\nبیمه، اجاره، قرص هر هشت ساعت.';
 
   @override
+  String get commitmentsAbout => 'نکس تاریخ بعدی هر کدام را نگه می‌دارد، در خلاصهٔ روز می‌آوردشان، و می‌تواند پیش از رسیدن موعد اعلان بفرستد.';
+
+  @override
+  String get commitmentsOverdue => 'گذشته';
+
+  @override
+  String get commitmentsComingUp => 'در پیش';
+
+  @override
+  String get commitmentsRested => 'متوقف';
+
+  @override
+  String commitmentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '\$count مورد تکرارشونده',
+      one: '۱ مورد تکرارشونده',
+    );
+    return '\$_temp0';
+  }
+
+  @override
   String get commitmentAdd => 'افزودن مورد تکرارشونده';
 
   @override

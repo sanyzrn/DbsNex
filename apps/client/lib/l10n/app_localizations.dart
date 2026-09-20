@@ -3777,6 +3777,36 @@ abstract class AppLocalizations {
   /// **'Nothing recurring yet.\nInsurance, rent, a tablet every eight hours.'**
   String get commitmentsEmpty;
 
+  /// The paragraph under the title on the recurring sheet, explaining what a recurring item actually does.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex keeps the next date for each one, brings it up in the daily brief, and can send a notification before it falls due.'**
+  String get commitmentsAbout;
+
+  /// Heading above the recurring items whose date has passed.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue'**
+  String get commitmentsOverdue;
+
+  /// Heading above the recurring items still ahead of their date.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming up'**
+  String get commitmentsComingUp;
+
+  /// Heading above the recurring items that are paused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get commitmentsRested;
+
+  /// How many recurring items there are, shown beside the title.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 recurring item} other{{count} recurring items}}'**
+  String commitmentsCount(int count);
+
   /// Add button
   ///
   /// In en, this message translates to:

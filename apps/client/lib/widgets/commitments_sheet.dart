@@ -105,6 +105,7 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final all = _all;
+    final now = DateTime.now();
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         NexSpacing.md,
@@ -117,11 +118,27 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  l10n.commitmentsTitle,
-                  style: theme.textTheme.titleMedium,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.commitmentsTitle,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    // How many there are, under the title. A count is the
+                    // one thing somebody opening a list already wants to
+                    // know and would otherwise have to work out by looking.
+                    if (all != null && all.isNotEmpty)
+                      Text(
+                        l10n.commitmentsCount(all.length),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
                 ),
               ),
               IconButton(
@@ -131,38 +148,145 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
               ),
             ],
           ),
+          // What a recurring item actually is, and what the app does with
+          // one. This page had a title, a plus and a list, and nothing at
+          // all that said why anybody would put something in it — which is
+          // the whole of what was wrong with it.
           const SizedBox(height: NexSpacing.xs),
+          Text(
+            l10n.commitmentsAbout,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+            textDirection: nexDirectionOf(l10n.commitmentsAbout),
+          ),
+          const SizedBox(height: NexSpacing.md),
           if (all == null)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: NexSpacing.xl),
               child: Center(child: CircularProgressIndicator()),
             )
           else if (all.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: NexSpacing.lg),
-              child: Text(
-                l10n.commitmentsEmpty,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            )
+            _Empty(l10n: l10n)
           else
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: all.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: NexSpacing.xs),
-                itemBuilder: (context, index) => _CommitmentRow(
-                  commitment: all[index],
-                  onMet: () => unawaited(_markMet(all[index])),
-                  onEdit: () => unawaited(_edit(all[index])),
-                  onDelete: () => unawaited(_delete(all[index])),
-                ),
-              ),
+            Flexible(child: _grouped(l10n, theme, all, now)),
+        ],
+      ),
+    );
+  }
+
+  /// The list, in the order somebody actually needs it.
+  ///
+  /// Flat and sorted by date, the thing that has been overdue for a week sat
+  /// wherever the arithmetic put it, between two items that are fine. Three
+  /// groups say the only thing this list is for: what has slipped, what is
+  /// coming, and what is not running at all.
+  Widget _grouped(
+    AppLocalizations l10n,
+    ThemeData theme,
+    List<NexCommitment> all,
+    DateTime now,
+  ) {
+    final overdue = [for (final c in all) if (c.isOverdue(now)) c];
+    final upcoming = [
+      for (final c in all)
+        if (!c.paused && !c.isOverdue(now)) c,
+    ];
+    final paused = [for (final c in all) if (c.paused) c];
+    int byDate(NexCommitment a, NexCommitment b) => a.dueAt.compareTo(b.dueAt);
+    overdue.sort(byDate);
+    upcoming.sort(byDate);
+    paused.sort(byDate);
+
+    Widget row(NexCommitment c) => _CommitmentRow(
+      commitment: c,
+      onMet: () => unawaited(_markMet(c)),
+      onEdit: () => unawaited(_edit(c)),
+      onDelete: () => unawaited(_delete(c)),
+    );
+
+    return ListView(
+      shrinkWrap: true,
+      children: [
+        for (final (label, group, urgent) in [
+          (l10n.commitmentsOverdue, overdue, true),
+          (l10n.commitmentsComingUp, upcoming, false),
+          (l10n.commitmentsRested, paused, false),
+        ])
+          if (group.isNotEmpty) ...[
+            _GroupLabel(label: label, urgent: urgent),
+            for (final c in group) ...[
+              row(c),
+              const SizedBox(height: NexSpacing.xs),
+            ],
+            const SizedBox(height: NexSpacing.sm),
+          ],
+      ],
+    );
+  }
+}
+
+/// A heading over one run of the list.
+///
+/// Overdue takes the danger colour and the others do not: it is the only one
+/// of the three that is about something having gone wrong.
+class _GroupLabel extends StatelessWidget {
+  const _GroupLabel({required this.label, required this.urgent});
+
+  final String label;
+  final bool urgent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: NexSpacing.xs),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: urgent
+              ? theme.colorScheme.error
+              : theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
+        textDirection: nexDirectionOf(label),
+      ),
+    );
+  }
+}
+
+/// Nothing here yet — said as an invitation rather than as a state.
+class _Empty extends StatelessWidget {
+  const _Empty({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: NexSpacing.lg),
+      child: Column(
+        children: [
+          Icon(
+            Icons.event_repeat_outlined,
+            size: 32,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          // Two lines in the string: what this is, then three examples. The
+          // examples are the part that does the work — "recurring item" is
+          // a category nobody thinks in, and "the rent" is not.
+          Text(
+            l10n.commitmentsEmpty,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.45,
             ),
+            textDirection: nexDirectionOf(l10n.commitmentsEmpty),
+          ),
         ],
       ),
     );

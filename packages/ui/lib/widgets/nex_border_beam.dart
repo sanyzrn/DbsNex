@@ -17,10 +17,16 @@ import '../tokens/nex_tokens.dart';
 /// is a rotating sweep gradient stroked along a rounded rectangle, which is
 /// forty lines of `CustomPainter` and no dependency.
 ///
-/// It stops when it has nothing to say. An animation that runs forever in the
-/// corner of a notes app is a battery cost with no reader, so the controller
-/// is stopped — not merely hidden — whenever [active] is false, and the beam
-/// is drawn once, still, when the platform asks for reduced motion.
+/// It does not run forever. A light going round and round in the corner of a
+/// notes app is a battery cost with no reader — and, less obviously, an
+/// animation that never ends means `pumpAndSettle` never settles, so every
+/// test that so much as opens a screen carrying one hangs. Both of those are
+/// the same fact about perpetual motion: nothing is being marked.
+///
+/// So it runs [laps] times and rests, and plays again when [token] changes —
+/// which is what actually happens: a request starts, an answer lands. The
+/// controller is stopped rather than hidden when [active] is false, and the
+/// beam stands still when the platform asks for reduced motion.
 class NexBorderBeam extends StatefulWidget {
   const NexBorderBeam({
     super.key,
@@ -30,7 +36,9 @@ class NexBorderBeam extends StatefulWidget {
     this.thickness = 1.5,
     this.strength = 0.7,
     this.active = true,
-    this.period = const Duration(seconds: 6),
+    this.laps = 4,
+    this.token,
+    this.period = const Duration(milliseconds: 2200),
   });
 
   final Widget child;
@@ -49,9 +57,18 @@ class NexBorderBeam extends StatefulWidget {
   /// False stops the animation and leaves the border unpainted.
   final bool active;
 
-  /// How long one lap takes. Slow on purpose: this sits beside text somebody
-  /// is reading, and anything quick enough to notice is quick enough to
-  /// compete with the words.
+  /// How many times round before it rests.
+  final int laps;
+
+  /// Changing this plays the laps again.
+  ///
+  /// Whatever the light is marking: the brief's text, so a new one lights up
+  /// and the same one does not keep asking to be looked at.
+  final Object? token;
+
+  /// How long one lap takes. Unhurried on purpose: this sits beside text
+  /// somebody is reading, and anything quick enough to notice is quick enough
+  /// to compete with the words.
   final Duration period;
 
   @override
@@ -70,25 +87,37 @@ class _NexBorderBeamState extends State<NexBorderBeam>
   bool _shouldRun(BuildContext context) =>
       widget.active && !MediaQuery.disableAnimationsOf(context);
 
-  void _syncWith(BuildContext context) {
-    if (_shouldRun(context)) {
-      if (!_lap.isAnimating) _lap.repeat();
-    } else if (_lap.isAnimating) {
-      _lap.stop();
+  void _play(BuildContext context) {
+    if (!_shouldRun(context)) {
+      if (_lap.isAnimating) _lap.stop();
+      return;
     }
+    if (!_lap.isAnimating) _lap.repeat(count: widget.laps);
+  }
+
+  /// Back to the start and round again, for a [NexBorderBeam.token] that has
+  /// changed while the last run was still going.
+  void _replay(BuildContext context) {
+    _lap.stop();
+    _lap.value = 0;
+    _play(context);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _syncWith(context);
+    _play(context);
   }
 
   @override
   void didUpdateWidget(NexBorderBeam old) {
     super.didUpdateWidget(old);
     if (widget.period != old.period) _lap.duration = widget.period;
-    _syncWith(context);
+    if (widget.token != old.token || (widget.active && !old.active)) {
+      _replay(context);
+    } else {
+      _play(context);
+    }
   }
 
   @override

@@ -2057,6 +2057,27 @@
   "@assistantConfirmSetting": {
     "description": "Confirmation for an assistant-proposed settings change"
   },
+  "commitmentsAbout": "Nex keeps the next date for each one, brings it up in the daily brief, and can send a notification before it falls due.",
+  "@commitmentsAbout": {
+    "description": "The paragraph under the title on the recurring sheet, explaining what a recurring item actually does."
+  },
+  "commitmentsOverdue": "Overdue",
+  "@commitmentsOverdue": {
+    "description": "Heading above the recurring items whose date has passed."
+  },
+  "commitmentsComingUp": "Coming up",
+  "@commitmentsComingUp": {
+    "description": "Heading above the recurring items still ahead of their date."
+  },
+  "commitmentsRested": "Paused",
+  "@commitmentsRested": {
+    "description": "Heading above the recurring items that are paused."
+  },
+  "commitmentsCount": "{count, plural, =1{1 recurring item} other{{count} recurring items}}",
+  "@commitmentsCount": {
+    "description": "How many recurring items there are, shown beside the title.",
+    "placeholders": { "count": { "type": "int" } }
+  },
   "assistantConfirmRemind": "Set this reminder?",
   "@assistantConfirmRemind": {
     "description": "Confirmation for an assistant-proposed reminder"

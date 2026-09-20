@@ -1680,6 +1680,11 @@ class TimelineScreenState extends State<TimelineScreen>
         // Nothing to mark while it is folded away, and a lap running under a
         // single grey line is an animation with no subject.
         active: !_aiSummaryCollapsed,
+        // What the light is actually marking. A request starting and an
+        // answer landing each play it again; a brief somebody has already
+        // read sits still, which is the difference between a mark and a
+        // thing blinking in the corner of the screen.
+        token: _aiSummaryLoading ? '…' : _aiSummaryText,
         child: NexGlassSurface(
           borderRadius: corner,
           fallbackColor: scheme.surfaceContainerLowest,

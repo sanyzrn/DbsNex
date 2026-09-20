@@ -2145,6 +2145,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commitmentsEmpty => 'Nothing recurring yet.\nInsurance, rent, a tablet every eight hours.';
 
   @override
+  String get commitmentsAbout => 'Nex keeps the next date for each one, brings it up in the daily brief, and can send a notification before it falls due.';
+
+  @override
+  String get commitmentsOverdue => 'Overdue';
+
+  @override
+  String get commitmentsComingUp => 'Coming up';
+
+  @override
+  String get commitmentsRested => 'Paused';
+
+  @override
+  String commitmentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '\$count recurring items',
+      one: '1 recurring item',
+    );
+    return '\$_temp0';
+  }
+
+  @override
   String get commitmentAdd => 'Add a recurring item';
 
   @override
