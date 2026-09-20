@@ -1743,7 +1743,7 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get chatGreeting => 'امروز چه کمکی از من برمی‌آید؟';
+  String get chatGreeting => 'از نوت‌هایت بپرس';
 
   @override
   String get chatHint => 'چیزی بنویسید…';

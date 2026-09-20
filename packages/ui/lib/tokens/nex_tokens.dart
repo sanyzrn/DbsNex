@@ -111,14 +111,33 @@ abstract final class NexColors {
   /// the destructive red below and the amber in the suggested tag palette,
   /// which is the one position a signal colour cannot afford, given that the
   /// two most colour-loaded moments in this app are "delete" and "recording".
-  static const accentLight = Color(0xFF2563EB);
+  /// Hue 208 — the app's blue, asked for as `#08F`.
+  ///
+  /// Four units short of it, and the four units are the whole story. `#0088FF`
+  /// scores 2.87 against the warm cream Comfort Mode draws its pages on, and
+  /// the floor for a non-text element — a focus ring, the caret, an active
+  /// filter pill — is 3.0 (WCAG 1.4.11). Every other ground in the app clears
+  /// it; that one does not. So the lightness comes down from 0.500 to 0.485,
+  /// which lands on 3.03 and is a difference of four in blue and four in
+  /// green out of 255. The seed is the colour that was asked for; this is the
+  /// nearest value that is also legible everywhere the app draws it.
+  static const accentLight = Color(0xFF0084F7);
 
   /// Where white text sits on the accent.
-  static const accentStrongLight = Color(0xFF1D4ED8);
+  ///
+  /// Its own floor is the text one, 4.5, and that is what picks the lightness
+  /// here rather than the tonal ramp's 0.44 — hue 208 at 0.44 scores 4.41,
+  /// which is a white label on a blue button that just misses.
+  static const accentStrongLight = Color(0xFF006DCC);
 
   /// The accent on a near-black ground, where the light one is too dense.
-  static const accentDark = Color(0xFF60A5FA);
-  static const accentStrongDark = Color(0xFF93C5FD);
+  ///
+  /// These two keep the ramp `nexAccentPaletteFrom` applies to a custom seed
+  /// — lightness 0.72 and 0.82, saturation easing back as it climbs — so the
+  /// shipped palette and a hand-picked one are the same shape in a different
+  /// hue.
+  static const accentDark = Color(0xFF74BCFB);
+  static const accentStrongDark = Color(0xFFA7D4FB);
 
   /// The shipped palette, exactly — not run through [nexAccentPaletteFrom],
   /// so nobody who has never touched the accent setting sees so much as a

@@ -916,13 +916,37 @@ class CloudAIAdapter implements AIAdapter {
       'overdue reminder". Name the real things, not the categories they '
       'belong to — "the cooler and the plane tickets", not "errands and '
       'travel plans". '
+      // The half this used to forbid outright, and the reason the recap read
+      // as a list of what somebody already knew. "No advice" is the right
+      // rule about facts and the wrong rule about relationships: the model
+      // sees the whole set at once, which is the one thing the reader does
+      // not, and a clash between two of these lines is invisible from inside
+      // either of them.
+      'One of your lines may be something you noticed rather than something '
+      'on the list. Worth noticing: two things due within an hour of each '
+      'other, a reminder overdue so long it is worth moving or dropping, the '
+      'same task written twice, a standing commitment usually done by now '
+      'that is not, a checklist nothing has been ticked on in a week. Say it '
+      'plainly and say what it means — "the dentist and the school run are '
+      'both at 3" — and put it where it belongs in the order, not always '
+      'last. '
       'Fewer lines when there is less: if only one thing is waiting, answer '
-      'with one line. Never pad to the limit. '
+      'with one line. Never pad to the limit, and never manufacture an '
+      'observation to fill one — if nothing about the set is worth saying, '
+      'say nothing about the set. '
       'The tone is somebody who has read your notes and is telling you what '
       'is in them: dry, warm, plain. Never motivational, never corporate, '
-      'never flattering, no advice they did not write down themselves, no '
-      'questions. Never state anything that is not in the lines you were '
-      'given — no invented dates, times or tasks. '
+      'never flattering, no questions. '
+      // Sharpened, not relaxed. The rule that matters is about facts and it
+      // is the same rule as before: a wrong claim that something is due
+      // tomorrow is a missed appointment. What changed is that it now says
+      // which half it governs — "never state anything that is not in the
+      // lines" also forbade "these two are at the same time", which is not a
+      // new fact but two old ones read together.
+      'Every fact must come from the lines you were given: no invented dates, '
+      'times, tasks or names. Reading two lines together is not inventing; '
+      'asserting a third thing is. If you are not certain two lines really do '
+      'clash, leave it out. '
       'No preamble, no heading, no bullet or number in front of a line, no '
       'quotes, no markdown. One emoji per line and never more. Write in one '
       'language only. '
@@ -1079,6 +1103,15 @@ class CloudAIAdapter implements AIAdapter {
     final parts = <String>[
       'You are the assistant inside Nex, a notes app. Be concrete and plain: '
           'no preamble, no restating the question, no offers to help further.',
+      // Its own rule, because "no preamble" was not reading as one. Every
+      // reply opened with a greeting — "Hi!", "سلام!", "Of course!" — which
+      // is preamble, but a model weighing that against the warmth rule below
+      // resolves the tie in favour of being friendly. Naming the habit is
+      // what settles it.
+      'Never open with a greeting, an acknowledgement or a restatement — not '
+          '"Hi", not "Of course", not "Great question", not "Let me check". '
+          'The first words of every reply are the answer itself. The person '
+          'is mid-conversation with their own notes, not being met at a door.',
       // Emoji as punctuation, not as decoration. Asked for because the
       // assistant read as clipped beside the rest of the app, and bounded in
       // the same breath because the failure mode of "use more emoji" is a

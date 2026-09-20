@@ -691,7 +691,39 @@ void _recapGroup() {
       expect(prompt, contains(r'`when | kind | text`'));
       // Load-bearing. A wrong joke about your notes is a bad line; a wrong
       // claim that something is due tomorrow is a missed appointment.
-      expect(prompt, contains('Never state anything that is not in the lines'));
+      //
+      // The wording moved when the brief was allowed to notice things, and
+      // the sentence it replaces is why: "never state anything that is not
+      // in the lines" also forbade "these two are at the same time", which
+      // is two of the given facts read together rather than a third one
+      // invented. What is asserted now is the narrower, harder rule — every
+      // *fact* comes from the lines — and the boundary it draws.
+      expect(
+        prompt,
+        contains('Every fact must come from the lines you were given'),
+      );
+      expect(prompt, contains('asserting a third thing is'));
+    });
+
+    test('it is allowed to notice what the reader cannot', () async {
+      // The other half of the same change. The model sees the whole set at
+      // once, which is the one thing the reader does not: a clash between two
+      // of these lines is invisible from inside either of them, and the rule
+      // that kept the brief honest about facts was also keeping it silent
+      // about relationships.
+      late http.Request seen;
+      await adapter('⏰ a line', onSend: (r) => seen = r).digest(
+        'DUE in 6h | text | dentist\nDUE in 6h | text | school run',
+        lines: 3,
+      );
+
+      final prompt = jsonEncode(
+        (jsonDecode(seen.body) as Map<String, dynamic>)['messages'],
+      );
+      expect(prompt, contains('something you noticed'));
+      // And bounded in the same breath, because the failure mode of "notice
+      // things" is a line invented to have something to notice.
+      expect(prompt, contains('never manufacture an observation'));
     });
 
     test('a reply over the line count is cut to it', () async {

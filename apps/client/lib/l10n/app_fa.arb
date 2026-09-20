@@ -889,7 +889,7 @@
           }
       }
   },
-  "chatGreeting": "امروز چه کمکی از من برمی‌آید؟",
+  "chatGreeting": "از نوت‌هایت بپرس",
   "@chatGreeting": {
     "description": "Heading in the assistant sheet before anything is typed"
   },
