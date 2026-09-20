@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.14.0
+
 - **A brighter blue.** The accent is `#0084F7` now — the blue that was asked
   for, four units short of `#08F` so that a focus ring still clears the
   legibility floor on Comfort Mode's warm background.
@@ -49,6 +51,25 @@ Working convention:
 
 - **The assistant stops saying hello.** Every reply used to open with a
   greeting before getting to the answer. The first words are the answer now.
+
+- **Glass that is actually glass.** Panels used to be a near-opaque grey with a
+  heavy blur behind it and a card's drop shadow under it — a painted panel
+  wearing a blur. They are now built the way Apple's own kit builds them, so a
+  coloured note passing behind a panel tints it, and the edge catches light
+  down the left and right the way a curved edge does. Text on them keeps its
+  contrast on every background, light or dark.
+
+- **A bar along the bottom.** Four things that used to be out of a thumb's
+  reach in the top corner, or buried in Settings, are now two pairs of buttons
+  either side of the capture button: the recurring items and the assistant on
+  one side, the library and settings on the other. The order stays put when the
+  app is in Persian — it is a place on the screen, not a sentence.
+
+- **The daily brief is no longer a box.** It reads as the opening paragraph of
+  the page: no card, no border, no heading, just the text with a thin accent
+  rule beside it. Its three buttons are gone and none of them was lost — the
+  recurring items moved to the new bar, tapping the text still folds it away,
+  and pulling the timeline down asks for a fresh one.
 
 ## v1.13.0
 

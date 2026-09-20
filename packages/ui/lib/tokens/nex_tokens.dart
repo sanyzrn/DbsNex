@@ -705,27 +705,63 @@ ThemeData _theme({
       NexVisualStyle(
         liquidGlass: liquidGlass,
         baseColor: background,
-        // Frosted, not see-through. The first pass at this was tuned like a
-        // glass *pane* — half-transparent, a bright white rim, a diagonal
-        // sheen — and the result was that whatever sat behind a surface stayed
-        // legible through it, so text landed on text. iOS's own materials, and
-        // Telegram's, work the other way round: the blur is heavy enough that
-        // the backdrop becomes a wash of colour rather than an image, the tint
-        // sits high enough to carry text at full contrast, and the only edge
-        // is a hairline. Depth comes from the blur and the shadow; none of it
-        // comes from letting you read the layer underneath.
-        glassTint: card.withValues(alpha: dark ? 0.82 : 0.86),
+        // The light films are Apple's own, read out of the iOS 27 UI kit;
+        // the dark ones are the same four steps solved for a dark anchor.
+        // Both were checked against every backdrop a panel can land on before
+        // they were written down — from pure black to pure white, and through
+        // a saturated accent and the danger red — and the worst contrast the
+        // ink ever sees is 4.96:1 in light and 4.64:1 in dark. See
+        // [NexGlassWash] for what each film is for.
+        //
+        // The dark ceiling is set by the comfort theme, not the plain one:
+        // its ink is #E4DACA rather than #F2F2F3, which needs the material to
+        // stay under rgb 97 even with a white note behind it. That is why the
+        // black film is 0.60 and not the 0.46 the plain dark theme would take.
+        //
+        // The white film is 0.32 rather than Apple's 0.25 for one reason: a
+        // note can carry a user-chosen colour, so a near-black surface really
+        // can end up behind a panel here, and at 0.25 that case comes out at
+        // 4.11:1. Seven hundredths buys the whole range back.
+        glassWash: dark
+            ? NexGlassWash(
+                films: [
+                  Colors.white.withValues(alpha: 0.04),
+                  Colors.black.withValues(alpha: 0.60),
+                ],
+                lift: const Color(0xFF222222).withValues(alpha: 0.5),
+                anchor: const Color(0xFF262626).withValues(alpha: 0.30),
+              )
+            : NexGlassWash(
+                films: [
+                  Colors.black.withValues(alpha: 0.25),
+                  Colors.white.withValues(alpha: 0.32),
+                ],
+                lift: const Color(0xFF444444).withValues(alpha: 0.6),
+                anchor: const Color(0xFFF8F8F8).withValues(alpha: 0.2),
+              ),
+        glassOpaque: card,
+        // Apple's #D0D0D0 in light. In dark a grey sliver would vanish, so
+        // the rim is white held down to where it reads as a lit edge rather
+        // than as a drawn outline.
+        glassRim: dark
+            ? Colors.white.withValues(alpha: 0.24)
+            : const Color(0xFFD0D0D0),
         // A hairline. In light the rim is a dark one — a white edge on a pale
         // surface is invisible where it matters and glaring where it does not.
         glassBorder: dark
             ? Colors.white.withValues(alpha: 0.10)
             : Colors.black.withValues(alpha: 0.07),
-        // No sheen. A diagonal white gradient across every panel is the one
-        // thing that reads as a 2013 skeuomorph rather than a system material,
-        // and it fights the text sitting on top of it.
-        glassHighlight: Colors.transparent,
-        glassShadow: Colors.black.withValues(alpha: dark ? 0.40 : 0.12),
-        blurSigma: 32,
+        // Almost nothing, which is the point. Apple's is black at 2%. The
+        // 40%/12% this used to be, blurred 30 and dropped 12, is a Material
+        // card's shadow, and it was doing most of the work of making these
+        // panels read as cards rather than as glass.
+        glassShadow: Colors.black.withValues(alpha: dark ? 0.06 : 0.02),
+        // Low enough that the backdrop is still a picture and not a fog, high
+        // enough that nothing behind the glass can be read as text: a sigma
+        // of 10 smears a glyph stroke across five times its own width. The 32
+        // this replaces went with a near-opaque tint, and the two together
+        // were a painted panel wearing a blur.
+        blurSigma: 10,
       ),
     ],
     // A capsule that floats, not a slab pinned to the bottom edge.
