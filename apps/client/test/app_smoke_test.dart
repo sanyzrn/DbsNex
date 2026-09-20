@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
+import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/ai_provider.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
@@ -1512,19 +1513,47 @@ void main() {
     expect(words.center.dx, closeTo(column.center.dx, 2));
   });
 
-  testWidgets('the greeting is words, with nothing decorating them', (
+  test('no greeting phrasing carries a pictograph', () {
+    // The canned half, checked without a widget tree: twelve phrasings per
+    // locale, and the mark that used to sit beside them is gone. A string
+    // level assertion is the one that cannot go quiet — a widget test only
+    // sees whichever of the twelve the current hour selects.
+    for (final locale in [const Locale('en'), const Locale('fa')]) {
+      final l10n = lookupAppLocalizations(locale);
+      for (final phrasing in [
+        l10n.greetingMorning,
+        l10n.greetingMorningB,
+        l10n.greetingMorningC,
+        l10n.greetingAfternoon,
+        l10n.greetingAfternoonB,
+        l10n.greetingAfternoonC,
+        l10n.greetingEvening,
+        l10n.greetingEveningB,
+        l10n.greetingEveningC,
+        l10n.greetingNight,
+        l10n.greetingNightB,
+        l10n.greetingNightC,
+      ]) {
+        final line = phrasing('Sany');
+        expect(
+          line.runes.any(_isEmoji),
+          isFalse,
+          reason: '"$line" carries a pictograph',
+        );
+      }
+    }
+  });
+
+  testWidgets('the greeting on screen is words, and nothing beside them', (
     tester,
   ) async {
-    // It used to end in a mark picked by the hour — a sun in the morning, an
-    // owl at night — animated in as the screen opened. Removed by request,
-    // and asserted rather than simply deleted: the line is generated from
-    // three phrasings per time of day and, when a provider is configured,
-    // from a model, so "no emoji" is a property that can come back by
-    // accident from either end.
+    // The other half: the mark was never in the string. It was a second
+    // widget in a Row beside it, placed at the trailing end, animated in as
+    // the screen opened — so a test over the strings alone would have passed
+    // the whole time it was there.
     //
-    // Checked in both scripts, because the greeting follows the language of
-    // the *name* rather than the interface, and the two halves are written in
-    // different places.
+    // Both scripts, because the greeting follows the language of the *name*
+    // rather than the interface, and takes a different branch for each.
     for (final (locale, name) in [('fa', 'Sany'), ('en', 'سعید')]) {
       await preferences.setLocale(locale);
       await preferences.setDisplayName(name);
@@ -1534,21 +1563,23 @@ void main() {
       await tester.pumpAndSettle();
 
       final header = find.byKey(const ValueKey('timeline-header'));
-      expect(header, findsOneWidget);
-      final texts = tester
-          .widgetList<Text>(
-            find.descendant(of: header, matching: find.byType(Text)),
-          )
-          .map((t) => t.data)
-          .nonNulls;
-      expect(texts, isNotEmpty);
-      for (final line in texts) {
-        expect(
-          line.runes.any(_isEmoji),
-          isFalse,
-          reason: 'the header line "$line" carries a pictograph',
-        );
-      }
+      final line = find.descendant(
+        of: header,
+        matching: find.textContaining(name),
+      );
+      expect(line, findsOneWidget);
+      final text = tester.widget<Text>(line).data!;
+      expect(
+        text.runes.any(_isEmoji),
+        isFalse,
+        reason: '"$text" carries a pictograph',
+      );
+      // And the line is the whole of the header's text: the mark was its own
+      // Text next to this one, so a second one here is it coming back.
+      expect(
+        find.descendant(of: header, matching: find.byType(Text)),
+        findsOneWidget,
+      );
     }
   });
 
