@@ -1,4 +1,9 @@
 import 'dart:io';
+// Prefixed, deliberately. `Size` is not a type in this file's scope — the
+// analyzer's words were "isn't a class", not "isn't defined" — so an
+// unprefixed import risks making the name ambiguous rather than resolving
+// it. `Offset`, used further down, has always been in scope here.
+import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -65,7 +70,7 @@ void main() {
   testWidgets('a recap nobody asked for fails quietly; a tap is answered', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.physicalSize = const ui.Size(800, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
