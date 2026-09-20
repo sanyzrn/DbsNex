@@ -31,41 +31,134 @@ extension NexBackgroundPatternWire on NexBackgroundPattern {
       );
 }
 
+/// The four films that turn a blurred backdrop into glass.
+///
+/// A blur on its own is not a material: it leaves the backdrop's own range
+/// intact, so a panel over a dark note is dark and the same panel over a pale
+/// one is pale, and no tint that is transparent enough to see through can
+/// carry text on both. The fix the previous pass reached for was to stop
+/// seeing through it at all — a tint at 86% over a sigma-32 blur, which is a
+/// painted panel wearing a blur, not glass.
+///
+/// Apple's own kit does something better, and these are its numbers, read out
+/// of the iOS 27 UI kit's `Button - Liquid Glass` (`Refraction 70 · Frost 6 ·
+/// Opacity 25`). Two flat films squeeze the backdrop's range toward the
+/// middle, an additive film lifts the floor, and a luminosity film pins the
+/// result's brightness while leaving the backdrop's hue alone. What comes out
+/// is translucent — a blue note behind the glass really does tint it blue —
+/// and yet lands inside a band narrow enough that one text colour reads on
+/// all of it. In light the whole span from a black backdrop to a white one
+/// comes out between rgb 148 and 252, which is 4.96:1 to 14.7:1 against the
+/// light theme's ink.
+@immutable
+class NexGlassWash {
+  const NexGlassWash({
+    required this.films,
+    required this.lift,
+    required this.anchor,
+  });
+
+  /// Painted straight onto the blurred backdrop, in order, source-over.
+  ///
+  /// One dark and one light, and the order is the point: each one pulls the
+  /// backdrop a fixed fraction of the way to its own colour, so together they
+  /// compress the range rather than shifting it.
+  final List<Color> films;
+
+  /// Added rather than composited — [BlendMode.plus].
+  ///
+  /// This is what stops a dark backdrop reading as a hole: source-over can
+  /// only move the result *toward* a colour, and a film pale enough to lift
+  /// black is pale enough to wash out everything else.
+  final Color lift;
+
+  /// [BlendMode.luminosity]: the backdrop keeps its hue and saturation and
+  /// takes this film's brightness, at this film's alpha.
+  ///
+  /// The last step, and the one that makes the band narrow enough to put text
+  /// on. Doing it with a plain fill instead would drag every backdrop toward
+  /// grey and take the tint with it.
+  final Color anchor;
+
+  NexGlassWash lerp(NexGlassWash other, double t) => NexGlassWash(
+    films: [
+      for (var i = 0; i < films.length; i++)
+        Color.lerp(films[i], other.films[i], t)!,
+    ],
+    lift: Color.lerp(lift, other.lift, t)!,
+    anchor: Color.lerp(anchor, other.anchor, t)!,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is NexGlassWash &&
+      listEquals(other.films, films) &&
+      other.lift == lift &&
+      other.anchor == anchor;
+
+  @override
+  int get hashCode => Object.hash(Object.hashAll(films), lift, anchor);
+}
+
 @immutable
 class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
   const NexVisualStyle({
     required this.liquidGlass,
     required this.baseColor,
-    required this.glassTint,
+    required this.glassWash,
+    required this.glassOpaque,
+    required this.glassRim,
     required this.glassBorder,
-    required this.glassHighlight,
     required this.glassShadow,
     required this.blurSigma,
   });
 
   final bool liquidGlass;
   final Color baseColor;
-  final Color glassTint;
+
+  /// What the blurred backdrop is turned into — see [NexGlassWash].
+  final NexGlassWash glassWash;
+
+  /// What a glass surface falls back to when the backdrop must not show
+  /// through: high contrast, and the non-glass appearance's sheets.
+  final Color glassOpaque;
+
+  /// The bright sliver down the left and right edges.
+  ///
+  /// Apple's kit draws it as two zero-blur shadows offset ±1.25 and pulled
+  /// back 0.75, which leaves half a pixel showing on each side and nothing at
+  /// the top or bottom. That asymmetry is most of what reads as a curved edge
+  /// catching the light, and a border drawn evenly all the way round cannot
+  /// say it — see the light angle of 0 in the kit's variables.
+  final Color glassRim;
+
+  /// The hairline around the whole shape, under the rim.
   final Color glassBorder;
-  final Color glassHighlight;
+
+  /// The drop shadow, which is very nearly nothing: Apple's is black at 2%,
+  /// 8 down, 15 of blur. A heavy one is what made the old panels read as
+  /// cards that had been blurred rather than as glass lying on the page.
   final Color glassShadow;
+
   final double blurSigma;
 
   @override
   NexVisualStyle copyWith({
     bool? liquidGlass,
     Color? baseColor,
-    Color? glassTint,
+    NexGlassWash? glassWash,
+    Color? glassOpaque,
+    Color? glassRim,
     Color? glassBorder,
-    Color? glassHighlight,
     Color? glassShadow,
     double? blurSigma,
   }) => NexVisualStyle(
     liquidGlass: liquidGlass ?? this.liquidGlass,
     baseColor: baseColor ?? this.baseColor,
-    glassTint: glassTint ?? this.glassTint,
+    glassWash: glassWash ?? this.glassWash,
+    glassOpaque: glassOpaque ?? this.glassOpaque,
+    glassRim: glassRim ?? this.glassRim,
     glassBorder: glassBorder ?? this.glassBorder,
-    glassHighlight: glassHighlight ?? this.glassHighlight,
     glassShadow: glassShadow ?? this.glassShadow,
     blurSigma: blurSigma ?? this.blurSigma,
   );
@@ -76,13 +169,35 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     return NexVisualStyle(
       liquidGlass: t < 0.5 ? liquidGlass : other.liquidGlass,
       baseColor: Color.lerp(baseColor, other.baseColor, t)!,
-      glassTint: Color.lerp(glassTint, other.glassTint, t)!,
+      glassWash: glassWash.lerp(other.glassWash, t),
+      glassOpaque: Color.lerp(glassOpaque, other.glassOpaque, t)!,
+      glassRim: Color.lerp(glassRim, other.glassRim, t)!,
       glassBorder: Color.lerp(glassBorder, other.glassBorder, t)!,
-      glassHighlight: Color.lerp(glassHighlight, other.glassHighlight, t)!,
       glassShadow: Color.lerp(glassShadow, other.glassShadow, t)!,
       blurSigma: lerpDouble(blurSigma, other.blurSigma, t)!,
     );
   }
+
+  /// The four shadows every glass shape carries: the two rim slivers, the
+  /// hairline, and the drop.
+  ///
+  /// All four sit *outside* the shape, which is why they live here and not in
+  /// the decoration the blur is clipped to — a border painted inside the clip
+  /// would be blurred along with everything behind it.
+  List<BoxShadow> get glassEdge => [
+    BoxShadow(color: glassBorder, spreadRadius: 0.5),
+    BoxShadow(
+      color: glassRim,
+      offset: const Offset(1.25, 0),
+      spreadRadius: -0.75,
+    ),
+    BoxShadow(
+      color: glassRim,
+      offset: const Offset(-1.25, 0),
+      spreadRadius: -0.75,
+    ),
+    BoxShadow(color: glassShadow, offset: const Offset(0, 8), blurRadius: 15),
+  ];
 }
 
 extension NexVisualStyleContext on BuildContext {
@@ -92,9 +207,14 @@ extension NexVisualStyleContext on BuildContext {
         NexVisualStyle(
           liquidGlass: false,
           baseColor: theme.scaffoldBackgroundColor,
-          glassTint: theme.colorScheme.surfaceContainerLowest,
+          glassWash: const NexGlassWash(
+            films: [Colors.transparent, Colors.transparent],
+            lift: Colors.transparent,
+            anchor: Colors.transparent,
+          ),
+          glassOpaque: theme.colorScheme.surfaceContainerLowest,
+          glassRim: Colors.transparent,
           glassBorder: theme.colorScheme.outlineVariant,
-          glassHighlight: Colors.transparent,
           glassShadow: Colors.transparent,
           blurSigma: 0,
         );
@@ -159,7 +279,7 @@ class NexGlassSurface extends StatelessWidget {
     }
     if (MediaQuery.highContrastOf(context)) {
       final opaqueSurface = Color.alphaBlend(
-        Theme.of(context).colorScheme.surfaceContainerLowest,
+        visual.glassOpaque,
         visual.baseColor,
       ).withValues(alpha: 1);
       return DecoratedBox(
@@ -174,13 +294,7 @@ class NexGlassSurface extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        boxShadow: [
-          BoxShadow(
-            color: visual.glassShadow,
-            blurRadius: 30,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        boxShadow: visual.glassEdge,
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
@@ -189,18 +303,13 @@ class NexGlassSurface extends StatelessWidget {
             sigmaX: visual.blurSigma,
             sigmaY: visual.blurSigma,
           ),
-          child: DecoratedBox(
-            // A flat tint over a heavy blur, and a hairline. No gradient:
-            // the diagonal sheen this used to carry lightened one corner of
-            // every panel and darkened the other, so a line of text changed
-            // contrast depending on where it fell. A system material is even
-            // — the depth is in the blur behind it, not in a highlight
-            // painted across the front.
-            decoration: BoxDecoration(
-              borderRadius: borderRadius,
-              color: visual.glassTint,
-              border: Border.all(color: visual.glassBorder),
-            ),
+          // Inside the filter, so the films blend against the blurred
+          // backdrop rather than against nothing — which is the whole
+          // arrangement. [BlendMode.plus] and [BlendMode.luminosity] read
+          // what has already been painted, and what has already been painted
+          // here is the page, blurred.
+          child: CustomPaint(
+            painter: _GlassWashPainter(visual.glassWash),
             child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
           ),
         ),
@@ -214,8 +323,10 @@ class NexGlassSurface extends StatelessWidget {
 /// [NexGlassSurface] is the wrong shape for this: it is a rounded panel with a
 /// shadow and a border all the way round, which is right for a card floating
 /// over a page and wrong for a strip welded to the top edge of one. This is
-/// the same material — heavy blur, flat tint, hairline — squared off, with the
-/// hairline only along the bottom, where the bar actually meets the list.
+/// the same material — the same blur and the same four films — squared off,
+/// with no rim and a hairline only along the bottom, where the bar actually
+/// meets the list. A bar runs off both sides of the screen, so it has no left
+/// or right edge for a rim to catch.
 ///
 /// Meant for an `AppBar`'s `flexibleSpace`, and only worth anything if that
 /// bar's own `backgroundColor` is transparent and the body extends behind it.
@@ -234,14 +345,13 @@ class NexGlassBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final visual = context.nexVisualStyle;
     if (!visual.liquidGlass) return const SizedBox.shrink();
-    final scheme = Theme.of(context).colorScheme;
     // Reading what is behind a bar is the point of the effect and the enemy of
     // this setting, so it stops being translucent rather than being blurred
     // harder — the same trade [NexGlassSurface] makes.
     if (MediaQuery.highContrastOf(context)) {
       return ColoredBox(
         color: Color.alphaBlend(
-          scheme.surfaceContainerLowest,
+          visual.glassOpaque,
           visual.baseColor,
         ).withValues(alpha: 1),
       );
@@ -252,15 +362,53 @@ class NexGlassBar extends StatelessWidget {
           sigmaX: visual.blurSigma,
           sigmaY: visual.blurSigma,
         ),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: visual.glassTint,
-            border: Border(bottom: BorderSide(color: visual.glassBorder)),
+        child: CustomPaint(
+          painter: _GlassWashPainter(visual.glassWash),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: visual.glassBorder)),
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+/// Lays [NexGlassWash]'s four films over whatever the canvas already holds.
+///
+/// Deliberately no `saveLayer`. Two of the four blend against the
+/// destination, and a fresh layer starts empty, so wrapping these calls would
+/// have them blend against transparent black and produce a flat grey slab —
+/// the failure mode that looks like the effect working until you put it over
+/// something coloured.
+class _GlassWashPainter extends CustomPainter {
+  const _GlassWashPainter(this.wash);
+
+  final NexGlassWash wash;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final area = Offset.zero & size;
+    for (final film in wash.films) {
+      canvas.drawRect(area, Paint()..color = film);
+    }
+    canvas.drawRect(
+      area,
+      Paint()
+        ..color = wash.lift
+        ..blendMode = BlendMode.plus,
+    );
+    canvas.drawRect(
+      area,
+      Paint()
+        ..color = wash.anchor
+        ..blendMode = BlendMode.luminosity,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GlassWashPainter oldDelegate) => oldDelegate.wash != wash;
 }
 
 class NexBackgroundPreview extends StatelessWidget {
