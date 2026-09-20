@@ -6,12 +6,14 @@ import 'nex_tappable.dart';
 
 /// Horizontally scrolling tag filter pills (mockup `.filter-row` / FR-4).
 ///
-/// "All" is active when [selectedTagId] is null. Each tag shows its accent dot.
+/// "All" is active when [selectedTagIds] is empty; any number of tags can be
+/// on at once, and turning the last one off is the same as tapping "All".
+/// Each tag shows its accent dot.
 class TagFilterRow extends StatelessWidget {
   const TagFilterRow({
     super.key,
     required this.tags,
-    required this.selectedTagId,
+    required this.selectedTagIds,
     required this.onSelected,
     this.showAll = true,
     this.allLabel = 'All',
@@ -26,8 +28,18 @@ class TagFilterRow extends StatelessWidget {
   });
 
   final List<Tag> tags;
-  final String? selectedTagId;
-  final ValueChanged<String?> onSelected;
+
+  /// Every tag the list is being narrowed to, which is a set rather than one
+  /// id: a row of pills where picking the second one silently drops the first
+  /// is a row that cannot answer "these two".
+  ///
+  /// Empty means no filter — the same thing "All" says.
+  final Set<String> selectedTagIds;
+
+  /// The whole new selection, not the pill that was tapped. Toggling is
+  /// decided here so that every caller gets the same answer to "what happens
+  /// when the last one is turned off", which is: back to All.
+  final ValueChanged<Set<String>> onSelected;
   final bool showAll;
 
   /// Label of the "clear the filter" pill. The design system carries no
@@ -60,8 +72,11 @@ class TagFilterRow extends StatelessWidget {
               padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
               child: _Pill(
                 label: allLabel,
-                selected: selectedTagId == null,
-                onTap: () => onSelected(null),
+                selected: selectedTagIds.isEmpty,
+                // Clears rather than toggles. "All" is the absence of a
+                // filter, and tapping the absence of a filter cannot put one
+                // back.
+                onTap: () => onSelected(const {}),
                 theme: theme,
               ),
             ),
@@ -70,10 +85,13 @@ class TagFilterRow extends StatelessWidget {
               padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
               child: _Pill(
                 label: tag.name,
-                selected: selectedTagId == tag.id,
+                selected: selectedTagIds.contains(tag.id),
                 accent: tag.color,
-                onTap: () =>
-                    onSelected(selectedTagId == tag.id ? null : tag.id),
+                onTap: () => onSelected(
+                  selectedTagIds.contains(tag.id)
+                      ? (selectedTagIds.toSet()..remove(tag.id))
+                      : (selectedTagIds.toSet()..add(tag.id)),
+                ),
                 theme: theme,
               ),
             ),

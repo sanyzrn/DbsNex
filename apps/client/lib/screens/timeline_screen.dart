@@ -44,6 +44,7 @@ import '../widgets/reminder_picker.dart';
 import '../widgets/swipe_actions.dart';
 import '../widgets/tag_picker.dart';
 import 'home_layout_sheet.dart';
+import 'intelligence_screen.dart';
 import 'library_screen.dart';
 import 'note_detail_sheet.dart';
 import 'photo_preview_screen.dart';
@@ -130,7 +131,15 @@ class TimelineScreenState extends State<TimelineScreen>
   /// everyone else appears at full height, because they never left it.
   String? _openingGroup;
   List<Tag> filterTags = const [];
-  String? selectedTagId;
+
+  /// Every tag the timeline is being narrowed to. Empty is "All".
+  ///
+  /// A set, because one pill could only ever answer "notes tagged work", and
+  /// the question people actually have is "notes tagged work or home". They
+  /// are OR-ed, not AND-ed: a note usually carries one of the tags somebody
+  /// is thinking about, rarely all of them, and an AND across two tags is
+  /// almost always empty.
+  Set<String> selectedTagIds = const {};
   NoteType? selectedType;
 
   /// Show only notes with a reminder still ahead of them.
@@ -420,6 +429,15 @@ class TimelineScreenState extends State<TimelineScreen>
     // Null is "not loaded yet" rather than "empty" — see [_all]. Either way
     // there is nothing to point at, and the next load comes back here.
     if (_all?.isEmpty ?? true) return;
+    // And only while the timeline is the screen being looked at. Both things
+    // that make the tour due — a first note arriving on the stream, a cold
+    // launch finishing its read — can land seconds after launch, by which
+    // time somebody may well have opened Settings. The tour went up over the
+    // sheet anyway and pointed at four controls that were not on the screen:
+    // its stops measure `GlobalKey`s on *this* screen's widgets, which are
+    // still laid out underneath, so nothing failed loudly. [didPopNext] asks
+    // again when the timeline comes back.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
     final l10n = AppLocalizations.of(context);
     final overlay = Overlay.maybeOf(context);
     if (overlay == null) return;
@@ -676,6 +694,25 @@ class TimelineScreenState extends State<TimelineScreen>
         history: widget.preferences.chatHistory,
       ),
     );
+  }
+
+  /// The screen where the assistant is switched on, from the notice that
+  /// says it is not.
+  ///
+  /// Awaited, and the timeline rebuilds on the way back: turning intelligence
+  /// on is exactly the change that makes the button this came from start
+  /// doing something else.
+  Future<void> _openIntelligence() async {
+    await Navigator.push(
+      context,
+      NexPageRoute<void>(
+        builder: (_) => IntelligenceScreen(
+          services: widget.services,
+          preferences: widget.preferences,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   void _toggleAiSummary() {
@@ -1101,9 +1138,9 @@ class TimelineScreenState extends State<TimelineScreen>
     }
   }
 
-  Future<void> _selectTag(String? tagId) async {
+  Future<void> _selectTags(Set<String> tagIds) async {
     _tick();
-    setState(() => selectedTagId = tagId);
+    setState(() => selectedTagIds = tagIds);
     await _applyFilters();
   }
 
@@ -1203,7 +1240,7 @@ class TimelineScreenState extends State<TimelineScreen>
   Future<void> _clearFilters() async {
     _tick();
     setState(() {
-      selectedTagId = null;
+      selectedTagIds = const {};
       selectedType = null;
       onlyReminders = false;
     });
@@ -1211,17 +1248,19 @@ class TimelineScreenState extends State<TimelineScreen>
   }
 
   bool get _filtering =>
-      selectedTagId != null || selectedType != null || onlyReminders;
+      selectedTagIds.isNotEmpty || selectedType != null || onlyReminders;
 
   /// FR-4.5: the content-type filter layers on top of the tag filter — it is
   /// not a separate mode, so both selections resolve into one view.
   List<Note> _visible(List<Note> source) {
-    final tagId = selectedTagId;
+    final tagIds = selectedTagIds;
     final type = selectedType;
     return source.where((note) {
       if (onlyReminders && note.dueAt == null) return false;
       if (type != null && note.type != type) return false;
-      if (tagId != null && !note.tags.any((t) => t.id == tagId)) return false;
+      if (tagIds.isNotEmpty && !note.tags.any((t) => tagIds.contains(t.id))) {
+        return false;
+      }
       return true;
     }).toList();
   }
@@ -1254,7 +1293,6 @@ class TimelineScreenState extends State<TimelineScreen>
   }
 
   @override
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final route = ModalRoute.of(context);
@@ -1270,6 +1308,16 @@ class TimelineScreenState extends State<TimelineScreen>
   /// without it.
   @override
   void didPushNext() => unawaited(_retireSpentReminders());
+
+  /// The timeline is back in front, so the walk-through may be due again.
+  ///
+  /// It is due exactly when this screen is the one being looked at, and the
+  /// two moments that can make it due — the first note arriving, and a cold
+  /// launch finishing its read — can both land while somebody is in Settings
+  /// or the Library. [_maybeStartTour] now declines in that case, which would
+  /// leave the tour never shown at all without somewhere to ask again.
+  @override
+  void didPopNext() => _tourWhenReady();
 
   /// Leaving the app counts as leaving the timeline.
   ///
@@ -1605,6 +1653,61 @@ class TimelineScreenState extends State<TimelineScreen>
     );
   }
 
+  /// The brief, as the first card above the notes.
+  ///
+  /// It has the note card's insets and corner, and none of its height rule.
+  /// The sponsor card the slot was built for is pinned to exactly one card's
+  /// height on purpose — a banner taller than the things around it has
+  /// stopped being an item in a list and started being an interruption — but
+  /// that reasoning is about a card selling something. This one is the app
+  /// reading the day back, and how long it is depends entirely on how much
+  /// there was to say. So it grows with its text.
+  ///
+  /// No icon, and no heading. The sparkle used to sit at the top of this and
+  /// it was naming something already named: it is the only generated surface
+  /// on the timeline, and the light going round its edge says so without
+  /// spending a row of the screen.
+  Widget _briefCard(AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
+    const corner = BorderRadius.all(Radius.circular(NexRadius.lg));
+    return Padding(
+      padding: nexCardInsets,
+      child: NexBorderBeam(
+        borderRadius: corner,
+        // Brightest while it is being written, then down to a glow that can
+        // be read past. The light is a provenance mark, not a notification.
+        strength: _aiSummaryLoading ? 0.85 : 0.45,
+        // Nothing to mark while it is folded away, and a lap running under a
+        // single grey line is an animation with no subject.
+        active: !_aiSummaryCollapsed,
+        // What the light is actually marking. A request starting and an
+        // answer landing each play it again; a brief somebody has already
+        // read sits still, which is the difference between a mark and a
+        // thing blinking in the corner of the screen.
+        token: _aiSummaryLoading ? '…' : _aiSummaryText,
+        child: NexGlassSurface(
+          borderRadius: corner,
+          fallbackColor: scheme.surfaceContainerLowest,
+          child: _AiDaySummaryPanel(
+            // Keyed so a test can say "the brief is on screen" without
+            // reaching for a glyph. It used to be found by its sparkle,
+            // which is a thing any other surface could start wearing.
+            key: const ValueKey('timeline-recap'),
+            loading: _aiSummaryLoading,
+            text: _aiSummaryText,
+            emptyLabel: l10n.aiDaySummaryEmpty,
+            collapsed: _aiSummaryCollapsed,
+            semanticLabel: l10n.aiDaySummarySemanticLabel,
+            toggleTooltip: _aiSummaryCollapsed
+                ? l10n.aiDaySummaryExpand
+                : l10n.aiDaySummaryCollapse,
+            onToggle: _toggleAiSummary,
+          ),
+        ),
+      ),
+    );
+  }
+
   /// The sponsor card, when there is one to show.
   ///
   /// Null on every path that means "nothing to show" — no file, an
@@ -1793,7 +1896,6 @@ class TimelineScreenState extends State<TimelineScreen>
   Widget _header(AppLocalizations l10n) {
     final theme = Theme.of(context);
     final showGreeting = widget.preferences.showGreeting;
-    final showSummary = _aiHeaderAvailable && widget.preferences.showDaySummary;
     final greeting = showGreeting
         ? _greeting(l10n, aiPhrase: _aiHeadlineText)
         : null;
@@ -1802,7 +1904,9 @@ class TimelineScreenState extends State<TimelineScreen>
     // text second, rather than appearing from nowhere later and pushing the
     // card below it down.
     final showLine = showGreeting && (greeting != null || _aiHeaderAvailable);
-    if (!showLine && !showSummary) return const SizedBox.shrink();
+    // The brief used to live here too. It is its own card now, in the slot
+    // above the notes — see [_briefCard].
+    if (!showLine) return const SizedBox.shrink();
     final headlineStyle = theme.textTheme.headlineSmall?.copyWith(
       fontWeight: FontWeight.w600,
       height: 1.25,
@@ -1856,24 +1960,6 @@ class TimelineScreenState extends State<TimelineScreen>
                 ),
               ),
             ),
-          if (showSummary) ...[
-            const SizedBox(height: NexSpacing.sm),
-            _AiDaySummaryPanel(
-              // Keyed so a test can say "the recap is on screen" without
-              // reaching for a glyph. It used to be found by its sparkle,
-              // which is a thing any other surface could start wearing.
-              key: const ValueKey('timeline-recap'),
-              loading: _aiSummaryLoading,
-              text: _aiSummaryText,
-              emptyLabel: l10n.aiDaySummaryEmpty,
-              collapsed: _aiSummaryCollapsed,
-              semanticLabel: l10n.aiDaySummarySemanticLabel,
-              toggleTooltip: _aiSummaryCollapsed
-                  ? l10n.aiDaySummaryExpand
-                  : l10n.aiDaySummaryCollapse,
-              onToggle: _toggleAiSummary,
-            ),
-          ],
         ],
       ),
     );
@@ -2072,7 +2158,7 @@ class TimelineScreenState extends State<TimelineScreen>
                                     controller: _swipe,
                                     child: TagFilterRow(
                                       tags: filterTags,
-                                      selectedTagId: selectedTagId,
+                                      selectedTagIds: selectedTagIds,
                                       allLabel: l10n.all,
                                       leading: _FilterButton(
                                         active:
@@ -2082,7 +2168,7 @@ class TimelineScreenState extends State<TimelineScreen>
                                             unawaited(_pickFilters()),
                                       ),
                                       onSelected: (value) =>
-                                          unawaited(_selectTag(value)),
+                                          unawaited(_selectTags(value)),
                                     ),
                                   ),
                                 ),
@@ -2094,9 +2180,20 @@ class TimelineScreenState extends State<TimelineScreen>
                             // under it. Its own sliver has no such problem, and
                             // "the first card" is an honest place for something
                             // that is not a note.
+                            //
+                            // What sits here is the brief. The slot was built
+                            // for the sponsor card and it is the right shape
+                            // for the wrong thing: the first card on the
+                            // screen should be the app's own reading of the
+                            // day, not an advertisement.
+                            if (showSummary)
+                              SliverToBoxAdapter(child: _briefCard(l10n)),
+                            ..._bodySlivers(l10n),
+                            // And the sponsor goes last, under the notes.
+                            // Nothing about a card that pays for itself earns
+                            // the top of somebody's own page.
                             if (_sponsorCard() case final card?)
                               SliverToBoxAdapter(child: card),
-                            ..._bodySlivers(l10n),
                             // The capture button floats over the list, and on a
                             // device with a three-button navigation bar the system's
                             // own bar sits under that — the last card has to clear
@@ -2113,6 +2210,22 @@ class TimelineScreenState extends State<TimelineScreen>
                   ),
                 ),
               ),
+            ),
+            // A scrim under the bar, so the four buttons are not read against
+            // whatever line of a note happens to be passing behind them.
+            //
+            // It fades to nothing well before the top of its band, which is
+            // what keeps it off the cards: a hard edge anywhere in the list
+            // would read as a rule drawn across somebody's note. Black
+            // because it was asked for, but nowhere near as much of it in
+            // light, where black over a warm page is not a shadow, it is
+            // dirt.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: nexBottomScrim + nexBottomInset(context),
+              child: const IgnorePointer(child: _BottomScrim()),
             ),
             Positioned(
               left: 0,
@@ -2187,19 +2300,41 @@ class TimelineScreenState extends State<TimelineScreen>
                   await _loadCommitments();
                 },
               ),
-              // A button that opens a chat which cannot reply is worse than
-              // no button, so it is not drawn at all until something is
-              // configured to answer — see [_openAssistant], which has
-              // always made the same check silently.
-              if (AiChatSheet.availableFor(widget.preferences))
-                NexCapsuleAction(
-                  icon: Icons.auto_awesome,
-                  tooltip: l10n.assistant,
-                  onPressed: () {
-                    if (_claimedBySwipe()) return;
+              // Always drawn, even with nothing configured to answer. It used
+              // to appear only when the assistant was usable, which left the
+              // leading capsule one slot wide on most installs and two on
+              // some: the bar visibly lopsided, and its buttons in different
+              // places on different phones. A place in a bar is a promise
+              // about where to put a thumb, and a place that comes and goes
+              // is not one.
+              //
+              // What changes is the answer, not the button. With no provider
+              // a tap says so and offers the screen that fixes it, which is
+              // better than both of the things this used to do — open a chat
+              // that cannot reply, or show nothing at all.
+              NexCapsuleAction(
+                icon: Icons.auto_awesome,
+                tooltip: l10n.assistant,
+                onPressed: () {
+                  if (_claimedBySwipe()) return;
+                  if (AiChatSheet.availableFor(widget.preferences)) {
                     _openAssistant();
-                  },
-                ),
+                    return;
+                  }
+                  _tick();
+                  nexShowBanner(
+                    context,
+                    // `ai`, because that is what it is about. There is no
+                    // `info` kind and this is not a failure: nothing was
+                    // attempted and nothing went wrong.
+                    kind: NexBannerKind.ai,
+                    haptics: widget.preferences.haptics,
+                    message: l10n.assistantNeedsIntelligence,
+                    actionLabel: l10n.assistantTurnOnIntelligence,
+                    onAction: () => unawaited(_openIntelligence()),
+                  );
+                },
+              ),
             ],
           ),
           // Hold capture to reach the assistant. The gesture stays even
@@ -2828,19 +2963,21 @@ class _GreetingLine extends StatelessWidget {
   }
 }
 
-/// The recap, as the page's opening paragraph rather than as an object on it.
+/// The brief: the first card above the notes, in the slot the sponsor card
+/// used to have.
 ///
-/// There is no box. No fill, no border, no radius, no shadow — what separates
-/// this from the timeline under it is typography and space, which is how a
-/// lede is separated from the article in every publication that has ever
-/// printed one. The card it replaces was the third grey rectangle stacked
-/// down the top of the screen, after the search field and the tag chips, and
-/// three greys read as three materials whatever their corner radii agree on.
+/// It went through being a grey card with three buttons on it, then a bare
+/// paragraph with a rule down its edge, and it is a card again — but not the
+/// same one. What the first version got wrong was the chrome, not the shape:
+/// a heading naming something already named, a sparkle, and three controls
+/// for things that belong elsewhere. Those are all gone and they are what is
+/// staying gone. What it has instead is a light travelling round its border,
+/// which says a model wrote this without spending a row of the screen saying
+/// it in words.
 ///
-/// The only mark left is a rule down the start edge, in the accent at a third
-/// of its strength. It says one thing — a model wrote this, the notes below
-/// it are yours — and it says it without spending a row of the screen on a
-/// heading, which is what the sparkle and the word "Daily Digest" were doing.
+/// It does not take a card's fixed height. That rule exists so a sponsor
+/// card cannot become an interruption; this one is the app reading the day
+/// back, and how tall it is depends on how much there was to say.
 ///
 /// Nothing here is a button any more, and none of the three that left was
 /// lost:
@@ -2868,10 +3005,6 @@ class _AiDaySummaryPanel extends StatelessWidget {
   final String toggleTooltip;
   final VoidCallback onToggle;
 
-  /// How wide the accent rule is, and how far the words stand off it.
-  static const _ruleWidth = 2.0;
-  static const _ruleGap = 12.0;
-
   /// What the first line is set at, relative to the rest.
   ///
   /// A lede, not a heading: the same face and the same weight, one step up in
@@ -2882,7 +3015,6 @@ class _AiDaySummaryPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     return Semantics(
       container: true,
       label: semanticLabel,
@@ -2893,44 +3025,27 @@ class _AiDaySummaryPanel extends StatelessWidget {
       // and there is nothing about a paragraph that needs explaining.
       hint: toggleTooltip,
       child: GestureDetector(
-        // Not a [NexTappable]: that draws a pressed fill on a shape, and the
-        // whole point here is that there is no shape. The gesture is on the
-        // words, the way tapping a paragraph to fold it away should be.
+        // Not a [NexTappable]: its pressed fill is drawn on the shape it is
+        // given, and the shape here belongs to the glass surface outside it,
+        // which would end up with a grey wash over its own material.
         behavior: HitTestBehavior.opaque,
         onTap: onToggle,
         child: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(
-            NexSpacing.xs,
-            NexSpacing.xs,
-            NexSpacing.xs,
-            NexSpacing.sm,
-          ),
+          // A card's inset now that this is a card. It used to be a
+          // paragraph loose on the page, where the only thing keeping it off
+          // the edge was the header's own margin.
+          padding: const EdgeInsets.all(NexSpacing.cardInset),
           child: AnimatedSize(
             duration: NexMotion.slow,
             curve: NexMotion.curve,
             alignment: Alignment.topCenter,
+            // No rule down the edge any more, and still no heading. The
+            // light going round the card says the same thing the rule did —
+            // a model wrote this — and two marks for one fact is one mark
+            // too many.
             child: collapsed
                 ? _CollapsedRecap(label: _firstLine ?? emptyLabel)
-                : IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          width: _ruleWidth,
-                          margin: const EdgeInsetsDirectional.only(
-                            end: _ruleGap,
-                          ),
-                          decoration: BoxDecoration(
-                            color: scheme.primary.withValues(alpha: 0.35),
-                            borderRadius: BorderRadius.circular(
-                              _ruleWidth / 2,
-                            ),
-                          ),
-                        ),
-                        Expanded(child: _body(theme)),
-                      ],
-                    ),
-                  ),
+                : _body(theme),
           ),
         ),
       ),
@@ -3178,6 +3293,39 @@ class _FilteredEmpty extends StatelessWidget {
           const SizedBox(height: 4),
           TextButton(onPressed: onClear, child: Text(l10n.clearFilters)),
         ],
+      ),
+    );
+  }
+}
+
+/// The fade behind the bottom bar.
+///
+/// Three stops rather than two. A straight ramp from black to nothing puts
+/// half its darkness across the middle of the band, which is exactly where
+/// the last note card sits; weighting it to the bottom keeps the tone under
+/// the buttons and leaves the cards alone.
+class _BottomScrim extends StatelessWidget {
+  const _BottomScrim();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    // The ceiling is per theme because the floor is. On a near-black page a
+    // black scrim is invisible until it is strong; on a cream one it is
+    // visible immediately, and the same number would look like a smudge.
+    final ceiling = dark ? 0.55 : 0.16;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            Colors.black.withValues(alpha: ceiling),
+            Colors.black.withValues(alpha: ceiling * 0.35),
+            Colors.black.withValues(alpha: 0),
+          ],
+          stops: const [0, 0.45, 1],
+        ),
       ),
     );
   }

@@ -255,6 +255,15 @@ const nexSwipeThreshold = 0.35;
 /// have silently stopped clearing the button the moment its size token moved.
 const nexFabClearance = nexCaptureFabSize + NexSpacing.lg * 2;
 
+/// How far up the screen the fade behind the bottom bar reaches, before the
+/// system's own inset is added to it.
+///
+/// Tied to the clearance the list already leaves, so the scrim ends where the
+/// last card ends rather than at a number somebody liked the look of. Taller
+/// than the bar itself on purpose: a fade as short as the thing it sits under
+/// has a visible top edge, which is the one thing it must not have.
+const nexBottomScrim = nexFabClearance + NexSpacing.xl;
+
 /// How wide a focus ring is drawn, and how far it stands off its control.
 ///
 /// The only focus affordance used to be a 16% fill tint — a grey wash on a grey
@@ -561,11 +570,22 @@ ThemeData _theme({
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: liquidGlass
-          ? accentStrong.withValues(alpha: 0.88)
-          : accentStrong,
+      // Opaque in both appearances, which is what Apple's own prominent glass
+      // button is: a white backing, the accent over it at full strength, and
+      // the glass only in the edge and the refraction. It was 88% here, which
+      // let a little of the page through and read as a slightly dirty blue
+      // rather than as a material.
+      backgroundColor: accentStrong,
       foregroundColor: onAccent,
-      elevation: liquidGlass ? 8 : 3,
+      // And no elevation under glass. The button sits inside a
+      // [NexGlassSurface], which draws the same rim, hairline and 2% drop the
+      // capsules beside it have — and a Material elevation-8 shadow painted
+      // on top of that is the reason the capture button did not look like
+      // them. Two shadows, and the loud one wins.
+      elevation: liquidGlass ? 0 : 3,
+      focusElevation: liquidGlass ? 0 : 3,
+      hoverElevation: liquidGlass ? 0 : 3,
+      highlightElevation: liquidGlass ? 0 : 6,
       sizeConstraints: const BoxConstraints.tightFor(
         width: nexCaptureFabSize,
         height: nexCaptureFabSize,
@@ -645,6 +665,14 @@ ThemeData _theme({
         minimumSize: const Size(nexMinTapTarget, nexMinTapTarget),
         padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
         shape: const StadiumBorder(),
+        // The strong accent, not the plain one. `primary` is drawn to be read
+        // *on* the page — a 2px ring, a word of link text — and Material fills
+        // a button with it, where it then has to carry a label instead. In
+        // light that is white on #0084F7, which is 3.72:1 and under the floor;
+        // on #006DCC it is 5.17:1. `scaffold_test.dart` has asserted that
+        // second number since before this button existed.
+        backgroundColor: accentStrong,
+        foregroundColor: onAccent,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(

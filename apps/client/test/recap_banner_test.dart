@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -68,21 +68,46 @@ void main() {
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
-    await tester.pumpAndSettle();
+    // Pumped by hand rather than settled, and this is the whole trick of the
+    // file. A banner lives 3400ms and then takes itself away; the brief's
+    // border beam schedules frames for four laps of 2200ms. `pumpAndSettle`
+    // pumps *while frames are scheduled*, so it runs the beam out over eight
+    // and a half seconds of test time — past the life of any banner raised
+    // along the way. Five rounds were spent looking for a banner that had
+    // been shown and swept up before the assertion ran.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
 
     final l10n = AppLocalizations.of(
       tester.element(find.byType(TimelineScreen)),
     );
 
-    // What makes the assertion below mean something. The launch attempt is
+    // What makes the assertions below mean something. The launch attempt is
     // fired by the timeline stream delivering its first non-empty list, so a
     // note on screen is the trigger condition having been met.
     expect(find.text('something worth summarising'), findsOneWidget);
 
-    // The launch attempt. It runs once, by itself, the first time the timeline
-    // delivers any notes — so it lands seconds after start, over whatever the
-    // user has opened by then. The screenshot in the report was of this banner
-    // sitting over the settings sheet, about a card the user had not touched.
+    // And that the attempt is over rather than still running: the card is
+    // dimmed while a brief is being written, and a refresh asked for while
+    // one is in flight is declined by design. This is that state, read from
+    // outside — `AnimatedOpacity` carries the target, not the current value.
+    double writing() => tester
+        .widget<AnimatedOpacity>(
+          find.descendant(
+            of: find.byKey(const ValueKey('timeline-recap')),
+            matching: find.byType(AnimatedOpacity),
+          ),
+        )
+        .opacity;
+    expect(writing(), 1.0, reason: 'the launch attempt is still in flight');
+
+    // So the launch attempt ran, failed, and said nothing — with a second to
+    // spare on the clock, which is what makes this an assertion rather than a
+    // race the banner always loses. It lands seconds after start, over
+    // whatever the user has opened by then: the screenshot in the report was
+    // of this banner sitting over the settings sheet, about a card nobody had
+    // touched.
     //
     // The card's own rule says why that is wrong: the recap is additive
     // chrome, never a reason to put an error on the screen. A failure with no
@@ -95,21 +120,30 @@ void main() {
 
     // The other half, which must keep working: a gesture that visibly does
     // nothing is what a broken control looks like, so the ask is answered.
-    // It also closes the other way out of the assertion above: this proves
-    // the whole path is live — a provider configured, the recap on screen,
-    // the request made, the failure noticed, the banner raised. The launch
-    // attempt runs the same method against the same source, so silence there
-    // is the rule being applied and not the code never running.
-    //
-    // A pull rather than a tap. The button this used to press is gone with
-    // the card it sat on; asking for a new recap is the pull now.
-    await tester.fling(
-      find.text('something worth summarising'),
-      const Offset(0, 300),
-      1000,
+    // A `RefreshIndicator` is attached, and only because there is a brief to
+    // rewrite — `_wrapInRefresh` leaves it off otherwise, so that a pull with
+    // nothing to refresh is not a gesture that silently does nothing.
+    final indicator = tester.widget<RefreshIndicator>(
+      find.byType(RefreshIndicator),
     );
-    await tester.pumpAndSettle();
+
+    // Asked for by calling the callback the indicator calls, not by
+    // simulating a finger: a simulated pull tests Flutter's gesture
+    // arithmetic — how much overscroll carries `dragDetails`, and that the
+    // arming threshold is a quarter of the viewport rather than a fixed
+    // distance — and none of that says whether this app raises the banner.
+    await indicator.onRefresh();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text(l10n.recapRefreshFailed), findsOneWidget);
+
+    // And it goes by itself — nothing here has to be acknowledged. Settled
+    // at the end rather than the start, which is the same fact about this
+    // screen read the other way round: now that the banner is the thing being
+    // waited out, running the beam to a stop is exactly what is wanted.
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.recapRefreshFailed), findsNothing);
   });
 }

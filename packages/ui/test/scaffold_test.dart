@@ -133,6 +133,32 @@ void main() {
     );
   });
 
+  test('a filled button can carry its own label', () {
+    // The pairing Material actually renders, resolved out of the theme rather
+    // than assumed from the tokens. Two separate things went wrong here and
+    // only one of them is a token: `primary` is drawn to be read *on* the
+    // page and Material fills a button with it, where white comes out at
+    // 3.72:1; and a caller handed the label `textTheme.titleSmall`, whose
+    // colour is the page's ink, which put near-white on a pale blue at
+    // 1.82:1 in the dark theme.
+    for (final theme in [
+      nexLightTheme(),
+      nexLightTheme(comfortMode: true),
+      nexDarkTheme(),
+      nexDarkTheme(comfortMode: true),
+    ]) {
+      final style = theme.filledButtonTheme.style!;
+      const enabled = <WidgetState>{};
+      final fill = style.backgroundColor!.resolve(enabled)!;
+      final ink = style.foregroundColor!.resolve(enabled)!;
+      expect(
+        nexContrastRatio(ink, fill),
+        greaterThanOrEqualTo(4.5),
+        reason: 'a label the button itself sets must be readable on its fill',
+      );
+    }
+  });
+
   test('the accent is not mistakable for the destructive colour', () {
     // Contrast ratio cannot answer this — it measures luminance, and two
     // colours of opposite hue can share one. The question is angular.
