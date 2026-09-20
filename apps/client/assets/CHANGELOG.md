@@ -34,6 +34,36 @@ Working convention:
 
 ## Unreleased
 
+## v1.15.0
+
+- **The Next button on the welcome screens could not be read.** In the dark
+  theme it was near-white text on a pale blue. Every filled button in the app
+  now takes a colour it can actually carry a label on.
+
+- **The walk-through no longer opens over another screen.** It could arrive
+  seconds after launch while you were already in Settings, and point at
+  controls that were not on screen. It waits for the timeline now.
+
+- **The assistant keeps its place in the bar.** It used to disappear when
+  intelligence was off, which left the bar lopsided. Tapping it with nothing
+  set up says so, and offers the screen that turns it on.
+
+- **More than one tag at once.** Tap to add a tag to the filter, tap again to
+  take it away; turning the last one off goes back to All. Notes under
+  *either* tag are shown — not only notes under both.
+
+- **The daily brief is the first card, and the sponsor card is the last.**
+  The brief has a light travelling round its border while it is being
+  written, and grows with its text instead of taking a fixed height.
+
+- **Recurring items have their own page.** They have left Settings for the
+  bar along the bottom, and the page now says what a recurring item is for,
+  counts them, and sorts them into what has slipped, what is coming, and
+  what is paused.
+
+- **A soft fade behind the bottom bar**, so the buttons are not read against
+  a passing line of a note.
+
 ## v1.14.0
 
 - **A brighter blue.** The accent is `#0084F7` now — the blue that was asked
