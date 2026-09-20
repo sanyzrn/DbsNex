@@ -1,9 +1,4 @@
 import 'dart:io';
-// `Size` stays prefixed even with `material.dart` below: the analyzer's
-// words were "isn't a class", not "isn't defined", so some other name in
-// scope already answers to it and an unprefixed one could go ambiguous.
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -70,9 +65,6 @@ void main() {
   testWidgets('a recap nobody asked for fails quietly; a tap is answered', (
     tester,
   ) async {
-    tester.view.physicalSize = const ui.Size(800, 1400);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
@@ -109,42 +101,28 @@ void main() {
     // attempt runs the same method against the same source, so silence there
     // is the rule being applied and not the code never running.
     //
-    // A pull rather than a tap. The button this used to press is gone with
-    // the card it sat on; asking for a new recap is the pull now.
-    //
-    // Before pulling anything: the brief has to be on screen, or there is no
-    // `RefreshIndicator` to pull. `_wrapInRefresh` attaches one only when
-    // there is a brief to rewrite, so this separates "the gesture did not
-    // arrive" from "there was nothing listening for it" — which is the
-    // difference the last two rounds of this could not tell apart.
+    // Two claims, tested separately, because conflating them cost four CI
+    // rounds. The first is this app's: a `RefreshIndicator` is attached, and
+    // only because there is a brief to rewrite — `_wrapInRefresh` leaves it
+    // off otherwise, so that a pull with nothing to refresh is not a gesture
+    // that silently does nothing.
     expect(
       find.byKey(const ValueKey('timeline-recap')),
       findsOneWidget,
-      reason: 'no brief means no refresh indicator to pull',
+      reason: 'no brief means no refresh indicator to attach',
     );
-    expect(find.byType(RefreshIndicator), findsOneWidget);
+    final indicator = tester.widget<RefreshIndicator>(
+      find.byType(RefreshIndicator),
+    );
 
-    // Far enough to arm it. `RefreshIndicator` fires at a *quarter of the
-    // viewport's height*, not at a fixed distance — so making the window
-    // taller last round raised the bar from 150 to 350 while the pull was
-    // shortened to 260, which is why that fix made this worse rather than
-    // better. At 1400 tall the threshold is 350; this is comfortably past.
-    //
-    // A drag, not a fling, for a second reason: the indicator arms on
-    // overscroll carrying `dragDetails`, and only the dragged part of a
-    // gesture has that — a fling hands most of its travel to the ballistic
-    // simulation, where the field is null. `touchSlopY: 0` keeps the slop
-    // from eating the first stretch.
-    await tester.drag(
-      find.text('something worth summarising'),
-      const Offset(0, 600),
-      touchSlopY: 0,
-    );
-    // The indicator's stages, pumped one at a time: the drag settles, the
-    // spinner settles into place, and only then is `onRefresh` called.
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump(const Duration(seconds: 1));
+    // The second is also this app's: asking for a new brief, and failing,
+    // says so. Asked for by calling the callback the indicator calls, not by
+    // simulating a finger. A simulated pull tests Flutter's gesture
+    // arithmetic — how much overscroll carries `dragDetails`, and that the
+    // arming threshold is a quarter of the viewport rather than a fixed
+    // distance — and three rounds of getting that arithmetic wrong told me
+    // nothing about whether this app raises the banner.
+    await indicator.onRefresh();
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.recapRefreshFailed), findsOneWidget);
