@@ -124,14 +124,20 @@ void main() {
     );
     expect(find.byType(RefreshIndicator), findsOneWidget);
 
-    // A drag, not a fling. `RefreshIndicator` arms on overscroll that carries
-    // `dragDetails`, which only the dragged part of a gesture has — a fling
-    // hands most of its travel to the ballistic simulation, where that field
-    // is null and the indicator ignores it. `touchSlopY: 0` keeps the slop
-    // from eating the first stretch of the pull.
+    // Far enough to arm it. `RefreshIndicator` fires at a *quarter of the
+    // viewport's height*, not at a fixed distance — so making the window
+    // taller last round raised the bar from 150 to 350 while the pull was
+    // shortened to 260, which is why that fix made this worse rather than
+    // better. At 1400 tall the threshold is 350; this is comfortably past.
+    //
+    // A drag, not a fling, for a second reason: the indicator arms on
+    // overscroll carrying `dragDetails`, and only the dragged part of a
+    // gesture has that — a fling hands most of its travel to the ballistic
+    // simulation, where the field is null. `touchSlopY: 0` keeps the slop
+    // from eating the first stretch.
     await tester.drag(
       find.text('something worth summarising'),
-      const Offset(0, 220),
+      const Offset(0, 600),
       touchSlopY: 0,
     );
     // The indicator's stages, pumped one at a time: the drag settles, the
