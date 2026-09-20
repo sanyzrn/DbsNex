@@ -162,6 +162,38 @@ void main() {
     }
   });
 
+  test('a glass panel can be seen against the page it floats on', () {
+    // The failure this exists for does not show up in any contrast check:
+    // the ink was perfectly legible on a panel nobody could find. Apple's
+    // light numbers pin the material near white, and this app's light page is
+    // near white, so a panel over it came out rgb 247 against a page of 245 —
+    // legible, correct by every other measure here, and invisible.
+    //
+    // A panel is a shape lying on the page. Anything that floats has to be
+    // distinguishable from what it floats on, and the floor is the presence
+    // the dark theme already had, which is the one nobody complained about.
+    for (final theme in [
+      nexLightTheme(liquidGlass: true),
+      nexLightTheme(liquidGlass: true, comfortMode: true),
+      nexDarkTheme(liquidGlass: true),
+      nexDarkTheme(liquidGlass: true, comfortMode: true),
+    ]) {
+      final visual = theme.extension<NexVisualStyle>()!;
+      // What a panel actually sits over: the page, which is the one backdrop
+      // guaranteed to be behind every piece of glass in the app.
+      final page = visual.baseColor;
+      final panel = _compose(visual.glassWash, page);
+      expect(
+        _contrast(panel, page),
+        greaterThanOrEqualTo(1.08),
+        reason:
+            'a panel over $page came out $panel, which is '
+            '${_contrast(panel, page).toStringAsFixed(3)}:1 against the page '
+            'it is lying on',
+      );
+    }
+  });
+
   test('the glass edge is four shadows and none of them is a slab', () {
     for (final theme in [
       nexLightTheme(liquidGlass: true),
