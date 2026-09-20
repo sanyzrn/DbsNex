@@ -1707,7 +1707,7 @@ class TimelineScreenState extends State<TimelineScreen>
   /// design: the greeting is the only place the user's own name appears, and
   /// it never leaves the device — not to a provider, not to sync. So the model
   /// is asked for a phrase with a slot after it, and this puts the name in.
-  (String, String)? _greeting(AppLocalizations interface, {String? aiPhrase}) {
+  String? _greeting(AppLocalizations interface, {String? aiPhrase}) {
     // Two words at most — a full name pushes this onto a second line and
     // shoves the headline under it out of place.
     final name = widget.preferences.shortDisplayName;
@@ -1720,40 +1720,39 @@ class TimelineScreenState extends State<TimelineScreen>
         ? lookupAppLocalizations(const Locale('fa'))
         : lookupAppLocalizations(const Locale('en'));
     final v = _greetingVariant;
-    final (glyphs, text) = switch (DateTime.now().hour) {
-      >= 5 && < 12 => (
-        const ['☀️', '🌱', '☕'],
-        [l10n.greetingMorning, l10n.greetingMorningB, l10n.greetingMorningC],
-      ),
-      >= 12 && < 17 => (
-        const ['🌤️', '🍵', '📌'],
-        [
-          l10n.greetingAfternoon,
-          l10n.greetingAfternoonB,
-          l10n.greetingAfternoonC,
-        ],
-      ),
-      >= 17 && < 23 => (
-        const ['🌆', '🌙', '🕯️'],
-        [l10n.greetingEvening, l10n.greetingEveningB, l10n.greetingEveningC],
-      ),
-      _ => (
-        const ['🦉', '🌚', '✨'],
-        [l10n.greetingNight, l10n.greetingNightB, l10n.greetingNightC],
-      ),
+    // Words only. There used to be a mark on the end of this line — a sun, a
+    // moon, an owl, picked by the hour and animated in — and it is gone by
+    // request. It was the one piece of decoration on the first screen, and
+    // decoration is what this app is against everywhere else: the line is
+    // already the softest thing on the timeline, and an emoji beside it made
+    // it read as an app being cheerful at somebody rather than as somebody's
+    // own notes greeting them.
+    final text = switch (DateTime.now().hour) {
+      >= 5 && < 12 => [
+        l10n.greetingMorning,
+        l10n.greetingMorningB,
+        l10n.greetingMorningC,
+      ],
+      >= 12 && < 17 => [
+        l10n.greetingAfternoon,
+        l10n.greetingAfternoonB,
+        l10n.greetingAfternoonC,
+      ],
+      >= 17 && < 23 => [
+        l10n.greetingEvening,
+        l10n.greetingEveningB,
+        l10n.greetingEveningC,
+      ],
+      _ => [l10n.greetingNight, l10n.greetingNightB, l10n.greetingNightC],
     };
-    // Returned apart rather than joined into one string: the mark is animated,
-    // so it has to be its own widget. Kept out of the text also puts it at the
-    // trailing end in both directions for free — a Row is directional, where a
-    // string is not.
     // A comma in the script the name is written in — the phrase came back in
     // that language, so an ASCII comma in front of a Persian name is the same
     // seam this used to have between two half-sentences.
     if (aiPhrase != null && aiPhrase.isNotEmpty) {
       final comma = nexDirectionOf(name) == TextDirection.rtl ? '،' : ',';
-      return ('$aiPhrase$comma $name', glyphs[v]);
+      return '$aiPhrase$comma $name';
     }
-    return (text[v](name), glyphs[v]);
+    return text[v](name);
   }
 
   /// Everything above the search field: the greeting, the generated headline,
@@ -1831,8 +1830,7 @@ class TimelineScreenState extends State<TimelineScreen>
                 // writes the greeting itself and the name follows it, so there
                 // is one thought here instead of two.
                 child: _GreetingLine(
-                  text: greeting?.$1 ?? _aiHeadlineText ?? '',
-                  glyph: greeting?.$2 ?? '',
+                  text: greeting ?? _aiHeadlineText ?? '',
                   loading: hasHeadlineSlot && _aiHeadlineLoading,
                   style: hasHeadlineSlot ? generatedStyle : headlineStyle,
                 ),
@@ -2601,71 +2599,6 @@ class TimelineScreenState extends State<TimelineScreen>
 }
 
 /// Keeps the filter row under the app bar while the cards scroll past it.
-/// The greeting's mark, which arrives rather than appearing.
-///
-/// It plays once, when the screen opens and whenever the glyph itself changes
-/// — not on a loop. A permanently moving element on the main screen of an app
-/// whose whole promise is not demanding your attention would be the wrong
-/// thing, and a repeating controller is also what makes `pumpAndSettle` never
-/// return, so the tests could not pump past it either.
-///
-/// Reduce motion skips it entirely: the glyph is simply there.
-class _GreetingGlyph extends StatefulWidget {
-  const _GreetingGlyph(this.glyph);
-
-  final String glyph;
-
-  @override
-  State<_GreetingGlyph> createState() => _GreetingGlyphState();
-}
-
-class _GreetingGlyphState extends State<_GreetingGlyph>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: NexMotion.slow,
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _controller.value = 1;
-    } else if (_controller.status == AnimationStatus.dismissed) {
-      _controller.forward();
-    }
-  }
-
-  @override
-  void didUpdateWidget(_GreetingGlyph old) {
-    super.didUpdateWidget(old);
-    if (old.glyph != widget.glyph && !MediaQuery.disableAnimationsOf(context)) {
-      _controller.forward(from: 0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _controller,
-    builder: (context, child) {
-      final t = Curves.easeOutBack.transform(_controller.value);
-      return Transform.rotate(
-        // A small wave that unwinds as it settles, rather than a pulse:
-        // the glyph reads as greeting you, which is what the line says.
-        angle: (1 - _controller.value) * 0.5,
-        child: Transform.scale(scale: 0.4 + 0.6 * t, child: child),
-      );
-    },
-    child: Text(widget.glyph),
-  );
-}
-
 /// The app's own mark, in the corner the app bar used to spend on a title.
 ///
 /// Bare, on no ground of its own. It had a rounded tile behind it to match the
@@ -2700,13 +2633,11 @@ class _WordmarkTile extends StatelessWidget {
 class _GreetingLine extends StatelessWidget {
   const _GreetingLine({
     required this.text,
-    required this.glyph,
     required this.style,
     this.loading = false,
   });
 
   final String text;
-  final String glyph;
   final TextStyle? style;
 
   /// The generated half is on its way. The greeting is already there, so the
@@ -2722,37 +2653,22 @@ class _GreetingLine extends StatelessWidget {
       child: Opacity(
         key: ValueKey(text),
         opacity: loading ? 0.45 : 1,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          // The greeting's own language decides which end the mark sits at.
-          // This string is written in the language of the user's name, which
-          // is not necessarily the interface's — and the Row is what places
-          // the glyph.
+        // A Text, not a Row of one. The Row existed to place a mark at the
+        // trailing end of the words; with the mark gone it was a layout
+        // holding a single child and deciding nothing.
+        child: Text(
+          text,
+          style: style,
+          // The greeting is written in the language of the user's name, which
+          // is not necessarily the interface's, and a Persian sentence laid
+          // out left-to-right puts its full stop at the wrong end.
           textDirection: nexDirectionOf(text),
-          children: [
-            Flexible(
-              child: Text(
-                text,
-                style: style,
-                // Two, because the generated half joined on the end of a
-                // greeting is regularly longer than one line and cutting it
-                // mid-phrase reads as a bug.
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            if (glyph.isNotEmpty) ...[
-              const SizedBox(width: NexSpacing.xs),
-              // The mark takes the line's own size: left alone it stays at
-              // body size and sits visibly too large beside a small line.
-              DefaultTextStyle.merge(
-                style: style,
-                child: _GreetingGlyph(glyph),
-              ),
-            ],
-          ],
+          // Two, because the generated half joined on the end of a greeting is
+          // regularly longer than one line and cutting it mid-phrase reads as
+          // a bug.
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
         ),
       ),
     );

@@ -3071,7 +3071,7 @@ abstract class AppLocalizations {
   /// Heading in the assistant sheet before anything is typed
   ///
   /// In en, this message translates to:
-  /// **'How can I help you today?'**
+  /// **'Ask about your notes'**
   String get chatGreeting;
 
   /// Placeholder in the assistant's input field

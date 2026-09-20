@@ -1502,44 +1502,30 @@ void main() {
     // is laid out to its full width.
     final column = tester.getRect(find.byType(CustomScrollView));
     final words = tester.getRect(find.textContaining('Sany'));
-    final mark = tester.getRect(
-      find
-          .descendant(
-            of: find.byKey(const ValueKey('timeline-header')),
-            matching: find.byWidgetPredicate(
-              (w) => w is Text && w.data != null && !w.data!.contains('Sany'),
-            ),
-          )
-          .first,
-    );
 
-    // The whole line — words and mark together — is what is centred, so the
-    // words alone sit a little left of centre by exactly the mark's width.
     // Left-aligned, the greeting and the generated line under it read as two
     // separate starts stacked on each other rather than as one block.
-    expect(words.expandToInclude(mark).center.dx, closeTo(column.center.dx, 2));
+    //
+    // The words alone are what is centred now. This used to measure the words
+    // together with a mark beside them, because the line was a Row of two
+    // things; there is one thing in it now.
+    expect(words.center.dx, closeTo(column.center.dx, 2));
   });
 
-  testWidgets('the greeting mark trails the words, in either direction', (
+  testWidgets('the greeting is words, with nothing decorating them', (
     tester,
   ) async {
-    // It used to be baked into the front of the string, which put it at the
-    // start — the right edge in Persian, the left in English. Separating it
-    // out lets the Row place it at the trailing end in both.
+    // It used to end in a mark picked by the hour — a sun in the morning, an
+    // owl at night — animated in as the screen opened. Removed by request,
+    // and asserted rather than simply deleted: the line is generated from
+    // three phrasings per time of day and, when a provider is configured,
+    // from a model, so "no emoji" is a property that can come back by
+    // accident from either end.
     //
-    // The Row takes its direction from the greeting's own text now, not from
-    // the ambient locale: the strings the AI writes beside it follow the
-    // language of the *notes*, which is not always the language of the
-    // interface, and a Persian sentence laid out left-to-right puts its full
-    // stop at the wrong end.
-    // Driven by the *name*, not the interface language: the greeting is
-    // written in whatever language the user wrote their own name in, so a
-    // Persian name gets a Persian sentence — and a right-to-left one — even
-    // while the app is in English.
-    for (final (locale, name, script) in [
-      ('fa', 'Sany', 'ltr'),
-      ('en', 'سعید', 'rtl'),
-    ]) {
+    // Checked in both scripts, because the greeting follows the language of
+    // the *name* rather than the interface, and the two halves are written in
+    // different places.
+    for (final (locale, name) in [('fa', 'Sany'), ('en', 'سعید')]) {
       await preferences.setLocale(locale);
       await preferences.setDisplayName(name);
       await tester.pumpWidget(
@@ -1547,27 +1533,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final words = tester.getRect(find.textContaining(name));
-      // The mark is the one Text in the header that is not the greeting.
-      final mark = tester.getRect(
-        find
-            .descendant(
-              of: find.byKey(const ValueKey('timeline-header')),
-              matching: find.byWidgetPredicate(
-                (w) => w is Text && w.data != null && !w.data!.contains(name),
-              ),
-            )
-            .first,
-      );
-
-      if (script == 'rtl') {
+      final header = find.byKey(const ValueKey('timeline-header'));
+      expect(header, findsOneWidget);
+      final texts = tester
+          .widgetList<Text>(
+            find.descendant(of: header, matching: find.byType(Text)),
+          )
+          .map((t) => t.data)
+          .nonNulls;
+      expect(texts, isNotEmpty);
+      for (final line in texts) {
         expect(
-          mark.center.dx,
-          lessThan(words.center.dx),
-          reason: 'trailing is the left edge in Persian',
+          line.runes.any(_isEmoji),
+          isFalse,
+          reason: 'the header line "$line" carries a pictograph',
         );
-      } else {
-        expect(mark.center.dx, greaterThan(words.center.dx));
       }
     }
   });
@@ -1627,3 +1607,14 @@ void main() {
     expect(preferences.leadingAction, SwipeAction.delete);
   });
 }
+
+/// Whether a rune is a pictograph rather than a letter.
+///
+/// The ranges that actually turn up in a greeting: Misc Symbols and
+/// Dingbats (☀ ☕ ✨), Misc Symbols and Pictographs (🌱 🌆 🌚), Emoticons,
+/// Transport and Map (🕯 sits next door), and the variation selector that
+/// makes a text-presentation symbol render as an emoji.
+bool _isEmoji(int rune) =>
+    (rune >= 0x2600 && rune <= 0x27BF) ||
+    rune == 0xFE0F ||
+    (rune >= 0x1F300 && rune <= 0x1FAFF);

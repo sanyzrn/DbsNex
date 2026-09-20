@@ -34,6 +34,22 @@ Working convention:
 
 ## Unreleased
 
+- **A brighter blue.** The accent is `#0084F7` now — the blue that was asked
+  for, four units short of `#08F` so that a focus ring still clears the
+  legibility floor on Comfort Mode's warm background.
+
+- **The greeting is words again.** The mark on the end of it — a sun in the
+  morning, an owl at night — is gone.
+
+- **The daily brief notices things, not just lists them.** It can say that two
+  things are due within an hour of each other, that something has been overdue
+  long enough to be worth moving, or that a task is written down twice. It
+  still never invents a date or a task: reading two of your notes together is
+  not the same as making a third one up.
+
+- **The assistant stops saying hello.** Every reply used to open with a
+  greeting before getting to the answer. The first words are the answer now.
+
 ## v1.13.0
 
 - **Search no longer claims to find things by meaning when it cannot.** With no

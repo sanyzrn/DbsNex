@@ -1604,9 +1604,9 @@
           }
       }
   },
-  "chatGreeting": "How can I help you today?",
+  "chatGreeting": "Ask about your notes",
   "@chatGreeting": {
-    "description": "Heading in the assistant sheet before anything is typed"
+    "description": "What the assistant sheet says before anything is typed \u2014 a description of the box, not a greeting"
   },
   "chatHint": "Enter a prompt here",
   "@chatHint": {

@@ -1741,7 +1741,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get chatGreeting => 'How can I help you today?';
+  String get chatGreeting => 'Ask about your notes';
 
   @override
   String get chatHint => 'Enter a prompt here';
