@@ -1,10 +1,10 @@
 import 'dart:io';
-// Prefixed, deliberately. `Size` is not a type in this file's scope — the
-// analyzer's words were "isn't a class", not "isn't defined" — so an
-// unprefixed import risks making the name ambiguous rather than resolving
-// it. `Offset`, used further down, has always been in scope here.
+// `Size` stays prefixed even with `material.dart` below: the analyzer's
+// words were "isn't a class", not "isn't defined", so some other name in
+// scope already answers to it and an unprefixed one could go ambiguous.
 import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -112,20 +112,32 @@ void main() {
     // A pull rather than a tap. The button this used to press is gone with
     // the card it sat on; asking for a new recap is the pull now.
     //
-    // The window above is tall for this reason. The brief is a card above
-    // the notes now, so the note sits low enough that on an 800x600 default
-    // a 300-pixel pull off it runs past the bottom of the window and the
-    // gesture is never completed — which looks exactly like a refresh that
-    // did nothing.
-    await tester.fling(
-      find.text('something worth summarising'),
-      const Offset(0, 260),
-      1000,
+    // Before pulling anything: the brief has to be on screen, or there is no
+    // `RefreshIndicator` to pull. `_wrapInRefresh` attaches one only when
+    // there is a brief to rewrite, so this separates "the gesture did not
+    // arrive" from "there was nothing listening for it" — which is the
+    // difference the last two rounds of this could not tell apart.
+    expect(
+      find.byKey(const ValueKey('timeline-recap')),
+      findsOneWidget,
+      reason: 'no brief means no refresh indicator to pull',
     );
-    // The indicator's own three stages: the scroll settles, the spinner
-    // settles into place, and `onRefresh` is called. `pumpAndSettle` alone
-    // has raced this in Flutter's own tests for years.
+    expect(find.byType(RefreshIndicator), findsOneWidget);
+
+    // A drag, not a fling. `RefreshIndicator` arms on overscroll that carries
+    // `dragDetails`, which only the dragged part of a gesture has — a fling
+    // hands most of its travel to the ballistic simulation, where that field
+    // is null and the indicator ignores it. `touchSlopY: 0` keeps the slop
+    // from eating the first stretch of the pull.
+    await tester.drag(
+      find.text('something worth summarising'),
+      const Offset(0, 220),
+      touchSlopY: 0,
+    );
+    // The indicator's stages, pumped one at a time: the drag settles, the
+    // spinner settles into place, and only then is `onRefresh` called.
     await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
