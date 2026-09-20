@@ -131,7 +131,15 @@ class TimelineScreenState extends State<TimelineScreen>
   /// everyone else appears at full height, because they never left it.
   String? _openingGroup;
   List<Tag> filterTags = const [];
-  String? selectedTagId;
+
+  /// Every tag the timeline is being narrowed to. Empty is "All".
+  ///
+  /// A set, because one pill could only ever answer "notes tagged work", and
+  /// the question people actually have is "notes tagged work or home". They
+  /// are OR-ed, not AND-ed: a note usually carries one of the tags somebody
+  /// is thinking about, rarely all of them, and an AND across two tags is
+  /// almost always empty.
+  Set<String> selectedTagIds = const {};
   NoteType? selectedType;
 
   /// Show only notes with a reminder still ahead of them.
@@ -1130,9 +1138,9 @@ class TimelineScreenState extends State<TimelineScreen>
     }
   }
 
-  Future<void> _selectTag(String? tagId) async {
+  Future<void> _selectTags(Set<String> tagIds) async {
     _tick();
-    setState(() => selectedTagId = tagId);
+    setState(() => selectedTagIds = tagIds);
     await _applyFilters();
   }
 
@@ -1232,7 +1240,7 @@ class TimelineScreenState extends State<TimelineScreen>
   Future<void> _clearFilters() async {
     _tick();
     setState(() {
-      selectedTagId = null;
+      selectedTagIds = const {};
       selectedType = null;
       onlyReminders = false;
     });
@@ -1240,17 +1248,19 @@ class TimelineScreenState extends State<TimelineScreen>
   }
 
   bool get _filtering =>
-      selectedTagId != null || selectedType != null || onlyReminders;
+      selectedTagIds.isNotEmpty || selectedType != null || onlyReminders;
 
   /// FR-4.5: the content-type filter layers on top of the tag filter — it is
   /// not a separate mode, so both selections resolve into one view.
   List<Note> _visible(List<Note> source) {
-    final tagId = selectedTagId;
+    final tagIds = selectedTagIds;
     final type = selectedType;
     return source.where((note) {
       if (onlyReminders && note.dueAt == null) return false;
       if (type != null && note.type != type) return false;
-      if (tagId != null && !note.tags.any((t) => t.id == tagId)) return false;
+      if (tagIds.isNotEmpty && !note.tags.any((t) => tagIds.contains(t.id))) {
+        return false;
+      }
       return true;
     }).toList();
   }
@@ -2110,7 +2120,7 @@ class TimelineScreenState extends State<TimelineScreen>
                                     controller: _swipe,
                                     child: TagFilterRow(
                                       tags: filterTags,
-                                      selectedTagId: selectedTagId,
+                                      selectedTagIds: selectedTagIds,
                                       allLabel: l10n.all,
                                       leading: _FilterButton(
                                         active:
@@ -2120,7 +2130,7 @@ class TimelineScreenState extends State<TimelineScreen>
                                             unawaited(_pickFilters()),
                                       ),
                                       onSelected: (value) =>
-                                          unawaited(_selectTag(value)),
+                                          unawaited(_selectTags(value)),
                                     ),
                                   ),
                                 ),

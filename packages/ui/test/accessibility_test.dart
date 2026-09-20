@@ -29,7 +29,7 @@ void main() {
               tag('Work', color: '#F0A93B'),
               tag('Idea'),
             ],
-            selectedTagId: null,
+            selectedTagIds: const {},
             onSelected: (_) {},
           ),
         ),
@@ -60,7 +60,7 @@ void main() {
           width: 400,
           child: TagFilterRow(
             tags: [tag('Work')],
-            selectedTagId: null,
+            selectedTagIds: const {},
             onSelected: (_) {},
           ),
         ),

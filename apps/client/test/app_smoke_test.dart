@@ -485,6 +485,47 @@ void main() {
     expect(filtered.map((n) => n.id), [a.id]);
   });
 
+  testWidgets('two tags on the row show the notes under either one', (
+    tester,
+  ) async {
+    // OR, not AND. Somebody thinking about two tags usually has notes under
+    // one of them and rarely notes under both, so an AND across two pills is
+    // almost always an empty screen.
+    final a = (await services.captureText('alpha'))!;
+    final b = (await services.captureText('beta'))!;
+    await services.captureText('gamma');
+    await services.addTag(noteId: a.id, name: 'Work');
+    await services.addTag(noteId: b.id, name: 'Idea');
+    await services.refreshTimeline();
+
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+
+    Finder pill(String name) =>
+        find.descendant(of: find.byType(TagFilterRow), matching: find.text(name));
+
+    await tester.tap(pill('Work'));
+    await tester.pumpAndSettle();
+    expect(find.text('alpha'), findsOneWidget);
+    expect(find.text('beta'), findsNothing);
+
+    // The second pill joins the first; it does not take its place.
+    await tester.tap(pill('Idea'));
+    await tester.pumpAndSettle();
+    expect(find.text('alpha'), findsOneWidget);
+    expect(find.text('beta'), findsOneWidget);
+    expect(find.text('gamma'), findsNothing, reason: 'still a filter');
+
+    // Turning both off is the same as never having filtered.
+    await tester.tap(pill('Work'));
+    await tester.pumpAndSettle();
+    await tester.tap(pill('Idea'));
+    await tester.pumpAndSettle();
+    expect(find.text('gamma'), findsOneWidget);
+  });
+
   test(
     'Swipe mapping defaults, and each edge moves alone (ADR-022 revised)',
     () async {
