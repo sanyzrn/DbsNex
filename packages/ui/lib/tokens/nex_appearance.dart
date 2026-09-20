@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+// For `listEquals`, which `material.dart` does not re-export: its export of
+// `foundation.dart` is a `show` list, and that is not on it.
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'nex_tokens.dart';
@@ -291,10 +294,10 @@ class NexGlassSurface extends StatelessWidget {
         child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
       );
     }
-    return DecoratedBox(
-      decoration: BoxDecoration(
+    return CustomPaint(
+      painter: _GlassEdgePainter(
+        shadows: visual.glassEdge,
         borderRadius: borderRadius,
-        boxShadow: visual.glassEdge,
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
@@ -373,6 +376,43 @@ class NexGlassBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Draws a glass shape's edge, and only the part of it that falls outside
+/// the shape.
+///
+/// That clip is the whole reason this exists rather than a `boxShadow` on a
+/// [BoxDecoration]. Flutter paints a box shadow as a *filled* shape behind
+/// the box — under an opaque fill nobody can tell, but glass is not opaque,
+/// and four filled shapes showing through it put every pane on a grey plate
+/// of its own making. Worse, the blur reads them too, so the backdrop a pane
+/// is supposed to show is its own shadow. CSS clips outer shadows to outside
+/// the border box; `BoxDecoration` does not, so this does.
+class _GlassEdgePainter extends CustomPainter {
+  const _GlassEdgePainter({required this.shadows, required this.borderRadius});
+
+  final List<BoxShadow> shadows;
+  final BorderRadius borderRadius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final shape = borderRadius.toRRect(Offset.zero & size);
+    canvas.save();
+    canvas.clipRRect(shape, clipOp: ClipOp.difference);
+    for (final shadow in shadows) {
+      if (shadow.color.a == 0) continue;
+      canvas.drawRRect(
+        shape.shift(shadow.offset).inflate(shadow.spreadRadius),
+        shadow.toPaint(),
+      );
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_GlassEdgePainter oldDelegate) =>
+      oldDelegate.borderRadius != borderRadius ||
+      !listEquals(oldDelegate.shadows, shadows);
 }
 
 /// Lays [NexGlassWash]'s four films over whatever the canvas already holds.
