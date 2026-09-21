@@ -430,32 +430,32 @@ class _Preview extends StatelessWidget {
     // two lines of a fixed height, and a heading or a list inside one would
     // fight that.
     final text = NexMarkdownText.preview(note.displayText ?? note.type.name);
-    final direction = nexDirectionOf(text);
-    return SizedBox(
-      // Full width, so a short right-to-left line reaches the right edge
-      // instead of hugging the left one it happens to start at.
-      width: double.infinity,
-      child: Text(
-        text,
-        // Two lines — see [nexCardPreviewLines], which the card's fixed
-        // height is derived from. One line was enough to tell cards apart
-        // and not enough to tell you what a note said: a captured thought is
-        // usually a sentence, and a sentence is usually wider than a phone.
-        //
-        // Expanded, the card grows to the note — up to
-        // [nexCardExpandedMaxLines]. The point of asking for it is that the
-        // note is longer than two lines and you want to read it without
-        // opening anything; the ceiling is there because a note long enough
-        // to need scrolling is one the card cannot show anyway, and trying
-        // costs the rest of the timeline its place on screen.
-        maxLines: expanded ? nexCardExpandedMaxLines : nexCardPreviewLines,
-        overflow: TextOverflow.ellipsis,
-        textDirection: direction,
-        textAlign: direction == TextDirection.rtl
-            ? TextAlign.right
-            : TextAlign.start,
-        style: Theme.of(context).textTheme.bodyLarge,
-      ),
+    // Through [NexBodyText] rather than a `Text` of its own, for the one
+    // thing that widget does which a `Text` cannot: give each line of a
+    // multi-line note its own direction. One direction over the whole
+    // preview is the first line's direction imposed on the rest, so a note
+    // that opens in English laid its Persian lines out left to right — and
+    // the other way round for a note that opens in Persian, which is why it
+    // only ever looked wrong on some cards.
+    //
+    // A note on one long line is unaffected: it still wraps into the whole
+    // budget. Only a note that already has line breaks now spends that
+    // budget in its own lines.
+    return NexBodyText(
+      text,
+      // Two lines — see [nexCardPreviewLines], which the card's fixed height
+      // is derived from. One line was enough to tell cards apart and not
+      // enough to tell you what a note said: a captured thought is usually a
+      // sentence, and a sentence is usually wider than a phone.
+      //
+      // Expanded, the card grows to the note — up to
+      // [nexCardExpandedMaxLines]. The point of asking for it is that the
+      // note is longer than two lines and you want to read it without opening
+      // anything; the ceiling is there because a note long enough to need
+      // scrolling is one the card cannot show anyway, and trying costs the
+      // rest of the timeline its place on screen.
+      maxLines: expanded ? nexCardExpandedMaxLines : nexCardPreviewLines,
+      style: Theme.of(context).textTheme.bodyLarge,
     );
   }
 }

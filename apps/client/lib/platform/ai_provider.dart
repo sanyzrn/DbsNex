@@ -390,6 +390,26 @@ enum NexBriefLength {
       );
 }
 
+/// A file the question is about, sent with it.
+///
+/// The assistant could always read what was *typed* into a note and never
+/// what was attached to one — so "what does this receipt say?" about a photo
+/// sitting right there on the screen got "I cannot see images", which is true
+/// of the text in the prompt and false of the app.
+///
+/// Bytes rather than a path: the adapter has no business touching the media
+/// directory, and the caller has already decided this one is worth sending.
+@immutable
+class NexChatAttachment {
+  const NexChatAttachment({required this.bytes, required this.mimeType});
+
+  /// `List<int>` rather than `Uint8List`: everything that produces these —
+  /// `readAsBytesSync`, a picker, a test — hands over something that is
+  /// already one, and `base64Encode` takes the wider type anyway.
+  final List<int> bytes;
+  final String mimeType;
+}
+
 /// Everything the assistant sheet decides about one exchange.
 ///
 /// Grouped rather than passed as five parameters: they are read together,
@@ -405,6 +425,7 @@ class AiChatOptions {
     this.canAct = false,
     this.instruction = '',
     this.responseStyle = AiResponseStyle.natural,
+    this.attachments = const [],
     this.userName = '',
     this.userIntroduction = '',
     this.now,
@@ -420,6 +441,14 @@ class AiChatOptions {
   /// small free-tier models this app is usually pointed at — worse at it than
   /// anything else the user could ask. Off, it answers anything.
   final bool notesOnly;
+
+  /// Images the question is about, sent with the newest question.
+  ///
+  /// Re-sent on every turn rather than once, which costs tokens and is the
+  /// right trade: a photo the first question was about is what the third
+  /// follow-up is about too, and a model that has forgotten it answers the
+  /// follow-up by inventing.
+  final List<NexChatAttachment> attachments;
 
   /// The user's recent notes, already formatted, or empty.
   ///
@@ -1381,6 +1410,19 @@ class CloudAIAdapter implements AIAdapter {
         'you send must be worked out from this, and must be in the future.',
       );
     }
+    // Said outright, because the rule above it would otherwise argue against
+    // the picture in the same request. "Answer only from the user's notes" is
+    // exactly the sentence a model reaches for when it decides an attached
+    // image is something from outside and refuses to look — which is the
+    // refusal this whole path exists to end.
+    if (options.attachments.isNotEmpty) {
+      parts.add(
+        'The image or images attached to the newest message are the pictures '
+        'on the note being asked about. They are the notes, not something '
+        'from outside them: look at them and answer from what you see. Never '
+        'say you cannot see an image that has been attached.',
+      );
+    }
     parts.add(outputLanguage.promptRule);
     if (options.notesContext.trim().isNotEmpty) {
       parts.add(
@@ -1449,6 +1491,19 @@ class CloudAIAdapter implements AIAdapter {
       for (final message in history)
         if (message.role != ChatRole.system) message,
     ];
+    // Only what the provider can actually look at. Sending an image to a
+    // text-only model is a request that fails on the wire and reads to the
+    // user as the assistant refusing, which is the bug this feature exists
+    // to fix rather than a new shape of it.
+    final media = config.provider.readsImages
+        ? options.attachments
+        : const <NexChatAttachment>[];
+    // Attached to the newest question rather than to the turn that first
+    // mentioned it: that is the turn every provider treats as the one being
+    // answered.
+    final attachTo = media.isEmpty
+        ? -1
+        : turns.lastIndexWhere((turn) => turn.role != ChatRole.assistant);
 
     final body = switch (config.provider.format) {
       AiWireFormat.anthropic => {
@@ -1457,10 +1512,23 @@ class CloudAIAdapter implements AIAdapter {
         'temperature': temperature,
         'system': system,
         'messages': [
-          for (final turn in turns)
+          for (final (index, turn) in turns.indexed)
             {
               'role': turn.role == ChatRole.assistant ? 'assistant' : 'user',
-              'content': turn.content,
+              'content': index != attachTo
+                  ? turn.content
+                  : [
+                      for (final file in media)
+                        {
+                          'type': 'image',
+                          'source': {
+                            'type': 'base64',
+                            'media_type': file.mimeType,
+                            'data': base64Encode(file.bytes),
+                          },
+                        },
+                      {'type': 'text', 'text': turn.content},
+                    ],
             },
         ],
       },
@@ -1473,10 +1541,18 @@ class CloudAIAdapter implements AIAdapter {
           ],
         },
         'contents': [
-          for (final turn in turns)
+          for (final (index, turn) in turns.indexed)
             {
               'role': turn.role == ChatRole.assistant ? 'model' : 'user',
               'parts': [
+                if (index == attachTo)
+                  for (final file in media)
+                    {
+                      'inline_data': {
+                        'mime_type': file.mimeType,
+                        'data': base64Encode(file.bytes),
+                      },
+                    },
                 {'text': turn.content},
               ],
             },
@@ -1492,10 +1568,23 @@ class CloudAIAdapter implements AIAdapter {
         'temperature': temperature,
         'messages': [
           {'role': 'system', 'content': system},
-          for (final turn in turns)
+          for (final (index, turn) in turns.indexed)
             {
               'role': turn.role == ChatRole.assistant ? 'assistant' : 'user',
-              'content': turn.content,
+              'content': index != attachTo
+                  ? turn.content
+                  : [
+                      {'type': 'text', 'text': turn.content},
+                      for (final file in media)
+                        {
+                          'type': 'image_url',
+                          'image_url': {
+                            'url':
+                                'data:${file.mimeType};base64,'
+                                '${base64Encode(file.bytes)}',
+                          },
+                        },
+                    ],
             },
         ],
       },

@@ -104,6 +104,62 @@ void main() {
     expect(tester.getRect(find.text(english)).left, 0);
     expect(tester.getRect(find.text(persian)).right, 400);
   });
+
+  testWidgets('a clamped block still gives each line its own direction', (
+    tester,
+  ) async {
+    // The bug this is for: per-line direction used to apply only when nothing
+    // was clamping the text, and everything that shows a *preview* of a note
+    // clamps it. So one direction — the first line's — was imposed on the
+    // rest, and a note that opens in English laid its Persian lines out left
+    // to right. Which way round it looked wrong depended on which language
+    // the note happened to open in, which is why it only happened sometimes.
+    const english = 'promptpad v2';
+    const persian = 'این خط باید راست‌چین باشد';
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            child: NexBodyText('$english\n$persian', maxLines: 2),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      tester.widget<Text>(find.text(english)).textDirection,
+      TextDirection.ltr,
+    );
+    expect(
+      tester.widget<Text>(find.text(persian)).textDirection,
+      TextDirection.rtl,
+      reason: 'the second line followed the first line\'s script',
+    );
+    expect(tester.getRect(find.text(persian)).right, 400);
+  });
+
+  testWidgets('a clamped block shows no more lines than it was given', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            child: NexBodyText('one\ntwo\nthree\nfour', maxLines: 2),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('one'), findsOneWidget);
+    expect(find.text('two'), findsOneWidget);
+    // The budget is spent in the note's own lines now rather than in wrapped
+    // rows, which is what keeps a two-line card two lines tall.
+    expect(find.text('three'), findsNothing);
+    expect(find.text('four'), findsNothing);
+  });
 }
 
 /// [NexAutoDirection] is a widget rather than a call to [nexDirectionOf]

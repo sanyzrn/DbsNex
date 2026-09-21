@@ -2213,6 +2213,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Only what is overdue. No greeting.';
 
   @override
+  String get briefLanguageShared =>
+      'One setting, shared: it is also what the assistant answers in and what transcriptions and summaries come back in.';
+
+  @override
   String get briefToneLabel =>
       'How it sounds';
 

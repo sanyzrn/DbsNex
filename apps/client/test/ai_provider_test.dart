@@ -638,6 +638,147 @@ void main() {
 
   _translateGroup();
   _recapGroup();
+  _attachmentGroup();
+}
+
+/// The assistant could read what was typed into a note and not what was
+/// attached to one, so a question about the photo sitting on the screen came
+/// back as "I cannot see images". True of the prompt, false of the app.
+///
+/// What is testable without a model is what actually goes on the wire.
+void _attachmentGroup() {
+  CloudAIAdapter adapter(
+    AiProvider provider, {
+    void Function(http.Request)? onSend,
+  }) => CloudAIAdapter(
+    config: AiProviderConfig(provider: provider, apiKey: 'k'),
+    client: MockClient((request) async {
+      onSend?.call(request);
+      return http.Response(
+        jsonEncode({
+          'choices': [
+            {
+              'message': {'content': 'a receipt for 40 euros'},
+            },
+          ],
+          'content': [
+            {'text': 'a receipt for 40 euros'},
+          ],
+          'candidates': [
+            {
+              'content': {
+                'parts': [
+                  {'text': 'a receipt for 40 euros'},
+                ],
+              },
+            },
+          ],
+        }),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    }),
+  );
+
+  const options = AiChatOptions(
+    notesContext: '[n1] photo: a receipt',
+    attachments: [
+      NexChatAttachment(bytes: [1, 2, 3, 4], mimeType: 'image/png'),
+    ],
+  );
+
+  const question = ChatMessage(
+    role: ChatRole.user,
+    content: 'what does this receipt say?',
+  );
+
+  group('a question about a picture carries the picture', () {
+    test('OpenAI gets it beside the newest question', () async {
+      late http.Request seen;
+      await adapter(
+        AiProvider.openai,
+        onSend: (r) => seen = r,
+      ).chat(const [question], options: options);
+
+      final body = jsonDecode(seen.body) as Map<String, dynamic>;
+      final messages = body['messages'] as List<dynamic>;
+      final content = (messages.last as Map<String, dynamic>)['content'];
+      expect(content, isA<List<dynamic>>());
+      expect(jsonEncode(content), contains('image_url'));
+      expect(jsonEncode(content), contains('data:image/png;base64,'));
+    });
+
+    test('Gemini gets it as an inline part', () async {
+      late http.Request seen;
+      await adapter(
+        AiProvider.gemini,
+        onSend: (r) => seen = r,
+      ).chat(const [question], options: options);
+
+      final body = jsonDecode(seen.body) as Map<String, dynamic>;
+      final contents = body['contents'] as List<dynamic>;
+      final parts =
+          (contents.last as Map<String, dynamic>)['parts'] as List<dynamic>;
+      expect(jsonEncode(parts), contains('inline_data'));
+      expect(jsonEncode(parts), contains('image/png'));
+      // The question still goes with it: an image on its own is a picture
+      // nobody asked anything about.
+      expect(jsonEncode(parts), contains('what does this receipt say?'));
+    });
+
+    test('it rides the newest turn, not the first one', () async {
+      late http.Request seen;
+      await adapter(AiProvider.openai, onSend: (r) => seen = r).chat(
+        const [
+          question,
+          ChatMessage(role: ChatRole.assistant, content: 'forty euros'),
+          ChatMessage(role: ChatRole.user, content: 'and the date?'),
+        ],
+        options: options,
+      );
+
+      final messages =
+          (jsonDecode(seen.body) as Map<String, dynamic>)['messages']
+              as List<dynamic>;
+      // Re-sent rather than sent once: a follow-up about the same photo is
+      // still about the photo, and a model that has forgotten it invents.
+      expect(jsonEncode(messages.last), contains('image_url'));
+      expect(jsonEncode(messages[1]), isNot(contains('image_url')));
+    });
+
+    test('a text-only question is unchanged', () async {
+      late http.Request seen;
+      await adapter(
+        AiProvider.openai,
+        onSend: (r) => seen = r,
+      ).chat(const [question], options: const AiChatOptions());
+
+      final messages =
+          (jsonDecode(seen.body) as Map<String, dynamic>)['messages']
+              as List<dynamic>;
+      // A plain string, the shape every provider has always taken. Wrapping
+      // every question in a content array "just in case" is a change to every
+      // request ever made for the sake of the few that carry a photo.
+      expect(
+        (messages.last as Map<String, dynamic>)['content'],
+        isA<String>(),
+      );
+    });
+
+    test('the prompt says the picture is theirs to look at', () async {
+      // Without this the rule above it wins: "answer only from the user's
+      // notes" is exactly the sentence a model reaches for when it decides an
+      // attached image came from outside them, and refuses to look.
+      final prompt = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.openai,
+          apiKey: 'k',
+        ),
+        client: MockClient((_) async => http.Response('{}', 200)),
+      ).chatSystemPrompt(options);
+      expect(prompt, contains('Never say you cannot see an image'));
+    });
+  });
 }
 
 /// The recap changed jobs. It used to be an observation about what someone

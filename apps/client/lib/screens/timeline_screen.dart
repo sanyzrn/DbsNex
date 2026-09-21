@@ -570,7 +570,26 @@ class TimelineScreenState extends State<TimelineScreen>
       _refreshDailyNudge();
       return;
     }
-    final fingerprint = recapFingerprint(source);
+    // The settings that shape the brief are part of what it was made from,
+    // exactly as the notes are. Without them on file, changing the style, the
+    // tone, the length or the language left yesterday's brief on the card
+    // until somebody happened to write a note — the setting appeared to do
+    // nothing, because nothing asked for a new brief.
+    //
+    // The headline beside this one has always keyed its cache on the language
+    // and so came back in English the moment it was chosen; the brief did
+    // not, which is how an English greeting ended up sitting over a Persian
+    // brief on the same screen.
+    final fingerprint = recapFingerprint(
+      nexBriefSignature(
+        source: source,
+        style: style,
+        tone: prefs.briefTone,
+        length: prefs.briefLength,
+        language: prefs.aiOutputLanguage,
+        instruction: prefs.briefInstruction,
+      ),
+    );
     if (!force && !_recapIsStale(fingerprint)) return;
     if (mounted) setState(() => _aiSummaryLoading = true);
     final adapter = _aiAdapter();

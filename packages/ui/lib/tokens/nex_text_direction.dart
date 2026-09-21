@@ -102,10 +102,15 @@ class NexTextDirection extends StatelessWidget {
 }
 
 class _DirectionalLine extends StatelessWidget {
-  const _DirectionalLine(this.text, this.style);
+  const _DirectionalLine(this.text, this.style, {this.clamp = false});
 
   final String text;
   final TextStyle? style;
+
+  /// Whether this line is one of a fixed few — a preview rather than the
+  /// whole note — in which case it takes one row and ends in an ellipsis
+  /// rather than wrapping into its neighbours' space.
+  final bool clamp;
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +118,8 @@ class _DirectionalLine extends StatelessWidget {
     return Text(
       text.isEmpty ? '\u200B' : text,
       style: style,
+      maxLines: clamp ? 1 : null,
+      overflow: clamp ? TextOverflow.ellipsis : null,
       textDirection: direction,
       textAlign: direction == TextDirection.rtl
           ? TextAlign.right
@@ -139,11 +146,29 @@ class NexBodyText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (maxLines == null && text.contains('\n')) {
+    if (text.contains('\n')) {
+      // Per line, clamped or not. It used to be per line only when nothing
+      // was clamping it, and that exception is the bug: one direction over a
+      // block of several lines is the *first* line's direction imposed on all
+      // of them, so a note that opens in English lays its Persian lines out
+      // left to right and a note that opens in Persian pushes its English
+      // ones to the right. Which one looks wrong depends on which language
+      // the note happens to start in, which is why it only ever happened
+      // "sometimes".
+      //
+      // A budget is spent in source lines here rather than in wrapped ones.
+      // That is a real difference — a single long line used to be allowed to
+      // wrap into the whole budget — and it is the right one for a preview:
+      // the first three lines of somebody's note tell you more about it than
+      // the first three rows of its first sentence.
+      final lines = text.split('\n');
+      final shown = maxLines == null ? lines : lines.take(maxLines!).toList();
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          for (final line in text.split('\n')) _DirectionalLine(line, style),
+          for (final line in shown)
+            _DirectionalLine(line, style, clamp: maxLines != null),
         ],
       );
     }

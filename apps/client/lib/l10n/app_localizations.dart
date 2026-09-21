@@ -3879,6 +3879,12 @@ abstract class AppLocalizations {
   /// **'Only what is overdue. No greeting.'**
   String get briefInstructionHint;
 
+  /// Note under the brief's language picker saying the setting is not the brief's alone.
+  ///
+  /// In en, this message translates to:
+  /// **'One setting, shared: it is also what the assistant answers in and what transcriptions and summaries come back in.'**
+  String get briefLanguageShared;
+
   /// Label above the brief's tone presets.
   ///
   /// In en, this message translates to:
