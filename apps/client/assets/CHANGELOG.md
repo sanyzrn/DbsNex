@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v1.19.0
+
+- **The Daily brief settings are a page like the others now.** They were a
+  sheet that slid up from the bottom, sitting among pages that push in from
+  the side — so it closed differently, scrolled differently, and was the one
+  page in that part of Settings that behaved unlike the rest. It opens, looks
+  and closes the way **Assistant** and the provider page beside it do, because
+  it is now built out of the same pieces rather than ones that resemble them.
+
 ## v1.18.0
 
 - **Zooming a photo works properly now.** Pinch it, or double-tap where you

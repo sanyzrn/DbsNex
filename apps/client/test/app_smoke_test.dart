@@ -948,10 +948,11 @@ void main() {
     // which the rest of this test is about.
     await tester.tap(find.text('Daily brief'));
     await tester.pumpAndSettle();
-    // The sheet is taller than the test surface and scrolls, which is the
-    // point of it scrolling: without this the card is built, found, and
-    // sitting below the fold where a tap cannot reach it.
-    await tester.ensureVisible(find.text('Persian'));
+    // Scrolled to rather than merely found. The brief is a pushed screen with
+    // a `ListView` now, like the assistant's settings beside it, and a
+    // `ListView` only builds what it is about to show — so the card is not in
+    // the tree at all until the list is scrolled to it.
+    await tester.scrollUntilVisible(find.text('Persian'), 200);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Persian'));
     await tester.pumpAndSettle();
