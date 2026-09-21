@@ -158,6 +158,40 @@ class _BriefSettingsSheetState extends State<BriefSettingsSheet> {
               ],
             ),
           ],
+          // The language, here as well as in Intelligence. It is the single
+          // most visible thing about a brief and the last place anyone would
+          // look for it is three rows below the provider — but it is not the
+          // brief's own setting, so it is shown rather than moved, and the
+          // line under it says what else it governs.
+          if (style.usesModel) ...[
+            const SizedBox(height: NexSpacing.lg),
+            _Label(l10n.aiOutputLanguage),
+            NexChoiceCards<AiOutputLanguage>(
+              selected: prefs.aiOutputLanguage,
+              onSelected: (value) {
+                unawaited(prefs.setAiOutputLanguage(value));
+                setState(() {});
+              },
+              choices: [
+                NexChoice(
+                  value: AiOutputLanguage.auto,
+                  label: l10n.aiOutputLanguageAuto,
+                  preview: const NexScriptSample(icon: Icons.auto_awesome),
+                ),
+                NexChoice(
+                  value: AiOutputLanguage.english,
+                  label: l10n.aiOutputLanguageEnglish,
+                  preview: const NexScriptSample(sample: 'Aa'),
+                ),
+                NexChoice(
+                  value: AiOutputLanguage.persian,
+                  label: l10n.aiOutputLanguagePersian,
+                  preview: const NexScriptSample(sample: 'اَ'),
+                ),
+              ],
+            ),
+            _Note(text: l10n.briefLanguageShared, icon: Icons.link),
+          ],
           const SizedBox(height: NexSpacing.lg),
           _Label(l10n.briefLengthLabel),
           NexChoiceCards<NexBriefLength>(

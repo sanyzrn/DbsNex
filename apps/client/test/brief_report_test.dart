@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
+import 'package:nex_client/platform/ai_provider.dart';
 import 'package:nex_client/platform/brief_report.dart';
 
 /// The brief nobody is asked for.
@@ -134,5 +135,55 @@ void main() {
     );
     expect(report, contains('rent'));
     expect(report, contains('3 days overdue'));
+  });
+
+  group('what a brief was made from', () {
+    // The bug this group is for: the recap is cached against a fingerprint of
+    // what it was written from, and that fingerprint was the notes alone. So
+    // changing the style, the tone, the length or the language left the old
+    // brief on the card until somebody happened to write a note — every one
+    // of those settings appeared to do nothing.
+    //
+    // The headline beside the brief has always keyed its own cache on the
+    // language, which is exactly how an English greeting ended up sitting
+    // over a Persian brief on the same screen.
+    String signature({
+      String source = 'today | text | a note',
+      NexBriefStyle style = NexBriefStyle.assistant,
+      AiResponseStyle tone = AiResponseStyle.natural,
+      NexBriefLength length = NexBriefLength.medium,
+      AiOutputLanguage language = AiOutputLanguage.auto,
+      String instruction = '',
+    }) => nexBriefSignature(
+      source: source,
+      style: style,
+      tone: tone,
+      length: length,
+      language: language,
+      instruction: instruction,
+    );
+
+    test('the same settings over the same notes ask nothing new', () {
+      expect(signature(), signature());
+    });
+
+    test('every setting that shapes it is part of it', () {
+      final base = signature();
+      expect(signature(style: NexBriefStyle.planner), isNot(base));
+      expect(signature(tone: AiResponseStyle.formal), isNot(base));
+      expect(signature(length: NexBriefLength.short), isNot(base));
+      expect(signature(language: AiOutputLanguage.english), isNot(base));
+      expect(signature(instruction: 'only what is overdue'), isNot(base));
+      expect(signature(source: 'today | text | another note'), isNot(base));
+    });
+
+    test('whitespace around a custom instruction is not a change', () {
+      // Otherwise a trailing space typed into the field would spend a
+      // provider call on a brief identical to the one already showing.
+      expect(
+        signature(instruction: '  only what is overdue  '),
+        signature(instruction: 'only what is overdue'),
+      );
+    });
   });
 }

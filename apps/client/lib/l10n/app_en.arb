@@ -2091,6 +2091,8 @@
   "@briefInstructionLabel": {"description": "Label for the custom brief instruction field."},
   "briefInstructionHint": "Only what is overdue. No greeting.",
   "@briefInstructionHint": {"description": "Placeholder for the custom brief instruction field."},
+  "briefLanguageShared": "One setting, shared: it is also what the assistant answers in and what transcriptions and summaries come back in.",
+  "@briefLanguageShared": {"description": "Note under the brief's language picker saying the setting is not the brief's alone."},
   "briefToneLabel": "How it sounds",
   "@briefToneLabel": {"description": "Label above the brief's tone presets."},
   "briefLengthLabel": "How much of it",

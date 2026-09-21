@@ -2214,6 +2214,10 @@ class AppLocalizationsFa extends AppLocalizations {
       'فقط کارهای عقب‌افتاده. بدون سلام و احوال‌پرسی.';
 
   @override
+  String get briefLanguageShared =>
+      'یک تنظیم مشترک: دستیار هم با همین زبان جواب می‌دهد و رونویسی و خلاصه‌ها هم با همین برمی‌گردند.';
+
+  @override
   String get briefToneLabel =>
       'چه لحنی داشته باشد';
 

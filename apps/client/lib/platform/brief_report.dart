@@ -2,6 +2,7 @@ import 'package:nex_core/nex_core.dart';
 
 import '../l10n/app_localizations.dart';
 import '../l10n/relative_span.dart';
+import 'ai_provider.dart';
 
 /// The brief the app writes itself, from what it already knows.
 ///
@@ -51,3 +52,28 @@ String? nexBriefReport(
 
   return lines.isEmpty ? null : lines.join('\n');
 }
+
+/// Everything a brief was made from, as one string to fingerprint.
+///
+/// The notes are the obvious half and were the only half for a while, which
+/// was the bug: the recap is cached against what it was written from, so a
+/// brief written under one style, tone, length or language stayed on the card
+/// after any of them changed. The setting appeared to do nothing — nothing
+/// had asked for a new brief.
+///
+/// The headline beside the brief has always keyed its own cache on the
+/// language, which is why choosing English turned the greeting English
+/// immediately and left a Persian brief sitting under it.
+///
+/// Separate from `recapFingerprint`, which hashes this: what goes into a
+/// brief is a fact about briefs, and hashing is a fact about hashing.
+String nexBriefSignature({
+  required String source,
+  required NexBriefStyle style,
+  required AiResponseStyle tone,
+  required NexBriefLength length,
+  required AiOutputLanguage language,
+  required String instruction,
+}) =>
+    '${style.wireName}|${tone.wireName}|${length.wireName}'
+    '|${language.wireName}|${instruction.trim()}\n$source';
