@@ -24,7 +24,7 @@ import 'about_screen.dart';
 import 'backup_screen.dart';
 import 'guide_screen.dart';
 import 'assistant_screen.dart';
-import '../widgets/brief_settings_sheet.dart';
+import 'brief_screen.dart';
 import 'intelligence_screen.dart';
 import 'profile_screen.dart';
 import 'security_screen.dart';
@@ -266,8 +266,11 @@ class SettingsSheet extends StatelessWidget {
             NexBriefStyle.planner => l10n.briefStylePlanner,
             NexBriefStyle.custom => l10n.briefStyleCustom,
           },
-          onTap: () => unawaited(
-            showBriefSettings(context: context, preferences: preferences),
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => BriefScreen(preferences: preferences),
+            ),
           ),
         ),
         _Row(
