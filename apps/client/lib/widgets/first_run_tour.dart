@@ -44,8 +44,16 @@ class TourStop {
 /// lot of correctness for a screen most people dismiss. The machinery below
 /// is kept whole so that turning it back on, or turning it into something
 /// offered from the guide rather than something that happens to you, is this
-/// one constant.
-const nexFirstRunTourEnabled = false;
+/// one line.
+///
+/// Deliberately not `const`, and the reason is the analyzer rather than
+/// taste: a `const false` lets it fold every `if (!flag) return;` into "this
+/// method always returns", and then everything past the guard — and every
+/// test branch behind it — is `dead_code`, which this repository analyses as
+/// fatal. A variable it cannot fold keeps the switched-off code compiling and
+/// checked, which is the whole point of switching it off rather than deleting
+/// it. The same shape as `nexDocxReader` beside it.
+bool nexFirstRunTourEnabled = false;
 
 class FirstRunTour extends StatefulWidget {
   const FirstRunTour({
