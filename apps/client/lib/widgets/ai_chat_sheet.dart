@@ -238,7 +238,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
       // the subject: somebody opened the assistant on it to ask about it, and
       // four hundred characters of a document is a paragraph of an answer
       // about a page nobody read.
-      final line = _contextLine(focused, limit: 6000);
+      final line = _contextLine(focused, limit: 6000, withFiles: true);
       final images = _imagesFor(focused);
       if (mounted) {
         setState(() {
@@ -303,7 +303,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// the note carries in words rather than only what its card shows: a
   /// photo's OCR read and a recording's transcript are the only way the
   /// assistant knows those notes exist as anything but "a photo".
-  String? _contextLine(Note note, {int limit = 400}) {
+  String? _contextLine(Note note, {int limit = 400, bool withFiles = false}) {
     final text =
         [
               note.title,
@@ -316,7 +316,9 @@ class _AiChatSheetState extends State<AiChatSheet> {
               // file on it and nothing about what the file said — so a
               // question about a document sitting open on the screen was
               // answered from its filename.
-              _fileText(note, limit),
+              //
+              // The focused note only — see [withFiles].
+              if (withFiles) _fileText(note),
             ]
             .whereType<String>()
             .map((part) => part.trim())
@@ -335,12 +337,19 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// can show it to you, it can tell the assistant about it. A PDF or a Word
   /// file is named and not read, here as everywhere else.
   ///
-  /// Read synchronously and clipped hard. This runs once per note when the
-  /// sheet opens, against files the app itself wrote, and the alternative —
-  /// an async read per note — buys nothing on a list of twenty short files
-  /// and costs the one thing this path must not do, which is make opening the
-  /// assistant wait.
-  String? _fileText(Note note, int limit) {
+  /// Read from the disk, synchronously, which is why it is done for one note
+  /// and not for twenty.
+  ///
+  /// The volunteered notes — the recent ones nobody has pointed at — are read
+  /// in a loop when the sheet opens, and opening a sheet is the one moment
+  /// that must not stall. Twenty files of half a megabyte each is ten
+  /// megabytes of blocking IO to answer a question that was probably about
+  /// none of them. The note somebody opened the assistant *on* is one read,
+  /// and it is the note being asked about.
+  ///
+  /// It is also the narrower answer on what leaves the device, which is the
+  /// right way round for a file somebody attached rather than typed.
+  String? _fileText(Note note) {
     final path = note.mediaUri;
     if (path == null || path.isEmpty) return null;
     final kind = NexFileKinds.of(path: path, mimeType: note.mimeType);
