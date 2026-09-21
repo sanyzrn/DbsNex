@@ -43,6 +43,12 @@ Working convention:
   and closes the way **Assistant** and the provider page beside it do, because
   it is now built out of the same pieces rather than ones that resemble them.
 
+- **Tap anywhere off the keyboard to put it away.** It covers half the screen
+  and had no way out other than the back gesture, which on most screens also
+  leaves the screen. Now a tap on anything that is not a field — the space
+  beside a title, the padding around a sheet — closes it, and a tap on a
+  button still presses the button.
+
 ## v1.18.0
 
 - **Zooming a photo works properly now.** Pinch it, or double-tap where you

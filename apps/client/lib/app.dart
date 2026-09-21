@@ -17,6 +17,7 @@ import 'platform/secure_window.dart';
 import 'platform/update_service.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/timeline_screen.dart';
+import 'widgets/keyboard_dismisser.dart';
 import 'widgets/nex_banner.dart';
 
 class NexApp extends StatefulWidget {
@@ -523,27 +524,29 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
                 // Navigator is showing, dialog or bottom sheet included,
                 // instead of being scoped to whichever page happened to be
                 // underneath when they were raised.
-                child: Stack(
-                  children: [
-                    Scaffold(
-                      backgroundColor: Colors.transparent,
-                      resizeToAvoidBottomInset: false,
-                      body: ExcludeSemantics(
-                        excluding: _locked,
-                        child: IgnorePointer(
-                          ignoring: _locked,
-                          child: FocusTraversalGroup(child: child!),
+                child: NexKeyboardDismisser(
+                  child: Stack(
+                    children: [
+                      Scaffold(
+                        backgroundColor: Colors.transparent,
+                        resizeToAvoidBottomInset: false,
+                        body: ExcludeSemantics(
+                          excluding: _locked,
+                          child: IgnorePointer(
+                            ignoring: _locked,
+                            child: FocusTraversalGroup(child: child!),
+                          ),
                         ),
                       ),
-                    ),
-                    if (_locked)
-                      Positioned.fill(
-                        child: _AppLockGate(
-                          busy: _unlocking,
-                          onUnlock: () => unawaited(_unlock()),
+                      if (_locked)
+                        Positioned.fill(
+                          child: _AppLockGate(
+                            busy: _unlocking,
+                            onUnlock: () => unawaited(_unlock()),
+                          ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
