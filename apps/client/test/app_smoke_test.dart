@@ -941,7 +941,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(preferences.aiOutputLanguage, AiOutputLanguage.auto);
-    await tester.tap(find.text('AI output language'));
+    // It lives in the Daily brief sheet now rather than in a row of its own,
+    // because that is where anybody looks for it — the language a brief comes
+    // back in is the most visible thing about a brief. It is still one
+    // setting for the whole app, which the sheet says in a line under it, and
+    // which the rest of this test is about.
+    await tester.tap(find.text('Daily brief'));
+    await tester.pumpAndSettle();
+    // The sheet is taller than the test surface and scrolls, which is the
+    // point of it scrolling: without this the card is built, found, and
+    // sitting below the fold where a tap cannot reach it.
+    await tester.ensureVisible(find.text('Persian'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Persian'));
     await tester.pumpAndSettle();
