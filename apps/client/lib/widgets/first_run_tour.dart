@@ -37,6 +37,16 @@ class TourStop {
 /// Shown exactly once and skippable from the first step. A tour nobody can
 /// leave is worse than no tour, and one that comes back is a bug people
 /// report as the app being broken.
+/// Whether the first-run walkthrough runs at all.
+///
+/// Off. It arrived before anybody had done anything, asked to be clicked
+/// through four times, and cost two bugs about *when* it should appear — a
+/// lot of correctness for a screen most people dismiss. The machinery below
+/// is kept whole so that turning it back on, or turning it into something
+/// offered from the guide rather than something that happens to you, is this
+/// one constant.
+const nexFirstRunTourEnabled = false;
+
 class FirstRunTour extends StatefulWidget {
   const FirstRunTour({
     super.key,

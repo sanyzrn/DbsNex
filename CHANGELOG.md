@@ -34,6 +34,37 @@ Working convention:
 
 ## Unreleased
 
+## v1.18.0
+
+- **Zooming a photo works properly now.** Pinch it, or double-tap where you
+  want to look — it zooms around that point and you can pan right to the
+  edges. The last attempt left the photo pinned inside its original bounds,
+  which is why it shoved back the moment you let go.
+
+- **The walkthrough on first launch is switched off.** Four stops asking to be
+  clicked through before you have written anything is a toll, and the one
+  thing Nex promises is that writing something down costs nothing. The guide
+  in Settings says all of it and waits until you ask.
+
+- **The Daily brief page scrolls.** Everything below the fold was simply off
+  the screen with no way to reach it.
+
+- **The AI language lives with the brief now**, instead of in two places. It
+  is still one setting — the assistant answers in it and transcriptions come
+  back in it — and the line under it says so.
+
+- **The assistant reads Word documents too.** Markdown, plain text, code,
+  spreadsheets and now `.docx` — if Nex can show you the file, it can answer
+  questions about it.
+
+- **The fade under the bottom bar reaches the bottom of the screen.** Twice
+  now it has been too timid; a card sliding under the bar met a dark grey
+  rather than the page ending.
+
+- **The guide is up to date** — the bar along the bottom, recurring items,
+  choosing several tags at once, the five kinds of daily brief, and what the
+  assistant can see.
+
 ## v1.17.0
 
 - **A photo in a note can be zoomed.** Pinch it, or double-tap it. There was

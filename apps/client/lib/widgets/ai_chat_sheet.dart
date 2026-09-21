@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:ui' show BoxWidthStyle;
 
@@ -12,6 +13,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
 
+import '../documents/docx_markdown.dart';
 import '../l10n/app_localizations.dart';
 import 'dismiss_on_overscroll.dart';
 import 'assistant_settings.dart';
@@ -238,7 +240,11 @@ class _AiChatSheetState extends State<AiChatSheet> {
       // the subject: somebody opened the assistant on it to ask about it, and
       // four hundred characters of a document is a paragraph of an answer
       // about a page nobody read.
-      final line = _contextLine(focused, limit: 6000, withFiles: true);
+      final line = _contextLine(
+        focused,
+        limit: 6000,
+        fileText: await _fileText(focused),
+      );
       final images = _imagesFor(focused);
       if (mounted) {
         setState(() {
@@ -303,7 +309,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// the note carries in words rather than only what its card shows: a
   /// photo's OCR read and a recording's transcript are the only way the
   /// assistant knows those notes exist as anything but "a photo".
-  String? _contextLine(Note note, {int limit = 400, bool withFiles = false}) {
+  String? _contextLine(Note note, {int limit = 400, String? fileText}) {
     final text =
         [
               note.title,
@@ -317,8 +323,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
               // question about a document sitting open on the screen was
               // answered from its filename.
               //
-              // The focused note only — see [withFiles].
-              if (withFiles) _fileText(note),
+              // Passed in rather than read here: a `.docx` has to be unzipped
+              // on another isolate, and this method is synchronous because
+              // the twenty volunteered notes go through it in a loop.
+              fileText,
             ]
             .whereType<String>()
             .map((part) => part.trim())
@@ -330,38 +338,43 @@ class _AiChatSheetState extends State<AiChatSheet> {
     return '[${note.id}] ${note.type.wireName}: $clipped';
   }
 
-  /// The text of a file attached to [note], for the kinds Nex can read.
+  /// The text of the file attached to [note], for the kinds Nex can read.
   ///
-  /// Markdown, plain text, code and delimited tables — the same four the
-  /// detail sheet renders in place, which is the honest boundary: if the app
-  /// can show it to you, it can tell the assistant about it. A PDF or a Word
-  /// file is named and not read, here as everywhere else.
+  /// The same kinds the detail sheet renders in place, which is the honest
+  /// boundary: if the app can show it to you, it can tell the assistant about
+  /// it. Markdown, plain text, code and delimited tables are read straight
+  /// off the disk; a `.docx` is a zip of XML, so it goes to the same reader
+  /// the note's own preview uses, on another isolate. A PDF is still named
+  /// and not read — Nex has no renderer for one, and handing the assistant a
+  /// file it cannot read only produces a confident guess.
   ///
-  /// Read from the disk, synchronously, which is why it is done for one note
-  /// and not for twenty.
-  ///
-  /// The volunteered notes — the recent ones nobody has pointed at — are read
-  /// in a loop when the sheet opens, and opening a sheet is the one moment
-  /// that must not stall. Twenty files of half a megabyte each is ten
-  /// megabytes of blocking IO to answer a question that was probably about
-  /// none of them. The note somebody opened the assistant *on* is one read,
-  /// and it is the note being asked about.
-  ///
-  /// It is also the narrower answer on what leaves the device, which is the
-  /// right way round for a file somebody attached rather than typed.
-  String? _fileText(Note note) {
+  /// The focused note only. The volunteered notes — the recent ones nobody
+  /// has pointed at — are read in a loop when the sheet opens, and opening a
+  /// sheet is the one moment that must not stall. It is also the narrower
+  /// answer on what leaves the device, which is the right way round for a
+  /// file somebody attached rather than typed.
+  Future<String?> _fileText(Note note) async {
     final path = note.mediaUri;
     if (path == null || path.isEmpty) return null;
     final kind = NexFileKinds.of(path: path, mimeType: note.mimeType);
-    if (kind != NexFileKind.markdown &&
-        kind != NexFileKind.plainText &&
-        kind != NexFileKind.code &&
-        kind != NexFileKind.table) {
-      return null;
-    }
     try {
       final file = File(path);
       if (!file.existsSync()) return null;
+      if (kind == NexFileKind.document) {
+        if (NexFileKinds.extensionOf(path) != 'docx') return null;
+        if (file.lengthSync() > NexDocx.maxBytes) return null;
+        final read = await Isolate.run(
+          () => NexDocx.read(File(path).readAsBytesSync()),
+        );
+        final markdown = read?.markdown.trim();
+        return (markdown == null || markdown.isEmpty) ? null : markdown;
+      }
+      if (kind != NexFileKind.markdown &&
+          kind != NexFileKind.plainText &&
+          kind != NexFileKind.code &&
+          kind != NexFileKind.table) {
+        return null;
+      }
       // A cap in bytes before a cap in characters: a log somebody attached
       // could be megabytes, and reading it whole to throw most of it away is
       // the work this guard exists to skip.
@@ -369,8 +382,9 @@ class _AiChatSheetState extends State<AiChatSheet> {
       final text = file.readAsStringSync().trim();
       return text.isEmpty ? null : text;
     } catch (_) {
-      // A binary mislabelled as text, or a file the OS took back. Neither is
-      // worth an error in a chat sheet: the note's own words still go.
+      // A binary mislabelled as text, a document this reader cannot parse, or
+      // a file the OS took back. None of them is worth an error in a chat
+      // sheet: the note's own words still go.
       return null;
     }
   }
