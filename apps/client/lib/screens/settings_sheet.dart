@@ -24,6 +24,7 @@ import 'about_screen.dart';
 import 'backup_screen.dart';
 import 'guide_screen.dart';
 import 'assistant_screen.dart';
+import '../widgets/brief_settings_sheet.dart';
 import 'intelligence_screen.dart';
 import 'profile_screen.dart';
 import 'security_screen.dart';
@@ -251,6 +252,24 @@ class SettingsSheet extends StatelessWidget {
     _Section(
       title: l10n.intelligence,
       children: [
+        // Above the provider, not below it, and in this section rather than
+        // under Appearance — because what the brief says is the question
+        // people actually have about it, and one of the answers is "nothing
+        // leaves this phone", which belongs exactly here.
+        _Row(
+          icon: Icons.article_outlined,
+          title: l10n.briefTitle,
+          value: switch (preferences.briefStyle) {
+            NexBriefStyle.assistant => l10n.briefStyleAssistant,
+            NexBriefStyle.blended => l10n.briefStyleBlended,
+            NexBriefStyle.report => l10n.briefStyleReport,
+            NexBriefStyle.planner => l10n.briefStylePlanner,
+            NexBriefStyle.custom => l10n.briefStyleCustom,
+          },
+          onTap: () => unawaited(
+            showBriefSettings(context: context, preferences: preferences),
+          ),
+        ),
         _Row(
           icon: Icons.auto_awesome_outlined,
           title: l10n.intelligenceOpen,

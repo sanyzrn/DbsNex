@@ -2146,6 +2146,97 @@ class AppLocalizationsFa extends AppLocalizations {
   String get commitmentsEmpty => 'هنوز چیزی نیست.\nبیمه، اجاره، قرص هر هشت ساعت.';
 
   @override
+  String get briefTitle =>
+      'خلاصهٔ روزانه';
+
+  @override
+  String get briefSubtitle =>
+      'کارتی که بالای یادداشت‌هاست. خودت تعیین می‌کنی به چه درد بخورد.';
+
+  @override
+  String get briefStyleLabel =>
+      'چه چیزی بنویسد';
+
+  @override
+  String get briefStyleAssistant =>
+      'دستیار';
+
+  @override
+  String get briefStyleAssistantAbout =>
+      'مدل یادداشت‌ها را می‌خواند و خلاصه را می‌نویسد.';
+
+  @override
+  String get briefStyleBlended =>
+      'حقایق، به‌علاوهٔ یک نکته';
+
+  @override
+  String get briefStyleBlendedAbout =>
+      'نکس دقیقاً می‌گوید چه چیزی سررسید دارد. مدل فقط آن یک چیزی را اضافه می‌کند که از کنار هم دیدن همه پیداست.';
+
+  @override
+  String get briefStyleReport =>
+      'گزارش ساده';
+
+  @override
+  String get briefStyleReportAbout =>
+      'چه چیزی عقب افتاده، چه چیزی سررسید دارد، چه چیزی نیمه‌کاره است. هیچ‌چیز جایی فرستاده نمی‌شود.';
+
+  @override
+  String get briefStylePlanner =>
+      'برنامه‌ریز';
+
+  @override
+  String get briefStylePlannerAbout =>
+      'همان حقایق، به‌علاوهٔ یک پیشنهاد برای قدم بعدی — فقط پیشنهاد؛ هیچ‌چیز تغییر نمی‌کند.';
+
+  @override
+  String get briefStyleCustom =>
+      'خلاصهٔ دلخواه من';
+
+  @override
+  String get briefStyleCustomAbout =>
+      'خودت توضیح می‌دهی چه چیزی برایت بگوید.';
+
+  @override
+  String get briefOffline =>
+      'بدون ارائه‌دهنده، بدون کلید و بدون اینترنت کار می‌کند.';
+
+  @override
+  String get briefNeedsAi =>
+      'این یکی به هوش مصنوعی روشن نیاز دارد. گزارش ساده تنها گزینه‌ای است که بدون آن کار می‌کند.';
+
+  @override
+  String get briefInstructionLabel =>
+      'می‌خواهی چه بگوید';
+
+  @override
+  String get briefInstructionHint =>
+      'فقط کارهای عقب‌افتاده. بدون سلام و احوال‌پرسی.';
+
+  @override
+  String get briefToneLabel =>
+      'چه لحنی داشته باشد';
+
+  @override
+  String get briefLengthLabel =>
+      'چقدر باشد';
+
+  @override
+  String briefLineOverdue(String title, String span) {
+    return '$title — $span عقب افتاده';
+  }
+
+  @override
+  String briefLineDue(String title, String span) {
+    return '$title — تا $span دیگر';
+  }
+
+  @override
+  String briefLineChecklist(String title, int remaining, int total) {
+    return '$title — $remaining از $total باقی مانده';
+  }
+
+  @override
   String get commitmentsAbout => 'نکس تاریخ بعدی هر کدام را نگه می‌دارد، در خلاصهٔ روز می‌آوردشان، و می‌تواند پیش از رسیدن موعد اعلان بفرستد.';
 
   @override

@@ -330,6 +330,32 @@ open class MainActivity : FlutterFragmentActivity() {
         if (intent?.action == ACTION_OPEN_TIMELINE) {
             return enqueue(mapOf("type" to "open_timeline"), live)
         }
+        // A file handed to Nex to open, rather than shared into it: a .md
+        // tapped in a file manager, or Telegram's "Open in". Same payload as
+        // a share and the same Dart path — the difference is only where the
+        // URI is. ACTION_SEND carries it in EXTRA_STREAM; ACTION_VIEW is the
+        // URI, in `data`.
+        //
+        // Opening is importing, deliberately. Nex has no file viewer and
+        // building one to show somebody their own markdown for eight seconds
+        // would be a screen with no second use. The file becomes a note, the
+        // note is the viewer, and it is still there tomorrow — which is the
+        // difference between an app you opened a file with and an app you
+        // keep things in.
+        if (intent?.action == Intent.ACTION_VIEW) {
+            val opened = intent.data ?: return
+            val openedType = intent.type.orEmpty()
+            return enqueue(
+                describeUri(opened) + (
+                    "type" to if (openedType.startsWith("image/")) {
+                        "shared_photo"
+                    } else {
+                        "shared_file"
+                    }
+                ),
+                live,
+            )
+        }
         if (intent?.action != Intent.ACTION_SEND) return
         val stream = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
         if (stream == null) {

@@ -34,6 +34,48 @@ Working convention:
 
 ## Unreleased
 
+## v1.16.0
+
+- **The daily brief is yours to define.** Five kinds, in Settings →
+  Intelligence → Daily brief. The assistant writing the whole thing is still
+  the default and still works the way it did; beside it now sit a brief where
+  Nex states the facts and the model adds only the one thing that can be seen
+  by looking at everything at once, a planner that suggests one next step, a
+  plain report that asks nothing of anybody, and one you describe in your own
+  words.
+
+- **The plain report needs no provider, no key and no signal.** What has
+  slipped, what falls due this week, what is half-ticked — all of it is
+  already on your phone, so none of it is sent anywhere. It is the one brief
+  that cannot be wrong about a date and cannot fail to appear because you are
+  on a plane. If intelligence is switched off, this is the brief that shows;
+  everything else is unchanged.
+
+- **A brief that loses its connection no longer loses your reminders with
+  it.** Under the two kinds where Nex states the facts itself, they are
+  written before the model is asked anything, so a request that times out
+  costs you the observation and not the rent being overdue.
+
+- **How the brief sounds, and how much of it there is.** The same five tones
+  the assistant has, and short, medium or long — a ceiling rather than a
+  target, so a quiet day is still one line.
+
+- **Nex opens markdown files.** Tap a `.md` in a file manager, or use
+  Telegram's "Open in", and Nex is in the list. The file becomes a note, so
+  it is still there tomorrow and still searchable next month. Plain text
+  files too.
+
+- **Liquid Glass you can actually see.** In the light themes a glass panel
+  was coming out two shades away from the page behind it — correct by every
+  measurement except the one that matters. The material now stands off the
+  page as clearly in light as it always did in dark, the hairline round every
+  card is a line rather than a rumour, and text on glass reads better than
+  before rather than worse.
+
+- **The light around the brief is finer and slower**, and the fade under the
+  bottom bar reaches three times as far up the screen so cards go quiet
+  behind it instead of running into it.
+
 ## v1.15.0
 
 - **The Next button on the welcome screens could not be read.** In the dark

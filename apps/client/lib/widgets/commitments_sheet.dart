@@ -5,6 +5,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../l10n/relative_span.dart';
 import '../platform/nex_services.dart';
 import 'nex_dialog.dart';
 
@@ -394,17 +395,6 @@ String nexCadenceLabel(AppLocalizations l10n, NexCadence cadence, int every) =>
       NexCadence.months => l10n.cadenceMonths(every),
       NexCadence.years => l10n.cadenceYears(every),
     };
-
-/// A rough span in the largest unit that still says something true.
-///
-/// Deliberately coarse: nobody setting up a yearly insurance renewal needs to
-/// be told it is due in 312 days and 4 hours.
-String nexRelativeSpan(AppLocalizations l10n, Duration span) {
-  if (span.inMinutes < 60) return l10n.spanMinutes(span.inMinutes.clamp(1, 59));
-  if (span.inHours < 48) return l10n.spanHours(span.inHours);
-  if (span.inDays < 60) return l10n.spanDays(span.inDays);
-  return l10n.spanMonths(span.inDays ~/ 30);
-}
 
 /// Setting one up, or changing one.
 ///

@@ -3777,6 +3777,138 @@ abstract class AppLocalizations {
   /// **'Nothing recurring yet.\nInsurance, rent, a tablet every eight hours.'**
   String get commitmentsEmpty;
 
+  /// Title of the sheet that configures the card at the top of the timeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily brief'**
+  String get briefTitle;
+
+  /// Subtitle under the daily-brief sheet's title.
+  ///
+  /// In en, this message translates to:
+  /// **'The card above your notes. You choose what it is for.'**
+  String get briefSubtitle;
+
+  /// Label above the five brief presets.
+  ///
+  /// In en, this message translates to:
+  /// **'What it writes'**
+  String get briefStyleLabel;
+
+  /// Brief preset: the model writes the whole thing.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant'**
+  String get briefStyleAssistant;
+
+  /// What the assistant brief preset does.
+  ///
+  /// In en, this message translates to:
+  /// **'The model reads your notes and writes the brief.'**
+  String get briefStyleAssistantAbout;
+
+  /// Brief preset: app states facts, model adds one line.
+  ///
+  /// In en, this message translates to:
+  /// **'Facts, plus one observation'**
+  String get briefStyleBlended;
+
+  /// What the blended brief preset does.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex states what is due, exactly. The model adds the one thing only the whole set shows.'**
+  String get briefStyleBlendedAbout;
+
+  /// Brief preset: no model at all.
+  ///
+  /// In en, this message translates to:
+  /// **'Plain report'**
+  String get briefStyleReport;
+
+  /// What the plain-report brief preset does.
+  ///
+  /// In en, this message translates to:
+  /// **'What has slipped, what is due, what is half-done. Nothing is sent anywhere.'**
+  String get briefStyleReportAbout;
+
+  /// Brief preset: app states facts, model suggests a next step.
+  ///
+  /// In en, this message translates to:
+  /// **'Planner'**
+  String get briefStylePlanner;
+
+  /// What the planner brief preset does.
+  ///
+  /// In en, this message translates to:
+  /// **'The same facts, and one suggestion for what to do next — a suggestion only, nothing is changed.'**
+  String get briefStylePlannerAbout;
+
+  /// Brief preset: the user writes the instruction.
+  ///
+  /// In en, this message translates to:
+  /// **'My own brief'**
+  String get briefStyleCustom;
+
+  /// What the custom brief preset does.
+  ///
+  /// In en, this message translates to:
+  /// **'You describe what you want it to tell you.'**
+  String get briefStyleCustomAbout;
+
+  /// Note shown when the plain-report preset is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Works with no provider, no key and no signal.'**
+  String get briefOffline;
+
+  /// Note shown when a preset that needs a model is selected while AI is off.
+  ///
+  /// In en, this message translates to:
+  /// **'This one needs intelligence switched on. Plain report is the one that works without it.'**
+  String get briefNeedsAi;
+
+  /// Label for the custom brief instruction field.
+  ///
+  /// In en, this message translates to:
+  /// **'What you want it to say'**
+  String get briefInstructionLabel;
+
+  /// Placeholder for the custom brief instruction field.
+  ///
+  /// In en, this message translates to:
+  /// **'Only what is overdue. No greeting.'**
+  String get briefInstructionHint;
+
+  /// Label above the brief's tone presets.
+  ///
+  /// In en, this message translates to:
+  /// **'How it sounds'**
+  String get briefToneLabel;
+
+  /// Label above the brief's length presets.
+  ///
+  /// In en, this message translates to:
+  /// **'How much of it'**
+  String get briefLengthLabel;
+
+  /// A brief line for something past its date.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} — {span} overdue'**
+  String briefLineOverdue(String title, String span);
+
+  /// A brief line for something falling due.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} — due in {span}'**
+  String briefLineDue(String title, String span);
+
+  /// A brief line for a checklist with items unticked.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} — {remaining} of {total} left'**
+  String briefLineChecklist(String title, int remaining, int total);
+
   /// The paragraph under the title on the recurring sheet, explaining what a recurring item actually does.
   ///
   /// In en, this message translates to:
