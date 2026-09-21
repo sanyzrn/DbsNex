@@ -176,6 +176,11 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// silently change what earlier answers were based on.
   String _notesContext = '';
 
+  /// The focused note's own picture, when there is one and the provider can
+  /// look at it. Loaded once with the context and re-sent with every
+  /// question — see [NexChatAttachment].
+  List<NexChatAttachment> _attachments = const [];
+
   /// The actions the assistant last asked for, waiting on the user.
   List<AssistantAction> _pending = const [];
 
@@ -229,8 +234,18 @@ class _AiChatSheetState extends State<AiChatSheet> {
   Future<void> _loadNotesContext() async {
     final focused = widget.focus;
     if (focused != null) {
-      final line = _contextLine(focused);
-      if (line != null && mounted) setState(() => _notesContext = line);
+      // A far bigger budget than a volunteered note gets, because this one is
+      // the subject: somebody opened the assistant on it to ask about it, and
+      // four hundred characters of a document is a paragraph of an answer
+      // about a page nobody read.
+      final line = _contextLine(focused, limit: 6000);
+      final images = _imagesFor(focused);
+      if (mounted) {
+        setState(() {
+          if (line != null) _notesContext = line;
+          _attachments = images;
+        });
+      }
       return;
     }
     // A whole date run, and all of it: the reader picked this set, so it is
@@ -288,7 +303,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// the note carries in words rather than only what its card shows: a
   /// photo's OCR read and a recording's transcript are the only way the
   /// assistant knows those notes exist as anything but "a photo".
-  String? _contextLine(Note note) {
+  String? _contextLine(Note note, {int limit = 400}) {
     final text =
         [
               note.title,
@@ -296,6 +311,12 @@ class _AiChatSheetState extends State<AiChatSheet> {
               note.transcriptText,
               note.ocrText,
               note.linkExcerpt,
+              // What is *inside* an attached file, for the kinds this app can
+              // read. Without it the assistant knew a note had a markdown
+              // file on it and nothing about what the file said — so a
+              // question about a document sitting open on the screen was
+              // answered from its filename.
+              _fileText(note, limit),
             ]
             .whereType<String>()
             .map((part) => part.trim())
@@ -303,8 +324,81 @@ class _AiChatSheetState extends State<AiChatSheet> {
             .join(' — ')
             .replaceAll(RegExp(r'\s+'), ' ');
     if (text.isEmpty) return null;
-    final clipped = text.length > 400 ? '${text.substring(0, 400)}…' : text;
+    final clipped = text.length > limit ? '${text.substring(0, limit)}…' : text;
     return '[${note.id}] ${note.type.wireName}: $clipped';
+  }
+
+  /// The text of a file attached to [note], for the kinds Nex can read.
+  ///
+  /// Markdown, plain text, code and delimited tables — the same four the
+  /// detail sheet renders in place, which is the honest boundary: if the app
+  /// can show it to you, it can tell the assistant about it. A PDF or a Word
+  /// file is named and not read, here as everywhere else.
+  ///
+  /// Read synchronously and clipped hard. This runs once per note when the
+  /// sheet opens, against files the app itself wrote, and the alternative —
+  /// an async read per note — buys nothing on a list of twenty short files
+  /// and costs the one thing this path must not do, which is make opening the
+  /// assistant wait.
+  String? _fileText(Note note, int limit) {
+    final path = note.mediaUri;
+    if (path == null || path.isEmpty) return null;
+    final kind = NexFileKinds.of(path: path, mimeType: note.mimeType);
+    if (kind != NexFileKind.markdown &&
+        kind != NexFileKind.plainText &&
+        kind != NexFileKind.code &&
+        kind != NexFileKind.table) {
+      return null;
+    }
+    try {
+      final file = File(path);
+      if (!file.existsSync()) return null;
+      // A cap in bytes before a cap in characters: a log somebody attached
+      // could be megabytes, and reading it whole to throw most of it away is
+      // the work this guard exists to skip.
+      if (file.lengthSync() > 512 * 1024) return null;
+      final text = file.readAsStringSync().trim();
+      return text.isEmpty ? null : text;
+    } catch (_) {
+      // A binary mislabelled as text, or a file the OS took back. Neither is
+      // worth an error in a chat sheet: the note's own words still go.
+      return null;
+    }
+  }
+
+  /// The focused note's picture, if the provider can see one.
+  ///
+  /// Only the focused note. Attaching the images of twenty recent notes to
+  /// every question would be a bill nobody agreed to and a prompt no model
+  /// answers well; the note somebody opened the assistant *on* is the one
+  /// they are asking about.
+  List<NexChatAttachment> _imagesFor(Note note) {
+    if (!widget.preferences.aiProvider.provider.readsImages) {
+      return const [];
+    }
+    final path = note.mediaUri;
+    if (path == null || path.isEmpty) return const [];
+    if (NexFileKinds.of(path: path, mimeType: note.mimeType) !=
+        NexFileKind.image) {
+      return const [];
+    }
+    try {
+      final file = File(path);
+      if (!file.existsSync()) return const [];
+      // Providers reject a base64 image past a few megabytes, and a photo
+      // that big says nothing a smaller one does not.
+      if (file.lengthSync() > 8 * 1024 * 1024) return const [];
+      return [
+        NexChatAttachment(
+          bytes: file.readAsBytesSync(),
+          mimeType: note.mimeType?.startsWith('image/') ?? false
+              ? note.mimeType!
+              : 'image/jpeg',
+        ),
+      ];
+    } catch (_) {
+      return const [];
+    }
   }
 
   AiChatOptions get _options => AiChatOptions(
@@ -324,6 +418,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     userName: widget.preferences.aiUserName,
     userIntroduction: widget.preferences.aiUserIntroduction,
     notesContext: _notesContext,
+    attachments: _attachments,
     // Acting needs ids to act on. With no notes in context every id the model
     // could produce would be invented, which is the one thing the prompt
     // tells it not to do.
