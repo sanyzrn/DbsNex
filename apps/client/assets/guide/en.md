@@ -17,7 +17,24 @@ The same button gives you the other kinds of note:
 - **Link** — paste a URL and Nex fetches the page's name.
 
 You can also share into Nex from any other app, and there's a home-screen
-widget that opens straight into a new note.
+widget that opens straight into a new note. Tapping a Markdown or text file
+anywhere on your phone offers Nex too — it becomes a note, so it is still
+there tomorrow.
+
+## The bar along the bottom
+
+Four things, either side of the **+**:
+
+- **Recurring** — the rent, an insurance renewal, a tablet every eight hours.
+  Things that come round again, which are not notes and do not belong on the
+  timeline. Nex keeps the next date for each one and brings it up in the daily
+  brief.
+- **Assistant** — questions about your own notes. It is always there; if
+  intelligence is off, tapping it says so and offers to turn it on.
+- **Library** — everything, including tags and the bin.
+- **Settings**.
+
+Holding **+** opens the assistant instead of a new note.
 
 ## Making text look right
 
@@ -40,7 +57,8 @@ Nex shows a file rather than just naming it:
 - PDFs — the first page. Tap it to open the file properly.
 - Video — a frame of it. Tap to play it in your video player.
 - Music — plays in the note.
-- Pictures — shown full width, tap to expand.
+- Pictures — shown full width. Tap to open one, then pinch or double-tap to
+  zoom right in; a drag downwards closes it again.
 
 Whatever Nex can't show, it still names, and one tap hands it to whatever app
 does open it.
@@ -51,7 +69,9 @@ The search box at the top of the home screen looks inside everything — your
 words, what a voice note said, what a photo had written on it.
 
 **Tags** are the other way through. Add them from a note, then tap one in the
-row under the search box to see only those notes.
+row under the search box to see only those notes. Tap more than one to see
+notes under any of them, and tap a tag again to drop it — turning the last one
+off goes back to showing everything.
 
 ## Keeping a note in front of you
 
@@ -92,12 +112,38 @@ With a provider connected, Nex can suggest tags, summarise a note, transcribe a
 voice note, read text out of a photo, find related notes, and answer questions
 about your library in the **Assistant**.
 
-You can also set the language answers come back in, separately from the app's
-own language — useful if you write in Persian and want summaries in Persian
-regardless of the interface.
+Open the assistant from a note and it can see that note properly: the picture
+on it, and the text of a file attached to it — Markdown, plain text, code, a
+spreadsheet, a Word document. So "what does this receipt say?" is a question
+it can actually answer. Only the note you opened it on, and only what your
+provider is able to read.
 
 If you'd rather nothing left your phone at all, there's an on-device model you
 can download instead.
+
+## The daily brief
+
+The card at the top of the home screen. **Settings → Intelligence → Daily
+brief** decides what it is for, and there are five answers:
+
+- **Assistant** — the model reads your notes and writes the brief. The
+  original, and still what you get if you change nothing.
+- **Facts, plus one observation** — Nex states what is due, exactly, and the
+  model adds the one thing that only shows when you look at everything at
+  once: two things at the same hour, the same task written twice.
+- **Plain report** — what has slipped, what is due, what is half-ticked.
+  Nothing is sent anywhere. No provider, no key, no signal needed, and it
+  cannot be wrong about a date.
+- **Planner** — the same facts, and one suggestion for what to do next. A
+  suggestion only; nothing is changed for you.
+- **My own brief** — you describe what you want it to tell you.
+
+The same sheet sets how it sounds, how long it is, and what language it comes
+back in. That last one is shared: it is also what the assistant answers in and
+what transcriptions and summaries come back in.
+
+Pull the home screen down to ask for a fresh brief. A day with nothing waiting
+gets a brief that says so, which is the honest answer rather than a failure.
 
 ## How Nex looks
 

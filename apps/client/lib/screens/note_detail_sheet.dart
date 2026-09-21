@@ -1344,14 +1344,21 @@ class _FullScreenPhoto extends StatefulWidget {
   State<_FullScreenPhoto> createState() => _FullScreenPhotoState();
 }
 
-class _FullScreenPhotoState extends State<_FullScreenPhoto> {
+class _FullScreenPhotoState extends State<_FullScreenPhoto>
+    with SingleTickerProviderStateMixin {
   double _dragDy = 0;
 
-  /// The zoom, owned here rather than left inside the viewer, because two
-  /// other things have to know it: the drag-to-dismiss, which must stand down
-  /// once the photo is bigger than the screen, and the double tap, which
-  /// toggles it.
+  /// The zoom. Owned here rather than left inside the viewer because three
+  /// other things depend on it: whether a one-finger drag pans the photo or
+  /// closes the sheet, what a double tap should do next, and the animation
+  /// that gets there.
   final TransformationController _zoom = TransformationController();
+
+  late final AnimationController _zoomDrive = AnimationController(
+    vsync: this,
+    duration: NexMotion.standard,
+  );
+  Animation<Matrix4>? _zoomTween;
 
   /// Past this much downward drag, releasing closes the viewer instead of
   /// springing back — the photo equivalent of the swipe card's own commit
@@ -1359,35 +1366,61 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto> {
   static const _dismissDistance = 120.0;
 
   /// Far enough in to read the small print on a photographed receipt, which
-  /// is most of what anyone zooms a note's photo for. The default ceiling is
-  /// 2.5, which is not enough to make an unreadable line readable.
-  static const _maxScale = 6.0;
+  /// is most of what anyone zooms a note's photo for.
+  static const _maxScale = 8.0;
 
-  /// What a double tap goes to, and comes back from.
-  static const _tapScale = 2.5;
+  /// Where a double tap lands, and comes back from.
+  static const _tapScale = 3.0;
+
+  /// Where the last double tap was, in the viewer's coordinates, so the zoom
+  /// grows around what was tapped instead of around the corner of the image.
+  Offset _tapAt = Offset.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    // Without this the widget never hears that a pinch happened, so
+    // `panEnabled` below — which has to flip the moment the photo is bigger
+    // than the screen — stayed at whatever it was when the screen was built.
+    _zoom.addListener(_onZoomChanged);
+    _zoomDrive.addListener(() {
+      final tween = _zoomTween;
+      if (tween != null) _zoom.value = tween.value;
+    });
+  }
+
+  void _onZoomChanged() {
+    final zoomed = _scale > 1.01;
+    if (zoomed != _wasZoomed) setState(() => _wasZoomed = zoomed);
+  }
+
+  bool _wasZoomed = false;
 
   @override
   void dispose() {
+    _zoom.removeListener(_onZoomChanged);
+    _zoomDrive.dispose();
     _zoom.dispose();
     super.dispose();
   }
 
   double get _scale => _zoom.value.getMaxScaleOnAxis();
 
-  bool get _zoomedIn => _scale > 1.01;
+  bool get _zoomedIn => _wasZoomed;
 
-  /// Dismissal is driven from the viewer's own gestures rather than from a
-  /// `GestureDetector` wrapped around it, and that is the whole fix.
+  /// A one-finger drag means two different things depending on the zoom, and
+  /// this is where they are told apart.
   ///
-  /// A vertical-drag recognizer sitting over an [InteractiveViewer] competes
-  /// with the viewer's own scale recognizer in the gesture arena, and a pinch
-  /// begins as two pointers moving in some direction — so whether the photo
-  /// zoomed or the sheet started to close came down to which recognizer
-  /// claimed the pointers first. That is why zooming "did not work": it
-  /// worked whenever the arena happened to go the other way.
+  /// At 1× the photo fits the screen and there is nothing to pan, so a drag
+  /// down closes the sheet. Zoomed in there is a great deal to pan and
+  /// closing is the back button's job — which is why [panEnabled] follows
+  /// the zoom rather than being left on.
   ///
-  /// One pointer and no zoom is a drag to dismiss. Anything else belongs to
-  /// the viewer.
+  /// The dismissal is driven from the viewer's own callbacks rather than
+  /// from a `GestureDetector` wrapped around it. A drag recognizer sitting
+  /// over an [InteractiveViewer] competes with its scale recognizer in the
+  /// gesture arena, and a pinch starts as two pointers moving in some
+  /// direction, so which one won was a coin toss.
   void _onInteractionUpdate(ScaleUpdateDetails details) {
     if (details.pointerCount != 1 || _zoomedIn) {
       if (_dragDy != 0) setState(() => _dragDy = 0);
@@ -1410,17 +1443,26 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto> {
     if (_dragDy != 0) setState(() => _dragDy = 0);
   }
 
-  /// Zoom without a pinch, which is the affordance people actually reach for
-  /// first — and the only one available one-handed.
+  /// Zoom without a pinch — the affordance most people reach for first, and
+  /// the only one available one-handed.
+  ///
+  /// Around the point that was tapped, which is the half that was missing:
+  /// a matrix that only scales grows the image around its own top-left
+  /// corner, so double-tapping the middle of a photo threw the part you were
+  /// looking at off the screen. The tap position is kept by
+  /// [_onDoubleTapDown] because the double-tap callback itself is not given
+  /// one.
   void _onDoubleTap() {
-    setState(() {
-      // `diagonal3Values` rather than `identity()..scale(...)`: the cascade
-      // reads better and is a deprecated call, and this repository analyses
-      // with `--fatal-infos`.
-      _zoom.value = _zoomedIn
-          ? Matrix4.identity()
-          : Matrix4.diagonal3Values(_tapScale, _tapScale, 1);
-    });
+    final target = _zoomedIn
+        ? Matrix4.identity()
+        // x -> s*x + (1 - s)*p leaves the tapped point where it was.
+        : (Matrix4.diagonal3Values(_tapScale, _tapScale, 1)
+            ..setEntry(0, 3, (1 - _tapScale) * _tapAt.dx)
+            ..setEntry(1, 3, (1 - _tapScale) * _tapAt.dy));
+    _zoomTween = Matrix4Tween(begin: _zoom.value, end: target).animate(
+      CurvedAnimation(parent: _zoomDrive, curve: NexMotion.curve),
+    );
+    _zoomDrive.forward(from: 0);
   }
 
   @override
@@ -1438,22 +1480,27 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto> {
       // competes with a pinch or a pan for the same pointers.
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
+        onDoubleTapDown: (details) => _tapAt = details.localPosition,
         onDoubleTap: _onDoubleTap,
-        child: InteractiveViewer(
-          transformationController: _zoom,
-          // Never smaller than the screen fit. Pinching a photo down to a
-          // postage stamp in the middle of a black page is not a thing
-          // anybody wants; getting back out of it is worse.
-          minScale: 1,
-          maxScale: _maxScale,
-          onInteractionUpdate: _onInteractionUpdate,
-          onInteractionEnd: _onInteractionEnd,
-          // The viewer fills the screen rather than hugging the image, so a
-          // gesture starting in the black margin still reaches it — which is
-          // what the opaque hit test used to be for.
-          child: Center(
-            child: Transform.translate(
-              offset: Offset(0, _dragDy),
+        // Outside the viewer, not inside it. A transform *inside* moves the
+        // child out from under the matrix the viewer is maintaining, which is
+        // the other half of why this felt like it was fighting back.
+        child: Transform.translate(
+          offset: Offset(0, _dragDy),
+          child: InteractiveViewer(
+            transformationController: _zoom,
+            // The single most important line here. The default is
+            // `EdgeInsets.zero`, which pins the child inside its original
+            // bounds — so a zoomed photo could not be panned to its own
+            // edges and shoved back the moment you let go. That is what
+            // "unusable" was.
+            boundaryMargin: const EdgeInsets.all(double.infinity),
+            minScale: 1,
+            maxScale: _maxScale,
+            panEnabled: _zoomedIn,
+            onInteractionUpdate: _onInteractionUpdate,
+            onInteractionEnd: _onInteractionEnd,
+            child: Center(
               child: Image.file(File(widget.path), fit: BoxFit.contain),
             ),
           ),

@@ -222,12 +222,19 @@ void main() {
     expect(find.byType(FirstRunTour), findsNothing);
     expect(preferences.tourComplete, isFalse);
 
-    // It is still owed, and falls due once there is a note to talk about.
+    // It is still owed, and falls due once there is a note to talk about —
+    // or would be, were the walkthrough not switched off. Written against
+    // the flag rather than against today's answer, so that whichever way
+    // `nexFirstRunTourEnabled` is set, this still says what the rule is.
     await services.captureText('the first thing I wrote');
     await services.refreshTimeline();
     await tester.pumpAndSettle();
 
-    expect(find.byType(FirstRunTour), findsOneWidget);
+    expect(
+      find.byType(FirstRunTour),
+      nexFirstRunTourEnabled ? findsOneWidget : findsNothing,
+      reason: 'see nexFirstRunTourEnabled',
+    );
   });
 
   testWidgets('the setup page applies each choice as it is made', (

@@ -286,37 +286,11 @@ class SettingsSheet extends StatelessWidget {
             ),
           ),
         ),
-        _Row(
-          icon: Icons.g_translate_outlined,
-          title: l10n.aiOutputLanguage,
-          value: _aiLanguageLabel(l10n, preferences.aiOutputLanguage),
-          onTap: () => unawaited(
-            _pick<AiOutputLanguage>(
-              context: context,
-              title: l10n.aiOutputLanguage,
-              footnote: l10n.aiOutputLanguageSubtitle,
-              selected: preferences.aiOutputLanguage,
-              onSelected: preferences.setAiOutputLanguage,
-              choices: [
-                NexChoice(
-                  value: AiOutputLanguage.auto,
-                  label: l10n.aiOutputLanguageAuto,
-                  preview: const NexScriptSample(icon: Icons.auto_awesome),
-                ),
-                NexChoice(
-                  value: AiOutputLanguage.english,
-                  label: l10n.aiOutputLanguageEnglish,
-                  preview: const NexScriptSample(sample: 'Aa'),
-                ),
-                NexChoice(
-                  value: AiOutputLanguage.persian,
-                  label: l10n.aiOutputLanguagePersian,
-                  preview: const NexScriptSample(sample: 'اَ'),
-                ),
-              ],
-            ),
-          ),
-        ),
+        // The AI language used to have a row of its own here. It is in the
+        // Daily brief sheet above instead — it is the most visible thing
+        // about a brief and this was the last place anyone looked for it.
+        // Still one setting: the assistant answers in it and transcriptions
+        // come back in it, which the line under the picker says.
         _Row(
           icon: Icons.chat_bubble_outline,
           title: l10n.assistant,
@@ -633,13 +607,6 @@ class SettingsSheet extends StatelessWidget {
     ),
   ];
 }
-
-String _aiLanguageLabel(AppLocalizations l10n, AiOutputLanguage value) =>
-    switch (value) {
-      AiOutputLanguage.auto => l10n.aiOutputLanguageAuto,
-      AiOutputLanguage.english => l10n.aiOutputLanguageEnglish,
-      AiOutputLanguage.persian => l10n.aiOutputLanguagePersian,
-    };
 
 /// Sends the user to the OS screen, and says so when there isn't one.
 ///

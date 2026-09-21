@@ -426,6 +426,19 @@ class TimelineScreenState extends State<TimelineScreen>
   /// over the app bar and the capture button, both of which the `Scaffold`
   /// draws above its own body.
   void _maybeStartTour() {
+    // Switched off, deliberately and at the top, rather than deleted.
+    //
+    // A four-stop walkthrough that arrives before anybody has done anything
+    // and asks to be clicked through is a toll on the first launch, and the
+    // one thing this app promises is that capture costs nothing. It was also
+    // the source of two separate bugs about *when* it appears, which is a
+    // lot of correctness spent on a screen most people dismiss.
+    //
+    // Everything it needs is still here — the anchors, the stops, the
+    // overlay — so bringing it back, or bringing it back as something
+    // somebody asks for from the guide rather than something that happens to
+    // them, is one line.
+    if (!nexFirstRunTourEnabled) return;
     if (!mounted || widget.preferences.tourComplete || _tour != null) return;
     // Null is "not loaded yet" rather than "empty" — see [_all]. Either way
     // there is nothing to point at, and the next load comes back here.
@@ -3402,14 +3415,18 @@ class _BottomScrim extends StatelessWidget {
     // black scrim is invisible until it is strong; on a cream one it is
     // visible immediately, and the same number would look like a smudge.
     //
-    // 0.55 was not strong enough to be worth drawing: on a #131312 page it
-    // takes the bottom of the screen to rgb 8, which is a shade of black
-    // sitting on black. At 0.85 it reaches 3, and the difference is the last
-    // line of a card actually going quiet behind the bar instead of merely
-    // dimming. Light moves far less — black over a warm page is not a shadow
-    // there, it is dirt, and the page is pale enough that a little goes a
-    // long way.
-    final ceiling = dark ? 0.85 : 0.22;
+    // Three passes on this, each one because the last was still too timid.
+    // 0.55 took a #131312 page to rgb 8 — black on black. 0.85 reached 3,
+    // which was visible and still not an ending. This one goes to the floor:
+    // the very bottom of the screen is black, so a card sliding under the bar
+    // meets the page ending rather than a dark grey. A gradient that reaches
+    // 1 at the edge cannot band, because there is nothing past it to band
+    // against.
+    //
+    // Light moves far less and always will — black over a warm page is not a
+    // shadow there, it is dirt, and the page is pale enough that a little
+    // goes a long way.
+    final ceiling = dark ? 1.0 : 0.34;
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -3417,13 +3434,15 @@ class _BottomScrim extends StatelessWidget {
           end: Alignment.topCenter,
           colors: [
             Colors.black.withValues(alpha: ceiling),
-            Colors.black.withValues(alpha: ceiling * 0.3),
+            Colors.black.withValues(alpha: ceiling * 0.55),
+            Colors.black.withValues(alpha: ceiling * 0.18),
             Colors.black.withValues(alpha: 0),
           ],
-          // The middle stop comes down as the band grows taller: the dark end
-          // belongs to the bar, and what is above it is a tail that has to
-          // arrive at nothing without ever being a line.
-          stops: const [0, 0.38, 1],
+          // Four stops rather than three. The dark end belongs to the bar and
+          // holds longer now; above it the fall is spread over two steps so
+          // the tail still arrives at nothing without ever being a line,
+          // which a single step from 0.55 to 0 over that distance would be.
+          stops: const [0, 0.3, 0.62, 1],
         ),
       ),
     );

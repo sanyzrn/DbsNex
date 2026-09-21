@@ -63,107 +63,112 @@ class _BriefSettingsSheetState extends State<BriefSettingsSheet> {
         prefs.aiEnabled && aiTextAvailableWith(prefs.aiProvider);
 
     return NexSheetBody(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(l10n.briefTitle, style: theme.textTheme.titleMedium),
-          const SizedBox(height: NexSpacing.xs),
-          Text(
-            l10n.briefSubtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: NexSpacing.lg),
-          _Label(l10n.briefStyleLabel),
-          for (final entry in _styles(l10n))
-            _StyleRow(
-              icon: entry.icon,
-              label: entry.label,
-              about: entry.about,
-              selected: style == entry.value,
-              onTap: () {
-                unawaited(prefs.setBriefStyle(entry.value));
-                setState(() {});
-              },
-            ),
-          // One line of consequence under the list, never two: what this
-          // choice costs or saves, said where the choice is made rather than
-          // in a help page nobody opens.
-          if (!style.usesModel)
-            _Note(text: l10n.briefOffline, icon: Icons.wifi_off_outlined)
-          else if (!hasModel)
-            _Note(
-              text: l10n.briefNeedsAi,
-              icon: Icons.info_outline,
-              warn: true,
-            ),
-          if (style == NexBriefStyle.custom) ...[
-            const SizedBox(height: NexSpacing.lg),
-            _Label(l10n.briefInstructionLabel),
-            NexAutoDirection(
-              controller: _instruction,
-              builder: (context, direction) => TextField(
-                controller: _instruction,
-                onChanged: _saveInstruction,
-                maxLength: NexPreferences.briefInstructionMaxLength,
-                maxLines: 3,
-                minLines: 1,
-                textDirection: direction,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  hintText: l10n.briefInstructionHint,
-                  border: const OutlineInputBorder(),
-                ),
+      // Scrollable, which it was not. Five presets with a sentence each, two
+      // rows of cards and a text field is taller than a phone, and a bottom
+      // sheet gives its content the height it asks for without ever offering
+      // to scroll it — so everything below the fold was simply off the
+      // screen with no way to reach it.
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.briefTitle, style: theme.textTheme.titleMedium),
+            const SizedBox(height: NexSpacing.xs),
+            Text(
+              l10n.briefSubtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-          ],
-          // Both dials are about prose, and the plain report has none: there
-          // is nothing for a tone to colour and nothing for a length to
-          // shorten that is not a fact. Showing them anyway would be two
-          // controls that visibly do nothing.
-          if (style.usesModel) ...[
             const SizedBox(height: NexSpacing.lg),
-            _Label(l10n.briefToneLabel),
-            NexChoiceCards<AiResponseStyle>(
-              selected: prefs.briefTone,
-              onSelected: (value) {
-                unawaited(prefs.setBriefTone(value));
-                setState(() {});
-              },
-              choices: [
-                NexChoice(
-                  value: AiResponseStyle.natural,
-                  label: l10n.assistantStyleNatural,
-                  preview: const NexScriptSample(icon: Icons.waves),
-                ),
-                NexChoice(
-                  value: AiResponseStyle.friendly,
-                  label: l10n.assistantStyleFriendly,
-                  preview: const NexScriptSample(
-                    icon: Icons.sentiment_satisfied_alt,
+            _Label(l10n.briefStyleLabel),
+            for (final entry in _styles(l10n))
+              _StyleRow(
+                icon: entry.icon,
+                label: entry.label,
+                about: entry.about,
+                selected: style == entry.value,
+                onTap: () {
+                  unawaited(prefs.setBriefStyle(entry.value));
+                  setState(() {});
+                },
+              ),
+            // One line of consequence under the list, never two: what this
+            // choice costs or saves, said where the choice is made rather than
+            // in a help page nobody opens.
+            if (!style.usesModel)
+              _Note(text: l10n.briefOffline, icon: Icons.wifi_off_outlined)
+            else if (!hasModel)
+              _Note(
+                text: l10n.briefNeedsAi,
+                icon: Icons.info_outline,
+                warn: true,
+              ),
+            if (style == NexBriefStyle.custom) ...[
+              const SizedBox(height: NexSpacing.lg),
+              _Label(l10n.briefInstructionLabel),
+              NexAutoDirection(
+                controller: _instruction,
+                builder: (context, direction) => TextField(
+                  controller: _instruction,
+                  onChanged: _saveInstruction,
+                  maxLength: NexPreferences.briefInstructionMaxLength,
+                  maxLines: 3,
+                  minLines: 1,
+                  textDirection: direction,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: l10n.briefInstructionHint,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
-                NexChoice(
-                  value: AiResponseStyle.formal,
-                  label: l10n.assistantStyleFormal,
-                  preview: const NexScriptSample(icon: Icons.work_outline),
-                ),
-                NexChoice(
-                  value: AiResponseStyle.serious,
-                  label: l10n.assistantStyleSerious,
-                  preview: const NexScriptSample(icon: Icons.gavel_outlined),
-                ),
-              ],
-            ),
-          ],
-          // The language, here as well as in Intelligence. It is the single
-          // most visible thing about a brief and the last place anyone would
-          // look for it is three rows below the provider — but it is not the
-          // brief's own setting, so it is shown rather than moved, and the
-          // line under it says what else it governs.
-          if (style.usesModel) ...[
+              ),
+            ],
+            // Both dials are about prose, and the plain report has none: there
+            // is nothing for a tone to colour and nothing for a length to
+            // shorten that is not a fact. Showing them anyway would be two
+            // controls that visibly do nothing.
+            if (style.usesModel) ...[
+              const SizedBox(height: NexSpacing.lg),
+              _Label(l10n.briefToneLabel),
+              NexChoiceCards<AiResponseStyle>(
+                selected: prefs.briefTone,
+                onSelected: (value) {
+                  unawaited(prefs.setBriefTone(value));
+                  setState(() {});
+                },
+                choices: [
+                  NexChoice(
+                    value: AiResponseStyle.natural,
+                    label: l10n.assistantStyleNatural,
+                    preview: const NexScriptSample(icon: Icons.waves),
+                  ),
+                  NexChoice(
+                    value: AiResponseStyle.friendly,
+                    label: l10n.assistantStyleFriendly,
+                    preview: const NexScriptSample(
+                      icon: Icons.sentiment_satisfied_alt,
+                    ),
+                  ),
+                  NexChoice(
+                    value: AiResponseStyle.formal,
+                    label: l10n.assistantStyleFormal,
+                    preview: const NexScriptSample(icon: Icons.work_outline),
+                  ),
+                  NexChoice(
+                    value: AiResponseStyle.serious,
+                    label: l10n.assistantStyleSerious,
+                    preview: const NexScriptSample(icon: Icons.gavel_outlined),
+                  ),
+                ],
+              ),
+            ],
+            // The language, here as well as in Intelligence. It is the single
+            // most visible thing about a brief and the last place anyone would
+            // look for it is three rows below the provider — but it is not the
+            // brief's own setting, so it is shown rather than moved, and the
+            // line under it says what else it governs.
             const SizedBox(height: NexSpacing.lg),
             _Label(l10n.aiOutputLanguage),
             NexChoiceCards<AiOutputLanguage>(
@@ -191,34 +196,34 @@ class _BriefSettingsSheetState extends State<BriefSettingsSheet> {
               ],
             ),
             _Note(text: l10n.briefLanguageShared, icon: Icons.link),
+            const SizedBox(height: NexSpacing.lg),
+            _Label(l10n.briefLengthLabel),
+            NexChoiceCards<NexBriefLength>(
+              selected: prefs.briefLength,
+              onSelected: (value) {
+                unawaited(prefs.setBriefLength(value));
+                setState(() {});
+              },
+              choices: [
+                NexChoice(
+                  value: NexBriefLength.short,
+                  label: l10n.assistantLengthBrief,
+                  preview: const NexScriptSample(icon: Icons.short_text),
+                ),
+                NexChoice(
+                  value: NexBriefLength.medium,
+                  label: l10n.assistantLengthStandard,
+                  preview: const NexScriptSample(icon: Icons.subject),
+                ),
+                NexChoice(
+                  value: NexBriefLength.long,
+                  label: l10n.assistantLengthFull,
+                  preview: const NexScriptSample(icon: Icons.notes),
+                ),
+              ],
+            ),
           ],
-          const SizedBox(height: NexSpacing.lg),
-          _Label(l10n.briefLengthLabel),
-          NexChoiceCards<NexBriefLength>(
-            selected: prefs.briefLength,
-            onSelected: (value) {
-              unawaited(prefs.setBriefLength(value));
-              setState(() {});
-            },
-            choices: [
-              NexChoice(
-                value: NexBriefLength.short,
-                label: l10n.assistantLengthBrief,
-                preview: const NexScriptSample(icon: Icons.short_text),
-              ),
-              NexChoice(
-                value: NexBriefLength.medium,
-                label: l10n.assistantLengthStandard,
-                preview: const NexScriptSample(icon: Icons.subject),
-              ),
-              NexChoice(
-                value: NexBriefLength.long,
-                label: l10n.assistantLengthFull,
-                preview: const NexScriptSample(icon: Icons.notes),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

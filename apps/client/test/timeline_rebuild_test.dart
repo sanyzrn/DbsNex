@@ -109,6 +109,13 @@ void main() {
 
       await tester.pumpWidget(NexApp(services: services, preferences: fresh));
       await tester.pumpAndSettle();
+      if (!nexFirstRunTourEnabled) {
+        // Switched off for now. Guarded rather than deleted: the rule below
+        // is still the rule the moment the flag goes back, and a test
+        // removed is a rule nobody is holding.
+        expect(find.byType(FirstRunTour), findsNothing);
+        return;
+      }
       expect(find.byType(FirstRunTour), findsOneWidget);
 
       // Skipping counts. Someone who leaves on step one has decided.
