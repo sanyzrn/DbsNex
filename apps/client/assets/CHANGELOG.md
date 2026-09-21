@@ -34,6 +34,42 @@ Working convention:
 
 ## Unreleased
 
+## v1.17.0
+
+- **A photo in a note can be zoomed.** Pinch it, or double-tap it. There was
+  a zoom all along; a swipe-to-close gesture sitting over it was winning the
+  argument, so whether a pinch zoomed or started to close the photo came down
+  to which one the phone noticed first. It goes further in now too — far
+  enough to read the small print on a photographed receipt.
+
+- **The assistant can see the picture you are asking about.** Ask about a
+  photo on a note and it looks at it, instead of saying it has no access to
+  images. It does not go through your other photos: only the note you opened
+  the assistant on, and only where your provider can read images at all.
+
+- **And it can read the file.** A markdown, text, code or CSV file attached to
+  a note now goes to the assistant along with the note, so a question about a
+  document is answered from the document. Word and PDF files are still named
+  rather than read — Nex cannot open those itself yet, and telling the
+  assistant about a file it cannot read would only produce a confident guess.
+
+- **A line of Persian no longer comes out left-aligned on the timeline.** A
+  card took one direction for its whole preview — the first line's — so a note
+  that begins in English laid its Persian lines out the wrong way round, and a
+  note that begins in Persian did the same to its English ones. Every line now
+  follows its own script.
+
+- **Changing what the daily brief says now changes the daily brief.** The
+  style, tone, length, language or your own instruction: any of them used to
+  leave the old brief on the card until you happened to write a note. This is
+  also why the five kinds of brief added in the last release seemed not to
+  take — they did, on your next note. They take now.
+
+- **The AI language is in the Daily brief sheet too.** It is the most visible
+  thing about a brief and it was three rows below the provider. It is still
+  one setting — the assistant answers in it and transcriptions come back in it
+  — and the line under it says so.
+
 ## v1.16.0
 
 - **The daily brief is yours to define.** Five kinds, in Settings →
