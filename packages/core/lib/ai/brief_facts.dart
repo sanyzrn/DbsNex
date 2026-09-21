@@ -1,6 +1,3 @@
-import '../models/commitment.dart';
-import '../models/note.dart';
-
 /// Everything the brief can say that the app already knows, with nothing
 /// asked of anybody.
 ///
@@ -24,6 +21,9 @@ import '../models/note.dart';
 /// What each of these *reads as* is a client concern, and the client has the
 /// strings.
 library;
+
+import '../models/commitment.dart';
+import '../models/note.dart';
 
 /// One thing worth mentioning, reduced to the facts about it.
 class NexBriefEntry {
