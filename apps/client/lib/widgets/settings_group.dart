@@ -13,7 +13,11 @@ import 'package:nex_ui/nex_ui.dart';
 
 /// One labelled card, the same shape Settings uses for its groups.
 class NexSettingsGroup extends StatelessWidget {
-  const NexSettingsGroup({required this.title, required this.children});
+  const NexSettingsGroup({
+    super.key,
+    required this.title,
+    required this.children,
+  });
 
   final String title;
   final List<Widget> children;
@@ -73,6 +77,7 @@ class NexSettingsGroup extends StatelessWidget {
 /// without its layout.
 class NexSettingsField extends StatelessWidget {
   const NexSettingsField({
+    super.key,
     required this.icon,
     required this.label,
     required this.child,
