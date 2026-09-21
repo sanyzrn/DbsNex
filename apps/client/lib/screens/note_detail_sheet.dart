@@ -1347,25 +1347,80 @@ class _FullScreenPhoto extends StatefulWidget {
 class _FullScreenPhotoState extends State<_FullScreenPhoto> {
   double _dragDy = 0;
 
+  /// The zoom, owned here rather than left inside the viewer, because two
+  /// other things have to know it: the drag-to-dismiss, which must stand down
+  /// once the photo is bigger than the screen, and the double tap, which
+  /// toggles it.
+  final TransformationController _zoom = TransformationController();
+
   /// Past this much downward drag, releasing closes the viewer instead of
   /// springing back — the photo equivalent of the swipe card's own commit
   /// threshold.
   static const _dismissDistance = 120.0;
 
-  void _onDragUpdate(DragUpdateDetails details) {
-    // Only downward: there is nothing above the photo to reveal.
-    setState(
-      () => _dragDy = (_dragDy + details.delta.dy).clamp(0.0, double.infinity),
-    );
+  /// Far enough in to read the small print on a photographed receipt, which
+  /// is most of what anyone zooms a note's photo for. The default ceiling is
+  /// 2.5, which is not enough to make an unreadable line readable.
+  static const _maxScale = 6.0;
+
+  /// What a double tap goes to, and comes back from.
+  static const _tapScale = 2.5;
+
+  @override
+  void dispose() {
+    _zoom.dispose();
+    super.dispose();
   }
 
-  void _onDragEnd(DragEndDetails details) {
+  double get _scale => _zoom.value.getMaxScaleOnAxis();
+
+  bool get _zoomedIn => _scale > 1.01;
+
+  /// Dismissal is driven from the viewer's own gestures rather than from a
+  /// `GestureDetector` wrapped around it, and that is the whole fix.
+  ///
+  /// A vertical-drag recognizer sitting over an [InteractiveViewer] competes
+  /// with the viewer's own scale recognizer in the gesture arena, and a pinch
+  /// begins as two pointers moving in some direction — so whether the photo
+  /// zoomed or the sheet started to close came down to which recognizer
+  /// claimed the pointers first. That is why zooming "did not work": it
+  /// worked whenever the arena happened to go the other way.
+  ///
+  /// One pointer and no zoom is a drag to dismiss. Anything else belongs to
+  /// the viewer.
+  void _onInteractionUpdate(ScaleUpdateDetails details) {
+    if (details.pointerCount != 1 || _zoomedIn) {
+      if (_dragDy != 0) setState(() => _dragDy = 0);
+      return;
+    }
+    setState(() {
+      _dragDy = (_dragDy + details.focalPointDelta.dy).clamp(
+        0.0,
+        double.infinity,
+      );
+    });
+  }
+
+  void _onInteractionEnd(ScaleEndDetails details) {
     final flung = details.velocity.pixelsPerSecond.dy > 800;
-    if (_dragDy > _dismissDistance || flung) {
+    if (!_zoomedIn && (_dragDy > _dismissDistance || flung)) {
       Navigator.of(context).pop();
       return;
     }
-    setState(() => _dragDy = 0);
+    if (_dragDy != 0) setState(() => _dragDy = 0);
+  }
+
+  /// Zoom without a pinch, which is the affordance people actually reach for
+  /// first — and the only one available one-handed.
+  void _onDoubleTap() {
+    setState(() {
+      // `diagonal3Values` rather than `identity()..scale(...)`: the cascade
+      // reads better and is a deprecated call, and this repository analyses
+      // with `--fatal-infos`.
+      _zoom.value = _zoomedIn
+          ? Matrix4.identity()
+          : Matrix4.diagonal3Values(_tapScale, _tapScale, 1);
+    });
   }
 
   @override
@@ -1378,18 +1433,27 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
+      // Only a double tap out here, and it is safe where a drag was not: a
+      // double-tap recognizer needs two taps in quick succession, so it never
+      // competes with a pinch or a pan for the same pointers.
       body: GestureDetector(
-        // Opaque rather than the default deferToChild: a contained image
-        // rarely fills the whole screen, and a swipe that starts in the
-        // black margin around it — not on the image's own pixels — must
-        // dismiss too.
         behavior: HitTestBehavior.opaque,
-        onVerticalDragUpdate: _onDragUpdate,
-        onVerticalDragEnd: _onDragEnd,
-        child: Center(
-          child: Transform.translate(
-            offset: Offset(0, _dragDy),
-            child: InteractiveViewer(
+        onDoubleTap: _onDoubleTap,
+        child: InteractiveViewer(
+          transformationController: _zoom,
+          // Never smaller than the screen fit. Pinching a photo down to a
+          // postage stamp in the middle of a black page is not a thing
+          // anybody wants; getting back out of it is worse.
+          minScale: 1,
+          maxScale: _maxScale,
+          onInteractionUpdate: _onInteractionUpdate,
+          onInteractionEnd: _onInteractionEnd,
+          // The viewer fills the screen rather than hugging the image, so a
+          // gesture starting in the black margin still reaches it — which is
+          // what the opaque hit test used to be for.
+          child: Center(
+            child: Transform.translate(
+              offset: Offset(0, _dragDy),
               child: Image.file(File(widget.path), fit: BoxFit.contain),
             ),
           ),
