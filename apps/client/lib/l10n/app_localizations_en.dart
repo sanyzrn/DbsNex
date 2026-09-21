@@ -2145,6 +2145,97 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commitmentsEmpty => 'Nothing recurring yet.\nInsurance, rent, a tablet every eight hours.';
 
   @override
+  String get briefTitle =>
+      'Daily brief';
+
+  @override
+  String get briefSubtitle =>
+      'The card above your notes. You choose what it is for.';
+
+  @override
+  String get briefStyleLabel =>
+      'What it writes';
+
+  @override
+  String get briefStyleAssistant =>
+      'Assistant';
+
+  @override
+  String get briefStyleAssistantAbout =>
+      'The model reads your notes and writes the brief.';
+
+  @override
+  String get briefStyleBlended =>
+      'Facts, plus one observation';
+
+  @override
+  String get briefStyleBlendedAbout =>
+      'Nex states what is due, exactly. The model adds the one thing only the whole set shows.';
+
+  @override
+  String get briefStyleReport =>
+      'Plain report';
+
+  @override
+  String get briefStyleReportAbout =>
+      'What has slipped, what is due, what is half-done. Nothing is sent anywhere.';
+
+  @override
+  String get briefStylePlanner =>
+      'Planner';
+
+  @override
+  String get briefStylePlannerAbout =>
+      'The same facts, and one suggestion for what to do next — a suggestion only, nothing is changed.';
+
+  @override
+  String get briefStyleCustom =>
+      'My own brief';
+
+  @override
+  String get briefStyleCustomAbout =>
+      'You describe what you want it to tell you.';
+
+  @override
+  String get briefOffline =>
+      'Works with no provider, no key and no signal.';
+
+  @override
+  String get briefNeedsAi =>
+      'This one needs intelligence switched on. Plain report is the one that works without it.';
+
+  @override
+  String get briefInstructionLabel =>
+      'What you want it to say';
+
+  @override
+  String get briefInstructionHint =>
+      'Only what is overdue. No greeting.';
+
+  @override
+  String get briefToneLabel =>
+      'How it sounds';
+
+  @override
+  String get briefLengthLabel =>
+      'How much of it';
+
+  @override
+  String briefLineOverdue(String title, String span) {
+    return '$title — $span overdue';
+  }
+
+  @override
+  String briefLineDue(String title, String span) {
+    return '$title — due in $span';
+  }
+
+  @override
+  String briefLineChecklist(String title, int remaining, int total) {
+    return '$title — $remaining of $total left';
+  }
+
+  @override
   String get commitmentsAbout => 'Nex keeps the next date for each one, brings it up in the daily brief, and can send a notification before it falls due.';
 
   @override

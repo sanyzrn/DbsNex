@@ -1152,6 +1152,69 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// What the daily brief is — see [NexBriefStyle].
+  ///
+  /// Default is the style the card has always had, so an upgrade changes
+  /// nothing for anyone who was happy with it. The one that asks nothing of a
+  /// provider is a choice people make deliberately, not one they should be
+  /// moved to behind their backs.
+  NexBriefStyle get briefStyle =>
+      NexBriefStyle.fromWire(_prefs.getString('brief.style'));
+
+  Future<void> setBriefStyle(NexBriefStyle value) async {
+    await _prefs.setString('brief.style', value.wireName);
+    notifyListeners();
+  }
+
+  /// How the brief sounds, under the styles that have a model write anything.
+  ///
+  /// Its own key rather than the assistant's: the two are read in different
+  /// places for different reasons — a chat you opened, and a card that writes
+  /// itself while you are looking at something else — and somebody who wants
+  /// their assistant playful may well want the thing telling them what is
+  /// overdue to be flat.
+  AiResponseStyle get briefTone =>
+      AiResponseStyle.fromWire(_prefs.getString('brief.tone'));
+
+  Future<void> setBriefTone(AiResponseStyle value) async {
+    await _prefs.setString('brief.tone', value.wireName);
+    notifyListeners();
+  }
+
+  /// How many lines the card may fill — see [NexBriefLength].
+  NexBriefLength get briefLength =>
+      NexBriefLength.fromWire(_prefs.getString('brief.length'));
+
+  Future<void> setBriefLength(NexBriefLength value) async {
+    await _prefs.setString('brief.length', value.wireName);
+    notifyListeners();
+  }
+
+  /// The brief the user described in their own words, under
+  /// [NexBriefStyle.custom].
+  ///
+  /// Capped like the assistant's for the same reason and kept on the device
+  /// the same way. Separate from it because they answer different questions:
+  /// one is how to talk, the other is what to say.
+  static const briefInstructionMaxLength = 300;
+
+  String get briefInstruction => _prefs.getString('brief.instruction') ?? '';
+
+  Future<void> setBriefInstruction(String value) async {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      await _prefs.remove('brief.instruction');
+    } else {
+      await _prefs.setString(
+        'brief.instruction',
+        trimmed.length <= briefInstructionMaxLength
+            ? trimmed
+            : trimmed.substring(0, briefInstructionMaxLength),
+      );
+    }
+    notifyListeners();
+  }
+
   /// How many recent notes are sent with each question.
   ///
   /// A privacy setting before it is a quality one. Every one of these leaves

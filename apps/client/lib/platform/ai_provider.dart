@@ -299,6 +299,97 @@ enum AiResponseStyle {
       );
 }
 
+/// What the daily brief is — a question with more than one right answer, and
+/// until now only one of them was on offer.
+///
+/// The five differ in exactly one thing: how much of the brief the model
+/// writes. Everything else — the facts underneath, the line budget, the
+/// tidying on the way out — is shared, because those are the parts that were
+/// never in dispute.
+///
+/// The ladder runs from all of it to none of it. [assistant] is the original
+/// and stays the default, so nobody who liked it has to do anything.
+/// [blended] and [planner] state the facts from the app's own records and
+/// spend the model on the one line it is actually better at. [report] asks
+/// nothing of anyone, which is why it is the only one that works with no
+/// provider, no key and no network. [custom] is the preset you write
+/// yourself.
+enum NexBriefStyle {
+  /// Everything goes to the model; up to [NexBriefLength.lines] come back.
+  assistant('assistant'),
+
+  /// The app writes what is true, the model adds one observation.
+  blended('blended'),
+
+  /// The app writes what is true and stops. No request is made.
+  report('report'),
+
+  /// The app writes what is true, the model suggests one next step.
+  planner('planner'),
+
+  /// The user's own instruction, in place of a preset's.
+  custom('custom');
+
+  const NexBriefStyle(this.wireName);
+
+  final String wireName;
+
+  /// Whether a provider is asked for anything at all.
+  ///
+  /// False is not a degraded mode. It is the one setting under which the
+  /// brief cannot be wrong about a date, cannot cost anything, and cannot
+  /// fail to appear because a plane is in the air.
+  bool get usesModel => this != NexBriefStyle.report;
+
+  /// Whether the app states the facts itself and the model, if any, writes
+  /// only what is left.
+  ///
+  /// [assistant] and [custom] are the two that hand the whole set over: the
+  /// first because that is what it has always been, the second because a
+  /// person who has written their own instruction has asked for their own
+  /// instruction, not for ours wrapped around it.
+  bool get statesFacts =>
+      this == NexBriefStyle.blended ||
+      this == NexBriefStyle.report ||
+      this == NexBriefStyle.planner;
+
+  static NexBriefStyle fromWire(String? value) =>
+      NexBriefStyle.values.firstWhere(
+        (candidate) => candidate.wireName == value,
+        orElse: () => NexBriefStyle.assistant,
+      );
+}
+
+/// How much of the card a brief is allowed to fill.
+///
+/// A line count rather than a token budget, which is what makes this a
+/// different quantity from [AiAnswerLength]: an answer is as long as the
+/// question needs, a brief is as long as there are things waiting. The
+/// budget is stated to the model *and* enforced by `nexTidyBrief` on the way
+/// back, for the same reason as everywhere else here — "at most" is a
+/// suggestion to a model and arithmetic to a tidier.
+///
+/// Still a ceiling, never a target. A day with one thing on it gets one line
+/// under all three.
+enum NexBriefLength {
+  short('short', 2),
+  medium('medium', 4),
+  long('long', 6);
+
+  const NexBriefLength(this.wireName, this.lines);
+
+  final String wireName;
+
+  /// The most lines the whole brief may have, the app's own included.
+  final int lines;
+
+  static NexBriefLength fromWire(String? value) =>
+      NexBriefLength.values.firstWhere(
+        (candidate) => candidate.wireName == value,
+        orElse: () => NexBriefLength.medium,
+      );
+}
+
 /// Everything the assistant sheet decides about one exchange.
 ///
 /// Grouped rather than passed as five parameters: they are read together,
@@ -886,12 +977,34 @@ class CloudAIAdapter implements AIAdapter {
   /// reach for a bullet or a heading the moment they are asked for a list.
   /// Asking every model this app talks to — the small ones on the phone
   /// included — to behave every time is a wish; the tidier is arithmetic.
+  ///
+  /// [style] decides how much of the brief this method is responsible for at
+  /// all. Under [NexBriefStyle.assistant] it is the whole thing, which is
+  /// what it has always been; under the two that state their own facts it is
+  /// a single line, and [written] carries the lines the app has already
+  /// prepared so that the model can be told not to say them again. Under
+  /// [NexBriefStyle.report] this is never called.
   Future<String?> digest(
     String recentNotesText, {
     int lines = 3,
     Duration? timeout,
+    NexBriefStyle style = NexBriefStyle.assistant,
+    AiResponseStyle tone = AiResponseStyle.natural,
+    String instruction = '',
+    String written = '',
   }) async {
     if (!canAnswerText || recentNotesText.trim().isEmpty) return null;
+    if (style != NexBriefStyle.assistant) {
+      return _sideBrief(
+        recentNotesText,
+        style: style,
+        tone: tone,
+        instruction: instruction,
+        written: written,
+        lines: lines,
+        timeout: timeout,
+      );
+    }
     final reply = await _complete(
       'You are the assistant in a notes app, telling someone what is waiting '
       'on them. Not a summary of their week — a short list of the things '
@@ -962,6 +1075,98 @@ class CloudAIAdapter implements AIAdapter {
     // every run of whitespace in the reply, newlines included, which turned
     // a list back into the paragraph it was asked not to be.
     return _plausible(nexTidyBrief(reply, maxLines: lines), shortLine: false);
+  }
+
+  /// The model's share of a brief whose facts the app has already written.
+  ///
+  /// Every style but [NexBriefStyle.assistant] comes through here, and what
+  /// they have in common is the thing that makes them worth having: the dates
+  /// and the counts are not up for negotiation, because they were not asked
+  /// for. What is asked for is the part arithmetic cannot do.
+  ///
+  /// So the budget is one line, not four, under all of them. A model given
+  /// room for four lines beside four lines it has been told not to repeat
+  /// will fill the room — with the same facts in other words, which is the
+  /// exact failure these styles exist to avoid.
+  Future<String?> _sideBrief(
+    String recentNotesText, {
+    required NexBriefStyle style,
+    required AiResponseStyle tone,
+    required String instruction,
+    required String written,
+    required int lines,
+    Duration? timeout,
+  }) async {
+    // Under a custom instruction the user's sentence is the whole brief, so
+    // the budget is theirs too. The other two get one line each.
+    final budget = style == NexBriefStyle.custom ? lines : 1;
+    final task = switch (style) {
+      NexBriefStyle.blended =>
+        'Write the one thing about this set that can only be seen by looking '
+            'at all of it at once, and nothing else. Worth saying: two things '
+            'due within an hour of each other, a reminder overdue so long it '
+            'is worth moving or dropping, the same task written twice, a '
+            'standing commitment usually done by now that is not, a checklist '
+            'nothing has been ticked on in a week. Not worth saying: anything '
+            'that is already one of the lines below, in any wording.',
+      NexBriefStyle.planner =>
+        'Suggest one thing to do next, and say in the same breath why it is '
+            'that one — what it unblocks, what it is a prerequisite for, why '
+            'it beats the others today. One suggestion, never a list. You are '
+            'proposing, not deciding: never say anything has been done, '
+            'moved, rescheduled or ticked, because nothing has.',
+      NexBriefStyle.custom =>
+        'The person reading this wrote the instruction below, in their own '
+            'words, for what they want their daily brief to be. Follow it. '
+            'Where it does not say, fall back on telling them plainly what is '
+            'waiting on them.\n\nTheir instruction: $instruction',
+      // Unreachable: `report` never asks anybody anything, and `assistant`
+      // is answered above. Both are written out rather than defaulted so
+      // that a sixth style cannot be added without this switch objecting.
+      NexBriefStyle.assistant || NexBriefStyle.report => '',
+    };
+    if (task.isEmpty) return null;
+
+    final reply = await _complete(
+      'You are the assistant in a notes app. '
+      '$task '
+      // The same key as the whole-brief prompt above, because the lines
+      // handed over are the same lines.
+      'Each line you are given is one note or one standing commitment, '
+      'written as `when | kind | text`. A line starting DUE carries a '
+      'reminder — "DUE in 6h", "DUE overdue 2d". On a checklist, "3/5 left" '
+      'means three of its five items are still unticked. '
+      '${written.trim().isEmpty ? '' : 'These lines are already written and '
+          'will be shown to the reader above yours. Do not repeat them and '
+          'do not restate what they say:\n$written\n'}'
+      'Answer with at most $budget '
+      '${budget == 1 ? 'line' : 'lines'}, beginning with a single emoji that '
+      'fits. '
+      // The escape hatch, and it is not a formality: on a quiet, tidy day
+      // there is genuinely no observation to make, and a manufactured one is
+      // worse than none — it is the line that teaches people to stop reading
+      // the card.
+      'If there is nothing worth saying, reply with nothing at all rather '
+      'than filling the space. '
+      '${tone.promptRule} '
+      // Identical to the whole-brief rules, deliberately word for word: a
+      // brief that may invent a date under one setting and not another is a
+      // brief nobody can trust under any of them.
+      'Every fact must come from the lines you were given: no invented dates, '
+      'times, tasks or names. Reading two lines together is not inventing; '
+      'asserting a third thing is. If you are not certain, leave it out. '
+      'No preamble, no heading, no bullet or number in front of a line, no '
+      'quotes, no markdown. One emoji per line and never more. Write in one '
+      'language only. '
+      'Reply with the lines only. ${outputLanguage.promptRule}',
+      recentNotesText,
+      maxTokens: (budget * 60).clamp(120, 800),
+      timeout: timeout,
+    );
+    return _plausible(
+      nexTidyBrief(reply, maxLines: budget),
+      shortLine: false,
+    );
   }
 
   /// The one-line headline over the timeline: a mood, not a summary.

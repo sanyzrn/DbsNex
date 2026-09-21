@@ -48,6 +48,7 @@ export 'ports/sync_port.dart';
 export 'ai/ai_adapter.dart';
 export 'ai/ai_adapter_binding.dart';
 export 'ai/ai_capabilities.dart';
+export 'ai/brief_facts.dart';
 export 'ai/chat_adapter.dart';
 export 'ai/chat_adapter_binding.dart';
 export 'ai/chat_scope_policy.dart';

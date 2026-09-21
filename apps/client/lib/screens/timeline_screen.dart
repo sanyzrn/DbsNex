@@ -16,6 +16,7 @@ import '../platform/daily_nudge.dart';
 import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import 'update_sheet.dart';
+import '../platform/brief_report.dart';
 import '../platform/nex_services.dart';
 import '../platform/nex_widget.dart';
 import '../platform/sponsor.dart';
@@ -489,6 +490,17 @@ class TimelineScreenState extends State<TimelineScreen>
       widget.preferences.aiEnabled &&
       aiTextAvailableWith(widget.preferences.aiProvider);
 
+  /// Whether the brief card is drawn at all.
+  ///
+  /// Not the same question as [_aiHeaderAvailable], which is about the
+  /// greeting as well and is genuinely about whether a model can be reached.
+  /// One of the brief's styles asks nothing of a model, and a card that works
+  /// without one has no business being hidden because there is none — but
+  /// only for somebody who chose that style. Left on the default, an app with
+  /// intelligence switched off looks exactly as it did.
+  bool get _briefAvailable =>
+      _aiHeaderAvailable || !widget.preferences.briefStyle.usesModel;
+
   /// Builds an adapter with the user's chosen output language applied.
   ///
   /// Every call site here closes it; the caller owning the lifetime is why
@@ -524,26 +536,77 @@ class TimelineScreenState extends State<TimelineScreen>
     }
     final source = _aiRecapSource();
     if (source.isEmpty) return;
+    final style = prefs.briefStyle;
+    // Counted off the source rather than off the library — what the brief is
+    // allowed to say follows what it was actually given — and then held to
+    // whatever the reader asked for. The two are a floor and a ceiling, not
+    // two opinions: a quiet day is short under "long", and a busy one does
+    // not overflow under "short".
+    final budget = nexBriefLines(
+      '\n'.allMatches(source).length + 1,
+    ).clamp(1, prefs.briefLength.lines);
+    // What the app knows for itself. Written before anything is asked of
+    // anybody, and under `report` it is the entire brief — which is why that
+    // style needs no provider, no key and no signal.
+    final written = style.statesFacts
+        ? nexBriefReport(
+            nexBriefFacts(_all ?? notes, commitments: _commitments),
+            AppLocalizations.of(context),
+            // One line kept back for the model to answer with, under the two
+            // styles that ask it for one.
+            maxLines: style.usesModel ? (budget - 1).clamp(1, budget) : budget,
+          )
+        : null;
+    if (!style.usesModel) {
+      if (!mounted) return;
+      setState(() {
+        _aiSummaryLoading = false;
+        if (written != null && written.isNotEmpty) _aiSummaryText = written;
+      });
+      // Deliberately not filed and not pushed to the widget. This one is
+      // rebuilt from the database every time the timeline moves, costs
+      // nothing, and is never stale — storing it would only give the home
+      // screen an older copy of something it can have fresh.
+      _refreshDailyNudge();
+      return;
+    }
     final fingerprint = recapFingerprint(source);
     if (!force && !_recapIsStale(fingerprint)) return;
     if (mounted) setState(() => _aiSummaryLoading = true);
     final adapter = _aiAdapter();
     String? text;
+    // Kept apart from `text`, because under the styles that state their own
+    // facts a failed request still leaves something on the card — and a tap
+    // that quietly half-worked is the same broken control as one that did
+    // nothing at all.
+    var refused = false;
     try {
-      text = await adapter.digest(
+      final answer = await adapter.digest(
         source,
-        // Counted off the source rather than off the library: what the brief
-        // is allowed to say follows what it was actually given, and the
-        // source caps how many notes that is.
-        lines: nexBriefLines('\n'.allMatches(source).length + 1),
+        lines: budget,
+        style: style,
+        tone: prefs.briefTone,
+        instruction: prefs.briefInstruction,
+        written: written ?? '',
         // A tap gets the full budget; the one that runs itself on launch does
         // not. On a network that is joined but not connected, ninety seconds
         // of spinner at the top of the timeline is what "the app loads slowly"
         // turns out to mean.
         timeout: force ? null : CloudAIAdapter.ambientTimeout,
       );
+      // The app's lines stand whether or not the model answered. That is the
+      // point of stating them separately: a brief that loses the rent being
+      // overdue because a request timed out is a brief that cannot be relied
+      // on for the one thing it is for.
+      text = [
+        if (written != null && written.isNotEmpty) written,
+        if (answer != null && answer.isNotEmpty) answer,
+      ].join('\n');
+      if (text.isEmpty) text = null;
+      refused = answer == null || answer.isEmpty;
     } catch (_) {
-      text = null;
+      text = written;
+      refused = true;
     } finally {
       adapter.close();
     }
@@ -566,7 +629,7 @@ class TimelineScreenState extends State<TimelineScreen>
     // This method's own rule at the top says why that is wrong — the panel is
     // additive chrome, never a reason to show an error. A failure with no tap
     // behind it leaves yesterday's recap on the card and says nothing.
-    if (force && (text == null || text.isEmpty)) {
+    if (force && (refused || text == null || text.isEmpty)) {
       if (!mounted) return;
       NexBannerHost.of(context)?.show(
         message: AppLocalizations.of(context).recapRefreshFailed,
@@ -1972,7 +2035,7 @@ class TimelineScreenState extends State<TimelineScreen>
     // The same condition the header uses to decide whether to draw the recap
     // at all. It decides here whether the pull is wired up, because the pull
     // exists to rewrite the recap and nothing else.
-    final showSummary = _aiHeaderAvailable && widget.preferences.showDaySummary;
+    final showSummary = _briefAvailable && widget.preferences.showDaySummary;
     return Scaffold(
       appBar: AppBar(
         // Transparent so the blur below has the list to work on rather than a
@@ -2097,7 +2160,13 @@ class TimelineScreenState extends State<TimelineScreen>
                     child: NotificationListener<ScrollNotification>(
                       onNotification: _onScroll,
                       child: _wrapInRefresh(
-                        enabled: showSummary,
+                        // Only where a pull has something to ask for. The
+                        // plain report is rebuilt from the database every
+                        // time this screen moves, so there is nothing a
+                        // gesture could refresh that is not already there.
+                        enabled:
+                            showSummary &&
+                            widget.preferences.briefStyle.usesModel,
                         child: CustomScrollView(
                           controller: _scroll,
                           // Always scrollable, so a short list still bounces rather
