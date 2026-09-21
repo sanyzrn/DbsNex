@@ -85,6 +85,56 @@
                 <action android:name="com.sanyzrn.nex.TEXT_CAPTURE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <!--
+              Opening a file with Nex, as opposed to sharing one into it.
+
+              Two different gestures that arrive as two different intents:
+              a share is ACTION_SEND with the URI in EXTRA_STREAM, tapping a
+              file in a file manager or Telegram's "Open in" is ACTION_VIEW
+              with the URI in `data`. Only the second one was missing, which
+              is why Nex could read a markdown file perfectly well and still
+              not appear in the list of apps offering to open one.
+
+              MainActivity rather than ShareActivity. A share is an errand
+              done to the app you were already in and its window is
+              deliberately invisible; opening a file is a request to be in
+              Nex, and the note it becomes is what you came to look at.
+
+              `text/plain` is on the list and it is the load-bearing entry,
+              not the generous one: most things that hand over a .md type it
+              as plain text, and a filter without it would miss the common
+              case while looking like it covered everything. The cost is that
+              Nex offers to open .txt as well, which for a notes app is not
+              really a cost.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="text/markdown" />
+                <data android:mimeType="text/x-markdown" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <!--
+              And the providers that hand over a file with no useful type at
+              all. A filter carrying a `pathPattern` only matches an intent
+              whose type also matches, so this cannot be folded into the one
+              above: `application/octet-stream` with a name ending in .md is
+              its own case, and without this one it falls to whatever else on
+              the phone claims octet-stream.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:pathPattern=".*\\.md" />
+                <data android:pathPattern=".*\\.markdown" />
+                <data android:pathPattern=".*\\.txt" />
+            </intent-filter>
         </activity>
 
         <!--
