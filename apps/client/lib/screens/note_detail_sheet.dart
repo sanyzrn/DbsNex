@@ -630,7 +630,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               ),
             ],
           ),
-          NexBodyText(body),
+          // Copy-all is the button above; this is the half of a sentence
+          // somebody actually wanted.
+          NexBodyText(body, selectable: true),
           const SizedBox(height: NexSpacing.sm),
         ],
         if (_loadingAi)
@@ -811,6 +813,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         )
                       : NexBodyText(
                           note.content ?? '',
+                          // The same as the markdown branch above it, which
+                          // has had a `SelectionArea` all along. Which of the
+                          // two a note got depended on whether it happened to
+                          // contain an asterisk — so whether a note could be
+                          // copied out of was, from the reader's side, random.
+                          selectable: true,
                           // Looser leading than the timeline card: this is the surface a
                           // person actually reads a long note on, and 1.5 at 16px runs
                           // the lines together over a screenful of text.
@@ -973,6 +981,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         NexBodyText(
                           note.caption!,
                           style: Theme.of(context).textTheme.bodyLarge,
+                          selectable: true,
                         )
                       else
                         Text(
@@ -1722,6 +1731,12 @@ class _ChecklistBody extends StatelessWidget {
                   Expanded(
                     child: NexBodyText(
                       items[i].text,
+                      // Not selectable, unlike the note body above. The whole
+                      // row is the tick target, and a `SelectionArea` sits
+                      // deeper than the `InkWell` around it — so the tap that
+                      // ticks the item would be claimed by the text instead.
+                      // Ticking is the point of this list; copying one line of
+                      // it is not.
                       style: theme.textTheme.bodyLarge?.copyWith(
                         decoration: items[i].done
                             ? TextDecoration.lineThrough
@@ -1762,6 +1777,7 @@ class _LinkBody extends StatelessWidget {
           NexBodyText(
             note.linkExcerpt!,
             style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
+            selectable: true,
           ),
           const SizedBox(height: NexSpacing.md),
         ],
@@ -2065,6 +2081,10 @@ class _FileTextBodyState extends State<_FileTextBody> {
         NexFileKind.plainText => NexBodyText(
           text,
           style: theme.textTheme.bodyLarge?.copyWith(height: 1.62),
+          // As selectable as the markdown branch beside it. A shared file is
+          // read here and nowhere else, so this is the only place its words
+          // can be taken from.
+          selectable: true,
         ),
         NexFileKind.table when _rows.isNotEmpty => _DelimitedTable(
           rows: _rows,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:nex_data/nex_data.dart';
@@ -123,6 +124,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
             controller: controller,
             builder: (context, direction) => TextField(
               controller: controller,
+              selectionWidthStyle: BoxWidthStyle.tight,
               autofocus: true,
               // A tag is named in whichever language its notes are in, which
               // is not necessarily the interface's.
@@ -180,6 +182,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
               controller: controller,
               builder: (context, direction) => TextField(
                 controller: controller,
+                selectionWidthStyle: BoxWidthStyle.tight,
                 autofocus: true,
                 textDirection: direction,
                 textAlign: TextAlign.start,

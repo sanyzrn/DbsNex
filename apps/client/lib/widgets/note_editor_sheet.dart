@@ -81,6 +81,26 @@ class _NoteEditorSheetState extends State<NoteEditorSheet> {
   bool _expanded = false;
   NexRewriteStyle? _running;
 
+  /// The formatting menu, made once and kept.
+  ///
+  /// Not `nexFormatContextMenuBuilder(context)` in `build`, which is where it
+  /// used to be and is the whole of a bug worth stating: `EditableText`
+  /// compares this builder against the previous one **by identity**, and a
+  /// fresh closure every rebuild reads as a changed menu. Its answer to that
+  /// is to dispose the selection overlay and make a new one after the next
+  /// frame — and the selection handles, the magnifier and the toolbar live in
+  /// that overlay, with their gesture recognizers. Disposing a recognizer
+  /// while a finger is on it cancels the drag, and the handle that replaces it
+  /// a frame later never saw the pointer, so nothing resumes.
+  ///
+  /// This sheet rebuilds on every keystroke — see [_onChanged], which is
+  /// already careful not to rebuild on anything less — so the overlay was
+  /// being torn down by the last characters typed before a hand reached for
+  /// a handle. One closure, held for the life of the sheet, and the overlay
+  /// survives every rebuild.
+  late final EditableTextContextMenuBuilder _formatMenu =
+      nexFormatContextMenuBuilder(context);
+
   @override
   void initState() {
     super.initState();
@@ -216,7 +236,7 @@ class _NoteEditorSheetState extends State<NoteEditorSheet> {
         selectionWidthStyle: BoxWidthStyle.tight,
         // The same selection menu the capture sheet has: a note is formatted
         // where it is written, and it is written in both.
-        contextMenuBuilder: nexFormatContextMenuBuilder(context),
+        contextMenuBuilder: _formatMenu,
         // Read-only while a model is holding it. Not disabled — the text stays
         // selectable and the same colour, because it is still the note.
         readOnly: _running != null,

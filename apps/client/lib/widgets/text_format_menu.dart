@@ -1,3 +1,5 @@
+import 'dart:ui' show BoxWidthStyle;
+
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 
@@ -129,6 +131,7 @@ Future<String?> _askForUrl(BuildContext context) async {
       content: NexDialogBody(
         child: TextField(
           controller: controller,
+          selectionWidthStyle: BoxWidthStyle.tight,
           autofocus: true,
           keyboardType: TextInputType.url,
           // A URL is left to right in every language, including in an

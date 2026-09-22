@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -42,14 +43,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void initState() {
     super.initState();
     _name.text = widget.preferences.displayName ?? '';
-    _name.addListener(() => setState(() {}));
+    _lastText = _name.text;
+    _name.addListener(_onChanged);
   }
 
   @override
   void dispose() {
     _pages.dispose();
+    _name.removeListener(_onChanged);
     _name.dispose();
     super.dispose();
+  }
+
+  /// The text as the chrome below last saw it.
+  ///
+  /// A `TextEditingController` notifies when the **selection** moves as well
+  /// as when the text does, and dragging a selection handle is a stream of
+  /// selection changes. Rebuilding on every notification rebuilt this sheet
+  /// underneath the drag, frame after frame, which is what makes selecting
+  /// text feel like it is fighting back. Nothing the rebuild is for depends
+  /// on where the caret is — it is whether the button at the end of the last
+  /// page is allowed — so the text is what is watched.
+  /// The note editor has carried this shape since v1.13.0; this is the last
+  /// of the stragglers.
+  String _lastText = '';
+
+  void _onChanged() {
+    if (_name.text == _lastText) return;
+    setState(() => _lastText = _name.text);
   }
 
   Future<void> _advance() async {
@@ -373,6 +394,7 @@ class _SetupPage extends StatelessWidget {
               controller: name,
               builder: (context, direction) => TextField(
                 controller: name,
+                selectionWidthStyle: BoxWidthStyle.tight,
                 textCapitalization: TextCapitalization.words,
                 // The one field in the app most likely to be in a different
                 // script from the interface: someone setting Nex to English

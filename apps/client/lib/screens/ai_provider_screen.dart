@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
@@ -237,6 +238,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
             const SizedBox(height: NexSpacing.sm),
             TextField(
               controller: _key,
+              selectionWidthStyle: BoxWidthStyle.tight,
               obscureText: _obscure,
               autocorrect: false,
               enableSuggestions: false,
@@ -266,6 +268,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               const SizedBox(height: NexSpacing.md),
               TextField(
                 controller: _baseUrl,
+                selectionWidthStyle: BoxWidthStyle.tight,
                 autocorrect: false,
                 keyboardType: TextInputType.url,
                 textDirection: TextDirection.ltr,
@@ -281,6 +284,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
             const SizedBox(height: NexSpacing.md),
             TextField(
               controller: _model,
+              selectionWidthStyle: BoxWidthStyle.tight,
               autocorrect: false,
               textDirection: TextDirection.ltr,
               textAlign: TextAlign.left,

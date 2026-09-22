@@ -1,3 +1,5 @@
+import 'dart:ui' show BoxWidthStyle;
+
 import 'package:flutter/material.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -98,6 +100,7 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
               controller: _controller,
               builder: (context, direction) => TextField(
                 controller: _controller,
+                selectionWidthStyle: BoxWidthStyle.tight,
                 autofocus: true,
                 textDirection: direction,
                 textAlign: TextAlign.start,

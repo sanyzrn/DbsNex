@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -158,6 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             controller: _name,
             builder: (context, direction) => TextField(
               controller: _name,
+              selectionWidthStyle: BoxWidthStyle.tight,
               maxLength: 40,
               textDirection: direction,
               textCapitalization: TextCapitalization.words,
@@ -193,6 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             controller: _bio,
             builder: (context, direction) => TextField(
               controller: _bio,
+              selectionWidthStyle: BoxWidthStyle.tight,
               maxLength: 300,
               minLines: 3,
               maxLines: 6,

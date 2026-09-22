@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -341,6 +342,7 @@ class _HexRow extends StatelessWidget {
         Expanded(
           child: TextField(
             controller: controller,
+            selectionWidthStyle: BoxWidthStyle.tight,
             // Always latin, whatever the interface language: a hex code is
             // not a word, and Persian digits are not one either.
             textDirection: TextDirection.ltr,

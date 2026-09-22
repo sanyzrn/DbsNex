@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -135,6 +136,7 @@ class _BriefScreenState extends State<BriefScreen> {
                   controller: _instruction,
                   builder: (context, direction) => TextField(
                     controller: _instruction,
+                    selectionWidthStyle: BoxWidthStyle.tight,
                     onChanged: _saveInstruction,
                     maxLength: NexPreferences.briefInstructionMaxLength,
                     maxLines: 3,

@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 /// The direction a piece of user text should be laid out in.
 ///
@@ -138,14 +138,50 @@ class _DirectionalLine extends StatelessWidget {
 /// layout was wrong. Direction belongs to the text; the surface keeps the
 /// direction the interface language gives it.
 class NexBodyText extends StatelessWidget {
-  const NexBodyText(this.text, {super.key, this.style, this.maxLines});
+  const NexBodyText(
+    this.text, {
+    super.key,
+    this.style,
+    this.maxLines,
+    this.selectable = false,
+  });
 
   final String text;
   final TextStyle? style;
   final int? maxLines;
 
+  /// Whether a finger can take hold of these words.
+  ///
+  /// A `Text` cannot be selected at all — not by long press, not by double
+  /// tap, no handles, nothing. That is Flutter's design and not a bug, but it
+  /// is invisible from the outside: on a phone, a paragraph that does not
+  /// answer a long press does not read as "this app has not implemented
+  /// selection here", it reads as "selection in this app is broken". Nex
+  /// renders most of what a person *reads* through this widget, so most of
+  /// what a person reads could not be copied out of.
+  ///
+  /// True wraps the block in a [SelectionArea], which is what brings the long
+  /// press, the double tap, the handles, the magnifier and Copy. The area
+  /// rather than a `SelectableText` on purpose: `SelectableText` handles
+  /// every gesture itself and dispatches none of them onward, so a tappable
+  /// link or `code` span inside the same paragraph would stop answering — the
+  /// same reason [NexMarkdown] is given an area from outside rather than made
+  /// selectable from within.
+  ///
+  /// Off by default, because a timeline card is not a reading surface: it
+  /// lives inside a swipe recognizer and a tap that opens the note, and a
+  /// long press that starts selecting a preview is a long press that did not
+  /// open the thing it was on. Selection belongs where the text is being
+  /// read.
+  final bool selectable;
+
   @override
   Widget build(BuildContext context) {
+    final body = _body();
+    return selectable ? SelectionArea(child: body) : body;
+  }
+
+  Widget _body() {
     if (text.contains('\n')) {
       // Per line, clamped or not. It used to be per line only when nothing
       // was clamping it, and that exception is the bug: one direction over a
