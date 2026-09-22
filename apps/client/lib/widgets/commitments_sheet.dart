@@ -548,6 +548,7 @@ class _CommitmentEditorState extends State<CommitmentEditor> {
               builder: (context, direction) => TextField(
                 controller: _title,
                 selectionWidthStyle: BoxWidthStyle.tight,
+                contextMenuBuilder: nexReadingMenu,
                 textDirection: direction,
                 textAlign: TextAlign.start,
                 autofocus: widget.existing == null,

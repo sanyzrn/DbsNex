@@ -111,6 +111,7 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                   builder: (context, direction) => TextField(
                     controller: _name,
                     selectionWidthStyle: BoxWidthStyle.tight,
+                    contextMenuBuilder: nexReadingMenu,
                     onChanged: _saveName,
                     maxLength: NexPreferences.aiUserNameMaxLength,
                     textDirection: direction,
@@ -130,6 +131,7 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                   builder: (context, direction) => TextField(
                     controller: _introduction,
                     selectionWidthStyle: BoxWidthStyle.tight,
+                    contextMenuBuilder: nexReadingMenu,
                     onChanged: _saveIntroduction,
                     maxLength: NexPreferences.aiUserIntroductionMaxLength,
                     maxLines: 4,
@@ -230,6 +232,7 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                     builder: (context, direction) => TextField(
                       controller: _instruction,
                       selectionWidthStyle: BoxWidthStyle.tight,
+                      contextMenuBuilder: nexReadingMenu,
                       onChanged: _saveInstruction,
                       maxLength: NexPreferences.aiInstructionMaxLength,
                       maxLines: 3,

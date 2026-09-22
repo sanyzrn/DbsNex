@@ -395,6 +395,7 @@ class _SetupPage extends StatelessWidget {
               builder: (context, direction) => TextField(
                 controller: name,
                 selectionWidthStyle: BoxWidthStyle.tight,
+                contextMenuBuilder: nexReadingMenu,
                 textCapitalization: TextCapitalization.words,
                 // The one field in the app most likely to be in a different
                 // script from the interface: someone setting Nex to English

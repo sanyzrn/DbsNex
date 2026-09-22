@@ -467,6 +467,7 @@ class _LoadFailure extends StatelessWidget {
           // can quote is an error nobody can fix.
           SelectableText(
             detail,
+            contextMenuBuilder: nexReadingMenu,
             style: theme.textTheme.bodySmall?.copyWith(
               fontFamily: 'monospace',
               color: theme.colorScheme.onErrorContainer,

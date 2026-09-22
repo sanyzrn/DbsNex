@@ -537,6 +537,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               textDirection: direction,
               textAlign: TextAlign.start,
               selectionWidthStyle: BoxWidthStyle.tight,
+              contextMenuBuilder: nexReadingMenu,
               decoration: InputDecoration(hintText: l10n.captionHint),
             ),
           ),
@@ -800,6 +801,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       // answer a tap — `SelectableText` handles every gesture
                       // itself and dispatches none of them onward.
                       ? SelectionArea(
+                          contextMenuBuilder: nexSelectionMenu,
                           child: NexMarkdown(
                             note.content!,
                             style: Theme.of(
@@ -2068,6 +2070,7 @@ class _FileTextBodyState extends State<_FileTextBody> {
       padding: const EdgeInsets.only(top: NexSpacing.sm),
       child: switch (widget.kind) {
         NexFileKind.markdown => SelectionArea(
+          contextMenuBuilder: nexSelectionMenu,
           child: NexMarkdown(
             text,
             selectable: false,
@@ -2505,6 +2508,7 @@ class _DocumentBodyState extends State<_DocumentBody> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SelectionArea(
+            contextMenuBuilder: nexSelectionMenu,
             child: NexMarkdown(
               document.markdown,
               selectable: false,
@@ -2545,22 +2549,31 @@ class _CodeBlock extends StatelessWidget {
       // way every editor shows them.
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: SelectableText(
-          text,
-          // Left to right whatever the interface is doing, and whatever the
-          // strings inside the file are: source is written left to right, and
-          // letting a Persian comment turn the block would put the indentation
-          // of every line on the wrong side.
+        // The [Directionality] as well as the argument, because the handles
+        // over a selection are placed by the ambient direction: in a Persian
+        // interface a left-to-right block came up with its two handles on the
+        // wrong ends.
+        child: Directionality(
           textDirection: TextDirection.ltr,
-          style: base.copyWith(
-            // By family name rather than a bundled font, for the same reason
-            // the Markdown renderer does it: the app ships one typeface for
-            // its own text, and code that falls back to the platform's mono is
-            // closer to right than code set in the body face.
-            fontFamily: 'monospace',
-            fontFamilyFallback: const ['Courier New', 'monospace'],
-            fontSize: (base.fontSize ?? 16) - 1,
-            height: 1.45,
+          child: SelectableText(
+            text,
+            contextMenuBuilder: nexReadingMenu,
+            // Left to right whatever the interface is doing, and whatever the
+            // strings inside the file are: source is written left to right,
+            // and letting a Persian comment turn the block would put the
+            // indentation of every line on the wrong side.
+            textDirection: TextDirection.ltr,
+            style: base.copyWith(
+              // By family name rather than a bundled font, for the same
+              // reason the Markdown renderer does it: the app ships one
+              // typeface for its own text, and code that falls back to the
+              // platform's mono is closer to right than code set in the body
+              // face.
+              fontFamily: 'monospace',
+              fontFamilyFallback: const ['Courier New', 'monospace'],
+              fontSize: (base.fontSize ?? 16) - 1,
+              height: 1.45,
+            ),
           ),
         ),
       ),

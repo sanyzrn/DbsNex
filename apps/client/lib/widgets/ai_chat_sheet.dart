@@ -1521,6 +1521,7 @@ class _Thread extends StatelessWidget {
             // Scrolling is unaffected. Selection here begins on a long
             // press, so a finger dragged up the thread is still a scroll.
             child: SelectionArea(
+              contextMenuBuilder: nexSelectionMenu,
               child: Builder(
                 builder: (context) {
                   // The on-colour that belongs to the container behind it.
@@ -1679,6 +1680,7 @@ class _Composer extends StatelessWidget {
                 // Same reason as the capture field: the default highlight runs
                 // to the end of the line on right-to-left text.
                 selectionWidthStyle: BoxWidthStyle.tight,
+                contextMenuBuilder: nexReadingMenu,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => onSend(),
                 decoration: InputDecoration(

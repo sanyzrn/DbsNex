@@ -107,6 +107,7 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen> {
           builder: (context, direction) => TextField(
             controller: controller,
             selectionWidthStyle: ui.BoxWidthStyle.tight,
+            contextMenuBuilder: nexReadingMenu,
             autofocus: true,
             textDirection: direction,
             textAlign: TextAlign.start,

@@ -137,6 +137,7 @@ class _BriefScreenState extends State<BriefScreen> {
                   builder: (context, direction) => TextField(
                     controller: _instruction,
                     selectionWidthStyle: BoxWidthStyle.tight,
+                    contextMenuBuilder: nexReadingMenu,
                     onChanged: _saveInstruction,
                     maxLength: NexPreferences.briefInstructionMaxLength,
                     maxLines: 3,

@@ -206,14 +206,23 @@ class _TranslateSheetState extends State<TranslateSheet> {
                   opacity: _loading ? 0.45 : 1,
                   child: SizedBox(
                     width: double.infinity,
-                    child: SelectableText(
-                      result,
-                      // The translation's direction comes from the
-                      // translation, not from the note it came from — that is
-                      // the whole point of having changed language.
-                      textDirection: nexDirectionOf(result),
-                      textAlign: TextAlign.start,
-                      style: theme.textTheme.bodyLarge,
+                    // A [Directionality] as well as the argument below: the
+                    // argument places the glyphs, and the selection handles
+                    // are placed by the ambient direction — so a Persian
+                    // translation in an English interface came up with its
+                    // handles on the wrong ends.
+                    child: NexTextDirection(
+                      text: result,
+                      child: SelectableText(
+                        result,
+                        contextMenuBuilder: nexReadingMenu,
+                        // The translation's direction comes from the
+                        // translation, not from the note it came from — that
+                        // is the whole point of having changed language.
+                        textDirection: nexDirectionOf(result),
+                        textAlign: TextAlign.start,
+                        style: theme.textTheme.bodyLarge,
+                      ),
                     ),
                   ),
                 ),

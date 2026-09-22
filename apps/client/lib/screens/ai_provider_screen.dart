@@ -239,6 +239,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
             TextField(
               controller: _key,
               selectionWidthStyle: BoxWidthStyle.tight,
+              contextMenuBuilder: nexReadingMenu,
               obscureText: _obscure,
               autocorrect: false,
               enableSuggestions: false,
@@ -269,6 +270,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
               TextField(
                 controller: _baseUrl,
                 selectionWidthStyle: BoxWidthStyle.tight,
+                contextMenuBuilder: nexReadingMenu,
                 autocorrect: false,
                 keyboardType: TextInputType.url,
                 textDirection: TextDirection.ltr,
@@ -285,6 +287,7 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
             TextField(
               controller: _model,
               selectionWidthStyle: BoxWidthStyle.tight,
+              contextMenuBuilder: nexReadingMenu,
               autocorrect: false,
               textDirection: TextDirection.ltr,
               textAlign: TextAlign.left,

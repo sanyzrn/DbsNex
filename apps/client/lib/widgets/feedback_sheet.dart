@@ -90,6 +90,7 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
             builder: (context, direction) => TextField(
               controller: _controller,
               selectionWidthStyle: BoxWidthStyle.tight,
+              contextMenuBuilder: nexReadingMenu,
               autofocus: true,
               minLines: 4,
               maxLines: 8,

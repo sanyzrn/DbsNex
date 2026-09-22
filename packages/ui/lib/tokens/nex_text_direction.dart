@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/nex_selection_menu.dart';
+
 /// The direction a piece of user text should be laid out in.
 ///
 /// The app's own direction follows the *interface* language, so a Persian note
@@ -189,7 +191,11 @@ class NexBodyText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final body = _body();
-    return selectable ? SelectionArea(child: body) : body;
+    return selectable
+        // The app's own menu, not Flutter's default one — see
+        // [nexSelectionMenu].
+        ? SelectionArea(contextMenuBuilder: nexSelectionMenu, child: body)
+        : body;
   }
 
   Widget _body() {
