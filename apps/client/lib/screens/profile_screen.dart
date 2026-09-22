@@ -160,6 +160,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             builder: (context, direction) => TextField(
               controller: _name,
               selectionWidthStyle: BoxWidthStyle.tight,
+              contextMenuBuilder: nexReadingMenu,
               maxLength: 40,
               textDirection: direction,
               textCapitalization: TextCapitalization.words,
@@ -196,6 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             builder: (context, direction) => TextField(
               controller: _bio,
               selectionWidthStyle: BoxWidthStyle.tight,
+              contextMenuBuilder: nexReadingMenu,
               maxLength: 300,
               minLines: 3,
               maxLines: 6,

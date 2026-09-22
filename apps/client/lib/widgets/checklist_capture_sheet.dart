@@ -149,6 +149,7 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet> {
                 textDirection: direction,
                 textAlign: TextAlign.start,
                 selectionWidthStyle: BoxWidthStyle.tight,
+                contextMenuBuilder: nexReadingMenu,
                 // Never TextInputAction.send, whatever the capture preference
                 // says — see the class comment.
                 textInputAction: TextInputAction.newline,
@@ -273,6 +274,7 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet> {
           TextField(
             controller: _text,
             selectionWidthStyle: BoxWidthStyle.tight,
+            contextMenuBuilder: nexReadingMenu,
             autofocus: true,
             autocorrect: false,
             keyboardType: TextInputType.url,

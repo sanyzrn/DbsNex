@@ -4,6 +4,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import '../tokens/nex_text_direction.dart';
+import 'nex_selection_menu.dart';
 import '../tokens/nex_tokens.dart';
 
 /// Markdown, rendered the way the rest of Nex renders the user's own writing.
@@ -70,19 +71,21 @@ class NexMarkdown extends StatefulWidget {
   /// single tap target would take that away.
   final void Function(String code)? onCopyCode;
 
-  /// Whether the rendered text can be selected *by this widget*.
+  /// Whether this block brings its own selection.
   ///
-  /// True here means `SelectableText`, and that carries a cost worth knowing
-  /// about: `SelectableText` handles every gesture itself and never dispatches
-  /// a [TextSpan.recognizer], so a link — or a code span — inside one cannot
-  /// be tapped at all. A caller that needs both selection and taps wraps this
-  /// in a [SelectionArea] and passes false: selection then belongs to the area
-  /// and the spans keep their gestures.
+  /// True wraps it in a [SelectionArea]. It used to mean `selectable: true` on
+  /// the markdown body, which is a `SelectableText` underneath, and that
+  /// carried two costs: a `SelectableText` handles every gesture itself and
+  /// never dispatches a [TextSpan.recognizer], so a link or a code span in the
+  /// same paragraph stopped answering a tap — and its menu is Flutter's
+  /// default one, which carries every other app's `ACTION_PROCESS_TEXT`
+  /// entry. Callers that wanted both worked around it by wrapping this in an
+  /// area themselves and passing false; doing it here means nobody has to
+  /// know that, and the menu is the app's own either way.
   ///
-  /// False is also right in the assistant's thread, where selection inside a
-  /// scrolling list fights the scroll gesture and hands the user a partial
-  /// paste — that surface copies a whole message on long-press instead, and a
-  /// selectable child would swallow the long-press before it arrives.
+  /// False is for a caller that already owns a [SelectionArea] — the note
+  /// detail sheet and the assistant's thread both do, because the area has to
+  /// reach wider than this one block.
   final bool selectable;
 
   @override
@@ -106,11 +109,14 @@ class _NexMarkdownState extends State<NexMarkdown> {
     final text = widget.text;
     final direction = nexDirectionOf(text) ?? Directionality.of(context);
     _codeSpans.onTap = widget.onCopyCode;
-    return Directionality(
+    final body = Directionality(
       textDirection: direction,
       child: MarkdownBody(
         data: text,
-        selectable: widget.selectable,
+        // Never the markdown body's own selection: it is a `SelectableText`,
+        // which eats the taps the code spans and links are built on. The area
+        // below does it without taking anything away — see [selectable].
+        selectable: false,
         fitContent: false,
         builders: {if (widget.onCopyCode != null) 'code': _codeSpans},
         styleSheet: _sheet(
@@ -125,6 +131,9 @@ class _NexMarkdownState extends State<NexMarkdown> {
               },
       ),
     );
+    return widget.selectable
+        ? SelectionArea(contextMenuBuilder: nexSelectionMenu, child: body)
+        : body;
   }
 
   MarkdownStyleSheet _sheet(

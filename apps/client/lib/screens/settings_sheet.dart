@@ -1076,6 +1076,7 @@ class _SyncRowState extends State<_SyncRow> {
               TextField(
                 controller: url,
                 selectionWidthStyle: BoxWidthStyle.tight,
+                contextMenuBuilder: nexReadingMenu,
                 autofocus: true,
                 keyboardType: TextInputType.url,
                 autocorrect: false,
@@ -1088,6 +1089,7 @@ class _SyncRowState extends State<_SyncRow> {
               TextField(
                 controller: token,
                 selectionWidthStyle: BoxWidthStyle.tight,
+                contextMenuBuilder: nexReadingMenu,
                 autocorrect: false,
                 decoration: InputDecoration(labelText: l10n.syncToken),
               ),
@@ -1179,6 +1181,7 @@ Future<bool> editDisplayName(
           builder: (context, direction) => TextField(
             controller: controller,
             selectionWidthStyle: BoxWidthStyle.tight,
+            contextMenuBuilder: nexReadingMenu,
             textDirection: direction,
             textAlign: TextAlign.start,
             autofocus: true,

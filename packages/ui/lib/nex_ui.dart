@@ -12,6 +12,7 @@ export 'widgets/nex_color_wheel.dart';
 export 'widgets/nex_empty_state.dart';
 export 'widgets/nex_glass_capsule.dart';
 export 'widgets/nex_markdown.dart';
+export 'widgets/nex_selection_menu.dart';
 export 'widgets/nex_edge_glow.dart';
 export 'widgets/nex_summarise_icon.dart';
 export 'widgets/nex_skeleton.dart';

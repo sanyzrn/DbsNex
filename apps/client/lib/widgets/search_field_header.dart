@@ -152,6 +152,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                           builder: (context, direction) => TextField(
                             controller: controller,
                             selectionWidthStyle: BoxWidthStyle.tight,
+                            contextMenuBuilder: nexReadingMenu,
                             textDirection: direction,
                             textAlign: TextAlign.start,
                             focusNode: focusNode,

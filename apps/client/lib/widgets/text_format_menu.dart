@@ -2,6 +2,7 @@ import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'nex_dialog.dart';
@@ -19,30 +20,19 @@ import 'nex_dialog.dart';
 /// Copy, Paste, Select all — and never substituted for them. A text field
 /// without those is a broken text field, whatever else is on the menu.
 ///
-/// What is dropped is everything *other apps* put there. Android lets any
-/// installed app register an `ACTION_PROCESS_TEXT` activity and have its name
-/// appear on every selection menu on the phone, and Flutter forwards all of
-/// them. On a device with a few assistants installed that meant Ask Copilot,
-/// Ask ChatGPT, Translate, Read aloud, Ask Grok, Ask Perplexity, Ask Kimi and
-/// Ask DeepSeek stacked above Bold — eight entries from apps that have nothing
-/// to do with this note, pushing Nex's own formatting onto a second page of
-/// the overflow. They are told apart by [ContextMenuButtonType.custom], which
-/// is the type Flutter gives them and gives nothing else it generates itself.
+/// What is dropped is everything *other apps* put there — see
+/// [nexOwnMenuItems], which is where that rule lives now, so that every
+/// selection in the app gets it rather than these two fields alone.
 ///
 /// [host] is the surface the field lives on, not the menu. The menu's own
 /// context dies with the menu, and asking for a link's address outlives it.
 EditableTextContextMenuBuilder nexFormatContextMenuBuilder(BuildContext host) {
   return (BuildContext context, EditableTextState state) {
     final l10n = AppLocalizations.of(context);
-    final items = <ContextMenuButtonItem>[
-      for (final item in state.contextMenuButtonItems)
-        // Everything Flutter generates for a text field carries a real type;
-        // the third-party text processors are the only ones left as `custom`.
-        // Filtering on that keeps this correct as the platform's own list
-        // grows, where naming the ones to keep would silently drop whatever
-        // Android adds next.
-        if (item.type != ContextMenuButtonType.custom) item,
-    ];
+    // One rule, in the design system, for every menu in the app. It used to
+    // be written out here, which meant it applied to the two fields with a
+    // menu of their own and to nothing else — see [nexOwnMenuItems].
+    final items = nexOwnMenuItems(state.contextMenuButtonItems);
     final selection = state.textEditingValue.selection;
 
     // Everything here acts on a selection. With nothing selected the menu is
@@ -132,6 +122,7 @@ Future<String?> _askForUrl(BuildContext context) async {
         child: TextField(
           controller: controller,
           selectionWidthStyle: BoxWidthStyle.tight,
+          contextMenuBuilder: nexReadingMenu,
           autofocus: true,
           keyboardType: TextInputType.url,
           // A URL is left to right in every language, including in an

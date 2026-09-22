@@ -34,6 +34,23 @@ Working convention:
 
 ## Unreleased
 
+## v1.21.0
+
+- **Other apps are off the selection menu again.** Select a word and the menu
+  offers what Nex and your phone can do with it — not Ask Copilot, Ask
+  ChatGPT, Read aloud and whatever else happens to be installed. This was
+  fixed in v1.5.5, but the fix was written into the two screens you *write*
+  on — so when text you only read became selectable in v1.20.0, every other
+  surface took the phone's default menu and the names came back. The rule
+  lives in one place now and every selection in the app reads from it: notes,
+  captions, the assistant's replies, the guide, search, tags, every field.
+
+- **Rendered text keeps its taps when it is selectable.** Markdown used to
+  reach selection in a way that swallowed every gesture inside it — a link or
+  a `code` span in the same block stopped answering — so the screens that
+  needed both worked around it one at a time. Selection sits around the block
+  now rather than inside it, which costs nothing and leaves the taps alone.
+
 ## v1.20.1
 
 - **Persian selection handles come up on the right ends.** Double-tapping a

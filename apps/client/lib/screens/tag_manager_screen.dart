@@ -125,6 +125,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
             builder: (context, direction) => TextField(
               controller: controller,
               selectionWidthStyle: BoxWidthStyle.tight,
+              contextMenuBuilder: nexReadingMenu,
               autofocus: true,
               // A tag is named in whichever language its notes are in, which
               // is not necessarily the interface's.
@@ -183,6 +184,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
               builder: (context, direction) => TextField(
                 controller: controller,
                 selectionWidthStyle: BoxWidthStyle.tight,
+                contextMenuBuilder: nexReadingMenu,
                 autofocus: true,
                 textDirection: direction,
                 textAlign: TextAlign.start,

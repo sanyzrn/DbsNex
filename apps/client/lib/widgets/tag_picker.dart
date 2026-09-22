@@ -101,6 +101,7 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
               builder: (context, direction) => TextField(
                 controller: _controller,
                 selectionWidthStyle: BoxWidthStyle.tight,
+                contextMenuBuilder: nexReadingMenu,
                 autofocus: true,
                 textDirection: direction,
                 textAlign: TextAlign.start,

@@ -343,6 +343,7 @@ class _HexRow extends StatelessWidget {
           child: TextField(
             controller: controller,
             selectionWidthStyle: BoxWidthStyle.tight,
+            contextMenuBuilder: nexReadingMenu,
             // Always latin, whatever the interface language: a hex code is
             // not a word, and Persian digits are not one either.
             textDirection: TextDirection.ltr,
