@@ -35,6 +35,51 @@ void main() {
     expect(find.byType(SelectionArea), findsNothing);
   });
 
+  testWidgets('a Persian paragraph owns the direction around it', (
+    tester,
+  ) async {
+    // The handles, the magnifier and the menu over a selection are built
+    // against the *ambient* direction, not the `textDirection` argument. With
+    // only the argument, a Persian paragraph in an English interface got a
+    // right-to-left block under a left-to-right overlay: the two handles came
+    // up on the wrong ends, and dragging one widened the selection from the
+    // wrong side. The fields were given this in v1.13.0; read-only text was
+    // not selectable then, so it never needed it.
+    const persian = 'این یک جملهٔ فارسی است';
+    await show(tester, selectable: true, text: persian);
+    expect(
+      Directionality.of(tester.element(find.text(persian))),
+      TextDirection.rtl,
+    );
+  });
+
+  testWidgets('lines that agree are one paragraph', (tester) async {
+    // A column of separate lines is a column of separate selectables, and a
+    // handle dragged down through it has to be handed from one to the next —
+    // which is the stuttering that made selecting a Persian note feel like
+    // work. Lines only need separating when they disagree about direction.
+    const note = 'خط اول این یادداشت\nخط دوم همین یادداشت';
+    await show(tester, selectable: true, text: note);
+    expect(find.text(note), findsOneWidget);
+  });
+
+  testWidgets('lines that disagree still get their own direction', (
+    tester,
+  ) async {
+    const english = 'a line in English';
+    const persian = 'یک خط فارسی';
+    await show(tester, selectable: true, text: '$english\n$persian');
+    expect(find.text('$english\n$persian'), findsNothing);
+    expect(
+      Directionality.of(tester.element(find.text(persian))),
+      TextDirection.rtl,
+    );
+    expect(
+      Directionality.of(tester.element(find.text(english))),
+      TextDirection.ltr,
+    );
+  });
+
   testWidgets('selection does not change how the lines are laid out', (
     tester,
   ) async {

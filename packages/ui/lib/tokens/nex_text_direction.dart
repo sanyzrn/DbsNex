@@ -115,17 +115,28 @@ class _DirectionalLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final direction = nexDirectionOf(text);
-    return Text(
-      text.isEmpty ? '\u200B' : text,
-      style: style,
-      maxLines: clamp ? 1 : null,
-      overflow: clamp ? TextOverflow.ellipsis : null,
-      textDirection: direction,
-      textAlign: direction == TextDirection.rtl
-          ? TextAlign.right
-          : direction == TextDirection.ltr
-          ? TextAlign.left
-          : TextAlign.start,
+    // [NexTextDirection] rather than the `textDirection` argument alone.
+    // The argument lays the glyphs out; everything *attached* to the
+    // paragraph — the selection handles, the magnifier, the menu over a
+    // selection — is resolved against the ambient direction, which is the
+    // interface language's. So a Persian line inside an English interface
+    // drew its two handles the wrong way round, and dragging one to widen
+    // the selection moved the wrong end of it. The same fix the fields got
+    // in [NexAutoDirection], for the same reason.
+    return NexTextDirection(
+      text: text,
+      child: Text(
+        text.isEmpty ? '\u200B' : text,
+        style: style,
+        maxLines: clamp ? 1 : null,
+        overflow: clamp ? TextOverflow.ellipsis : null,
+        textDirection: direction,
+        textAlign: direction == TextDirection.rtl
+            ? TextAlign.right
+            : direction == TextDirection.ltr
+            ? TextAlign.left
+            : TextAlign.start,
+      ),
     );
   }
 }
@@ -183,8 +194,9 @@ class NexBodyText extends StatelessWidget {
 
   Widget _body() {
     if (text.contains('\n')) {
-      // Per line, clamped or not. It used to be per line only when nothing
-      // was clamping it, and that exception is the bug: one direction over a
+      // Per line when the lines disagree, clamped or not. It used to be per
+      // line only when nothing was clamping, and that exception was a bug:
+      // one direction over a
       // block of several lines is the *first* line's direction imposed on all
       // of them, so a note that opens in English lays its Persian lines out
       // left to right and a note that opens in Persian pushes its English
@@ -198,6 +210,26 @@ class NexBodyText extends StatelessWidget {
       // the first three lines of somebody's note tell you more about it than
       // the first three rows of its first sentence.
       final lines = text.split('\n');
+      // Split only when the lines actually disagree. A note written wholly in
+      // one language is one paragraph, and saying so matters once the text
+      // can be selected: a column of separate paragraphs is a column of
+      // separate selectables, so dragging a handle down through it has to
+      // hand the selection from one to the next, which is the stuttering that
+      // made selecting a Persian note feel like work. Nothing about the
+      // layout changes — every line had the same direction anyway.
+      //
+      // Only when nothing is clamping, because the budget above is spent in
+      // source lines and a single [Text] would spend it in wrapped ones.
+      if (maxLines == null) {
+        final directions = <TextDirection>{};
+        for (final line in lines) {
+          final direction = nexDirectionOf(line);
+          if (direction != null) directions.add(direction);
+        }
+        if (directions.length <= 1) {
+          return _paragraph(directions.isEmpty ? null : directions.first);
+        }
+      }
       final shown = maxLines == null ? lines : lines.take(maxLines!).toList();
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -208,10 +240,18 @@ class NexBodyText extends StatelessWidget {
         ],
       );
     }
-    final direction = nexDirectionOf(text);
-    return SizedBox(
-      // Full width, so a short right-to-left line reaches the right edge rather
-      // than hugging the left one it happens to start at.
+    return _paragraph(nexDirectionOf(text));
+  }
+
+  /// The whole of [text] as one paragraph, laid out in [direction].
+  ///
+  /// A [Directionality] as well as the argument, for the reason spelled out
+  /// in [_DirectionalLine]: the argument places the glyphs, and the selection
+  /// handles are placed by the ambient direction.
+  Widget _paragraph(TextDirection? direction) {
+    final body = SizedBox(
+      // Full width, so a short right-to-left line reaches the right edge
+      // rather than hugging the left one it happens to start at.
       width: double.infinity,
       child: Text(
         text,
@@ -224,6 +264,9 @@ class NexBodyText extends StatelessWidget {
             : TextAlign.start,
       ),
     );
+    return direction == null
+        ? body
+        : Directionality(textDirection: direction, child: body);
   }
 }
 

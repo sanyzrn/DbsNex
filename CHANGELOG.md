@@ -34,6 +34,20 @@ Working convention:
 
 ## Unreleased
 
+## v1.20.1
+
+- **Persian selection handles come up on the right ends.** Double-tapping a
+  word worked; reaching for the handles to take more did not — they were
+  drawn the wrong way round, so dragging one widened the selection from the
+  wrong side. The paragraph was right-to-left and the overlay on top of it
+  was not. Text fields were given this in v1.13.0; text you only read became
+  selectable in v1.20.0 and never got it.
+
+- **Selecting through a Persian note is smooth.** A note was drawn one line at
+  a time, which is only needed when the lines disagree about which way they
+  run. A note written wholly in one language is one paragraph now, so a
+  handle dragged down through it is not handed from line to line on the way.
+
 ## v1.20.0
 
 - **Text you are reading can be selected now.** A note, a photo's caption, a
