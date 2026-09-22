@@ -47,6 +47,12 @@ read the note. A note without any is left exactly as written.
 
 Tap a `mono` word in an open note to copy it.
 
+Text you are only reading can be selected too — an open note, a caption, a
+shared text file, the assistant's replies. Hold a word to take hold of it, then
+drag the handles for as much as you want. The exceptions are the things that
+are buttons: a timeline card opens its note, and a checklist row ticks its
+item, so a press on those does what it has always done.
+
 ## Files you share in
 
 Nex shows a file rather than just naming it:

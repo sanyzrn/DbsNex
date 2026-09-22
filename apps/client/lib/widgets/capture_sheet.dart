@@ -37,6 +37,25 @@ class CaptureSheet extends StatefulWidget {
 
 class _CaptureSheetState extends State<CaptureSheet> {
   final controller = TextEditingController();
+
+  /// The formatting menu, made once and kept.
+  ///
+  /// Not `nexFormatContextMenuBuilder(context)` in `build`, which is where it
+  /// used to be and is the whole of a bug worth stating: `EditableText`
+  /// compares this builder against the previous one **by identity**, and a
+  /// fresh closure every rebuild reads as a changed menu. Its answer to that
+  /// is to dispose the selection overlay and make a new one after the next
+  /// frame — and the selection handles, the magnifier and the toolbar live in
+  /// that overlay, with their gesture recognizers. Disposing a recognizer
+  /// while a finger is on it cancels the drag, and the handle that replaces it
+  /// a frame later never saw the pointer, so nothing resumes.
+  ///
+  /// This sheet rebuilds on every keystroke and on every frame of the
+  /// keyboard's open/close animation, so the overlay was being torn down
+  /// exactly while somebody was dragging a handle or a caret. One closure,
+  /// held for the life of the sheet, and the overlay survives every rebuild.
+  late final EditableTextContextMenuBuilder formatMenu =
+      nexFormatContextMenuBuilder(context);
   Timer? debounce;
   String? noteId;
   String persisted = '';
@@ -261,7 +280,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
                     selectionWidthStyle: BoxWidthStyle.tight,
                     // Bold, italic and the rest, appended to the platform's own
                     // Cut/Copy/Paste rather than replacing them.
-                    contextMenuBuilder: nexFormatContextMenuBuilder(context),
+                    contextMenuBuilder: formatMenu,
                     decoration: InputDecoration(
                       hintText: l10n.captureHint,
                       border: InputBorder.none,

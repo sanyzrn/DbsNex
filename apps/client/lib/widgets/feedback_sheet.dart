@@ -1,3 +1,5 @@
+import 'dart:ui' show BoxWidthStyle;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -87,6 +89,7 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
             controller: _controller,
             builder: (context, direction) => TextField(
               controller: _controller,
+              selectionWidthStyle: BoxWidthStyle.tight,
               autofocus: true,
               minLines: 4,
               maxLines: 8,

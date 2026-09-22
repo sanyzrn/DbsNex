@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
@@ -542,15 +543,21 @@ class _CommitmentEditorState extends State<CommitmentEditor> {
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: NexSpacing.sm),
-            TextField(
+            NexAutoDirection(
               controller: _title,
-              autofocus: widget.existing == null,
-              textInputAction: TextInputAction.done,
-              decoration: InputDecoration(
-                labelText: l10n.commitmentTitleLabel,
-                hintText: l10n.commitmentTitleHint,
+              builder: (context, direction) => TextField(
+                controller: _title,
+                selectionWidthStyle: BoxWidthStyle.tight,
+                textDirection: direction,
+                textAlign: TextAlign.start,
+                autofocus: widget.existing == null,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  labelText: l10n.commitmentTitleLabel,
+                  hintText: l10n.commitmentTitleHint,
+                ),
+                onChanged: (_) => setState(() {}),
               ),
-              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: NexSpacing.md),
             // Plain `DropdownButton`s in list rows rather than

@@ -65,13 +65,33 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet> {
         selection: TextSelection.collapsed(offset: lines.length),
       );
     }
-    _text.addListener(() => setState(() {}));
+    _lastText = _text.text;
+    _text.addListener(_onChanged);
   }
 
   @override
   void dispose() {
+    _text.removeListener(_onChanged);
     _text.dispose();
     super.dispose();
+  }
+
+  /// The text as the chrome below last saw it.
+  ///
+  /// A `TextEditingController` notifies when the **selection** moves as well
+  /// as when the text does, and dragging a selection handle is a stream of
+  /// selection changes. Rebuilding on every notification rebuilt this sheet
+  /// underneath the drag, frame after frame, which is what makes selecting
+  /// text feel like it is fighting back. Nothing the rebuild is for depends
+  /// on where the caret is — it is the parsed items and whether there is
+  /// anything to save — so the text is what is watched.
+  /// The note editor has carried this shape since v1.13.0; this is the last
+  /// of the stragglers.
+  String _lastText = '';
+
+  void _onChanged() {
+    if (_text.text == _lastText) return;
+    setState(() => _lastText = _text.text);
   }
 
   bool get _editing => widget.initial != null;
@@ -186,11 +206,30 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet> {
   @override
   void initState() {
     super.initState();
-    _text.addListener(() => setState(() {}));
+    _lastText = _text.text;
+    _text.addListener(_onChanged);
     // Most link captures are a paste, so the clipboard is offered rather than
     // waited for. It is a suggestion in the field, not a commit: nothing is
     // saved until the button is pressed.
     _offerClipboard();
+  }
+
+  /// The text as the chrome below last saw it.
+  ///
+  /// A `TextEditingController` notifies when the **selection** moves as well
+  /// as when the text does, and dragging a selection handle is a stream of
+  /// selection changes. Rebuilding on every notification rebuilt this sheet
+  /// underneath the drag, frame after frame, which is what makes selecting
+  /// text feel like it is fighting back. Nothing the rebuild is for depends
+  /// on where the caret is — it is whether the address in the field is one
+  /// that can be saved — so the text is what is watched.
+  /// The note editor has carried this shape since v1.13.0; this is the last
+  /// of the stragglers.
+  String _lastText = '';
+
+  void _onChanged() {
+    if (_text.text == _lastText) return;
+    setState(() => _lastText = _text.text);
   }
 
   Future<void> _offerClipboard() async {
@@ -202,6 +241,7 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet> {
 
   @override
   void dispose() {
+    _text.removeListener(_onChanged);
     _text.dispose();
     super.dispose();
   }
@@ -232,6 +272,7 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet> {
           const SizedBox(height: NexSpacing.sm),
           TextField(
             controller: _text,
+            selectionWidthStyle: BoxWidthStyle.tight,
             autofocus: true,
             autocorrect: false,
             keyboardType: TextInputType.url,

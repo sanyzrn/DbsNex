@@ -6,7 +6,6 @@ import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -1494,27 +1493,34 @@ class _Thread extends StatelessWidget {
           alignment: mine
               ? AlignmentDirectional.centerEnd
               : AlignmentDirectional.centerStart,
-          // Long-press to copy, rather than making the text selectable.
-          // Selection inside a scrolling thread fights the scroll gesture and
-          // hands someone a partial paste; what people actually want from a
-          // chat message is the whole of it.
-          child: GestureDetector(
-            onLongPress: () => unawaited(_copy(context, turn.content)),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: NexSpacing.sm),
-              padding: const EdgeInsets.symmetric(
-                horizontal: NexSpacing.md,
-                vertical: NexSpacing.sm,
-              ),
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.sizeOf(context).width * 0.78,
-              ),
-              decoration: BoxDecoration(
-                color: mine
-                    ? theme.colorScheme.primaryContainer
-                    : theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(NexRadius.lg),
-              ),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: NexSpacing.sm),
+            padding: const EdgeInsets.symmetric(
+              horizontal: NexSpacing.md,
+              vertical: NexSpacing.sm,
+            ),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.sizeOf(context).width * 0.78,
+            ),
+            decoration: BoxDecoration(
+              color: mine
+                  ? theme.colorScheme.primaryContainer
+                  : theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(NexRadius.lg),
+            ),
+            // Long-press used to copy the whole turn and nothing else
+            // could be taken out of it, on the reasoning that what people
+            // want from a chat message is all of it. Sometimes. The rest of
+            // the time they want the one command, the one address, the one
+            // sentence — and had no way to get it, because a `Text` answers
+            // no gesture at all. An area gives both: long-press takes the
+            // word under the finger and the toolbar that comes with it
+            // offers Select all, which is the old gesture two taps later
+            // and every other selection besides.
+            //
+            // Scrolling is unaffected. Selection here begins on a long
+            // press, so a finger dragged up the thread is still a scroll.
+            child: SelectionArea(
               child: Builder(
                 builder: (context) {
                   // The on-colour that belongs to the container behind it.
@@ -1537,8 +1543,9 @@ class _Thread extends StatelessWidget {
                     return NexMarkdown(
                       turn.content,
                       style: style,
-                      // Long-press to copy belongs to the whole bubble; a
-                      // selectable child would take the gesture first.
+                      // Selection belongs to the area around the bubble, not
+                      // to the text inside it — which is what lets a link in a
+                      // reply still answer a tap.
                       selectable: false,
                     );
                   }
@@ -1564,13 +1571,6 @@ class _Thread extends StatelessWidget {
     );
   }
 
-  Future<void> _copy(BuildContext context, String text) async {
-    final l10n = AppLocalizations.of(context);
-    final host = NexBannerHost.of(context);
-    await Clipboard.setData(ClipboardData(text: text));
-    nexBump();
-    host?.show(message: l10n.copied);
-  }
 }
 
 class _Composer extends StatelessWidget {

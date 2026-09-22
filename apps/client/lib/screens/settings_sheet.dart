@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -1074,6 +1075,7 @@ class _SyncRowState extends State<_SyncRow> {
             children: [
               TextField(
                 controller: url,
+                selectionWidthStyle: BoxWidthStyle.tight,
                 autofocus: true,
                 keyboardType: TextInputType.url,
                 autocorrect: false,
@@ -1085,6 +1087,7 @@ class _SyncRowState extends State<_SyncRow> {
               const SizedBox(height: NexSpacing.md),
               TextField(
                 controller: token,
+                selectionWidthStyle: BoxWidthStyle.tight,
                 autocorrect: false,
                 decoration: InputDecoration(labelText: l10n.syncToken),
               ),
@@ -1171,12 +1174,18 @@ Future<bool> editDisplayName(
     builder: (context) => AlertDialog(
       title: Text(l10n.yourName),
       content: NexDialogBody(
-        child: TextField(
+        child: NexAutoDirection(
           controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(hintText: l10n.yourNamePlaceholder),
-          onSubmitted: (value) => Navigator.pop(context, value),
+          builder: (context, direction) => TextField(
+            controller: controller,
+            selectionWidthStyle: BoxWidthStyle.tight,
+            textDirection: direction,
+            textAlign: TextAlign.start,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(hintText: l10n.yourNamePlaceholder),
+            onSubmitted: (value) => Navigator.pop(context, value),
+          ),
         ),
       ),
       actions: [

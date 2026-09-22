@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -109,6 +110,7 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                   controller: _name,
                   builder: (context, direction) => TextField(
                     controller: _name,
+                    selectionWidthStyle: BoxWidthStyle.tight,
                     onChanged: _saveName,
                     maxLength: NexPreferences.aiUserNameMaxLength,
                     textDirection: direction,
@@ -127,6 +129,7 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                   controller: _introduction,
                   builder: (context, direction) => TextField(
                     controller: _introduction,
+                    selectionWidthStyle: BoxWidthStyle.tight,
                     onChanged: _saveIntroduction,
                     maxLength: NexPreferences.aiUserIntroductionMaxLength,
                     maxLines: 4,
@@ -226,6 +229,7 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                     controller: _instruction,
                     builder: (context, direction) => TextField(
                       controller: _instruction,
+                      selectionWidthStyle: BoxWidthStyle.tight,
                       onChanged: _saveInstruction,
                       maxLength: NexPreferences.aiInstructionMaxLength,
                       maxLines: 3,

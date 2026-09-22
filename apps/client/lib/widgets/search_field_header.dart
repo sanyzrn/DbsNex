@@ -1,3 +1,5 @@
+import 'dart:ui' show BoxWidthStyle;
+
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -142,45 +144,54 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
                       ),
                       const SizedBox(width: NexSpacing.sm),
                       Expanded(
-                        child: TextField(
+                        // A Persian query laid out left to right, in the one
+                        // field in the app most likely to be typed in either
+                        // language. The same treatment every other field has.
+                        child: NexAutoDirection(
                           controller: controller,
-                          focusNode: focusNode,
-                          onTap: onTap,
-                          onChanged: onChanged,
-                          textInputAction: TextInputAction.search,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          // The caret is one of the few places the accent is
-                          // spent: it means the app is listening.
-                          cursorColor: scheme.primary,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            // The app's InputDecorationTheme frames, fills
-                            // and pads every field, which is right for a
-                            // form and wrong here: the pill around this row
-                            // is already the surface, so the theme drew a
-                            // second rounded box inside it with the search
-                            // icon stranded outside it.
-                            //
-                            // Every one of these has to be named. `border`
-                            // is only the fallback: `InputDecorator` paints
-                            // `enabledBorder ?? border` at rest and
-                            // `focusedBorder ?? border` while focused, and
-                            // `applyDefaults` fills a null one from the
-                            // theme — which sets both. So `border: none`
-                            // alone removed nothing, and the inner box went
-                            // on showing in exactly the two states the
-                            // field is ever in: a soft outline at rest and
-                            // an accent one under the caret, each drawn
-                            // inside the pill's own matching edge.
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            disabledBorder: InputBorder.none,
-                            errorBorder: InputBorder.none,
-                            focusedErrorBorder: InputBorder.none,
-                            filled: false,
-                            contentPadding: EdgeInsets.zero,
-                            hintText: l10n.searchHint,
+                          builder: (context, direction) => TextField(
+                            controller: controller,
+                            selectionWidthStyle: BoxWidthStyle.tight,
+                            textDirection: direction,
+                            textAlign: TextAlign.start,
+                            focusNode: focusNode,
+                            onTap: onTap,
+                            onChanged: onChanged,
+                            textInputAction: TextInputAction.search,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            // The caret is one of the few places the accent is
+                            // spent: it means the app is listening.
+                            cursorColor: scheme.primary,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              // The app's InputDecorationTheme frames, fills
+                              // and pads every field, which is right for a
+                              // form and wrong here: the pill around this row
+                              // is already the surface, so the theme drew a
+                              // second rounded box inside it with the search
+                              // icon stranded outside it.
+                              //
+                              // Every one of these has to be named. `border`
+                              // is only the fallback: `InputDecorator` paints
+                              // `enabledBorder ?? border` at rest and
+                              // `focusedBorder ?? border` while focused, and
+                              // `applyDefaults` fills a null one from the
+                              // theme — which sets both. So `border: none`
+                              // alone removed nothing, and the inner box went
+                              // on showing in exactly the two states the
+                              // field is ever in: a soft outline at rest and
+                              // an accent one under the caret, each drawn
+                              // inside the pill's own matching edge.
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              focusedErrorBorder: InputBorder.none,
+                              filled: false,
+                              contentPadding: EdgeInsets.zero,
+                              hintText: l10n.searchHint,
+                            ),
                           ),
                         ),
                       ),

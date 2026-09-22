@@ -34,6 +34,31 @@ Working convention:
 
 ## Unreleased
 
+## v1.20.0
+
+- **Text you are reading can be selected now.** A note, a photo's caption, a
+  link's excerpt, a shared text file, what the assistant wrote and what the
+  assistant replied — hold a word and you get the word, the handles and
+  Copy, the way the rest of the phone works. Before this, most of what Nex
+  showed you answered no gesture at all: whether a note could be copied out of
+  depended on whether it happened to contain an asterisk. In the assistant, a
+  long press used to copy the whole reply and nothing smaller could be taken;
+  it now selects the word under your finger, and Select all in the menu that
+  appears is the old gesture one tap later.
+
+- **Selecting in a text field stops fighting back.** Dragging a handle, moving
+  the caret, holding a word — all of them could die halfway through, because
+  the field was being rebuilt underneath the finger and the handles do not
+  survive that. Three fields still did it on every caret move, and both
+  writing surfaces did it on every keystroke and every frame of the keyboard
+  sliding open.
+
+- **Persian selections are painted to the word.** Every text field in the app
+  now draws a selection the width of what is selected instead of running it to
+  the end of the line, and takes its direction from what is typed into it. Four
+  fields had this already; the search box, tag names, the feedback sheet, the
+  name dialogs and the rest have it now.
+
 ## v1.19.0
 
 - **The Daily brief settings are a page like the others now.** They were a
