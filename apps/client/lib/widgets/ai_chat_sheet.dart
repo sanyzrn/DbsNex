@@ -1549,18 +1549,28 @@ class _Thread extends StatelessWidget {
                       selectable: false,
                     );
                   }
-                  return Text(
-                    turn.content,
-                    style: style,
-                    // Either side may be in either language — the assistant
-                    // answers in whatever the output-language setting asks for.
-                    //
-                    // One direction for the whole turn, not one per line the
-                    // way [NexBodyText] does it: that lays its lines out in a
-                    // stretched column, and a bubble is sized to its content —
-                    // every reply, "yes" included, would be drawn 78% of the
-                    // screen wide.
-                    textDirection: nexDirectionOf(turn.content),
+                  // A [Directionality] as well as the argument below. The
+                  // argument places the glyphs; the selection handles are
+                  // placed by the ambient direction, which is the interface
+                  // language's — so a Persian reply in an English interface
+                  // came up with its two handles the wrong way round, and
+                  // dragging one widened the selection from the wrong end.
+                  return NexTextDirection(
+                    text: turn.content,
+                    child: Text(
+                      turn.content,
+                      style: style,
+                      // Either side may be in either language — the assistant
+                      // answers in whatever the output-language setting asks
+                      // for.
+                      //
+                      // One direction for the whole turn, not one per line the
+                      // way [NexBodyText] does it: that lays its lines out in
+                      // a stretched column, and a bubble is sized to its
+                      // content — every reply, "yes" included, would be drawn
+                      // 78% of the screen wide.
+                      textDirection: nexDirectionOf(turn.content),
+                    ),
                   );
                 },
               ),
