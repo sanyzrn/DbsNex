@@ -10,7 +10,8 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-Current tip of the working branch: `d8c4961`, version **1.21.0**, unreleased.
+Current state: **v1.21.0 is released.** `main` is at `5753ac0`; the working
+branch has been restarted from it and carries nothing of its own.
 
 ---
 
@@ -84,8 +85,8 @@ pub workspace was tried twice and reverted twice; the long comment at the top of
 There is **deliberately no `push: main`** trigger. The reasoning is in a comment
 at the top of the file (it was half the repository's billed minutes). The
 practical consequence for you: **a commit pushed straight to a branch with no PR
-is never compiled by anything.** That is exactly the state `d8c4961` is in right
-now (§8).
+is never compiled by anything.** Every release so far has gone through a pull
+request for exactly this reason — the PR *is* the build.
 
 Jobs, roughly: pure-Dart packages (core, data) analysed and tested with a
 standalone Dart SDK — that job never installs Flutter, and that *is* the
@@ -310,17 +311,12 @@ that turned out to be wrong. Specific instances:
 
 ## 8. Where things stand
 
-**Released and on `main`:** through **v1.20.1**.
+**Released and on `main`:** through **v1.21.0** (merged as #233, with this
+handoff following as #234). CI was green on it. Nothing is outstanding on the
+branch — it sits exactly on `main`.
 
-**Pushed to `claude/project-status-review-jqgb5i` and NOT verified:** commit
-`d8c4961`, **v1.21.0**. No pull request was open when it was pushed, and CI does
-not run on push — so *nothing has compiled it*. It touches 26 files.
-
-> **Do this first:** run `make check` on `d8c4961`. Expect to find something;
-> it is a wide, shallow change (one line added to twenty-seven text fields, two
-> new widgets in `packages/ui`, four new tests) written without a compiler.
-
-What v1.21.0 contains:
+What v1.21.0 contained, since it is the most recent work and the most likely
+thing to need a follow-up:
 
 - `packages/ui/lib/widgets/nex_selection_menu.dart` — new. The one filter, plus
   the two builder shapes Flutter asks for.
@@ -403,14 +399,22 @@ before the bug is reproduced in a harness.
 
 ```bash
 git fetch origin
-git checkout claude/project-status-review-jqgb5i   # currently d8c4961
+git checkout claude/project-status-review-jqgb5i   # sits on main, v1.21.0
 make bootstrap
-make check                                          # this is the step that matters
+make check                                          # confirm a clean baseline
 ```
+
+`make check` should pass on a clean checkout. If it does not, that is a finding
+in itself — every session before yours was flying blind, and a green CI run does
+not prove `make check` is green (the two have drifted before; see the comment
+above `check-ai` in the `Makefile`).
 
 Then, in order:
 
-1. Fix whatever `make check` reports on v1.21.0 and push.
-2. Reproduce the Persian text-field handle bug in a widget test (§8). That is
-   the only known open defect and the owner has hit it twice.
+1. Reproduce the Persian text-field handle bug in a widget test (§8). It is the
+   only known open defect, the owner has hit it twice, and it is the one thing
+   a local SDK makes tractable that the cloud sessions could not touch.
+2. Read `docs/NEX_V2_ROADMAP.md` — the plan for the next major version, written
+   at the end of the 1.21 cycle. It sequences the work and names what has to be
+   decided before any of it starts.
 3. Ask before opening a pull request, and ask before tagging.
