@@ -6,9 +6,17 @@ import 'package:flutter/material.dart';
 /// below it once its entrance animation finishes; translating only its child
 /// then reveals the Navigator's black backing rather than the previous page.
 class NexPageRoute<T> extends PageRoute<T> {
-  NexPageRoute({required this.builder, super.settings});
+  NexPageRoute({
+    required this.builder,
+    this.swipeBackEnabled = true,
+    super.settings,
+  });
 
   final WidgetBuilder builder;
+
+  /// Full-screen gesture surfaces, such as the photo viewer, own horizontal
+  /// drags and must not hand them to the route's back gesture.
+  final bool swipeBackEnabled;
   bool _opaque = false;
 
   @override
@@ -75,7 +83,7 @@ class NexPageRoute<T> extends PageRoute<T> {
     primaryRouteAnimation: animation,
     secondaryRouteAnimation: secondaryAnimation,
     linearTransition: false,
-    child: _NexSwipeBack(child: child),
+    child: swipeBackEnabled ? _NexSwipeBack(child: child) : child,
   );
 
   @override
@@ -180,9 +188,9 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
     super.initState();
     _settle =
         AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 180),
-        )
+            vsync: this,
+            duration: const Duration(milliseconds: 180),
+          )
           ..addListener(
             () => setState(() => _drag = _settleFrom * (1 - _settle.value)),
           )
@@ -351,9 +359,7 @@ class _NexSwipeBackState extends State<_NexSwipeBack>
           // costs the page its scroll position and its focus and shows as a
           // flicker at exactly the moment this is trying to look calm.
           builder: (context, child) => ColoredBox(
-            color: _moving
-                ? Theme.of(context).canvasColor
-                : Colors.transparent,
+            color: _moving ? Theme.of(context).canvasColor : Colors.transparent,
             child: child,
           ),
           child: widget.child,

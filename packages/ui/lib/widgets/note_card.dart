@@ -664,7 +664,8 @@ class _Leading extends StatelessWidget {
           width: nexCardLeadingSize,
           height: nexCardLeadingSize,
           cacheWidth: (nexCardLeadingSize * ratio).round(),
-          cacheHeight: (nexCardLeadingSize * ratio).round(),
+          // Decode at this width and keep the source aspect ratio. BoxFit
+          // crops the resulting image into the square without stretching it.
           fit: BoxFit.cover,
           errorBuilder: (_, _, _) =>
               const _IconBox(Icons.image_not_supported_outlined),

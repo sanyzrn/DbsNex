@@ -10,6 +10,7 @@ void main() {
   Future<void> pushSecond(
     WidgetTester tester, {
     TextDirection direction = TextDirection.ltr,
+    bool swipeBackEnabled = true,
     Widget? body,
   }) async {
     await tester.pumpWidget(
@@ -25,6 +26,7 @@ void main() {
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).push(
                   NexPageRoute<void>(
+                    swipeBackEnabled: swipeBackEnabled,
                     builder: (_) => Scaffold(
                       appBar: AppBar(title: const Text('second')),
                       body: body ?? const Center(child: Text('second body')),
@@ -56,6 +58,20 @@ void main() {
 
     expect(find.text('second'), findsNothing);
     expect(find.text('go'), findsOneWidget);
+  });
+
+  testWidgets('a route can reserve horizontal drags for its content', (
+    tester,
+  ) async {
+    await pushSecond(tester, swipeBackEnabled: false);
+
+    await tester.fling(find.text('second body'), const Offset(350, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(find.text('second body'), findsOneWidget);
+
+    await tester.fling(find.text('second body'), const Offset(-350, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(find.text('second body'), findsOneWidget);
   });
 
   testWidgets('a drag reveals the previous page behind it', (tester) async {

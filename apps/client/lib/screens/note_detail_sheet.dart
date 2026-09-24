@@ -855,6 +855,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                               NexPageRoute<void>(
                                 builder: (_) =>
                                     _FullScreenPhoto(path: note.mediaUri!),
+                                swipeBackEnabled: false,
                               ),
                             );
                           },
@@ -866,9 +867,6 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                               height: 220,
                               width: double.infinity,
                               cacheWidth: _imageCacheWidth(context),
-                              cacheHeight:
-                                  (220 * MediaQuery.devicePixelRatioOf(context))
-                                      .round(),
                             ),
                           ),
                         ),
@@ -1362,11 +1360,10 @@ class _FullScreenPhoto extends StatefulWidget {
 class _FullScreenPhotoState extends State<_FullScreenPhoto>
     with SingleTickerProviderStateMixin {
   double _dragDy = 0;
+  double _dragDx = 0;
 
-  /// The zoom. Owned here rather than left inside the viewer because three
-  /// other things depend on it: whether a one-finger drag pans the photo or
-  /// closes the sheet, what a double tap should do next, and the animation
-  /// that gets there.
+  /// The zoom. Owned here so dismissal and double-tap can inspect the current
+  /// transform without rebuilding the viewer on every pinch frame.
   final TransformationController _zoom = TransformationController();
 
   late final AnimationController _zoomDrive = AnimationController(
@@ -1394,26 +1391,14 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto>
   @override
   void initState() {
     super.initState();
-    // Without this the widget never hears that a pinch happened, so
-    // `panEnabled` below — which has to flip the moment the photo is bigger
-    // than the screen — stayed at whatever it was when the screen was built.
-    _zoom.addListener(_onZoomChanged);
     _zoomDrive.addListener(() {
       final tween = _zoomTween;
       if (tween != null) _zoom.value = tween.value;
     });
   }
 
-  void _onZoomChanged() {
-    final zoomed = _scale > 1.01;
-    if (zoomed != _wasZoomed) setState(() => _wasZoomed = zoomed);
-  }
-
-  bool _wasZoomed = false;
-
   @override
   void dispose() {
-    _zoom.removeListener(_onZoomChanged);
     _zoomDrive.dispose();
     _zoom.dispose();
     super.dispose();
@@ -1421,15 +1406,22 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto>
 
   double get _scale => _zoom.value.getMaxScaleOnAxis();
 
-  bool get _zoomedIn => _wasZoomed;
+  bool get _zoomedIn => _scale > 1.01;
+
+  void _onInteractionStart(ScaleStartDetails _) {
+    // A finger arriving during a double-tap animation takes ownership of the
+    // transform. Otherwise the animation keeps overwriting the user's pan.
+    _zoomDrive.stop();
+    _zoomTween = null;
+    _dragDx = 0;
+    if (_dragDy != 0) setState(() => _dragDy = 0);
+  }
 
   /// A one-finger drag means two different things depending on the zoom, and
   /// this is where they are told apart.
   ///
-  /// At 1× the photo fits the screen and there is nothing to pan, so a drag
-  /// down closes the sheet. Zoomed in there is a great deal to pan and
-  /// closing is the back button's job — which is why [panEnabled] follows
-  /// the zoom rather than being left on.
+  /// At 1× the photo fits the screen and a drag down closes the viewer.
+  /// Zoomed in, the same gesture pans the image instead.
   ///
   /// The dismissal is driven from the viewer's own callbacks rather than
   /// from a `GestureDetector` wrapped around it. A drag recognizer sitting
@@ -1438,9 +1430,11 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto>
   /// direction, so which one won was a coin toss.
   void _onInteractionUpdate(ScaleUpdateDetails details) {
     if (details.pointerCount != 1 || _zoomedIn) {
+      _dragDx = 0;
       if (_dragDy != 0) setState(() => _dragDy = 0);
       return;
     }
+    _dragDx += details.focalPointDelta.dx;
     setState(() {
       _dragDy = (_dragDy + details.focalPointDelta.dy).clamp(
         0.0,
@@ -1450,11 +1444,14 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto>
   }
 
   void _onInteractionEnd(ScaleEndDetails details) {
-    final flung = details.velocity.pixelsPerSecond.dy > 800;
-    if (!_zoomedIn && (_dragDy > _dismissDistance || flung)) {
+    final velocity = details.velocity.pixelsPerSecond;
+    final downwardFling = velocity.dy > 800 && velocity.dy > velocity.dx.abs();
+    final downwardDrag = _dragDy > _dismissDistance && _dragDy > _dragDx.abs();
+    if (!_zoomedIn && (downwardDrag || (downwardFling && _dragDy > 0))) {
       Navigator.of(context).pop();
       return;
     }
+    _dragDx = 0;
     if (_dragDy != 0) setState(() => _dragDy = 0);
   }
 
@@ -1468,6 +1465,7 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto>
   /// [_onDoubleTapDown] because the double-tap callback itself is not given
   /// one.
   void _onDoubleTap() {
+    _zoomDrive.stop();
     final target = _zoomedIn
         ? Matrix4.identity()
         // x -> s*x + (1 - s)*p leaves the tapped point where it was.
@@ -1505,15 +1503,15 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto>
           offset: Offset(0, _dragDy),
           child: InteractiveViewer(
             transformationController: _zoom,
-            // The single most important line here. The default is
-            // `EdgeInsets.zero`, which pins the child inside its original
-            // bounds — so a zoomed photo could not be panned to its own
-            // edges and shoved back the moment you let go. That is what
-            // "unusable" was.
-            boundaryMargin: const EdgeInsets.all(double.infinity),
+            // Keep panning within the scaled image. An infinite margin lets
+            // the photo drift completely off-screen and become hard to find.
+            boundaryMargin: EdgeInsets.zero,
             minScale: 1,
             maxScale: _maxScale,
-            panEnabled: _zoomedIn,
+            // Leave the recognizer active throughout a pinch. Switching this
+            // mid-gesture makes the next one-finger pan intermittent.
+            panEnabled: true,
+            onInteractionStart: _onInteractionStart,
             onInteractionUpdate: _onInteractionUpdate,
             onInteractionEnd: _onInteractionEnd,
             child: Center(
@@ -1914,9 +1912,10 @@ class _FileBody extends StatelessWidget {
 /// which door it came in by: one captured or picked was shown full width and
 /// opened into the viewer, and one dropped on the share sheet was a filename
 /// and a byte count. Same picture, same gesture, same viewer, either way now.
-// A sheet normally has a finite screen width. Some widget hosts provide a
-// zero-width MediaQuery while the route is being measured; in that case let
-// Image.file choose its own decode size instead of passing an invalid zero.
+// Decode to the display width only. Giving both cache dimensions forces an
+// exact resize and changes a portrait photo's aspect ratio before BoxFit runs.
+// Some widget hosts report zero width while measuring; let Image.file choose
+// its own decode size in that case.
 int? _imageCacheWidth(BuildContext context) {
   final pixels =
       MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context);
@@ -1939,7 +1938,10 @@ class _ImageFileBody extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: () => Navigator.of(context).push(
-              NexPageRoute<void>(builder: (_) => _FullScreenPhoto(path: path)),
+              NexPageRoute<void>(
+                builder: (_) => _FullScreenPhoto(path: path),
+                swipeBackEnabled: false,
+              ),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(NexRadius.md),
@@ -1949,8 +1951,6 @@ class _ImageFileBody extends StatelessWidget {
                 height: 220,
                 width: double.infinity,
                 cacheWidth: _imageCacheWidth(context),
-                cacheHeight: (220 * MediaQuery.devicePixelRatioOf(context))
-                    .round(),
                 // A file named `.png` that is not one lands here as a decode
                 // failure rather than as a crash. Nothing is drawn, and the
                 // row above still says everything the file itself knows.
