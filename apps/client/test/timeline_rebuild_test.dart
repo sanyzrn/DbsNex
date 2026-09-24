@@ -759,6 +759,33 @@ void main() {
     expect(find.text('a note about bread'), findsNothing);
   });
 
+  testWidgets(
+    'the hint itself enters search and opens the keyboard in one tap',
+    (tester) async {
+      await services.captureText('Generator');
+      await services.refreshTimeline();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+
+      final hint = find.text('Search notes…');
+      expect(hint, findsOneWidget);
+      await tester.tapAt(tester.getCenter(hint));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EditableText), findsOneWidget);
+      expect(
+        tester
+            .widget<EditableText>(find.byType(EditableText))
+            .focusNode
+            .hasFocus,
+        isTrue,
+      );
+      expect(find.byType(FloatingActionButton), findsNothing);
+    },
+  );
+
   testWidgets('a library too short to scroll simply shows the field', (
     tester,
   ) async {

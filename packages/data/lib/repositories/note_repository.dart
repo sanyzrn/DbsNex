@@ -1062,13 +1062,20 @@ LIMIT ?
 
     final q = filters.query.trim();
     if (q.isNotEmpty) {
-      // Match via FTS: text bodies, plus voice transcripts / photo OCR when present.
+      // FTS gives fast word and prefix matches. A literal substring fallback
+      // also finds the middle of a word ("tor" in "Generator"), which FTS5's
+      // unicode tokenizer cannot express. Both paths use the same indexed
+      // content, including transcripts and OCR, without treating % or _ as
+      // wildcards typed by the reader.
       where.add('''
 n.id IN (
   SELECT note_id FROM notes_fts WHERE notes_fts MATCH ?
+  UNION
+  SELECT note_id FROM notes_fts WHERE instr(lower(content), lower(?)) > 0
 )
 ''');
       args.add(_ftsQuery(q));
+      args.add(q);
     }
 
     if (filters.tagIds.isNotEmpty) {

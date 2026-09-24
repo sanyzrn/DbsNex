@@ -34,6 +34,16 @@ Working convention:
 
 ## Unreleased
 
+## v1.22.1
+
+- **Glass stays steady as the home screen scrolls or refreshes.** The search field and daily recap no longer flash dark grey, and their drop shadows are gone. Settings keeps its own background when Liquid Glass is switched off while the sheet is open.
+
+- **Search finds text inside a word.** A search for `tor` now finds a note containing `Generator`. The whole search field, including the hint text, is easier to tap.
+
+- **Photos return sooner and stay findable.** Profile pictures can be found again when an older saved path goes stale, and nearby note images begin loading before they scroll into view.
+
+- **Profile details have a second local copy.** Your name, birthday and bio are kept with the profile photo in the library backup, so they can be restored if app settings are lost.
+
 ## v1.22.0
 
 - **Liquid Glass feels lighter and clearer.** Floating controls now catch a

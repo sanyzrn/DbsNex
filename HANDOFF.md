@@ -9,9 +9,10 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-Current state: **v1.21.1 is released; v1.22.0 is prepared but not tagged.**
+Current state: **v1.22.0 is released; v1.22.1 is prepared but not tagged.**
 The 1.21.1 audit fixes are recorded in §8 and `NEX_RELEASE_AUDIT.md`. The
-1.22.0 work redesigns Liquid Glass and the home dock; the owner will tag it.
+1.22.0 work redesigns Liquid Glass and the home dock; 1.22.1 addresses the
+first round of user feedback. The owner will tag 1.22.1.
 
 ---
 
@@ -183,6 +184,14 @@ pipeline to enforce house style — it enforces lints.
 4. It publishes to a **separate public repo** (`RELEASES_REPO`), not this one,
    because this repo is private and the in-app updater cannot hold a credential.
 5. It calls the whole of `ci.yml` through its `verify` job first.
+6. Before uploading the APKs, it compares the new universal APK's Android
+   package id and signing certificate with the latest published universal APK
+   in `sanyzrn/DbsNex-releases`. A mismatch blocks an update that would need
+   an uninstall and could erase local settings and the offline model.
+
+**Release tags and assets live at
+https://github.com/sanyzrn/DbsNex-releases.** Check published versions there;
+source-repository tags are not the release record.
 
 Because the workflow stamps the version, the checked-in numbers used to drift —
 they sat at 1.3.2 for nine releases. So `apps/client/test/version_test.dart`
@@ -329,8 +338,8 @@ that turned out to be wrong. Specific instances:
 
 ## 8. Where things stand
 
-**Released and on `main`:** through **v1.21.1**. **Prepared in the working
-tree:** v1.22.0, with its version, root changelog and bundled changelog in
+**Released and on `main`:** through **v1.22.0**. **Prepared for tagging:**
+v1.22.1, with its version, root changelog and bundled changelog in
 step. The owner will create the tag after review.
 
 The 1.22.0 pass makes the bottom navigation one floating dock with a raised
@@ -339,10 +348,27 @@ material, lightens the glass treatment and keeps Comfort Mode warm. It also
 fixes a Windows database-worker close path that rejected its own close command,
 and regenerates malformed checked-in localization files from the ARB sources.
 The complete client suite (732 tests) and UI suite (156 tests) passed locally
-with Flutter 3.35.5 and `--no-pub`. A local Android build could not resolve
-the Android Gradle plugin because this machine's Google Maven endpoint returned
-404 even for older plugin versions; the release workflow's own CI verification
-still needs to run when the owner tags.
+with Flutter 3.35.5 and `--no-pub`. The 1.22.0 PR CI passed, including its
+Android build. A local Android build could not resolve the Android Gradle
+plugin because this machine's Google Maven endpoint returned 404 even for
+older plugin versions.
+
+Feedback on the 1.22.0 build prompted the 1.22.1 stabilization pass: the search
+field no longer fades its whole glass layer; the recap's animated border now
+repaints separately; glass wash uses only source-over films so refresh and
+sliver repaint cannot temporarily blend against an empty destination; both
+panels omit their drop shadows. Shared sheets regain an opaque background
+immediately when glass is disabled. Search adds a literal substring fallback
+to FTS, the entire search pill responds to taps, old profile-picture paths can
+be recovered from `media/profile`, and nearby photo cards are built early while
+detail images decode at display size. A profile details mirror now lives in
+`media/profile/details.json`, so normal library backups include name, birthday
+and bio and bootstrap restores missing preference keys from it. A missing
+profile image can only be recovered if its file is still in media. The offline
+model already lives in persistent application support storage; no code path in
+the updater removes it. Its disappearance on the owner's 1.22.0 installation
+is not explained by the available code; the release APK identity gate above
+guards against accidental replacement installs in future releases.
 
 What v1.21.0 contained, as context for the remaining selection issue:
 
@@ -491,7 +517,7 @@ drifted before; see the comment above `check-ai` in the `Makefile`).
 
 Then, in order:
 
-1. Review the 1.22.0 diff and release checks before tagging. The owner handles
+1. Review the 1.22.1 diff and release checks before tagging. The owner handles
    the tag; do not create it on their behalf.
 2. Reproduce the Persian multiline text-field handle bug in a widget test (§8).
    It remains open and needs a real gesture harness.

@@ -21,8 +21,9 @@ const nexSearchTapGroup = 'nex-search-tap-group';
 /// it is genuinely part of the list rather than an overscroll effect, it
 /// behaves the same under Android's clamping physics and iOS's bouncing ones.
 ///
-/// [progress] is how far into view it has come, 0 to 1. The field fades and
-/// rises with it so it arrives rather than appearing.
+/// The field is clipped by the viewport as it enters. Fading the entire
+/// glass surface put it in an opacity layer, changing its blend colour until
+/// the fade ended and making an emerging control harder to touch.
 class SearchFieldHeader extends SliverPersistentHeaderDelegate {
   const SearchFieldHeader({
     required this.controller,
@@ -77,13 +78,8 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
   ) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final progress = (1 - shrinkOffset / nexSearchHeaderExtent).clamp(0.0, 1.0);
-
     return ClipRect(
-      child: Opacity(
-        // Below a third of the way in there is not enough of the field on
-        // screen to read, and a half-drawn control reads as a glitch.
-        opacity: ((progress - 0.3) / 0.5).clamp(0.0, 1.0),
+      child: TapRegion(
         // A tap anywhere outside the field closes search the same way the X
         // button does — the X was the only way out, so leaving search meant
         // aiming for one small target instead of just tapping whatever you
@@ -92,27 +88,30 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
         // that tap fires on pointer-down, before the card's own onTap would
         // resolve, so without the group the card never got a chance to open
         // — search silently closed back to the timeline instead.
-        child: TapRegion(
-          groupId: nexSearchTapGroup,
-          onTapOutside: (_) {
-            if (searching) onClear();
-          },
-          // No backing behind the row. The tag row below this one needs one,
-          // because it is pinned and the list genuinely runs beneath it; this
-          // header is not pinned and never has anything behind it — it scrolls
-          // away with the list like any other item. Painted anyway, it was a
-          // band of flat colour drawn straight across whatever background the
-          // reader had chosen, which is the same thing that was wrong with the
-          // tag row's and is more obvious here because this strip is taller.
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              NexSpacing.md,
-              NexSpacing.xs,
-              NexSpacing.md,
-              NexSpacing.sm,
-            ),
-            child: NexGlassSurface(
-              borderRadius: BorderRadius.circular(NexRadius.pill),
+        groupId: nexSearchTapGroup,
+        onTapOutside: (_) {
+          if (searching) onClear();
+        },
+        // No backing behind the row. The tag row below this one needs one,
+        // because it is pinned and the list genuinely runs beneath it; this
+        // header is not pinned and never has anything behind it — it scrolls
+        // away with the list like any other item. Painted anyway, it was a
+        // band of flat colour drawn straight across whatever background the
+        // reader had chosen, which is the same thing that was wrong with the
+        // tag row's and is more obvious here because this strip is taller.
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            NexSpacing.md,
+            NexSpacing.xs,
+            NexSpacing.md,
+            NexSpacing.sm,
+          ),
+          child: NexGlassSurface(
+            borderRadius: BorderRadius.circular(NexRadius.pill),
+            showShadow: false,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
               child: Material(
                 key: anchor,
                 color: context.nexVisualStyle.liquidGlass

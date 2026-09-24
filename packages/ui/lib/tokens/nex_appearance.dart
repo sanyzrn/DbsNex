@@ -74,19 +74,11 @@ class NexGlassWash {
   /// compress the range rather than shifting it.
   final List<Color> films;
 
-  /// Added rather than composited — [BlendMode.plus].
-  ///
-  /// This is what stops a dark backdrop reading as a hole: source-over can
-  /// only move the result *toward* a colour, and a film pale enough to lift
-  /// black is pale enough to wash out everything else.
+  /// A source-over lift that keeps dark backdrops readable.
   final Color lift;
 
-  /// [BlendMode.luminosity]: the backdrop keeps its hue and saturation and
-  /// takes this film's brightness, at this film's alpha.
-  ///
-  /// The last step, and the one that makes the band narrow enough to put text
-  /// on. Doing it with a plain fill instead would drag every backdrop toward
-  /// grey and take the tint with it.
+  /// The final source-over tint. All four films are independent of the
+  /// destination blend state, including during a sliver's first paint.
   final Color anchor;
 
   NexGlassWash lerp(NexGlassWash other, double t) => NexGlassWash(
@@ -291,11 +283,13 @@ class NexGlassSurface extends StatelessWidget {
     this.borderRadius = const BorderRadius.all(Radius.circular(NexRadius.xl)),
     this.padding,
     this.fallbackColor,
+    this.showShadow = true,
   });
 
   final Widget child;
   final BorderRadius borderRadius;
   final EdgeInsetsGeometry? padding;
+  final bool showShadow;
 
   /// What to draw outside the glass appearance.
   ///
@@ -338,7 +332,9 @@ class NexGlassSurface extends StatelessWidget {
     }
     return CustomPaint(
       painter: _GlassEdgePainter(
-        shadows: visual.glassEdge,
+        shadows: showShadow
+            ? visual.glassEdge
+            : visual.glassEdge.take(3).toList(),
         borderRadius: borderRadius,
       ),
       child: ClipRRect(
@@ -348,11 +344,8 @@ class NexGlassSurface extends StatelessWidget {
             sigmaX: visual.blurSigma,
             sigmaY: visual.blurSigma,
           ),
-          // Inside the filter, so the films blend against the blurred
-          // backdrop rather than against nothing — which is the whole
-          // arrangement. [BlendMode.plus] and [BlendMode.luminosity] read
-          // what has already been painted, and what has already been painted
-          // here is the page, blurred.
+          // Source-over films stay stable when the sliver or refresh indicator
+          // temporarily paints into a fresh layer above the blurred page.
           child: CustomPaint(
             painter: _GlassWashPainter(visual.glassWash),
             child: DecoratedBox(
@@ -493,13 +486,7 @@ class _GlassEdgePainter extends CustomPainter {
       !listEquals(oldDelegate.shadows, shadows);
 }
 
-/// Lays [NexGlassWash]'s four films over whatever the canvas already holds.
-///
-/// Deliberately no `saveLayer`. Two of the four blend against the
-/// destination, and a fresh layer starts empty, so wrapping these calls would
-/// have them blend against transparent black and produce a flat grey slab —
-/// the failure mode that looks like the effect working until you put it over
-/// something coloured.
+/// Lays [NexGlassWash]'s four source-over films over the blurred backdrop.
 class _GlassWashPainter extends CustomPainter {
   const _GlassWashPainter(this.wash);
 
@@ -511,18 +498,8 @@ class _GlassWashPainter extends CustomPainter {
     for (final film in wash.films) {
       canvas.drawRect(area, Paint()..color = film);
     }
-    canvas.drawRect(
-      area,
-      Paint()
-        ..color = wash.lift
-        ..blendMode = BlendMode.plus,
-    );
-    canvas.drawRect(
-      area,
-      Paint()
-        ..color = wash.anchor
-        ..blendMode = BlendMode.luminosity,
-    );
+    canvas.drawRect(area, Paint()..color = wash.lift);
+    canvas.drawRect(area, Paint()..color = wash.anchor);
   }
 
   @override

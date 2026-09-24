@@ -18,6 +18,7 @@ import '../platform/daily_nudge.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/notification_settings.dart';
 import '../platform/nex_services.dart';
+import '../platform/profile_photo.dart';
 import '../platform/reminders.dart';
 import '../platform/update_service.dart';
 import '../platform/os_capture_bridge.dart';
@@ -543,18 +544,16 @@ class SettingsSheet extends StatelessWidget {
             icon: Icons.music_note_outlined,
             title: l10n.notificationSoundReminders,
             value: l10n.notificationSoundSubtitle,
-            onTap: () => unawaited(
-              _openChannel(context, NexReminders.remindersChannel),
-            ),
+            onTap: () =>
+                unawaited(_openChannel(context, NexReminders.remindersChannel)),
           ),
           if (preferences.dailyNudge)
             _Row(
               icon: Icons.music_note_outlined,
               title: l10n.notificationSoundDaily,
               value: l10n.notificationSoundSubtitle,
-              onTap: () => unawaited(
-                _openChannel(context, NexReminders.dailyChannel),
-              ),
+              onTap: () =>
+                  unawaited(_openChannel(context, NexReminders.dailyChannel)),
             ),
         ],
       ],
@@ -632,10 +631,7 @@ Future<void> _openChannel(BuildContext context, String channelId) async {
 ///
 /// Says the filters rather than the screen's name: the row is worth opening
 /// when it does not say "Everything", and worth leaving alone when it does.
-String _widgetFilterSummary(
-  AppLocalizations l10n,
-  NexPreferences preferences,
-) {
+String _widgetFilterSummary(AppLocalizations l10n, NexPreferences preferences) {
   final types = preferences.widgetTypes;
   final tags = preferences.widgetTags.values.where((n) => n.isNotEmpty);
   final kinds = types.isEmpty
@@ -952,9 +948,11 @@ class _ProfileCardState extends State<_ProfileCard> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final name = widget.preferences.displayName;
-    final photoPath = widget.preferences.profilePhotoPath;
-    final photo = photoPath == null ? null : File(photoPath);
-    final hasPhoto = photo?.existsSync() ?? false;
+    final photo = resolveProfilePhoto(
+      widget.services.mediaDir,
+      widget.preferences.profilePhotoPath,
+    );
+    final hasPhoto = photo != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: NexSpacing.lg),
       child: Material(
@@ -979,7 +977,7 @@ class _ProfileCardState extends State<_ProfileCard> {
                       ? BoxDecoration(
                           shape: BoxShape.circle,
                           image: DecorationImage(
-                            image: FileImage(photo!),
+                            image: FileImage(photo),
                             fit: BoxFit.cover,
                           ),
                         )

@@ -307,6 +307,44 @@ jobs:
           # updater asks for is how an update stops being installable at all.
           test "$(ls dist | wc -l)" -eq 5
 
+      # An APK with a new package id or signing certificate cannot update the
+      # installed app in place. Android would require a replacement install,
+      # which can discard local profile settings and a multi-GB model while
+      # notes later reappear from sync or backup. Compare against the APK the
+      # updater currently serves, from the separate public releases repo.
+      - name: Verify in-place update identity
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          previous_tag="$(gh api "repos/$RELEASES_REPO/releases/latest" --jq .tag_name)"
+          mkdir -p previous
+          gh release download "$previous_tag" \
+            --repo "$RELEASES_REPO" --pattern '*-universal.apk' --dir previous
+          previous_apk="$(find previous -maxdepth 1 -name '*-universal.apk' -print -quit)"
+          current_apk="dist/Nex-${{ needs.version.outputs.version }}-universal.apk"
+          test -s "$previous_apk"
+          test -s "$current_apk"
+
+          build_tools="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          package_id() {
+            "$build_tools/aapt" dump badging "$1" \
+              | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1
+          }
+          signer() {
+            "$build_tools/apksigner" verify --print-certs "$1" \
+              | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1
+          }
+          old_id="$(package_id "$previous_apk")"
+          new_id="$(package_id "$current_apk")"
+          old_signer="$(signer "$previous_apk")"
+          new_signer="$(signer "$current_apk")"
+          if [ "$old_id" != com.sanyzrn.nex ] || [ "$new_id" != "$old_id" ] || \
+             [ -z "$old_signer" ] || [ "$new_signer" != "$old_signer" ]; then
+            echo "::error::APK identity differs from $previous_tag; refusing an update that may require removing the installed app."
+            exit 1
+          fi
+
       - uses: actions/upload-artifact@v7
         with:
           name: android

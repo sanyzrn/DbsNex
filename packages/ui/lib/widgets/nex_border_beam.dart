@@ -138,23 +138,33 @@ class _NexBorderBeamState extends State<NexBorderBeam>
   @override
   Widget build(BuildContext context) {
     if (!widget.active) return widget.child;
-    // Its own layer: this repaints on every frame of the lap, and without a
-    // boundary it would drag whatever list it is sitting in along with it.
-    return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: _lap,
-        builder: (context, child) => CustomPaint(
-          foregroundPainter: _BeamPainter(
-            turn: _lap.value,
-            borderRadius: widget.borderRadius,
-            colors: widget.colors,
-            thickness: widget.thickness,
-            strength: widget.strength.clamp(0.0, 1.0),
+    // Keep the animated light in its own repaint boundary. Wrapping the
+    // entire child isolated its BackdropFilter too: when the recap re-entered
+    // the viewport its glass sampled an empty layer before the page appeared,
+    // so its colour changed a moment after the card came into view.
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        widget.child,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: _lap,
+                builder: (context, _) => CustomPaint(
+                  painter: _BeamPainter(
+                    turn: _lap.value,
+                    borderRadius: widget.borderRadius,
+                    colors: widget.colors,
+                    thickness: widget.thickness,
+                    strength: widget.strength.clamp(0.0, 1.0),
+                  ),
+                ),
+              ),
+            ),
           ),
-          child: child,
         ),
-        child: widget.child,
-      ),
+      ],
     );
   }
 }
@@ -183,9 +193,7 @@ class _BeamPainter extends CustomPainter {
     final shape = borderRadius.toRRect(area).deflate(thickness / 2);
 
     Shader sweep(double alpha) => SweepGradient(
-      colors: [
-        for (final c in colors) c.withValues(alpha: c.a * alpha),
-      ],
+      colors: [for (final c in colors) c.withValues(alpha: c.a * alpha)],
       transform: GradientRotation(turn * 2 * math.pi),
     ).createShader(area);
 

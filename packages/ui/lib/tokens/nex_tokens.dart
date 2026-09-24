@@ -742,35 +742,12 @@ ThemeData _theme({
       NexVisualStyle(
         liquidGlass: liquidGlass,
         baseColor: background,
-        // Four steps, described in [NexGlassWash]; the dark set is the same
-        // four solved for a dark anchor. Both were checked against every
-        // backdrop a panel can land on — pure black to pure white, through a
-        // saturated accent and the danger red — before they were written
-        // down.
-        //
-        // The dark ceiling is set by the comfort theme, not the plain one:
-        // its ink is #E4DACA rather than #F2F2F3, which needs the material to
-        // stay under rgb 97 even with a white note behind it. That is why the
-        // black film is 0.60 and not the 0.46 the plain dark theme would take.
-        //
-        // The light set started as Apple's own — the iOS 27 kit's 0.25/0.32
-        // over a #F8F8F8 anchor at 0.20 — and no longer is, for a reason that
-        // is arithmetic rather than taste. Apple's numbers pin the result near
-        // white, and this app's light page *is* near white: a panel over it
-        // came out rgb 247 against a page of 245. Two values out of 255 is not
-        // a material, it is a rounding error, and no amount of rim or shadow
-        // rescues a panel whose fill is the page.
-        //
-        // The light anchor stays below the page but above neutral grey. It
-        // gives a pane a soft white cast instead of the dull grey the old
-        // #BCBCBC anchor produced. The films still compress extreme
-        // backdrops so a dark photo cannot turn the pane into an unreadable
-        // hole; the contrast tests hold that floor.
-        //
-        // What it costs is translucency — 39% of the backdrop survives the
-        // films, where 51% did. A note's colour still tints the glass and the
-        // blur is still sigma 10, so it is still a material you can see
-        // through; it is simply no longer one you cannot see.
+        // Every layer uses source-over. The earlier additive and luminosity
+        // steps read the destination; during a refresh or a sliver's first
+        // paint that destination could be an empty layer, turning the search
+        // and brief into grey blocks until the next frame. The new tint keeps
+        // about a fifth of the blurred backdrop visible and holds its text
+        // legible across light, dark, saturated and near-black notes.
         glassWash: dark
             ? NexGlassWash(
                 films: [
@@ -782,18 +759,18 @@ ThemeData _theme({
               )
             : NexGlassWash(
                 films: [
-                  Colors.black.withValues(alpha: 0.33),
-                  Colors.white.withValues(alpha: 0.42),
+                  Colors.black.withValues(alpha: 0.10),
+                  Colors.white.withValues(alpha: 0.43),
                 ],
-                lift: const Color(0xFF444444).withValues(alpha: 0.6),
+                lift: Colors.white.withValues(alpha: 0.08),
                 // Cream has a lower starting luminance than the plain page,
                 // so it needs a warmer, slightly deeper anchor to keep the
                 // pane visible without turning Comfort Mode cold grey.
                 anchor:
                     (comfortMode
-                            ? const Color(0xFFC6BEB0)
-                            : const Color(0xFFD0D0D0))
-                        .withValues(alpha: 0.34),
+                            ? const Color(0xFFC9BFAF)
+                            : const Color(0xFFD9DDE2))
+                        .withValues(alpha: 0.60),
               ),
         glassOpaque: card,
         // Apple's #D0D0D0 in light. In dark a grey sliver would vanish, so
