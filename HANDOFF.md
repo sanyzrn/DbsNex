@@ -9,9 +9,10 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-Current state: **v1.21.1 is released; v1.22.0 is prepared but not tagged.**
+Current state: **v1.22.0 is released; v1.22.1 is prepared but not tagged.**
 The 1.21.1 audit fixes are recorded in §8 and `NEX_RELEASE_AUDIT.md`. The
-1.22.0 work redesigns Liquid Glass and the home dock; the owner will tag it.
+1.22.0 work redesigns Liquid Glass and the home dock; 1.22.1 addresses the
+first round of user feedback. The owner will tag 1.22.1.
 
 ---
 
@@ -329,8 +330,8 @@ that turned out to be wrong. Specific instances:
 
 ## 8. Where things stand
 
-**Released and on `main`:** through **v1.21.1**. **Prepared for tagging:**
-v1.22.0, with its version, root changelog and bundled changelog in
+**Released and on `main`:** through **v1.22.0**. **Prepared for tagging:**
+v1.22.1, with its version, root changelog and bundled changelog in
 step. The owner will create the tag after review.
 
 The 1.22.0 pass makes the bottom navigation one floating dock with a raised
@@ -339,12 +340,12 @@ material, lightens the glass treatment and keeps Comfort Mode warm. It also
 fixes a Windows database-worker close path that rejected its own close command,
 and regenerates malformed checked-in localization files from the ARB sources.
 The complete client suite (732 tests) and UI suite (156 tests) passed locally
-with Flutter 3.35.5 and `--no-pub`. A local Android build could not resolve
-the Android Gradle plugin because this machine's Google Maven endpoint returned
-404 even for older plugin versions; the release workflow's own CI verification
-still needs to run when the owner tags.
+with Flutter 3.35.5 and `--no-pub`. The 1.22.0 PR CI passed, including its
+Android build. A local Android build could not resolve the Android Gradle
+plugin because this machine's Google Maven endpoint returned 404 even for
+older plugin versions.
 
-Feedback on the pre-tag build prompted a stabilization pass: the search field
+Feedback on the 1.22.0 build prompted the 1.22.1 stabilization pass: the search field
 no longer fades its whole glass layer while scrolling in; the recap's animated
 border now repaints separately from its glass; shared sheets regain an opaque
 background immediately when glass is disabled. Search adds a literal substring
@@ -501,7 +502,7 @@ drifted before; see the comment above `check-ai` in the `Makefile`).
 
 Then, in order:
 
-1. Review the 1.22.0 diff and release checks before tagging. The owner handles
+1. Review the 1.22.1 diff and release checks before tagging. The owner handles
    the tag; do not create it on their behalf.
 2. Reproduce the Persian multiline text-field handle bug in a widget test (§8).
    It remains open and needs a real gesture harness.
