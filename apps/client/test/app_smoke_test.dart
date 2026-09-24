@@ -852,7 +852,7 @@ void main() {
     // expanded: the cards that used to fill two and a half screens of scroll
     // before the first switch are not on screen at all.
     expect(find.text('Swipe actions'), findsOneWidget);
-    expect(find.text('Comfort Mode'), findsOneWidget);
+    expect(find.text('Comfort Mode'), findsNothing);
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Theme'), findsOneWidget);
     expect(find.text('Liquid Glass'), findsOneWidget);
@@ -1304,52 +1304,40 @@ void main() {
     // before a word of a long note was readable.
     expect(sheet, greaterThan(screen * 0.6));
 
-    // And the actions are pinned below the scroll, so a screenful of text does
-    // not bury them: they are on screen without scrolling anywhere. The
-    // action row is icon-only, so its members are found by tooltip rather
-    // than by label text.
-    expect(find.byTooltip('Delete').hitTestable(), findsOneWidget);
-    expect(find.byTooltip('Copy').hitTestable(), findsOneWidget);
+    // Common actions stay in reach, and the rest have readable names in More.
+    expect(find.text('Copy').hitTestable(), findsOneWidget);
+    expect(find.text('More actions').hitTestable(), findsOneWidget);
   });
 
-  testWidgets(
-    'Delete sits in the action row, unlabeled, and stays red among neutral icons',
-    (tester) async {
-      await services.captureText('a note');
-      await services.refreshTimeline();
-      await tester.pumpWidget(
-        NexApp(services: services, preferences: preferences),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('a note'));
-      await tester.pumpAndSettle();
-
-      final deleteTooltip = find.byTooltip('Delete');
-      expect(deleteTooltip, findsOneWidget);
-      // No printed "Delete" label anywhere in the sheet — tooltip only.
-      expect(find.text('Delete'), findsNothing);
-
-      final deleteIcon = tester.widget<Icon>(
-        find.descendant(of: deleteTooltip, matching: find.byType(Icon)),
-      );
-      final copyIcon = tester.widget<Icon>(
-        find.descendant(
-          of: find.byTooltip('Copy'),
-          matching: find.byType(Icon),
-        ),
-      );
-      final theme = Theme.of(tester.element(find.byType(NoteDetailSheet)));
-      expect(deleteIcon.color, theme.colorScheme.error);
-      expect(copyIcon.color, isNot(theme.colorScheme.error));
-    },
-  );
-
-  testWidgets('the seams between action groups can actually be seen', (
+  testWidgets('an image shared into Nex offers the photo editor', (
     tester,
   ) async {
-    // They were `outlineVariant` faded to 0.6 — the quiet token, quieter — on
-    // the theory that a seam should be softer than a border. The result was
-    // invisible in both themes, which makes it a seam that separates nothing.
+    final bytes = Uint8List.fromList(
+      img.encodePng(img.Image(width: 100, height: 80)),
+    );
+    final file = File(p.join(services.mediaDir, 'shared.png'))
+      ..writeAsBytesSync(bytes);
+    await services.captureFile(
+      mediaUri: file.path,
+      mediaHash: sha256OfBytes(bytes),
+      originalFilename: 'shared.png',
+      mimeType: 'image/png',
+    );
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(NoteCard).first);
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.crop_rotate), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('Delete is labelled and red in the More actions sheet', (
+    tester,
+  ) async {
     await services.captureText('a note');
     await services.refreshTimeline();
     await tester.pumpWidget(
@@ -1359,31 +1347,31 @@ void main() {
     await tester.tap(find.text('a note'));
     await tester.pumpAndSettle();
 
-    final seams = find.byWidgetPredicate(
-      (widget) => widget is Container && widget.constraints?.maxWidth == 1,
-      description: 'a 1px separator',
+    await tester.tap(find.text('More actions'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsOneWidget);
+    final delete = tester.widget<ListTile>(
+      find.ancestor(of: find.text('Delete'), matching: find.byType(ListTile)),
     );
-    expect(seams, findsWidgets, reason: 'the action row has no separators');
-
     final theme = Theme.of(tester.element(find.byType(NoteDetailSheet)));
-    for (final element in seams.evaluate()) {
-      final colour = ((element.widget as Container).color)!;
-      // 3:1 is the floor for a boundary a person is meant to perceive
-      // (WCAG 1.4.11). Measured against both surfaces the sheet can paint, so
-      // this holds whichever one is behind the row, and composited first —
-      // the separator is translucent, so its raw colour is not what anyone
-      // sees.
-      for (final ground in [
-        theme.colorScheme.surface,
-        theme.colorScheme.surfaceContainerLowest,
-      ]) {
-        expect(
-          nexContrastRatio(Color.alphaBlend(colour, ground), ground),
-          greaterThanOrEqualTo(3.0),
-          reason: 'the separator is invisible against $ground',
-        );
-      }
-    }
+    expect(delete.textColor, theme.colorScheme.error);
+  });
+
+  testWidgets('secondary actions are readable in More actions', (tester) async {
+    await services.captureText('a note');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('a note'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('More actions'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pin'), findsOneWidget);
+    expect(find.text('Details'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
   });
 
   testWidgets('what the AI read is behind a tap, not on top of the note', (

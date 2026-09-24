@@ -179,34 +179,6 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(l10n.annotateTitle),
-        actions: [
-          IconButton(
-            tooltip: l10n.annotateUndo,
-            icon: const Icon(Icons.undo),
-            onPressed: _marks.isEmpty ? null : _undo,
-          ),
-          IconButton(
-            tooltip: l10n.annotateClear,
-            icon: const Icon(Icons.delete_outline),
-            onPressed: _marks.isEmpty ? null : _clear,
-          ),
-          TextButton(
-            onPressed: _saving ? null : _done,
-            child: _saving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    l10n.annotateDone,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -238,8 +210,20 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen> {
                           left: mark.position.dx,
                           top: mark.position.dy,
                           child: GestureDetector(
-                            onPanUpdate: (d) =>
-                                setState(() => mark.position += d.delta),
+                            onPanUpdate: (d) {
+                              final boundary =
+                                  _boundaryKey.currentContext
+                                          ?.findRenderObject()
+                                      as RenderBox?;
+                              if (boundary == null) return;
+                              setState(() {
+                                final next = mark.position + d.delta;
+                                mark.position = Offset(
+                                  next.dx.clamp(0, boundary.size.width),
+                                  next.dy.clamp(0, boundary.size.height),
+                                );
+                              });
+                            },
                             child: Text(
                               mark.text,
                               style: TextStyle(
@@ -269,10 +253,34 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen> {
             ),
           SafeArea(
             top: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              decoration: const BoxDecoration(
+                color: Color(0xFF171717),
+                border: Border(top: BorderSide(color: Color(0xFF383838))),
+              ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  SegmentedButton<_Mode>(
+                    segments: [
+                      ButtonSegment(
+                        value: _Mode.draw,
+                        icon: const Icon(Icons.brush_outlined),
+                        label: Text(l10n.annotateDraw),
+                      ),
+                      ButtonSegment(
+                        value: _Mode.text,
+                        icon: const Icon(Icons.text_fields),
+                        label: Text(l10n.annotateText),
+                      ),
+                    ],
+                    selected: {_mode},
+                    onSelectionChanged: (selection) =>
+                        setState(() => _mode = selection.first),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -282,8 +290,8 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen> {
                           child: GestureDetector(
                             onTap: () => setState(() => _color = swatch),
                             child: Container(
-                              width: 28,
-                              height: 28,
+                              width: 34,
+                              height: 34,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: swatch,
@@ -307,22 +315,38 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen> {
                       onChanged: (value) =>
                           setState(() => _strokeWidth = value),
                     ),
-                  SegmentedButton<_Mode>(
-                    segments: [
-                      ButtonSegment(
-                        value: _Mode.draw,
-                        icon: const Icon(Icons.brush_outlined),
-                        label: Text(l10n.annotateDraw),
+                  Row(
+                    children: [
+                      IconButton(
+                        tooltip: l10n.annotateUndo,
+                        icon: const Icon(Icons.undo),
+                        onPressed: _marks.isEmpty ? null : _undo,
                       ),
-                      ButtonSegment(
-                        value: _Mode.text,
-                        icon: const Icon(Icons.text_fields),
-                        label: Text(l10n.annotateText),
+                      IconButton(
+                        tooltip: l10n.annotateClear,
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: _marks.isEmpty ? null : _clear,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: _saving ? null : _done,
+                          icon: _saving
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.check),
+                          label: Text(l10n.annotateDone),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                          ),
+                        ),
                       ),
                     ],
-                    selected: {_mode},
-                    onSelectionChanged: (selection) =>
-                        setState(() => _mode = selection.first),
                   ),
                 ],
               ),
@@ -342,12 +366,20 @@ class _StrokePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     for (final stroke in strokes) {
-      if (stroke.points.length < 2) continue;
+      if (stroke.points.isEmpty) continue;
       final paint = Paint()
         ..color = stroke.color
         ..strokeWidth = stroke.width
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
+      if (stroke.points.length == 1) {
+        canvas.drawCircle(
+          stroke.points.first,
+          stroke.width / 2,
+          paint..style = PaintingStyle.fill,
+        );
+        continue;
+      }
       final path = Path()
         ..moveTo(stroke.points.first.dx, stroke.points.first.dy);
       for (final point in stroke.points.skip(1)) {

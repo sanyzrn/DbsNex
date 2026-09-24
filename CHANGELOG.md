@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v1.30.0
+
+- **Edit photos already in the library.** Open a photo note or an image shared into Nex to crop, rotate and annotate it. The editor offers common crop ratios and a reset control.
+
+- **A calmer home screen.** The open daily recap has a thinner, single-color accent edge. The resting search field matches the closed recap's fill and border. The recap leaves the screen while searching, Comfort Mode is hidden from Settings, and note cards leave exact timestamps to their details.
+
+- **Clearer actions in note details.** Common actions have labels; the remaining actions sit in a readable More menu.
+
 ## v1.22.2
 
 - **Photos keep their natural proportions in note previews.** Images in a note's detail sheet and timeline card no longer look stretched after capture or import.

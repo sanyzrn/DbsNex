@@ -109,18 +109,17 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
           child: NexGlassSurface(
             borderRadius: BorderRadius.circular(NexRadius.pill),
             showShadow: false,
+            fallbackColor: scheme.surfaceContainerLowest,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onTap,
               child: Material(
                 key: anchor,
-                color: context.nexVisualStyle.liquidGlass
-                    ? Colors.transparent
-                    : scheme.surfaceContainerHighest,
+                color: Colors.transparent,
                 shape: StadiumBorder(
                   side: BorderSide(
-                    color: searching ? scheme.primary : scheme.outlineVariant,
-                    width: searching ? 1.5 : 1,
+                    color: searching ? scheme.primary : Colors.transparent,
+                    width: searching ? 1 : 0,
                   ),
                 ),
                 child: Padding(

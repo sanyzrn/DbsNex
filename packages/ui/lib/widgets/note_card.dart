@@ -202,27 +202,16 @@ class _CardBody extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(NexSpacing.cardInset),
           child: Row(
-            // The glyph and the timestamp sit at the top of an expanded card
-            // rather than halfway down beside a paragraph. On a fixed-height
-            // card the two are the same thing.
+            // Keep the icon aligned with the top of an expanded preview.
             crossAxisAlignment: expanded
                 ? CrossAxisAlignment.start
                 : CrossAxisAlignment.center,
             children: [
               _LeadingWithPin(note: note, strings: strings),
               const SizedBox(width: NexSpacing.contentGap),
-              // Beside the glyph, not under the preview. Stacked, it was the
-              // one line that did not fit once the preview took two — and
-              // making the card taller to hold it spent height on the least
-              // important thing on the card. Here it costs nothing vertically,
-              // and it doubles as the gap that keeps the text off the glyph.
-              //
-              // A reminder takes this slot rather than sitting beside it. The
-              // two together stole a chunk of the preview's width and pushed
-              // the note's own words off the card — not a trade worth making
-              // for a second timestamp. Of the two, the one that matters on a
-              // note with a reminder is the one in the future; when it was
-              // written is still in the note.
+              // A due reminder remains visible because it is an action for
+              // the future. The edit time belongs in note details, leaving
+              // this row for the note's own content.
               if (showDue ? note.dueAt : null case final due?)
                 _DueChip(
                   due: due,
@@ -234,15 +223,9 @@ class _CardBody extends StatelessWidget {
                   upcoming:
                       note.dueRepeat != NoteRepeat.once ||
                       due.isAfter(DateTime.now().toUtc()),
-                )
-              else
-                Text(
-                  strings.relativeTime(nexRelativeTimeOf(note.updatedAt)),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
                 ),
-              const SizedBox(width: NexSpacing.contentGap),
+              if (showDue && note.dueAt != null)
+                const SizedBox(width: NexSpacing.contentGap),
               Expanded(
                 child:
                     previewOverride ?? _Preview(note: note, expanded: expanded),

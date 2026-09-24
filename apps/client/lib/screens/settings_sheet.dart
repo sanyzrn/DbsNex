@@ -467,12 +467,6 @@ class SettingsSheet extends StatelessWidget {
             ),
           ),
         ),
-        _SwitchRow(
-          icon: Icons.wb_twilight_outlined,
-          title: l10n.comfortMode,
-          value: preferences.comfortMode,
-          onChanged: preferences.setComfortMode,
-        ),
       ],
     ),
     _Section(

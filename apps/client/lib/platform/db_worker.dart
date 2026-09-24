@@ -32,6 +32,7 @@ enum _DbCommand {
   capturePhoto,
   captureFile,
   updateNote,
+  updateImageMedia,
   deleteNote,
   undelete,
   setCaption,
@@ -434,6 +435,14 @@ class NexDbWorker implements NexDb {
       _send<void>(_DbCommand.updateNote, {'id': id, 'content': content});
 
   @override
+  Future<void> updateImageMedia(String id, String mediaUri, String mediaHash) =>
+      _send<void>(_DbCommand.updateImageMedia, {
+        'id': id,
+        'mediaUri': mediaUri,
+        'mediaHash': mediaHash,
+      });
+
+  @override
   Future<void> deleteNote(String id) =>
       _send<void>(_DbCommand.deleteNote, {'id': id});
 
@@ -808,6 +817,13 @@ class NexDbWorker implements NexDb {
           () => repo.updateContent(
             arg('id')! as String,
             arg('content')! as String,
+          ),
+        ),
+        _DbCommand.updateImageMedia => _voided(
+          () => repo.updateImageMedia(
+            arg('id')! as String,
+            arg('mediaUri')! as String,
+            arg('mediaHash')! as String,
           ),
         ),
         _DbCommand.deleteNote => _voided(

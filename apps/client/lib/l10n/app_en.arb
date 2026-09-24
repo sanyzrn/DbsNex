@@ -1238,6 +1238,10 @@
     "description": "Confirms the crop and saves the photo"
   },
   "cropRotate": "Rotate",
+  "cropFree": "Free",
+  "cropReset": "Reset",
+  "moreActions": "More actions",
+  "editPhotoFailed": "The photo could not be opened or saved.",
   "@cropRotate": {
     "description": "Crop screen: rotates the photo 90° clockwise"
   },

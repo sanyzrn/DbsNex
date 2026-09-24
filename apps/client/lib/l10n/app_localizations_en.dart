@@ -1462,6 +1462,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cropRotate => 'Rotate';
 
   @override
+  String get cropFree => 'Free';
+
+  @override
+  String get cropReset => 'Reset';
+
+  @override
+  String get moreActions => 'More actions';
+
+  @override
+  String get editPhotoFailed => 'The photo could not be opened or saved.';
+
+  @override
   String get cropAnnotate => 'Draw or add text';
 
   @override

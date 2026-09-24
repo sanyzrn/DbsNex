@@ -2540,6 +2540,30 @@ abstract class AppLocalizations {
   /// **'Rotate'**
   String get cropRotate;
 
+  /// No description provided for @cropFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get cropFree;
+
+  /// No description provided for @cropReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get cropReset;
+
+  /// No description provided for @moreActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get moreActions;
+
+  /// No description provided for @editPhotoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo could not be opened or saved.'**
+  String get editPhotoFailed;
+
   /// Crop screen: opens the optional annotate step
   ///
   /// In en, this message translates to:

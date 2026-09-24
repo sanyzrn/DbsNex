@@ -30,6 +30,7 @@ import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/tag_picker.dart';
 import '../widgets/translate_sheet.dart';
+import 'photo_crop_screen.dart';
 
 /// What the sheet reports back when it closes.
 ///
@@ -293,6 +294,47 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     if (result != FileOpenOutcome.opened) _toast(l10n.cannotOpen);
   }
 
+  Future<void> _editImage() async {
+    final note = _note;
+    final source = note?.mediaUri;
+    if (note == null || source == null) return;
+    try {
+      final original = await File(source).readAsBytes();
+      if (!mounted) return;
+      final edited = await Navigator.of(context).push<Uint8List>(
+        NexPageRoute(builder: (_) => PhotoCropScreen(image: original)),
+      );
+      if (edited == null || !mounted) return;
+      // Never overwrite the original. A failed database write must not leave
+      // the note pointing at bytes that changed underneath it.
+      final dest = p.join(
+        widget.services.mediaDir,
+        'edited-${DateTime.now().microsecondsSinceEpoch}.png',
+      );
+      final file = File(dest);
+      await file.writeAsBytes(edited, flush: true);
+      try {
+        await widget.services.updateImageMedia(
+          note.id,
+          dest,
+          sha256OfBytes(edited),
+        );
+      } catch (_) {
+        await file.delete();
+        rethrow;
+      }
+      await _reload();
+    } catch (_) {
+      if (mounted) {
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).editPhotoFailed,
+          kind: NexBannerKind.failed,
+        );
+      }
+    }
+  }
+
   /// Opens a link note in whatever handles the web on this device.
   ///
   /// `externalApplication` rather than an in-app view: a bookmark is a
@@ -460,7 +502,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final local = value.toLocal();
     String two(int n) => n.toString().padLeft(2, '0');
     return '${local.year}-${two(local.month)}-${two(local.day)} '
-        '${two(local.hour)}:${two(local.minute)}';
+        '${two(local.hour)}:${two(local.minute)}:${two(local.second)}';
   }
 
   /// Tagging a note.
@@ -720,6 +762,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     }
     final isText = note.type == NoteType.text;
     final hasMedia = note.mediaUri != null;
+    final editableImage =
+        hasMedia &&
+        (note.type == NoteType.photo ||
+            (note.type == NoteType.file &&
+                NexFileKinds.of(path: note.mediaUri, mimeType: note.mimeType) ==
+                    NexFileKind.image));
     final screenHeight = MediaQuery.sizeOf(context).height;
     // The sheet is as tall as what is in it, up to almost the whole screen.
     //
@@ -1044,12 +1092,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
           // end of it: a long note would otherwise bury them under a screenful
           // of text, and they belong to the note, not to its ending.
           //
-          // They sit in the open, as icons. They were behind a single
-          // overflow button in the corner, which is the hardest place on a
-          // phone to reach and told you nothing about what was inside. Delete
-          // lives here too now, last and in red — the timeline still owns
-          // the actual soft-delete, so the undo toast is offered exactly
-          // once regardless of where the button sits.
+          // Common actions have labels in a short fixed row. The remaining
+          // actions are listed by name in a sheet, so none need a horizontally
+          // scrolling strip of unexplained icons. The timeline still owns
+          // soft-delete and its undo toast.
           Divider(height: 1, color: Theme.of(context).colorScheme.outline),
           Padding(
             padding: EdgeInsets.only(
@@ -1094,6 +1140,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           icon: Icons.edit_outlined,
                           label: l10n.edit,
                           onPressed: _editContent,
+                        ),
+                      if (editableImage)
+                        _DetailAction(
+                          icon: Icons.crop_rotate,
+                          label: l10n.edit,
+                          onPressed: () => unawaited(_editImage()),
                         ),
                       // Needs the preferences the sheet it opens reads its
                       // haptics from. Everywhere a checklist is opened from
@@ -1537,86 +1589,94 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto>
 /// which a same-width `Row` that just quietly clips its last icon does not.
 /// The action strip, in groups with a hairline between them.
 ///
-/// One row, not two. A second row would read as two strips and costs vertical
-/// space in a sheet that is already competing with the note itself; a divider
-/// says the same thing — these belong together, those do not — in one pixel.
-///
-/// Groups are passed as a list of lists so an empty one disappears without
-/// leaving a divider stranded against the edge. Which actions are present
-/// depends on the note's type, the platform and whether AI is configured, so
-/// empty groups are the normal case rather than an edge one.
+/// Keep the three most useful actions visible with labels. The rest are in a
+/// sheet where their names are readable, instead of an icon-only strip that
+/// concealed half its actions past the edge of a phone.
 class _ActionRow extends StatelessWidget {
   const _ActionRow({required this.groups});
 
-  final List<List<Widget>> groups;
+  final List<List<_DetailAction>> groups;
 
   @override
   Widget build(BuildContext context) {
-    // AlignmentDirectional needs a resolved TextDirection before
-    // LinearGradient.createShader can use it — createShader's shaderCallback
-    // only receives a Rect, not a BuildContext, so the direction has to be
-    // captured here and threaded through explicitly.
-    final textDirection = Directionality.of(context);
-    return ShaderMask(
-      shaderCallback: (bounds) => const LinearGradient(
-        begin: AlignmentDirectional.centerStart,
-        end: AlignmentDirectional.centerEnd,
-        colors: [
-          Colors.transparent,
-          Colors.black,
-          Colors.black,
-          Colors.transparent,
-        ],
-        stops: [0.0, 0.06, 0.94, 1.0],
-      ).createShader(bounds, textDirection: textDirection),
-      blendMode: BlendMode.dstIn,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: _withDividers(context)),
-      ),
+    final all = groups.expand((group) => group).toList();
+    _DetailAction? find(bool Function(_DetailAction) test) {
+      for (final action in all) {
+        if (test(action)) return action;
+      }
+      return null;
+    }
+
+    final visible = <_DetailAction>[
+      if (find((a) => a.label == AppLocalizations.of(context).edit)
+          case final action?)
+        action,
+      if (find((a) => a.icon == Icons.auto_awesome) case final action?) action,
+      if (find((a) => a.icon == Icons.ios_share) case final action?) action,
+    ];
+    if (visible.length < 3) {
+      final copy = find((a) => a.icon == Icons.copy_outlined);
+      if (copy != null) visible.add(copy);
+    }
+    final remaining = all.where((action) => !visible.contains(action)).toList();
+    return Row(
+      children: [
+        for (final action in visible.take(3)) Expanded(child: action),
+        if (remaining.isNotEmpty)
+          Expanded(
+            child: _DetailAction(
+              icon: Icons.more_horiz,
+              label: AppLocalizations.of(context).moreActions,
+              onPressed: () => _showMore(context, remaining),
+            ),
+          ),
+      ],
     );
   }
 
-  List<Widget> _withDividers(BuildContext context) {
-    final filled = groups.where((group) => group.isNotEmpty).toList();
-    final theme = Theme.of(context);
-    return [
-      for (var i = 0; i < filled.length; i++) ...[
-        if (i > 0)
-          // It was `outlineVariant` at 0.6 — the quiet token, quieter — on the
-          // theory that a seam should be softer than a border. It could not be
-          // seen in either theme, which makes it a seam that separates
-          // nothing.
-          //
-          // `outline` is not enough either: measured, it is 2.79:1 against the
-          // sheet's own surface in the light theme, under the 3:1 floor for a
-          // boundary someone is meant to perceive (WCAG 1.4.11). The
-          // secondary-text token at three-quarters clears it on every surface
-          // this row is drawn on, in both themes — 3.5:1 at worst.
-          //
-          // The restraint that was being aimed for lives in the height
-          // instead: 24 against a 48-pixel row still reads as a seam rather
-          // than cutting the row into boxes.
-          Container(
-            width: 1,
-            height: 24,
-            margin: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
-          ),
-        ...filled[i],
-      ],
-    ];
+  void _showMore(BuildContext context, List<_DetailAction> actions) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                AppLocalizations.of(context).moreActions,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            for (final action in actions)
+              ListTile(
+                leading: action.glyph ?? Icon(action.icon),
+                title: Text(action.label),
+                textColor: action.destructive
+                    ? Theme.of(context).colorScheme.error
+                    : null,
+                iconColor: action.destructive
+                    ? Theme.of(context).colorScheme.error
+                    : action.accent
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+                enabled: action.onPressed != null,
+                onTap: action.onPressed == null
+                    ? null
+                    : () {
+                        Navigator.pop(sheetContext);
+                        action.onPressed!.call();
+                      },
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
-/// Icon-only: [label] still exists, as the tooltip and the semantic name,
-/// just not painted. Seven of these in a row used to run past the width of
-/// the sheet on anything but the widest phone; the label was the only thing
-/// making each one wider than the 48px floor it actually needs.
-///
-/// No fill, no border: a bare icon with its own ripple reads lighter than a
-/// row of outlined chips, and there is nothing here for a border to set
-/// apart from — the sheet's background is already the only thing behind it.
+/// A labelled, thumb-sized action on the detail sheet's short toolbar.
 class _DetailAction extends StatelessWidget {
   const _DetailAction({
     this.icon,
@@ -1659,25 +1719,31 @@ class _DetailAction extends StatelessWidget {
         : destructive
         ? theme.colorScheme.error
         : theme.colorScheme.onSurfaceVariant;
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
-      child: Tooltip(
-        message: label,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(NexRadius.lg),
-          child: SizedBox(
-            width: nexMinTapTarget,
-            height: nexMinTapTarget,
-            // The theme is for [glyph], which has no parameters of its own
-            // to be told with; the [Icon] keeps being told directly, because
-            // "is this one red" is a thing the tests read off the widget.
-            child: Center(
-              child: IconTheme.merge(
-                data: IconThemeData(size: 20, color: color),
-                child: glyph ?? Icon(icon, size: 20, color: color),
+    return Tooltip(
+      message: label,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+        child: SizedBox(
+          height: 62,
+          // The theme is for [glyph], which has no parameters of its own
+          // to be told with; the [Icon] keeps being told directly, because
+          // "is this one red" is a thing the tests read off the widget.
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconTheme.merge(
+                data: IconThemeData(size: 22, color: color),
+                child: glyph ?? Icon(icon, size: 22, color: color),
               ),
-            ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(color: color),
+              ),
+            ],
           ),
         ),
       ),
