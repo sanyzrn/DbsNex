@@ -338,6 +338,20 @@ class NexServices {
     await refreshTimeline();
   }
 
+  Future<void> updateImageMedia(
+    String id,
+    String mediaUri,
+    String mediaHash,
+  ) async {
+    await worker.updateImageMedia(id, mediaUri, mediaHash);
+    scheduleEnrichment(id);
+    // The media change is already committed. A failed list refresh must never
+    // be reported as a failed save: the caller would then delete the new file.
+    try {
+      await refreshTimeline();
+    } catch (_) {}
+  }
+
   /// Soft-deletes a note and cancels whatever alarm it still had pending.
   ///
   /// The alarm used to survive the note: the OS keeps its own schedule, the

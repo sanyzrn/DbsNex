@@ -172,13 +172,10 @@ void main() {
     expect(rect.height, closeTo(48, 1));
   });
 
-  testWidgets('the timestamp sits between the glyph and the preview', (
+  testWidgets('the preview follows the glyph without a timestamp', (
     tester,
   ) async {
-    // It used to be stacked under the preview, which is what forced the card
-    // taller the moment the preview took two lines — height spent on the least
-    // important thing on the card. Beside the glyph it costs nothing
-    // vertically, and it doubles as the gap holding the text off the glyph.
+    // The exact time is shown in details, leaving more width for the note.
     final now = DateTime.now();
     await tester.pumpWidget(
       MaterialApp(
@@ -204,14 +201,10 @@ void main() {
 
     final card = tester.getRect(find.byType(NoteCard));
     final glyph = tester.getRect(find.byIcon(nexNoteTypeIcon('text')).first);
-    final time = tester.getRect(find.text('now'));
     final preview = tester.getRect(find.text('one line'));
 
-    // Glyph, then time, then text — in that order across the card.
-    expect(time.left, greaterThan(glyph.right));
-    expect(preview.left, greaterThan(time.right));
-    // All three on one centre line.
-    expect(time.center.dy, closeTo(card.center.dy, 1));
+    expect(find.text('now'), findsNothing);
+    expect(preview.left, greaterThan(glyph.right));
     expect(preview.center.dy, closeTo(card.center.dy, 1));
   });
 

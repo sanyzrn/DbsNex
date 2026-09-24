@@ -137,6 +137,33 @@ void main() {
     expect(result, isNot(equals(_testPng)));
   });
 
+  testWidgets('a JPEG crop returns PNG bytes for the saved media type', (
+    tester,
+  ) async {
+    final jpeg = Uint8List.fromList(
+      img.encodeJpg(img.Image(width: 100, height: 100)),
+    );
+    final getResult = await _pushCropScreen(tester, image: jpeg);
+    await _waitAndSettle(tester);
+    await tester.tap(find.byIcon(Icons.check));
+    await tester.pump();
+    // JPEG needs a second isolate pass to normalize the crop to PNG. Keep
+    // pumping while real isolate work runs; pumpAndSettle alone advances fake
+    // time through its timeout before that result gets back.
+    await tester.runAsync(() async {
+      for (var attempt = 0; attempt < 50; attempt++) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 16));
+        if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
+      }
+    });
+    await tester.pumpAndSettle();
+
+    final result = getResult();
+    expect(result, isNotNull);
+    expect(result!.sublist(0, 4), [0x89, 0x50, 0x4e, 0x47]);
+  });
+
   testWidgets('rotating changes what gets cropped, not just a no-op tap', (
     tester,
   ) async {
@@ -181,7 +208,7 @@ void main() {
       // disabled until it finishes.
       await _waitAndSettle(tester);
 
-      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.tap(find.byIcon(Icons.draw_outlined));
       await _waitAndSettle(tester);
 
       // Now on the annotate screen, having added nothing: Done pops it with

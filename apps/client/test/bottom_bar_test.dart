@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -228,5 +229,13 @@ void main() {
       lessThan(nexCardHeightFor(tester.element(brief))),
       reason: 'two lines of prose should not occupy a full card',
     );
+
+    unawaited(
+      tester
+          .state<TimelineScreenState>(find.byType(TimelineScreen))
+          .revealSearch(),
+    );
+    await tester.pumpAndSettle();
+    expect(brief, findsNothing, reason: 'search contains only search results');
   });
 }

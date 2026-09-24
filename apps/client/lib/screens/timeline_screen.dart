@@ -1578,9 +1578,15 @@ class TimelineScreenState extends State<TimelineScreen>
         NexPageRoute(builder: (_) => PhotoPreviewScreen(image: original)),
       );
       if (cropped == null) return;
+      final isPng =
+          cropped.length >= 8 &&
+          cropped[0] == 0x89 &&
+          cropped[1] == 0x50 &&
+          cropped[2] == 0x4E &&
+          cropped[3] == 0x47;
       final dest = p.join(
         widget.services.mediaDir,
-        'photo-${DateTime.now().millisecondsSinceEpoch}${p.extension(picked.path)}',
+        'photo-${DateTime.now().millisecondsSinceEpoch}${isPng ? '.png' : p.extension(picked.path)}',
       );
       await File(dest).writeAsBytes(cropped, flush: true);
       final note = await widget.services.capturePhoto(
@@ -1755,16 +1761,14 @@ class TimelineScreenState extends State<TimelineScreen>
       padding: nexCardInsets,
       child: NexBorderBeam(
         borderRadius: corner,
-        // Brightest while it is being written, then down to a glow that can
-        // be read past. The light is a provenance mark, not a notification.
-        strength: _aiSummaryLoading ? 0.85 : 0.45,
-        // Nothing to mark while it is folded away, and a lap running under a
-        // single grey line is an animation with no subject.
+        colors: [
+          scheme.primary.withValues(alpha: 0.08),
+          scheme.primary,
+          scheme.primary.withValues(alpha: 0.08),
+        ],
+        thickness: 0.6,
+        strength: _aiSummaryLoading ? 0.4 : 0.25,
         active: !_aiSummaryCollapsed,
-        // What the light is actually marking. A request starting and an
-        // answer landing each play it again; a brief somebody has already
-        // read sits still, which is the difference between a mark and a
-        // thing blinking in the corner of the screen.
         token: _aiSummaryLoading ? '…' : _aiSummaryText,
         child: NexGlassSurface(
           borderRadius: corner,
@@ -2054,7 +2058,8 @@ class TimelineScreenState extends State<TimelineScreen>
     // The same condition the header uses to decide whether to draw the recap
     // at all. It decides here whether the pull is wired up, because the pull
     // exists to rewrite the recap and nothing else.
-    final showSummary = _briefAvailable && widget.preferences.showDaySummary;
+    final showSummary =
+        !_searching && _briefAvailable && widget.preferences.showDaySummary;
     return Scaffold(
       appBar: AppBar(
         // Transparent so the blur below has the list to work on rather than a

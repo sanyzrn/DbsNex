@@ -127,6 +127,46 @@ WHERE id = ? AND deleted_at IS NULL
     _reindex(noteId);
   }
 
+  /// Replaces the media of an existing image note. The old file is left in
+  /// place until library maintenance can verify that no note references it.
+  void updateImageMedia(String noteId, String mediaUri, String mediaHash) {
+    final note = getById(noteId);
+    if (note == null ||
+        (note.type != NoteType.photo &&
+            !(note.type == NoteType.file &&
+                NexFileKinds.of(path: note.mediaUri, mimeType: note.mimeType) ==
+                    NexFileKind.image))) {
+      throw StateError('Only an existing image note can be edited');
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+    db.execute('BEGIN IMMEDIATE');
+    try {
+      db.execute(
+        '''
+UPDATE notes
+SET media_uri = ?, media_hash = ?, mime_type = 'image/png',
+    ocr_text = NULL, summary_text = NULL, updated_at = ?,
+    rev = rev + 1, sync_state = 'pending'
+    ${localDeviceId != null ? ', device_id = ?' : ''}
+WHERE id = ? AND deleted_at IS NULL
+''',
+        [
+          mediaUri,
+          mediaHash,
+          now,
+          if (localDeviceId != null) localDeviceId,
+          noteId,
+        ],
+      );
+      db.execute('DELETE FROM note_embeddings WHERE note_id = ?', [noteId]);
+      _reindex(noteId);
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    }
+  }
+
   /// Pins [noteId] while keeping the five-item home-screen limit atomic.
   /// Touches only `pinned_at`: this is local device state, not a change worth
   /// pushing to sync. Returns false when five other notes already hold pins.

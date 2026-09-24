@@ -9,11 +9,11 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-Current state: **v1.22.1 is released; v1.22.2 is prepared but not tagged.**
+Current state: **v1.22.2 is released; v1.30.0 is being prepared.**
 The 1.21.1 audit fixes are recorded in §8 and `NEX_RELEASE_AUDIT.md`. The
 1.22.0 work redesigns Liquid Glass and the home dock; 1.22.1 addresses the
-first round of user feedback; 1.22.2 fixes photo previews and gestures. The
-owner will tag 1.22.2.
+first round of user feedback; 1.22.2 fixes photo previews and gestures. New
+home, editor and detail polish is in progress on `codex/work`.
 
 ---
 
@@ -339,9 +339,9 @@ that turned out to be wrong. Specific instances:
 
 ## 8. Where things stand
 
-**Released:** through **v1.22.1**. **Prepared for tagging:** v1.22.2, with its
-version, root changelog and bundled changelog in
-step. The owner will create the tag after review.
+**Released:** through **v1.22.2** in `DbsNex-releases`. The owner chose
+**v1.30.0** for the current polish pass; the version files and both changelogs
+need to stay in step until tagging.
 
 The 1.22.0 pass makes the bottom navigation one floating dock with a raised
 Capture action, gives the search field and shared sheets the actual glass
@@ -382,7 +382,20 @@ dimension, reserves horizontal drags for the full-screen photo viewer, limits
 zoomed panning to the image bounds, and stops double-tap animation when a
 touch takes over. The UI suite (157 tests), app smoke suite (65 tests),
 analyzer and PR CI passed. The photo viewer has not been checked manually on
-a physical device. PR #242 is merged into `main`.
+a physical device. PR #242 is merged into `main`. PR #245 merged the 1.22.2
+version and changelog preparation. Current follow-up work remains on the sole
+Codex branch, `codex/work`: closed search and recap share a glass fill and
+border; the expanded recap uses a thin accent-only beam; recap is hidden during
+search; Comfort Mode is hidden from Settings; cards omit time while details
+show exact seconds; note actions use a labelled short row and a More sheet.
+The photo editor offers crop ratios, rotate, reset and clearer annotation
+tools, and can update both photo notes and images shared as files. Editing
+writes a new PNG file and changes the note's media pointer in one database
+transaction, retaining the original file if that transaction fails. JPEG crop
+output is normalized to PNG before it reaches storage. The new user-visible
+changes are under `## v1.30.0` in the mirrored changelogs. The checked-in
+version is 1.30.0, and a fresh `## Unreleased` sits above it. The owner tags
+after this work is merged and checked.
 
 What v1.21.0 contained, as context for the remaining selection issue:
 
@@ -531,8 +544,8 @@ drifted before; see the comment above `check-ai` in the `Makefile`).
 
 Then, in order:
 
-1. Review the 1.22.2 diff and release checks before tagging. The owner handles
-   the tag; do not create it on their behalf.
+1. Review the unreleased polish on `codex/work`, verify CI and merge it before
+   preparing the next version. The owner handles release tags.
 2. Reproduce the Persian multiline text-field handle bug in a widget test (§8).
    It remains open and needs a real gesture harness.
 3. Read `docs/NEX_V2_ROADMAP.md` — the plan for the next major version, written

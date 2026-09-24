@@ -58,6 +58,8 @@ abstract interface class NexDb {
 
   Future<void> updateNote(String id, String content);
 
+  Future<void> updateImageMedia(String id, String mediaUri, String mediaHash);
+
   Future<void> deleteNote(String id);
 
   Future<void> undelete(String id);

@@ -9,7 +9,6 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../widgets/nex_banner.dart';
-import '../widgets/photo_action_bar.dart';
 import 'photo_annotate_screen.dart';
 
 /// Runs off the UI thread: a full-resolution camera photo is large enough
@@ -21,6 +20,21 @@ Uint8List _rotateClockwise(Uint8List bytes) {
   // PNG, not the source format: re-encoding a JPEG here would compound
   // generation loss on every tap, for a step that is meant to be repeatable.
   return Uint8List.fromList(img.encodePng(rotated));
+}
+
+/// crop_your_image keeps the source encoding. Persisted edits use a PNG name
+/// and MIME type, so normalize JPEG crops before handing them to callers.
+Uint8List _asPng(Uint8List bytes) {
+  if (bytes.length >= 8 &&
+      bytes[0] == 0x89 &&
+      bytes[1] == 0x50 &&
+      bytes[2] == 0x4E &&
+      bytes[3] == 0x47) {
+    return bytes;
+  }
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) throw const FormatException('Unsupported image');
+  return Uint8List.fromList(img.encodePng(decoded));
 }
 
 /// Crop step shown right after a photo is taken or picked, before it is ever
@@ -52,6 +66,22 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
   // Which action asked for the crop: the checkmark returns straight to the
   // caller, the pencil detours through the (optional) annotate screen first.
   bool _pendingAnnotate = false;
+  double? _aspectRatio;
+
+  void _setAspectRatio(double? value) {
+    if (!_ready || _cropping || _rotating) return;
+    _controller.aspectRatio = value;
+    setState(() => _aspectRatio = value);
+  }
+
+  void _reset() {
+    if (_cropping || _rotating) return;
+    setState(() {
+      _current = Uint8List.fromList(widget.image);
+      _aspectRatio = null;
+      _ready = false;
+    });
+  }
 
   @override
   void initState() {
@@ -95,17 +125,32 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
   Future<void> _onCropped(CropResult result) async {
     switch (result) {
       case CropSuccess(:final croppedImage):
+        late final Uint8List png;
+        try {
+          png =
+              croppedImage.length >= 4 &&
+                  croppedImage[0] == 0x89 &&
+                  croppedImage[1] == 0x50 &&
+                  croppedImage[2] == 0x4E &&
+                  croppedImage[3] == 0x47
+              ? croppedImage
+              : await compute(_asPng, croppedImage);
+        } catch (error) {
+          if (!mounted) return;
+          setState(() => _cropping = false);
+          nexShowBanner(context, message: '$error');
+          return;
+        }
+        if (!mounted) return;
         if (!_pendingAnnotate) {
-          Navigator.of(context).pop(croppedImage);
+          Navigator.of(context).pop(png);
           return;
         }
         final annotated = await Navigator.of(context).push<Uint8List>(
-          NexPageRoute(
-            builder: (_) => PhotoAnnotateScreen(image: croppedImage),
-          ),
+          NexPageRoute(builder: (_) => PhotoAnnotateScreen(image: png)),
         );
         if (!mounted) return;
-        Navigator.of(context).pop(annotated ?? croppedImage);
+        Navigator.of(context).pop(annotated ?? png);
       case CropFailure(:final cause):
         setState(() => _cropping = false);
         nexShowBanner(context, message: '$cause');
@@ -129,35 +174,94 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      // The controls are at the bottom now — see [NexPhotoActionBar]. They
-      // were three small icons in the app bar, which is the far corner of a
-      // phone from the hand holding it, and one of them committed the photo.
-      bottomNavigationBar: NexPhotoActionBar(
-        tools: [
-          NexPhotoTool(
-            icon: Icons.rotate_90_degrees_cw_outlined,
-            label: l10n.cropRotate,
-            busy: _rotating,
-            onPressed: busy ? null : _rotate,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          decoration: const BoxDecoration(
+            color: Color(0xFF171717),
+            border: Border(top: BorderSide(color: Color(0xFF383838))),
           ),
-          NexPhotoTool(
-            icon: Icons.edit_outlined,
-            label: l10n.cropAnnotate,
-            onPressed: busy ? null : () => _startCrop(annotate: true),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _RatioOption(
+                      label: l10n.cropFree,
+                      selected: _aspectRatio == null,
+                      onTap: busy ? null : () => _setAspectRatio(null),
+                    ),
+                    for (final (label, value) in const [
+                      ('1:1', 1.0),
+                      ('4:3', 4 / 3),
+                      ('3:4', 3 / 4),
+                      ('16:9', 16 / 9),
+                      ('9:16', 9 / 16),
+                    ])
+                      _RatioOption(
+                        label: label,
+                        selected: _aspectRatio == value,
+                        onTap: busy ? null : () => _setAspectRatio(value),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: busy ? null : _rotate,
+                      icon: const Icon(Icons.rotate_90_degrees_cw_outlined),
+                      label: Text(l10n.cropRotate),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: busy ? null : _reset,
+                      icon: const Icon(Icons.restart_alt),
+                      label: Text(l10n.cropReset),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: busy ? null : () => _startCrop(annotate: true),
+                      icon: const Icon(Icons.draw_outlined),
+                      label: Text(l10n.cropAnnotate),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: busy ? null : () => _startCrop(annotate: false),
+                  icon: _cropping
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.check),
+                  label: Text(l10n.cropConfirm),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-        buttons: [
-          NexPhotoPrimaryButton(
-            label: l10n.cropConfirm,
-            icon: Icons.check,
-            busy: _cropping,
-            onPressed: busy ? null : () => _startCrop(annotate: false),
-          ),
-        ],
+        ),
       ),
       body: Crop(
         key: ValueKey(_current),
         image: _current,
+        aspectRatio: _aspectRatio,
         controller: _controller,
         onCropped: (result) => unawaited(_onCropped(result)),
         // `_crop()` reports `.ready` again right after `.cropped`, in the
@@ -170,6 +274,41 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
         },
         baseColor: Colors.black,
         maskColor: Colors.black.withValues(alpha: 0.6),
+        interactive: true,
+        radius: 4,
+      ),
+    );
+  }
+}
+
+class _RatioOption extends StatelessWidget {
+  const _RatioOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 8),
+      child: OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: selected ? scheme.onPrimary : Colors.white,
+          backgroundColor: selected ? scheme.primary : const Color(0xFF2A2A2A),
+          side: BorderSide(
+            color: selected ? scheme.primary : const Color(0xFF555555),
+          ),
+          minimumSize: const Size(62, 40),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+        ),
+        child: Text(label),
       ),
     );
   }

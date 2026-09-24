@@ -1457,6 +1457,18 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cropRotate => 'چرخاندن';
 
   @override
+  String get cropFree => 'آزاد';
+
+  @override
+  String get cropReset => 'بازنشانی';
+
+  @override
+  String get moreActions => 'بیشتر';
+
+  @override
+  String get editPhotoFailed => 'باز کردن یا ذخیرهٔ تصویر ممکن نشد.';
+
+  @override
   String get cropAnnotate => 'طراحی یا متن';
 
   @override

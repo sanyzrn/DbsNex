@@ -222,7 +222,7 @@ void main() {
     },
   );
 
-  testWidgets('a freshly captured note reads "now" on its card', (
+  testWidgets('a note keeps its exact time in details, not on the card', (
     tester,
   ) async {
     await services.captureText('brand new');
@@ -233,10 +233,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('brand new'), findsOneWidget);
+    expect(find.text('now'), findsNothing);
+    await tester.tap(find.text('brand new'));
+    await tester.pumpAndSettle();
     expect(
-      find.text('now'),
+      find.textContaining(RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$')),
       findsOneWidget,
-      reason: 'the relative-time line under the preview',
     );
   });
 
@@ -402,11 +404,15 @@ void main() {
 
     await tester.tap(find.text('older note'));
     await tester.pumpAndSettle();
-    // The detail sheet's action row is icon-only; its members are found by
-    // tooltip rather than by label text.
-    await tester.tap(find.byTooltip('Pin'));
+    await tester.tap(find.text('More actions'));
     await tester.pumpAndSettle();
-    expect(find.byTooltip('Unpin'), findsOneWidget);
+    await tester.tap(find.text('Pin'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('More actions'));
+    await tester.pumpAndSettle();
+    expect(find.text('Unpin'), findsOneWidget);
+    Navigator.of(tester.element(find.text('Unpin'))).pop();
+    await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
     await tester.pumpAndSettle();
 
@@ -420,14 +426,13 @@ void main() {
     // Pinning another note keeps the first one pinned as well.
     await tester.tap(find.text('newer note'));
     await tester.pumpAndSettle();
-    final pinAction = tester.widget<InkWell>(
-      find.descendant(
-        of: find.byTooltip('Pin'),
-        matching: find.byType(InkWell),
-      ),
+    await tester.tap(find.text('More actions'));
+    await tester.pumpAndSettle();
+    final pinAction = tester.widget<ListTile>(
+      find.ancestor(of: find.text('Pin'), matching: find.byType(ListTile)),
     );
     expect(pinAction.onTap, isNotNull);
-    await tester.tap(find.byTooltip('Pin'));
+    await tester.tap(find.text('Pin'));
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
     await tester.pumpAndSettle();
@@ -453,7 +458,9 @@ void main() {
     // Pin the older one, which moves it to the top.
     await tester.tap(find.text('note A'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Pin'));
+    await tester.tap(find.text('More actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pin'));
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(NoteDetailSheet))).pop();
     await tester.pumpAndSettle();

@@ -168,6 +168,13 @@ class InProcessDb implements NexDb {
     _repo.updateContent(id, content);
   }
 
+  @override
+  Future<void> updateImageMedia(
+    String id,
+    String mediaUri,
+    String mediaHash,
+  ) async => _repo.updateImageMedia(id, mediaUri, mediaHash);
+
   /// How many of the next [updateNote] calls throw instead of writing — the
   /// full disk, or the worker that has gone, that the capture sheet used to
   /// treat as saved.
