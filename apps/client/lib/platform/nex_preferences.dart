@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path/path.dart' as p;
 
 import 'ai_provider.dart';
 import 'chat_history.dart';
@@ -82,6 +84,60 @@ class NexPreferences extends ChangeNotifier {
 
   final SharedPreferences _prefs;
   final FlutterSecureStorage _secureStorage;
+  File? _profileMirror;
+
+  /// Keep profile details beside the photo in media/profile, which is included
+  /// in library backups. SharedPreferences can be absent after a restore even
+  /// when the library survives; the mirror fills only missing keys, then is
+  /// refreshed from the merged values. A deliberately cleared field is also
+  /// cleared in the mirror by its setter.
+  Future<void> attachProfileMirror(String mediaDir) async {
+    final file = File(p.join(mediaDir, 'profile', 'details.json'));
+    if (await file.exists()) {
+      try {
+        final decoded = jsonDecode(await file.readAsString());
+        if (decoded is Map<String, dynamic>) {
+          for (final key in [
+            'profile.name',
+            'profile.birthday',
+            'profile.bio',
+          ]) {
+            final value = decoded[key];
+            if (!_prefs.containsKey(key) &&
+                value is String &&
+                value.isNotEmpty) {
+              await _prefs.setString(key, value);
+            }
+          }
+        }
+      } catch (_) {
+        // Preferences remain authoritative if an interrupted write left an
+        // unreadable mirror. Never replace good values with a damaged copy.
+      }
+    }
+    _profileMirror = file;
+    await _writeProfileMirror();
+    notifyListeners();
+  }
+
+  Future<void> _writeProfileMirror() async {
+    final file = _profileMirror;
+    if (file == null) return;
+    try {
+      await file.parent.create(recursive: true);
+      await file.writeAsString(
+        jsonEncode({
+          'profile.name': _prefs.getString('profile.name'),
+          'profile.birthday': _prefs.getString('profile.birthday'),
+          'profile.bio': _prefs.getString('profile.bio'),
+        }),
+        flush: true,
+      );
+    } catch (_) {
+      // The primary preferences write succeeded. A mirror failure must not
+      // strand the profile screen in its saving state.
+    }
+  }
 
   /// In-memory mirror of every provider's API key, hydrated once by [load]
   /// and kept in sync on every write.
@@ -316,8 +372,7 @@ class NexPreferences extends ChangeNotifier {
   static const _kSecureSyncTokenMigrated = 'sync.secure.bearer_token.migrated';
 
   String? get syncBearerToken {
-    return _secureApiKeys[_kSecureSyncToken] ??
-        _migratedPlaintextSyncToken();
+    return _secureApiKeys[_kSecureSyncToken] ?? _migratedPlaintextSyncToken();
   }
 
   /// Reads a token left by an older build out of the plaintext slot, hands it
@@ -812,6 +867,7 @@ class NexPreferences extends ChangeNotifier {
         trimmed.length > 40 ? trimmed.substring(0, 40) : trimmed,
       );
     }
+    await _writeProfileMirror();
     notifyListeners();
   }
 
@@ -1033,11 +1089,14 @@ class NexPreferences extends ChangeNotifier {
         DateTime(value.year, value.month, value.day).toIso8601String(),
       );
     }
+    await _writeProfileMirror();
     notifyListeners();
   }
 
-  Future<void> setProfileBio(String value) =>
-      _setBoundedText('profile.bio', value, 300);
+  Future<void> setProfileBio(String value) async {
+    await _setBoundedText('profile.bio', value, 300);
+    await _writeProfileMirror();
+  }
 
   Future<void> setAppLockEnabled(bool value) async {
     await _prefs.setBool('security.app_lock', value);
@@ -1067,7 +1126,10 @@ class NexPreferences extends ChangeNotifier {
     if (value == null) {
       await _prefs.remove('security.lock_left_at');
     } else {
-      await _prefs.setInt('security.lock_left_at', value.millisecondsSinceEpoch);
+      await _prefs.setInt(
+        'security.lock_left_at',
+        value.millisecondsSinceEpoch,
+      );
     }
   }
 
@@ -1346,7 +1408,6 @@ class NexPreferences extends ChangeNotifier {
     );
     notifyListeners();
   }
-
 
   /// Whether the orphaned-media sweep is due — see
   /// `NexServices.sweepOrphanMediaIfDue`.

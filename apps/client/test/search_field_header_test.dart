@@ -165,4 +165,42 @@ void main() {
     await tester.tap(find.byIcon(Icons.search));
     expect(taps, 1);
   });
+
+  testWidgets('one tap on the hint focuses the search field', (tester) async {
+    final focus = FocusNode();
+    final controller = TextEditingController();
+    addTearDown(focus.dispose);
+    addTearDown(controller.dispose);
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(liquidGlass: true),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: CustomScrollView(
+            slivers: [
+              SliverPersistentHeader(
+                delegate: SearchFieldHeader(
+                  controller: controller,
+                  focusNode: focus,
+                  searching: false,
+                  onTap: () => taps++,
+                  onChanged: (_) {},
+                  onClear: () {},
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final hint = find.text('Search notes…');
+    expect(hint, findsOneWidget);
+    // InputDecorator paints the hint, while RenderEditable handles the hit.
+    await tester.tapAt(tester.getCenter(hint));
+    await tester.pump();
+    expect(taps, 1);
+    expect(focus.hasFocus, isTrue);
+  });
 }

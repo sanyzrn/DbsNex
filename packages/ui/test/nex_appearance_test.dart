@@ -122,8 +122,8 @@ void main() {
 
   test('glass keeps body text legible over any backdrop it can land on', () {
     // What this guards is the numbers, not the painter: it runs the theme's
-    // own films through a reference compositor that follows the same four
-    // steps `_GlassWashPainter` draws. Change a film in `nex_tokens.dart` and
+    // own films through a source-over reference compositor. Change a film in
+    // `nex_tokens.dart` and
     // this fails; change how the painter stacks them and it will not.
     //
     // The list below is every kind of thing that can end up behind a glass
@@ -219,57 +219,14 @@ void main() {
 }
 
 /// The four films of [NexGlassWash], composited the way the painter draws
-/// them: two source-over, one additive, one luminosity.
+/// them: all four source-over.
 Color _compose(NexGlassWash wash, Color backdrop) {
   var out = backdrop;
-  for (final film in wash.films) {
+  for (final film in [...wash.films, wash.lift, wash.anchor]) {
     out = Color.alphaBlend(film, out);
   }
-  out = Color.from(
-    alpha: 1,
-    red: _unit(out.r + wash.lift.r * wash.lift.a),
-    green: _unit(out.g + wash.lift.g * wash.lift.a),
-    blue: _unit(out.b + wash.lift.b * wash.lift.a),
-  );
-  return _luminosityOver(wash.anchor, out);
+  return out;
 }
-
-/// CSS's `luminosity` blend: the backdrop keeps its hue, the source supplies
-/// the brightness, and the result is composited at the source's alpha.
-Color _luminosityOver(Color source, Color backdrop) {
-  double lum(double r, double g, double b) => 0.3 * r + 0.59 * g + 0.11 * b;
-  final delta =
-      lum(source.r, source.g, source.b) -
-      lum(backdrop.r, backdrop.g, backdrop.b);
-  var r = backdrop.r + delta;
-  var g = backdrop.g + delta;
-  var b = backdrop.b + delta;
-  // ClipColor: pull anything that left the cube back toward its own luma.
-  final l = lum(r, g, b);
-  final low = math.min(r, math.min(g, b));
-  final high = math.max(r, math.max(g, b));
-  if (low < 0 && l != low) {
-    r = l + (r - l) * l / (l - low);
-    g = l + (g - l) * l / (l - low);
-    b = l + (b - l) * l / (l - low);
-  }
-  if (high > 1 && high != l) {
-    r = l + (r - l) * (1 - l) / (high - l);
-    g = l + (g - l) * (1 - l) / (high - l);
-    b = l + (b - l) * (1 - l) / (high - l);
-  }
-  final a = source.a;
-  return Color.from(
-    alpha: 1,
-    red: _unit(r * a + backdrop.r * (1 - a)),
-    green: _unit(g * a + backdrop.g * (1 - a)),
-    blue: _unit(b * a + backdrop.b * (1 - a)),
-  );
-}
-
-/// ClipColor and the additive step can both land a hair outside the cube on
-/// float error, and `Color.from` is not the place to find that out.
-double _unit(double v) => v.clamp(0.0, 1.0);
 
 double _contrast(Color a, Color b) {
   final la = _relativeLuminance(a);
@@ -280,7 +237,5 @@ double _contrast(Color a, Color b) {
 double _relativeLuminance(Color c) {
   double channel(double v) =>
       v <= 0.04045 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
-  return 0.2126 * channel(c.r) +
-      0.7152 * channel(c.g) +
-      0.0722 * channel(c.b);
+  return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
 }

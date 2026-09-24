@@ -108,6 +108,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
           ),
           child: NexGlassSurface(
             borderRadius: BorderRadius.circular(NexRadius.pill),
+            showShadow: false,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onTap,

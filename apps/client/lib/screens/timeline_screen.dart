@@ -1768,6 +1768,7 @@ class TimelineScreenState extends State<TimelineScreen>
         token: _aiSummaryLoading ? '…' : _aiSummaryText,
         child: NexGlassSurface(
           borderRadius: corner,
+          showShadow: false,
           fallbackColor: scheme.surfaceContainerLowest,
           child: _AiDaySummaryPanel(
             // Keyed so a test can say "the brief is on screen" without

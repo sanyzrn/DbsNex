@@ -109,6 +109,7 @@ class NexServices {
     // Async filesystem APIs — createSync blocked the UI isolate.
     await Directory(mediaDir).create(recursive: true);
     await Directory(backupDir).create(recursive: true);
+    await preferences.attachProfileMirror(mediaDir);
 
     final profilePhoto = resolveProfilePhoto(
       mediaDir,

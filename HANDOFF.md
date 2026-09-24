@@ -184,6 +184,14 @@ pipeline to enforce house style — it enforces lints.
 4. It publishes to a **separate public repo** (`RELEASES_REPO`), not this one,
    because this repo is private and the in-app updater cannot hold a credential.
 5. It calls the whole of `ci.yml` through its `verify` job first.
+6. Before uploading the APKs, it compares the new universal APK's Android
+   package id and signing certificate with the latest published universal APK
+   in `sanyzrn/DbsNex-releases`. A mismatch blocks an update that would need
+   an uninstall and could erase local settings and the offline model.
+
+**Release tags and assets live at
+https://github.com/sanyzrn/DbsNex-releases.** Check published versions there;
+source-repository tags are not the release record.
 
 Because the workflow stamps the version, the checked-in numbers used to drift —
 they sat at 1.3.2 for nine releases. So `apps/client/test/version_test.dart`
@@ -345,15 +353,22 @@ Android build. A local Android build could not resolve the Android Gradle
 plugin because this machine's Google Maven endpoint returned 404 even for
 older plugin versions.
 
-Feedback on the 1.22.0 build prompted the 1.22.1 stabilization pass: the search field
-no longer fades its whole glass layer while scrolling in; the recap's animated
-border now repaints separately from its glass; shared sheets regain an opaque
-background immediately when glass is disabled. Search adds a literal substring
-fallback to FTS, the entire search pill responds to taps, old profile-picture
-paths can be recovered from `media/profile`, and nearby photo cards are built
-early while detail images decode at display size. Client, data and UI tests and
-analyzers passed locally after these changes. A missing profile image can only
-be recovered if its file is still present in the app's media directory.
+Feedback on the 1.22.0 build prompted the 1.22.1 stabilization pass: the search
+field no longer fades its whole glass layer; the recap's animated border now
+repaints separately; glass wash uses only source-over films so refresh and
+sliver repaint cannot temporarily blend against an empty destination; both
+panels omit their drop shadows. Shared sheets regain an opaque background
+immediately when glass is disabled. Search adds a literal substring fallback
+to FTS, the entire search pill responds to taps, old profile-picture paths can
+be recovered from `media/profile`, and nearby photo cards are built early while
+detail images decode at display size. A profile details mirror now lives in
+`media/profile/details.json`, so normal library backups include name, birthday
+and bio and bootstrap restores missing preference keys from it. A missing
+profile image can only be recovered if its file is still in media. The offline
+model already lives in persistent application support storage; no code path in
+the updater removes it. Its disappearance on the owner's 1.22.0 installation
+is not explained by the available code; the release APK identity gate above
+guards against accidental replacement installs in future releases.
 
 What v1.21.0 contained, as context for the remaining selection issue:
 

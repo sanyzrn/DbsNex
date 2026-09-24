@@ -117,6 +117,24 @@ void main() {
       expect(log.length, requestsAfterFirst);
     });
 
+    test(
+      'a finished model survives reopening the store without a download',
+      () async {
+        final model = releaseFor();
+        final first = storeWith(server());
+        await first.install(model);
+        first.close();
+
+        final requests = <String>[];
+        final reopened = storeWith(server(log: requests));
+        addTearDown(reopened.close);
+        expect(reopened.isInstalled(model), isTrue);
+        expect((await reopened.install(model)).readAsBytesSync(), whole);
+        expect(requests, isEmpty);
+        expect(reopened.installedBytes(model), whole.length);
+      },
+    );
+
     test('a part already on disk and correct is skipped on retry', () async {
       final model = releaseFor();
       final dir = Directory('${tmp.path}/${model.id}')
