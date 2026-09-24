@@ -1,8 +1,7 @@
 # Handoff
 
-Written for the next agent session — specifically one running in Claude Code
-desktop, with a real machine underneath it. It assumes you have never seen this
-repository.
+Written for the next agent session on a local desktop machine. It assumes you
+have never seen this repository.
 
 Read `README.md` for what the product is and `docs/` for how it is built. This
 file holds what neither of those can: how the work has actually been going, what
@@ -10,19 +9,19 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-Current state: **v1.21.0 is released; v1.21.1 is prepared** on the working
-branch — the fixes for an independent audit's findings, recorded in §8. The
-audit itself is `NEX_RELEASE_AUDIT.md` in the repository root.
+Current state: **v1.21.1 is released; v1.22.0 is prepared but not tagged.**
+The 1.21.1 audit fixes are recorded in §8 and `NEX_RELEASE_AUDIT.md`. The
+1.22.0 work redesigns Liquid Glass and the home dock; the owner will tag it.
 
 ---
 
 ## 1. The one thing that changes for you
 
-Every session up to this point ran in a cloud container **with no Flutter SDK,
-no Dart SDK and no Android SDK**. Nothing could be compiled, analysed or tested
-locally. The only compiler the work ever met was GitHub Actions, and CI runs on
-`pull_request` only — so the loop was: write, read the diff back adversarially,
-push, open a PR, wait five to seven minutes, read the log.
+The sessions before the 1.22.0 pass ran in a cloud container **with no Flutter
+SDK, no Dart SDK and no Android SDK**. Nothing could be compiled, analysed or
+tested locally. The only compiler the work ever met was GitHub Actions, and CI
+runs on `pull_request` only — so the loop was: write, read the diff back
+adversarially, push, open a PR, wait five to seven minutes, read the log.
 
 You almost certainly do not have that constraint. Install the pinned SDK and
 run the checks locally:
@@ -216,8 +215,10 @@ is green. **Do not nag about missing tags or releases.**
 
 ## 6. How the work has been running
 
-- All development happens on the branch `claude/project-status-review-jqgb5i`,
-  pushed with `git push -u origin <branch>`. Never push to `main`.
+- Earlier work used `claude/project-status-review-jqgb5i`. This checkout is
+  now on `main`, and the owner says GitHub Desktop pushes commits immediately.
+  Inspect the diff and run checks before committing; a commit here is also a
+  remote update.
 - A pull request is opened only when the owner explicitly asks. There is a PR
   template at `.github/pull_request_template.md`; mirror its headings.
 - The owner reviews on a real Android device, in Persian, and reports back in
@@ -328,12 +329,22 @@ that turned out to be wrong. Specific instances:
 
 ## 8. Where things stand
 
-**Released and on `main`:** through **v1.21.0** (merged as #233, with this
-handoff following as #234). CI was green on it. Nothing is outstanding on the
-branch — it sits exactly on `main`.
+**Released and on `main`:** through **v1.21.1**. **Prepared in the working
+tree:** v1.22.0, with its version, root changelog and bundled changelog in
+step. The owner will create the tag after review.
 
-What v1.21.0 contained, since it is the most recent work and the most likely
-thing to need a follow-up:
+The 1.22.0 pass makes the bottom navigation one floating dock with a raised
+Capture action, gives the search field and shared sheets the actual glass
+material, lightens the glass treatment and keeps Comfort Mode warm. It also
+fixes a Windows database-worker close path that rejected its own close command,
+and regenerates malformed checked-in localization files from the ARB sources.
+The complete client suite (732 tests) and UI suite (156 tests) passed locally
+with Flutter 3.35.5 and `--no-pub`. A local Android build could not resolve
+the Android Gradle plugin because this machine's Google Maven endpoint returned
+404 even for older plugin versions; the release workflow's own CI verification
+still needs to run when the owner tags.
+
+What v1.21.0 contained, as context for the remaining selection issue:
 
 - `packages/ui/lib/widgets/nex_selection_menu.dart` — new. The one filter, plus
   the two builder shapes Flutter asks for.
@@ -465,23 +476,25 @@ Still open, deliberately:
 ## 10. First hour
 
 ```bash
-git fetch origin
-git checkout claude/project-status-review-jqgb5i   # sits on main, v1.21.0
+git status --short --branch
+cat .fvmrc
 make bootstrap
-make check                                          # confirm a clean baseline
+make check
 ```
 
-`make check` should pass on a clean checkout. If it does not, that is a finding
-in itself — every session before yours was flying blind, and a green CI run does
-not prove `make check` is green (the two have drifted before; see the comment
-above `check-ai` in the `Makefile`).
+`make check` should pass where `make` and the package registries are available.
+On this Windows host, `make` is not on PATH and `pub.dev` returned 403; the
+cached dependencies worked with the pinned Flutter SDK and `--no-pub`. Do not
+rewrite lockfiles against a mirror merely to work around that local network
+condition. A green CI run does not prove `make check` is green (the two have
+drifted before; see the comment above `check-ai` in the `Makefile`).
 
 Then, in order:
 
-1. Reproduce the Persian text-field handle bug in a widget test (§8). It is the
-   only known open defect, the owner has hit it twice, and it is the one thing
-   a local SDK makes tractable that the cloud sessions could not touch.
-2. Read `docs/NEX_V2_ROADMAP.md` — the plan for the next major version, written
+1. Review the 1.22.0 diff and release checks before tagging. The owner handles
+   the tag; do not create it on their behalf.
+2. Reproduce the Persian multiline text-field handle bug in a widget test (§8).
+   It remains open and needs a real gesture harness.
+3. Read `docs/NEX_V2_ROADMAP.md` — the plan for the next major version, written
    at the end of the 1.21 cycle. It sequences the work and names what has to be
    decided before any of it starts.
-3. Ask before opening a pull request, and ask before tagging.

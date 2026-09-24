@@ -34,6 +34,19 @@ Working convention:
 
 ## Unreleased
 
+## v1.22.0
+
+- **Liquid Glass feels lighter and clearer.** Floating controls now catch a
+  subtle highlight and keep more of the chosen background's colour. The search
+  field and shared sheets use the same material, and a sheet now actually blurs
+  the page behind it instead of blurring an opaque layer of its own. Comfort
+  Mode keeps the glass warm.
+
+- **The bottom of the timeline has one calmer home.** The four destinations
+  share a single floating dock, with Capture raised in the centre so the action
+  you use most is easiest to spot. The fade behind it follows the page colour
+  rather than leaving a dark band across notes.
+
 ## v1.21.1
 
 - **A restore that fails leaves your notes where they were.** Restoring a

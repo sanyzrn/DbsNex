@@ -42,7 +42,9 @@ void main() {
         ),
       ),
     );
-    return tester.widget<InputDecorator>(find.byType(InputDecorator)).decoration;
+    return tester
+        .widget<InputDecorator>(find.byType(InputDecorator))
+        .decoration;
   }
 
   for (final (name, theme) in <(String, ThemeData)>[
@@ -107,5 +109,20 @@ void main() {
     expect(theme.inputDecorationTheme.enabledBorder, isNotNull);
     expect(theme.inputDecorationTheme.focusedBorder, isNotNull);
     expect(theme.inputDecorationTheme.filled, isTrue);
+  });
+
+  testWidgets('the search pill uses the shared glass material', (tester) async {
+    await effective(
+      tester,
+      theme: nexLightTheme(liquidGlass: true),
+      searching: false,
+    );
+    expect(find.byType(BackdropFilter), findsOneWidget);
+    final surface = tester.widget<Material>(
+      find
+          .ancestor(of: find.byType(TextField), matching: find.byType(Material))
+          .first,
+    );
+    expect(surface.color, Colors.transparent);
   });
 }

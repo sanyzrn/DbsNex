@@ -66,9 +66,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantReachGroup => 'What it can see';
 
   @override
-  @override
-  String get assistantAboutYouNote => 'Included with your messages to the provider you choose.';
+  String get assistantAboutYouNote =>
+      'Included with your messages to the provider you choose.';
 
+  @override
   String get assistantAboutYouGroup => 'About you';
 
   @override
@@ -165,6 +166,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get securityScreenshotBlocked =>
+      'While the lock is on, Nex is also hidden from the recent-apps screen and screenshots of it are blocked.';
 
   @override
   String get sponsorLabel => 'SPONSORED';
@@ -179,10 +181,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationSoundDaily => 'Daily digest sound';
 
   @override
-  String get notificationSoundSubtitle => 'Sound, vibration and importance, in Android settings';
+  String get notificationSoundSubtitle =>
+      'Sound, vibration and importance, in Android settings';
 
   @override
-  String get notificationSoundUnavailable => 'This phone has no screen for that.';
+  String get notificationSoundUnavailable =>
+      'This phone has no screen for that.';
 
   @override
   String get widgetSettingsTitle => 'Home screen widget';
@@ -191,7 +195,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get widgetSettingsSubtitle => 'What the widget shows';
 
   @override
-  String get widgetSettingsIntro => 'By default the widget shows the top of your timeline. These narrow it down.';
+  String get widgetSettingsIntro =>
+      'By default the widget shows the top of your timeline. These narrow it down.';
 
   @override
   String get widgetSettingsKinds => 'Kinds of note';
@@ -209,19 +214,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get widgetSettingsNoTags => 'No tags yet.';
 
   @override
-  String get widgetSettingsScanNote => 'With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.';
+  String get widgetSettingsScanNote =>
+      'With a filter on, the widget shows matches from your most recent notes rather than searching the whole library.';
 
   @override
   String get widgetSettingsPinnedFirst => 'Pinned notes first';
 
   @override
-  String get widgetSettingsPinnedFirstHint => 'On, pinned notes sit at the top the way they do in Nex. Off, they stay wherever their own date puts them, as though they were not pinned.';
+  String get widgetSettingsPinnedFirstHint =>
+      'On, pinned notes sit at the top the way they do in Nex. Off, they stay wherever their own date puts them, as though they were not pinned.';
 
   @override
   String get widgetSettingsWhenLocked => 'Show notes while Nex is locked';
 
   @override
-  String get widgetSettingsWhenLockedHint => 'Off, the widget empties itself whenever the lock closes. On, your notes stay on the home screen, where anyone holding the phone can read them.';
+  String get widgetSettingsWhenLockedHint =>
+      'Off, the widget empties itself whenever the lock closes. On, your notes stay on the home screen, where anyone holding the phone can read them.';
 
   @override
   String get securityLockNow => 'Lock now';
@@ -233,18 +241,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityLockImmediately => 'As soon as I leave';
 
   @override
-  String get securityLockImmediatelyHint => 'Every time Nex goes to the background';
+  String get securityLockImmediatelyHint =>
+      'Every time Nex goes to the background';
 
   @override
   String get securityLockAfterTitle => 'After a while';
 
   @override
-  String securityLockAfter(Object delay) {
+  String securityLockAfter(String delay) {
     return 'After $delay';
   }
 
   @override
-  String get securityLockAfterHint => 'A quick trip to another app will not ask again';
+  String get securityLockAfterHint =>
+      'A quick trip to another app will not ask again';
 
   @override
   String get securityLockManual => 'Only when I ask';
@@ -266,7 +276,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String securityLockHours(int count) {
     return '$count hour';
   }
-      'While the lock is on, Nex is also hidden from the recent-apps screen and screenshots of it are blocked.';
 
   @override
   String get securityPasscodeUnavailable =>
@@ -768,7 +777,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String shareTooLarge(Object name, Object size, Object limit) {
-    return 'Nex keeps notes, not large files. \u201c$name\u201d is $size, and attachments are limited to $limit.';
+    return 'Nex keeps notes, not large files. “$name” is $size, and attachments are limited to $limit.';
   }
 
   @override
@@ -856,7 +865,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiEditUndo => 'Undo';
 
   @override
-  String get aiEditFailed => 'That edit did not come back. Your text is unchanged.';
+  String get aiEditFailed =>
+      'That edit did not come back. Your text is unchanged.';
 
   @override
   String get aiEditUnchanged => 'Nothing to change — it already reads well.';
@@ -2031,7 +2041,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistant => 'Assistant';
 
   @override
-  String get assistantNeedsIntelligence => 'The assistant needs intelligence turned on.';
+  String get assistantNeedsIntelligence =>
+      'The assistant needs intelligence turned on.';
 
   @override
   String get assistantTurnOnIntelligence => 'Turn on';
@@ -2115,14 +2126,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantConfirmCheck => 'Tick this item off?';
 
   @override
-  String get assistantConfirmSetting => 'Change this setting?';
-
-  @override
-  @override
   String get assistantConfirmCommitment => 'Set up this recurring item?';
 
   @override
-  String get assistantConfirmCommitmentMet => 'Mark this done and roll it forward?';
+  String get assistantConfirmCommitmentMet =>
+      'Mark this done and roll it forward?';
 
   @override
   String get assistantConfirmCommitmentDelete => 'Remove this recurring item?';
@@ -2136,131 +2144,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get commitmentNotifyOff => 'Only in the digest and on this screen';
 
+  @override
   String get commitmentsTitle => 'Recurring';
 
   @override
-  String get commitmentsSubtitle => 'Bills, renewals, medication — things that come back round';
+  String get commitmentsSubtitle =>
+      'Bills, renewals, medication — things that come back round';
 
   @override
-  String get commitmentsEmpty => 'Nothing recurring yet.\nInsurance, rent, a tablet every eight hours.';
-
-  @override
-  String get briefTitle =>
-      'Daily brief';
-
-  @override
-  String get briefSubtitle =>
-      'The card above your notes. You choose what it is for.';
-
-  @override
-  String get briefStyleLabel =>
-      'What it writes';
-
-  @override
-  String get briefStyleAssistant =>
-      'Assistant';
-
-  @override
-  String get briefStyleAssistantAbout =>
-      'The model reads your notes and writes the brief.';
-
-  @override
-  String get briefStyleBlended =>
-      'Facts, plus one observation';
-
-  @override
-  String get briefStyleBlendedAbout =>
-      'Nex states what is due, exactly. The model adds the one thing only the whole set shows.';
-
-  @override
-  String get briefStyleReport =>
-      'Plain report';
-
-  @override
-  String get briefStyleReportAbout =>
-      'What has slipped, what is due, what is half-done. Nothing is sent anywhere.';
-
-  @override
-  String get briefStylePlanner =>
-      'Planner';
-
-  @override
-  String get briefStylePlannerAbout =>
-      'The same facts, and one suggestion for what to do next — a suggestion only, nothing is changed.';
-
-  @override
-  String get briefStyleCustom =>
-      'My own brief';
-
-  @override
-  String get briefStyleCustomAbout =>
-      'You describe what you want it to tell you.';
-
-  @override
-  String get briefOffline =>
-      'Works with no provider, no key and no signal.';
-
-  @override
-  String get briefNeedsAi =>
-      'This one needs intelligence switched on. Plain report is the one that works without it.';
-
-  @override
-  String get briefInstructionLabel =>
-      'What you want it to say';
-
-  @override
-  String get briefInstructionHint =>
-      'Only what is overdue. No greeting.';
-
-  @override
-  String get briefLanguageShared =>
-      'One setting, shared: it is also what the assistant answers in and what transcriptions and summaries come back in.';
-
-  @override
-  String get briefToneLabel =>
-      'How it sounds';
-
-  @override
-  String get briefLengthLabel =>
-      'How much of it';
-
-  @override
-  String briefLineOverdue(String title, String span) {
-    return '$title — $span overdue';
-  }
-
-  @override
-  String briefLineDue(String title, String span) {
-    return '$title — due in $span';
-  }
-
-  @override
-  String briefLineChecklist(String title, int remaining, int total) {
-    return '$title — $remaining of $total left';
-  }
-
-  @override
-  String get commitmentsAbout => 'Nex keeps the next date for each one, brings it up in the daily brief, and can send a notification before it falls due.';
-
-  @override
-  String get commitmentsOverdue => 'Overdue';
-
-  @override
-  String get commitmentsComingUp => 'Coming up';
-
-  @override
-  String get commitmentsRested => 'Paused';
-
-  @override
-  String commitmentsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '\$count recurring items',
-      one: '1 recurring item',
-    );
-    return '\$_temp0';
-  }
+  String get commitmentsEmpty =>
+      'Nothing recurring yet.\nInsurance, rent, a tablet every eight hours.';
 
   @override
   String get commitmentAdd => 'Add a recurring item';
@@ -2433,6 +2326,116 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get assistantConfirmSetting => 'Change this setting?';
+
+  @override
+  String get briefTitle => 'Daily brief';
+
+  @override
+  String get briefSubtitle =>
+      'The card above your notes. You choose what it is for.';
+
+  @override
+  String get briefStyleLabel => 'What it writes';
+
+  @override
+  String get briefStyleAssistant => 'Assistant';
+
+  @override
+  String get briefStyleAssistantAbout =>
+      'The model reads your notes and writes the brief.';
+
+  @override
+  String get briefStyleBlended => 'Facts, plus one observation';
+
+  @override
+  String get briefStyleBlendedAbout =>
+      'Nex states what is due, exactly. The model adds the one thing only the whole set shows.';
+
+  @override
+  String get briefStyleReport => 'Plain report';
+
+  @override
+  String get briefStyleReportAbout =>
+      'What has slipped, what is due, what is half-done. Nothing is sent anywhere.';
+
+  @override
+  String get briefStylePlanner => 'Planner';
+
+  @override
+  String get briefStylePlannerAbout =>
+      'The same facts, and one suggestion for what to do next — a suggestion only, nothing is changed.';
+
+  @override
+  String get briefStyleCustom => 'My own brief';
+
+  @override
+  String get briefStyleCustomAbout =>
+      'You describe what you want it to tell you.';
+
+  @override
+  String get briefOffline => 'Works with no provider, no key and no signal.';
+
+  @override
+  String get briefNeedsAi =>
+      'This one needs intelligence switched on. Plain report is the one that works without it.';
+
+  @override
+  String get briefInstructionLabel => 'What you want it to say';
+
+  @override
+  String get briefInstructionHint => 'Only what is overdue. No greeting.';
+
+  @override
+  String get briefLanguageShared =>
+      'One setting, shared: it is also what the assistant answers in and what transcriptions and summaries come back in.';
+
+  @override
+  String get briefToneLabel => 'How it sounds';
+
+  @override
+  String get briefLengthLabel => 'How much of it';
+
+  @override
+  String briefLineOverdue(String title, String span) {
+    return '$title — $span overdue';
+  }
+
+  @override
+  String briefLineDue(String title, String span) {
+    return '$title — due in $span';
+  }
+
+  @override
+  String briefLineChecklist(String title, int remaining, int total) {
+    return '$title — $remaining of $total left';
+  }
+
+  @override
+  String get commitmentsAbout =>
+      'Nex keeps the next date for each one, brings it up in the daily brief, and can send a notification before it falls due.';
+
+  @override
+  String get commitmentsOverdue => 'Overdue';
+
+  @override
+  String get commitmentsComingUp => 'Coming up';
+
+  @override
+  String get commitmentsRested => 'Paused';
+
+  @override
+  String commitmentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count recurring items',
+      one: '1 recurring item',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get assistantConfirmRemind => 'Set this reminder?';
 
   @override
@@ -2451,10 +2454,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantConfirmTitleClear => 'Remove this note\'s title?';
 
   @override
-  String get assistantConfirmRestore => 'Bring this note back from Recently Deleted?';
+  String get assistantConfirmRestore =>
+      'Bring this note back from Recently Deleted?';
 
   @override
-  String get assistantConfirmRenameTag => 'Rename this tag everywhere it is used?';
+  String get assistantConfirmRenameTag =>
+      'Rename this tag everywhere it is used?';
 
   @override
   String get assistantConfirmTagColor => 'Change this tag\'s colour?';
@@ -2490,17 +2495,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remindDayTomorrow => 'Tomorrow';
 
   @override
-  String remindActionToday(Object time) {
+  String remindActionToday(String time) {
     return 'Remind today at $time';
   }
 
   @override
-  String remindActionTomorrow(Object time) {
+  String remindActionTomorrow(String time) {
     return 'Remind tomorrow at $time';
   }
 
   @override
-  String remindActionOn(Object date, Object time) {
+  String remindActionOn(String date, String time) {
     return 'Remind on $date at $time';
   }
 
@@ -2658,7 +2663,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get formatClear => 'Regular';
 
   @override
-  String get documentTruncated => 'Only the start of this document is shown — open it in another app for the rest.';
+  String get documentTruncated =>
+      'Only the start of this document is shown — open it in another app for the rest.';
 
   @override
   String get documentUnreadable => 'This document could not be shown here.';
@@ -2694,32 +2700,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guideUnavailable => 'The guide could not be opened.';
 
   @override
-  String get onboardingFilesTitle =>
-      'Whatever you throw at it';
+  String get onboardingFilesTitle => 'Whatever you throw at it';
 
   @override
   String get onboardingFilesBody =>
       'Share a document, a PDF, a song or a picture into Nex and it shows you the thing itself — not just a filename.';
 
   @override
-  String get onboardingYoursTitle =>
-      'It stays yours';
+  String get onboardingYoursTitle => 'It stays yours';
 
   @override
   String get onboardingYoursBody =>
       'No account, no server, and it works with the plane on. Lock it behind your fingerprint if you like, and export the lot whenever you want.';
 
   @override
-  String get onboardingGuideTitle =>
-      'Not sure where something is?';
+  String get onboardingGuideTitle => 'Not sure where something is?';
 
   @override
   String get onboardingGuideBody =>
       'The guide walks through everything, and it is always in Settings.';
 
   @override
-  String get onboardingGuideOpen =>
-      'Read the guide';
+  String get onboardingGuideOpen => 'Read the guide';
 
   @override
   String get addLink => 'Add link';

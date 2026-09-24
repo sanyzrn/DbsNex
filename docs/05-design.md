@@ -76,6 +76,7 @@ All four combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode
 | Component | Purpose | Design Notes |
 |---|---|---|
 | **Capture Button (`+`)** | Universal entry point to text/voice/photo capture | Always visible on the Timeline, fixed position, largest single interactive element on screen |
+| **Home dock** | Thumb-reachable destinations on the Timeline | One floating surface with four 48dp actions and a raised 64dp Capture button at its centre. Positions stay fixed in English and Persian; on a narrow screen the outside margin yields before a tap target does. The list fades into its own page colour behind the dock. |
 | **Capture Sheet** | Presents the three capture types | Appears instantly (no loading state), dismissible by outside tap |
 | **Timeline Card** | Represents one note in the stream | Adapts preview to content type (text snippet / waveform + duration / photo thumbnail); shows relative timestamp and tag chips if present. **Every card is the same height** — two lines of preview and one line of metadata, filled or not. A card's height carried no meaning, so letting it vary only made the list ragged; a tag that does not fit the one line runs off the edge rather than wrapping onto a second |
 | **Tag Chip** | Represents a single tag | Neutral chip shape and text; an optional small accent dot (user-chosen, see [Tag Accent Color](#tag-accent-color)) may render beside the label. Rounded, removable via inline "×" in edit contexts |
@@ -86,6 +87,19 @@ All four combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode
 | **Empty State** | Shown only when the Timeline has zero notes | A single, quiet prompt pointing at the `+` button — never a tutorial carousel |
 | **Swipe Action Reveal** | Quick Delete / Add Tag from the Timeline | See [Swipe Actions](#swipe-actions) below |
 | **Settings Sheet** | Holds every v1 preference, grouped — see [Settings](./02-product-specification.md#navigation) | Reached in one tap from the Timeline; a single scrolling sheet, not a nested settings app. Preferences are grouped into labelled cards (`bg-elevated`, `card-radius`, 1px `border`) with a header row per group, because a flat run of twenty-odd tiles is not scannable. Opens with a drag handle and clear of the status bar |
+
+---
+
+## Liquid Glass
+
+Liquid Glass is an optional material for controls that float above content. It
+blurs the actual backdrop, compresses its brightness enough for text to remain
+legible, and adds a restrained highlight and edge. The light and dark themes
+share this structure; Comfort Mode gives the light glass a warmer anchor. The
+home dock, search field, top bar and shared sheets use it. A shared sheet must
+leave its route background transparent so the glass can sample the page beneath
+it; sheets without a glass wrapper keep an opaque surface. High-contrast mode
+uses an opaque surface instead of blur.
 
 ---
 

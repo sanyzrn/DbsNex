@@ -187,6 +187,8 @@ class NexDbWorker implements NexDb {
   final Map<int, Completer<Object?>> _pending = {};
   int _nextId = 0;
   bool _closed = false;
+  bool _closing = false;
+  Future<void>? _closeFuture;
 
   /// Fails everything in flight. Called when the isolate reports a fatal
   /// error or exits: a caller parked on a request that will never be
@@ -330,7 +332,9 @@ class NexDbWorker implements NexDb {
     _DbCommand command, [
     Map<String, Object?> args = const {},
   ]) {
-    if (_closed) throw StateError('NexDbWorker has been closed');
+    if (_closed || (_closing && command != _DbCommand.close)) {
+      throw StateError('NexDbWorker has been closed');
+    }
 
     final id = _nextId++;
     final completer = Completer<Object?>();
@@ -508,10 +512,7 @@ class NexDbWorker implements NexDb {
 
   @override
   Future<NexCommitment?> markCommitmentMet(String id, {DateTime? at}) =>
-      _send<NexCommitment?>(_DbCommand.markCommitmentMet, {
-        'id': id,
-        'at': at,
-      });
+      _send<NexCommitment?>(_DbCommand.markCommitmentMet, {'id': id, 'at': at});
 
   @override
   Future<void> deleteCommitment(String id) =>
@@ -667,16 +668,21 @@ class NexDbWorker implements NexDb {
       });
 
   @override
-  Future<void> close() async {
-    if (_closed) return;
-    _closed = true;
+  Future<void> close() => _closeFuture ??= _close();
+
+  Future<void> _close() async {
+    _closing = true;
 
     try {
+      // The worker must serve this command before its isolate is killed.
+      // Marking it closed first made `_send` reject the close request itself,
+      // leaving SQLite open on Windows even though `close()` had returned.
       await _send<void>(_DbCommand.close);
     } catch (_) {
       // The isolate may already be gone; teardown must never throw.
     }
 
+    _closed = true;
     await _subscription.cancel();
     await _errorSub.cancel();
     await _exitSub.cancel();
@@ -1065,10 +1071,9 @@ class NexDbWorker implements NexDb {
         // throws, which `serve` catches. A stuck network call must not be
         // able to hold the app open.
         if (inFlight.isNotEmpty) {
-          await Future.wait(inFlight).timeout(
-            _closeGrace,
-            onTimeout: () => const <void>[],
-          );
+          await Future.wait(
+            inFlight,
+          ).timeout(_closeGrace, onTimeout: () => const <void>[]);
         }
         // The handle is released *before* the reply, not after it. The
         // reply is what `close()` on the other side awaits, and it used to

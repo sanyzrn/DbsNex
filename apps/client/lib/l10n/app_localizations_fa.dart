@@ -66,9 +66,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantReachGroup => 'چه چیزی را می‌بیند';
 
   @override
-  @override
-  String get assistantAboutYouNote => 'همراه پیام‌هایت برای پرووایدری که انتخاب کرده‌ای فرستاده می‌شود.';
+  String get assistantAboutYouNote =>
+      'همراه پیام‌هایت برای پرووایدری که انتخاب کرده‌ای فرستاده می‌شود.';
 
+  @override
   String get assistantAboutYouGroup => 'دربارهٔ شما';
 
   @override
@@ -164,6 +165,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get securityScreenshotBlocked =>
+      'تا وقتی قفل روشن است، Nex از صفحهٔ برنامه‌های اخیر هم پنهان می‌ماند و گرفتن اسکرین‌شات از آن مسدود می‌شود.';
 
   @override
   String get sponsorLabel => 'حمایت‌شده';
@@ -178,7 +180,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get notificationSoundDaily => 'صدای خلاصهٔ روزانه';
 
   @override
-  String get notificationSoundSubtitle => 'صدا، لرزش و اهمیت، در تنظیمات اندروید';
+  String get notificationSoundSubtitle =>
+      'صدا، لرزش و اهمیت، در تنظیمات اندروید';
 
   @override
   String get notificationSoundUnavailable => 'این گوشی چنین صفحه‌ای ندارد.';
@@ -190,7 +193,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get widgetSettingsSubtitle => 'ویجت چه چیزی نشان دهد';
 
   @override
-  String get widgetSettingsIntro => 'به‌طور پیش‌فرض ویجت ابتدای تایم‌لاین را نشان می‌دهد. اینها محدودش می‌کنند.';
+  String get widgetSettingsIntro =>
+      'به‌طور پیش‌فرض ویجت ابتدای تایم‌لاین را نشان می‌دهد. اینها محدودش می‌کنند.';
 
   @override
   String get widgetSettingsKinds => 'نوع یادداشت';
@@ -208,19 +212,22 @@ class AppLocalizationsFa extends AppLocalizations {
   String get widgetSettingsNoTags => 'هنوز برچسبی نیست.';
 
   @override
-  String get widgetSettingsScanNote => 'با فیلتر روشن، ویجت از میان تازه‌ترین یادداشت‌ها نتیجه نشان می‌دهد، نه با جست‌وجوی کل کتابخانه.';
+  String get widgetSettingsScanNote =>
+      'با فیلتر روشن، ویجت از میان تازه‌ترین یادداشت‌ها نتیجه نشان می‌دهد، نه با جست‌وجوی کل کتابخانه.';
 
   @override
   String get widgetSettingsPinnedFirst => 'یادداشت‌های سنجاق‌شده اول';
 
   @override
-  String get widgetSettingsPinnedFirstHint => 'روشن باشد، سنجاق‌شده‌ها مثل خود Nex بالا می‌نشینند. خاموش باشد، همان‌جایی می‌مانند که تاریخشان می‌گوید، انگار اصلاً سنجاق نشده‌اند.';
+  String get widgetSettingsPinnedFirstHint =>
+      'روشن باشد، سنجاق‌شده‌ها مثل خود Nex بالا می‌نشینند. خاموش باشد، همان‌جایی می‌مانند که تاریخشان می‌گوید، انگار اصلاً سنجاق نشده‌اند.';
 
   @override
   String get widgetSettingsWhenLocked => 'نمایش یادداشت‌ها وقتی Nex قفل است';
 
   @override
-  String get widgetSettingsWhenLockedHint => 'خاموش باشد، ویجت هر بار که قفل بسته می‌شود خالی می‌شود. روشن باشد، یادداشت‌ها روی صفحهٔ اصلی می‌مانند و هرکس گوشی دستش باشد می‌تواند بخواندشان.';
+  String get widgetSettingsWhenLockedHint =>
+      'خاموش باشد، ویجت هر بار که قفل بسته می‌شود خالی می‌شود. روشن باشد، یادداشت‌ها روی صفحهٔ اصلی می‌مانند و هرکس گوشی دستش باشد می‌تواند بخواندشان.';
 
   @override
   String get securityLockNow => 'همین حالا قفل کن';
@@ -238,7 +245,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get securityLockAfterTitle => 'پس از مدتی';
 
   @override
-  String securityLockAfter(Object delay) {
+  String securityLockAfter(String delay) {
     return 'پس از $delay';
   }
 
@@ -265,7 +272,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String securityLockHours(int count) {
     return '$count ساعت';
   }
-      'تا وقتی قفل روشن است، Nex از صفحهٔ برنامه‌های اخیر هم پنهان می‌ماند و گرفتن اسکرین‌شات از آن مسدود می‌شود.';
 
   @override
   String get securityPasscodeUnavailable =>
@@ -749,12 +755,10 @@ class AppLocalizationsFa extends AppLocalizations {
       'همگام‌سازی ناموفق بود. چیزی روی این دستگاه عوض نشد.';
 
   @override
-  String get backupFailed =>
-      'پشتیبان نوشته نشد. یادداشت‌هایت دست‌نخورده‌اند.';
+  String get backupFailed => 'پشتیبان نوشته نشد. یادداشت‌هایت دست‌نخورده‌اند.';
 
   @override
-  String get exportFailed =>
-      'خروجی نوشته نشد. یادداشت‌هایت دست‌نخورده‌اند.';
+  String get exportFailed => 'خروجی نوشته نشد. یادداشت‌هایت دست‌نخورده‌اند.';
 
   @override
   String get restoredStaysLocal =>
@@ -2116,17 +2120,15 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantConfirmCheck => 'این آیتم را تیک بزنم؟';
 
   @override
-  String get assistantConfirmSetting => 'این تنظیم را عوض کنم؟';
-
-  @override
-  @override
   String get assistantConfirmCommitment => 'این مورد تکرارشونده را بگذارم؟';
 
   @override
-  String get assistantConfirmCommitmentMet => 'این را انجام‌شده بزنم و ببرم به دفعهٔ بعد؟';
+  String get assistantConfirmCommitmentMet =>
+      'این را انجام‌شده بزنم و ببرم به دفعهٔ بعد؟';
 
   @override
-  String get assistantConfirmCommitmentDelete => 'این مورد تکرارشونده را بردارم؟';
+  String get assistantConfirmCommitmentDelete =>
+      'این مورد تکرارشونده را بردارم؟';
 
   @override
   String get commitmentNotify => 'یادم بینداز';
@@ -2137,131 +2139,16 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get commitmentNotifyOff => 'فقط در خلاصه و همین صفحه';
 
+  @override
   String get commitmentsTitle => 'موارد تکرارشونده';
 
   @override
-  String get commitmentsSubtitle => 'قبض‌ها، تمدیدها، دارو — چیزهایی که دوباره برمی‌گردند';
+  String get commitmentsSubtitle =>
+      'قبض‌ها، تمدیدها، دارو — چیزهایی که دوباره برمی‌گردند';
 
   @override
-  String get commitmentsEmpty => 'هنوز چیزی نیست.\nبیمه، اجاره، قرص هر هشت ساعت.';
-
-  @override
-  String get briefTitle =>
-      'خلاصهٔ روزانه';
-
-  @override
-  String get briefSubtitle =>
-      'کارتی که بالای یادداشت‌هاست. خودت تعیین می‌کنی به چه درد بخورد.';
-
-  @override
-  String get briefStyleLabel =>
-      'چه چیزی بنویسد';
-
-  @override
-  String get briefStyleAssistant =>
-      'دستیار';
-
-  @override
-  String get briefStyleAssistantAbout =>
-      'مدل یادداشت‌ها را می‌خواند و خلاصه را می‌نویسد.';
-
-  @override
-  String get briefStyleBlended =>
-      'حقایق، به‌علاوهٔ یک نکته';
-
-  @override
-  String get briefStyleBlendedAbout =>
-      'نکس دقیقاً می‌گوید چه چیزی سررسید دارد. مدل فقط آن یک چیزی را اضافه می‌کند که از کنار هم دیدن همه پیداست.';
-
-  @override
-  String get briefStyleReport =>
-      'گزارش ساده';
-
-  @override
-  String get briefStyleReportAbout =>
-      'چه چیزی عقب افتاده، چه چیزی سررسید دارد، چه چیزی نیمه‌کاره است. هیچ‌چیز جایی فرستاده نمی‌شود.';
-
-  @override
-  String get briefStylePlanner =>
-      'برنامه‌ریز';
-
-  @override
-  String get briefStylePlannerAbout =>
-      'همان حقایق، به‌علاوهٔ یک پیشنهاد برای قدم بعدی — فقط پیشنهاد؛ هیچ‌چیز تغییر نمی‌کند.';
-
-  @override
-  String get briefStyleCustom =>
-      'خلاصهٔ دلخواه من';
-
-  @override
-  String get briefStyleCustomAbout =>
-      'خودت توضیح می‌دهی چه چیزی برایت بگوید.';
-
-  @override
-  String get briefOffline =>
-      'بدون ارائه‌دهنده، بدون کلید و بدون اینترنت کار می‌کند.';
-
-  @override
-  String get briefNeedsAi =>
-      'این یکی به هوش مصنوعی روشن نیاز دارد. گزارش ساده تنها گزینه‌ای است که بدون آن کار می‌کند.';
-
-  @override
-  String get briefInstructionLabel =>
-      'می‌خواهی چه بگوید';
-
-  @override
-  String get briefInstructionHint =>
-      'فقط کارهای عقب‌افتاده. بدون سلام و احوال‌پرسی.';
-
-  @override
-  String get briefLanguageShared =>
-      'یک تنظیم مشترک: دستیار هم با همین زبان جواب می‌دهد و رونویسی و خلاصه‌ها هم با همین برمی‌گردند.';
-
-  @override
-  String get briefToneLabel =>
-      'چه لحنی داشته باشد';
-
-  @override
-  String get briefLengthLabel =>
-      'چقدر باشد';
-
-  @override
-  String briefLineOverdue(String title, String span) {
-    return '$title — $span عقب افتاده';
-  }
-
-  @override
-  String briefLineDue(String title, String span) {
-    return '$title — تا $span دیگر';
-  }
-
-  @override
-  String briefLineChecklist(String title, int remaining, int total) {
-    return '$title — $remaining از $total باقی مانده';
-  }
-
-  @override
-  String get commitmentsAbout => 'نکس تاریخ بعدی هر کدام را نگه می‌دارد، در خلاصهٔ روز می‌آوردشان، و می‌تواند پیش از رسیدن موعد اعلان بفرستد.';
-
-  @override
-  String get commitmentsOverdue => 'گذشته';
-
-  @override
-  String get commitmentsComingUp => 'در پیش';
-
-  @override
-  String get commitmentsRested => 'متوقف';
-
-  @override
-  String commitmentsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '\$count مورد تکرارشونده',
-      one: '۱ مورد تکرارشونده',
-    );
-    return '\$_temp0';
-  }
+  String get commitmentsEmpty =>
+      'هنوز چیزی نیست.\nبیمه، اجاره، قرص هر هشت ساعت.';
 
   @override
   String get commitmentAdd => 'افزودن مورد تکرارشونده';
@@ -2430,6 +2317,117 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
+  String get assistantConfirmSetting => 'این تنظیم را عوض کنم؟';
+
+  @override
+  String get briefTitle => 'خلاصهٔ روزانه';
+
+  @override
+  String get briefSubtitle =>
+      'کارتی که بالای یادداشت‌هاست. خودت تعیین می‌کنی به چه درد بخورد.';
+
+  @override
+  String get briefStyleLabel => 'چه چیزی بنویسد';
+
+  @override
+  String get briefStyleAssistant => 'دستیار';
+
+  @override
+  String get briefStyleAssistantAbout =>
+      'مدل یادداشت‌ها را می‌خواند و خلاصه را می‌نویسد.';
+
+  @override
+  String get briefStyleBlended => 'حقایق، به‌علاوهٔ یک نکته';
+
+  @override
+  String get briefStyleBlendedAbout =>
+      'نکس دقیقاً می‌گوید چه چیزی سررسید دارد. مدل فقط آن یک چیزی را اضافه می‌کند که از کنار هم دیدن همه پیداست.';
+
+  @override
+  String get briefStyleReport => 'گزارش ساده';
+
+  @override
+  String get briefStyleReportAbout =>
+      'چه چیزی عقب افتاده، چه چیزی سررسید دارد، چه چیزی نیمه‌کاره است. هیچ‌چیز جایی فرستاده نمی‌شود.';
+
+  @override
+  String get briefStylePlanner => 'برنامه‌ریز';
+
+  @override
+  String get briefStylePlannerAbout =>
+      'همان حقایق، به‌علاوهٔ یک پیشنهاد برای قدم بعدی — فقط پیشنهاد؛ هیچ‌چیز تغییر نمی‌کند.';
+
+  @override
+  String get briefStyleCustom => 'خلاصهٔ دلخواه من';
+
+  @override
+  String get briefStyleCustomAbout => 'خودت توضیح می‌دهی چه چیزی برایت بگوید.';
+
+  @override
+  String get briefOffline =>
+      'بدون ارائه‌دهنده، بدون کلید و بدون اینترنت کار می‌کند.';
+
+  @override
+  String get briefNeedsAi =>
+      'این یکی به هوش مصنوعی روشن نیاز دارد. گزارش ساده تنها گزینه‌ای است که بدون آن کار می‌کند.';
+
+  @override
+  String get briefInstructionLabel => 'می‌خواهی چه بگوید';
+
+  @override
+  String get briefInstructionHint =>
+      'فقط کارهای عقب‌افتاده. بدون سلام و احوال‌پرسی.';
+
+  @override
+  String get briefLanguageShared =>
+      'یک تنظیم مشترک: دستیار هم با همین زبان جواب می‌دهد و رونویسی و خلاصه‌ها هم با همین برمی‌گردند.';
+
+  @override
+  String get briefToneLabel => 'چه لحنی داشته باشد';
+
+  @override
+  String get briefLengthLabel => 'چقدر باشد';
+
+  @override
+  String briefLineOverdue(String title, String span) {
+    return '$title — $span عقب افتاده';
+  }
+
+  @override
+  String briefLineDue(String title, String span) {
+    return '$title — تا $span دیگر';
+  }
+
+  @override
+  String briefLineChecklist(String title, int remaining, int total) {
+    return '$title — $remaining از $total باقی مانده';
+  }
+
+  @override
+  String get commitmentsAbout =>
+      'نکس تاریخ بعدی هر کدام را نگه می‌دارد، در خلاصهٔ روز می‌آوردشان، و می‌تواند پیش از رسیدن موعد اعلان بفرستد.';
+
+  @override
+  String get commitmentsOverdue => 'گذشته';
+
+  @override
+  String get commitmentsComingUp => 'در پیش';
+
+  @override
+  String get commitmentsRested => 'متوقف';
+
+  @override
+  String commitmentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مورد تکرارشونده',
+      one: '۱ مورد تکرارشونده',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get assistantConfirmRemind => 'این یادآور را بگذارم؟';
 
   @override
@@ -2448,7 +2446,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantConfirmTitleClear => 'عنوان این یادداشت را بردارم؟';
 
   @override
-  String get assistantConfirmRestore => 'این یادداشت را از حذف‌شده‌ها برگردانم؟';
+  String get assistantConfirmRestore =>
+      'این یادداشت را از حذف‌شده‌ها برگردانم؟';
 
   @override
   String get assistantConfirmRenameTag => 'نام این تگ را همه‌جا عوض کنم؟';
@@ -2487,17 +2486,17 @@ class AppLocalizationsFa extends AppLocalizations {
   String get remindDayTomorrow => 'فردا';
 
   @override
-  String remindActionToday(Object time) {
+  String remindActionToday(String time) {
     return 'امروز ساعت $time یادآوری کن';
   }
 
   @override
-  String remindActionTomorrow(Object time) {
+  String remindActionTomorrow(String time) {
     return 'فردا ساعت $time یادآوری کن';
   }
 
   @override
-  String remindActionOn(Object date, Object time) {
+  String remindActionOn(String date, String time) {
     return '$date ساعت $time یادآوری کن';
   }
 
@@ -2656,7 +2655,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get formatClear => 'ساده';
 
   @override
-  String get documentTruncated => 'فقط ابتدای این سند نشان داده شده است — برای بقیه با برنامهٔ دیگری بازش کنید.';
+  String get documentTruncated =>
+      'فقط ابتدای این سند نشان داده شده است — برای بقیه با برنامهٔ دیگری بازش کنید.';
 
   @override
   String get documentUnreadable => 'این سند اینجا نمایش داده نشد.';
@@ -2692,32 +2692,28 @@ class AppLocalizationsFa extends AppLocalizations {
   String get guideUnavailable => 'راهنما باز نشد.';
 
   @override
-  String get onboardingFilesTitle =>
-      'هرچه بهش بدهی';
+  String get onboardingFilesTitle => 'هرچه بهش بدهی';
 
   @override
   String get onboardingFilesBody =>
       'یک سند، یک پی‌دی‌اف، یک آهنگ یا یک عکس را به نکس بفرست — خودِ آن چیز را نشانت می‌دهد، نه فقط اسم فایل را.';
 
   @override
-  String get onboardingYoursTitle =>
-      'مال خودت می‌ماند';
+  String get onboardingYoursTitle => 'مال خودت می‌ماند';
 
   @override
   String get onboardingYoursBody =>
       'نه حساب کاربری، نه سرور، و با اینترنتِ قطع هم کار می‌کند. اگر خواستی پشت اثر انگشتت قفلش کن، و هر وقت خواستی همه‌اش را بیرون بکش.';
 
   @override
-  String get onboardingGuideTitle =>
-      'نمی‌دانی چیزی کجاست؟';
+  String get onboardingGuideTitle => 'نمی‌دانی چیزی کجاست؟';
 
   @override
   String get onboardingGuideBody =>
       'راهنما همه‌چیز را قدم‌به‌قدم می‌گوید، و همیشه در تنظیمات هست.';
 
   @override
-  String get onboardingGuideOpen =>
-      'راهنما را بخوان';
+  String get onboardingGuideOpen => 'راهنما را بخوان';
 
   @override
   String get addLink => 'افزودن پیوند';
