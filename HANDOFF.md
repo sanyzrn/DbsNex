@@ -391,19 +391,38 @@ marking a failed write as saved; the direction classifier treating Arabic
 neutrals as strong and ignoring LRM/RLM; and the three causes of a red
 `make check` on Windows.
 
+Also fixed in v1.21.1, from the audit's secondary items:
+
+- **Restore and the Keep/Takeout import both streamed.** Each read the whole
+  archive into memory before decoding; both now decode from an
+  `InputFileStream` and write each entry out with `writeContent`.
+- **Timeline and search ordering are deterministic.** A tie on the timestamp
+  was left to SQLite; `n.rowid DESC` now breaks it in write order. This was
+  the Windows-only pin-order "flake" — Windows' coarse clock gives two
+  consecutive captures the same timestamp. Note the tagged timeline query is a
+  join, so the tie-break must be qualified: a bare `rowid` there is an error.
+- **npm advisories.** Backend: `qs` moved to 6.16.0 (a runtime dependency via
+  Express). Worker: all four "high" findings were in `wrangler`'s dev
+  toolchain (miniflare, sharp, undici), not the deployed worker; `wrangler`
+  is now 4.137.0 with `@cloudflare/workers-types` bumped to satisfy its peer.
+  Both report 0 vulnerabilities; both test suites pass.
+- **The backend's IPv6 rate-limit bypass.** The sync and read limiters fell
+  back to the raw request IP, which lets one IPv6 client rotate through its
+  /64 and never meet the limit; `express-rate-limit` said so on every boot
+  (`ERR_ERL_KEY_GEN_IPV6`). They now key through `ipKeyGenerator`.
+- **A test that claimed more than it proved.** `os_capture_bridge_test`'s
+  "a shared file is never read into memory" passes for a buffered
+  implementation too; its comment now says what it does prove, and where the
+  streaming is actually held.
+
 Still open, deliberately:
 
 - **Mixed-direction lines change direction between editing and reading.** One
   `TextField` has one base direction; the reader splits lines that disagree. A
   real fix is a paragraph-aware editor — `docs/NEX_V2_ROADMAP.md` territory,
   not a patch.
-- **`NexBackupArchive.restore` reads the whole archive into memory**
-  (`readAsBytesSync` before decoding). A multi-gigabyte media backup on an old
-  phone may not fit. Unverified; worth a streaming decoder.
-- **`npm ci` reported 1 moderate vulnerability in `apps/backend` and 4 high in
-  `apps/feedback-worker`.** Not triaged yet.
-- **A timeline pin-order assertion failed once on Windows and passed on
-  rerun.** Possibly a flake; unresolved.
+- **The Persian text-field handle bug** (above) — needs an Android runtime or
+  at least a local Flutter SDK to reproduce; this session has neither.
 
 ### Smaller things left open
 

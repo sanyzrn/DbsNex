@@ -7,7 +7,7 @@ import express, {
   type Request,
   type Response,
 } from "express";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import helmet from "helmet";
 import { pathToFileURL } from "node:url";
 
@@ -109,12 +109,24 @@ const preAuthLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// The key for the two limiters below: the authenticated device, or — if a
+// request somehow reaches them without one — the caller's address.
+//
+// The address goes through `ipKeyGenerator`, not in raw. An IPv6 client is
+// normally handed a whole /64, so keying on the full address let one caller
+// rotate through 2^64 of them and never meet the limit. `ipKeyGenerator`
+// collapses an IPv6 address to its /56 prefix and leaves IPv4 alone. The
+// library reported this at startup (ERR_ERL_KEY_GEN_IPV6) on every boot, and
+// an independent audit noticed the report.
+const deviceOrAddress = (req: Request): string =>
+  req.auth?.deviceId ?? (req.ip ? ipKeyGenerator(req.ip) : "unknown");
+
 const syncLimiter = rateLimit({
   windowMs: 60_000,
   limit: env.SYNC_RATE_LIMIT,
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  keyGenerator: (req: Request) => req.auth?.deviceId ?? req.ip ?? "unknown",
+  keyGenerator: deviceOrAddress,
 });
 
 const readLimiter = rateLimit({
@@ -122,7 +134,7 @@ const readLimiter = rateLimit({
   limit: env.READ_RATE_LIMIT,
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  keyGenerator: (req: Request) => req.auth?.deviceId ?? req.ip ?? "unknown",
+  keyGenerator: deviceOrAddress,
 });
 
 /* ---------------------------------------------------------------- routes */

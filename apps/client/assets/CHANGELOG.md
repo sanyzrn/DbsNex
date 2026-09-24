@@ -57,6 +57,17 @@ Working convention:
   right-to-left marks, which other apps add to pin a paragraph's direction,
   are now honoured.
 
+- **Restoring a backup, or importing a Keep export, no longer needs the whole
+  file in memory.** Both read the archive into memory before opening a single
+  entry, so a large backup — or a Takeout export full of photos — could fail
+  on an older phone for want of free memory. They now read one entry at a
+  time, straight from the file.
+
+- **Notes saved in the same instant stay in the same order.** Two files
+  shared at once, or an import, could swap places on the timeline from one
+  look to the next. They now appear in the order they were saved, newest
+  first, every time.
+
 ## v1.21.0
 
 - **Other apps are off the selection menu again.** Select a word and the menu
