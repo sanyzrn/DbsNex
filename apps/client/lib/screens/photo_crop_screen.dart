@@ -152,6 +152,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
         if (!mounted) return;
         Navigator.of(context).pop(annotated ?? png);
       case CropFailure(:final cause):
+        if (!mounted) return;
         setState(() => _cropping = false);
         nexShowBanner(context, message: '$cause');
     }
