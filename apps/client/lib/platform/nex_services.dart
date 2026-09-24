@@ -20,6 +20,7 @@ import 'nex_db.dart';
 import 'media_picker_impl.dart';
 import 'crash_reporter.dart';
 import 'nex_preferences.dart';
+import 'profile_photo.dart';
 import 'model_store.dart';
 import 'reminders.dart';
 
@@ -108,6 +109,15 @@ class NexServices {
     // Async filesystem APIs — createSync blocked the UI isolate.
     await Directory(mediaDir).create(recursive: true);
     await Directory(backupDir).create(recursive: true);
+
+    final profilePhoto = resolveProfilePhoto(
+      mediaDir,
+      preferences.profilePhotoPath,
+    );
+    if (profilePhoto != null &&
+        profilePhoto.path != preferences.profilePhotoPath) {
+      await preferences.setProfilePhotoPath(profilePhoto.path);
+    }
 
     // Stable, persisted UUID. Never Platform.localHostname, which is
     // "localhost" on Android and renameable on Windows.

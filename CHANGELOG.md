@@ -36,6 +36,12 @@ Working convention:
 
 ## v1.22.0
 
+- **Glass stays steady as the home screen scrolls.** The search field and daily recap no longer shift colour as they come into view, and Settings keeps its own background when Liquid Glass is switched off while the sheet is open.
+
+- **Search finds text inside a word.** A search for `tor` now finds a note containing `Generator`. The whole search field, including its icon, is easier to tap.
+
+- **Photos return sooner and stay findable.** Profile pictures can be found again when an older saved path goes stale, and nearby note images begin loading before they scroll into view.
+
 - **Liquid Glass feels lighter and clearer.** Floating controls now catch a
   subtle highlight and keep more of the chosen background's colour. The search
   field and shared sheets use the same material, and a sheet now actually blurs

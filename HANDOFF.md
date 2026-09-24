@@ -329,8 +329,8 @@ that turned out to be wrong. Specific instances:
 
 ## 8. Where things stand
 
-**Released and on `main`:** through **v1.21.1**. **Prepared in the working
-tree:** v1.22.0, with its version, root changelog and bundled changelog in
+**Released and on `main`:** through **v1.21.1**. **Prepared for tagging:**
+v1.22.0, with its version, root changelog and bundled changelog in
 step. The owner will create the tag after review.
 
 The 1.22.0 pass makes the bottom navigation one floating dock with a raised
@@ -343,6 +343,16 @@ with Flutter 3.35.5 and `--no-pub`. A local Android build could not resolve
 the Android Gradle plugin because this machine's Google Maven endpoint returned
 404 even for older plugin versions; the release workflow's own CI verification
 still needs to run when the owner tags.
+
+Feedback on the pre-tag build prompted a stabilization pass: the search field
+no longer fades its whole glass layer while scrolling in; the recap's animated
+border now repaints separately from its glass; shared sheets regain an opaque
+background immediately when glass is disabled. Search adds a literal substring
+fallback to FTS, the entire search pill responds to taps, old profile-picture
+paths can be recovered from `media/profile`, and nearby photo cards are built
+early while detail images decode at display size. Client, data and UI tests and
+analyzers passed locally after these changes. A missing profile image can only
+be recovered if its file is still present in the app's media directory.
 
 What v1.21.0 contained, as context for the remaining selection issue:
 

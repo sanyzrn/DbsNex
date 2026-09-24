@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/profile_photo.dart';
 import '../widgets/nex_banner.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -57,11 +58,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         directory.path,
         'avatar${extension.isEmpty ? '.jpg' : extension}',
       );
-      final old = widget.preferences.profilePhotoPath;
+      final old = resolveProfilePhoto(
+        widget.services.mediaDir,
+        widget.preferences.profilePhotoPath,
+      );
       await File(picked.path).copy(target);
-      if (old != null && old != target) {
-        final oldFile = File(old);
-        if (await oldFile.exists()) await oldFile.delete();
+      if (old != null && old.path != target) {
+        if (await old.exists()) await old.delete();
       }
       await widget.preferences.setProfilePhotoPath(target);
       if (mounted) setState(() {});
@@ -76,10 +79,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _removePhoto() async {
-    final path = widget.preferences.profilePhotoPath;
-    if (path != null) {
-      final file = File(path);
-      if (await file.exists()) await file.delete();
+    final photo = resolveProfilePhoto(
+      widget.services.mediaDir,
+      widget.preferences.profilePhotoPath,
+    );
+    if (photo != null) {
+      if (await photo.exists()) await photo.delete();
+    }
+    // Recovery can find an older avatar if a format change left two files.
+    // Removing the picture must clear those too, or it appears to come back.
+    final directory = Directory(p.join(widget.services.mediaDir, 'profile'));
+    if (await directory.exists()) {
+      await for (final entity in directory.list(followLinks: false)) {
+        if (entity is File && p.basename(entity.path).startsWith('avatar.')) {
+          await entity.delete();
+        }
+      }
     }
     await widget.preferences.setProfilePhotoPath(null);
     if (mounted) setState(() {});
@@ -109,9 +124,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final photo = widget.preferences.profilePhotoPath;
-    final photoFile = photo == null ? null : File(photo);
-    final hasPhoto = photoFile?.existsSync() ?? false;
+    final photoFile = resolveProfilePhoto(
+      widget.services.mediaDir,
+      widget.preferences.profilePhotoPath,
+    );
+    final hasPhoto = photoFile != null;
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.profileTitle),
@@ -128,7 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 CircleAvatar(
                   radius: 52,
                   backgroundColor: theme.colorScheme.surfaceContainerHigh,
-                  backgroundImage: hasPhoto ? FileImage(photoFile!) : null,
+                  backgroundImage: hasPhoto ? FileImage(photoFile) : null,
                   child: hasPhoto
                       ? null
                       : Icon(

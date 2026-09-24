@@ -2187,6 +2187,10 @@ class TimelineScreenState extends State<TimelineScreen>
                             widget.preferences.briefStyle.usesModel,
                         child: CustomScrollView(
                           controller: _scroll,
+                          // Build nearby cards before they enter the viewport
+                          // so local photo decoding happens during the scroll,
+                          // not after the thumbnail is already on screen.
+                          cacheExtent: 900,
                           // Always scrollable, so a short list still bounces rather
                           // than feeling locked.
                           physics: const AlwaysScrollableScrollPhysics(),

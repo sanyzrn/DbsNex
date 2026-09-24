@@ -715,9 +715,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       // for.
       return Padding(
         padding: const EdgeInsets.all(NexSpacing.lg),
-        child: _read
-            ? Text(l10n.noteNotFound)
-            : const NexSkeleton(height: 16),
+        child: _read ? Text(l10n.noteNotFound) : const NexSkeleton(height: 16),
       );
     }
     final isText = note.type == NoteType.text;
@@ -796,38 +794,38 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       // the card strips by, so the two always agree about what a note
                       // says. A sentence with a stray asterisk in it is a sentence.
                       nexLooksLikeMarkdown(note.content ?? '')
-                      // Selection belongs to the area rather than to the text,
-                      // which is what lets a link and a `code` span still
-                      // answer a tap — `SelectableText` handles every gesture
-                      // itself and dispatches none of them onward.
-                      ? SelectionArea(
-                          contextMenuBuilder: nexSelectionMenu,
-                          child: NexMarkdown(
-                            note.content!,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodyLarge?.copyWith(height: 1.62),
-                            selectable: false,
-                            onTapLink: _openHref,
-                            onCopyCode: (code) =>
-                                unawaited(_copyCodeSpan(context, code)),
-                          ),
-                        )
-                      : NexBodyText(
-                          note.content ?? '',
-                          // The same as the markdown branch above it, which
-                          // has had a `SelectionArea` all along. Which of the
-                          // two a note got depended on whether it happened to
-                          // contain an asterisk — so whether a note could be
-                          // copied out of was, from the reader's side, random.
-                          selectable: true,
-                          // Looser leading than the timeline card: this is the surface a
-                          // person actually reads a long note on, and 1.5 at 16px runs
-                          // the lines together over a screenful of text.
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyLarge?.copyWith(height: 1.62),
-                        )
+                          // Selection belongs to the area rather than to the text,
+                          // which is what lets a link and a `code` span still
+                          // answer a tap — `SelectableText` handles every gesture
+                          // itself and dispatches none of them onward.
+                          ? SelectionArea(
+                              contextMenuBuilder: nexSelectionMenu,
+                              child: NexMarkdown(
+                                note.content!,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyLarge?.copyWith(height: 1.62),
+                                selectable: false,
+                                onTapLink: _openHref,
+                                onCopyCode: (code) =>
+                                    unawaited(_copyCodeSpan(context, code)),
+                              ),
+                            )
+                          : NexBodyText(
+                              note.content ?? '',
+                              // The same as the markdown branch above it, which
+                              // has had a `SelectionArea` all along. Which of the
+                              // two a note got depended on whether it happened to
+                              // contain an asterisk — so whether a note could be
+                              // copied out of was, from the reader's side, random.
+                              selectable: true,
+                              // Looser leading than the timeline card: this is the surface a
+                              // person actually reads a long note on, and 1.5 at 16px runs
+                              // the lines together over a screenful of text.
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.copyWith(height: 1.62),
+                            )
                     else if (note.type == NoteType.voice) ...[
                       Text(
                         l10n.voiceDuration(
@@ -867,6 +865,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                               fit: BoxFit.cover,
                               height: 220,
                               width: double.infinity,
+                              cacheWidth: _imageCacheWidth(context),
+                              cacheHeight:
+                                  (220 * MediaQuery.devicePixelRatioOf(context))
+                                      .round(),
                             ),
                           ),
                         ),
@@ -1213,7 +1215,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       // translate action uses, plus the switch that governs
                       // this one specifically.
                       if (widget.preferences case final preferences?
-                          when preferences.effectiveAiCapabilities.summarization &&
+                          when preferences
+                                  .effectiveAiCapabilities
+                                  .summarization &&
                               aiTextAvailableWith(preferences.aiProvider))
                         _DetailAction(
                           // A page with a sparkle on it. `summarize` is a
@@ -1470,9 +1474,10 @@ class _FullScreenPhotoState extends State<_FullScreenPhoto>
         : (Matrix4.diagonal3Values(_tapScale, _tapScale, 1)
             ..setEntry(0, 3, (1 - _tapScale) * _tapAt.dx)
             ..setEntry(1, 3, (1 - _tapScale) * _tapAt.dy));
-    _zoomTween = Matrix4Tween(begin: _zoom.value, end: target).animate(
-      CurvedAnimation(parent: _zoomDrive, curve: NexMotion.curve),
-    );
+    _zoomTween = Matrix4Tween(
+      begin: _zoom.value,
+      end: target,
+    ).animate(CurvedAnimation(parent: _zoomDrive, curve: NexMotion.curve));
     _zoomDrive.forward(from: 0);
   }
 
@@ -1622,7 +1627,10 @@ class _DetailAction extends StatelessWidget {
     required this.onPressed,
     this.destructive = false,
     this.accent = false,
-  }) : assert(icon != null || glyph != null, 'an action needs something to show');
+  }) : assert(
+         icon != null || glyph != null,
+         'an action needs something to show',
+       );
 
   final IconData? icon;
 
@@ -1906,6 +1914,15 @@ class _FileBody extends StatelessWidget {
 /// which door it came in by: one captured or picked was shown full width and
 /// opened into the viewer, and one dropped on the share sheet was a filename
 /// and a byte count. Same picture, same gesture, same viewer, either way now.
+// A sheet normally has a finite screen width. Some widget hosts provide a
+// zero-width MediaQuery while the route is being measured; in that case let
+// Image.file choose its own decode size instead of passing an invalid zero.
+int? _imageCacheWidth(BuildContext context) {
+  final pixels =
+      MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context);
+  return pixels >= 1 ? pixels.round() : null;
+}
+
 class _ImageFileBody extends StatelessWidget {
   const _ImageFileBody({required this.path});
 
@@ -1931,6 +1948,9 @@ class _ImageFileBody extends StatelessWidget {
                 fit: BoxFit.cover,
                 height: 220,
                 width: double.infinity,
+                cacheWidth: _imageCacheWidth(context),
+                cacheHeight: (220 * MediaQuery.devicePixelRatioOf(context))
+                    .round(),
                 // A file named `.png` that is not one lands here as a decode
                 // failure rather than as a crash. Nothing is drawn, and the
                 // row above still says everything the file itself knows.
@@ -2100,7 +2120,6 @@ class _FileTextBodyState extends State<_FileTextBody> {
       },
     );
   }
-
 }
 
 /// Copies a tapped `code` span and says so.

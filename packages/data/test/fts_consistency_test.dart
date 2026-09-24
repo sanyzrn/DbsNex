@@ -84,6 +84,15 @@ void main() {
     expect(searchIds('trains'), contains(note.id));
   });
 
+  test('search finds a literal fragment in the middle of a word', () {
+    final note = insert(makeText('Generator notes'));
+    final other = insert(makeText('motor notes'));
+
+    expect(searchIds('tor'), containsAll([note.id, other.id]));
+    expect(searchIds('NERA'), [note.id]);
+    expect(searchIds('%'), isEmpty);
+  });
+
   test('restoring a checklist from the trash makes it searchable again', () {
     final note = insert(makeChecklist(['buy oat milk']));
     repo.softDelete(note.id);
@@ -131,7 +140,9 @@ void main() {
 
   test('repairSearchIndex is a no-op on a healthy library', () {
     final note = insert(makeText('healthy words'));
-    final before = repo.db.select('SELECT COUNT(*) c FROM notes_fts').first['c'];
+    final before = repo.db
+        .select('SELECT COUNT(*) c FROM notes_fts')
+        .first['c'];
     repo.repairSearchIndex();
     final after = repo.db.select('SELECT COUNT(*) c FROM notes_fts').first['c'];
     expect(before, after);

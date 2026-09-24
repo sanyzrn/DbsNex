@@ -60,9 +60,10 @@ Future<T?> nexShowSheet<T>({
   context: context,
   // This shared wrapper supplies the glass material itself. An opaque modal
   // sheet behind it would leave the backdrop filter nothing to sample.
-  backgroundColor: context.nexVisualStyle.liquidGlass
-      ? Colors.transparent
-      : null,
+  // The route keeps this colour for its lifetime. If it starts transparent
+  // in glass mode and the preference changes while it is open, the content
+  // must supply the newly opaque surface itself.
+  backgroundColor: Colors.transparent,
   barrierColor: context.nexVisualStyle.liquidGlass
       ? Colors.black.withValues(alpha: 0.24)
       : null,
@@ -75,6 +76,7 @@ Future<T?> nexShowSheet<T>({
     borderRadius: const BorderRadius.vertical(
       top: Radius.circular(NexRadius.xl),
     ),
+    fallbackColor: Theme.of(context).colorScheme.surfaceContainerLowest,
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [

@@ -124,5 +124,45 @@ void main() {
           .first,
     );
     expect(surface.color, Colors.transparent);
+    // An opacity layer changes destination-dependent glass blending while the
+    // field scrolls into view, producing the reported one-second colour shift.
+    expect(
+      find.ancestor(
+        of: find.byType(NexGlassSurface),
+        matching: find.byType(Opacity),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('the icon and empty side of the pill open search', (
+    tester,
+  ) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nexLightTheme(liquidGlass: true),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: CustomScrollView(
+            slivers: [
+              SliverPersistentHeader(
+                delegate: SearchFieldHeader(
+                  controller: TextEditingController(),
+                  focusNode: FocusNode(),
+                  searching: false,
+                  onTap: () => taps++,
+                  onChanged: (_) {},
+                  onClear: () {},
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.search));
+    expect(taps, 1);
   });
 }
