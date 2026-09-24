@@ -9,10 +9,11 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-Current state: **v1.22.0 is released; v1.22.1 is prepared but not tagged.**
+Current state: **v1.22.1 is released; v1.22.2 is prepared but not tagged.**
 The 1.21.1 audit fixes are recorded in §8 and `NEX_RELEASE_AUDIT.md`. The
 1.22.0 work redesigns Liquid Glass and the home dock; 1.22.1 addresses the
-first round of user feedback. The owner will tag 1.22.1.
+first round of user feedback; 1.22.2 fixes photo previews and gestures. The
+owner will tag 1.22.2.
 
 ---
 
@@ -184,7 +185,7 @@ pipeline to enforce house style — it enforces lints.
 4. It publishes to a **separate public repo** (`RELEASES_REPO`), not this one,
    because this repo is private and the in-app updater cannot hold a credential.
 5. It calls the whole of `ci.yml` through its `verify` job first.
-6. Before uploading the APKs, it compares the new universal APK's Android
+6. Before publishing the release, it compares the new universal APK's Android
    package id and signing certificate with the latest published universal APK
    in `sanyzrn/DbsNex-releases`. A mismatch blocks an update that would need
    an uninstall and could erase local settings and the offline model.
@@ -338,8 +339,8 @@ that turned out to be wrong. Specific instances:
 
 ## 8. Where things stand
 
-**Released and on `main`:** through **v1.22.0**. **Prepared for tagging:**
-v1.22.1, with its version, root changelog and bundled changelog in
+**Released:** through **v1.22.1**. **Prepared for tagging:** v1.22.2, with its
+version, root changelog and bundled changelog in
 step. The owner will create the tag after review.
 
 The 1.22.0 pass makes the bottom navigation one floating dock with a raised
@@ -369,6 +370,19 @@ model already lives in persistent application support storage; no code path in
 the updater removes it. Its disappearance on the owner's 1.22.0 installation
 is not explained by the available code; the release APK identity gate above
 guards against accidental replacement installs in future releases.
+
+The v1.22.1 release initially hit a false positive in that gate. Its strict
+output parser was relaxed and now logs the package id and public certificate
+fingerprint. A publication-disabled run built v1.22.1 and verified that both
+values match the published v1.22.0 APK; v1.22.1 was then published from the
+separate `DbsNex-releases` repository.
+
+The v1.22.2 pass keeps photo previews proportional by decoding at one cache
+dimension, reserves horizontal drags for the full-screen photo viewer, limits
+zoomed panning to the image bounds, and stops double-tap animation when a
+touch takes over. The UI suite (157 tests), app smoke suite (65 tests),
+analyzer and PR CI passed. The photo viewer has not been checked manually on
+a physical device. PR #242 is merged into `main`.
 
 What v1.21.0 contained, as context for the remaining selection issue:
 
@@ -517,7 +531,7 @@ drifted before; see the comment above `check-ai` in the `Makefile`).
 
 Then, in order:
 
-1. Review the 1.22.1 diff and release checks before tagging. The owner handles
+1. Review the 1.22.2 diff and release checks before tagging. The owner handles
    the tag; do not create it on their behalf.
 2. Reproduce the Persian multiline text-field handle bug in a widget test (§8).
    It remains open and needs a real gesture harness.

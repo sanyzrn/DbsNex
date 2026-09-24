@@ -55,8 +55,8 @@ void main() {
       pubspecVersion(),
       newest,
       reason:
-          'Cutting a release renames "## Unreleased" to "## vX.Y.Z"; bump '
-          'pubspec.yaml and lib/app_version.dart in the same commit.',
+          'Add "## vX.Y.Z" below "## Unreleased" and bump pubspec.yaml '
+          'and lib/app_version.dart in the same commit.',
     );
   });
 

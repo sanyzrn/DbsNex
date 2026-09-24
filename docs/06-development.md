@@ -172,7 +172,7 @@ CI gates on: unit + integration test suites, the two measurable performance budg
 
 ### Cutting a Release
 
-**The tag is the version.** There is exactly one number to decide and one place to type it — nothing has to be edited first. The Release workflow parses the tag, stamps `pubspec.yaml` and `lib/app_version.dart` in its own checkout, derives the Android `versionCode` from it, and passes it to every build.
+**The tag is the version used by the build.** Before triggering the release, keep `pubspec.yaml`, `lib/app_version.dart` and both changelogs aligned with that version. The Release workflow parses the tag, stamps the two version files in its own checkout, derives the Android `versionCode` from it, and passes it to every build.
 
 Either way works:
 
@@ -183,6 +183,8 @@ Either way works:
   git push origin v0.2.1
   ```
 - **From GitHub**, with no git at all: Actions → Release → Run workflow → type `0.2.1`. A manual run publishes a **draft** release, so it is also how you rehearse one.
+
+The workflow creates the public release tag and assets in `sanyzrn/DbsNex-releases`; do not tag that repository by hand. A source-repository tag triggers the workflow, while the public releases repository is the version record the app reads.
 
 The tag must be `vMAJOR.MINOR.PATCH`, optionally with a pre-release suffix (`v0.2.1-beta`). A leading `v` is added if you leave it off, but anything else — `v.0.2.1`, `v0.2.`, a stray space — is rejected in the first job with an explicit message, rather than surfacing later as a confusing mismatch.
 
@@ -195,7 +197,7 @@ Two rules the numbers have to obey:
 
   What made it possible to ship at all was a second bug in the same release: the `Collect release assets` step looked for the split APKs under `app-<flavor>-<abi>-release.apk` when the flutter-apk directory names them `app-<abi>-<flavor>-release.apk`, and the copy was guarded with `[ -f ]`, so all three splits were skipped without failing the build. Both the path and the guard are fixed, and the step now asserts it staged exactly five files.
 
-**Rename the changelog heading before you tag.** [`CHANGELOG.md`](../CHANGELOG.md)'s top section — whatever it is titled — is published as-is as both the GitHub Release body and the in-app update sheet's content. As part of the same merge to `main` that you are about to tag, rename its `## Unreleased` heading to `## vX.Y.Z` matching the tag, and start a fresh `## Unreleased` above it. The release workflow refuses to publish if the top heading is still literally `Unreleased`.
+**Add the matching changelog section before you tag.** The release workflow selects `## vX.Y.Z` in [`CHANGELOG.md`](../CHANGELOG.md) by name and publishes its contents as both the GitHub Release body and the in-app update sheet's content. Keep a fresh `## Unreleased` above it for later changes, and mirror the new section in `apps/client/assets/CHANGELOG.md`. The workflow refuses to publish if the matching section is absent or empty.
 
 `version:` in `apps/client/pubspec.yaml` stays as the local development default, kept in step with `lib/app_version.dart` by `version_test.dart`. Releases overwrite both from the tag, so a stale value there can no longer block or mislabel a release.
 The workflow builds a signed Android App Bundle plus split APKs and attaches them to the GitHub Release. Every build waits on the full CI suite first — tags do not match branches, so without that gate a tag would ship straight to a public release without ever running analyze or the tests.

@@ -451,7 +451,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # CHANGELOG.md's own top section — see that file for the convention —
+      # CHANGELOG.md's section for this tag — see that file for the convention —
       # replaces GitHub's auto-generated notes (a dump of every PR title and
       # commit, most of it meaningless to whoever is looking at "what's new"
       # on their phone) with the handful of lines a person actually wrote for
@@ -476,7 +476,7 @@ jobs:
           # into a failure rather than something you notice after publishing.
           want="## ${{ needs.version.outputs.tag }}"
           if ! grep -qxF "$want" CHANGELOG.md; then
-            echo "::error::CHANGELOG.md has no '$want' section. Rename '## Unreleased' to it in the commit that cuts this release (see that file's own 'How this file is used')."
+            echo "::error::CHANGELOG.md has no '$want' section. Add it before tagging (see that file's own 'How this file is used')."
             exit 1
           fi
           awk -v want="$want" '
