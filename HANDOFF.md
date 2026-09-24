@@ -10,8 +10,9 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-Current state: **v1.21.0 is released.** `main` is at `5753ac0`; the working
-branch has been restarted from it and carries nothing of its own.
+Current state: **v1.21.0 is released; v1.21.1 is prepared** on the working
+branch — the fixes for an independent audit's findings, recorded in §8. The
+audit itself is `NEX_RELEASE_AUDIT.md` in the repository root.
 
 ---
 
@@ -29,12 +30,28 @@ run the checks locally:
 ```bash
 cat .fvmrc          # {"flutter": "3.35.5"} — use exactly this
 make bootstrap      # pub get / npm ci for all seven packages
-make check          # mirrors the CI jobs one-to-one
+make check          # analyze + test for every package
 ```
 
-`make check` is the whole pipeline: `check-dart` (core, data — pure Dart, no
-Flutter), `check-ai`, `check-ui`, `check-client`, `check-backend`,
-`check-worker`. If `make check` passes, CI passes, with the exceptions in §4.
+`make check` runs analyze and tests for every package: `check-dart` (core,
+data — pure Dart, no Flutter), `check-ai`, `check-ui`, `check-client`,
+`check-backend`, `check-worker`. **It is not the whole pipeline**, and an
+earlier version of this file said it was. CI additionally builds the Android
+debug APK (`flutter build apk --debug --flavor standard` in `apps/client`),
+runs the four boundary proofs and the `packages/ai` deletion proof, the
+TypeScript/Dart merge-conformance job, and the Phase 2 sync matrix against a
+live PostgreSQL. A green `make check` means the code analyses and its tests
+pass; it does not mean CI will be green. An independent audit caught the
+overclaim.
+
+**On Windows:** the suite was red on a clean Windows checkout until v1.21.1, for
+reasons unrelated to the app — CRLF line endings, a test fake that built paths
+from `Uri.path`, and a worker that answered `close` before releasing the
+database file, which Windows will not let anyone delete. All three are fixed.
+If you cloned before `.gitattributes` existed, your working files may still
+be CRLF. With nothing uncommitted (commit or stash first — the second command
+discards local changes), re-checkout once: `git rm --cached -r -q .` then
+`git reset --hard`.
 
 **Run it before every push.** Most of the incidents in §7 would have been caught
 in ten seconds by a local analyzer.
@@ -356,6 +373,37 @@ becomes. With a local Flutter SDK you can iterate on this in seconds instead of
 CI rounds. If it turns out to be framework-side, the app-level lever is a custom
 `TextSelectionControls` on the fields; that is real work and should not start
 before the bug is reproduced in a harness.
+
+**New evidence from the independent audit** (`NEX_RELEASE_AUDIT.md`, run on
+Windows with an Android API 37 emulator): on the *published v1.20.1 APK*, a
+double-tap and handle drag in the Edit note sheet **worked** — on a
+**single-line** Persian note. The owner's failing screenshot was a
+**three-line** note with the selection on the middle line, and the audit marked
+multiline selection UNVERIFIED. The editor field is `minLines: 3` inside a
+`ConstrainedBox(maxHeight: 220)`, so it can scroll internally. Reproduce with a
+multiline note first; that is the strongest lead so far, not a diagnosis.
+
+### Findings from the independent audit
+
+Fixed in v1.21.1: the non-atomic restore (now `RestoreTransaction`, recovered on
+the next `NexDatabase.open` if the app died mid-restore); the capture sheet
+marking a failed write as saved; the direction classifier treating Arabic
+neutrals as strong and ignoring LRM/RLM; and the three causes of a red
+`make check` on Windows.
+
+Still open, deliberately:
+
+- **Mixed-direction lines change direction between editing and reading.** One
+  `TextField` has one base direction; the reader splits lines that disagree. A
+  real fix is a paragraph-aware editor — `docs/NEX_V2_ROADMAP.md` territory,
+  not a patch.
+- **`NexBackupArchive.restore` reads the whole archive into memory**
+  (`readAsBytesSync` before decoding). A multi-gigabyte media backup on an old
+  phone may not fit. Unverified; worth a streaming decoder.
+- **`npm ci` reported 1 moderate vulnerability in `apps/backend` and 4 high in
+  `apps/feedback-worker`.** Not triaged yet.
+- **A timeline pin-order assertion failed once on Windows and passed on
+  rerun.** Possibly a flake; unresolved.
 
 ### Smaller things left open
 

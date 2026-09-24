@@ -1053,22 +1053,38 @@ class NexDbWorker implements NexDb {
         return;
       }
       tail = tail.then((_) async {
-        await serve(message);
-        if (message.command == _DbCommand.close) {
-          closed = true;
-          // Give whatever is mid-request a moment to come back before the
-          // handle goes. Bounded, because the thing it is waiting for may be
-          // three minutes of provider timeout and shutdown cannot be: past
-          // the grace, a resumed handler finds a disposed database and
-          // throws, which `serve` catches. A stuck network call must not be
-          // able to hold the app open.
-          if (inFlight.isNotEmpty) {
-            await Future.wait(inFlight).timeout(
-              _closeGrace,
-              onTimeout: () => const <void>[],
-            );
-          }
+        if (message.command != _DbCommand.close) {
+          await serve(message);
+          return;
+        }
+        closed = true;
+        // Give whatever is mid-request a moment to come back before the
+        // handle goes. Bounded, because the thing it is waiting for may be
+        // three minutes of provider timeout and shutdown cannot be: past
+        // the grace, a resumed handler finds a disposed database and
+        // throws, which `serve` catches. A stuck network call must not be
+        // able to hold the app open.
+        if (inFlight.isNotEmpty) {
+          await Future.wait(inFlight).timeout(
+            _closeGrace,
+            onTimeout: () => const <void>[],
+          );
+        }
+        // The handle is released *before* the reply, not after it. The
+        // reply is what `close()` on the other side awaits, and it used to
+        // be sent first — so `close()` returned while `nex.sqlite` was still
+        // open. On Android that is invisible, because unlinking an open file
+        // succeeds. On Windows it is a sharing violation: anything that
+        // deleted or replaced the database right after closing it — a
+        // restore, a test's teardown — failed with errno 32.
+        //
+        // `finally`, so the reply goes even if the close itself throws: the
+        // other side is parked on it, and an unanswered close is an app that
+        // cannot shut down.
+        try {
           db.close();
+        } finally {
+          await serve(message);
           requests.close();
         }
       });

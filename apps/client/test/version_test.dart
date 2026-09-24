@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -40,8 +41,12 @@ void main() {
     // by, and for the same reason: the file opens with a prose section that
     // is itself a `## ` heading, and carries a fresh `## Unreleased` above
     // the newest release.
-    final newest = rootFile('CHANGELOG.md')
-        .split('\n')
+    // `LineSplitter`, not `split('\n')`: a checkout with CRLF line endings —
+    // Git for Windows' default before `.gitattributes` pinned LF — left a
+    // `\r` on every line, the `$` below matched nothing, and this failed
+    // with "No element" on a changelog that was perfectly correct.
+    final newest = const LineSplitter()
+        .convert(rootFile('CHANGELOG.md'))
         .map((line) => RegExp(r'^## v(\d+\.\d+\.\d+)$').firstMatch(line))
         .nonNulls
         .first

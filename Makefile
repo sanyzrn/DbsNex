@@ -1,5 +1,8 @@
-# Mirrors the CI jobs one-to-one so `make check` reproduces the pipeline
-# locally. Every CI job below reduces to one of these targets.
+# Analyze and test for every package — the part of CI a contributor can run
+# on their own machine. Not all of it: CI also builds the Android APK, runs the
+# boundary and deletion proofs, the merge-conformance job and the live sync
+# matrix (see .github/workflows/ci.yml). This header used to say it mirrored
+# the pipeline one-to-one, and it never did.
 
 .PHONY: check check-dart check-ui check-client check-backend \
         fmt clean bootstrap backend-dev migrate

@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
 import 'database.dart';
+import 'restore_transaction.dart';
 
 /// A backup that contains everything, not only the database.
 ///
@@ -163,38 +164,50 @@ class NexBackupArchive {
           ..writeAsBytesSync(file.content as List<int>);
       }
 
-      for (final suffix in ['', '-wal', '-shm', '-journal']) {
-        final live = File('$liveDbPath$suffix');
-        if (live.existsSync()) live.deleteSync();
-      }
-      stagedDb.renameSync(liveDbPath);
-
-      // The media swap is one rename, not a per-file copy. Copying the
-      // staged files over the live directory one by one left the library
-      // with its database already swapped and its media half-replaced: an
-      // interruption in the middle was a restore that looked finished and
-      // referenced files that no longer existed. Both directories are
-      // siblings under the same support directory, so the rename stays on
-      // one filesystem and is atomic.
+      // Everything from here to `commit` replaces live files, so it runs as
+      // one transaction: the live database and media are set aside rather
+      // than deleted, and any failure — here, or the process dying — puts
+      // them back. See [RestoreTransaction] for why the old order of
+      // "delete the live one, rename the new one in", done twice, could
+      // leave the backup's notes installed over newer ones and lose the
+      // media outright.
+      //
+      // The media swap is still one rename, not a per-file copy, and only
+      // happens when the backup carried media: a backup without any leaves
+      // the photos already on the device where they are.
       final stagedMedia = Directory(p.join(staging.path, 'media'));
-      if (stagedMedia.existsSync()) {
-        final incoming = Directory(p.join(p.dirname(mediaDir), 'media.incoming'));
-        if (incoming.existsSync()) incoming.deleteSync(recursive: true);
-        stagedMedia.renameSync(incoming.path);
+      final replacesMedia = stagedMedia.existsSync();
+      final transaction = RestoreTransaction.begin(
+        liveDbPath: liveDbPath,
+        mediaDir: replacesMedia ? mediaDir : null,
+      );
+      try {
+        transaction.installDatabase(stagedDb);
+        if (replacesMedia) transaction.installMedia(stagedMedia);
 
-        final live = Directory(mediaDir);
-        if (live.existsSync()) live.deleteSync(recursive: true);
-        incoming.renameSync(live.path);
+        // The backed-up database still carries whatever absolute paths the
+        // device that made it used. The files were deliberately restored
+        // relative — this sandbox's media directory is the destination — so
+        // every row pointing outside it is rewritten to where the file now
+        // actually lives. Without this, a restore onto a reinstall (which is
+        // every restore on iOS, and most of them on Android) came back with
+        // every photo and recording pointing at a path that no longer
+        // exists. Inside the transaction, because it writes to the restored
+        // database and a failure here is a failed restore like any other.
+        _remapMediaUris(liveDbPath, mediaDir);
+        transaction.commit();
+      } catch (_) {
+        // A rollback that itself fails must not replace the error that
+        // caused it. The journal is still on disk in that case, so the next
+        // open of the database finishes the rollback — see
+        // [NexDatabase.open].
+        try {
+          transaction.rollBack();
+        } on Object {
+          // Deliberately swallowed; recovered on next open.
+        }
+        rethrow;
       }
-
-      // The backed-up database still carries whatever absolute paths the
-      // device that made it used. The files were deliberately restored
-      // relative — this sandbox's media directory is the destination — so
-      // every row pointing outside it is rewritten to where the file now
-      // actually lives. Without this, a restore onto a reinstall (which is
-      // every restore on iOS, and most of them on Android) came back with
-      // every photo and recording pointing at a path that no longer exists.
-      _remapMediaUris(liveDbPath, mediaDir);
     } finally {
       if (staging.existsSync()) staging.deleteSync(recursive: true);
     }

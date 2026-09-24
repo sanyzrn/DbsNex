@@ -53,9 +53,11 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 220));
   });
 
-  tearDown(() {
+  tearDown(() async {
     search.dispose();
-    services.dispose().ignore();
+    // Awaited, not ignored: the directory below holds the open database, and
+    // Windows will not delete a file something still has open.
+    await services.dispose();
     tmp.deleteSync(recursive: true);
   });
 

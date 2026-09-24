@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
 import '../repositories/note_repository.dart' show suggestedStarterTags;
+import 'restore_transaction.dart';
 
 /// Opens (or creates) the Nex SQLite database and applies the Phase 1 schema.
 ///
@@ -22,6 +23,12 @@ class NexDatabase {
   static NexDatabase open(String filePath) {
     final file = File(filePath);
     file.parent.createSync(recursive: true);
+    // Before anything reads the library. A restore that was interrupted —
+    // the app killed between setting the live files aside and committing —
+    // left its journal behind, and the live path may now hold half of a
+    // backup or nothing at all. Opening that would show the user an empty
+    // or rolled-back library while their real one sat beside it unread.
+    RestoreTransaction.recover(filePath);
     final db = sqlite3.open(filePath);
     final nex = NexDatabase._(db, filePath);
     nex._migrate();
@@ -446,18 +453,24 @@ CREATE TABLE notes_rebuilt (
       );
     }
 
-    // Validation passed — swap into place.
-    //
-    // `-journal` goes too. The live database runs in WAL mode, but a crash
-    // under an older rollback-journal build (or a file written by one) can
-    // leave `nex.sqlite-journal` behind, and SQLite would treat whatever is
-    // in it as hot for the file being swapped in and roll old pages back
-    // over the restored data. Every sidecar that can carry state goes.
-    for (final suffix in ['', '-wal', '-shm', '-journal']) {
-      final f = File('$liveDbPath$suffix');
-      if (f.existsSync()) f.deleteSync();
+    // Validation passed — swap into place, as a transaction. The live file
+    // and every sidecar that can carry state (`-journal` included: SQLite
+    // would treat a stale one as hot for the file swapped in and roll old
+    // pages back over it) are set aside rather than deleted, so that a
+    // failure here — or the process dying — puts them back instead of
+    // leaving no database at all. See [RestoreTransaction].
+    final transaction = RestoreTransaction.begin(liveDbPath: liveDbPath);
+    try {
+      transaction.installDatabase(restoring);
+      transaction.commit();
+    } catch (_) {
+      try {
+        transaction.rollBack();
+      } on Object {
+        // The journal survives; the next [open] finishes the rollback.
+      }
+      rethrow;
     }
-    restoring.renameSync(liveDbPath);
   }
 
   /// Throws unless [dbPath] is a database worth restoring.

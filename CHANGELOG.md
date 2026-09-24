@@ -34,6 +34,29 @@ Working convention:
 
 ## Unreleased
 
+## v1.21.1
+
+- **A restore that fails leaves your notes where they were.** Restoring a
+  backup replaced the database first and the photos second, deleting each
+  live copy before the new one was in place. A failure between the two — a
+  full disk, the app closed mid-way — could leave the backup's notes over
+  your newer ones, and could lose the photos outright, while saying the
+  restore had failed. Nothing live is deleted now until the whole restore
+  has succeeded; anything that goes wrong puts it all back, including when
+  the app was killed part way — the next launch finishes the undo before it
+  shows you anything.
+
+- **An edit that could not be saved is not treated as saved.** If writing a
+  change to a note failed, the capture sheet still counted it as stored, so
+  closing the sheet never tried again and the text was lost without a word.
+  A failed write now says so, and is written again when the sheet closes.
+
+- **Text that begins with an Arabic comma, a vowel mark, or a direction mark
+  lines up correctly.** Pasted text starting with one of these could lay an
+  English sentence out right to left. Invisible left-to-right and
+  right-to-left marks, which other apps add to pin a paragraph's direction,
+  are now honoured.
+
 ## v1.21.0
 
 - **Other apps are off the selection menu again.** Select a word and the menu
