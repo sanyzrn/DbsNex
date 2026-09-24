@@ -56,9 +56,9 @@ extension NexBackgroundPatternWire on NexBackgroundPattern {
 /// is in `nex_tokens.dart` beside the numbers: Apple's light band is pinned
 /// near white, and a panel on a near-white page that comes out near white is
 /// a material nobody can see. The band was moved down until a panel reads as
-/// a shape lying on the page. In light it now spans rgb 161 to 222 — 5.9:1 to
-/// 11.3:1 against the light theme's ink, both better than the numbers it
-/// replaced.
+/// a shape lying on the page. The light anchor is bright enough to feel like
+/// frosted glass, while the contrast tests keep text legible over the extremes
+/// behind it.
 @immutable
 class NexGlassWash {
   const NexGlassWash({
@@ -119,6 +119,8 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     required this.glassRim,
     required this.glassBorder,
     required this.glassShadow,
+    required this.glassHighlight,
+    required this.glassDepth,
     required this.blurSigma,
   });
 
@@ -149,6 +151,12 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
   /// cards that had been blurred rather than as glass lying on the page.
   final Color glassShadow;
 
+  /// A faint change of light across a pane. The wash makes the backdrop safe
+  /// for text; these two colours make the curved surface visible without
+  /// flattening the backdrop into an opaque fill.
+  final Color glassHighlight;
+  final Color glassDepth;
+
   final double blurSigma;
 
   @override
@@ -160,6 +168,8 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     Color? glassRim,
     Color? glassBorder,
     Color? glassShadow,
+    Color? glassHighlight,
+    Color? glassDepth,
     double? blurSigma,
   }) => NexVisualStyle(
     liquidGlass: liquidGlass ?? this.liquidGlass,
@@ -169,6 +179,8 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
     glassRim: glassRim ?? this.glassRim,
     glassBorder: glassBorder ?? this.glassBorder,
     glassShadow: glassShadow ?? this.glassShadow,
+    glassHighlight: glassHighlight ?? this.glassHighlight,
+    glassDepth: glassDepth ?? this.glassDepth,
     blurSigma: blurSigma ?? this.blurSigma,
   );
 
@@ -183,6 +195,8 @@ class NexVisualStyle extends ThemeExtension<NexVisualStyle> {
       glassRim: Color.lerp(glassRim, other.glassRim, t)!,
       glassBorder: Color.lerp(glassBorder, other.glassBorder, t)!,
       glassShadow: Color.lerp(glassShadow, other.glassShadow, t)!,
+      glassHighlight: Color.lerp(glassHighlight, other.glassHighlight, t)!,
+      glassDepth: Color.lerp(glassDepth, other.glassDepth, t)!,
       blurSigma: lerpDouble(blurSigma, other.blurSigma, t)!,
     );
   }
@@ -225,6 +239,8 @@ extension NexVisualStyleContext on BuildContext {
           glassRim: Colors.transparent,
           glassBorder: theme.colorScheme.outlineVariant,
           glassShadow: Colors.transparent,
+          glassHighlight: Colors.transparent,
+          glassDepth: Colors.transparent,
           blurSigma: 0,
         );
   }
@@ -339,7 +355,21 @@ class NexGlassSurface extends StatelessWidget {
           // here is the page, blurred.
           child: CustomPaint(
             painter: _GlassWashPainter(visual.glassWash),
-            child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  stops: const [0, 0.38, 1],
+                  colors: [
+                    visual.glassHighlight,
+                    Colors.transparent,
+                    visual.glassDepth,
+                  ],
+                ),
+              ),
+              child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
+            ),
           ),
         ),
       ),
@@ -395,6 +425,11 @@ class NexGlassBar extends StatelessWidget {
           painter: _GlassWashPainter(visual.glassWash),
           child: DecoratedBox(
             decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [visual.glassHighlight, visual.glassDepth],
+              ),
               border: Border(bottom: BorderSide(color: visual.glassBorder)),
             ),
           ),

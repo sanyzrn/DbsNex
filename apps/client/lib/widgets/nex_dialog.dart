@@ -58,6 +58,14 @@ Future<T?> nexShowSheet<T>({
   bool dismissible = true,
 }) => showModalBottomSheet<T>(
   context: context,
+  // This shared wrapper supplies the glass material itself. An opaque modal
+  // sheet behind it would leave the backdrop filter nothing to sample.
+  backgroundColor: context.nexVisualStyle.liquidGlass
+      ? Colors.transparent
+      : null,
+  barrierColor: context.nexVisualStyle.liquidGlass
+      ? Colors.black.withValues(alpha: 0.24)
+      : null,
   isScrollControlled: true,
   useSafeArea: true,
   isDismissible: dismissible,

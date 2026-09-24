@@ -238,20 +238,6 @@ class TimelineScreenState extends State<TimelineScreen>
   /// belonging to the window instead.
   static const _timelineColumnWidth = 760.0;
 
-  /// What the bottom bar leaves at each end. Apple's toolbar spends 28 here;
-  /// the capsules inside it are the same pills the kit draws, so the margin
-  /// around them is the kit's too.
-  static const _bottomBarInset = 28.0;
-
-  /// The widest the bar's own contents ever get: two capsules of two, and
-  /// capture between them. Derived from the pieces rather than measured, so
-  /// it cannot quietly stop matching them.
-  static const _bottomBarContentWidth =
-      _capsuleOfTwo * 2 + nexCaptureFabSize + NexSpacing.contentGap * 2;
-
-  static const _capsuleOfTwo =
-      NexGlassCapsule.height * 2 + NexGlassCapsule.gap;
-
   /// The tour itself, while it is running.
   OverlayEntry? _tour;
 
@@ -2229,7 +2215,8 @@ class TimelineScreenState extends State<TimelineScreen>
                             // Kept in the list while a search is running even
                             // when it is switched off, or the field the app bar
                             // icon just asked for would not exist.
-                            if (widget.preferences.showSearchField || _searching)
+                            if (widget.preferences.showSearchField ||
+                                _searching)
                               SliverPersistentHeader(
                                 key: const ValueKey('search-header'),
                                 delegate: SearchFieldHeader(
@@ -2301,7 +2288,8 @@ class TimelineScreenState extends State<TimelineScreen>
                             // both, or it cannot be read or tapped.
                             SliverToBoxAdapter(
                               child: SizedBox(
-                                height: nexFabClearance + nexBottomInset(context),
+                                height:
+                                    nexFabClearance + nexBottomInset(context),
                               ),
                             ),
                           ],
@@ -2312,15 +2300,9 @@ class TimelineScreenState extends State<TimelineScreen>
                 ),
               ),
             ),
-            // A scrim under the bar, so the four buttons are not read against
-            // whatever line of a note happens to be passing behind them.
-            //
-            // It fades to nothing well before the top of its band, which is
-            // what keeps it off the cards: a hard edge anywhere in the list
-            // would read as a rule drawn across somebody's note. Black
-            // because it was asked for, but nowhere near as much of it in
-            // light, where black over a warm page is not a shadow, it is
-            // dirt.
+            // Fade moving cards into the page tone before they pass beneath
+            // the dock. This keeps the actions readable without a black band
+            // cutting across the bottom of the light or Comfort appearance.
             Positioned(
               left: 0,
               right: 0,
@@ -2352,170 +2334,136 @@ class TimelineScreenState extends State<TimelineScreen>
     );
   }
 
-  /// The bar along the bottom: two pairs of actions in glass, and capture
-  /// between them.
+  /// One dock along the bottom, with capture lifted above its quieter actions.
   ///
-  /// The pairing is the arrangement, not decoration. On one side the two
-  /// things that change what is on the screen — the recurring items and the
-  /// assistant; on the other the two that change the app — the library and
-  /// its settings. Capture sits between them because it is neither, and
-  /// because it is the only thing here anybody does more than once a day.
+  /// Recurring items and the assistant stay to one side, library and settings
+  /// to the other. The four destinations share a surface so the raised capture
+  /// button is unmistakably the primary action.
   ///
   /// It does not mirror in Persian. Every other row in the app does, and
   /// should, because it is made of words; this one is made of four fixed
   /// places at the bottom edge of the screen, and which thumb reaches which
   /// is not a fact about the language being read.
   Widget _bottomBar(AppLocalizations l10n) {
-    // Floored at what the bar actually contains. `spaceBetween` in a box
-    // narrower than its children does not squeeze them, it overflows, and
-    // Apple's 28-a-side margin is more than a 320-wide phone can pay: the
-    // four buttons and capture come to 268, and the margins would leave 264.
-    // Below the floor the margins give way; the buttons do not.
-    final width = math.max(
-      _bottomBarContentWidth,
-      math.min(MediaQuery.sizeOf(context).width, _timelineColumnWidth) -
-          _bottomBarInset * 2,
-    );
-    return SizedBox(
-      width: width,
-      child: Row(
-        // Explicit, rather than by wrapping the bar in a `Directionality`:
-        // this fixes the order of these four places without also telling
-        // every tooltip underneath which way its words run.
-        textDirection: TextDirection.ltr,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          NexGlassCapsule(
-            children: [
-              NexCapsuleAction(
-                icon: Icons.event_repeat_outlined,
-                tooltip: l10n.commitmentsTitle,
-                onPressed: () async {
-                  if (_claimedBySwipe()) return;
-                  _tick();
-                  await CommitmentsSheet.show(
-                    context,
-                    services: widget.services,
-                  );
-                  await _loadCommitments();
-                },
-              ),
-              // Always drawn, even with nothing configured to answer. It used
-              // to appear only when the assistant was usable, which left the
-              // leading capsule one slot wide on most installs and two on
-              // some: the bar visibly lopsided, and its buttons in different
-              // places on different phones. A place in a bar is a promise
-              // about where to put a thumb, and a place that comes and goes
-              // is not one.
-              //
-              // What changes is the answer, not the button. With no provider
-              // a tap says so and offers the screen that fixes it, which is
-              // better than both of the things this used to do — open a chat
-              // that cannot reply, or show nothing at all.
-              NexCapsuleAction(
-                icon: Icons.auto_awesome,
-                tooltip: l10n.assistant,
-                onPressed: () {
-                  if (_claimedBySwipe()) return;
-                  if (AiChatSheet.availableFor(widget.preferences)) {
-                    _openAssistant();
-                    return;
-                  }
-                  _tick();
-                  nexShowBanner(
-                    context,
-                    // `ai`, because that is what it is about. There is no
-                    // `info` kind and this is not a failure: nothing was
-                    // attempted and nothing went wrong.
-                    kind: NexBannerKind.ai,
-                    haptics: widget.preferences.haptics,
-                    message: l10n.assistantNeedsIntelligence,
-                    actionLabel: l10n.assistantTurnOnIntelligence,
-                    onAction: () => unawaited(_openIntelligence()),
-                  );
-                },
-              ),
-            ],
-          ),
-          // Hold capture to reach the assistant. The gesture stays even
-          // though the assistant now has a button of its own: it has been
-          // the way in for long enough that removing it would cost
-          // somebody a habit, and it costs nothing to keep.
-          //
-          // Not the accent. Tapping this button and holding it are
-          // different things, and lighting the same blue for both said
-          // they were the same. Every assistant with an entrance uses a
-          // spectrum for this reason — see [nexAssistantSpectrum].
-          NexLongPressGlow(
-            colors: nexAssistantSpectrum,
-            onHoldStart: _tick,
-            onTriggered: () {
-              if (_claimedBySwipe()) return;
+    return NexNavigationDock(
+      leading: [
+        NexDockAction(
+          icon: Icons.event_repeat_outlined,
+          tooltip: l10n.commitmentsTitle,
+          onPressed: () async {
+            if (_claimedBySwipe()) return;
+            _tick();
+            await CommitmentsSheet.show(context, services: widget.services);
+            await _loadCommitments();
+          },
+        ),
+        // Always drawn, even with nothing configured to answer. It used
+        // to appear only when the assistant was usable, which left the
+        // leading group one slot wide on most installs and two on
+        // some: the bar visibly lopsided, and its buttons in different
+        // places on different phones. A place in a bar is a promise
+        // about where to put a thumb, and a place that comes and goes
+        // is not one.
+        //
+        // What changes is the answer, not the button. With no provider
+        // a tap says so and offers the screen that fixes it, which is
+        // better than both of the things this used to do — open a chat
+        // that cannot reply, or show nothing at all.
+        NexDockAction(
+          icon: Icons.auto_awesome,
+          tooltip: l10n.assistant,
+          onPressed: () {
+            if (_claimedBySwipe()) return;
+            if (AiChatSheet.availableFor(widget.preferences)) {
               _openAssistant();
-            },
-            child: NexGlassSurface(
-              borderRadius: BorderRadius.circular(nexCaptureFabSize / 2),
-              child: FloatingActionButton(
-                key: _captureAnchor,
-                onPressed: () {
-                  if (_claimedBySwipe()) return;
-                  openCapture();
-                },
-                tooltip: l10n.capture,
-                child: const Icon(Icons.add, size: 32),
-              ),
-            ),
-          ),
-          NexGlassCapsule(
-            children: [
-              NexCapsuleAction(
-                key: _libraryAnchor,
-                icon: Icons.inventory_2_outlined,
-                tooltip: l10n.libraryTitle,
-                // Awaited, and the timeline reloads on the way back. Tags
-                // and Trash both live behind here and both change what this
-                // screen shows, and neither refreshes it on its own.
-                onPressed: () async {
-                  if (_claimedBySwipe()) return;
-                  await Navigator.push(
-                    context,
-                    NexPageRoute<void>(
-                      builder: (_) => LibraryScreen(
-                        services: widget.services,
-                        preferences: widget.preferences,
-                      ),
-                    ),
-                  );
-                  await _refresh();
-                },
-              ),
-              NexCapsuleAction(
-                key: _settingsAnchor,
-                icon: Icons.settings_outlined,
-                tooltip: l10n.settings,
-                badge: _updateDot(l10n),
-                // Awaited so the commitments can be re-read on the way
-                // back: they are not on the timeline stream that refreshes
-                // everything else, and a brief that had not noticed the one
-                // just added would look broken to whoever just added it.
-                onPressed: () async {
-                  if (_claimedBySwipe()) return;
-                  await nexShowSheet<void>(
-                    context: context,
-                    builder: (_) => SettingsSheet(
-                      services: widget.services,
-                      preferences: widget.preferences,
-                      updates: widget.updates,
-                    ),
-                  );
-                  await _loadCommitments();
-                },
-              ),
-            ],
-          ),
-        ],
+              return;
+            }
+            _tick();
+            nexShowBanner(
+              context,
+              // `ai`, because that is what it is about. There is no
+              // `info` kind and this is not a failure: nothing was
+              // attempted and nothing went wrong.
+              kind: NexBannerKind.ai,
+              haptics: widget.preferences.haptics,
+              message: l10n.assistantNeedsIntelligence,
+              actionLabel: l10n.assistantTurnOnIntelligence,
+              onAction: () => unawaited(_openIntelligence()),
+            );
+          },
+        ),
+      ],
+      // Hold capture to reach the assistant. The gesture stays even
+      // though the assistant now has a button of its own: it has been
+      // the way in for long enough that removing it would cost
+      // somebody a habit, and it costs nothing to keep.
+      //
+      // Not the accent. Tapping this button and holding it are
+      // different things, and lighting the same blue for both said
+      // they were the same. Every assistant with an entrance uses a
+      // spectrum for this reason — see [nexAssistantSpectrum].
+      capture: NexLongPressGlow(
+        colors: nexAssistantSpectrum,
+        onHoldStart: _tick,
+        onTriggered: () {
+          if (_claimedBySwipe()) return;
+          _openAssistant();
+        },
+        child: FloatingActionButton(
+          key: _captureAnchor,
+          onPressed: () {
+            if (_claimedBySwipe()) return;
+            openCapture();
+          },
+          tooltip: l10n.capture,
+          child: const Icon(Icons.add, size: 32),
+        ),
       ),
+      trailing: [
+        NexDockAction(
+          key: _libraryAnchor,
+          icon: Icons.inventory_2_outlined,
+          tooltip: l10n.libraryTitle,
+          // Awaited, and the timeline reloads on the way back. Tags
+          // and Trash both live behind here and both change what this
+          // screen shows, and neither refreshes it on its own.
+          onPressed: () async {
+            if (_claimedBySwipe()) return;
+            await Navigator.push(
+              context,
+              NexPageRoute<void>(
+                builder: (_) => LibraryScreen(
+                  services: widget.services,
+                  preferences: widget.preferences,
+                ),
+              ),
+            );
+            await _refresh();
+          },
+        ),
+        NexDockAction(
+          key: _settingsAnchor,
+          icon: Icons.settings_outlined,
+          tooltip: l10n.settings,
+          badge: _updateDot(l10n),
+          // Awaited so the commitments can be re-read on the way
+          // back: they are not on the timeline stream that refreshes
+          // everything else, and a brief that had not noticed the one
+          // just added would look broken to whoever just added it.
+          onPressed: () async {
+            if (_claimedBySwipe()) return;
+            await nexShowSheet<void>(
+              context: context,
+              builder: (_) => SettingsSheet(
+                services: widget.services,
+                preferences: widget.preferences,
+                updates: widget.updates,
+              ),
+            );
+            await _loadCommitments();
+          },
+        ),
+      ],
     );
   }
 
@@ -3408,46 +3356,32 @@ class _FilteredEmpty extends StatelessWidget {
 /// The fade behind the bottom bar.
 ///
 /// Three stops rather than two. A straight ramp from black to nothing puts
-/// half its darkness across the middle of the band, which is exactly where
-/// the last note card sits; weighting it to the bottom keeps the tone under
-/// the buttons and leaves the cards alone.
+/// its colour across the middle of the band, which is exactly where the last
+/// note card sits; weighting it to the bottom leaves the cards alone.
 class _BottomScrim extends StatelessWidget {
   const _BottomScrim();
 
   @override
   Widget build(BuildContext context) {
+    final base = context.nexVisualStyle.baseColor;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    // The ceiling is per theme because the floor is. On a near-black page a
-    // black scrim is invisible until it is strong; on a cream one it is
-    // visible immediately, and the same number would look like a smudge.
-    //
-    // Three passes on this, each one because the last was still too timid.
-    // 0.55 took a #131312 page to rgb 8 — black on black. 0.85 reached 3,
-    // which was visible and still not an ending. This one goes to the floor:
-    // the very bottom of the screen is black, so a card sliding under the bar
-    // meets the page ending rather than a dark grey. A gradient that reaches
-    // 1 at the edge cannot band, because there is nothing past it to band
-    // against.
-    //
-    // Light moves far less and always will — black over a warm page is not a
-    // shadow there, it is dirt, and the page is pale enough that a little
-    // goes a long way.
-    final ceiling = dark ? 1.0 : 0.34;
+    // A near-opaque page tone masks stray text under the dock but retains the
+    // chosen background's hue. In light mode a black scrim looked like dirt on
+    // the warm page, particularly with Comfort Mode enabled.
+    final ceiling = dark ? 0.90 : 0.84;
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
           colors: [
-            Colors.black.withValues(alpha: ceiling),
-            Colors.black.withValues(alpha: ceiling * 0.55),
-            Colors.black.withValues(alpha: ceiling * 0.18),
-            Colors.black.withValues(alpha: 0),
+            base.withValues(alpha: ceiling),
+            base.withValues(alpha: ceiling * 0.55),
+            base.withValues(alpha: ceiling * 0.18),
+            base.withValues(alpha: 0),
           ],
-          // Four stops rather than three. The dark end belongs to the bar and
-          // holds longer now; above it the fall is spread over two steps so
-          // the tail still arrives at nothing without ever being a line,
-          // which a single step from 0.55 to 0 over that distance would be.
+          // Four stops let the tail disappear without a visible line across
+          // a card still scrolling behind it.
           stops: const [0, 0.3, 0.62, 1],
         ),
       ),

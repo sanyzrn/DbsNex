@@ -398,6 +398,7 @@ ThemeData nexLightTheme({
       : nexAccentPaletteFrom(accentSeed);
   return _theme(
     brightness: Brightness.light,
+    comfortMode: comfortMode,
     background: comfortMode
         ? NexColors.bgPrimaryLightComfort
         : NexColors.bgPrimaryLight,
@@ -439,6 +440,7 @@ ThemeData nexDarkTheme({
       : nexAccentPaletteFrom(accentSeed);
   return _theme(
     brightness: Brightness.dark,
+    comfortMode: comfortMode,
     background: comfortMode
         ? NexColors.bgPrimaryDarkComfort
         : NexColors.bgPrimaryDark,
@@ -468,6 +470,7 @@ ThemeData nexDarkTheme({
 
 ThemeData _theme({
   required Brightness brightness,
+  required bool comfortMode,
   required Color background,
   required Color card,
   required Color elevated,
@@ -758,13 +761,11 @@ ThemeData _theme({
         // a material, it is a rounding error, and no amount of rim or shadow
         // rescues a panel whose fill is the page.
         //
-        // So the anchor comes down to #BCBCBC at 0.34 and the two films go up
-        // to 0.33/0.42 to hold the band together. A panel now lands at rgb 224
-        // over the light page and 220 over the comfort one — a contrast of
-        // 1.21:1 and 1.11:1 against what it floats on, which is the presence
-        // the dark theme already had at 1.13:1 and the only theme anyone said
-        // looked right. Legibility went up rather than down: the worst the ink
-        // ever sees is 5.56:1, against 4.68:1 before.
+        // The light anchor stays below the page but above neutral grey. It
+        // gives a pane a soft white cast instead of the dull grey the old
+        // #BCBCBC anchor produced. The films still compress extreme
+        // backdrops so a dark photo cannot turn the pane into an unreadable
+        // hole; the contrast tests hold that floor.
         //
         // What it costs is translucency — 39% of the backdrop survives the
         // films, where 51% did. A note's colour still tints the glass and the
@@ -785,7 +786,14 @@ ThemeData _theme({
                   Colors.white.withValues(alpha: 0.42),
                 ],
                 lift: const Color(0xFF444444).withValues(alpha: 0.6),
-                anchor: const Color(0xFFBCBCBC).withValues(alpha: 0.34),
+                // Cream has a lower starting luminance than the plain page,
+                // so it needs a warmer, slightly deeper anchor to keep the
+                // pane visible without turning Comfort Mode cold grey.
+                anchor:
+                    (comfortMode
+                            ? const Color(0xFFC6BEB0)
+                            : const Color(0xFFD0D0D0))
+                        .withValues(alpha: 0.34),
               ),
         glassOpaque: card,
         // Apple's #D0D0D0 in light. In dark a grey sliver would vanish, so
@@ -815,6 +823,12 @@ ThemeData _theme({
         // Still a tenth of a card's, which is the line the appearance test
         // holds it to.
         glassShadow: Colors.black.withValues(alpha: dark ? 0.09 : 0.05),
+        // The small diagonal light change makes a floating control read as a
+        // curved material, especially against a plain background where blur
+        // alone has nothing to reveal. It stays faint so text contrast still
+        // comes from the wash, not an opaque highlight.
+        glassHighlight: Colors.white.withValues(alpha: dark ? 0.12 : 0.14),
+        glassDepth: Colors.black.withValues(alpha: dark ? 0.08 : 0.04),
         // Low enough that the backdrop is still a picture and not a fog, high
         // enough that nothing behind the glass can be read as text: a sigma
         // of 10 smears a glyph stroke across five times its own width. The 32

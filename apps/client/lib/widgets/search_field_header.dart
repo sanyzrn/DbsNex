@@ -111,126 +111,133 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
               NexSpacing.md,
               NexSpacing.sm,
             ),
-            child: Material(
-              key: anchor,
-              color: scheme.surfaceContainerHighest,
-              shape: StadiumBorder(
-                side: BorderSide(
-                  color: searching ? scheme.primary : scheme.outlineVariant,
-                  width: searching ? 1.5 : 1,
+            child: NexGlassSurface(
+              borderRadius: BorderRadius.circular(NexRadius.pill),
+              child: Material(
+                key: anchor,
+                color: context.nexVisualStyle.liquidGlass
+                    ? Colors.transparent
+                    : scheme.surfaceContainerHighest,
+                shape: StadiumBorder(
+                  side: BorderSide(
+                    color: searching ? scheme.primary : scheme.outlineVariant,
+                    width: searching ? 1.5 : 1,
+                  ),
                 ),
-              ),
-              child: Padding(
-                padding: const EdgeInsetsDirectional.only(
-                  start: NexSpacing.md,
-                  end: NexSpacing.sm,
-                ),
-                child: ConstrainedBox(
-                  // One height, focused or not. The clear button only exists
-                  // while searching, and it is the tallest thing in the row —
-                  // so the field grew by several pixels the moment it was
-                  // tapped, which read as the control jumping under the finger.
-                  // This is also the tap-target floor, which the resting state
-                  // was under.
-                  constraints: const BoxConstraints(minHeight: nexMinTapTarget),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search,
-                        size: 20,
-                        color: searching
-                            ? scheme.primary
-                            : scheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: NexSpacing.sm),
-                      Expanded(
-                        // A Persian query laid out left to right, in the one
-                        // field in the app most likely to be typed in either
-                        // language. The same treatment every other field has.
-                        child: NexAutoDirection(
-                          controller: controller,
-                          builder: (context, direction) => TextField(
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    start: NexSpacing.md,
+                    end: NexSpacing.sm,
+                  ),
+                  child: ConstrainedBox(
+                    // One height, focused or not. The clear button only exists
+                    // while searching, and it is the tallest thing in the row —
+                    // so the field grew by several pixels the moment it was
+                    // tapped, which read as the control jumping under the finger.
+                    // This is also the tap-target floor, which the resting state
+                    // was under.
+                    constraints: const BoxConstraints(
+                      minHeight: nexMinTapTarget,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.search,
+                          size: 20,
+                          color: searching
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: NexSpacing.sm),
+                        Expanded(
+                          // A Persian query laid out left to right, in the one
+                          // field in the app most likely to be typed in either
+                          // language. The same treatment every other field has.
+                          child: NexAutoDirection(
                             controller: controller,
-                            selectionWidthStyle: BoxWidthStyle.tight,
-                            contextMenuBuilder: nexReadingMenu,
-                            textDirection: direction,
-                            textAlign: TextAlign.start,
-                            focusNode: focusNode,
-                            onTap: onTap,
-                            onChanged: onChanged,
-                            textInputAction: TextInputAction.search,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            // The caret is one of the few places the accent is
-                            // spent: it means the app is listening.
-                            cursorColor: scheme.primary,
-                            decoration: InputDecoration(
-                              isDense: true,
-                              // The app's InputDecorationTheme frames, fills
-                              // and pads every field, which is right for a
-                              // form and wrong here: the pill around this row
-                              // is already the surface, so the theme drew a
-                              // second rounded box inside it with the search
-                              // icon stranded outside it.
-                              //
-                              // Every one of these has to be named. `border`
-                              // is only the fallback: `InputDecorator` paints
-                              // `enabledBorder ?? border` at rest and
-                              // `focusedBorder ?? border` while focused, and
-                              // `applyDefaults` fills a null one from the
-                              // theme — which sets both. So `border: none`
-                              // alone removed nothing, and the inner box went
-                              // on showing in exactly the two states the
-                              // field is ever in: a soft outline at rest and
-                              // an accent one under the caret, each drawn
-                              // inside the pill's own matching edge.
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              disabledBorder: InputBorder.none,
-                              errorBorder: InputBorder.none,
-                              focusedErrorBorder: InputBorder.none,
-                              filled: false,
-                              contentPadding: EdgeInsets.zero,
-                              hintText: l10n.searchHint,
+                            builder: (context, direction) => TextField(
+                              controller: controller,
+                              selectionWidthStyle: BoxWidthStyle.tight,
+                              contextMenuBuilder: nexReadingMenu,
+                              textDirection: direction,
+                              textAlign: TextAlign.start,
+                              focusNode: focusNode,
+                              onTap: onTap,
+                              onChanged: onChanged,
+                              textInputAction: TextInputAction.search,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                              // The caret is one of the few places the accent is
+                              // spent: it means the app is listening.
+                              cursorColor: scheme.primary,
+                              decoration: InputDecoration(
+                                isDense: true,
+                                // The app's InputDecorationTheme frames, fills
+                                // and pads every field, which is right for a
+                                // form and wrong here: the pill around this row
+                                // is already the surface, so the theme drew a
+                                // second rounded box inside it with the search
+                                // icon stranded outside it.
+                                //
+                                // Every one of these has to be named. `border`
+                                // is only the fallback: `InputDecorator` paints
+                                // `enabledBorder ?? border` at rest and
+                                // `focusedBorder ?? border` while focused, and
+                                // `applyDefaults` fills a null one from the
+                                // theme — which sets both. So `border: none`
+                                // alone removed nothing, and the inner box went
+                                // on showing in exactly the two states the
+                                // field is ever in: a soft outline at rest and
+                                // an accent one under the caret, each drawn
+                                // inside the pill's own matching edge.
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
+                                filled: false,
+                                contentPadding: EdgeInsets.zero,
+                                hintText: l10n.searchHint,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      if (searching) ...[
-                        IconButton(
-                          tooltip: l10n.showFilters,
-                          iconSize: 20,
-                          visualDensity: VisualDensity.compact,
-                          onPressed: onShowFilters,
-                          icon: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              const Icon(Icons.tune),
-                              if (filterCount > 0)
-                                PositionedDirectional(
-                                  end: -2,
-                                  top: -2,
-                                  child: Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: scheme.primary,
-                                      shape: BoxShape.circle,
+                        if (searching) ...[
+                          IconButton(
+                            tooltip: l10n.showFilters,
+                            iconSize: 20,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: onShowFilters,
+                            icon: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                const Icon(Icons.tune),
+                                if (filterCount > 0)
+                                  PositionedDirectional(
+                                    end: -2,
+                                    top: -2,
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: scheme.primary,
+                                        shape: BoxShape.circle,
+                                      ),
                                     ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          tooltip: l10n.clear,
-                          iconSize: 20,
-                          visualDensity: VisualDensity.compact,
-                          onPressed: onClear,
-                          icon: const Icon(Icons.close),
-                        ),
+                          IconButton(
+                            tooltip: l10n.clear,
+                            iconSize: 20,
+                            visualDensity: VisualDensity.compact,
+                            onPressed: onClear,
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
