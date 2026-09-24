@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v1.22.2
+
+- **Photos keep their natural proportions in note previews.** Images in a note's detail sheet and timeline card no longer look stretched after capture or import.
+
+- **Full-screen photos respond reliably to touch.** A sideways swipe stays on the photo; swipe down at normal zoom to close it. Pinch, double-tap and panning no longer fight each other or let the picture drift out of view.
+
 ## v1.22.1
 
 - **Glass stays steady as the home screen scrolls or refreshes.** The search field and daily recap no longer flash dark grey, and their drop shadows are gone. Settings keeps its own background when Liquid Glass is switched off while the sheet is open.
