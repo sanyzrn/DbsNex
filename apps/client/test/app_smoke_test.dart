@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
@@ -503,8 +504,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    Finder pill(String name) =>
-        find.descendant(of: find.byType(TagFilterRow), matching: find.text(name));
+    Finder pill(String name) => find.descendant(
+      of: find.byType(TagFilterRow),
+      matching: find.text(name),
+    );
 
     await tester.tap(pill('Work'));
     await tester.pumpAndSettle();
@@ -1095,18 +1098,42 @@ void main() {
   testWidgets('the full-screen photo viewer closes on a downward swipe', (
     tester,
   ) async {
-    final path = p.join(services.mediaDir, 'p.jpg');
-    final bytes = Uint8List.fromList(List.filled(200, 7));
+    final path = p.join(services.mediaDir, 'p.png');
+    final bytes = Uint8List.fromList(
+      img.encodePng(img.Image(width: 400, height: 800)),
+    );
     File(path).writeAsBytesSync(bytes);
-    await services.capturePhoto(mediaUri: path, mediaHash: sha256OfBytes(bytes));
+    await services.capturePhoto(
+      mediaUri: path,
+      mediaHash: sha256OfBytes(bytes),
+    );
     await services.refreshTimeline();
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
 
+    final cardImage = tester.widget<Image>(
+      find
+          .descendant(
+            of: find.byType(NoteCard).first,
+            matching: find.byType(Image),
+          )
+          .first,
+    );
+    expect((cardImage.image as ResizeImage).height, isNull);
+
     await tester.tap(find.byType(NoteCard).first);
     await tester.pumpAndSettle();
+    final previewImage = tester.widget<Image>(
+      find
+          .descendant(
+            of: find.byType(NoteDetailSheet),
+            matching: find.byType(Image),
+          )
+          .first,
+    );
+    expect((previewImage.image as ResizeImage).height, isNull);
     // Scoped to the detail sheet: the timeline card behind it has its own,
     // much smaller thumbnail.
     await tester.tap(
@@ -1118,13 +1145,90 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(InteractiveViewer), findsOneWidget);
 
-    // A fixed point on the full-screen route rather than the viewer's own
-    // center: the test image is not real JPEG bytes, so it never decodes,
-    // and InteractiveViewer sizes to a child that never reports a size.
-    // It used to take the AppBar's back arrow — nothing else closed it.
+    await tester.dragFrom(const Offset(250, 300), const Offset(350, 0));
+    await tester.pumpAndSettle();
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+    await tester.dragFrom(const Offset(550, 300), const Offset(-350, 0));
+    await tester.pumpAndSettle();
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+
     await tester.dragFrom(const Offset(400, 300), const Offset(0, 400));
     await tester.pumpAndSettle();
     expect(find.byType(InteractiveViewer), findsNothing);
+  });
+
+  testWidgets('zoomed photo pans within the viewer and does not dismiss', (
+    tester,
+  ) async {
+    final path = p.join(services.mediaDir, 'zoom.png');
+    final bytes = Uint8List.fromList(
+      img.encodePng(img.Image(width: 120, height: 240)),
+    );
+    File(path).writeAsBytesSync(bytes);
+    await services.capturePhoto(
+      mediaUri: path,
+      mediaHash: sha256OfBytes(bytes),
+    );
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(NoteCard).first);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NoteDetailSheet),
+        matching: find.byType(Image),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final viewer = tester.widget<InteractiveViewer>(
+      find.byType(InteractiveViewer),
+    );
+    final zoom = viewer.transformationController!;
+    expect(viewer.boundaryMargin, EdgeInsets.zero);
+    expect(viewer.panEnabled, isTrue);
+
+    const focalPoint = Offset(400, 300);
+    await tester.tapAt(focalPoint);
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.tapAt(focalPoint);
+    await tester.pumpAndSettle();
+    expect(zoom.value.getMaxScaleOnAxis(), greaterThan(2));
+
+    final before = zoom.value.entry(0, 3);
+    await tester.dragFrom(focalPoint, const Offset(80, 0));
+    await tester.pumpAndSettle();
+    expect(zoom.value.entry(0, 3), greaterThan(before));
+    await tester.dragFrom(focalPoint, const Offset(0, 150));
+    await tester.pumpAndSettle();
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+
+    // Pinching after a double-tap reset must still take over the transform.
+    await tester.tapAt(focalPoint);
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.tapAt(focalPoint);
+    await tester.pumpAndSettle();
+    expect(zoom.value.getMaxScaleOnAxis(), closeTo(1, 0.01));
+
+    final left = await tester.startGesture(
+      focalPoint + const Offset(-40, 0),
+      pointer: 1,
+    );
+    final right = await tester.startGesture(
+      focalPoint + const Offset(40, 0),
+      pointer: 2,
+    );
+    await tester.pump();
+    await left.moveBy(const Offset(-70, 0));
+    await right.moveBy(const Offset(70, 0));
+    await tester.pump();
+    await left.up();
+    await right.up();
+    await tester.pumpAndSettle();
+    expect(zoom.value.getMaxScaleOnAxis(), greaterThan(1.2));
   });
 
   testWidgets('dragging down over the settings content closes the sheet', (
