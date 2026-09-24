@@ -80,14 +80,22 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(NoteDetailSheet), findsOneWidget);
 
-    // Delete is the sheet's last control, so it is the one that lands under
-    // the navigation bar when the bottom inset is not reserved. Icon-only,
-    // so it's found by tooltip rather than by label text.
-    final delete = tester.getRect(find.byTooltip('Delete'));
+    // The labelled toolbar replaced the old icon strip. Its last control
+    // must clear system navigation, as must the bottom of its More sheet.
+    final more = tester.getRect(find.byTooltip('More actions'));
+    expect(
+      more.bottom,
+      lessThanOrEqualTo(900 - navBar),
+      reason: "the detail toolbar must end above the navigation bar",
+    );
+
+    await tester.tap(find.byTooltip('More actions'));
+    await tester.pumpAndSettle();
+    final delete = tester.getRect(find.text('Delete').last);
     expect(
       delete.bottom,
       lessThanOrEqualTo(900 - navBar),
-      reason: "the sheet's last control must end above the navigation bar",
+      reason: "the More sheet's last action must clear system navigation",
     );
   });
 }
