@@ -54,9 +54,43 @@ TextDirection? _directionOfRune(int rune) {
   // the English UI. In the Persian one the ambient was already rtl, which is
   // why this went unnoticed.
   //
-  // Only the numbers. The combining marks in this block are not strong
-  // either, but none of them can legitimately begin a string, so excluding
-  // them would be range arithmetic with no case behind it.
+  // The explicit direction marks come first, because they exist for exactly
+  // this question. LRM and RLM are invisible characters whose whole job is
+  // to say "left to right" or "right to left" — other apps insert them to
+  // pin a paragraph's direction, and pasted text often starts with one. LRM
+  // sits outside every range below and was ignored; RLM and ALM were
+  // answered only by accident of where they live.
+  if (rune == 0x200E) return TextDirection.ltr; // LEFT-TO-RIGHT MARK
+  if (rune == 0x200F || rune == 0x061C) return TextDirection.rtl; // RLM, ALM
+
+  // Then the characters inside the right-to-left blocks that are not strong
+  // at all, which the range below would otherwise sweep up as rtl.
+  //
+  // This used to say the combining marks could be left out because "none of
+  // them can legitimately begin a string". An independent audit supplied the
+  // case: text pasted from elsewhere can begin with a harakah or an Arabic
+  // comma, and `، hello` answered rtl, laying an English sentence out right
+  // to left. UAX #9 gives the comma class CS and the marks class NSM; P2
+  // skips both, and so does this now.
+  if (rune == 0x060C || // ARABIC COMMA (CS)
+      (rune >= 0x0591 && rune <= 0x05BD) || // Hebrew points and accents
+      rune == 0x05BF ||
+      rune == 0x05C1 ||
+      rune == 0x05C2 ||
+      rune == 0x05C4 ||
+      rune == 0x05C5 ||
+      rune == 0x05C7 ||
+      (rune >= 0x0610 && rune <= 0x061A) || // Arabic honorific marks
+      (rune >= 0x064B && rune <= 0x065F) || // harakat: fatha, damma, kasra…
+      rune == 0x0670 || // superscript alef
+      (rune >= 0x06D6 && rune <= 0x06DC) || // Quranic annotation marks
+      (rune >= 0x06DF && rune <= 0x06E4) ||
+      rune == 0x06E7 ||
+      rune == 0x06E8 ||
+      (rune >= 0x06EA && rune <= 0x06ED)) {
+    return null;
+  }
+
   if ((rune >= 0x0660 && rune <= 0x0669) || // Arabic-Indic digits ٠-٩
       (rune >= 0x06F0 && rune <= 0x06F9) || // Persian digits ۰-۹
       (rune >= 0x0600 && rune <= 0x0605) || // Arabic number signs

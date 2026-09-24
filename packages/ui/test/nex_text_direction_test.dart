@@ -30,6 +30,28 @@ void main() {
       }
     });
 
+    test('neutral marks inside the Arabic block are skipped', () {
+      // Found by an independent audit: the Arabic block was treated as
+      // strong right-to-left end to end, so text that happened to begin
+      // with an Arabic comma or a harakah — pasted, usually — laid an
+      // English sentence out right to left. UAX #9 classes them CS and NSM,
+      // and P2 skips both.
+      expect(nexDirectionOf('\u060C hello'), TextDirection.ltr);
+      expect(nexDirectionOf('\u064E hello'), TextDirection.ltr);
+      expect(nexDirectionOf('\u05B0 hello'), TextDirection.ltr);
+      // Letters in the same block are still what they were.
+      expect(nexDirectionOf('\u061B hello'), TextDirection.rtl);
+    });
+
+    test('an explicit direction mark decides', () {
+      // LRM and RLM exist to answer exactly this question, and other apps
+      // put them at the front of text to pin its direction. LRM was ignored
+      // outright.
+      expect(nexDirectionOf('\u200Eمتن'), TextDirection.ltr);
+      expect(nexDirectionOf('\u200Fhello'), TextDirection.rtl);
+      expect(nexDirectionOf('\u061Chello'), TextDirection.rtl);
+    });
+
     test('a note begun in Persian stays right-to-left', () {
       expect(nexDirectionOf('متن'), TextDirection.rtl);
       expect(

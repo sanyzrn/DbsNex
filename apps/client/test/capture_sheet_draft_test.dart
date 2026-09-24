@@ -154,4 +154,35 @@ void main() {
     expect(notes, hasLength(1));
     expect(notes.single.content, 'once upon a time');
   });
+  testWidgets('an edit that failed to save is written again on close', (
+    tester,
+  ) async {
+    // Found by an independent audit. `flush` sent the update and marked the
+    // text as persisted in the same breath, without waiting to hear whether
+    // the write landed. When it did not, every later flush compared the
+    // field with a "persisted" value it had never actually reached, found
+    // them equal, and did nothing — so the sheet closed over text that was
+    // not in the library, and the error was nobody's.
+    await boot();
+    await showSheet(tester);
+
+    final field = find.byType(TextField);
+    await tester.enterText(field, 'first');
+    await tester.pumpAndSettle(const Duration(milliseconds: 500));
+
+    db.failUpdates = 1;
+    await tester.enterText(field, 'first, then more');
+    await tester.pumpAndSettle(const Duration(milliseconds: 500));
+    expect(
+      (await db.timeline(limit: 50)).single.content,
+      'first',
+      reason: 'the refused write must really have been refused',
+    );
+
+    // Closing the sheet flushes. Before the fix it saw nothing to do.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+
+    expect((await db.timeline(limit: 50)).single.content, 'first, then more');
+  });
 }

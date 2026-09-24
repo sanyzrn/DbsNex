@@ -43,7 +43,16 @@ class _FakeNativeSide {
               // runs — a payload refused on its declared size must never
               // reach it at all.
               final uri = (call.arguments as Map<Object?, Object?>)['uri'] as String?;
-              final source = uri == null ? null : File(Uri.parse(uri).path);
+              final parsed = uri == null ? null : Uri.parse(uri);
+              // `File.fromUri`, not `File(parsed.path)`: the path component of
+              // `file:///C:/Users/...` is `/C:/Users/...`, which Windows cannot
+              // open, so on a Windows host every share looked like a missing
+              // file and the tests asserting a captured note failed there.
+              // `fromUri` is the exact inverse of the `Uri.file` the tests
+              // build these with, on every platform.
+              final source = parsed == null || parsed.scheme != 'file'
+                  ? null
+                  : File.fromUri(parsed);
               if (source == null || !source.existsSync()) return null;
               final copy = File(
                 p.join(

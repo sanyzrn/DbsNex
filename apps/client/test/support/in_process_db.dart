@@ -160,8 +160,18 @@ class InProcessDb implements NexDb {
   );
 
   @override
-  Future<void> updateNote(String id, String content) async =>
-      _repo.updateContent(id, content);
+  Future<void> updateNote(String id, String content) async {
+    if (failUpdates > 0) {
+      failUpdates--;
+      throw StateError('update refused by the test');
+    }
+    _repo.updateContent(id, content);
+  }
+
+  /// How many of the next [updateNote] calls throw instead of writing — the
+  /// full disk, or the worker that has gone, that the capture sheet used to
+  /// treat as saved.
+  int failUpdates = 0;
 
   @override
   Future<void> deleteNote(String id) async => _repo.softDelete(id);

@@ -6,6 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import 'nex_banner.dart';
 import 'reminder_picker.dart';
 import 'text_format_menu.dart';
 
@@ -150,9 +151,51 @@ class _CaptureSheetState extends State<CaptureSheet> {
       // The note the reminder was on has just been deleted along with the
       // text. Whatever this sheet is used for next is a different note.
       hasReminder = false;
-    } else if (controller.text != persisted) {
-      unawaited(widget.services.updateNote(id, controller.text));
-      persisted = controller.text;
+    } else if (controller.text != persisted && controller.text != queued) {
+      unawaited(_write(id, controller.text));
+    }
+  }
+
+  /// The text of the most recent update sent and not yet known to have
+  /// failed. Only here so that `close`, the pop and `dispose` — which all
+  /// flush, one after another — do not queue the same write three times.
+  String? queued;
+
+  /// Writes [text] and only then records it as persisted.
+  ///
+  /// [persisted] used to be set the moment the update was *sent*, without
+  /// waiting for it. So a write that failed — a full disk, a worker that had
+  /// gone — was treated as saved: the next flush compared the field with
+  /// [persisted], found them equal, and never tried again, and the sheet
+  /// closed over text that was not in the library. Found by an independent
+  /// audit, with a failing write left as an unhandled error nobody saw.
+  ///
+  /// Now a failure leaves [persisted] where it was, so the next flush writes
+  /// again, and the person is told while the sheet is still open to type
+  /// into. A sheet already gone gets one immediate retry instead — the
+  /// services outlive it — because there is nobody left to tell.
+  Future<void> _write(String id, String text) async {
+    queued = text;
+    try {
+      await widget.services.updateNote(id, text);
+      // The worker runs writes in order, so a later one cannot land before
+      // this; a newer [queued] is simply still on its way.
+      persisted = text;
+    } on Object {
+      if (queued == text) queued = null;
+      if (mounted) {
+        NexBannerHost.of(context)?.show(
+          message: AppLocalizations.of(context).captureFailed,
+          kind: NexBannerKind.failed,
+        );
+        return;
+      }
+      try {
+        await widget.services.updateNote(id, text);
+      } on Object {
+        // Twice in a row, with no screen left to say so on. The note keeps
+        // the last text that did land.
+      }
     }
   }
 
