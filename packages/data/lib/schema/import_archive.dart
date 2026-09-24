@@ -54,14 +54,35 @@ abstract final class NoteImportArchive {
   /// still gets.
   static NoteImportResult read(File file, {Directory? mediaInto}) {
     if (!file.existsSync()) return const NoteImportResult(notes: []);
+    // Four bytes to tell a zip from a note file, not the whole file. A
+    // Takeout archive is gigabytes of photos, and this used to read all of it
+    // into one byte list before looking at a single entry — while the
+    // attachment writer below promised to hold "one photo in memory at a
+    // time". The same fault an independent audit found in the backup
+    // restore, one file over.
+    final bool zip;
+    try {
+      zip = _isZip(_head(file));
+    } catch (_) {
+      return const NoteImportResult(notes: []);
+    }
+    if (zip) return _readZip(file, mediaInto: mediaInto);
     final List<int> bytes;
     try {
       bytes = file.readAsBytesSync();
     } catch (_) {
       return const NoteImportResult(notes: []);
     }
-    if (_isZip(bytes)) return _readZip(bytes, mediaInto: mediaInto);
     return NoteImport.readEntries([(file.path, bytes)]);
+  }
+
+  static List<int> _head(File file) {
+    final handle = file.openSync();
+    try {
+      return handle.readSync(4);
+    } finally {
+      handle.closeSync();
+    }
   }
 
   /// The local-file-header magic. Checked rather than trusting the extension:
@@ -73,10 +94,29 @@ abstract final class NoteImportArchive {
       bytes[1] == 0x4B &&
       (bytes[2] == 0x03 || bytes[2] == 0x05 || bytes[2] == 0x07);
 
-  static NoteImportResult _readZip(List<int> bytes, {Directory? mediaInto}) {
+  static NoteImportResult _readZip(File file, {Directory? mediaInto}) {
+    // Streamed from the file: the central directory is read up front and
+    // each entry only when it is asked for.
+    final InputFileStream input;
+    try {
+      input = InputFileStream(file.path);
+    } catch (_) {
+      return const NoteImportResult(notes: []);
+    }
+    try {
+      return _readArchive(input, mediaInto: mediaInto);
+    } finally {
+      input.closeSync();
+    }
+  }
+
+  static NoteImportResult _readArchive(
+    InputFileStream input, {
+    Directory? mediaInto,
+  }) {
     final Archive archive;
     try {
-      archive = ZipDecoder().decodeBytes(bytes);
+      archive = ZipDecoder().decodeStream(input);
     } catch (_) {
       return const NoteImportResult(notes: []);
     }

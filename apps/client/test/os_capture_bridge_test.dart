@@ -198,10 +198,17 @@ void main() {
     // two-gigabyte share, and the bytes existed only to be hashed.
     //
     // Allocating a real 2 GB file here would reproduce the bug by causing it,
-    // which is no use in a suite. What is asserted instead is the property
-    // that makes size irrelevant: the note's hash matches the file's, and the
-    // copy on disk matches byte for byte — both of which hold only if the
-    // path was streamed rather than buffered.
+    // which is no use in a suite.
+    //
+    // Be clear about what this test does and does not prove. It proves the
+    // streamed path is *correct*: the note's hash matches the file's and the
+    // copy matches byte for byte, with content that would expose a truncated
+    // stream. It does **not** prove the path is streamed — a whole-file
+    // `readAsBytes` then `writeAsBytes` would pass every assertion below, and
+    // this comment used to claim otherwise until an independent audit pointed
+    // that out. Bounded memory is held by the implementation itself:
+    // `OsCaptureBridge._copyIntoMedia` copies with `File.copy` and hashes with
+    // `sha256OfFile`, neither of which buffers the file. Keep it that way.
     final source = File(p.join(tmp.path, 'clip.mp4'));
     // Not uniform: a hash over a run of identical bytes would match a
     // different-length run of them too, so it could not tell a truncated

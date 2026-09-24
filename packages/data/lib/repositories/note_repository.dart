@@ -260,16 +260,28 @@ WHERE id = ?
     //
     // The column stays. Dropping it means a migration on every existing
     // database to remove something that now simply goes unread.
+    //
+    // `rowid` breaks ties, in the order the notes were written. Without it two
+    // notes with the same `updated_at` — two files shared at once, an import,
+    // or simply two captures inside one tick of a coarse clock — came back in
+    // whatever order SQLite happened to produce, and could swap places between
+    // one read and the next. An independent audit saw it as a test that failed
+    // on Windows and passed on rerun: Windows' clock ticks coarsely enough that
+    // two captures a line apart often share a timestamp.
     const order = '''
 ORDER BY
   (pinned_at IS NOT NULL) DESC,
   pinned_at DESC,
-  updated_at DESC
+  updated_at DESC,
+  n.rowid DESC
 ''';
     final rows = tagId == null
         ? db.select(
+            // Aliased like the tagged query below, because the tie-break has
+            // to name `n.rowid`: in that one `note_tags` has a rowid too, and
+            // a bare `rowid` in a join is ambiguous.
             '''
-SELECT * FROM notes
+SELECT n.* FROM notes n
 WHERE deleted_at IS NULL
 $order
 LIMIT ? OFFSET ?
@@ -1091,7 +1103,7 @@ n.id IN (
         '''
 SELECT n.* FROM notes n
 WHERE ${where.join(' AND ')}
-ORDER BY n.created_at DESC
+ORDER BY n.created_at DESC, n.rowid DESC
 ''';
     final rows = db.select(sql, args);
     return rows

@@ -129,14 +129,50 @@ class NexBackupArchive {
       return;
     }
 
-    final archive = ZipDecoder().decodeBytes(backup.readAsBytesSync());
-    final dbEntry = archive.files.where(
-      (file) => file.isFile && file.name == _dbEntry,
-    );
-    if (dbEntry.isEmpty) {
-      throw StateError('Backup contains no database: $backupFile');
+    // Read from the file, not into memory. `decodeBytes(readAsBytesSync())`
+    // held the whole archive — every photo and recording in it — in one byte
+    // list before decoding a single entry, so a restore needed free memory
+    // the size of the backup, and a phone old enough to be the one someone is
+    // restoring onto is the phone least likely to have it. An independent
+    // audit flagged it. The stream reads the central directory and then each
+    // entry as it is written out, and each entry's decompressed bytes are
+    // released once they are on disk.
+    final input = InputFileStream(backup.path);
+    try {
+      final archive = ZipDecoder().decodeStream(input);
+      final dbEntry = archive.files.where(
+        (file) => file.isFile && file.name == _dbEntry,
+      );
+      if (dbEntry.isEmpty) {
+        throw StateError('Backup contains no database: $backupFile');
+      }
+      _restoreFrom(
+        archive: archive,
+        dbEntry: dbEntry.first,
+        liveDbPath: liveDbPath,
+        mediaDir: mediaDir,
+      );
+    } finally {
+      input.closeSync();
     }
+  }
 
+  /// Writes one archive entry to [path] without holding it whole in memory.
+  static void _extract(ArchiveFile entry, String path) {
+    final output = OutputFileStream(path);
+    try {
+      entry.writeContent(output);
+    } finally {
+      output.closeSync();
+    }
+  }
+
+  static void _restoreFrom({
+    required Archive archive,
+    required ArchiveFile dbEntry,
+    required String liveDbPath,
+    required String mediaDir,
+  }) {
     // Unpack beside the live files, validate, and only then swap. The staging
     // directory is a sibling so the rename at the end cannot cross a
     // filesystem boundary.
@@ -144,8 +180,8 @@ class NexBackupArchive {
     if (staging.existsSync()) staging.deleteSync(recursive: true);
     staging.createSync(recursive: true);
     try {
-      final stagedDb = File(p.join(staging.path, _dbEntry))
-        ..writeAsBytesSync(dbEntry.first.content as List<int>);
+      final stagedDb = File(p.join(staging.path, _dbEntry));
+      _extract(dbEntry, stagedDb.path);
       NexDatabase.assertRestorable(stagedDb.path);
 
       for (final file in archive.files) {
@@ -159,9 +195,9 @@ class NexBackupArchive {
             p.url.split(relative).contains('..')) {
           continue;
         }
-        File(p.join(staging.path, 'media', relative))
-          ..parent.createSync(recursive: true)
-          ..writeAsBytesSync(file.content as List<int>);
+        final target = File(p.join(staging.path, 'media', relative))
+          ..parent.createSync(recursive: true);
+        _extract(file, target.path);
       }
 
       // Everything from here to `commit` replaces live files, so it runs as
