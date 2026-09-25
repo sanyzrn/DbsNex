@@ -433,7 +433,7 @@ class _Preview extends StatelessWidget {
     // A note on one long line is unaffected: it still wraps into the whole
     // budget. Only a note that already has line breaks now spends that
     // budget in its own lines.
-    return NexBodyText(
+    final preview = NexBodyText(
       text,
       // Two lines — see [nexCardPreviewLines], which the card's fixed height
       // is derived from. One line was enough to tell cards apart and not
@@ -449,6 +449,11 @@ class _Preview extends StatelessWidget {
       maxLines: expanded ? nexCardExpandedMaxLines : nexCardPreviewLines,
       style: Theme.of(context).textTheme.bodyLarge,
     );
+    // The card already announces its type. Keep real note content reachable,
+    // but do not announce the translated empty-media fallback a second time.
+    return note.displayText == null
+        ? ExcludeSemantics(child: preview)
+        : preview;
   }
 }
 

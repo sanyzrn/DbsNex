@@ -137,6 +137,17 @@ rate limiting/timeouts before enabling. Never commit or print bot credentials.
 
 ## Next session
 
+### 1.40.0 release preparation update
+
+- All 671 client tests passed locally (2 skipped); all 157 UI tests passed
+  after correcting a duplicate screen-reader announcement for media cards.
+- PR #249: the Android build, client suite, pure Dart packages, backend,
+  sync/conformance, feedback worker and AI deletion proof passed on GitHub.
+  Its initial UI job caught the duplicate announcement; the fix is pushed
+  for another CI run. Confirm the latest PR head is green before tagging.
+- Native build resolution is therefore no longer a release blocker on CI.
+  The device acceptance scenarios above remain unverified and deferred.
+
 Read this file and `git status` first. Finish only the release gates above when
 authorized; update this ledger with evidence. Do not call the app release-ready
 while the native build/device checks remain outstanding.
