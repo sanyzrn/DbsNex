@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/draft_guard.dart';
 import '../widgets/nex_banner.dart';
 import 'photo_annotate_screen.dart';
 
@@ -53,7 +54,10 @@ class PhotoCropScreen extends StatefulWidget {
   State<PhotoCropScreen> createState() => _PhotoCropScreenState();
 }
 
-class _PhotoCropScreenState extends State<PhotoCropScreen> {
+class _PhotoCropScreenState extends State<PhotoCropScreen>
+    with NexDraftGuard<PhotoCropScreen> {
+  @override
+  bool get hasUnsavedChanges => _ready || _rotating || _cropping;
   final _controller = CropController();
   Uint8List _current = Uint8List(0);
   bool _cropping = false;
@@ -147,10 +151,21 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
           return;
         }
         final annotated = await Navigator.of(context).push<Uint8List>(
-          NexPageRoute(builder: (_) => PhotoAnnotateScreen(image: png)),
+          NexPageRoute(
+            swipeBackEnabled: false,
+            builder: (_) => PhotoAnnotateScreen(image: png),
+          ),
         );
         if (!mounted) return;
-        Navigator.of(context).pop(annotated ?? png);
+        if (annotated == null) {
+          setState(() {
+            _current = png;
+            _cropping = false;
+            _ready = false;
+          });
+        } else {
+          Navigator.of(context).pop(annotated);
+        }
       case CropFailure(:final cause):
         if (!mounted) return;
         setState(() => _cropping = false);
@@ -162,121 +177,144 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final busy = _cropping || _rotating || !_ready;
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(l10n.cropPhotoTitle),
-        leading: IconButton(
-          tooltip: l10n.cropCancel,
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          decoration: const BoxDecoration(
-            color: Color(0xFF171717),
-            border: Border(top: BorderSide(color: Color(0xFF383838))),
+    return guardDraft(
+      Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: Text(l10n.cropPhotoTitle),
+          leading: IconButton(
+            tooltip: l10n.cropCancel,
+            icon: const Icon(Icons.close),
+            onPressed: requestDiscard,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: 40,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _RatioOption(
-                      label: l10n.cropFree,
-                      selected: _aspectRatio == null,
-                      onTap: busy ? null : () => _setAspectRatio(null),
-                    ),
-                    for (final (label, value) in const [
-                      ('1:1', 1.0),
-                      ('4:3', 4 / 3),
-                      ('3:4', 3 / 4),
-                      ('16:9', 16 / 9),
-                      ('9:16', 9 / 16),
-                    ])
+        ),
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            decoration: const BoxDecoration(
+              color: Color(0xFF171717),
+              border: Border(top: BorderSide(color: Color(0xFF383838))),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: 48,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
                       _RatioOption(
-                        label: label,
-                        selected: _aspectRatio == value,
-                        onTap: busy ? null : () => _setAspectRatio(value),
+                        label: l10n.cropFree,
+                        selected: _aspectRatio == null,
+                        onTap: busy ? null : () => _setAspectRatio(null),
                       ),
+                      for (final (label, value) in const [
+                        ('1:1', 1.0),
+                        ('4:3', 4 / 3),
+                        ('3:4', 3 / 4),
+                        ('16:9', 16 / 9),
+                        ('9:16', 9 / 16),
+                      ])
+                        _RatioOption(
+                          label: label,
+                          selected: _aspectRatio == value,
+                          onTap: busy ? null : () => _setAspectRatio(value),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: busy ? null : _rotate,
+                        icon: const Icon(Icons.rotate_90_degrees_cw_outlined),
+                        label: Text(l10n.cropRotate),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: busy ? null : _reset,
+                        icon: const Icon(Icons.restart_alt),
+                        label: Text(l10n.cropReset),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: busy
+                            ? null
+                            : () => _startCrop(annotate: true),
+                        icon: const Icon(Icons.draw_outlined),
+                        label: Text(l10n.cropAnnotate),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton.icon(
-                      onPressed: busy ? null : _rotate,
-                      icon: const Icon(Icons.rotate_90_degrees_cw_outlined),
-                      label: Text(l10n.cropRotate),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: busy ? null : () => _startCrop(annotate: false),
+                    icon: _cropping
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check),
+                    label: Text(l10n.cropConfirm),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
                     ),
                   ),
-                  Expanded(
-                    child: TextButton.icon(
-                      onPressed: busy ? null : _reset,
-                      icon: const Icon(Icons.restart_alt),
-                      label: Text(l10n.cropReset),
-                    ),
-                  ),
-                  Expanded(
-                    child: TextButton.icon(
-                      onPressed: busy ? null : () => _startCrop(annotate: true),
-                      icon: const Icon(Icons.draw_outlined),
-                      label: Text(l10n.cropAnnotate),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: busy ? null : () => _startCrop(annotate: false),
-                  icon: _cropping
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.check),
-                  label: Text(l10n.cropConfirm),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
+                ),
+              ],
+            ),
+          ),
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.systemGestureInsetsOf(
+                context,
+              ).left.clamp(24.0, 48.0),
+              vertical: 12,
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(size: constraints.biggest),
+                child: ClipRect(
+                  child: Crop(
+                    key: ValueKey(_current),
+                    image: _current,
+                    aspectRatio: _aspectRatio,
+                    controller: _controller,
+                    onCropped: (result) => unawaited(_onCropped(result)),
+                    // `_crop()` reports `.ready` again right after `.cropped`, in the
+                    // same call — including once this screen has already popped itself
+                    // in response to that same result, which made this a `setState`
+                    // after dispose.
+                    onStatusChanged: (status) {
+                      if (!mounted) return;
+                      setState(() => _ready = status == CropStatus.ready);
+                    },
+                    baseColor: Colors.black,
+                    maskColor: Colors.black.withValues(alpha: 0.6),
+                    interactive: true,
+                    radius: 4,
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
-      ),
-      body: Crop(
-        key: ValueKey(_current),
-        image: _current,
-        aspectRatio: _aspectRatio,
-        controller: _controller,
-        onCropped: (result) => unawaited(_onCropped(result)),
-        // `_crop()` reports `.ready` again right after `.cropped`, in the
-        // same call — including once this screen has already popped itself
-        // in response to that same result, which made this a `setState`
-        // after dispose.
-        onStatusChanged: (status) {
-          if (!mounted) return;
-          setState(() => _ready = status == CropStatus.ready);
-        },
-        baseColor: Colors.black,
-        maskColor: Colors.black.withValues(alpha: 0.6),
-        interactive: true,
-        radius: 4,
       ),
     );
   }
@@ -306,7 +344,7 @@ class _RatioOption extends StatelessWidget {
           side: BorderSide(
             color: selected ? scheme.primary : const Color(0xFF555555),
           ),
-          minimumSize: const Size(62, 40),
+          minimumSize: const Size(62, 48),
           padding: const EdgeInsets.symmetric(horizontal: 14),
         ),
         child: Text(label),

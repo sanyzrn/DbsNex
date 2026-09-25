@@ -152,6 +152,7 @@ class NoteCard extends StatelessWidget {
     // reading "asterisk asterisk done asterisk asterisk" is the audible
     // version of the card showing its own source.
     NexMarkdownText.preview(note.displayText ?? ''),
+    strings.relativeTime(nexRelativeTimeOf(note.createdAt)),
   ].where((value) => value.isNotEmpty).join('. ');
 }
 
@@ -228,7 +229,8 @@ class _CardBody extends StatelessWidget {
                 const SizedBox(width: NexSpacing.contentGap),
               Expanded(
                 child:
-                    previewOverride ?? _Preview(note: note, expanded: expanded),
+                    previewOverride ??
+                    _Preview(note: note, expanded: expanded, strings: strings),
               ),
             ],
           ),
@@ -391,7 +393,12 @@ enum _DotCorner { topEnd, bottomStart, topStart, bottomEnd }
 /// right but the card was wrong. Direction here belongs to the paragraph, and
 /// the card keeps the layout the interface language gives it.
 class _Preview extends StatelessWidget {
-  const _Preview({required this.note, required this.expanded});
+  const _Preview({
+    required this.note,
+    required this.expanded,
+    required this.strings,
+  });
+  final NexCardStrings strings;
 
   final Note note;
   final bool expanded;
@@ -412,7 +419,9 @@ class _Preview extends StatelessWidget {
     // Rendering Markdown here instead was considered and is wrong — a card is
     // two lines of a fixed height, and a heading or a list inside one would
     // fight that.
-    final text = NexMarkdownText.preview(note.displayText ?? note.type.name);
+    final text = NexMarkdownText.preview(
+      note.displayText ?? strings.noteOfType(note.type.name),
+    );
     // Through [NexBodyText] rather than a `Text` of its own, for the one
     // thing that widget does which a `Text` cannot: give each line of a
     // multi-line note its own direction. One direction over the whole
@@ -424,7 +433,7 @@ class _Preview extends StatelessWidget {
     // A note on one long line is unaffected: it still wraps into the whole
     // budget. Only a note that already has line breaks now spends that
     // budget in its own lines.
-    return NexBodyText(
+    final preview = NexBodyText(
       text,
       // Two lines — see [nexCardPreviewLines], which the card's fixed height
       // is derived from. One line was enough to tell cards apart and not
@@ -440,6 +449,11 @@ class _Preview extends StatelessWidget {
       maxLines: expanded ? nexCardExpandedMaxLines : nexCardPreviewLines,
       style: Theme.of(context).textTheme.bodyLarge,
     );
+    // The card already announces its type. Keep real note content reachable,
+    // but do not announce the translated empty-media fallback a second time.
+    return note.displayText == null
+        ? ExcludeSemantics(child: preview)
+        : preview;
   }
 }
 

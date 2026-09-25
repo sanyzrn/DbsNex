@@ -546,7 +546,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get silenceBody =>
-      'Nex هیچ‌وقت اعلان، نشان، یادآور یا پیام «برگرد» نمی‌فرستد.';
+      'نکس فقط یادآورها و اعلان‌های دانلودی را می‌فرستد که خودتان درخواست کرده‌اید؛ بدون پیام‌های تشویقی برای بازگشت به اپ.';
 
   @override
   String get privacy => 'حریم خصوصی';
@@ -729,7 +729,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get restoreBody =>
-      'پایگاه دادهٔ روی دستگاه با تازه‌ترین پشتیبانِ سالم جایگزین شود؟';
+      'کتابخانهٔ فعلی با نسخهٔ پشتیبان انتخاب‌شده جایگزین شود؟ پیش از بازیابی، یک نسخهٔ ایمنی از کتابخانهٔ فعلی روی همین دستگاه نگه داشته می‌شود.';
 
   @override
   String get deleteBackup => 'حذف پشتیبان';
@@ -1282,7 +1282,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get exportExplained =>
-      'همهٔ یادداشت‌ها را در یک فایل zip می‌نویسد: دادهٔ کامل به شکل JSON، یک فایل Markdown خوانا برای هر یادداشت، و همهٔ عکس‌ها، صداها و پیوست‌ها. چیزی جا نمی‌ماند و چیزی هم جایی آپلود نمی‌شود؛ فایل به خودتان داده می‌شود.';
+      'یادداشت‌ها، برچسب‌ها و پیوست‌ها را به‌صورت JSON و Markdown در فایل ZIP ذخیره می‌کند. برای حفظ یادآورها، تعهدات و حافظهٔ دستیار نیز، نسخهٔ پشتیبان کتابخانه را از بخش پایین به اشتراک بگذارید.';
 
   @override
   String get exportAndShare => 'خروجی گرفتن و هم‌رسانی';
@@ -1325,7 +1325,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get localBackupsExplained =>
-      'Nex روزی یک بار از پایگاه دادهٔ خودش یک نسخه در پوشهٔ خودش می‌گیرد — متن، برچسب‌ها و تاریخ‌ها، نه عکس‌ها، صداها یا پیوست‌هایی که آن یادداشت‌ها به آن‌ها اشاره می‌کنند. این محافظت در برابر بازیابی اشتباه یا فایل خراب، روی همین دستگاه است؛ برای نسخه‌ای که مدیا را هم داشته باشد، یا برای انتقال به دستگاه دیگر، باید خروجی بگیرید.';
+      'نکس از کتابخانه و فایل‌های رسانه‌ای روی همین دستگاه پشتیبان می‌گیرد. این نسخه‌ها در صورت گم‌شدن دستگاه در دسترس نیستند؛ با دکمهٔ اشتراک کنار هر نسخه، یک کپی در جای دیگری نگه دارید.';
 
   @override
   String get backupNow => 'همین حالا پشتیبان بگیر';
@@ -1723,7 +1723,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get onboardingSilenceBody =>
-      'نه اعلانی، نه نشانی، نه یادآوری و نه زنجیرهٔ روزانه. یادداشت‌هایتان روی همین دستگاه می‌مانند، مگر خودتان همگام‌سازی را راه بیندازید.';
+      'یادآورها اختیاری‌اند. پیامی برای تشویق شما به بازگشت نمی‌فرستیم. هوش مصنوعی ابری و همگام‌سازی تنها پس از تنظیم و استفادهٔ شما اطلاعات را ارسال می‌کنند.';
 
   @override
   String get onboardingSetupTitle => 'چند انتخاب کوتاه';
@@ -2790,4 +2790,42 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get summarizeFailed => 'برای این یادداشت خلاصه‌ای برنگشت.';
+
+  @override
+  String get fullBackupExplained =>
+      'برای بازیابی یادداشت‌ها، رسانه‌ها، یادآورها، تعهدات و حافظهٔ دستیار، فایل پشتیبان .nexbak را انتخاب کنید. تنظیمات اپ، پروفایل و مدل‌های دانلودشده در این فایل نیستند.';
+
+  @override
+  String get unsavedChanges => 'تغییرات ذخیره‌نشده کنار گذاشته شوند؟';
+
+  @override
+  String get keepEditing => 'ادامهٔ ویرایش';
+
+  @override
+  String checklistItemCount(int count) {
+    return '$count مورد';
+  }
+
+  @override
+  String annotateColor(String color) {
+    String _temp0 = intl.Intl.selectLogic(color, {
+      'white': 'سفید',
+      'black': 'سیاه',
+      'red': 'قرمز',
+      'yellow': 'زرد',
+      'green': 'سبز',
+      'blue': 'آبی',
+      'other': 'رنگ',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get annotateStrokeWidth => 'ضخامت قلم';
+
+  @override
+  String get playAudio => 'پخش صدا';
+
+  @override
+  String get pauseAudio => 'توقف صدا';
 }

@@ -43,6 +43,9 @@ class NexDatabase {
   }
 
   void _migrate() {
+    // The share window and the main app have separate SQLite connections.
+    // Allow a short writer to finish instead of dropping an incoming capture.
+    db.execute('PRAGMA busy_timeout = 5000;');
     db.execute('PRAGMA foreign_keys = ON;');
 
     // Write-ahead logging, once and permanently (the mode is recorded in the
@@ -80,6 +83,12 @@ CREATE TABLE IF NOT EXISTS notes (
   device_id TEXT NOT NULL,
   rev INTEGER NOT NULL,
   sync_state TEXT NOT NULL CHECK (sync_state IN ('pending', 'synced', 'conflict'))
+);
+''');
+    db.execute('''
+CREATE TABLE IF NOT EXISTS capture_receipts (
+  request_id TEXT PRIMARY KEY NOT NULL,
+  note_id TEXT NOT NULL
 );
 ''');
     db.execute('''
@@ -162,9 +171,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
     db.execute(
       'CREATE INDEX IF NOT EXISTS idx_notes_sync_state ON notes(sync_state);',
     );
-    db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_notes_due_at ON notes(due_at);',
-    );
+    db.execute('CREATE INDEX IF NOT EXISTS idx_notes_due_at ON notes(due_at);');
 
     // Tags get the outbox notes have always had.
     //

@@ -287,7 +287,7 @@ class _NexBannerState extends State<_NexBanner>
                               liveRegion: true,
                               child: Text(
                                 widget.message,
-                                maxLines: 2,
+                                maxLines: 4,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontWeight: FontWeight.w600,

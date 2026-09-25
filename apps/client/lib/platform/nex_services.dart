@@ -37,7 +37,8 @@ class SyncNotConfigured implements Exception {
 /// dead service graph in place. The caller must feed it to NexRestartScope.
 @immutable
 class RestartRequired {
-  const RestartRequired();
+  const RestartRequired({this.error});
+  final String? error;
 }
 
 /// App-wide services. Capture path never awaits AI (09-ai.md).
@@ -757,13 +758,13 @@ class NexServices {
     final dir = Directory(backupDir);
     if (!dir.existsSync()) return const [];
 
+    final safetyDir = Directory(p.join(backupDir, 'before-restore'));
     final entries =
-        dir
-            .listSync()
+        [...dir.listSync(), if (safetyDir.existsSync()) ...safetyDir.listSync()]
             .whereType<File>()
             .where((f) => NexBackupArchive.isBackupFile(f.path))
             .toList()
-          ..sort((a, b) => b.path.compareTo(a.path));
+          ..sort((a, b) => p.basename(b.path).compareTo(p.basename(a.path)));
     return entries;
   }
 
@@ -794,18 +795,47 @@ class NexServices {
   /// caller can say what happened instead of bricking silently.
   @useResult
   Future<RestartRequired> restoreBackup(File backup) async {
-    await _closeOnce();
-    final dbPath = this.dbPath;
-    final mediaDir = this.mediaDir;
-    final backupPath = backup.path;
-    await Isolate.run(
-      () => NexBackupArchive.restore(
-        liveDbPath: dbPath,
-        mediaDir: mediaDir,
-        backupFile: backupPath,
-      ),
-    );
-    return const RestartRequired();
+    // A selected recovery copy may itself be the oldest file in the safety
+    // folder. Preserve it before that folder's retention sweep runs.
+    File? selectedCopy;
+    if (p.equals(p.dirname(backup.path), p.join(backupDir, 'before-restore'))) {
+      selectedCopy = await backup.copy(
+        p.join(
+          backupDir,
+          '.restore-source-${DateTime.now().microsecondsSinceEpoch}',
+        ),
+      );
+    }
+    try {
+      // Separate retention folder: making the safety copy must not prune the
+      // older backup the user has just selected for restoration.
+      await worker.backup(
+        p.join(backupDir, 'before-restore'),
+        mediaDir: this.mediaDir,
+      );
+      await _closeOnce();
+      final dbPath = this.dbPath;
+      final mediaDir = this.mediaDir;
+      final backupPath = selectedCopy?.path ?? backup.path;
+      try {
+        await Isolate.run(
+          () => NexBackupArchive.restore(
+            liveDbPath: dbPath,
+            mediaDir: mediaDir,
+            backupFile: backupPath,
+          ),
+        );
+        return const RestartRequired();
+      } catch (error) {
+        // Rollback has already restored the live files. The caller must reopen
+        // the service graph on failure just as it must after a successful swap.
+        return RestartRequired(error: describeFailure(error));
+      }
+    } finally {
+      if (selectedCopy != null && await selectedCopy.exists()) {
+        await selectedCopy.delete();
+      }
+    }
   }
 
   Future<void> _closeOnce() async {

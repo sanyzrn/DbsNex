@@ -71,6 +71,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   late final AppLockService _appLock = widget.appLock ?? AppLockService();
   bool _locked = false;
   bool _unlocking = false;
+  String? _lockError;
 
   /// Whether the app is the thing on screen. Drives [_windowShouldBeSecure],
   /// which has to be on before Android takes the recents picture.
@@ -283,13 +284,32 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       WidgetsBinding.instance.addPostFrameCallback((_) => _unlock());
       return;
     }
-    _unlocking = true;
+    setState(() {
+      _unlocking = true;
+      _lockError = null;
+    });
     final unlocked = await _appLock.authenticate(
       reason: AppLocalizations.of(context).securityAuthenticateReason,
       biometricOnly: widget.preferences.appLockBiometricOnly,
     );
-    _unlocking = false;
-    if (!unlocked) return;
+    if (!mounted) return;
+    setState(() => _unlocking = false);
+    if (!unlocked) {
+      final supported = await _appLock.supportsDeviceAuthentication();
+      final biometric =
+          !widget.preferences.appLockBiometricOnly ||
+          await _appLock.supportsBiometrics();
+      if (!mounted || !context.mounted) return;
+      final l10n = AppLocalizations.of(context);
+      setState(
+        () => _lockError = !supported
+            ? l10n.securityPasscodeUnavailable
+            : !biometric
+            ? l10n.securityBiometricUnavailable
+            : null,
+      );
+      return;
+    }
     unawaited(widget.preferences.setAppLockClosed(false));
     // The grace runs from the moment the lock opened. Without this, an
     // unlock that took longer than the grace period would be undone by the
@@ -542,6 +562,9 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
                         Positioned.fill(
                           child: _AppLockGate(
                             busy: _unlocking,
+                            error: _lockError,
+                            onSettings: () =>
+                                unawaited(_appLock.openDeviceSecurity()),
                             onUnlock: () => unawaited(_unlock()),
                           ),
                         ),
@@ -594,7 +617,14 @@ class _SearchIntent extends Intent {
 const appLockBarrierKey = Key('nex.app-lock-barrier');
 
 class _AppLockGate extends StatelessWidget {
-  const _AppLockGate({required this.busy, required this.onUnlock});
+  const _AppLockGate({
+    required this.busy,
+    required this.onUnlock,
+    this.error,
+    required this.onSettings,
+  });
+  final String? error;
+  final VoidCallback onSettings;
 
   final bool busy;
   final VoidCallback onUnlock;
@@ -637,7 +667,7 @@ class _AppLockGate extends StatelessWidget {
               ),
               const SizedBox(height: NexSpacing.sm),
               Text(
-                l10n.securityLockedSubtitle,
+                error ?? l10n.securityLockedSubtitle,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -654,6 +684,8 @@ class _AppLockGate extends StatelessWidget {
                     : const Icon(Icons.fingerprint),
                 label: Text(l10n.securityUnlock),
               ),
+              if (error != null)
+                TextButton(onPressed: onSettings, child: Text(l10n.settings)),
             ],
           ),
         ),

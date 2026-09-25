@@ -8,6 +8,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import 'nex_dialog.dart';
+import 'draft_guard.dart';
 
 /// Capturing a checklist: one text field, one item per line.
 ///
@@ -48,7 +49,11 @@ class ChecklistCaptureSheet extends StatefulWidget {
   State<ChecklistCaptureSheet> createState() => _ChecklistCaptureSheetState();
 }
 
-class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet> {
+class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
+    with NexDraftGuard<ChecklistCaptureSheet> {
+  @override
+  bool get hasUnsavedChanges =>
+      _text.text != (widget.initial?.map((e) => e.text).join('\n') ?? '');
   final TextEditingController _text = TextEditingController();
 
   @override
@@ -108,78 +113,88 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final count = _items.length;
-    return NexSheetBody(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Icon(
-                nexNoteTypeIcon('checklist'),
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: NexSpacing.sm),
-              Expanded(
-                child: Text(l10n.checklist, style: theme.textTheme.titleMedium),
-              ),
-              if (count > 0)
-                Text(
-                  l10n.noteCount(count),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+    return guardDraft(
+      NexSheetBody(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  nexNoteTypeIcon('checklist'),
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: NexSpacing.sm),
+                Expanded(
+                  child: Text(
+                    l10n.checklist,
+                    style: theme.textTheme.titleMedium,
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: NexSpacing.sm),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 240),
-            child: NexAutoDirection(
-              controller: _text,
-              builder: (context, direction) => TextField(
+                IconButton(
+                  tooltip: l10n.closeLabel,
+                  onPressed: requestDiscard,
+                  icon: const Icon(Icons.close),
+                ),
+                if (count > 0)
+                  Text(
+                    l10n.checklistItemCount(count),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: NexSpacing.sm),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240),
+              child: NexAutoDirection(
                 controller: _text,
-                autofocus: true,
-                maxLines: null,
-                // The list is written in whichever language the person
-                // thinks in, which is not necessarily the interface's. Without
-                // this a Persian checklist typed in an English app is laid out
-                // left-to-right and reorders itself as it is written.
-                textDirection: direction,
-                textAlign: TextAlign.start,
-                selectionWidthStyle: BoxWidthStyle.tight,
-                contextMenuBuilder: nexReadingMenu,
-                // Never TextInputAction.send, whatever the capture preference
-                // says — see the class comment.
-                textInputAction: TextInputAction.newline,
-                keyboardType: TextInputType.multiline,
-                decoration: InputDecoration(
-                  hintText: l10n.checklistHint,
-                  border: InputBorder.none,
+                builder: (context, direction) => TextField(
+                  controller: _text,
+                  autofocus: true,
+                  maxLines: null,
+                  // The list is written in whichever language the person
+                  // thinks in, which is not necessarily the interface's. Without
+                  // this a Persian checklist typed in an English app is laid out
+                  // left-to-right and reorders itself as it is written.
+                  textDirection: direction,
+                  textAlign: TextAlign.start,
+                  selectionWidthStyle: BoxWidthStyle.tight,
+                  contextMenuBuilder: nexReadingMenu,
+                  // Never TextInputAction.send, whatever the capture preference
+                  // says — see the class comment.
+                  textInputAction: TextInputAction.newline,
+                  keyboardType: TextInputType.multiline,
+                  decoration: InputDecoration(
+                    hintText: l10n.checklistHint,
+                    border: InputBorder.none,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: NexSpacing.sm),
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: FilledButton.icon(
-              // Disabled rather than hidden while empty: the button is where
-              // the eye already is, and a control that vanishes is worse to
-              // find again than one that is visibly not ready yet.
-              // An edit may legitimately empty the list — that is how the
-              // last line gets deleted — so only a fresh capture needs
-              // something in it before the button means anything.
-              onPressed: count == 0 && !_editing ? null : _submit,
-              icon: Icon(
-                _editing ? Icons.check : Icons.arrow_upward,
-                size: 18,
+            const SizedBox(height: NexSpacing.sm),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: FilledButton.icon(
+                // Disabled rather than hidden while empty: the button is where
+                // the eye already is, and a control that vanishes is worse to
+                // find again than one that is visibly not ready yet.
+                // An edit may legitimately empty the list — that is how the
+                // last line gets deleted — so only a fresh capture needs
+                // something in it before the button means anything.
+                onPressed: count == 0 && !_editing ? null : _submit,
+                icon: Icon(
+                  _editing ? Icons.check : Icons.arrow_upward,
+                  size: 18,
+                ),
+                label: Text(_editing ? l10n.save : l10n.capture),
               ),
-              label: Text(_editing ? l10n.save : l10n.capture),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -201,7 +216,10 @@ class LinkCaptureSheet extends StatefulWidget {
   State<LinkCaptureSheet> createState() => _LinkCaptureSheetState();
 }
 
-class _LinkCaptureSheetState extends State<LinkCaptureSheet> {
+class _LinkCaptureSheetState extends State<LinkCaptureSheet>
+    with NexDraftGuard<LinkCaptureSheet> {
+  @override
+  bool get hasUnsavedChanges => _text.text.isNotEmpty;
   final TextEditingController _text = TextEditingController();
 
   @override
@@ -212,7 +230,6 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet> {
     // Most link captures are a paste, so the clipboard is offered rather than
     // waited for. It is a suggestion in the field, not a commit: nothing is
     // saved until the button is pressed.
-    _offerClipboard();
   }
 
   /// The text as the chrome below last saw it.
@@ -254,71 +271,85 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet> {
     final typed = _text.text.trim();
     final url = normaliseUrl(typed);
     final host = urlHost(url);
-    return NexSheetBody(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Icon(
-                nexNoteTypeIcon('link'),
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: NexSpacing.sm),
-              Text(l10n.link, style: theme.textTheme.titleMedium),
-            ],
-          ),
-          const SizedBox(height: NexSpacing.sm),
-          TextField(
-            controller: _text,
-            selectionWidthStyle: BoxWidthStyle.tight,
-            contextMenuBuilder: nexReadingMenu,
-            autofocus: true,
-            autocorrect: false,
-            keyboardType: TextInputType.url,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) {
-              if (url != null) Navigator.pop(context, url);
-            },
-            decoration: InputDecoration(
-              hintText: l10n.linkHint,
-              border: InputBorder.none,
-              // Only once there is something to be wrong about: an error
-              // under an empty field is telling someone off for not having
-              // started yet.
-              errorText: typed.isNotEmpty && url == null
-                  ? l10n.linkNotValid
-                  : null,
+    return guardDraft(
+      NexSheetBody(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  nexNoteTypeIcon('link'),
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: NexSpacing.sm),
+                Expanded(
+                  child: Text(l10n.link, style: theme.textTheme.titleMedium),
+                ),
+                IconButton(
+                  tooltip: l10n.closeLabel,
+                  onPressed: requestDiscard,
+                  icon: const Icon(Icons.close),
+                ),
+              ],
             ),
-          ),
-          if (host != null) ...[
-            const SizedBox(height: NexSpacing.xs),
-            Text(
-              host,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+            const SizedBox(height: NexSpacing.sm),
+            TextField(
+              controller: _text,
+              selectionWidthStyle: BoxWidthStyle.tight,
+              contextMenuBuilder: nexReadingMenu,
+              autofocus: true,
+              autocorrect: false,
+              keyboardType: TextInputType.url,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                if (url != null) Navigator.pop(context, url);
+              },
+              decoration: InputDecoration(
+                hintText: l10n.linkHint,
+                suffixIcon: IconButton(
+                  tooltip: MaterialLocalizations.of(context).pasteButtonLabel,
+                  icon: const Icon(Icons.content_paste),
+                  onPressed: _offerClipboard,
+                ),
+                border: InputBorder.none,
+                // Only once there is something to be wrong about: an error
+                // under an empty field is telling someone off for not having
+                // started yet.
+                errorText: typed.isNotEmpty && url == null
+                    ? l10n.linkNotValid
+                    : null,
+              ),
+            ),
+            if (host != null) ...[
+              const SizedBox(height: NexSpacing.xs),
+              Text(
+                host,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+            const SizedBox(height: NexSpacing.sm),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: FilledButton.icon(
+                onPressed: url == null
+                    ? null
+                    : () {
+                        if (widget.preferences.haptics) {
+                          HapticFeedback.selectionClick();
+                        }
+                        Navigator.pop(context, url);
+                      },
+                icon: const Icon(Icons.arrow_upward, size: 18),
+                label: Text(l10n.capture),
               ),
             ),
           ],
-          const SizedBox(height: NexSpacing.sm),
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: FilledButton.icon(
-              onPressed: url == null
-                  ? null
-                  : () {
-                      if (widget.preferences.haptics) {
-                        HapticFeedback.selectionClick();
-                      }
-                      Navigator.pop(context, url);
-                    },
-              icon: const Icon(Icons.arrow_upward, size: 18),
-              label: Text(l10n.capture),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

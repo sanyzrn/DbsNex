@@ -302,7 +302,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       final original = await File(source).readAsBytes();
       if (!mounted) return;
       final edited = await Navigator.of(context).push<Uint8List>(
-        NexPageRoute(builder: (_) => PhotoCropScreen(image: original)),
+        NexPageRoute(
+          swipeBackEnabled: false,
+          builder: (_) => PhotoCropScreen(image: original),
+        ),
       );
       if (edited == null || !mounted) return;
       // Never overwrite the original. A failed database write must not leave
@@ -420,6 +423,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final before = note.checklistItems;
     final edited = await nexShowSheet<List<ChecklistItem>>(
       context: context,
+      dismissible: false,
       builder: (_) =>
           ChecklistCaptureSheet(preferences: preferences, initial: before),
     );
@@ -911,7 +915,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             borderRadius: BorderRadius.circular(NexRadius.md),
                             child: Image.file(
                               File(note.mediaUri!),
-                              fit: BoxFit.cover,
+                              semanticLabel: l10n.photo,
+                              fit: BoxFit.contain,
                               height: 220,
                               width: double.infinity,
                               cacheWidth: _imageCacheWidth(context),
@@ -971,6 +976,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                                           if (note.mimeType != null)
                                             note.mimeType!,
                                         ].join(' · '),
+                                        textDirection: TextDirection.ltr,
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyMedium
@@ -1370,6 +1376,9 @@ class _VoicePlayerControls extends StatelessWidget {
               builder: (context, snap) {
                 final playing = snap.data?.playing ?? false;
                 return IconButton.filled(
+                  tooltip: playing
+                      ? AppLocalizations.of(context).pauseAudio
+                      : AppLocalizations.of(context).playAudio,
                   onPressed: () {
                     if (playing) {
                       player.pause();
@@ -2013,7 +2022,8 @@ class _ImageFileBody extends StatelessWidget {
               borderRadius: BorderRadius.circular(NexRadius.md),
               child: Image.file(
                 File(path),
-                fit: BoxFit.cover,
+                semanticLabel: l10n.photo,
+                fit: BoxFit.contain,
                 height: 220,
                 width: double.infinity,
                 cacheWidth: _imageCacheWidth(context),

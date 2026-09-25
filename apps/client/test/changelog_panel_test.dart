@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -36,6 +37,9 @@ void main() {
   testWidgets(
     'shows real bullets from the bundled CHANGELOG.md, not a network fetch',
     (tester) async {
+      // Large assets decode in a real isolate. Fill the bundle cache before
+      // building inside fake async, rather than waiting a fixed duration.
+      await tester.runAsync(() => rootBundle.loadString('assets/CHANGELOG.md'));
       await tester.pumpWidget(
         const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -43,12 +47,18 @@ void main() {
           home: Scaffold(body: ChangelogPanel()),
         ),
       );
-      // `rootBundle.loadString` is real file IO — it does not reliably resolve
-      // inside `pumpAndSettle`'s fake-async pumping alone.
-      await tester.pump();
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 300)),
-      );
+      // Future completion from the real asset/decoder event loop is not
+      // advanced by fake frame time. Wait for the rendered panel, bounded.
+      for (
+        var i = 0;
+        i < 100 && find.byType(Scrollbar).evaluate().isEmpty;
+        i++
+      ) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await tester.pump();
+      }
       await tester.pumpAndSettle();
 
       // The newest section the file actually has, read from the file rather

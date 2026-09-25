@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v1.40.0
+
+- **More reliable capture.** Incoming shares are queued and acknowledged after saving, repeated delivery is deduplicated, and closing text capture waits for the complete draft. Shared attachments use short internal filenames while retaining their original display names.
+- **Safer, portable library backups.** Backups can be shared and opened from a file. Restore saves a recovery copy first and reopens the library after a failed attempt. Archive media is streamed, backup compression runs separately from database requests, and unsafe archive paths are rejected.
+- **Edits are harder to lose.** Editors ask before discarding unsaved changes, photo editing no longer uses the app's sideways back gesture, crop controls fit their viewport, and Send stays in place while typing.
+- **Updates download when requested.** Checking for a new release no longer starts downloading the installer automatically.
+- **Clearer content and controls.** Photo previews show the whole image, note types are translated, release notes render their formatting, and more controls have accessible labels and larger touch areas.
+
 ## v1.30.0
 
 - **Edit photos already in the library.** Open a photo note or an image shared into Nex to crop, rotate and annotate it. The editor offers common crop ratios and a reset control.

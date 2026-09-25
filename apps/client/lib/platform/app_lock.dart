@@ -1,4 +1,5 @@
 import 'package:local_auth/local_auth.dart';
+import 'package:flutter/services.dart';
 
 import 'nex_preferences.dart';
 
@@ -44,6 +45,18 @@ class AppLockService {
     : _authentication = authentication ?? LocalAuthentication();
 
   final LocalAuthentication _authentication;
+
+  Future<void> openDeviceSecurity() async {
+    try {
+      await const MethodChannel(
+        'nex/os_capture',
+      ).invokeMethod<void>('openSecuritySettings');
+    } on MissingPluginException {
+      /* Desktop has its own sign-in settings. */
+    } on PlatformException {
+      /* The lock remains closed. */
+    }
+  }
 
   Future<bool> supportsDeviceAuthentication() async {
     try {

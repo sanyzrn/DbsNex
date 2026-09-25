@@ -29,6 +29,52 @@ void main() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
+  test('two engines receiving the same request create one note', () async {
+    final mediaDir = p.join(tmp.path, 'media');
+    Directory(mediaDir).createSync();
+    final dbPath = p.join(tmp.path, 'nex.sqlite');
+    final first = await NexDbWorker.spawn(
+      dbPath: dbPath,
+      deviceId: 'test',
+      mediaDir: mediaDir,
+    );
+    final second = await NexDbWorker.spawn(
+      dbPath: dbPath,
+      deviceId: 'test',
+      mediaDir: mediaDir,
+    );
+    try {
+      await Future.wait(
+        List.generate(40, (i) async {
+          final payload = {
+            'requestId': 'r-$i',
+            'type': 'shared_text',
+            'text': 'note $i',
+          };
+          await Future.wait([
+            first.captureShared(payload),
+            second.captureShared(payload),
+          ]);
+        }),
+      );
+      expect(await first.timeline(limit: 100), hasLength(40));
+      await first.backup(p.join(tmp.path, 'backups'), mediaDir: mediaDir);
+      expect(
+        Directory(
+          p.join(tmp.path, 'backups'),
+        ).listSync().where((f) => f.path.endsWith('.nexbak')),
+        hasLength(1),
+      );
+      expect(
+        (await first.captureText('after backup'))?.content,
+        'after backup',
+      );
+    } finally {
+      await first.close();
+      await second.close();
+    }
+  });
+
   test('spawns, answers, and closes', () async {
     final mediaDir = p.join(tmp.path, 'media');
     Directory(mediaDir).createSync(recursive: true);
@@ -76,7 +122,10 @@ void main() {
     );
     try {
       final notes = await second.timeline(limit: 10);
-      expect(notes.map((note) => note.content), contains('written by the first'));
+      expect(
+        notes.map((note) => note.content),
+        contains('written by the first'),
+      );
     } finally {
       await second.close();
     }

@@ -174,7 +174,10 @@ class _ReminderWheelState extends State<ReminderWheel> {
           child: Row(
             children: [
               Expanded(
-                child: Text(l10n.remindTitle, style: theme.textTheme.titleLarge),
+                child: Text(
+                  l10n.remindTitle,
+                  style: theme.textTheme.titleLarge,
+                ),
               ),
               Icon(
                 Icons.notifications_none,
@@ -213,7 +216,7 @@ class _ReminderWheelState extends State<ReminderWheel> {
         // then a tap and one flick instead of a different route through the
         // interface.
         SizedBox(
-          height: 40,
+          height: 48,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
@@ -287,9 +290,7 @@ class _ReminderWheelState extends State<ReminderWheel> {
             // scheduler drops a past-due one-off on purpose, so a button that
             // stayed live here would report "Reminder set" for an alarm that
             // does not exist.
-            onPressed: _isPast
-                ? null
-                : () => widget.onSubmit(_chosen, _repeat),
+            onPressed: _isPast ? null : () => widget.onSubmit(_chosen, _repeat),
             child: Text(_isPast ? l10n.remindPast : _action(context)),
           ),
         ),
@@ -406,7 +407,8 @@ class _Wheel extends StatelessWidget {
         childDelegate: looping
             ? ListWheelChildLoopingListDelegate(
                 children: [
-                  for (var i = 0; i < count; i++) Builder(builder: (c) => row(c, i)),
+                  for (var i = 0; i < count; i++)
+                    Builder(builder: (c) => row(c, i)),
                 ],
               )
             : ListWheelChildBuilderDelegate(

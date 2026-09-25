@@ -9,11 +9,15 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-Current state: **v1.22.2 is released; v1.30.0 is being prepared.**
+Current state: **v1.30.0 is released** (verified in `sanyzrn/DbsNex-releases`,
+published 2026-09-24). Audit remediation is in progress on **`codex/work` only**.
+The user has limited the current scope to important fixes; defer the remaining
+work in **`AUDIT_FOLLOW_UP.md`**. The current changes are prepared for **1.40.0**;
+the owner will create the tag after release checks pass.
 The 1.21.1 audit fixes are recorded in §8 and `NEX_RELEASE_AUDIT.md`. The
 1.22.0 work redesigns Liquid Glass and the home dock; 1.22.1 addresses the
 first round of user feedback; 1.22.2 fixes photo previews and gestures. New
-home, editor and detail polish is in progress on `codex/work`.
+home, editor and detail polish shipped in 1.30.0.
 
 ---
 

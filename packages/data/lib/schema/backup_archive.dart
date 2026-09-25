@@ -51,29 +51,59 @@ class NexBackupArchive {
     required String backupDir,
     int retention = NexDatabase.backupRetention,
   }) {
+    final snapshot = snapshotDatabase(database: database, backupDir: backupDir);
+    try {
+      return createFromSnapshot(
+        snapshotPath: snapshot.path,
+        mediaDir: mediaDir,
+        backupDir: backupDir,
+        retention: retention,
+      );
+    } finally {
+      if (snapshot.existsSync()) snapshot.deleteSync();
+    }
+  }
+
+  /// SQLite makes a consistent snapshot even with a second engine writing.
+  /// Compression must only ever read this snapshot, never the live WAL file.
+  static File snapshotDatabase({
+    required NexDatabase database,
+    required String backupDir,
+  }) {
     if (database.path == ':memory:') {
       throw StateError('Cannot back up an in-memory database');
     }
+    Directory(backupDir).createSync(recursive: true);
+    final target = File(
+      p.join(backupDir, '.snapshot-${DateTime.now().microsecondsSinceEpoch}'),
+    );
+    database.db.execute('VACUUM INTO ?', [target.path]);
+    return target;
+  }
+
+  /// No live database handle: safe to run in a separate compression isolate.
+  static File createFromSnapshot({
+    required String snapshotPath,
+    required String mediaDir,
+    required String backupDir,
+    int retention = NexDatabase.backupRetention,
+  }) {
     final dir = Directory(backupDir)..createSync(recursive: true);
     final stamp = DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
     final target = File(p.join(dir.path, 'nex-$stamp$extension'));
-
-    // Checkpoint first, or the copy misses everything still sitting in the
-    // write-ahead log — which on a busy day is most of it.
-    database.db.execute('PRAGMA wal_checkpoint(FULL);');
-
+    final partial = File('${target.path}.partial');
     final media = Directory(mediaDir);
     final files = media.existsSync()
         ? media.listSync(recursive: true).whereType<File>().toList()
         : <File>[];
 
-    final encoder = ZipFileEncoder()..create(target.path);
+    final encoder = ZipFileEncoder()..create(partial.path);
     try {
       // Sync, deliberately. `addFile` is a Future in archive 4, and calling
       // it without awaiting produced a zip that closed before anything was
       // written into it — a backup file that exists, weighs nothing, and
       // fails only when someone tries to restore from it.
-      encoder.addFileSync(File(database.path), _dbEntry);
+      encoder.addFileSync(File(snapshotPath), _dbEntry);
       for (final file in files) {
         // Relative, so restoring into a different sandbox path — which is
         // every reinstall on iOS and most on Android — puts them back in the
@@ -93,8 +123,12 @@ class NexBackupArchive {
       encoder.addArchiveFile(
         ArchiveFile(_metaEntry, metaBytes.length, metaBytes),
       );
-    } finally {
       encoder.closeSync();
+      partial.renameSync(target.path);
+    } catch (_) {
+      encoder.closeSync();
+      if (partial.existsSync()) partial.deleteSync();
+      rethrow;
     }
 
     _prune(dir, retention);
@@ -186,14 +220,19 @@ class NexBackupArchive {
 
       for (final file in archive.files) {
         if (!file.isFile || !file.name.startsWith(_mediaPrefix)) continue;
-        final relative = file.name.substring(_mediaPrefix.length);
+        final relative = file.name
+            .substring(_mediaPrefix.length)
+            .replaceAll(r'\', '/');
         // A zip is an untrusted file even when this app wrote it. An entry
         // named `../../secrets` would otherwise be written outside the
         // directory it is supposed to land in.
         if (relative.isEmpty ||
             p.url.isAbsolute(relative) ||
+            p.windows.isAbsolute(relative) ||
+            relative.contains(':') ||
+            file.isSymbolicLink ||
             p.url.split(relative).contains('..')) {
-          continue;
+          throw const FormatException('Unsafe media path in backup');
         }
         final target = File(p.join(staging.path, 'media', relative))
           ..parent.createSync(recursive: true);

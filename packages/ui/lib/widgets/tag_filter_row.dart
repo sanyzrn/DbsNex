@@ -16,6 +16,8 @@ class TagFilterRow extends StatelessWidget {
     required this.selectedTagIds,
     required this.onSelected,
     this.showAll = true,
+    this.hasOtherFilters = false,
+    this.onClearAll,
     this.allLabel = 'All',
     this.leading,
     this.trailing,
@@ -41,6 +43,8 @@ class TagFilterRow extends StatelessWidget {
   /// when the last one is turned off", which is: back to All.
   final ValueChanged<Set<String>> onSelected;
   final bool showAll;
+  final bool hasOtherFilters;
+  final VoidCallback? onClearAll;
 
   /// Label of the "clear the filter" pill. The design system carries no
   /// localizations of its own, so the app passes the translated string in —
@@ -72,11 +76,11 @@ class TagFilterRow extends StatelessWidget {
               padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
               child: _Pill(
                 label: allLabel,
-                selected: selectedTagIds.isEmpty,
+                selected: selectedTagIds.isEmpty && !hasOtherFilters,
                 // Clears rather than toggles. "All" is the absence of a
                 // filter, and tapping the absence of a filter cannot put one
                 // back.
-                onTap: () => onSelected(const {}),
+                onTap: onClearAll ?? () => onSelected(const {}),
                 theme: theme,
               ),
             ),

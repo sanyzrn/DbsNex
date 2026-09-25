@@ -724,7 +724,18 @@ ThemeData _theme({
     // untouched, so the thing you aim at is still the row.
     switchTheme: SwitchThemeData(
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+      trackOutlineColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? Colors.transparent
+            : secondary,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected) ? accent : elevated,
+      ),
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.selected) ? onAccent : secondary,
+      ),
       // The tick that used to sit inside the thumb is gone with it. iOS puts
       // no glyph in a switch, and at this size it is a mark nobody reads on a
       // control whose whole job is to be read as a position. Flutter's own

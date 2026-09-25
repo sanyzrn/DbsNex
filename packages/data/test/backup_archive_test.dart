@@ -44,6 +44,63 @@ void main() {
     );
   }
 
+  for (final unsafe in [
+    r'media/..\escaped.txt',
+    'media/../../escaped.txt',
+    'media/C:/escaped.txt',
+  ]) {
+    test(
+      'restore rejects unsafe archive path $unsafe before replacing the library',
+      () {
+        repo.insert(photoNote('keep', 'original.jpg'));
+        final valid = repo.backup(backupDir, mediaDir: mediaDir);
+        final archive = ZipDecoder().decodeBytes(valid.readAsBytesSync());
+        archive.addFile(ArchiveFile(unsafe, 3, [1, 2, 3]));
+        final malicious = File(p.join(tmp.path, 'unsafe.nexbak'))
+          ..writeAsBytesSync(ZipEncoder().encode(archive));
+        expect(
+          () => NexBackupArchive.restore(
+            liveDbPath: dbPath,
+            mediaDir: mediaDir,
+            backupFile: malicious.path,
+          ),
+          throwsFormatException,
+        );
+        expect(repo.getById('keep'), isNotNull);
+        expect(File(p.join(tmp.path, 'escaped.txt')).existsSync(), isFalse);
+      },
+    );
+  }
+
+  test(
+    'compression reads a consistent snapshot while the live library changes',
+    () {
+      repo.insert(photoNote('before', 'a.jpg'));
+      final snapshot = repo.backupSnapshot(backupDir);
+      repo.insert(photoNote('after', 'b.jpg'));
+      final backup = NexBackupArchive.createFromSnapshot(
+        snapshotPath: snapshot.path,
+        mediaDir: mediaDir,
+        backupDir: backupDir,
+      );
+      final restoredPath = p.join(tmp.path, 'restored.sqlite');
+      NexBackupArchive.restore(
+        liveDbPath: restoredPath,
+        mediaDir: p.join(tmp.path, 'restored-media'),
+        backupFile: backup.path,
+      );
+      final restored = NexDatabase.open(restoredPath);
+      try {
+        final copy = SqliteNoteRepository(restored);
+        expect(copy.getById('before'), isNotNull);
+        expect(copy.getById('after'), isNull);
+        expect(repo.getById('after'), isNotNull);
+      } finally {
+        restored.close();
+      }
+    },
+  );
+
   test('a restore onto a moved sandbox rewrites media paths', () {
     // The reinstall case: every restore on iOS and most on Android lands in
     // a support directory whose path has changed, and a database row that
@@ -70,10 +127,16 @@ void main() {
 
     final reopened = NexDatabase.open(dbPath);
     final restored = SqliteNoteRepository(reopened).getById('n1')!;
-    expect(restored.mediaUri, startsWith(newMediaDir),
-        reason: 'the row must point where the file actually landed');
-    expect(File(restored.mediaUri!).existsSync(), isTrue,
-        reason: 'and the file must be there');
+    expect(
+      restored.mediaUri,
+      startsWith(newMediaDir),
+      reason: 'the row must point where the file actually landed',
+    );
+    expect(
+      File(restored.mediaUri!).existsSync(),
+      isTrue,
+      reason: 'and the file must be there',
+    );
     reopened.close();
   });
 

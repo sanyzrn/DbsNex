@@ -60,6 +60,10 @@ class _CaptureSheetState extends State<CaptureSheet> {
   Timer? debounce;
   String? noteId;
   String persisted = '';
+  String _latestText = '';
+  Future<void> _writes = Future.value();
+  bool _allowClose = false;
+  bool _closing = false;
 
   /// The write the first keystroke starts.
   ///
@@ -76,6 +80,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
   bool hasReminder = false;
 
   void changed(String value) {
+    _latestText = value;
     setState(() {});
     if (noteId == null && value.isNotEmpty) {
       // One first write, not one per keystroke.
@@ -120,14 +125,21 @@ class _CaptureSheetState extends State<CaptureSheet> {
       created = true;
       noteId = note.id;
       persisted = value;
-      widget.onCommitted?.call(note.id);
+      if (mounted) widget.onCommitted?.call(note.id);
 
       // Everything typed while this write was in flight. [changed] returned
       // early for those keystrokes rather than scheduling a debounce — there
       // was no id to flush to — so without this the note would keep whatever
       // the first keystroke said and the rest of the word would be lost the
       // moment the user stopped typing.
-      if (mounted && controller.text != persisted) flush();
+      if (_latestText != persisted) await _flushCurrent();
+    } catch (_) {
+      if (mounted) {
+        NexBannerHost.of(context)?.show(
+          message: AppLocalizations.of(context).captureFailed,
+          kind: NexBannerKind.failed,
+        );
+      }
     } finally {
       // Released whenever this settles without producing a note — a capture
       // that returned null, or one that threw. [changed] reads it as "a first
@@ -137,23 +149,42 @@ class _CaptureSheetState extends State<CaptureSheet> {
     }
   }
 
-  void flush() {
-    final id = noteId;
-    if (id == null) return;
-    if (controller.text.isEmpty) {
-      unawaited(widget.services.deleteNote(id));
-      noteId = null;
-      // And the draft that produced it. [changed] takes a null id with a
-      // non-null draft to mean "the first write has not come back yet", so
-      // leaving this set would make the sheet refuse to start the next note
-      // after someone cleared the field.
-      draft = null;
-      // The note the reminder was on has just been deleted along with the
-      // text. Whatever this sheet is used for next is a different note.
-      hasReminder = false;
-    } else if (controller.text != persisted && controller.text != queued) {
-      unawaited(_write(id, controller.text));
+  Future<void> flush() async {
+    debounce?.cancel();
+    await draft;
+    // If the first insert failed, closing must try the complete snapshot.
+    if (noteId == null && _latestText.isNotEmpty) {
+      draft = _createFirstDraft(_latestText);
+      await draft;
     }
+    await _flushCurrent();
+  }
+
+  Future<void> _flushCurrent() {
+    final text = _latestText;
+    _writes = _writes.then((_) async {
+      final id = noteId;
+      if (id == null) return;
+      if (text.isEmpty) {
+        try {
+          await widget.services.deleteNote(id);
+          noteId = null;
+          draft = null;
+          persisted = '';
+          hasReminder = false;
+        } catch (_) {
+          if (mounted) {
+            NexBannerHost.of(context)?.show(
+              message: AppLocalizations.of(context).captureFailed,
+              kind: NexBannerKind.failed,
+            );
+          }
+        }
+      } else if (text != persisted) {
+        await _write(id, text);
+      }
+    });
+    return _writes;
   }
 
   /// The text of the most recent update sent and not yet known to have
@@ -192,6 +223,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
       }
       try {
         await widget.services.updateNote(id, text);
+        persisted = text;
       } on Object {
         // Twice in a row, with no screen left to say so on. The note keeps
         // the last text that did land.
@@ -234,10 +266,15 @@ class _CaptureSheetState extends State<CaptureSheet> {
     setState(() => hasReminder = saved?.dueAt != null);
   }
 
-  void close() {
-    flush();
-    widget.services.refreshTimeline();
-    Navigator.pop(context);
+  Future<void> close() async {
+    if (_closing) return;
+    _closing = true;
+    await flush();
+    _closing = false;
+    if (!mounted || persisted != _latestText) return;
+    setState(() => _allowClose = true);
+    await widget.services.refreshTimeline();
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -252,7 +289,10 @@ class _CaptureSheetState extends State<CaptureSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return PopScope(
-      onPopInvokedWithResult: (_, __) => flush(),
+      canPop: _allowClose,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(close());
+      },
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           16,
@@ -340,47 +380,49 @@ class _CaptureSheetState extends State<CaptureSheet> {
               ),
             ),
             const Divider(height: 1),
-            Wrap(
-              spacing: 2,
+            Row(
               children: [
-                _Action(Icons.mic_none, l10n.voice, widget.onVoice),
-                _Action(
-                  Icons.photo_camera_outlined,
-                  l10n.camera,
-                  widget.onCamera,
-                ),
-                _Action(
-                  Icons.photo_library_outlined,
-                  l10n.gallery,
-                  widget.onGallery,
-                ),
-                _Action(Icons.attach_file, l10n.file, widget.onFile),
-                _Action(
-                  Icons.checklist_rtl_outlined,
-                  l10n.checklist,
-                  widget.onChecklist,
-                ),
-                _Action(Icons.link_outlined, l10n.link, widget.onLink),
-                // Beside the send button, not among the six: those six change
-                // what is being captured, and this changes what happens to it
-                // afterwards — the same question the send button answers, so
-                // the two sit together and are styled as a pair.
-                //
-                // It does nudge the send button along on the first keystroke.
-                // That is the cost of not having it there on an empty sheet,
-                // and the empty sheet is the one that must stay untouched.
-                if (controller.text.isNotEmpty)
-                  IconButton.filledTonal(
-                    constraints: const BoxConstraints.tightFor(
-                      width: nexMinTapTarget,
-                      height: nexMinTapTarget,
-                    ),
-                    onPressed: () => unawaited(_remind()),
-                    tooltip: l10n.remind,
-                    icon: Icon(
-                      hasReminder ? Icons.alarm_on : Icons.alarm_add_outlined,
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _Action(Icons.mic_none, l10n.voice, widget.onVoice),
+                        _Action(
+                          Icons.photo_camera_outlined,
+                          l10n.camera,
+                          widget.onCamera,
+                        ),
+                        _Action(
+                          Icons.photo_library_outlined,
+                          l10n.gallery,
+                          widget.onGallery,
+                        ),
+                        _Action(Icons.attach_file, l10n.file, widget.onFile),
+                        _Action(
+                          Icons.checklist_rtl_outlined,
+                          l10n.checklist,
+                          widget.onChecklist,
+                        ),
+                        _Action(Icons.link_outlined, l10n.link, widget.onLink),
+                      ],
                     ),
                   ),
+                ),
+                const SizedBox(width: 4),
+                IconButton.filledTonal(
+                  constraints: const BoxConstraints.tightFor(
+                    width: nexMinTapTarget,
+                    height: nexMinTapTarget,
+                  ),
+                  onPressed: controller.text.isEmpty
+                      ? null
+                      : () => unawaited(_remind()),
+                  tooltip: l10n.remind,
+                  icon: Icon(
+                    hasReminder ? Icons.alarm_on : Icons.alarm_add_outlined,
+                  ),
+                ),
                 IconButton.filled(
                   // The app-wide 48px tap floor. 44 read as a deliberate
                   // exception on the single most-pressed control in the app;
