@@ -280,6 +280,7 @@ enum AiResponseStyle {
     'romantic',
     'Answer affectionately and romantically. Use gentle endearments and caring praise, while respecting boundaries and never implying a real human relationship.',
   ),
+
   /// Whatever the user wrote, in place of a preset.
   ///
   /// Empty rule on purpose: under this style the instruction *is* the rule,
@@ -578,7 +579,7 @@ class CloudAIAdapter implements AIAdapter {
     if (pending == null) return null;
     try {
       final reply = await pending;
-      final text = reply.content.trim();
+      final text = _answerOnly(reply.content) ?? '';
       return text.isEmpty ? null : text;
     } catch (error) {
       // A model that fails to load, or a backend that dies mid-answer. Treated
@@ -834,8 +835,8 @@ class CloudAIAdapter implements AIAdapter {
         final content = decoded['content'];
         if (content is! List) return null;
         for (final part in content) {
-          if (part is Map && part['text'] is String) {
-            return part['text'] as String;
+          if (part is Map && part['type'] == 'text' && part['text'] is String) {
+            return _answerOnly(part['text'] as String);
           }
         }
         return null;
@@ -850,18 +851,59 @@ class CloudAIAdapter implements AIAdapter {
         // only the first would silently truncate it.
         final buffer = StringBuffer();
         for (final part in parts) {
-          if (part is Map && part['text'] is String) buffer.write(part['text']);
+          if (part is Map &&
+              part['thought'] != true &&
+              part['text'] is String) {
+            buffer.write(part['text']);
+          }
         }
         final text = buffer.toString();
-        return text.isEmpty ? null : text;
+        return _answerOnly(text);
       case AiWireFormat.openai:
         final choices = decoded['choices'];
         if (choices is! List || choices.isEmpty) return null;
         final message = (choices.first as Map)['message'];
         return message is Map && message['content'] is String
-            ? message['content'] as String
+            ? _answerOnly(message['content'] as String)
             : null;
     }
+  }
+
+  /// Explicit reasoning envelopes are not user-facing answer content.
+  static String? _answerOnly(String raw) {
+    final text = raw
+        .replaceAll(
+          RegExp(
+            r'<(?:think|thinking|analysis)>[\s\S]*?</(?:think|thinking|analysis)>',
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .replaceAll(
+          RegExp(
+            r'<(?:think|thinking|analysis)>[\s\S]*$',
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .trim();
+    return text.isEmpty ? null : text;
+  }
+
+  @visibleForTesting
+  static String? cleanDecorativeReply(String? raw) {
+    if (raw == null) return null;
+    final text = _answerOnly(raw);
+    if (text == null) return null;
+    // Reject known prompt-echo openings on decorative surfaces. This is not
+    // applied to user notes, translations or the assistant conversation.
+    if (RegExp(
+      r'^(?:the user (?:wants|asks|requested)|(?:we|i) need to (?:produce|respond|generate|write)|let me (?:think|analyze))',
+      caseSensitive: false,
+    ).hasMatch(text)) {
+      return null;
+    }
+    return text;
   }
 
   /// Reachability, credentials and model name, in one round trip.
@@ -1166,8 +1208,8 @@ class CloudAIAdapter implements AIAdapter {
       'reminder — "DUE in 6h", "DUE overdue 2d". On a checklist, "3/5 left" '
       'means three of its five items are still unticked. '
       '${written.trim().isEmpty ? '' : 'These lines are already written and '
-          'will be shown to the reader above yours. Do not repeat them and '
-          'do not restate what they say:\n$written\n'}'
+                'will be shown to the reader above yours. Do not repeat them and '
+                'do not restate what they say:\n$written\n'}'
       'Answer with at most $budget '
       '${budget == 1 ? 'line' : 'lines'}, beginning with a single emoji that '
       'fits. '
@@ -1192,10 +1234,7 @@ class CloudAIAdapter implements AIAdapter {
       maxTokens: (budget * 60).clamp(120, 800),
       timeout: timeout,
     );
-    return _plausible(
-      nexTidyBrief(reply, maxLines: budget),
-      shortLine: false,
-    );
+    return _plausible(nexTidyBrief(reply, maxLines: budget), shortLine: false);
   }
 
   /// The one-line headline over the timeline: a mood, not a summary.
@@ -1243,7 +1282,7 @@ class CloudAIAdapter implements AIAdapter {
       maxTokens: 60,
       timeout: timeout,
     );
-    return _plausible(_clamped(reply, 6));
+    return _plausible(_clamped(cleanDecorativeReply(reply), 6));
   }
 
   /// A note in another language, and nothing else.
@@ -1672,7 +1711,7 @@ class CloudAIAdapter implements AIAdapter {
   /// [shortLine] is what the frequency check below is calibrated for, and it
   /// is off for anything longer than a line.
   static String? _plausible(String? reply, {bool shortLine = true}) {
-    final text = _notGarbled(reply);
+    final text = _notGarbled(cleanDecorativeReply(reply));
     if (text == null) return null;
 
     var latin = 0;
@@ -1863,10 +1902,7 @@ class CloudAIAdapter implements AIAdapter {
         .post(
           Uri.parse('${config.resolvedBaseUrl}/v1/embeddings'),
           headers: _headers,
-          body: jsonEncode({
-            'model': config.embeddingModel,
-            'input': text,
-          }),
+          body: jsonEncode({'model': config.embeddingModel, 'input': text}),
         )
         .timeout(_textTimeout);
     if (response.statusCode != 200) {

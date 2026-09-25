@@ -75,3 +75,12 @@ it costs no code.
 `Response` globals — `handleRequest` is a plain `(Request, Env) => Promise<Response>`
 function, so it needs no Workers runtime or Miniflare to test the logic
 itself; `wrangler dev` is only for exercising the real deployment shape.
+
+## Release builds
+
+After deploying, set the source repository Actions **variable**
+`NEX_FEEDBACK_API_URL` to the HTTPS Worker base URL (without `/feedback` or a
+trailing slash). `release.yml` passes it to every Android release artifact.
+The bot token and chat ID belong only in Worker secrets; neither belongs in
+this variable or in the APK. An unset URL keeps feedback unavailable and does
+not imply the relay has been deployed.

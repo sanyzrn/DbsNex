@@ -74,7 +74,10 @@ class PhotoPreviewScreen extends StatelessWidget {
 
   Future<void> _edit(BuildContext context) async {
     final edited = await Navigator.of(context).push<Uint8List>(
-      NexPageRoute(builder: (_) => PhotoCropScreen(image: image)),
+      NexPageRoute(
+        swipeBackEnabled: false,
+        builder: (_) => PhotoCropScreen(image: image),
+      ),
     );
     if (!context.mounted) return;
     // Null means they backed out of the editor, not out of the capture — so

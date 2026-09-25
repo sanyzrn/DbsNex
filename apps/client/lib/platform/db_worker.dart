@@ -25,6 +25,7 @@ enum _DbCommand {
   search,
   getById,
   captureText,
+  captureShared,
   captureChecklist,
   importNotes,
   captureLink,
@@ -379,6 +380,10 @@ class NexDbWorker implements NexDb {
       _send<Note?>(_DbCommand.captureText, {'content': content});
 
   @override
+  Future<Note?> captureShared(Map<String, String> payload) =>
+      _send<Note?>(_DbCommand.captureShared, {'payload': payload});
+
+  @override
   Future<Note?> captureChecklist(List<ChecklistItem> items) =>
       _send<Note?>(_DbCommand.captureChecklist, {
         // Sent as the on-disk text rather than as objects: the isolate port
@@ -549,8 +554,32 @@ class NexDbWorker implements NexDb {
       _send<List<Note>>(_DbCommand.upcomingReminders, {'limit': limit});
 
   @override
-  Future<void> backup(String backupDir, {required String mediaDir}) =>
-      _send<void>(_DbCommand.backup, {'dir': backupDir, 'mediaDir': mediaDir});
+  Future<void> backup(String backupDir, {required String mediaDir}) {
+    final previous = _backupTask ?? Future<void>.value();
+    return _backupTask = previous
+        .catchError((Object _) {})
+        .then((_) => _createBackup(backupDir, mediaDir));
+  }
+
+  Future<void>? _backupTask;
+
+  Future<void> _createBackup(String backupDir, String mediaDir) async {
+    final snapshotPath = await _send<String>(_DbCommand.backup, {
+      'dir': backupDir,
+    });
+    try {
+      await Isolate.run(
+        () => NexBackupArchive.createFromSnapshot(
+          snapshotPath: snapshotPath,
+          mediaDir: mediaDir,
+          backupDir: backupDir,
+        ),
+      );
+    } finally {
+      final snapshot = File(snapshotPath);
+      if (await snapshot.exists()) await snapshot.delete();
+    }
+  }
 
   @override
   Future<String> exportArchive({
@@ -680,6 +709,11 @@ class NexDbWorker implements NexDb {
   Future<void> close() => _closeFuture ??= _close();
 
   Future<void> _close() async {
+    try {
+      await _backupTask;
+    } catch (_) {
+      // Close even after a failed backup.
+    }
     _closing = true;
 
     try {
@@ -780,6 +814,9 @@ class NexDbWorker implements NexDb {
         ),
         _DbCommand.search => search.search(arg('filters')! as SearchFilters),
         _DbCommand.getById => repo.getById(arg('id')! as String),
+        _DbCommand.captureShared => repo.captureShared(
+          Map<String, String>.from(arg('payload')! as Map),
+        ),
         _DbCommand.captureText => capture.submitTextCapture(
           arg('content')! as String,
         ),
@@ -907,10 +944,7 @@ class NexDbWorker implements NexDb {
         _DbCommand.upcomingReminders => repo.listUpcomingReminders(
           limit: arg('limit')! as int,
         ),
-        _DbCommand.backup => repo.backup(
-          arg('dir')! as String,
-          mediaDir: arg('mediaDir')! as String,
-        ),
+        _DbCommand.backup => repo.backupSnapshot(arg('dir')! as String).path,
         _DbCommand.exportArchive => (await repo.exportArchive(
           outputPath: arg('outputPath')! as String,
           mediaRoot: arg('mediaRoot')! as String,

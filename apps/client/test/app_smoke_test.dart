@@ -205,7 +205,7 @@ void main() {
   );
 
   testWidgets(
-    'the reminder button is not on an empty capture sheet, only on a written one',
+    'Send stays in place while the reserved reminder control becomes enabled',
     (tester) async {
       // The one hard rule over this sheet is that nothing on the way in may
       // become a decision, and a date picker is the most expensive decision
@@ -219,8 +219,20 @@ void main() {
       await tester.tap(find.byIcon(Icons.add));
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip('Remind'), findsNothing);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.alarm_add_outlined),
+            )
+            .onPressed,
+        isNull,
+      );
 
+      final send = find.descendant(
+        of: find.byType(CaptureSheet),
+        matching: find.byTooltip('Capture'),
+      );
+      final sendPosition = tester.getCenter(send);
       final captureField = find.descendant(
         of: find.byType(CaptureSheet),
         matching: find.byType(TextField),
@@ -229,6 +241,15 @@ void main() {
       await tester.pump();
 
       expect(find.byTooltip('Remind'), findsOneWidget);
+      expect(tester.getCenter(send), sendPosition);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.alarm_add_outlined),
+            )
+            .onPressed,
+        isNotNull,
+      );
       // Still no Save button, and still nothing standing between the words
       // and the timeline.
       expect(find.text('Save'), findsNothing);
@@ -236,7 +257,14 @@ void main() {
       // Emptied again, it goes with the note it belonged to.
       await tester.enterText(captureField, '');
       await tester.pump();
-      expect(find.byTooltip('Remind'), findsNothing);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.alarm_add_outlined),
+            )
+            .onPressed,
+        isNull,
+      );
 
       // The sheet debounces its writes; let the pending one run rather than
       // leaving a timer alive past the end of the test.

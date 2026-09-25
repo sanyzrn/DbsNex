@@ -107,14 +107,21 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     // is written here — and a locked library whose notes sat in it until the
     // first frame would be a lock with a hole in it.
     await preferences.setAppLockClosed(nexLockClosedOnLaunch(preferences));
-    final widgets = NexWidgetBridge(services: services, preferences: preferences);
+    final widgets = NexWidgetBridge(
+      services: services,
+      preferences: preferences,
+    );
     try {
       await widgets.start();
     } catch (error) {
       unawaited(NexServices.noteDiagnostic('widget snapshot failed: $error'));
     }
 
-    if (silent) await _closeSilently(bridge, preferences);
+    if (silent) {
+      bridge.onSettled = () => _closeSilently(bridge, preferences);
+      await bridge.drain();
+      await _closeSilently(bridge, preferences);
+    }
 
     await delay;
     return _ready = _Ready(preferences, services, bridge, widgets);
@@ -136,7 +143,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     NexPreferences preferences,
   ) async {
     final refused = bridge.pendingRejection;
-    if (refused == null && !bridge.handledLaunchShare) {
+    if (refused == null && !bridge.handledLaunchShare && !bridge.shareFailed) {
       // Nothing arrived. Nothing to say, and nothing to keep the window open
       // for either — an empty message still closes it.
       await NexShareWindow.done('');
@@ -145,7 +152,9 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     final l10n = await AppLocalizations.delegate.load(
       _messageLocale(preferences),
     );
-    final message = refused == null
+    final message = bridge.shareFailed
+        ? l10n.captureFailed
+        : refused == null
         ? l10n.shareSaved
         : l10n.shareTooLarge(
             refused.filename,
@@ -245,7 +254,6 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
       );
     },
   );
-
 
   /// The pre-boot shells carry the localization delegates themselves.
   ///

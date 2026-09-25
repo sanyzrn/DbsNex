@@ -66,8 +66,8 @@
 
         <FrameLayout
             android:id="@+id/nex_widget_capture_badge"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@drawable/nex_widget_bg_badge">
 
             <ImageView

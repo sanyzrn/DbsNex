@@ -315,7 +315,7 @@
   },
   "copyPath": "Copy data path",
   "silenceTitle": "Silence is a feature",
-  "silenceBody": "Nex never sends notifications, badges, reminders, or engagement prompts.",
+  "silenceBody": "Nex sends only the reminders and download notices you request. No engagement prompts or streaks.",
   "privacy": "Privacy",
   "privacyBody": "Core capture and search do not collect or transmit your notes.",
   "shareDiagnostics": "Share diagnostics",
@@ -410,7 +410,7 @@
     }
   },
   "restoreBackup": "Restore backup",
-  "restoreBody": "Replace the local database with the newest verified backup?",
+  "restoreBody": "Replace this library with the selected backup? A safety copy of the current library will be kept on this device before restoration.",
   "deleteBackup": "Delete backup",
   "deleteBackupBody": "This local backup file will be deleted. It cannot be undone.",
   "backupCount": "{count, plural, =0{No backups} =1{1 backup} other{{count} backups}}",
@@ -1063,7 +1063,7 @@
   "@exportTitle": {
     "description": "Heading above export and import"
   },
-  "exportExplained": "Writes every note into one zip: the full data as JSON, a readable Markdown file per note, and every photo, recording and attachment. Nothing is left behind and nothing is uploaded — the file is handed to you.",
+  "exportExplained": "Exports notes, tags and attachments as JSON and Markdown in a ZIP. To preserve reminders, commitments and assistant memory too, share a library backup below.",
   "@exportExplained": {
     "description": "Says what an export actually contains"
   },
@@ -1099,7 +1099,7 @@
   "@localBackupsTitle": {
     "description": "Heading above the local backup list"
   },
-  "localBackupsExplained": "Once a day, Nex copies its database into its own folder — the text, tags and dates, not the photos, recordings or attachments those notes point to. It is protection against a bad restore or a corrupted file, on this device. For a copy that includes the media, or to move to another device, export.",
+  "localBackupsExplained": "Nex automatically backs up the library and its media on this device. Local copies do not protect against losing the device. Use Share beside a backup to keep a copy elsewhere.",
   "@localBackupsExplained": {
     "description": "Says what local backups are and are not for"
   },
@@ -1556,7 +1556,7 @@
   "@onboardingSilenceTitle": {
     "description": "Onboarding page 4 heading"
   },
-  "onboardingSilenceBody": "No notifications, no badges, no reminders, no streaks. Your notes stay on this device unless you set up syncing yourself.",
+  "onboardingSilenceBody": "Reminders are optional. No engagement prompts or streaks. Cloud AI and syncing send data only when you configure and use them.",
   "@onboardingSilenceBody": {
     "description": "Onboarding page 4 body"
   },
@@ -2436,5 +2436,15 @@
   "summarizeFailed": "No summary came back for this note.",
   "@summarizeFailed": {
     "description": "Shown when an on-demand summary produces nothing"
-  }
+  },
+  "fullBackupExplained": "Choose a .nexbak library backup to restore notes, media, reminders, commitments and assistant memory. App preferences, profile and downloaded AI models are not included.",
+  "unsavedChanges": "Discard unsaved changes?",
+  "keepEditing": "Keep editing",
+  "checklistItemCount": "{count, plural, one{1 item} other{{count} items}}",
+  "@checklistItemCount": {"placeholders": {"count": {"type": "int"}}},
+  "annotateColor": "{color, select, white{White} black{Black} red{Red} yellow{Yellow} green{Green} blue{Blue} other{Color}}",
+  "annotateStrokeWidth": "Stroke width",
+  "playAudio": "Play audio",
+  "pauseAudio": "Pause audio",
+  "@annotateColor": {"placeholders": {"color": {"type": "String"}}}
 }

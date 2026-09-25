@@ -16,8 +16,8 @@ import 'nex_preferences.dart';
 /// looking for this. That keeps the automatic check inside the promise the
 /// product makes about never demanding attention.
 ///
-/// The download runs as soon as an update is found, so tapping Install is
-/// instant rather than the start of a wait.
+/// Checking never downloads an installer. Download begins only after the
+/// user presses Download, where the update sheet shows its size.
 class UpdateService extends ChangeNotifier {
   UpdateService({
     required this.preferences,
@@ -127,7 +127,10 @@ class UpdateService extends ChangeNotifier {
   /// This is the whole of the fix for a download that died on a back gesture:
   /// the transfer belongs to the service, which lives as long as the app, and
   /// not to a screen, which does not. The screen only watches.
+  bool _downloadApproved = false;
+
   Future<void> ensureDownloaded() {
+    _downloadApproved = true;
     final running = _prefetching;
     if (running != null) return running;
     if (_downloaded != null) return Future<void>.value();
@@ -160,7 +163,9 @@ class UpdateService extends ChangeNotifier {
   /// interrupted" means, and its absence is what keeps this from starting a
   /// download on a resume where none was ever running.
   Future<void> resumeInterruptedDownload() async {
-    if (_prefetching != null || _downloaded != null) return;
+    if (!_downloadApproved || _prefetching != null || _downloaded != null) {
+      return;
+    }
     final version = available?.version;
     if (version == null) return;
     final dir = await _directory();
@@ -216,10 +221,6 @@ class UpdateService extends ChangeNotifier {
       // moment on a train.
       if (result.status != UpdateStatus.unavailable) {
         await preferences.setLastUpdateCheck(_now());
-      }
-      if (result.status == UpdateStatus.available) {
-        _prefetching = _prefetch(result);
-        unawaited(_prefetching);
       }
       return result;
     } finally {
@@ -332,9 +333,7 @@ enum NexDownloadStage {
 class NexDownloadStatus {
   const NexDownloadStatus.running(int this.percent)
     : stage = NexDownloadStage.running;
-  const NexDownloadStatus.done()
-    : stage = NexDownloadStage.done,
-      percent = 100;
+  const NexDownloadStatus.done() : stage = NexDownloadStage.done, percent = 100;
   const NexDownloadStatus.stopped()
     : stage = NexDownloadStage.stopped,
       percent = null;

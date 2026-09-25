@@ -122,7 +122,7 @@ jobs:
           fi
 
           DART=false; BACKEND=false; DESKTOP=false; ANDROID=false
-          match '^(apps/client|packages)/' && DART=true
+          match '^(apps/client|packages|spec)/|^\.fvmrc$|^CHANGELOG\.md$' && DART=true
           # The feedback worker rides the backend flag rather than carrying
           # its own: it is nine fast tests, and nothing matched
           # `apps/feedback-worker/` at all before this, so a change to it ran
@@ -136,7 +136,7 @@ jobs:
           # dependency can pull in a native plugin, which is exactly the kind
           # of break that compiles fine and fails at assemble time.
           match '^apps/client/android/' && ANDROID=true
-          match '(^|/)pubspec\.yaml$' && ANDROID=true
+          match '(^|/)pubspec\.(yaml|lock)$|^\.fvmrc$' && ANDROID=true
           {
             echo "dart=$DART"
             echo "backend=$BACKEND"
@@ -707,7 +707,7 @@ jobs:
 
       - name: Assert nex_ai is only imported by packages/ai and the ai-flavor entry point
         run: |
-          if grep -Rn --include='*.dart' "package:nex_ai/" apps packages --exclude-dir=ai \
+          if grep -Rn --include='*.dart' "package:nex_ai/" apps/client packages/core packages/data packages/ui \
               | grep -v '^apps/client/lib/main_ai\.dart:' | grep -q .; then
             echo "::error::only packages/ai and apps/client/lib/main_ai.dart may import package:nex_ai (09-ai.md, ADR-031)"
             exit 1

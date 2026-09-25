@@ -53,17 +53,17 @@ void main() {
     String? assetSuffix,
     void Function(NexDownloadStatus)? onDownloadStatus,
   }) => UpdateService(
-        preferences: preferences,
-        onDownloadStatus: onDownloadStatus,
-        checker: UpdateChecker(
-          currentVersion: nexAppVersion,
-          client: client,
-          assetSuffix: assetSuffix ?? '-universal.apk',
-        ),
-        downloader: UpdateDownloader(client: client),
-        directory: () async => tmp,
-        now: () => now,
-      );
+    preferences: preferences,
+    onDownloadStatus: onDownloadStatus,
+    checker: UpdateChecker(
+      currentVersion: nexAppVersion,
+      client: client,
+      assetSuffix: assetSuffix ?? '-universal.apk',
+    ),
+    downloader: UpdateDownloader(client: client),
+    directory: () async => tmp,
+    now: () => now,
+  );
 
   MockClient serving(String releaseJson, {List<int>? file, int? calls}) =>
       MockClient((request) async {
@@ -72,6 +72,29 @@ void main() {
         }
         return http.Response.bytes(file ?? [1, 2, 3, 4], 200);
       });
+
+  test(
+    'checking an update never downloads its installer without a tap',
+    () async {
+      var downloads = 0;
+      final service = build(
+        client: MockClient((request) async {
+          if (request.url.host == 'api.github.com') {
+            return http.Response(newerRelease(), 200);
+          }
+          downloads++;
+          return http.Response.bytes([1, 2, 3, 4], 200);
+        }),
+      );
+      addTearDown(service.dispose);
+      await service.check();
+      expect(service.hasUpdate, isTrue);
+      expect(service.isDownloading, isFalse);
+      expect(downloads, 0);
+      await service.ensureDownloaded();
+      expect(downloads, 1);
+    },
+  );
 
   group('what the notification shade is told', () {
     test('a download reports progress and then that it is done', () async {
@@ -83,7 +106,7 @@ void main() {
       addTearDown(service.dispose);
 
       await service.check();
-      await service.prefetching;
+      await service.ensureDownloaded();
 
       expect(seen, isNotEmpty);
       expect(seen.last.stage, NexDownloadStage.done);
@@ -97,29 +120,32 @@ void main() {
       expect(percents, percents.toSet().toList());
     });
 
-    test('a download that fails says it stopped, not that it finished', () async {
-      final seen = <NexDownloadStatus>[];
-      final service = build(
-        client: MockClient((request) async {
-          if (request.url.host == 'api.github.com') {
-            return http.Response(newerRelease(), 200);
-          }
-          throw const SocketException('no route to host');
-        }),
-        onDownloadStatus: seen.add,
-      );
-      addTearDown(service.dispose);
+    test(
+      'a download that fails says it stopped, not that it finished',
+      () async {
+        final seen = <NexDownloadStatus>[];
+        final service = build(
+          client: MockClient((request) async {
+            if (request.url.host == 'api.github.com') {
+              return http.Response(newerRelease(), 200);
+            }
+            throw const SocketException('no route to host');
+          }),
+          onDownloadStatus: seen.add,
+        );
+        addTearDown(service.dispose);
 
-      await service.check();
-      await service.prefetching;
+        await service.check();
+        await service.ensureDownloaded();
 
-      expect(seen.last.stage, NexDownloadStage.stopped);
-      // And the reason is kept rather than swallowed — the screen draws its
-      // "stopped" line from exactly this.
-      expect(service.downloadError, isNotNull);
-      // The progress survives too, so a resume does not look like a restart.
-      expect(service.downloaded, isNull);
-    });
+        expect(seen.last.stage, NexDownloadStage.stopped);
+        // And the reason is kept rather than swallowed — the screen draws its
+        // "stopped" line from exactly this.
+        expect(service.downloadError, isNotNull);
+        // The progress survives too, so a resume does not look like a restart.
+        expect(service.downloaded, isNull);
+      },
+    );
   });
 
   test('an available update is found and pre-downloaded', () async {
@@ -129,7 +155,7 @@ void main() {
     await service.check();
     // The download is fire-and-forget in production; here it is awaited so the
     // assertion is about the outcome, not about timing.
-    await service.prefetching;
+    await service.ensureDownloaded();
 
     expect(service.hasUpdate, isTrue);
     expect(service.available!.downloadUrl, endsWith('-universal.apk'));
@@ -152,7 +178,7 @@ void main() {
       addTearDown(service.dispose);
 
       await service.maybeCheck();
-      await service.prefetching;
+      await service.ensureDownloaded();
       final afterFirst = requests;
       expect(afterFirst, greaterThan(0));
 
@@ -225,7 +251,7 @@ void main() {
     addTearDown(service.dispose);
 
     await service.check();
-    await service.prefetching;
+    await service.ensureDownloaded();
 
     expect(downloads, 0, reason: 'the same file is already there');
     expect(service.downloaded, isNotNull);
@@ -254,7 +280,7 @@ void main() {
       addTearDown(service.dispose);
 
       await service.check();
-      await service.prefetching;
+      await service.ensureDownloaded();
 
       expect(downloads, 1);
       expect(service.downloaded!.lengthSync(), 4);
@@ -290,7 +316,7 @@ void main() {
     addTearDown(service.dispose);
 
     await service.check();
-    await service.prefetching;
+    await service.ensureDownloaded();
 
     expect(service.downloaded, isNotNull);
     expect(service.hasUnannouncedDownload, isTrue);
@@ -311,7 +337,7 @@ void main() {
     addTearDown(service.dispose);
 
     await service.check();
-    await service.prefetching;
+    await service.ensureDownloaded();
 
     expect(service.downloaded, isNotNull);
     expect(service.hasUnannouncedDownload, isFalse);
@@ -359,7 +385,7 @@ void main() {
       final service = build(client: client);
       addTearDown(service.dispose);
       await service.check();
-      await service.prefetching;
+      await service.ensureDownloaded();
       final version = service.available!.version!;
       if (alreadyHave.isNotEmpty) {
         File(
@@ -419,7 +445,11 @@ void main() {
       await service.resumeInterruptedDownload();
       await service.prefetching;
 
-      expect(fileRequests, before, reason: 'nothing to resume, so nothing to do');
+      expect(
+        fileRequests,
+        before,
+        reason: 'nothing to resume, so nothing to do',
+      );
       expect(service.downloaded, isNull);
     });
   });

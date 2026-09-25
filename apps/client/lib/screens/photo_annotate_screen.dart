@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 
 import '../l10n/app_localizations.dart';
+import '../widgets/draft_guard.dart';
 
 enum _Mode { draw, text }
 
@@ -54,7 +55,10 @@ class PhotoAnnotateScreen extends StatefulWidget {
   State<PhotoAnnotateScreen> createState() => _PhotoAnnotateScreenState();
 }
 
-class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen> {
+class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
+    with NexDraftGuard<PhotoAnnotateScreen> {
+  @override
+  bool get hasUnsavedChanges => _hasChanges;
   final _boundaryKey = GlobalKey();
   _Mode _mode = _Mode.draw;
   Color _color = _palette.first;
@@ -91,42 +95,18 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen> {
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
+    if (_marks.isEmpty) return;
     final last = _marks.last;
     if (last is! _Stroke) return;
     setState(() => last.points.add(details.localPosition));
   }
 
   Future<void> _placeText(Offset position) async {
-    final l10n = AppLocalizations.of(context);
-    final controller = TextEditingController();
     final text = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        content: NexAutoDirection(
-          controller: controller,
-          builder: (context, direction) => TextField(
-            controller: controller,
-            selectionWidthStyle: ui.BoxWidthStyle.tight,
-            contextMenuBuilder: nexReadingMenu,
-            autofocus: true,
-            textDirection: direction,
-            textAlign: TextAlign.start,
-            decoration: InputDecoration(hintText: l10n.annotateTextHint),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
+      builder: (_) => const _AnnotationTextDialog(),
     );
-    if (text == null || text.trim().isEmpty) return;
+    if (!mounted || text == null || text.trim().isEmpty) return;
     setState(() {
       _marks.add(
         _TextMark(text: text.trim(), position: position, color: _color),
@@ -146,7 +126,7 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen> {
 
   Future<void> _done() async {
     if (!_hasChanges) {
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(widget.image);
       return;
     }
     setState(() => _saving = true);
@@ -172,187 +152,217 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen> {
     final ratio = _nativeWidth == null || _nativeHeight == null
         ? 1.0
         : _nativeWidth! / _nativeHeight!;
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(l10n.annotateTitle),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: ratio,
-                child: RepaintBoundary(
-                  key: _boundaryKey,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.memory(widget.image, fit: BoxFit.contain),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onPanStart: _mode == _Mode.draw ? _onPanStart : null,
-                        onPanUpdate: _mode == _Mode.draw ? _onPanUpdate : null,
-                        onTapUp: _mode == _Mode.text
-                            ? (d) => unawaited(_placeText(d.localPosition))
-                            : null,
-                        child: CustomPaint(
-                          painter: _StrokePainter(
-                            _marks.whereType<_Stroke>().toList(),
-                          ),
-                        ),
-                      ),
-                      for (final mark in _marks.whereType<_TextMark>())
-                        Positioned(
-                          left: mark.position.dx,
-                          top: mark.position.dy,
-                          child: GestureDetector(
-                            onPanUpdate: (d) {
-                              final boundary =
-                                  _boundaryKey.currentContext
-                                          ?.findRenderObject()
-                                      as RenderBox?;
-                              if (boundary == null) return;
-                              setState(() {
-                                final next = mark.position + d.delta;
-                                mark.position = Offset(
-                                  next.dx.clamp(0, boundary.size.width),
-                                  next.dy.clamp(0, boundary.size.height),
-                                );
-                              });
-                            },
-                            child: Text(
-                              mark.text,
-                              style: TextStyle(
-                                color: mark.color,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w600,
-                                shadows: const [
-                                  Shadow(blurRadius: 4, color: Colors.black87),
-                                ],
-                              ),
+    return guardDraft(
+      Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: Text(l10n.annotateTitle),
+          leading: IconButton(
+            tooltip: l10n.closeLabel,
+            onPressed: requestDiscard,
+            icon: const Icon(Icons.close),
+          ),
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: ratio,
+                  child: RepaintBoundary(
+                    key: _boundaryKey,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.memory(widget.image, fit: BoxFit.contain),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onPanStart: _mode == _Mode.draw ? _onPanStart : null,
+                          onPanUpdate: _mode == _Mode.draw
+                              ? _onPanUpdate
+                              : null,
+                          onTapUp: _mode == _Mode.text
+                              ? (d) => unawaited(_placeText(d.localPosition))
+                              : null,
+                          child: CustomPaint(
+                            painter: _StrokePainter(
+                              _marks.whereType<_Stroke>().toList(),
                             ),
                           ),
                         ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (_mode == _Mode.text)
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(
-                l10n.annotateTapToPlaceText,
-                style: const TextStyle(color: Colors.white70),
-              ),
-            ),
-          SafeArea(
-            top: false,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF171717),
-                border: Border(top: BorderSide(color: Color(0xFF383838))),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SegmentedButton<_Mode>(
-                    segments: [
-                      ButtonSegment(
-                        value: _Mode.draw,
-                        icon: const Icon(Icons.brush_outlined),
-                        label: Text(l10n.annotateDraw),
-                      ),
-                      ButtonSegment(
-                        value: _Mode.text,
-                        icon: const Icon(Icons.text_fields),
-                        label: Text(l10n.annotateText),
-                      ),
-                    ],
-                    selected: {_mode},
-                    onSelectionChanged: (selection) =>
-                        setState(() => _mode = selection.first),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      for (final swatch in _palette)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: GestureDetector(
-                            onTap: () => setState(() => _color = swatch),
-                            child: Container(
-                              width: 34,
-                              height: 34,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: swatch,
-                                border: Border.all(
-                                  color: _color == swatch
-                                      ? Colors.white
-                                      : Colors.white24,
-                                  width: _color == swatch ? 3 : 1,
+                        for (final mark in _marks.whereType<_TextMark>())
+                          Positioned(
+                            left: mark.position.dx,
+                            top: mark.position.dy,
+                            child: GestureDetector(
+                              onPanUpdate: (d) {
+                                final boundary =
+                                    _boundaryKey.currentContext
+                                            ?.findRenderObject()
+                                        as RenderBox?;
+                                if (boundary == null) return;
+                                setState(() {
+                                  final next = mark.position + d.delta;
+                                  mark.position = Offset(
+                                    next.dx.clamp(0, boundary.size.width),
+                                    next.dy.clamp(0, boundary.size.height),
+                                  );
+                                });
+                              },
+                              child: Text(
+                                mark.text,
+                                style: TextStyle(
+                                  color: mark.color,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w600,
+                                  shadows: const [
+                                    Shadow(
+                                      blurRadius: 4,
+                                      color: Colors.black87,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                  if (_mode == _Mode.draw)
-                    Slider(
-                      value: _strokeWidth,
-                      min: 2,
-                      max: 20,
-                      onChanged: (value) =>
-                          setState(() => _strokeWidth = value),
+                      ],
                     ),
-                  Row(
-                    children: [
-                      IconButton(
-                        tooltip: l10n.annotateUndo,
-                        icon: const Icon(Icons.undo),
-                        onPressed: _marks.isEmpty ? null : _undo,
-                      ),
-                      IconButton(
-                        tooltip: l10n.annotateClear,
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: _marks.isEmpty ? null : _clear,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: _saving ? null : _done,
-                          icon: _saving
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.check),
-                          label: Text(l10n.annotateDone),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(50),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+            if (_mode == _Mode.text)
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  l10n.annotateTapToPlaceText,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ),
+            SafeArea(
+              top: false,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF171717),
+                  border: Border(top: BorderSide(color: Color(0xFF383838))),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SegmentedButton<_Mode>(
+                      segments: [
+                        ButtonSegment(
+                          value: _Mode.draw,
+                          icon: const Icon(Icons.brush_outlined),
+                          label: Text(l10n.annotateDraw),
+                        ),
+                        ButtonSegment(
+                          value: _Mode.text,
+                          icon: const Icon(Icons.text_fields),
+                          label: Text(l10n.annotateText),
+                        ),
+                      ],
+                      selected: {_mode},
+                      onSelectionChanged: (selection) =>
+                          setState(() => _mode = selection.first),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (final (index, swatch) in _palette.indexed)
+                          Semantics(
+                            button: true,
+                            selected: _color == swatch,
+                            label: l10n.annotateColor(
+                              const [
+                                'white',
+                                'black',
+                                'red',
+                                'yellow',
+                                'green',
+                                'blue',
+                              ][index],
+                            ),
+                            child: InkResponse(
+                              onTap: () => setState(() => _color = swatch),
+                              child: SizedBox.square(
+                                dimension: 48,
+                                child: Center(
+                                  child: Container(
+                                    width: 30,
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: swatch,
+                                      border: Border.all(
+                                        color: _color == swatch
+                                            ? Colors.white
+                                            : Colors.white24,
+                                        width: _color == swatch ? 3 : 1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (_mode == _Mode.draw)
+                      Slider(
+                        semanticFormatterCallback: (value) =>
+                            '${l10n.annotateStrokeWidth}: ${value.round()}',
+                        value: _strokeWidth,
+                        min: 2,
+                        max: 20,
+                        onChanged: (value) =>
+                            setState(() => _strokeWidth = value),
+                      ),
+                    Row(
+                      children: [
+                        IconButton(
+                          tooltip: l10n.annotateUndo,
+                          icon: const Icon(Icons.undo),
+                          onPressed: _marks.isEmpty ? null : _undo,
+                        ),
+                        IconButton(
+                          tooltip: l10n.annotateClear,
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: _marks.isEmpty ? null : _clear,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: _saving ? null : _done,
+                            icon: _saving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.check),
+                            label: Text(l10n.annotateDone),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(50),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -392,4 +402,48 @@ class _StrokePainter extends CustomPainter {
   @override
   bool shouldRepaint(_StrokePainter oldDelegate) =>
       oldDelegate.strokes != strokes;
+}
+
+class _AnnotationTextDialog extends StatefulWidget {
+  const _AnnotationTextDialog();
+  @override
+  State<_AnnotationTextDialog> createState() => _AnnotationTextDialogState();
+}
+
+class _AnnotationTextDialogState extends State<_AnnotationTextDialog> {
+  final _text = TextEditingController();
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      content: NexAutoDirection(
+        controller: _text,
+        builder: (context, direction) => TextField(
+          controller: _text,
+          autofocus: true,
+          textDirection: direction,
+          textAlign: TextAlign.start,
+          selectionWidthStyle: ui.BoxWidthStyle.tight,
+          contextMenuBuilder: nexReadingMenu,
+          decoration: InputDecoration(hintText: l10n.annotateTextHint),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _text.text),
+          child: Text(l10n.save),
+        ),
+      ],
+    );
+  }
 }

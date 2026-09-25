@@ -24,6 +24,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.UUID
+import org.json.JSONObject
 
 open class MainActivity : FlutterFragmentActivity() {
     /**
@@ -37,7 +39,17 @@ open class MainActivity : FlutterFragmentActivity() {
     protected open val closesAfterShare = false
 
     private var channel: MethodChannel? = null
-    private var pending: Map<String, String>? = null
+    private val pending = linkedMapOf<String, Map<String, String>>()
+    private val deferred = mutableSetOf<String>()
+    private val inbox by lazy { getSharedPreferences("capture_inbox", MODE_PRIVATE) }
+
+    private fun nextCapture(): Map<String, String>? {
+        pending.values.firstOrNull { it["requestId"] !in deferred }?.let { return it }
+        return inbox.all.entries.firstOrNull { it.key !in deferred }?.let {
+            val json = JSONObject(it.value as String)
+            json.keys().asSequence().associateWith { key -> json.getString(key) }
+        }
+    }
     private var picker: MethodChannel.Result? = null
 
     /**
@@ -98,7 +110,22 @@ open class MainActivity : FlutterFragmentActivity() {
         super.configureFlutterEngine(engine)
         channel = MethodChannel(engine.dartExecutor.binaryMessenger, "nex/os_capture")
         channel?.setMethodCallHandler { call, result -> when (call.method) {
-            "takePending" -> { result.success(pending); pending = null }
+            "peekPending" -> result.success(nextCapture())
+            "ackPending" -> {
+                val id = call.argument<String>("requestId")
+                if (id != null) {
+                    pending.remove(id)
+                    if (!inbox.edit().remove(id).commit()) {
+                        result.error("inbox_write", "Could not acknowledge capture", null)
+                        return@setMethodCallHandler
+                    }
+                }
+                result.success(null)
+            }
+            "deferPending" -> {
+                call.argument<String>("requestId")?.let { deferred.add(it) }
+                result.success(null)
+            }
             // Fetch the file a share referred to, now that Dart has decided
             // it is worth having. Split from the share itself so that a file
             // over the limit costs a metadata query instead of a full copy.
@@ -143,6 +170,10 @@ open class MainActivity : FlutterFragmentActivity() {
                 }
                 result.success(openChannelSettings(channel))
             }
+            "openSecuritySettings" -> {
+                startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
+                result.success(null)
+            }
             "isShareWindow" -> result.success(closesAfterShare)
             // Say what happened to the share, and close the window if this is
             // the one that only existed to receive it.
@@ -153,6 +184,11 @@ open class MainActivity : FlutterFragmentActivity() {
             // from Dart: the app's language is a preference, and the platform
             // only knows the device's.
             "shareDone" -> {
+                if (nextCapture() != null) {
+                    result.success(false)
+                    channel?.invokeMethod("onOsCapture", emptyMap<String, String>())
+                    return@setMethodCallHandler
+                }
                 val message = call.argument<String>("message")
                 if (!message.isNullOrBlank()) {
                     Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
@@ -391,8 +427,19 @@ open class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun enqueue(value: Map<String, String>, live: Boolean) {
-        pending = value
-        if (live) channel?.invokeMethod("onOsCapture", value)
+        val requestId = intent.getStringExtra("nex.captureRequestId")
+            ?: UUID.randomUUID().toString().also { intent.putExtra("nex.captureRequestId", it) }
+        val payload = value + ("requestId" to requestId)
+        if (value["type"]?.startsWith("shared_") == true) {
+            // Keep deliveries until Dart acknowledges the committed database row.
+            // SharedPreferences is process-wide, including both Flutter engines.
+            if (!inbox.edit().putString(requestId, JSONObject(payload).toString()).commit()) {
+                pending[requestId] = payload
+            }
+        } else {
+            pending[requestId] = payload
+        }
+        if (live) channel?.invokeMethod("onOsCapture", emptyMap<String, String>())
     }
 
     /**
@@ -572,17 +619,27 @@ open class MainActivity : FlutterFragmentActivity() {
         }
     }
 
-    private fun copyUri(uri: Uri): Map<String, String>? = try {
+    private fun copyUri(uri: Uri): Map<String, String>? {
+      return try {
+        // An exported Activity must not copy its own private files on behalf
+        // of another app, including through a symlink or our FileProvider.
+        if (uri.scheme == "file") {
+            val source = File(uri.path ?: return null).canonicalFile
+            val privateRoot = File(applicationInfo.dataDir).canonicalFile
+            if (source == privateRoot || source.path.startsWith(privateRoot.path + File.separator)) return null
+        }
+        if (uri.scheme == "content" && packageManager.resolveContentProvider(uri.authority ?: "", 0)?.applicationInfo?.uid == applicationInfo.uid) return null
         val name = displayName(uri) ?: "shared-${System.currentTimeMillis()}"
-        val safe = name.replace(Regex("[^A-Za-z0-9._ -]"), "_")
+        val extension = name.substringAfterLast('.', "").takeIf { it.matches(Regex("[A-Za-z0-9]{1,10}")) }
         val out = File(cacheDir, "shared").apply { mkdirs() }
-            .resolve("${System.currentTimeMillis()}-$safe")
+            .resolve(UUID.randomUUID().toString() + (extension?.let { ".$it" } ?: ""))
         contentResolver.openInputStream(uri)?.use { input ->
             FileOutputStream(out).use { output -> input.copyTo(output) }
         } ?: return null
         mapOf("path" to out.absolutePath, "filename" to name,
               "mimeType" to (contentResolver.getType(uri) ?: "application/octet-stream"))
-    } catch (_: Exception) { null }
+      } catch (_: Exception) { null }
+    }
 
     /**
      * Everything about a shared file that can be known without reading it.

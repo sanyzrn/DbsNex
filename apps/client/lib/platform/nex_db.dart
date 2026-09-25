@@ -21,6 +21,7 @@ abstract interface class NexDb {
   Future<Note?> getById(String id);
 
   Future<Note?> captureText(String content);
+  Future<Note?> captureShared(Map<String, String> payload);
 
   /// Null when the list is empty, the same as an empty text capture.
   Future<Note?> captureChecklist(List<ChecklistItem> items);

@@ -68,13 +68,13 @@ Future<void> _placeText(WidgetTester tester, Offset at, String text) async {
 }
 
 void main() {
-  testWidgets('nothing drawn or typed means Done pops null', (tester) async {
+  testWidgets('Done without marks confirms the original image', (tester) async {
     final getResult = await _pushAnnotateScreen(tester);
 
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
-    expect(getResult(), isNull);
+    expect(getResult(), equals(_testPng));
   });
 
   testWidgets(

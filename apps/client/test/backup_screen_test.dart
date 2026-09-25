@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nex_data/nex_data.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/backup_policy.dart';
@@ -44,6 +45,37 @@ void main() {
     await services.dispose();
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
+
+  test(
+    'failed restore requests a restart and retains the original library plus a safety copy',
+    () async {
+      final note = await services.captureText('keep this note');
+      final invalid = File(p.join(tmp.path, 'invalid.nexbak'))
+        ..writeAsStringSync('not a backup');
+      final result = await services.restoreBackup(invalid);
+      expect(result.error, isNotNull);
+      final reopened = NexDatabase.open(services.dbPath);
+      try {
+        expect(
+          SqliteNoteRepository(reopened).getById(note!.id)?.content,
+          'keep this note',
+        );
+      } finally {
+        reopened.close();
+      }
+      expect(
+        Directory(
+          p.join(services.backupDir, 'before-restore'),
+        ).listSync().where((f) => f.path.endsWith('.nexbak')),
+        hasLength(1),
+      );
+      expect(
+        await services.listBackups(),
+        hasLength(1),
+        reason: 'The recovery copy must be visible and selectable in Backups.',
+      );
+    },
+  );
 
   test('a brand-new install does not back up an empty library', () async {
     // Reported as "there is already a backup on a fresh install". There was:

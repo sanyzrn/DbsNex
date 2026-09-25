@@ -1043,7 +1043,7 @@ abstract class AppLocalizations {
   /// No description provided for @silenceBody.
   ///
   /// In en, this message translates to:
-  /// **'Nex never sends notifications, badges, reminders, or engagement prompts.'**
+  /// **'Nex sends only the reminders and download notices you request. No engagement prompts or streaks.'**
   String get silenceBody;
 
   /// No description provided for @privacy.
@@ -1385,7 +1385,7 @@ abstract class AppLocalizations {
   /// No description provided for @restoreBody.
   ///
   /// In en, this message translates to:
-  /// **'Replace the local database with the newest verified backup?'**
+  /// **'Replace this library with the selected backup? A safety copy of the current library will be kept on this device before restoration.'**
   String get restoreBody;
 
   /// No description provided for @deleteBackup.
@@ -2297,7 +2297,7 @@ abstract class AppLocalizations {
   /// Says what an export actually contains
   ///
   /// In en, this message translates to:
-  /// **'Writes every note into one zip: the full data as JSON, a readable Markdown file per note, and every photo, recording and attachment. Nothing is left behind and nothing is uploaded — the file is handed to you.'**
+  /// **'Exports notes, tags and attachments as JSON and Markdown in a ZIP. To preserve reminders, commitments and assistant memory too, share a library backup below.'**
   String get exportExplained;
 
   /// Button that builds the archive and opens the share sheet
@@ -2345,7 +2345,7 @@ abstract class AppLocalizations {
   /// Says what local backups are and are not for
   ///
   /// In en, this message translates to:
-  /// **'Once a day, Nex copies its database into its own folder — the text, tags and dates, not the photos, recordings or attachments those notes point to. It is protection against a bad restore or a corrupted file, on this device. For a copy that includes the media, or to move to another device, export.'**
+  /// **'Nex automatically backs up the library and its media on this device. Local copies do not protect against losing the device. Use Share beside a backup to keep a copy elsewhere.'**
   String get localBackupsExplained;
 
   /// Takes a backup outside the daily schedule
@@ -3029,7 +3029,7 @@ abstract class AppLocalizations {
   /// Onboarding page 4 body
   ///
   /// In en, this message translates to:
-  /// **'No notifications, no badges, no reminders, no streaks. Your notes stay on this device unless you set up syncing yourself.'**
+  /// **'Reminders are optional. No engagement prompts or streaks. Cloud AI and syncing send data only when you configure and use them.'**
   String get onboardingSilenceBody;
 
   /// Onboarding page 5 heading
@@ -4717,6 +4717,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No summary came back for this note.'**
   String get summarizeFailed;
+
+  /// No description provided for @fullBackupExplained.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a .nexbak library backup to restore notes, media, reminders, commitments and assistant memory. App preferences, profile and downloaded AI models are not included.'**
+  String get fullBackupExplained;
+
+  /// No description provided for @unsavedChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard unsaved changes?'**
+  String get unsavedChanges;
+
+  /// No description provided for @keepEditing.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get keepEditing;
+
+  /// No description provided for @checklistItemCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 item} other{{count} items}}'**
+  String checklistItemCount(int count);
+
+  /// No description provided for @annotateColor.
+  ///
+  /// In en, this message translates to:
+  /// **'{color, select, white{White} black{Black} red{Red} yellow{Yellow} green{Green} blue{Blue} other{Color}}'**
+  String annotateColor(String color);
+
+  /// No description provided for @annotateStrokeWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Stroke width'**
+  String get annotateStrokeWidth;
+
+  /// No description provided for @playAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Play audio'**
+  String get playAudio;
+
+  /// No description provided for @pauseAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause audio'**
+  String get pauseAudio;
 }
 
 class _AppLocalizationsDelegate

@@ -1250,6 +1250,12 @@ class TimelineScreenState extends State<TimelineScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ListTile(
+              title: Text(
+                l10n.filters,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
             for (final type in <NoteType?>[null, ...NoteType.values])
               ListTile(
                 leading: Icon(nexNoteTypeIcon(type?.wireName)),
@@ -1484,6 +1490,7 @@ class TimelineScreenState extends State<TimelineScreen>
   Future<void> captureChecklist() async {
     final items = await nexShowSheet<List<ChecklistItem>>(
       context: context,
+      dismissible: false,
       builder: (_) => ChecklistCaptureSheet(preferences: widget.preferences),
     );
     if (items == null || items.isEmpty) return;
@@ -1495,6 +1502,7 @@ class TimelineScreenState extends State<TimelineScreen>
   Future<void> captureLink() async {
     final url = await nexShowSheet<String>(
       context: context,
+      dismissible: false,
       builder: (_) => LinkCaptureSheet(preferences: widget.preferences),
     );
     if (url == null) return;
@@ -2256,6 +2264,10 @@ class TimelineScreenState extends State<TimelineScreen>
                                     controller: _swipe,
                                     child: TagFilterRow(
                                       tags: filterTags,
+                                      hasOtherFilters:
+                                          selectedType != null || onlyReminders,
+                                      onClearAll: () =>
+                                          unawaited(_clearFilters()),
                                       selectedTagIds: selectedTagIds,
                                       allLabel: l10n.all,
                                       leading: _FilterButton(
@@ -3241,9 +3253,7 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
       AnimatedContainer(
         duration: NexMotion.standard,
         curve: NexMotion.curve,
-        color: overlaps
-            ? Theme.of(context).colorScheme.surface
-            : Colors.transparent,
+        color: Theme.of(context).colorScheme.surface,
         child: child,
       );
 

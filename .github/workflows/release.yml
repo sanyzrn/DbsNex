@@ -5,8 +5,8 @@ name: Release
 # manually.
 #
 # The release is published to RELEASES_REPO — a separate, public repo — not to
-# this one. This repo is private; GitHub's release API and asset downloads both
-# require authentication once a repo is private, and the in-app updater has no
+# this one. The source repository is currently public; GitHub's API and assets
+# would require authentication if made private, and the in-app updater has no
 # way to hold a credential for that without shipping a token inside the app
 # that anyone could pull back out of it. A public releases-only repo needs no
 # token in the client at all.
@@ -18,7 +18,7 @@ name: Release
 #      has no default branch for the tag to point at.
 #   2. Generate a fine-grained PAT scoped to *only* that repo, with
 #      Contents: Read and write — nothing else.
-#   3. Add it to this (private) repo's secrets as RELEASES_REPO_TOKEN.
+#   3. Add it to this source repo's secrets as RELEASES_REPO_TOKEN.
 #
 # On the "Source code (zip)" and "(tar.gz)" entries: GitHub attaches those to
 # every release and offers no way to turn them off. Publishing to a separate
@@ -220,6 +220,8 @@ jobs:
       - run: flutter pub get
 
       - name: Build App Bundle (Play) and split APKs (direct download)
+        env:
+          NEX_FEEDBACK_API_URL: ${{ vars.NEX_FEEDBACK_API_URL }}
         run: |
           # --flavor ai, from v0.9.6 on. "ai" is the flavor people install:
           # it is the whole app plus an on-device model they may or may not
@@ -235,10 +237,12 @@ jobs:
           # omitting this would publish an "ai" APK with no AI in it.
           flutter build appbundle --release --flavor ai \
             --target lib/main_ai.dart \
+            --dart-define="NEX_FEEDBACK_API_URL=$NEX_FEEDBACK_API_URL" \
             --build-name=${{ needs.version.outputs.base }} \
             --build-number=${{ needs.version.outputs.code }}
           flutter build apk --release --flavor ai --split-per-abi \
             --target lib/main_ai.dart \
+            --dart-define="NEX_FEEDBACK_API_URL=$NEX_FEEDBACK_API_URL" \
             --build-name=${{ needs.version.outputs.base }} \
             --build-number=${{ needs.version.outputs.code }}
           # The universal APK is what the in-app updater downloads: it cannot
@@ -247,6 +251,7 @@ jobs:
           # always correct.
           flutter build apk --release --flavor ai \
             --target lib/main_ai.dart \
+            --dart-define="NEX_FEEDBACK_API_URL=$NEX_FEEDBACK_API_URL" \
             --build-name=${{ needs.version.outputs.base }} \
             --build-number=${{ needs.version.outputs.code }}
 

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' show Random;
 
-import 'package:archive/archive.dart';
+import 'package:archive/archive_io.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
@@ -73,6 +73,52 @@ class SqliteNoteRepository implements NoteRepository {
   final String? localDeviceId;
 
   Database get db => _db.db;
+
+  /// Commits the note and its delivery receipt together. Re-delivery after an
+  /// engine restart or a lost platform acknowledgement cannot create a copy.
+  Note? captureShared(Map<String, String> payload) {
+    final requestId = payload['requestId'];
+    if (requestId == null || requestId.isEmpty) {
+      throw ArgumentError('A shared capture requires a request id');
+    }
+    db.execute('BEGIN IMMEDIATE');
+    try {
+      final receipt = db.select(
+        'SELECT note_id FROM capture_receipts WHERE request_id = ?',
+        [requestId],
+      );
+      if (receipt.isNotEmpty) {
+        final note = getById(receipt.first['note_id'] as String);
+        db.execute('COMMIT');
+        return note;
+      }
+      final capture = CaptureService(this, deviceId: localDeviceId!);
+      final Note? note = switch (payload['type']) {
+        'shared_text' => capture.submitTextCapture(payload['text'] ?? ''),
+        'shared_photo' => capture.submitPhotoCapture(
+          mediaUri: payload['mediaUri']!,
+          mediaHash: payload['mediaHash']!,
+        ),
+        'shared_file' => capture.submitFileCapture(
+          mediaUri: payload['mediaUri']!,
+          mediaHash: payload['mediaHash']!,
+          originalFilename: payload['filename'],
+          mimeType: payload['mimeType'],
+        ),
+        _ => throw ArgumentError('Unsupported shared capture'),
+      };
+      if (note == null) throw ArgumentError('Empty shared capture');
+      db.execute('INSERT INTO capture_receipts VALUES (?, ?)', [
+        requestId,
+        note.id,
+      ]);
+      db.execute('COMMIT');
+      return note;
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    }
+  }
 
   @override
   Note insert(Note note) {
@@ -1193,46 +1239,53 @@ LIMIT ?
         .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
         .toList();
 
-    final archive = Archive();
-    final jsonPayload = jsonEncode({
-      'version': 1,
-      'exported_at': DateTime.now().toUtc().toIso8601String(),
-      'notes': noteModels.map((n) => n.toJson()).toList(),
-      'tags': tags.map((t) => t.toJson()).toList(),
-    });
-    archive.addFile(
-      ArchiveFile('notes.json', jsonPayload.length, utf8.encode(jsonPayload)),
-    );
-    final usedMediaNames = <String>{};
-
-    for (final note in noteModels) {
-      final md = _markdownFor(note);
-      final bytes = utf8.encode(md);
-      archive.addFile(
-        ArchiveFile('markdown/${note.id}.md', bytes.length, bytes),
-      );
-      if (note.mediaUri != null) {
-        final src = File(note.mediaUri!);
-        if (src.existsSync()) {
-          // Two notes can legitimately carry files with the same basename
-          // (a photo exported twice, a recording re-made under the same
-          // second). Flattening by name silently kept only the last one —
-          // the archive looked complete and had one fewer photo in it.
-          // On a collision the note's id goes in front, which is unique by
-          // construction; the importer knows to look for both spellings.
-          final name = p.basename(note.mediaUri!);
-          final firstUse = usedMediaNames.add(name);
-          final entryName = firstUse ? name : '${note.id}-$name';
-          final data = src.readAsBytesSync();
-          archive.addFile(ArchiveFile('media/$entryName', data.length, data));
-        }
-      }
-    }
-
-    final encoded = ZipEncoder().encode(archive);
     final out = File(outputPath);
     out.parent.createSync(recursive: true);
-    out.writeAsBytesSync(encoded);
+    final partial = File('$outputPath.partial');
+    final encoder = ZipFileEncoder()..create(partial.path);
+    try {
+      final jsonPayload = jsonEncode({
+        'version': 1,
+        'exported_at': DateTime.now().toUtc().toIso8601String(),
+        'notes': noteModels.map((n) => n.toJson()).toList(),
+        'tags': tags.map((t) => t.toJson()).toList(),
+      });
+      final jsonBytes = utf8.encode(jsonPayload);
+      encoder.addArchiveFile(
+        ArchiveFile('notes.json', jsonBytes.length, jsonBytes),
+      );
+      final usedMediaNames = <String>{};
+
+      for (final note in noteModels) {
+        final md = _markdownFor(note);
+        final bytes = utf8.encode(md);
+        encoder.addArchiveFile(
+          ArchiveFile('markdown/${note.id}.md', bytes.length, bytes),
+        );
+        if (note.mediaUri != null) {
+          final src = File(note.mediaUri!);
+          if (src.existsSync()) {
+            // Two notes can legitimately carry files with the same basename
+            // (a photo exported twice, a recording re-made under the same
+            // second). Flattening by name silently kept only the last one —
+            // the archive looked complete and had one fewer photo in it.
+            // On a collision the note's id goes in front, which is unique by
+            // construction; the importer knows to look for both spellings.
+            final name = p.basename(note.mediaUri!);
+            final firstUse = usedMediaNames.add(name);
+            final entryName = firstUse ? name : '${note.id}-$name';
+            encoder.addFileSync(src, 'media/$entryName');
+          }
+        }
+      }
+
+      encoder.closeSync();
+      partial.renameSync(out.path);
+    } catch (_) {
+      encoder.closeSync();
+      if (partial.existsSync()) partial.deleteSync();
+      rethrow;
+    }
     return out;
   }
 
@@ -1253,112 +1306,126 @@ LIMIT ?
     required File archiveFile,
     required String mediaRoot,
   }) async {
-    final bytes = await archiveFile.readAsBytes();
-    final archive = ZipDecoder().decodeBytes(bytes);
-    final jsonFile = archive.findFile('notes.json');
-    if (jsonFile == null) {
-      throw const FormatException('not a Nex export: notes.json is missing');
-    }
-    final payload =
-        jsonDecode(utf8.decode(jsonFile.content as List<int>))
-            as Map<String, dynamic>;
-
-    var imported = 0;
-    var skipped = 0;
-    // One transaction around the whole import. A failure halfway through used
-    // to leave a partial import on disk — half the notes, and a re-import of
-    // the same file would then skip everything already landed, so the user
-    // could not even heal it by trying again. All of it applies, or none.
-    //
-    // The tags are inside it too. They used to be written in a loop above
-    // this line, so "all of it applies, or none" was not true of them: an
-    // archive whose notes failed to parse still left its tags behind, and the
-    // rollback below could not reach them.
-    db.execute('BEGIN IMMEDIATE');
+    final input = InputFileStream(archiveFile.path);
     try {
-      for (final raw in (payload['tags'] as List? ?? const [])) {
-        final tag = raw as Map<String, dynamic>;
-        upsertTagFromSync(
-          id: tag['id']! as String,
-          name: tag['name']! as String,
-          color: tag['color'] as String?,
-          createdAt: DateTime.parse(tag['created_at']! as String),
-        );
+      final archive = ZipDecoder().decodeStream(input);
+      final jsonFile = archive.findFile('notes.json');
+      if (jsonFile == null) {
+        throw const FormatException('not a Nex export: notes.json is missing');
       }
-      for (final raw in (payload['notes'] as List? ?? const [])) {
-        final json = raw as Map<String, dynamic>;
-        final note = Note.fromRow(json);
-        if (db.select('SELECT id FROM notes WHERE id = ?', [
-          note.id,
-        ]).isNotEmpty) {
-          skipped++;
-          continue;
-        }
+      final payload =
+          jsonDecode(utf8.decode(jsonFile.content as List<int>))
+              as Map<String, dynamic>;
 
-        String? mediaUri;
-        if (note.mediaUri != null) {
-          final name = p.basename(note.mediaUri!);
-          // The id-prefixed spelling first, and that order is the fix. The
-          // exporter writes it *only* when the bare name was already taken by
-          // another note — so a note that has an id-prefixed entry is exactly
-          // a note whose bare name belongs to somebody else. Looking the bare
-          // name up first therefore handed the second note the first note's
-          // bytes, silently, on a round trip the exporter had gone out of its
-          // way to keep lossless.
-          var entry = archive.findFile('media/${note.id}-$name');
-          entry ??= archive.findFile('media/$name');
-          if (entry != null) {
-            // A destination of its own, for the same reason. Both notes used
-            // to be written to `<root>/<basename>`, so even with the right
-            // bytes the second overwrote the first and the two rows ended up
-            // sharing one file — which the purge then deleted out from under
-            // whichever note was not the one being purged.
-            final target = File(p.join(mediaRoot, '${note.id}-$name'));
-            target.parent.createSync(recursive: true);
-            target.writeAsBytesSync(entry.content as List<int>);
-            mediaUri = target.path;
+      var imported = 0;
+      var skipped = 0;
+      // One transaction around the whole import. A failure halfway through used
+      // to leave a partial import on disk — half the notes, and a re-import of
+      // the same file would then skip everything already landed, so the user
+      // could not even heal it by trying again. All of it applies, or none.
+      //
+      // The tags are inside it too. They used to be written in a loop above
+      // this line, so "all of it applies, or none" was not true of them: an
+      // archive whose notes failed to parse still left its tags behind, and the
+      // rollback below could not reach them.
+      db.execute('BEGIN IMMEDIATE');
+      try {
+        for (final raw in (payload['tags'] as List? ?? const [])) {
+          final tag = raw as Map<String, dynamic>;
+          upsertTagFromSync(
+            id: tag['id']! as String,
+            name: tag['name']! as String,
+            color: tag['color'] as String?,
+            createdAt: DateTime.parse(tag['created_at']! as String),
+          );
+        }
+        for (final raw in (payload['notes'] as List? ?? const [])) {
+          final json = raw as Map<String, dynamic>;
+          final note = Note.fromRow(json);
+          if (db.select('SELECT id FROM notes WHERE id = ?', [
+            note.id,
+          ]).isNotEmpty) {
+            skipped++;
+            continue;
           }
-          // No media in the archive: the note still comes in, with its text
-          // and its tags. Losing the whole note over a missing attachment
-          // would be a worse trade than losing the attachment.
-        }
 
-        applyRemoteNote(
-          id: note.id,
-          type: note.type,
-          content: note.content,
-          mediaUri: mediaUri,
-          mediaHash: note.mediaHash,
-          durationMs: note.durationMs,
-          createdAt: note.createdAt,
-          updatedAt: note.updatedAt,
-          deletedAt: note.deletedAt,
-          deviceId: note.deviceId,
-          rev: note.rev,
-          tagIds: [
-            for (final tag in (json['tags'] as List? ?? const []))
-              (tag as Map<String, dynamic>)['id']! as String,
-          ],
-        );
-        // applyRemoteNote carries no captions, transcripts, summaries, titles
-        // or link excerpts — none of them are part of the sync wire — so they
-        // are written back here.
-        //
-        // Titles and link excerpts are on that list deliberately, alongside
-        // the caption they most resemble. What *does* cross the wire is
-        // `content`, which is where a checklist keeps its items and a link
-        // keeps its URL — so both of those new types sync as completely as a
-        // text note does, and it is only the annotation on top that stays
-        // local until the wire grows a field for it.
-        _restoreEnrichment(note);
-        imported++;
+          String? mediaUri;
+          if (note.mediaUri != null) {
+            final name = p.basename(note.mediaUri!);
+            // The id-prefixed spelling first, and that order is the fix. The
+            // exporter writes it *only* when the bare name was already taken by
+            // another note — so a note that has an id-prefixed entry is exactly
+            // a note whose bare name belongs to somebody else. Looking the bare
+            // name up first therefore handed the second note the first note's
+            // bytes, silently, on a round trip the exporter had gone out of its
+            // way to keep lossless.
+            var entry = archive.findFile('media/${note.id}-$name');
+            entry ??= archive.findFile('media/$name');
+            if (entry != null) {
+              // A destination of its own, for the same reason. Both notes used
+              // to be written to `<root>/<basename>`, so even with the right
+              // bytes the second overwrote the first and the two rows ended up
+              // sharing one file — which the purge then deleted out from under
+              // whichever note was not the one being purged.
+              final extension = p.extension(name);
+              final suffix =
+                  RegExp(r'^\.[a-zA-Z0-9]{1,10}$').hasMatch(extension)
+                  ? extension
+                  : '';
+              final target = File(p.join(mediaRoot, '${newUuidV7()}$suffix'));
+              target.parent.createSync(recursive: true);
+              final output = OutputFileStream(target.path);
+              try {
+                entry.writeContent(output);
+              } finally {
+                output.closeSync();
+              }
+              mediaUri = target.path;
+            }
+            // No media in the archive: the note still comes in, with its text
+            // and its tags. Losing the whole note over a missing attachment
+            // would be a worse trade than losing the attachment.
+          }
+
+          applyRemoteNote(
+            id: note.id,
+            type: note.type,
+            content: note.content,
+            mediaUri: mediaUri,
+            mediaHash: note.mediaHash,
+            durationMs: note.durationMs,
+            createdAt: note.createdAt,
+            updatedAt: note.updatedAt,
+            deletedAt: note.deletedAt,
+            deviceId: note.deviceId,
+            rev: note.rev,
+            tagIds: [
+              for (final tag in (json['tags'] as List? ?? const []))
+                (tag as Map<String, dynamic>)['id']! as String,
+            ],
+          );
+          // applyRemoteNote carries no captions, transcripts, summaries, titles
+          // or link excerpts — none of them are part of the sync wire — so they
+          // are written back here.
+          //
+          // Titles and link excerpts are on that list deliberately, alongside
+          // the caption they most resemble. What *does* cross the wire is
+          // `content`, which is where a checklist keeps its items and a link
+          // keeps its URL — so both of those new types sync as completely as a
+          // text note does, and it is only the annotation on top that stays
+          // local until the wire grows a field for it.
+          _restoreEnrichment(note);
+          imported++;
+        }
+        db.execute('COMMIT');
+      } catch (_) {
+        db.execute('ROLLBACK');
+        rethrow;
       }
-      db.execute('COMMIT');
-    } catch (_) {
-      db.execute('ROLLBACK');
-      rethrow;
+      return ImportResult(imported: imported, skipped: skipped);
+    } finally {
+      input.closeSync();
     }
-    return ImportResult(imported: imported, skipped: skipped);
   }
 
   void _restoreEnrichment(Note note) {
@@ -1413,6 +1480,9 @@ WHERE id = ?
   /// the media came to be left out of a backup in the first place, and a
   /// caller that genuinely has no media can pass a directory that does not
   /// exist.
+  File backupSnapshot(String backupDir) =>
+      NexBackupArchive.snapshotDatabase(database: _db, backupDir: backupDir);
+
   File backup(String backupDir, {required String mediaDir}) =>
       NexBackupArchive.create(
         database: _db,

@@ -50,7 +50,7 @@ suggestions, semantic search and related notes, each behind its own switch, agai
 provider you configure and can test, plus an assistant you can actually talk to about what
 you have written. Its tone is yours to set, including one you write yourself. It is the only
 part of Nex that can send a note off the device, it says so before it is switched on, and
-the name you go by never leaves it. See [`docs/09-ai.md`](./docs/09-ai.md).
+cloud requests may include your preferred name and selected note context. With only the offline model enabled, generation stays on the device. See [`docs/09-ai.md`](./docs/09-ai.md).
 
 **Comfort** — light, dark and system themes, an optional Liquid Glass appearance with four
 built-in backgrounds, an independent Comfort Mode that warms and softens any of them for

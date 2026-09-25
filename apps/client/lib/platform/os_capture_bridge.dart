@@ -255,58 +255,67 @@ class OsCaptureBridge {
   /// trade [NexVideoPreview.poster] states in its own doc comment, and the
   /// reason the reminder scheduling path had to be pulled apart before it
   /// could be covered at all.
+  bool shareFailed = false;
+  Future<void> Function()? onSettled;
+  Future<void>? _draining;
+  bool _disposed = false;
+
   Future<void> start() async {
     _channel.setMethodCallHandler((call) async {
-      if (call.method == 'onOsCapture' && call.arguments is Map) {
-        final payload = Map<Object?, Object?>.from(call.arguments as Map);
-        await handle(payload);
-        // Acknowledge it, or the same capture arrives twice.
-        //
-        // `enqueue` on the native side sets `pending` for *every* payload and
-        // clears it nowhere — `takePending` is the only thing that does. A
-        // live push therefore handled the capture and left a copy behind, and
-        // the next `start()` in the same process picked that copy up and
-        // captured it again. Restoring a backup is exactly that: it calls
-        // `NexRestartScope.restart()`, which builds a new bridge and starts
-        // it, same process and same Activity — so sharing a photo in and then
-        // restoring left two of it.
-        //
-        // After [handle], not before: a process killed mid-handle then still
-        // has the payload queued and captures it once on the next launch,
-        // where consuming first would have lost it outright.
-        await _consumePending();
-        _events.add(payload);
-      }
+      if (call.method == 'onOsCapture') await _notifySettled();
     });
+    await drain();
+  }
+
+  Future<void> drain() => _draining ??= _pump().whenComplete(() {
+    _draining = null;
+  });
+
+  Future<void> _pump() async {
     try {
-      final pending = await _channel.invokeMethod<dynamic>('takePending');
-      if (pending is Map) {
+      while (!_disposed) {
+        final pending = await _channel.invokeMethod<dynamic>('peekPending');
+        if (pending is! Map) break;
         final payload = Map<Object?, Object?>.from(pending);
-        _handledLaunchShare = _isShare(payload['type'] as String?);
-        await handle(payload);
-        _events.add(payload);
+        final id = payload['requestId'] as String;
+        try {
+          final saved = await handle(payload);
+          if (_isShare(payload['type'] as String?)) {
+            _handledLaunchShare |= saved;
+            if (!saved && _rejection == null) shareFailed = true;
+          }
+          await _channel.invokeMethod<void>('ackPending', {'requestId': id});
+          if (!_disposed) _events.add(payload);
+        } catch (error) {
+          shareFailed = true;
+          // Keep the request for the next launch, but do not retry forever
+          // on a full disk or an expired provider permission.
+          await _channel.invokeMethod<void>('deferPending', {'requestId': id});
+          await NexServices.noteDiagnostic('shared capture failed: $error');
+        }
       }
     } on MissingPluginException {
-      // The whole platform guard now, rather than belt and braces behind
-      // one. This call used to be
-      // unguarded, and on Windows — where nothing registers the channel — it
-      // threw straight out of `start()`, out of `NexServices.bootstrap`, and
-      // into the host's FutureBuilder. The app did not open a timeline at all
-      // on a shipped desktop target; it opened an error screen. Nothing in CI
-      // caught it, because the Windows job builds the app and never runs it.
+      // Desktop has no Android share inbox.
     }
   }
 
-  /// Clears the native side's copy of the payload just handled.
-  ///
-  /// Its return value is deliberately dropped: what came back is the same
-  /// thing that was just captured, and on a platform with no native half
-  /// there is nothing to clear.
-  Future<void> _consumePending() async {
-    try {
-      await _channel.invokeMethod<dynamic>('takePending');
-    } on MissingPluginException {
-      // No native side — nothing was queued in the first place.
+  Future<void>? _notifications;
+  bool _deliveryRequested = false;
+
+  /// Coalesce wake-ups while a batch is running. One hundred native signals
+  /// must not become one hundred success toasts or competing finish calls.
+  Future<void> _notifySettled() {
+    _deliveryRequested = true;
+    return _notifications ??= _consumeNotifications().whenComplete(
+      () => _notifications = null,
+    );
+  }
+
+  Future<void> _consumeNotifications() async {
+    while (_deliveryRequested && !_disposed) {
+      _deliveryRequested = false;
+      await drain();
+      if (!_disposed) await onSettled?.call();
     }
   }
 
@@ -316,60 +325,63 @@ class OsCaptureBridge {
   static bool _isShare(String? type) =>
       type == 'shared_text' || type == 'shared_photo' || type == 'shared_file';
 
-  Future<void> handle(Map<Object?, Object?> payload) async {
+  Future<bool> handle(Map<Object?, Object?> payload) async {
     final type = payload['type'] as String?;
     switch (type) {
       case 'text_capture':
-        // The Capture widget's whole job (FR-8.1). This used to be a bare
-        // `return`: the payload arrived, the app opened on the timeline, and
-        // the capture sheet the widget exists to open never did. The tap has
-        // been landing on nothing for as long as the widget has shipped.
         _dispatch(const PendingOsRequest.capture());
-        return;
+        return false;
       case 'open_note':
         final id = (payload['id'] as String?)?.trim() ?? '';
-        if (id.isEmpty) return;
-        _dispatch(PendingOsRequest.openNote(id));
-        return;
+        if (id.isNotEmpty) _dispatch(PendingOsRequest.openNote(id));
+        return false;
       case 'refresh_recap':
         _dispatch(const PendingOsRequest.refreshRecap());
-        return;
+        return false;
       case 'open_timeline':
         _dispatch(const PendingOsRequest.openTimeline());
-        return;
+        return false;
       case 'shared_text':
         final text = (payload['text'] as String?)?.trim() ?? '';
-        if (text.isEmpty) return;
-        await services.captureText(text);
-        await services.refreshTimeline();
+        if (text.isEmpty) throw StateError('The shared text is empty');
+        await services.worker.captureShared({
+          'requestId': payload['requestId'] as String? ?? newUuidV7(),
+          'type': type!,
+          'text': text,
+        });
       case 'shared_photo':
-        final file = await _fetch(payload);
-        if (file == null) return;
-        final name = payload['filename'] as String?;
-        final dest = await _copyIntoMedia(file, preferredName: name);
-        await services.capturePhoto(
-          mediaUri: dest,
-          mediaHash: await _hashOf(dest),
-        );
-        await _discardIncoming(file);
-        await services.refreshTimeline();
       case 'shared_file':
         final file = await _fetch(payload);
-        if (file == null) return;
-        final originalName = _resolveOriginalFilename(
+        if (file == null) return false; // Explicit size refusal.
+        final name = _resolveOriginalFilename(
           payload['filename'] as String?,
           file.path,
         );
-        final dest = await _copyIntoMedia(file, preferredName: originalName);
-        await services.captureFile(
-          mediaUri: dest,
-          mediaHash: await _hashOf(dest),
-          originalFilename: originalName,
-          mimeType: payload['mimeType'] as String?,
-        );
-        await _discardIncoming(file);
-        await services.refreshTimeline();
+        final dest = await _copyIntoMedia(file, preferredName: name);
+        // Keep the staged file if the database response is lost: the commit
+        // may already reference it. An unreferenced file is safer than a
+        // successful note pointing at bytes we deleted on an uncertain error.
+        final note = await services.worker.captureShared({
+          'requestId': payload['requestId'] as String? ?? newUuidV7(),
+          'type': type!,
+          'mediaUri': dest,
+          'mediaHash': await _hashOf(dest),
+          'filename': name,
+          if (payload['mimeType'] is String)
+            'mimeType': payload['mimeType'] as String,
+        });
+        if (note?.mediaUri != dest) await File(dest).delete();
+        // A desktop picker hands us the original, not a disposable cache copy.
+        if (payload['uri'] != null || isSupported) await _discardIncoming(file);
+      default:
+        return false;
     }
+    // The receipt is durable already. A failed timeline refresh must not
+    // turn a successful commit into a failed share or repeat it.
+    try {
+      await services.refreshTimeline();
+    } catch (_) {}
+    return true;
   }
 
   /// The file a share refers to, in hand and inside the limit — or null,
@@ -408,12 +420,18 @@ class OsCaptureBridge {
     final path =
         payload['path'] as String? ??
         await _copyShared(payload['uri'] as String?);
-    if (path == null) return null;
+    if (path == null) throw StateError('Could not read the shared attachment');
     final file = File(path);
-    if (!file.existsSync()) return null;
+    if (!file.existsSync()) throw StateError('Shared attachment is missing');
     // The backstop, for a provider that would not name a size and for the
     // picker's already-copied path. Same rule, later and more expensively.
-    if (await _refuseIfTooLarge(file, name)) return null;
+    if (await _refuseIfTooLarge(
+      file,
+      name,
+      disposable: payload['uri'] != null || isSupported,
+    )) {
+      return null;
+    }
     return file;
   }
 
@@ -499,7 +517,11 @@ class OsCaptureBridge {
   /// would not name a size. When the size is known, [_fetch] refuses before
   /// anything is copied and this is never reached. [_discardIncoming] takes
   /// back the copy in the cases where one was made.
-  Future<bool> _refuseIfTooLarge(File file, String? name) async {
+  Future<bool> _refuseIfTooLarge(
+    File file,
+    String? name, {
+    required bool disposable,
+  }) async {
     final bytes = await file.length();
     if (bytes <= maxAttachmentBytes) return false;
     _reject(
@@ -511,7 +533,7 @@ class OsCaptureBridge {
         limit: maxAttachmentBytes,
       ),
     );
-    await _discardIncoming(file);
+    if (disposable) await _discardIncoming(file);
     return true;
   }
 
@@ -568,7 +590,11 @@ class OsCaptureBridge {
     final base = preferredName?.trim().isNotEmpty == true
         ? p.basename(preferredName!.trim())
         : _humanizeBasename(p.basename(source.path));
-    final name = 'media-${DateTime.now().millisecondsSinceEpoch}-$base';
+    final extension = p.extension(base);
+    final safeExtension = RegExp(r'^\.[a-zA-Z0-9]{1,10}$').hasMatch(extension)
+        ? extension
+        : '';
+    final name = 'media-${newUuidV7()}$safeExtension';
     final dest = File('${services.mediaDir}/$name');
     await source.copy(dest.path);
     return dest.path;
@@ -589,6 +615,8 @@ class OsCaptureBridge {
   }
 
   void dispose() {
+    _disposed = true;
+    _channel.setMethodCallHandler(null);
     _events.close();
   }
 }

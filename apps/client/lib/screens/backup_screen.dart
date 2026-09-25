@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:path/path.dart' as p;
 
 import '../l10n/app_localizations.dart';
 import '../platform/sharing.dart';
@@ -134,6 +135,27 @@ class _BackupScreenState extends State<BackupScreen> {
     }
   });
 
+  Future<void> _shareBackup(File backup) => _guard(() async {
+    try {
+      await nexSendFileOut(backup.path, mimeType: 'application/zip');
+    } catch (error) {
+      if (mounted) {
+        _say(
+          '${AppLocalizations.of(context).exportFailed} (${NexServices.describeFailure(error)})',
+        );
+      }
+    }
+  });
+
+  Future<void> _chooseBackup() async {
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(label: 'Nex backup', extensions: ['nexbak', 'sqlite']),
+      ],
+    );
+    if (file != null && mounted) await _restore(File(file.path));
+  }
+
   Future<void> _deleteBackup(File backup) async {
     final l10n = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
@@ -158,13 +180,17 @@ class _BackupScreenState extends State<BackupScreen> {
     await _load();
   }
 
-  Future<void> _restore(File backup) async {
+  Future<void> _restore(File backup) => _guard(() => _confirmRestore(backup));
+
+  Future<void> _confirmRestore(File backup) async {
     final l10n = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.restoreBackup),
-        content: NexDialogBody(child: Text(l10n.restoreBody)),
+        content: NexDialogBody(
+          child: Text('${l10n.restoreBody}\n\n${p.basename(backup.path)}'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -181,9 +207,26 @@ class _BackupScreenState extends State<BackupScreen> {
     try {
       // The restore invalidates the whole service graph; the returned token
       // is the contract that the caller must rebuild it.
-      final _ = await widget.services.restoreBackup(backup);
+      final result = await widget.services.restoreBackup(backup);
       if (!mounted) return;
-      NexRestartScope.of(context).restart();
+      final restart = NexRestartScope.of(context).restart;
+      if (result.error != null) {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: Text(l10n.restoreBackup),
+            content: Text(l10n.restoreFailed(result.error!)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.closeLabel),
+              ),
+            ],
+          ),
+        );
+      }
+      restart();
     } on Object catch (error) {
       // The graph is already closed by the time restore touches live files —
       // this session cannot read or write the library anymore either way.
@@ -226,6 +269,13 @@ class _BackupScreenState extends State<BackupScreen> {
           ),
           const Divider(height: NexSpacing.xl),
           _Heading(l10n.localBackupsTitle),
+          _Explained(
+            icon: Icons.restore_page_outlined,
+            title: l10n.restoreBackup,
+            body: l10n.fullBackupExplained,
+            action: l10n.chooseFile,
+            onPressed: _busy ? null : () => unawaited(_chooseBackup()),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
               NexSpacing.lg,
@@ -277,6 +327,13 @@ class _BackupScreenState extends State<BackupScreen> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    IconButton(
+                      tooltip: l10n.exportAndShare,
+                      icon: const Icon(Icons.ios_share_outlined),
+                      onPressed: _busy
+                          ? null
+                          : () => unawaited(_shareBackup(backup)),
+                    ),
                     IconButton(
                       tooltip: l10n.deleteBackup,
                       icon: const Icon(Icons.delete_outline),

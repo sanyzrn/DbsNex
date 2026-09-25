@@ -77,6 +77,39 @@ void main() {
     await tester.pump();
   }
 
+  testWidgets('closing before first insert preserves the entire draft', (
+    tester,
+  ) async {
+    await boot(captureDelay: const Duration(milliseconds: 600));
+    await showSheet(tester);
+    await tester.enterText(find.byType(TextField), 'f');
+    await tester.enterText(
+      find.byType(TextField),
+      'full sentence before closing',
+    );
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+    expect(
+      (await db.timeline()).single.content,
+      'full sentence before closing',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'clearing and closing before first insert leaves no partial note',
+    (tester) async {
+      await boot(captureDelay: const Duration(milliseconds: 600));
+      await showSheet(tester);
+      await tester.enterText(find.byType(TextField), 'draft');
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+      expect(await db.timeline(), isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('typing faster than the first write still makes one note', (
     tester,
   ) async {

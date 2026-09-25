@@ -13,36 +13,31 @@ import 'package:nex_client/platform/os_capture_bridge.dart';
 
 import 'support/in_process_db.dart';
 
-/// The native half keeps one slot, `pending`, and `enqueue` writes to it for
-/// every payload — including the ones it pushes live to a Dart side that is
-/// already listening. Only `takePending` ever clears it.
-///
-/// So a live push handled the capture and left a copy behind, and the next
-/// `start()` in the same process picked that copy up and captured it again.
-/// That is not a rare path: restoring a backup calls
-/// `NexRestartScope.restart()`, which builds a new bridge and starts it in the
-/// same process and the same Activity.
-///
-/// This models the native side rather than mocking one call at a time, because
-/// what is being tested is the protocol between the two: who is allowed to
-/// consider a payload delivered.
+/// Models the native inbox and its request-specific acknowledgements.
 class _FakeNativeSide {
   _FakeNativeSide(this.cacheDir) {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_channel, (call) async {
           calls.add(call.method);
           switch (call.method) {
-            case 'takePending':
-              final value = pending;
-              pending = null;
-              return value;
+            case 'peekPending':
+              return queue.values
+                  .where((p) => !deferred.contains(p['requestId']))
+                  .firstOrNull;
+            case 'ackPending':
+              queue.remove((call.arguments as Map)['requestId']);
+              return null;
+            case 'deferPending':
+              deferred.add((call.arguments as Map)['requestId'] as String);
+              return null;
             case 'copyShared':
               // What `copyUri` does: read the provider's stream through to a
               // file in the cache and answer where it landed. Modelled rather
               // than stubbed, because the point of the split is *when* this
               // runs — a payload refused on its declared size must never
               // reach it at all.
-              final uri = (call.arguments as Map<Object?, Object?>)['uri'] as String?;
+              final uri =
+                  (call.arguments as Map<Object?, Object?>)['uri'] as String?;
               final parsed = uri == null ? null : Uri.parse(uri);
               // `File.fromUri`, not `File(parsed.path)`: the path component of
               // `file:///C:/Users/...` is `/C:/Users/...`, which Windows cannot
@@ -58,7 +53,7 @@ class _FakeNativeSide {
                 p.join(
                   cacheDir.path,
                   '${DateTime.now().microsecondsSinceEpoch}-'
-                      '${p.basename(source.path)}',
+                  '${p.basename(source.path)}',
                 ),
               );
               await source.copy(copy.path);
@@ -79,7 +74,14 @@ class _FakeNativeSide {
   static const _channel = MethodChannel('nex/os_capture');
 
   /// Exactly the field `MainActivity.enqueue` writes.
-  Map<String, String>? pending;
+  final queue = <String, Map<String, String>>{};
+  final deferred = <String>{};
+  set pending(Map<String, String>? value) {
+    if (value == null) return;
+    final id = value['requestId'] ?? newUuidV7();
+    queue[id] = {...value, 'requestId': id};
+  }
+
   final calls = <String>[];
 
   /// What `enqueue(value, live = true)` does: queue it *and* push it.
@@ -88,9 +90,7 @@ class _FakeNativeSide {
     await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .handlePlatformMessage(
           _channel.name,
-          _channel.codec.encodeMethodCall(
-            MethodCall('onOsCapture', payload),
-          ),
+          _channel.codec.encodeMethodCall(MethodCall('onOsCapture', payload)),
           // No reply wanted. `setMockMethodCallHandler` (outbound) and this
           // (inbound) are separate maps on the same channel, which is what
           // lets one fake stand in for both halves of the native side.
@@ -130,7 +130,9 @@ void main() {
       mediaDir: mediaDir,
       backupDir: backupDir,
     );
-    native = _FakeNativeSide(Directory(p.join(tmp.path, 'cache'))..createSync());
+    native = _FakeNativeSide(
+      Directory(p.join(tmp.path, 'cache'))..createSync(),
+    );
   });
 
   tearDown(() async {
@@ -138,6 +140,46 @@ void main() {
     await services.dispose();
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
+
+  test('150 simultaneous shares are all committed exactly once', () async {
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+    await Future.wait(
+      List.generate(
+        150,
+        (i) => native.shareLive({
+          'type': 'shared_text',
+          'text': 'share $i',
+          'requestId': 'burst-$i',
+        }),
+      ),
+    );
+    final notes = await db.timeline(limit: 200);
+    expect(notes, hasLength(150));
+    expect(notes.map((n) => n.content).toSet(), hasLength(150));
+    expect(native.queue, isEmpty);
+    await native.shareLive({
+      'type': 'shared_text',
+      'text': 'share 0',
+      'requestId': 'burst-0',
+    });
+    expect(await db.timeline(limit: 200), hasLength(150));
+  });
+
+  test(
+    'failed provider read is not reported as saved and remains retryable',
+    () async {
+      native.pending = {'type': 'shared_file', 'uri': 'content://missing/file'};
+      final bridge = OsCaptureBridge(services);
+      addTearDown(bridge.dispose);
+      await bridge.start();
+      expect(bridge.handledLaunchShare, isFalse);
+      expect(bridge.shareFailed, isTrue);
+      expect(native.queue, hasLength(1));
+      expect(await db.timeline(), isEmpty);
+    },
+  );
 
   test('a live share is captured once, not once per restart', () async {
     final bridge = OsCaptureBridge(services);
@@ -382,7 +424,11 @@ void main() {
 
     await bridge.handle({'type': 'text_capture'});
     expect(captures, 1);
-    expect(await db.timeline(limit: 50), isEmpty, reason: 'no note until typed');
+    expect(
+      await db.timeline(limit: 50),
+      isEmpty,
+      reason: 'no note until typed',
+    );
 
     await bridge.handle({'type': 'open_note', 'id': 'note-7'});
     expect(opened, 'note-7');
@@ -527,7 +573,11 @@ void main() {
     final tapped = OsCaptureBridge(services);
     addTearDown(tapped.dispose);
     await tapped.start();
-    expect(tapped.handledLaunchShare, isFalse, reason: 'the widget, not a share');
+    expect(
+      tapped.handledLaunchShare,
+      isFalse,
+      reason: 'the widget, not a share',
+    );
 
     native.pending = {'type': 'shared_text', 'text': 'from another app'};
     final shared = OsCaptureBridge(services);
@@ -592,6 +642,10 @@ void main() {
     // Nothing was fetched — there was nothing to fetch — and the picker's own
     // cache copy is cleared up, which is the case it always covered.
     expect(native.calls, isNot(contains('copyShared')));
-    expect(picked.existsSync(), isFalse);
+    expect(
+      picked.existsSync(),
+      isTrue,
+      reason: 'desktop picker returns the original',
+    );
   });
 }

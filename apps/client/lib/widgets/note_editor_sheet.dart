@@ -6,6 +6,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import 'draft_guard.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
 import 'nex_banner.dart';
@@ -54,6 +55,7 @@ class NoteEditorSheet extends StatefulWidget {
     CloudAIAdapter Function()? client,
   }) => nexShowSheet<String>(
     context: context,
+    dismissible: false,
     builder: (_) => NoteEditorSheet(
       initial: initial,
       preferences: preferences,
@@ -65,7 +67,10 @@ class NoteEditorSheet extends StatefulWidget {
   State<NoteEditorSheet> createState() => _NoteEditorSheetState();
 }
 
-class _NoteEditorSheetState extends State<NoteEditorSheet> {
+class _NoteEditorSheetState extends State<NoteEditorSheet>
+    with NexDraftGuard<NoteEditorSheet> {
+  @override
+  bool get hasUnsavedChanges => _text.text != widget.initial;
   late final TextEditingController _text = TextEditingController(
     text: widget.initial,
   );
@@ -177,9 +182,9 @@ class _NoteEditorSheetState extends State<NoteEditorSheet> {
       // Said out loud rather than left as a button that did nothing. "Fix
       // writing" on text with nothing wrong with it is a success, and silence
       // is what a broken button looks like.
-      NexBannerHost.of(context)?.show(
-        message: AppLocalizations.of(context).aiEditUnchanged,
-      );
+      NexBannerHost.of(
+        context,
+      )?.show(message: AppLocalizations.of(context).aiEditUnchanged);
       return;
     }
     setState(() {
@@ -241,85 +246,90 @@ class _NoteEditorSheetState extends State<NoteEditorSheet> {
         // selectable and the same colour, because it is still the note.
         readOnly: _running != null,
         decoration: const InputDecoration(border: InputBorder.none),
-        ),
+      ),
     );
 
     // The height comes from the constraints rather than from the screen's:
     // inside [NexSheetBody] they are already the sheet's own maximum less its
     // padding and the drag handle, which is exactly the room there is. The
     // arithmetic version of that number overflows by whatever it forgot.
-    return NexSheetBody(
-      child: LayoutBuilder(
-        builder: (context, constraints) => SizedBox(
-          height: _expanded && constraints.maxHeight.isFinite
-              ? constraints.maxHeight
-              : null,
-          child: Column(
-          mainAxisSize: _expanded ? MainAxisSize.max : MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+    return guardDraft(
+      NexSheetBody(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SizedBox(
+            height: _expanded && constraints.maxHeight.isFinite
+                ? constraints.maxHeight
+                : null,
+            child: Column(
+              mainAxisSize: _expanded ? MainAxisSize.max : MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: Text(l10n.editNote, style: theme.textTheme.titleLarge),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.editNote,
+                        style: theme.textTheme.titleLarge,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => setState(() => _expanded = !_expanded),
+                      tooltip: _expanded
+                          ? l10n.editorSmaller
+                          : l10n.editorFullScreen,
+                      icon: Icon(
+                        _expanded ? Icons.close_fullscreen : Icons.open_in_full,
+                      ),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  onPressed: () => setState(() => _expanded = !_expanded),
-                  tooltip: _expanded ? l10n.editorSmaller : l10n.editorFullScreen,
-                  icon: Icon(
-                    _expanded
-                        ? Icons.close_fullscreen
-                        : Icons.open_in_full,
+                const SizedBox(height: NexSpacing.sm),
+                if (_expanded)
+                  Expanded(child: field)
+                else
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 220),
+                    child: field,
                   ),
+                // The one-tap way back from an edit nobody liked. Present only
+                // when there is something to go back to, because a control that
+                // is usually disabled teaches people it is never usable.
+                if (_undo.isNotEmpty) ...[
+                  const SizedBox(height: NexSpacing.sm),
+                  _UndoBar(onUndo: _undoLast),
+                ],
+                if (_aiAvailable) ...[
+                  const SizedBox(height: NexSpacing.md),
+                  _AiActions(
+                    expanded: _expanded,
+                    running: _running,
+                    enabled: _text.text.trim().isNotEmpty,
+                    onPick: (style) => unawaited(_apply(style)),
+                  ),
+                ],
+                const SizedBox(height: NexSpacing.lg),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: requestDiscard,
+                      child: Text(l10n.cancel),
+                    ),
+                    const SizedBox(width: NexSpacing.sm),
+                    FilledButton(
+                      // Empty is not an edit, it is a note being deleted by a
+                      // route that cannot delete notes.
+                      onPressed: _text.text.trim().isEmpty || _running != null
+                          ? null
+                          : _save,
+                      child: Text(l10n.save),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: NexSpacing.sm),
-            if (_expanded)
-              Expanded(child: field)
-            else
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 220),
-                child: field,
-              ),
-            // The one-tap way back from an edit nobody liked. Present only
-            // when there is something to go back to, because a control that
-            // is usually disabled teaches people it is never usable.
-            if (_undo.isNotEmpty) ...[
-              const SizedBox(height: NexSpacing.sm),
-              _UndoBar(onUndo: _undoLast),
-            ],
-            if (_aiAvailable) ...[
-              const SizedBox(height: NexSpacing.md),
-              _AiActions(
-                expanded: _expanded,
-                running: _running,
-                enabled: _text.text.trim().isNotEmpty,
-                onPick: (style) => unawaited(_apply(style)),
-              ),
-            ],
-            const SizedBox(height: NexSpacing.lg),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10n.cancel),
-                ),
-                const SizedBox(width: NexSpacing.sm),
-                FilledButton(
-                  // Empty is not an edit, it is a note being deleted by a
-                  // route that cannot delete notes.
-                  onPressed: _text.text.trim().isEmpty || _running != null
-                      ? null
-                      : _save,
-                  child: Text(l10n.save),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -343,11 +353,7 @@ class _UndoBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.auto_awesome,
-            size: 16,
-            color: theme.colorScheme.primary,
-          ),
+          Icon(Icons.auto_awesome, size: 16, color: theme.colorScheme.primary),
           const SizedBox(width: NexSpacing.sm),
           Expanded(
             child: Text(

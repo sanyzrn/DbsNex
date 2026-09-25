@@ -93,7 +93,11 @@ void main() {
     // `Scaffold` inheriting exactly that.
     final services = await boot(appLock: true, liquidGlass: true);
     await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
+      NexApp(
+        services: services,
+        preferences: preferences,
+        appLock: _NeverUnlocks(),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -230,6 +234,12 @@ void main() {
 
 /// A prompt that is never answered, so the gate stays up for the test.
 class _NeverUnlocks extends AppLockService {
+  @override
+  Future<bool> supportsDeviceAuthentication() async => true;
+
+  @override
+  Future<bool> supportsBiometrics() async => true;
+
   @override
   Future<bool> authenticate({
     required String reason,
