@@ -96,6 +96,34 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  test(
+    'startup recovers a journal after an uncertain first commit exactly once',
+    () async {
+      await boot();
+      final note = await services.captureDraft('interrupted', 'f');
+      services.captureJournal.write('interrupted', 'full recovered sentence');
+      await services.recoverCaptureDrafts();
+      await services.recoverCaptureDrafts();
+      final notes = await db.timeline();
+      expect(notes, hasLength(1));
+      expect(notes.single.id, note!.id);
+      expect(notes.single.content, 'full recovered sentence');
+      expect(services.captureJournal.pending(), isEmpty);
+    },
+  );
+
+  test('a failed recovery retains the journal for another launch', () async {
+    await boot();
+    await services.captureDraft('retry', 'old');
+    services.captureJournal.write('retry', 'new');
+    db.failUpdates = 1;
+    await services.recoverCaptureDrafts();
+    expect(services.captureJournal.pending().single.text, 'new');
+    await services.recoverCaptureDrafts();
+    expect((await db.timeline()).single.content, 'new');
+    expect(services.captureJournal.pending(), isEmpty);
+  });
+
   testWidgets(
     'clearing and closing before first insert leaves no partial note',
     (tester) async {

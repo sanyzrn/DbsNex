@@ -98,6 +98,60 @@ abstract class AppLocalizations {
     Locale('fa'),
   ];
 
+  /// No description provided for @calendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get calendar;
+
+  /// No description provided for @calendarPersian.
+  ///
+  /// In en, this message translates to:
+  /// **'Solar Hijri'**
+  String get calendarPersian;
+
+  /// No description provided for @calendarGregorian.
+  ///
+  /// In en, this message translates to:
+  /// **'Gregorian'**
+  String get calendarGregorian;
+
+  /// No description provided for @openSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get openSettings;
+
+  /// No description provided for @chatNetworkError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach the service. Check your connection and try again.'**
+  String get chatNetworkError;
+
+  /// No description provided for @chatTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The service took too long to respond. Your message is kept; try again.'**
+  String get chatTimeout;
+
+  /// No description provided for @chatAuthError.
+  ///
+  /// In en, this message translates to:
+  /// **'The service rejected access. Check your API key and account permissions.'**
+  String get chatAuthError;
+
+  /// No description provided for @chatRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'The service limit was reached. Wait a little and try again.'**
+  String get chatRateLimited;
+
+  /// No description provided for @chatServiceError.
+  ///
+  /// In en, this message translates to:
+  /// **'The service is temporarily unavailable. Try again later.'**
+  String get chatServiceError;
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
@@ -2345,7 +2399,7 @@ abstract class AppLocalizations {
   /// Says what local backups are and are not for
   ///
   /// In en, this message translates to:
-  /// **'Nex automatically backs up the library and its media on this device. Local copies do not protect against losing the device. Use Share beside a backup to keep a copy elsewhere.'**
+  /// **'Nex backs up the library on this device. Local copies share unchanged media to save space; the listed size excludes shared files. Use Share beside a backup to keep a complete copy elsewhere, safe from losing the device.'**
   String get localBackupsExplained;
 
   /// Takes a backup outside the daily schedule
@@ -2891,7 +2945,7 @@ abstract class AppLocalizations {
   /// Header of the AI day summary card on the timeline
   ///
   /// In en, this message translates to:
-  /// **'Daily Digest'**
+  /// **'Smart summary'**
   String get aiDaySummaryTitle;
 
   /// Screen-reader label for the AI-generated day summary panel on the timeline
@@ -2927,7 +2981,7 @@ abstract class AppLocalizations {
   /// Screen-reader label for the tappable AI-generated headline at the top of the timeline
   ///
   /// In en, this message translates to:
-  /// **'Tap for a new line'**
+  /// **'Hold for a new greeting'**
   String get aiHeadlineRefresh;
 
   /// Settings row choosing which language the AI writes in
@@ -3485,7 +3539,7 @@ abstract class AppLocalizations {
   /// Shown in the assistant thread when a reply does not arrive
   ///
   /// In en, this message translates to:
-  /// **'No answer came back. Check the provider in Settings, or try again.'**
+  /// **'No answer came back. Your message is kept; try again.'**
   String get chatFailed;
 
   /// Suggested opening prompt
@@ -3983,7 +4037,7 @@ abstract class AppLocalizations {
   /// Title of the sheet that configures the card at the top of the timeline.
   ///
   /// In en, this message translates to:
-  /// **'Daily brief'**
+  /// **'Smart summary'**
   String get briefTitle;
 
   /// Subtitle under the daily-brief sheet's title.

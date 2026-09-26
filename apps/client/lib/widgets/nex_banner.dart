@@ -180,6 +180,20 @@ class _NexBannerState extends State<_NexBanner>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.accessibleNavigationOf(context) &&
+        widget.actionLabel != null) {
+      _timer?.cancel();
+    }
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.duration = Duration.zero;
+      _controller.reverseDuration = Duration.zero;
+      _controller.value = 1;
+    }
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     _controller.dispose();
@@ -265,50 +279,38 @@ class _NexBannerState extends State<_NexBanner>
                           color: scheme.outlineVariant.withValues(alpha: 0.6),
                         ),
                       ),
-                      child: Row(
+                      child: Column(
                         mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _Glyph(kind: widget.kind),
-                          const SizedBox(width: NexSpacing.sm),
-                          Flexible(
-                            // Announced, not just drawn.
-                            //
-                            // This used to be a `ScaffoldMessenger` snack bar,
-                            // which announces itself; moving it onto a raw
-                            // `OverlayEntry` for the look silently dropped
-                            // that. A screen-reader user got nothing at all —
-                            // including for the delete banner, where the only
-                            // way back from a swipe-delete is an Undo that
-                            // lives here for six seconds and then goes.
-                            //
-                            // The recording sheet already does this for its
-                            // elapsed time. Same shape, same reason.
-                            child: Semantics(
-                              liveRegion: true,
-                              child: Text(
-                                widget.message,
-                                maxLines: 4,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
+                          Row(
+                            children: [
+                              _Glyph(kind: widget.kind),
+                              const SizedBox(width: NexSpacing.sm),
+                              Expanded(
+                                child: Semantics(
+                                  liveRegion: true,
+                                  child: Text(
+                                    widget.message,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                          if (widget.actionLabel != null) ...[
-                            const SizedBox(width: NexSpacing.sm),
-                            TextButton(
-                              onPressed: _act,
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: NexSpacing.sm,
+                          if (widget.actionLabel != null)
+                            Align(
+                              alignment: AlignmentDirectional.centerEnd,
+                              child: TextButton(
+                                onPressed: _act,
+                                style: TextButton.styleFrom(
+                                  minimumSize: const Size(48, 48),
                                 ),
-                                minimumSize: const Size(0, 36),
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                child: Text(widget.actionLabel!),
                               ),
-                              child: Text(widget.actionLabel!),
                             ),
-                          ],
                         ],
                       ),
                     ),

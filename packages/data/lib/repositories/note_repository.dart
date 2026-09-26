@@ -9,6 +9,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../schema/backup_archive.dart';
 import '../schema/database.dart';
+import '../schema/zip_file_writer.dart';
 
 /// Suggested starter tags (FR-3.3) — offered, never enforced.
 const List<String> suggestedStarterTags = [
@@ -107,7 +108,13 @@ class SqliteNoteRepository implements NoteRepository {
         ),
         _ => throw ArgumentError('Unsupported shared capture'),
       };
-      if (note == null) throw ArgumentError('Empty shared capture');
+      if (note == null) {
+        if (requestId.startsWith('draft-')) {
+          db.execute('COMMIT');
+          return null;
+        }
+        throw ArgumentError('Empty shared capture');
+      }
       db.execute('INSERT INTO capture_receipts VALUES (?, ?)', [
         requestId,
         note.id,
@@ -190,7 +197,7 @@ WHERE id = ? AND deleted_at IS NULL
       db.execute(
         '''
 UPDATE notes
-SET media_uri = ?, media_hash = ?, mime_type = 'image/png',
+SET media_uri = ?, media_hash = ?, mime_type = ?,
     ocr_text = NULL, summary_text = NULL, updated_at = ?,
     rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
@@ -199,6 +206,9 @@ WHERE id = ? AND deleted_at IS NULL
         [
           mediaUri,
           mediaHash,
+          p.extension(mediaUri).toLowerCase() == '.jpg'
+              ? 'image/jpeg'
+              : 'image/png',
           now,
           if (localDeviceId != null) localDeviceId,
           noteId,
@@ -1274,7 +1284,7 @@ LIMIT ?
             final name = p.basename(note.mediaUri!);
             final firstUse = usedMediaNames.add(name);
             final entryName = firstUse ? name : '${note.id}-$name';
-            encoder.addFileSync(src, 'media/$entryName');
+            addBoundedZipFile(encoder, src, 'media/$entryName');
           }
         }
       }
@@ -1374,12 +1384,7 @@ LIMIT ?
                   : '';
               final target = File(p.join(mediaRoot, '${newUuidV7()}$suffix'));
               target.parent.createSync(recursive: true);
-              final output = OutputFileStream(target.path);
-              try {
-                entry.writeContent(output);
-              } finally {
-                output.closeSync();
-              }
+              extractCheckedZipFile(entry, target.path);
               mediaUri = target.path;
             }
             // No media in the archive: the note still comes in, with its text

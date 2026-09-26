@@ -5,7 +5,7 @@
 <resources>
     <string name="widget_capture_picker_label">ثبت Nex</string>
     <string name="widget_timeline_picker_label">خط زمانی Nex</string>
-    <string name="widget_recap_picker_label">خلاصهٔ Nex</string>
+    <string name="widget_recap_picker_label">خلاصه هوشمند</string>
 
     <string name="widget_capture_label">ثبت</string>
     <string name="widget_capture_description">ثبت یک فکر، بدون باز کردن Nex</string>

@@ -14,6 +14,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'backup_policy.dart';
+import 'capture_journal.dart';
+import 'export_cache.dart';
 import 'db_worker.dart';
 import 'ai_provider.dart';
 import 'nex_db.dart';
@@ -77,6 +79,7 @@ class NexServices {
 
   final BackupPolicy _backupPolicy;
   final NexPreferences _preferences;
+  bool get solarCalendar => _preferences.solarCalendar;
 
   /// Whether the intelligence layer is on and actually has a provider behind
   /// it. The UI asks so it does not offer a control that cannot do anything.
@@ -96,6 +99,7 @@ class NexServices {
     required NexPreferences preferences,
     AIAdapter? aiAdapter,
     MediaPicker? mediaPicker,
+    bool recoverDrafts = true,
   }) async {
     if (!kIsWeb &&
         (Platform.isAndroid || Platform.isIOS || Platform.isWindows)) {
@@ -184,6 +188,14 @@ class NexServices {
       // rebuilt from the library on launch.
       ..hideOnLockScreen = () => preferences.appLockEnabled;
 
+    if (recoverDrafts) {
+      await services.recoverCaptureDrafts();
+      unawaited(
+        getTemporaryDirectory()
+            .then(cleanExportCache)
+            .catchError((Object _) {}),
+      );
+    }
     unawaited(services.refreshTimeline());
     unawaited(services._maybeBackupInBackground());
 
@@ -286,6 +298,32 @@ class NexServices {
   Future<Note?> getById(String id) => worker.getById(id);
 
   Future<Note?> captureText(String content) => worker.captureText(content);
+
+  late final captureJournal = CaptureJournal(p.dirname(dbPath));
+
+  Future<Note?> captureDraft(String id, String text) => worker.captureShared({
+    'requestId': 'draft-$id',
+    'type': 'shared_text',
+    'text': text,
+  });
+
+  Future<void> recoverCaptureDrafts() async {
+    for (final draft in captureJournal.pending().toList()) {
+      try {
+        final note = await captureDraft(draft.id, draft.text);
+        if (note != null) {
+          if (draft.text.isEmpty) {
+            await worker.deleteNote(note.id);
+          } else if (note.content != draft.text) {
+            await worker.updateNote(note.id, draft.text);
+          }
+        }
+        captureJournal.complete(draft.id);
+      } catch (_) {
+        // Retry next launch without blocking the already-saved library.
+      }
+    }
+  }
 
   Future<Note?> captureChecklist(List<ChecklistItem> items) =>
       worker.captureChecklist(items);
@@ -675,13 +713,23 @@ class NexServices {
   /// on Android the share provider is configured for app storage, and a file
   /// under `/tmp` could not be handed to another app at all.
   Future<String> exportNow() async {
-    final stamp = DateTime.now()
-        .toIso8601String()
-        .substring(0, 16)
-        .replaceAll(':', '-');
+    final stamp = DateTime.now().microsecondsSinceEpoch.toString();
     final dir = await getTemporaryDirectory();
+    await cleanExportCache(dir);
     final out = p.join(dir.path, 'Nex-$stamp.zip');
     return worker.exportArchive(outputPath: out, mediaRoot: mediaDir);
+  }
+
+  Future<String> portableBackup(File backup) async {
+    if (backup.path.endsWith('.sqlite')) return backup.path;
+    final cache = await getTemporaryDirectory();
+    await cleanExportCache(cache);
+    final output = p.join(
+      cache.path,
+      'Nex-backup-${DateTime.now().microsecondsSinceEpoch}.nexbak',
+    );
+    final source = backup.path;
+    return Isolate.run(() => NexBackupArchive.portable(source, output));
   }
 
   /// Reads an exported archive back into this library.
@@ -733,7 +781,7 @@ class NexServices {
       // worked out what it was about. The server's own words — a status code,
       // a constraint name — survive here, in the file "Share diagnostics"
       // sends, so a failure can still be read after the banner has gone.
-      unawaited(noteDiagnostic('sync failed: $error'));
+      unawaited(noteDiagnostic('sync failed: ${error.runtimeType}'));
       rethrow;
     }
     await refreshTimeline();
@@ -771,7 +819,11 @@ class NexServices {
   /// Removes one local backup file. Plain filesystem I/O, the same as the
   /// export path already does (`nexSendFileOut`) — a backup is not part of
   /// the note database the worker isolate guards.
-  Future<void> deleteBackup(File backup) async => backup.deleteSync();
+  Future<void> deleteBackup(File backup) async {
+    await backup.delete();
+    final parent = backup.parent.path;
+    await Isolate.run(() => NexBackupArchive.collectUnusedMedia(parent));
+  }
 
   Future<RestartRequired> restoreLatestBackup() async {
     final backups = await listBackups();
@@ -801,10 +853,11 @@ class NexServices {
     if (p.equals(p.dirname(backup.path), p.join(backupDir, 'before-restore'))) {
       selectedCopy = await backup.copy(
         p.join(
-          backupDir,
+          backup.parent.path,
           '.restore-source-${DateTime.now().microsecondsSinceEpoch}',
         ),
       );
+      await selectedCopy.setLastModified(DateTime.now());
     }
     try {
       // Separate retention folder: making the safety copy must not prune the

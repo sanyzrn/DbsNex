@@ -34,6 +34,19 @@ Working convention:
 
 ## Unreleased
 
+- **Recover interrupted text capture.** Draft text is journaled locally and replayed without creating duplicate notes after a restart.
+- **More durable incoming attachments.** Android retains shared files while permission is available, coordinates simultaneous share receivers and rejects private file paths.
+- **Backups use less space and memory.** Local backups reuse unchanged media; Share still produces a complete portable copy. Large attachments no longer require a full compression buffer. Restores validate file checksums and reject missing media.
+- **Safer settings and cleanup.** Unavailable secure storage no longer prevents opening the local library, profile mirrors are written atomically, and old export/staging files are cleaned up. Deleting a backup no longer reads a removed file during a screen rebuild.
+- **More reliable photo editing.** Rotation and annotation recover from errors, native image resources are released, and edited JPEG photos can use smaller files at their original dimensions. Lossless and transparent sources remain lossless.
+
+- **Clearer recovery actions.** Camera and microphone denials link to app settings; assistant errors distinguish connection, credentials and service failures. Retry keeps the original question and any new draft.
+- **A quieter, clearer home.** Active filters show their names on an opaque strip, greeting refresh requires a hold, and known AI reasoning/prompt echoes are filtered from summaries and widgets.
+- **Persian dates and labels.** Choose a Persian calendar for note details, backups and reminders. Untouched starter tags have Persian display names without renaming your data.
+- **Better voice and accessibility controls.** Voice cards show duration, empty media hides irrelevant actions, small screens and large text have more room, and high-contrast boundaries are clearer.
+- **Home-screen widgets follow the app.** Widget language and accents update with app settings, controls have room, and locking the app prevents a pending refresh from publishing older private content.
+- **Desktop and diagnostics polish.** Notes have a secondary-click/keyboard action menu, the Windows window has a usable minimum size, and shared diagnostics redact common credentials and URLs.
+
 ## v1.40.0
 
 - **More reliable capture.** Incoming shares are queued and acknowledged after saving, repeated delivery is deduplicated, and closing text capture waits for the complete draft. Shared attachments use short internal filenames while retaining their original display names.

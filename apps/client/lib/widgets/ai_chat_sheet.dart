@@ -109,6 +109,7 @@ class AiChatSheet extends StatefulWidget {
   }) => showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    showDragHandle: false,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
     builder: (_) => AiChatSheet(
@@ -197,6 +198,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// in the thread rather than as a toast: the failure belongs to the message
   /// it answers, and a toast would be gone before it is read.
   String? _failure;
+  String? _retryText;
 
   @override
   void initState() {
@@ -551,25 +553,34 @@ class _AiChatSheetState extends State<AiChatSheet> {
     _input.selection = TextSelection.collapsed(offset: _input.text.length);
   }
 
-  Future<void> _send(String text) async {
+  Future<void> _send(String text, {bool retry = false}) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty || _sending) return;
     final l10n = AppLocalizations.of(context);
 
     setState(() {
-      _turns.add(ChatMessage(role: ChatRole.user, content: trimmed));
+      if (!retry) {
+        _turns.add(ChatMessage(role: ChatRole.user, content: trimmed));
+      }
       _sending = true;
       _failure = null;
       _pending = const [];
       _actionResult = null;
       _searchRounds = 0;
-      _input.clear();
+      if (!retry) _input.clear();
     });
     _toBottom();
 
     String? reply;
+    String? requestError;
     try {
       reply = await _adapter.chat(List.of(_turns), options: _options);
+    } on TimeoutException {
+      requestError = l10n.chatTimeout;
+    } on SocketException {
+      requestError = l10n.chatNetworkError;
+    } on http.ClientException {
+      requestError = l10n.chatNetworkError;
     } catch (_) {
       reply = null;
     }
@@ -578,15 +589,24 @@ class _AiChatSheetState extends State<AiChatSheet> {
     setState(() {
       _sending = false;
       if (reply == null || reply.isEmpty) {
+        _retryText = trimmed;
         // The runtime's own words when the model is what failed. Telling
         // someone who deliberately has no provider to "check the provider in
         // Settings" sends them to the one screen that is already correct.
         final local = _adapter.localFailure;
-        _failure = local == null
-            ? l10n.chatFailed
-            : '${l10n.localModelLoadFailed}\n$local';
+        _failure =
+            requestError ??
+            (local != null
+                ? l10n.localModelLoadFailed
+                : switch (_adapter.lastFailureStatus) {
+                    401 || 403 => l10n.chatAuthError,
+                    429 => l10n.chatRateLimited,
+                    final status? when status >= 500 => l10n.chatServiceError,
+                    _ => l10n.chatFailed,
+                  });
         return;
       }
+      _retryText = null;
       final actions = parseAssistantActions(reply);
       _pending = [
         for (final action in actions)
@@ -665,7 +685,13 @@ class _AiChatSheetState extends State<AiChatSheet> {
     if (!mounted) return;
     setState(() {
       _sending = false;
-      if (reply == null || reply.isEmpty) return;
+      if (reply == null || reply.isEmpty) {
+        _retryText = _turns.last.content;
+        _failure = AppLocalizations.of(context).chatFailed;
+        return;
+      }
+      _retryText = null;
+      _failure = null;
       final actions = parseAssistantActions(reply);
       _pending = [
         for (final action in actions)
@@ -941,8 +967,12 @@ class _AiChatSheetState extends State<AiChatSheet> {
         // confirmation card has closed.
         dueAt:
             action.at ??
-            DateTime(now.year, now.month, now.day, 9)
-                .add(const Duration(days: 1)),
+            DateTime(
+              now.year,
+              now.month,
+              now.day,
+              9,
+            ).add(const Duration(days: 1)),
         createdAt: now,
         updatedAt: now,
       ),
@@ -1258,7 +1288,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
+                      Icon(
+                        Icons.auto_awesome,
+                        color: theme.colorScheme.primary,
+                      ),
                       // Which note this is about, when it is about one. The
                       // sheet already answers only from that note and can act
                       // on it, and none of that was visible: the same blank
@@ -1268,7 +1301,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
                         const SizedBox(width: NexSpacing.sm),
                         Expanded(
                           child: Text(
-                            l10n.chatAboutGroup(group, widget.scope?.length ?? 0),
+                            l10n.chatAboutGroup(
+                              group,
+                              widget.scope?.length ?? 0,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -1334,6 +1370,12 @@ class _AiChatSheetState extends State<AiChatSheet> {
                           failure: _failure,
                         ),
                 ),
+                if (_failure != null && _retryText != null && !_sending)
+                  TextButton.icon(
+                    onPressed: () => unawaited(_send(_retryText!, retry: true)),
+                    icon: const Icon(Icons.refresh),
+                    label: Text(l10n.retry),
+                  ),
                 if (_pending.isNotEmpty)
                   _ActionCard(
                     actions: _pending,
@@ -1581,7 +1623,6 @@ class _Thread extends StatelessWidget {
       },
     );
   }
-
 }
 
 class _Composer extends StatelessWidget {
@@ -1746,15 +1787,18 @@ class _ActionCard extends StatelessWidget {
         // Setting one and clearing one are different enough to be worth
         // different words: "stop reminding me" confirmed with "Set a
         // reminder?" is a card that says the opposite of what it does.
-        AssistantActionKind.remind => action.at == null
-            ? l10n.assistantConfirmRemindClear
-            : l10n.assistantConfirmRemind,
-        AssistantActionKind.pin => (action.flag ?? true)
-            ? l10n.assistantConfirmPin
-            : l10n.assistantConfirmUnpin,
-        AssistantActionKind.title => action.text == null
-            ? l10n.assistantConfirmTitleClear
-            : l10n.assistantConfirmTitle,
+        AssistantActionKind.remind =>
+          action.at == null
+              ? l10n.assistantConfirmRemindClear
+              : l10n.assistantConfirmRemind,
+        AssistantActionKind.pin =>
+          (action.flag ?? true)
+              ? l10n.assistantConfirmPin
+              : l10n.assistantConfirmUnpin,
+        AssistantActionKind.title =>
+          action.text == null
+              ? l10n.assistantConfirmTitleClear
+              : l10n.assistantConfirmTitle,
         AssistantActionKind.restore => l10n.assistantConfirmRestore,
         AssistantActionKind.renameTag => l10n.assistantConfirmRenameTag,
         AssistantActionKind.tagColor => l10n.assistantConfirmTagColor,
@@ -1783,12 +1827,14 @@ class _ActionCard extends StatelessWidget {
     // The date, spelled out. A reminder card that did not show *when* would
     // be asking somebody to approve an alarm they cannot see the time of,
     // which is the one thing about a reminder that matters.
-    AssistantActionKind.remind => action.at == null
-        ? ''
-        : [
-            _whenLabel(action.at!),
-            if (action.repeat != NoteRepeat.once) '· ${action.repeat.wireName}',
-          ].join(' '),
+    AssistantActionKind.remind =>
+      action.at == null
+          ? ''
+          : [
+              _whenLabel(action.at!),
+              if (action.repeat != NoteRepeat.once)
+                '· ${action.repeat.wireName}',
+            ].join(' '),
     AssistantActionKind.title => action.text ?? '',
     AssistantActionKind.renameTag => '${action.tagName} → ${action.text}',
     AssistantActionKind.tagColor =>

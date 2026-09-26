@@ -9,6 +9,38 @@ class AppLocalizationsFa extends AppLocalizations {
   AppLocalizationsFa([String locale = 'fa']) : super(locale);
 
   @override
+  String get calendar => 'تقویم';
+
+  @override
+  String get calendarPersian => 'شمسی';
+
+  @override
+  String get calendarGregorian => 'میلادی';
+
+  @override
+  String get openSettings => 'بازکردن تنظیمات';
+
+  @override
+  String get chatNetworkError =>
+      'ارتباط با سرویس برقرار نشد. اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.';
+
+  @override
+  String get chatTimeout =>
+      'پاسخ سرویس بیش از حد طول کشید. پیام شما حفظ شده؛ دوباره تلاش کنید.';
+
+  @override
+  String get chatAuthError =>
+      'سرویس اجازهٔ دسترسی نداد. کلید API و مجوز حساب را بررسی کنید.';
+
+  @override
+  String get chatRateLimited =>
+      'محدودیت استفاده از سرویس رسیده است. کمی صبر کنید و دوباره تلاش کنید.';
+
+  @override
+  String get chatServiceError =>
+      'سرویس موقتاً در دسترس نیست. بعداً دوباره تلاش کنید.';
+
+  @override
   String get appTitle => 'Nex';
 
   @override
@@ -1325,7 +1357,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get localBackupsExplained =>
-      'نکس از کتابخانه و فایل‌های رسانه‌ای روی همین دستگاه پشتیبان می‌گیرد. این نسخه‌ها در صورت گم‌شدن دستگاه در دسترس نیستند؛ با دکمهٔ اشتراک کنار هر نسخه، یک کپی در جای دیگری نگه دارید.';
+      'نکس روی همین دستگاه از کتابخانه پشتیبان می‌گیرد. برای صرفه‌جویی در فضا، نسخه‌های محلی از فایل‌های رسانه‌ای مشترک استفاده می‌کنند؛ اندازهٔ نمایش‌داده‌شده شامل این فایل‌ها نیست. با دکمهٔ اشتراک کنار هر نسخه، یک کپی کامل در جای دیگری نگه دارید تا با گم‌شدن دستگاه از دست نرود.';
 
   @override
   String get backupNow => 'همین حالا پشتیبان بگیر';
@@ -1666,7 +1698,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get aiDaySummaryExpand => 'نمایش خلاصه';
 
   @override
-  String get aiHeadlineRefresh => 'برای جمله‌ای تازه لمس کنید';
+  String get aiHeadlineRefresh => 'برای خوشامد تازه نگه دارید';
 
   @override
   String get aiOutputLanguage => 'زبان خروجی هوش مصنوعی';
@@ -1994,7 +2026,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get chatFailed =>
-      'پاسخی نیامد. سرویس را در تنظیمات بررسی کنید یا دوباره تلاش کنید.';
+      'پاسخی دریافت نشد. پیام شما حفظ شده؛ دوباره تلاش کنید.';
 
   @override
   String get chatPromptSummarise => 'خلاصه کن این هفته چه ثبت کردم';
@@ -2332,7 +2364,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantConfirmSetting => 'این تنظیم را عوض کنم؟';
 
   @override
-  String get briefTitle => 'خلاصهٔ روزانه';
+  String get briefTitle => 'خلاصه هوشمند';
 
   @override
   String get briefSubtitle =>

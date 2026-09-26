@@ -4,6 +4,9 @@ import 'dart:isolate';
 import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show compute;
+import '../platform/photo_encoding.dart';
+import '../platform/display_date.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:nex_core/nex_core.dart';
@@ -13,6 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../documents/docx_markdown.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/card_strings.dart';
 import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/ai_chat_sheet.dart';
 import '../platform/ai_provider.dart';
@@ -308,24 +312,26 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         ),
       );
       if (edited == null || !mounted) return;
+      final encoded = await compute(encodeEditedPhoto, (
+        bytes: edited,
+        wasJpeg:
+            original.length > 2 && original[0] == 0xff && original[1] == 0xd8,
+      ));
       // Never overwrite the original. A failed database write must not leave
       // the note pointing at bytes that changed underneath it.
       final dest = p.join(
         widget.services.mediaDir,
-        'edited-${DateTime.now().microsecondsSinceEpoch}.png',
+        'edited-${DateTime.now().microsecondsSinceEpoch}${photoExtension(encoded)}',
       );
       final file = File(dest);
-      await file.writeAsBytes(edited, flush: true);
-      try {
-        await widget.services.updateImageMedia(
-          note.id,
-          dest,
-          sha256OfBytes(edited),
-        );
-      } catch (_) {
-        await file.delete();
-        rethrow;
-      }
+      await file.writeAsBytes(encoded, flush: true);
+      // An exception can follow a committed write (lost worker response or
+      // failed refresh). Leave cleanup to reference-aware media maintenance.
+      await widget.services.updateImageMedia(
+        note.id,
+        dest,
+        sha256OfBytes(encoded),
+      );
       await _reload();
     } catch (_) {
       if (mounted) {
@@ -502,12 +508,13 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     );
   }
 
-  static String _formatTimestamp(DateTime value) {
-    final local = value.toLocal();
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${local.year}-${two(local.month)}-${two(local.day)} '
-        '${two(local.hour)}:${two(local.minute)}:${two(local.second)}';
-  }
+  String _formatTimestamp(DateTime value) => nexDisplayDate(
+    value,
+    solar: widget.preferences?.solarCalendar ?? false,
+    persian: Localizations.localeOf(context).languageCode == 'fa',
+    time: true,
+    seconds: true,
+  );
 
   /// Tagging a note.
   ///
@@ -879,18 +886,21 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                               ).textTheme.bodyLarge?.copyWith(height: 1.62),
                             )
                     else if (note.type == NoteType.voice) ...[
-                      Text(
-                        l10n.voiceDuration(
-                          ((note.durationMs ?? 0) / 1000).ceil(),
+                      if (_player == null)
+                        Text(
+                          l10n.voiceDuration(
+                            ((note.durationMs ?? 0) / 1000).ceil(),
+                          ),
+                          style: Theme.of(context).textTheme.bodyLarge,
                         ),
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
                       if (_player != null) ...[
                         const SizedBox(height: NexSpacing.sm),
                         _VoicePlayerControls(
                           player: _player!,
                           position: _position,
-                          duration: _duration,
+                          duration: _duration > Duration.zero
+                              ? _duration
+                              : Duration(milliseconds: note.durationMs ?? 0),
                         ),
                       ],
                       if (note.transcriptText == null)
@@ -1066,6 +1076,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         for (final tag in note.tags)
                           TagChip(
                             tag: tag,
+                            strings: nexCardStrings(context),
                             onRemove: () async {
                               await widget.services.removeTag(
                                 noteId: note.id,
@@ -1132,11 +1143,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           label: l10n.share,
                           onPressed: _share,
                         ),
-                      _DetailAction(
-                        icon: Icons.copy_outlined,
-                        label: l10n.copy,
-                        onPressed: _copyText,
-                      ),
+                      if (_copyableText(note) != null)
+                        _DetailAction(
+                          icon: Icons.copy_outlined,
+                          label: l10n.copy,
+                          onPressed: _copyText,
+                        ),
                       // The editor needs the preferences it reads the AI
                       // settings off. Everywhere a note is opened from has
                       // them; a caller without them keeps the note readable
@@ -1193,7 +1205,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       // Beside Pin, because the two answer the same kind of
                       // question: where this note sits on the timeline, and
                       // how hard it is to miss.
-                      if (widget.preferences case final preferences?)
+                      if (widget.preferences case final preferences?
+                          when note.displayText != null ||
+                              note.type == NoteType.checklist)
                         _DetailAction(
                           icon: preferences.isNoteExpanded(note.id)
                               ? Icons.unfold_less
@@ -1359,7 +1373,7 @@ class _VoicePlayerControls extends StatelessWidget {
   final Duration duration;
 
   String _fmt(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final m = d.inMinutes.toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$m:$s';
   }
@@ -1392,6 +1406,8 @@ class _VoicePlayerControls extends StatelessWidget {
             ),
             Expanded(
               child: Slider(
+                semanticFormatterCallback: (value) =>
+                    _fmt(Duration(milliseconds: value.round())),
                 value: position.inMilliseconds.clamp(0, totalMs).toDouble(),
                 max: totalMs.toDouble(),
                 onChanged: (v) =>
@@ -1399,7 +1415,11 @@ class _VoicePlayerControls extends StatelessWidget {
               ),
             ),
             Text(
-              '${_fmt(position)} / ${_fmt(duration)}',
+              nexDigits(
+                '${_fmt(position)} / ${_fmt(duration)}',
+                persian: Localizations.localeOf(context).languageCode == 'fa',
+              ),
+              textDirection: TextDirection.ltr,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

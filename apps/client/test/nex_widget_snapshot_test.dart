@@ -7,6 +7,16 @@ import 'package:nex_core/nex_core.dart';
 /// timeline card would have shown, and a locked library's snapshot carries
 /// no note content at all — not hidden content, no content.
 void main() {
+  test('cached prompt echoes are removed from the recap snapshot', () {
+    expect(
+      NexWidgetSnapshot.build(
+        appLock: false,
+        notes: const [],
+        recap: 'We need to produce four lines',
+      ).recap,
+      isEmpty,
+    );
+  });
   final now = DateTime.utc(2026, 1, 15, 12);
 
   Note note(
@@ -86,26 +96,38 @@ void main() {
         NexWidgetSnapshot.maxNotes + 10,
         (i) => note('n$i', NoteType.text, 'note $i'),
       );
-      final snapshot = NexWidgetSnapshot.build(appLock: false, now: now, notes: many);
+      final snapshot = NexWidgetSnapshot.build(
+        appLock: false,
+        now: now,
+        notes: many,
+      );
 
       expect(snapshot.notes, hasLength(NexWidgetSnapshot.maxNotes));
     });
 
-    test('a locked library produces a snapshot with no note content at all', () {
-      final snapshot = NexWidgetSnapshot.build(
-        appLock: true,
-        now: now,
-        notes: [
-          note('n1', NoteType.text, 'something private'),
-          note('n2', NoteType.photo, null, caption: 'a caption nobody may see'),
-        ],
-      );
+    test(
+      'a locked library produces a snapshot with no note content at all',
+      () {
+        final snapshot = NexWidgetSnapshot.build(
+          appLock: true,
+          now: now,
+          notes: [
+            note('n1', NoteType.text, 'something private'),
+            note(
+              'n2',
+              NoteType.photo,
+              null,
+              caption: 'a caption nobody may see',
+            ),
+          ],
+        );
 
-      expect(snapshot.appLock, isTrue);
-      expect(snapshot.notes, isEmpty);
-      // The rule is about the file, not the widget: nothing here that a
-      // reader could dig out, because nothing was written in.
-    });
+        expect(snapshot.appLock, isTrue);
+        expect(snapshot.notes, isEmpty);
+        // The rule is about the file, not the widget: nothing here that a
+        // reader could dig out, because nothing was written in.
+      },
+    );
 
     test('a locked library carries no brief either', () {
       // A brief is made of what the notes say, so it is note content wearing
@@ -126,7 +148,8 @@ void main() {
       // The whole point of the rewrite: the recap is a list now, and a
       // snapshot that collapsed it would hand the widget back the paragraph
       // it stopped being.
-      const brief = '⏰ Call the plumber, overdue by two days.\n'
+      const brief =
+          '⏰ Call the plumber, overdue by two days.\n'
           '📋 Shopping: bread and milk still on the list.';
       final snapshot = NexWidgetSnapshot.build(
         appLock: false,
@@ -152,36 +175,43 @@ void main() {
     });
 
     test('an empty library still produces a usable snapshot', () {
-      final snapshot = NexWidgetSnapshot.build(appLock: false, now: now, notes: const []);
+      final snapshot = NexWidgetSnapshot.build(
+        appLock: false,
+        now: now,
+        notes: const [],
+      );
 
       expect(snapshot.appLock, isFalse);
       expect(snapshot.notes, isEmpty);
     });
 
-    test('round-trips through JSON with the fields the Android reader reads', () {
-      final snapshot = NexWidgetSnapshot.build(
-        appLock: false,
-        now: now,
-        notes: [note('n1', NoteType.checklist, '- [x] one\n- [ ] two')],
-      );
+    test(
+      'round-trips through JSON with the fields the Android reader reads',
+      () {
+        final snapshot = NexWidgetSnapshot.build(
+          appLock: false,
+          now: now,
+          notes: [note('n1', NoteType.checklist, '- [x] one\n- [ ] two')],
+        );
 
-      final json = snapshot.toJson();
-      // Version 2, which is the version that added the brief. The Android
-      // reader accepts 1 and 2 and refuses anything above; a bump here that
-      // the Kotlin side has not been told about is a widget that goes blank
-      // on every phone the moment it updates.
-      expect(json['version'], 2);
-      expect(json['version'], NexWidgetSnapshot.version);
-      expect(json['appLock'], isFalse);
-      expect(json.containsKey('recap'), isTrue);
-      final notes = (json['notes'] as List).single as Map<String, Object?>;
-      // The row's display text is the checklist's items on one line — what
-      // the card shows — never the raw markdown.
-      expect(notes['preview'], 'one · two');
-      expect(notes['type'], 'checklist');
-      expect(notes['id'], 'n1');
-      expect(notes['updatedAt'], now.millisecondsSinceEpoch);
-    });
+        final json = snapshot.toJson();
+        // Version 2, which is the version that added the brief. The Android
+        // reader accepts 1 and 2 and refuses anything above; a bump here that
+        // the Kotlin side has not been told about is a widget that goes blank
+        // on every phone the moment it updates.
+        expect(json['version'], 2);
+        expect(json['version'], NexWidgetSnapshot.version);
+        expect(json['appLock'], isFalse);
+        expect(json.containsKey('recap'), isTrue);
+        final notes = (json['notes'] as List).single as Map<String, Object?>;
+        // The row's display text is the checklist's items on one line — what
+        // the card shows — never the raw markdown.
+        expect(notes['preview'], 'one · two');
+        expect(notes['type'], 'checklist');
+        expect(notes['id'], 'n1');
+        expect(notes['updatedAt'], now.millisecondsSinceEpoch);
+      },
+    );
   });
 
   group('NexWidgetSnapshot.filter', () {
@@ -211,9 +241,12 @@ void main() {
       );
     });
 
-    test('a kind the library has none of gives an empty widget, not a crash', () {
-      expect(NexWidgetSnapshot.filter(mixed, const {'voice'}), isEmpty);
-    });
+    test(
+      'a kind the library has none of gives an empty widget, not a crash',
+      () {
+        expect(NexWidgetSnapshot.filter(mixed, const {'voice'}), isEmpty);
+      },
+    );
   });
 
   group('NexWidgetSnapshot.filter by tag', () {

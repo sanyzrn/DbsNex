@@ -313,6 +313,33 @@ class SettingsSheet extends StatelessWidget {
       title: l10n.appearance,
       children: [
         _Row(
+          icon: Icons.calendar_month_outlined,
+          title: l10n.calendar,
+          value: preferences.solarCalendar
+              ? l10n.calendarPersian
+              : l10n.calendarGregorian,
+          onTap: () => unawaited(
+            _pick<bool>(
+              context: context,
+              title: l10n.calendar,
+              selected: preferences.solarCalendar,
+              onSelected: preferences.setSolarCalendar,
+              choices: [
+                NexChoice(
+                  value: false,
+                  label: l10n.calendarGregorian,
+                  preview: const Icon(Icons.calendar_today_outlined),
+                ),
+                NexChoice(
+                  value: true,
+                  label: l10n.calendarPersian,
+                  preview: const Icon(Icons.calendar_month_outlined),
+                ),
+              ],
+            ),
+          ),
+        ),
+        _Row(
           icon: Icons.translate,
           title: l10n.language,
           value: switch (preferences.locale?.languageCode) {

@@ -1,4 +1,13 @@
 {
+  "calendar": "تقویم",
+  "calendarPersian": "شمسی",
+  "calendarGregorian": "میلادی",
+  "openSettings": "بازکردن تنظیمات",
+  "chatNetworkError": "ارتباط با سرویس برقرار نشد. اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.",
+  "chatTimeout": "پاسخ سرویس بیش از حد طول کشید. پیام شما حفظ شده؛ دوباره تلاش کنید.",
+  "chatAuthError": "سرویس اجازهٔ دسترسی نداد. کلید API و مجوز حساب را بررسی کنید.",
+  "chatRateLimited": "محدودیت استفاده از سرویس رسیده است. کمی صبر کنید و دوباره تلاش کنید.",
+  "chatServiceError": "سرویس موقتاً در دسترس نیست. بعداً دوباره تلاش کنید.",
   "@@locale": "fa",
   "appTitle": "Nex",
   "capture": "ثبت",
@@ -644,7 +653,7 @@
   "importDone": "{added, plural, =0{چیز تازه‌ای نبود} =1{یک یادداشت اضافه شد} other{{added} یادداشت اضافه شد}} · {skipped, plural, =0{} =1{یکی از قبل بود} other{{skipped} تا از قبل بودند}}",
   "importFailed": "این فایل به‌عنوان خروجی Nex خوانده نشد. یادداشت‌های شما تغییری نکردند.",
   "localBackupsTitle": "پشتیبان‌های روی این دستگاه",
-  "localBackupsExplained": "نکس از کتابخانه و فایل‌های رسانه‌ای روی همین دستگاه پشتیبان می‌گیرد. این نسخه‌ها در صورت گم‌شدن دستگاه در دسترس نیستند؛ با دکمهٔ اشتراک کنار هر نسخه، یک کپی در جای دیگری نگه دارید.",
+  "localBackupsExplained": "نکس روی همین دستگاه از کتابخانه پشتیبان می‌گیرد. برای صرفه‌جویی در فضا، نسخه‌های محلی از فایل‌های رسانه‌ای مشترک استفاده می‌کنند؛ اندازهٔ نمایش‌داده‌شده شامل این فایل‌ها نیست. با دکمهٔ اشتراک کنار هر نسخه، یک کپی کامل در جای دیگری نگه دارید تا با گم‌شدن دستگاه از دست نرود.",
   "backupNow": "همین حالا پشتیبان بگیر",
   "backupDone": "پشتیبان گرفته شد",
   "syncNotConfigured": "هیچ سروری تنظیم نشده. همگام‌سازی اختیاری است — Nex بدون آن کاملاً آفلاین کار می‌کند.",
@@ -773,7 +782,7 @@
   "@aiDaySummaryExpand": {
     "description": "Tooltip on the day summary card's chevron while the card is collapsed"
   },
-  "aiHeadlineRefresh": "برای جمله‌ای تازه لمس کنید",
+  "aiHeadlineRefresh": "برای خوشامد تازه نگه دارید",
   "@aiHeadlineRefresh": {
     "description": "Screen-reader label for the tappable AI-generated headline at the top of the timeline"
   },
@@ -982,7 +991,7 @@
   "@chatSend": {
     "description": "Tooltip on the assistant's send button"
   },
-  "chatFailed": "پاسخی نیامد. سرویس را در تنظیمات بررسی کنید یا دوباره تلاش کنید.",
+  "chatFailed": "پاسخی دریافت نشد. پیام شما حفظ شده؛ دوباره تلاش کنید.",
   "@chatFailed": {
     "description": "Shown in the assistant thread when a reply does not arrive"
   },
@@ -1053,7 +1062,7 @@
   "commitmentsTitle": "موارد تکرارشونده",
   "commitmentsSubtitle": "قبض‌ها، تمدیدها، دارو — چیزهایی که دوباره برمی‌گردند",
   "commitmentsEmpty": "هنوز چیزی نیست.\nبیمه، اجاره، قرص هر هشت ساعت.",
-  "briefTitle": "خلاصهٔ روزانه",
+  "briefTitle": "خلاصه هوشمند",
   "briefSubtitle": "کارتی که بالای یادداشت‌هاست. خودت تعیین می‌کنی به چه درد بخورد.",
   "briefStyleLabel": "چه چیزی بنویسد",
   "briefStyleAssistant": "دستیار",

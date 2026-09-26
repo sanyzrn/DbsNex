@@ -97,6 +97,28 @@ void main() {
     expect(await services.listBackups(), hasLength(1));
   });
 
+  test('restoring the oldest safety copy survives retention pruning', () async {
+    final note = (await services.captureText('oldest saved text'))!;
+    final safety = p.join(services.backupDir, 'before-restore');
+    await services.worker.backup(safety, mediaDir: services.mediaDir);
+    final oldest = Directory(safety).listSync().whereType<File>().single;
+    await services.updateNote(note.id, 'newer text');
+    for (var i = 1; i < NexDatabase.backupRetention; i++) {
+      await services.worker.backup(safety, mediaDir: services.mediaDir);
+    }
+    final result = await services.restoreBackup(oldest);
+    expect(result.error, isNull);
+    final reopened = NexDatabase.open(services.dbPath);
+    try {
+      expect(
+        SqliteNoteRepository(reopened).getById(note.id)!.content,
+        'oldest saved text',
+      );
+    } finally {
+      reopened.close();
+    }
+  });
+
   testWidgets('a local backup can be deleted, with confirmation', (
     tester,
   ) async {
@@ -134,6 +156,21 @@ void main() {
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
+    await tester.pump();
+    // Deleting the manifest now also collects unreferenced blobs in an isolate.
+    // Let actual I/O finish; advancing the widget clock cannot complete it.
+    for (
+      var attempt = 0;
+      attempt < 100 &&
+          (find.byIcon(Icons.delete_outline).evaluate().isNotEmpty ||
+              find.byType(LinearProgressIndicator).evaluate().isNotEmpty);
+      attempt++
+    ) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump();
+    }
     await tester.pumpAndSettle();
 
     expect(await services.listBackups(), isEmpty);

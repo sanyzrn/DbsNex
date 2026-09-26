@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'platform/crash_reporter.dart';
@@ -9,6 +10,11 @@ import 'platform/crash_reporter.dart';
 /// re-declaring this sequence.
 Future<void> bootstrapEntry() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks([
+      'jalaali-js',
+    ], await rootBundle.loadString('third_party/jalaali-js-LICENSE.txt'));
+  });
 
   // As early as this can happen: an error during bootstrap is exactly the
   // kind this exists to catch. Local file only — see NexCrashLog's own doc

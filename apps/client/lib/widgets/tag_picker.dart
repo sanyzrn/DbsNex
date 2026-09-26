@@ -6,6 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'nex_dialog.dart';
+import 'tag_label.dart';
 
 /// What the picker hands back: an existing tag, or a name to create.
 class TagChoice {
@@ -62,7 +63,14 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) return widget.tags;
     return widget.tags
-        .where((tag) => tag.name.toLowerCase().contains(query))
+        .where(
+          (tag) =>
+              tag.name.toLowerCase().contains(query) ||
+              nexTagLabel(
+                tag,
+                AppLocalizations.of(context),
+              ).toLowerCase().contains(query),
+        )
         .toList();
   }
 
@@ -70,7 +78,10 @@ class _TagPickerSheetState extends State<TagPickerSheet> {
     final name = _query.trim();
     if (name.isEmpty) return false;
     return !widget.tags.any(
-      (tag) => tag.name.toLowerCase() == name.toLowerCase(),
+      (tag) =>
+          tag.name.toLowerCase() == name.toLowerCase() ||
+          nexTagLabel(tag, AppLocalizations.of(context)).toLowerCase() ==
+              name.toLowerCase(),
     );
   }
 
@@ -209,43 +220,44 @@ class _TagOption extends StatelessWidget {
       child: InkWell(
         onTap: alreadyOn ? null : onTap,
         customBorder: const StadiumBorder(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: NexSpacing.md,
-            vertical: NexSpacing.sm,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: dot ?? Colors.transparent,
-                  border: dot == null
-                      ? Border.all(color: scheme.outline)
-                      : null,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: NexSpacing.md,
+              vertical: NexSpacing.sm,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (dot != null)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: dot,
+                    ),
+                  ),
+                if (dot != null) const SizedBox(width: NexSpacing.contentGap),
+                Text(
+                  nexTagLabel(tag, AppLocalizations.of(context)),
+                  style: alreadyOn
+                      ? theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        )
+                      : theme.textTheme.bodyMedium,
                 ),
-              ),
-              const SizedBox(width: NexSpacing.contentGap),
-              Text(
-                tag.name,
-                style: alreadyOn
-                    ? theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      )
-                    : theme.textTheme.bodyMedium,
-              ),
-              if (alreadyOn) ...[
-                const SizedBox(width: NexSpacing.contentGap),
-                Icon(Icons.check, size: 16, color: scheme.onSurfaceVariant),
+                if (alreadyOn) ...[
+                  const SizedBox(width: NexSpacing.contentGap),
+                  Icon(Icons.check, size: 16, color: scheme.onSurfaceVariant),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
     );
-    return alreadyOn ? Semantics(label: tag.name, child: pill) : pill;
+    return Semantics(selected: alreadyOn, child: pill);
   }
 }

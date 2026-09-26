@@ -573,6 +573,7 @@ class NexDbWorker implements NexDb {
           snapshotPath: snapshotPath,
           mediaDir: mediaDir,
           backupDir: backupDir,
+          compact: true,
         ),
       );
     } finally {

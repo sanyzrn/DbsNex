@@ -9,11 +9,15 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-Current state: **v1.30.0 is released** (verified in `sanyzrn/DbsNex-releases`,
-published 2026-09-24). Audit remediation is in progress on **`codex/work` only**.
-The user has limited the current scope to important fixes; defer the remaining
-work in **`AUDIT_FOLLOW_UP.md`**. The current changes are prepared for **1.40.0**;
-the owner will create the tag after release checks pass.
+Current work (2026-09-26): implement backlog **items 1–35**, on **`codex/work`
+only**. The owner explicitly takes responsibility for all practical/device/
+emulator acceptance tests; do not run those. Host automated tests are allowed.
+1.40.0 preparation was merged in PR #249 with green CI; this subsequent batch
+is **Unreleased**, with no new version selected. Check actual published tags
+only in `sanyzrn/DbsNex-releases`; a source merge does not establish publication.
+Read the current status at the top of **`AUDIT_FOLLOW_UP.md`**; its older sections
+are historical. Items 17–35 are now authorized; see their status table, including
+owner-only acceptance and undeployed feedback configuration. Do not create branches.
 The 1.21.1 audit fixes are recorded in §8 and `NEX_RELEASE_AUDIT.md`. The
 1.22.0 work redesigns Liquid Glass and the home dock; 1.22.1 addresses the
 first round of user feedback; 1.22.2 fixes photo previews and gestures. New

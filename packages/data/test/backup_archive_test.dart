@@ -53,6 +53,7 @@ void main() {
       'restore rejects unsafe archive path $unsafe before replacing the library',
       () {
         repo.insert(photoNote('keep', 'original.jpg'));
+        File(p.join(mediaDir, 'original.jpg')).writeAsBytesSync([1, 2, 3]);
         final valid = repo.backup(backupDir, mediaDir: mediaDir);
         final archive = ZipDecoder().decodeBytes(valid.readAsBytesSync());
         archive.addFile(ArchiveFile(unsafe, 3, [1, 2, 3]));
@@ -76,6 +77,7 @@ void main() {
     'compression reads a consistent snapshot while the live library changes',
     () {
       repo.insert(photoNote('before', 'a.jpg'));
+      File(p.join(mediaDir, 'a.jpg')).writeAsBytesSync([4, 5, 6]);
       final snapshot = repo.backupSnapshot(backupDir);
       repo.insert(photoNote('after', 'b.jpg'));
       final backup = NexBackupArchive.createFromSnapshot(
@@ -308,11 +310,229 @@ void main() {
     expect(File(p.join(mediaDir, 'a.jpg')).existsSync(), isTrue);
   });
 
+  test('a media CRC failure leaves the live library untouched', () {
+    final marker = [241, 232, 223, 214, 205, 196, 187, 178];
+    File(p.join(mediaDir, 'a.jpg')).writeAsBytesSync(marker);
+    repo.insert(photoNote('n', 'a.jpg'));
+    final backup = repo.backup(backupDir, mediaDir: mediaDir);
+    final original = ZipDecoder().decodeBytes(backup.readAsBytesSync());
+    final archive = Archive();
+    for (final entry in original.files) {
+      archive.addFile(
+        entry.name == 'media/a.jpg'
+            ? (ArchiveFile('media/a.jpg', marker.length, marker)
+                ..compression = CompressionType.none)
+            : entry,
+      );
+    }
+    final bytes = ZipEncoder().encode(archive);
+    var offset = -1;
+    for (var i = 0; i <= bytes.length - marker.length; i++) {
+      if (List.generate(
+        marker.length,
+        (j) => bytes[i + j] == marker[j],
+      ).every((v) => v)) {
+        offset = i;
+        break;
+      }
+    }
+    expect(offset, greaterThanOrEqualTo(0));
+    bytes[offset] ^= 1;
+    final corrupt = File(p.join(tmp.path, 'crc.nexbak'))
+      ..writeAsBytesSync(bytes);
+    expect(
+      () => NexBackupArchive.restore(
+        liveDbPath: dbPath,
+        mediaDir: mediaDir,
+        backupFile: corrupt.path,
+      ),
+      throwsFormatException,
+    );
+    expect(repo.getById('n'), isNotNull);
+    expect(File(p.join(mediaDir, 'a.jpg')).readAsBytesSync(), marker);
+  });
+
   test('retention prunes both formats together', () {
     for (var i = 0; i < NexDatabase.backupRetention + 3; i++) {
       repo.backup(backupDir, mediaDir: mediaDir);
     }
     final kept = Directory(backupDir).listSync().whereType<File>().length;
     expect(kept, NexDatabase.backupRetention);
+  });
+
+  test(
+    'local backups reuse blobs; shared backup restores without the blob store',
+    () {
+      File(
+        p.join(mediaDir, 'a.jpg'),
+      ).writeAsBytesSync(List.generate(200000, (i) => i % 251));
+      repo.insert(photoNote('n', 'a.jpg'));
+      final snapshot = repo.backupSnapshot(backupDir);
+      final first = NexBackupArchive.createFromSnapshot(
+        snapshotPath: snapshot.path,
+        mediaDir: mediaDir,
+        backupDir: backupDir,
+        compact: true,
+      );
+      NexBackupArchive.createFromSnapshot(
+        snapshotPath: snapshot.path,
+        mediaDir: mediaDir,
+        backupDir: backupDir,
+        compact: true,
+      );
+      expect(
+        Directory(p.join(backupDir, '.media')).listSync().whereType<File>(),
+        hasLength(1),
+      );
+      final portable = NexBackupArchive.portable(
+        first.path,
+        p.join(tmp.path, 'portable.nexbak'),
+      );
+      Directory(backupDir).deleteSync(recursive: true);
+      final newDb = p.join(tmp.path, 'new.sqlite');
+      final newMedia = p.join(tmp.path, 'new-media');
+      NexBackupArchive.restore(
+        liveDbPath: newDb,
+        mediaDir: newMedia,
+        backupFile: portable,
+      );
+      final restored = NexDatabase.open(newDb);
+      try {
+        final note = SqliteNoteRepository(restored).getById('n')!;
+        expect(note.mediaUri, p.join(newMedia, 'a.jpg'));
+        expect(
+          File(note.mediaUri!).readAsBytesSync(),
+          File(p.join(mediaDir, 'a.jpg')).readAsBytesSync(),
+        );
+      } finally {
+        restored.close();
+      }
+    },
+  );
+
+  test(
+    'missing and corrupt local blobs fail before replacing the live database',
+    () {
+      File(p.join(mediaDir, 'a.jpg')).writeAsBytesSync([1, 2, 3]);
+      repo.insert(photoNote('n', 'a.jpg'));
+      final snapshot = repo.backupSnapshot(backupDir);
+      final backup = NexBackupArchive.createFromSnapshot(
+        snapshotPath: snapshot.path,
+        mediaDir: mediaDir,
+        backupDir: backupDir,
+        compact: true,
+      );
+      final blob = Directory(
+        p.join(backupDir, '.media'),
+      ).listSync().whereType<File>().single;
+      blob.writeAsBytesSync([9, 8, 7]);
+      expect(
+        () => NexBackupArchive.restore(
+          liveDbPath: dbPath,
+          mediaDir: mediaDir,
+          backupFile: backup.path,
+        ),
+        throwsFormatException,
+      );
+      expect(repo.getById('n'), isNotNull);
+      blob.deleteSync();
+      expect(
+        () => NexBackupArchive.restore(
+          liveDbPath: dbPath,
+          mediaDir: mediaDir,
+          backupFile: backup.path,
+        ),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(File(p.join(mediaDir, 'a.jpg')).readAsBytesSync(), [1, 2, 3]);
+    },
+  );
+
+  test('missing referenced media refuses to publish a new backup', () {
+    repo.insert(photoNote('missing', 'missing.jpg'));
+    expect(() => repo.backup(backupDir, mediaDir: mediaDir), throwsStateError);
+    expect(
+      Directory(backupDir).listSync().where((e) => e.path.endsWith('.nexbak')),
+      isEmpty,
+    );
+  });
+
+  test('a pinned restore source protects blobs during retention cleanup', () {
+    File(p.join(mediaDir, 'a.jpg')).writeAsBytesSync([1, 2, 3]);
+    repo.insert(photoNote('n', 'a.jpg'));
+    final snapshot = repo.backupSnapshot(backupDir);
+    final backup = NexBackupArchive.createFromSnapshot(
+      snapshotPath: snapshot.path,
+      mediaDir: mediaDir,
+      backupDir: backupDir,
+      compact: true,
+    );
+    final pin = backup.copySync(p.join(backupDir, '.restore-source-test'));
+    backup.deleteSync();
+    final blob = Directory(
+      p.join(backupDir, '.media'),
+    ).listSync().whereType<File>().single;
+    blob.setLastModifiedSync(DateTime.now().subtract(const Duration(days: 8)));
+    NexBackupArchive.collectUnusedMedia(backupDir);
+    expect(blob.existsSync(), isTrue);
+    pin.deleteSync();
+    NexBackupArchive.collectUnusedMedia(backupDir);
+    expect(blob.existsSync(), isFalse);
+  });
+
+  test(
+    'a changed media generation cannot be published with the old snapshot',
+    () {
+      final file = File(p.join(mediaDir, 'a.jpg'))..writeAsBytesSync([1, 2, 3]);
+      repo.insert(photoNote('n', 'a.jpg'));
+      db.db.execute('UPDATE notes SET media_hash = ? WHERE id = ?', [
+        '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
+        'n',
+      ]);
+      final snapshot = repo.backupSnapshot(backupDir);
+      file.writeAsBytesSync([4, 5, 6]);
+      expect(
+        () => NexBackupArchive.createFromSnapshot(
+          snapshotPath: snapshot.path,
+          mediaDir: mediaDir,
+          backupDir: backupDir,
+          compact: true,
+        ),
+        throwsStateError,
+      );
+      expect(
+        Directory(
+          backupDir,
+        ).listSync().where((f) => f.path.endsWith('.nexbak')),
+        isEmpty,
+      );
+    },
+  );
+
+  test('an incomplete archive rolls back both the database and media', () {
+    File(p.join(mediaDir, 'a.jpg')).writeAsBytesSync([1, 2, 3]);
+    File(p.join(mediaDir, 'b.jpg')).writeAsBytesSync([4, 5, 6]);
+    repo.insert(photoNote('n', 'a.jpg'));
+    final backup = repo.backup(backupDir, mediaDir: mediaDir);
+    final archive = ZipDecoder().decodeBytes(backup.readAsBytesSync());
+    final incomplete = Archive();
+    for (final entry in archive.files) {
+      if (entry.name != 'media/a.jpg') incomplete.addFile(entry);
+    }
+    final broken = File(p.join(tmp.path, 'incomplete.nexbak'))
+      ..writeAsBytesSync(ZipEncoder().encode(incomplete));
+    db.close();
+    expect(
+      () => NexBackupArchive.restore(
+        liveDbPath: dbPath,
+        mediaDir: mediaDir,
+        backupFile: broken.path,
+      ),
+      throwsFormatException,
+    );
+    db = NexDatabase.open(dbPath);
+    repo = SqliteNoteRepository(db);
+    expect(repo.getById('n'), isNotNull);
+    expect(File(p.join(mediaDir, 'a.jpg')).readAsBytesSync(), [1, 2, 3]);
   });
 }

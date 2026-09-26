@@ -311,7 +311,11 @@ class NexGlassSurface extends StatelessWidget {
         decoration: BoxDecoration(
           color: ground,
           borderRadius: borderRadius,
-          border: Border.all(color: visual.glassBorder),
+          border: Border.all(
+            color: MediaQuery.highContrastOf(context)
+                ? Theme.of(context).colorScheme.outline
+                : visual.glassBorder,
+          ),
         ),
         child: body,
       );

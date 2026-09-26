@@ -65,10 +65,18 @@ class CaptureWidgetProvider : AppWidgetProvider() {
     private fun views(context: Context, manager: AppWidgetManager, id: Int): RemoteViews {
         val options = manager.getAppWidgetOptions(id)
         val wide = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH) >= WIDE_AT_DP
+        val displayContext = NexWidgetAppearance.localized(context)
         val views = RemoteViews(context.packageName, R.layout.capture_widget)
+        NexWidgetAppearance.accent(context)?.let { accent ->
+            views.setInt(R.id.nex_widget_capture_fill, "setColorFilter", accent)
+            val foreground = NexWidgetAppearance.foreground(accent)
+            views.setTextColor(R.id.nex_widget_capture_label, foreground)
+            views.setInt(R.id.nex_widget_capture_plus, "setColorFilter", foreground)
+        }
+        views.setInt(R.id.nex_widget_capture_root, "setLayoutDirection", displayContext.resources.configuration.layoutDirection)
         views.setTextViewText(
             R.id.nex_widget_capture_label,
-            context.getString(R.string.widget_capture_label),
+            displayContext.getString(R.string.widget_capture_label),
         )
         views.setViewVisibility(
             R.id.nex_widget_capture_label,
@@ -80,7 +88,7 @@ class CaptureWidgetProvider : AppWidgetProvider() {
         )
         views.setContentDescription(
             R.id.nex_widget_capture_root,
-            context.getString(R.string.widget_a11y_capture),
+            displayContext.getString(R.string.widget_a11y_capture),
         )
         return views
     }

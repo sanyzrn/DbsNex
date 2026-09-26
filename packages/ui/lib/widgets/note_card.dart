@@ -20,6 +20,8 @@ class NexCardStrings {
     required this.accentColor,
     this.relativeTime = _defaultRelativeTime,
     this.dueLabel,
+    this.tagName,
+    this.durationLabel,
   });
 
   /// English default, for tests and for anything that has not been localised
@@ -54,6 +56,8 @@ class NexCardStrings {
   final String Function(String tags) tagList;
 
   final String accentColor;
+  final String Function(Tag)? tagName;
+  final String Function(int milliseconds)? durationLabel;
 
   /// "8h", "2w" and so on — see [NexRelativeTime].
   final String Function(NexRelativeTime time) relativeTime;
@@ -181,21 +185,19 @@ class _CardBody extends StatelessWidget {
       // colour, which left a 1.2:1 hairline as the only thing marking the
       // boundary of the app's main tap target.
       color: theme.colorScheme.surfaceContainerLowest,
-      // Flat. No outline and no shadow: the boundary is the tonal step
-      // between the card's fill and the page's, and nothing else.
-      //
-      // The shadow was doing the outline's share of the work as well as its
-      // own, and a screen of it read as busy — dozens of soft edges stacked
-      // down a list, none of them carrying information. Losing it costs
-      // something real in the dark theme, where the step between page and
-      // card was four values of lightness; `bgCardDark` was opened up to pay
-      // for that rather than quietly leaving the cards invisible.
+      // A quiet hairline separates the target from low-contrast backgrounds.
+      // High-contrast mode uses the full outline and a thicker edge.
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.lg),
-        side: context.nexVisualStyle.liquidGlass
+        side: MediaQuery.highContrastOf(context)
+            ? BorderSide(color: theme.colorScheme.outline, width: 1.5)
+            : context.nexVisualStyle.liquidGlass
             ? BorderSide(color: context.nexVisualStyle.glassBorder)
-            : BorderSide.none,
+            : BorderSide(
+                color: theme.colorScheme.outline.withValues(alpha: 0.6),
+                width: 0.75,
+              ),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -339,7 +341,9 @@ class _CornerTagDots extends StatelessWidget {
       // without a container of its own merges into the parent and stops being
       // something a screen reader can navigate to.
       container: true,
-      label: strings.tagList(tags.map((tag) => tag.name).join(', ')),
+      label: strings.tagList(
+        tags.map((tag) => strings.tagName?.call(tag) ?? tag.name).join(', '),
+      ),
       excludeSemantics: true,
       child: SizedBox(
         width: nexCardLeadingSize,
@@ -446,11 +450,32 @@ class _Preview extends StatelessWidget {
       // anything; the ceiling is there because a note long enough to need
       // scrolling is one the card cannot show anyway, and trying costs the
       // rest of the timeline its place on screen.
-      maxLines: expanded ? nexCardExpandedMaxLines : nexCardPreviewLines,
+      maxLines: expanded
+          ? nexCardExpandedMaxLines
+          : note.type == NoteType.voice && (note.durationMs ?? 0) > 0
+          ? 1
+          : nexCardPreviewLines,
       style: Theme.of(context).textTheme.bodyLarge,
     );
     // The card already announces its type. Keep real note content reachable,
     // but do not announce the translated empty-media fallback a second time.
+    if (note.type == NoteType.voice && (note.durationMs ?? 0) > 0) {
+      final seconds = note.durationMs! ~/ 1000;
+      final duration =
+          strings.durationLabel?.call(note.durationMs!) ??
+          '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          preview,
+          Text(
+            duration,
+            textDirection: TextDirection.ltr,
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ],
+      );
+    }
     return note.displayText == null
         ? ExcludeSemantics(child: preview)
         : preview;
@@ -768,7 +793,7 @@ class TagChip extends StatelessWidget {
     materialTapTargetSize: compact && onRemove == null
         ? MaterialTapTargetSize.shrinkWrap
         : null,
-    label: Text(tag.name),
+    label: Text(strings.tagName?.call(tag) ?? tag.name),
     avatar: tag.color == null
         ? null
         : Semantics(

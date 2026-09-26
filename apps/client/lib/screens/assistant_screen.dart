@@ -53,7 +53,10 @@ class AssistantScreen extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(NexSpacing.md),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
+                color: Color.alphaBlend(
+                  theme.colorScheme.primary.withValues(alpha: 0.12),
+                  theme.colorScheme.surfaceContainerLow,
+                ),
                 borderRadius: BorderRadius.circular(NexRadius.lg),
               ),
               child: Row(
@@ -64,7 +67,7 @@ class AssistantScreen extends StatelessWidget {
                     child: Text(
                       l10n.assistantProfileIntro,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ),

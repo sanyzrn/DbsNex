@@ -18,6 +18,9 @@ class TagFilterRow extends StatelessWidget {
     this.showAll = true,
     this.hasOtherFilters = false,
     this.onClearAll,
+    this.activeFilterLabel = '',
+    this.onOpenActiveFilter,
+    this.tagLabel,
     this.allLabel = 'All',
     this.leading,
     this.trailing,
@@ -45,6 +48,9 @@ class TagFilterRow extends StatelessWidget {
   final bool showAll;
   final bool hasOtherFilters;
   final VoidCallback? onClearAll;
+  final String activeFilterLabel;
+  final VoidCallback? onOpenActiveFilter;
+  final String Function(Tag)? tagLabel;
 
   /// Label of the "clear the filter" pill. The design system carries no
   /// localizations of its own, so the app passes the translated string in —
@@ -84,11 +90,21 @@ class TagFilterRow extends StatelessWidget {
                 theme: theme,
               ),
             ),
+          if (hasOtherFilters && activeFilterLabel.isNotEmpty)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
+              child: _Pill(
+                label: activeFilterLabel,
+                selected: true,
+                onTap: onOpenActiveFilter ?? onClearAll ?? () {},
+                theme: theme,
+              ),
+            ),
           for (final tag in tags)
             Padding(
               padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
               child: _Pill(
-                label: tag.name,
+                label: tagLabel?.call(tag) ?? tag.name,
                 selected: selectedTagIds.contains(tag.id),
                 accent: tag.color,
                 onTap: () => onSelected(

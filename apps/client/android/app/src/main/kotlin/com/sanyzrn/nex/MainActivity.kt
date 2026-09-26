@@ -9,6 +9,7 @@ import android.graphics.pdf.PdfRenderer
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
@@ -42,13 +43,31 @@ open class MainActivity : FlutterFragmentActivity() {
     private val pending = linkedMapOf<String, Map<String, String>>()
     private val deferred = mutableSetOf<String>()
     private val inbox by lazy { getSharedPreferences("capture_inbox", MODE_PRIVATE) }
+    private var captureRequestId: String? = null
 
-    private fun nextCapture(): Map<String, String>? {
-        pending.values.firstOrNull { it["requestId"] !in deferred }?.let { return it }
-        return inbox.all.entries.firstOrNull { it.key !in deferred }?.let {
-            val json = JSONObject(it.value as String)
-            json.keys().asSequence().associateWith { key -> json.getString(key) }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        captureRequestId = savedInstanceState?.getString("nex.captureRequestId")
+        super.onCreate(savedInstanceState)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("nex.captureRequestId", captureRequestId)
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun nextCapture(): Map<String, String>? = synchronized(inboxClaimLock) {
+        val candidates = pending.values.toList() + inbox.all.entries.mapNotNull {
+            runCatching {
+                val json = JSONObject(it.value as String)
+                json.keys().asSequence().associateWith { key -> json.getString(key) }
+            }.getOrNull()
         }
+        val next = candidates.filter {
+            val id = it["requestId"]
+            id != null && id !in deferred && (claimed[id] == null || claimed[id] === this)
+        }.minByOrNull { it["receivedAt"].orEmpty() }
+        next?.get("requestId")?.let { claimed[it] = this }
+        next
     }
     private var picker: MethodChannel.Result? = null
 
@@ -114,16 +133,36 @@ open class MainActivity : FlutterFragmentActivity() {
             "ackPending" -> {
                 val id = call.argument<String>("requestId")
                 if (id != null) {
-                    pending.remove(id)
+                    val acknowledgedUri = runCatching {
+                        JSONObject(inbox.getString(id, null) ?: "{}").optString("uri")
+                    }.getOrNull()?.takeIf { it.isNotEmpty() }
                     if (!inbox.edit().remove(id).commit()) {
                         result.error("inbox_write", "Could not acknowledge capture", null)
                         return@setMethodCallHandler
+                    }
+                    pending.remove(id)
+                    synchronized(inboxClaimLock) { claimed.remove(id) }
+                    if (acknowledgedUri != null && inbox.all.values.none {
+                            runCatching { JSONObject(it as String).optString("uri") == acknowledgedUri }.getOrDefault(false)
+                        }) {
+                        runCatching { contentResolver.releasePersistableUriPermission(
+                            Uri.parse(acknowledgedUri), Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                    }
+                    if (id.matches(Regex("[a-zA-Z0-9-]+"))) {
+                        ioExecutor.execute {
+                            synchronized(inboxCopyLock) {
+                                File(filesDir, "share-inbox/$id").delete()
+                            }
+                        }
                     }
                 }
                 result.success(null)
             }
             "deferPending" -> {
-                call.argument<String>("requestId")?.let { deferred.add(it) }
+                call.argument<String>("requestId")?.let {
+                    deferred.add(it)
+                    synchronized(inboxClaimLock) { claimed.remove(it) }
+                }
                 result.success(null)
             }
             // Fetch the file a share referred to, now that Dart has decided
@@ -136,8 +175,9 @@ open class MainActivity : FlutterFragmentActivity() {
             // thread: this is the copy, and it is the slow part.
             "copyShared" -> {
                 val uri = call.argument<String>("uri")
+                val id = call.argument<String>("requestId")
                 replyAsync(result, ioExecutor) {
-                    uri?.let { copyUri(Uri.parse(it))?.get("path") }
+                    uri?.let { copySharedUri(Uri.parse(it), id) }
                 }
             }
             // Which kind of window this is, asked before anything is drawn.
@@ -149,6 +189,8 @@ open class MainActivity : FlutterFragmentActivity() {
             // explicit broadcast per provider — the same path a system update
             // takes, so there is one rendering code path and not two.
             "pushWidgets" -> {
+                NexWidgetAppearance.save(applicationContext,
+                    call.argument<String>("locale"), call.argument<String>("accent"))
                 NexWidgetActions.refreshAll(applicationContext)
                 result.success(null)
             }
@@ -172,6 +214,11 @@ open class MainActivity : FlutterFragmentActivity() {
             }
             "openSecuritySettings" -> {
                 startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
+                result.success(null)
+            }
+            "openAppSettings" -> {
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.parse("package:$packageName")))
                 result.success(null)
             }
             "isShareWindow" -> result.success(closesAfterShare)
@@ -309,10 +356,12 @@ open class MainActivity : FlutterFragmentActivity() {
     }
 
     override fun onNewIntent(intent: Intent) {
+        captureRequestId = null
         super.onNewIntent(intent); setIntent(intent); handleIncoming(intent, live = true)
     }
 
     override fun onDestroy() {
+        synchronized(inboxClaimLock) { claimed.entries.removeAll { it.value === this } }
         // This Activity is recreated on a configuration change, and each one
         // brings its own executor. Without this, every rotation leaves a
         // parked thread behind. `shutdown`, not `shutdownNow`: work already
@@ -406,9 +455,8 @@ open class MainActivity : FlutterFragmentActivity() {
             data + ("type" to if (type.startsWith("image/")) "shared_photo" else "shared_file")
         }
 
-        // Nothing is copied here, on either path. What goes across is what
-        // the provider will say about the file — see [describeUri] — and Dart
-        // asks for the copy with `copyShared` once it has decided to keep it.
+        // Pass metadata immediately; enqueue spools the file on the I/O thread
+        // while the provider grant exists. Dart reuses that durable copy.
         //
         // The copy used to happen right here, and it was the whole cost of a
         // share. A two-gigabyte video was written through to the cache before
@@ -427,14 +475,24 @@ open class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun enqueue(value: Map<String, String>, live: Boolean) {
-        val requestId = intent.getStringExtra("nex.captureRequestId")
-            ?: UUID.randomUUID().toString().also { intent.putExtra("nex.captureRequestId", it) }
-        val payload = value + ("requestId" to requestId)
+        val requestId = captureRequestId
+            ?: UUID.randomUUID().toString().also { captureRequestId = it }
+        val payload = value + mapOf("requestId" to requestId,
+            "receivedAt" to System.currentTimeMillis().toString())
         if (value["type"]?.startsWith("shared_") == true) {
             // Keep deliveries until Dart acknowledges the committed database row.
             // SharedPreferences is process-wide, including both Flutter engines.
             if (!inbox.edit().putString(requestId, JSONObject(payload).toString()).commit()) {
                 pending[requestId] = payload
+            }
+            value["uri"]?.let { raw ->
+                val uri = Uri.parse(raw)
+                runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                // Start spooling immediately while the temporary grant exists.
+                // copyShared uses the same executor and reuses the finished file.
+                if ((value["size"]?.toLongOrNull() ?: -1L) <= 100L * 1024 * 1024) {
+                    ioExecutor.execute { runCatching { copySharedUri(uri, requestId) } }
+                }
             }
         } else {
             pending[requestId] = payload
@@ -619,23 +677,47 @@ open class MainActivity : FlutterFragmentActivity() {
         }
     }
 
-    private fun copyUri(uri: Uri): Map<String, String>? {
+    private fun copySharedUri(uri: Uri, id: String?): String? = synchronized(inboxCopyLock) {
+        if (id == null) return@synchronized copyUri(uri)?.get("path")
+        if (!id.matches(Regex("[a-zA-Z0-9-]+"))) return@synchronized null
+        // A queued spool may run after another engine already acknowledged it.
+        if (!inbox.contains(id)) return@synchronized null
+        val file = File(filesDir, "share-inbox/$id")
+        if (file.isFile) return@synchronized file.path
+        copyUri(uri, file)?.get("path")
+    }
+
+    private fun copyUri(uri: Uri, destination: File? = null): Map<String, String>? {
       return try {
         // An exported Activity must not copy its own private files on behalf
         // of another app, including through a symlink or our FileProvider.
-        if (uri.scheme == "file") {
-            val source = File(uri.path ?: return null).canonicalFile
-            val privateRoot = File(applicationInfo.dataDir).canonicalFile
-            if (source == privateRoot || source.path.startsWith(privateRoot.path + File.separator)) return null
-        }
+        // External apps must use a provider grant, never our process's ability
+        // to open arbitrary filesystem paths (including external/private roots).
+        if (uri.scheme != "content") return null
         if (uri.scheme == "content" && packageManager.resolveContentProvider(uri.authority ?: "", 0)?.applicationInfo?.uid == applicationInfo.uid) return null
         val name = displayName(uri) ?: "shared-${System.currentTimeMillis()}"
         val extension = name.substringAfterLast('.', "").takeIf { it.matches(Regex("[A-Za-z0-9]{1,10}")) }
-        val out = File(cacheDir, "shared").apply { mkdirs() }
+        val out = destination ?: File(cacheDir, "shared").apply { mkdirs() }
             .resolve(UUID.randomUUID().toString() + (extension?.let { ".$it" } ?: ""))
-        contentResolver.openInputStream(uri)?.use { input ->
-            FileOutputStream(out).use { output -> input.copyTo(output) }
-        } ?: return null
+        out.parentFile?.mkdirs()
+        val partial = File(out.path + ".partial")
+        try {
+            contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(partial).use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    var total = 0L
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        if (total > 100L * 1024 * 1024) throw java.io.IOException("Attachment too large")
+                        output.write(buffer, 0, count)
+                    }
+                    output.fd.sync()
+                }
+            } ?: return null
+            if (!partial.renameTo(out)) throw java.io.IOException("Could not retain attachment")
+        } finally { partial.delete() }
         mapOf("path" to out.absolutePath, "filename" to name,
               "mimeType" to (contentResolver.getType(uri) ?: "application/octet-stream"))
       } catch (_: Exception) { null }
@@ -716,6 +798,9 @@ open class MainActivity : FlutterFragmentActivity() {
     }
 
     companion object {
+        private val inboxCopyLock = Any()
+        private val inboxClaimLock = Any()
+        private val claimed = mutableMapOf<String, MainActivity>()
         const val ACTION_TEXT_CAPTURE = "com.sanyzrn.nex.TEXT_CAPTURE"
 
         /** Sent by a Timeline widget row; carries [EXTRA_NOTE_ID]. */

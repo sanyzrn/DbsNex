@@ -35,6 +35,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
     this.anchor,
     this.filterCount = 0,
     this.onShowFilters,
+    this.extent = nexSearchHeaderExtent,
   });
 
   /// Attached to the field's own box, so the first-run tour can measure where
@@ -55,6 +56,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
 
   /// Opens the filter sheet. Null on surfaces that have no filter sheet.
   final VoidCallback? onShowFilters;
+  final double extent;
 
   // Fixed, both of them, and the header is never pinned.
   //
@@ -68,7 +70,7 @@ class SearchFieldHeader extends SliverPersistentHeaderDelegate {
   double get minExtent => 0;
 
   @override
-  double get maxExtent => nexSearchHeaderExtent;
+  double get maxExtent => extent;
 
   @override
   Widget build(
