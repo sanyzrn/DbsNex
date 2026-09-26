@@ -98,4 +98,30 @@ void main() {
       reason: 'a selection change rebuilt the field',
     );
   });
+
+  testWidgets(
+    'Persian multiline selection and composing ranges survive rebuilds',
+    (tester) async {
+      const text = 'یادداشت فارسی\nEnglish 123\nخط سوم';
+      await open(tester, initial: text);
+      final before = field(tester);
+      final controller = before.controller!;
+      const selection = TextSelection(baseOffset: 2, extentOffset: 24);
+      controller.value = const TextEditingValue(
+        text: text,
+        selection: selection,
+        composing: TextRange(start: 0, end: 7),
+      );
+      await tester.pump();
+      expect(field(tester).controller, same(controller));
+      expect(controller.selection, selection);
+      expect(controller.value.composing, const TextRange(start: 0, end: 7));
+      expect(selection.textInside(controller.text), text.substring(2, 24));
+      expect(field(tester).contextMenuBuilder, same(before.contextMenuBuilder));
+      expect(
+        Directionality.of(tester.element(find.byType(EditableText))),
+        TextDirection.rtl,
+      );
+    },
+  );
 }

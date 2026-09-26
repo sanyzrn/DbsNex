@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show compute;
+import '../platform/photo_encoding.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,6 +31,8 @@ import '../widgets/ai_chat_sheet.dart';
 import '../widgets/capture_sheet.dart';
 import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/card_strings.dart';
+import '../widgets/tag_label.dart';
+import '../widgets/note_context_menu.dart';
 import '../widgets/commit_receipt.dart';
 import '../widgets/commitments_sheet.dart';
 import '../widgets/note_spotlight.dart';
@@ -199,7 +203,7 @@ class TimelineScreenState extends State<TimelineScreen>
   final FocusNode _searchFocus = FocusNode();
 
   /// Which of the three fallback greetings is showing. Re-rolled, not fixed,
-  /// because tapping the headline refreshes it — see [_refreshHeadline]. With
+  /// because holding the headline refreshes it — see [_refreshHeadline]. With
   /// no AI provider that re-roll *is* the refresh.
   int _greetingVariant = math.Random().nextInt(3);
   bool _searching = false;
@@ -526,7 +530,7 @@ class TimelineScreenState extends State<TimelineScreen>
     // Whatever is on file goes up first, stale or not. A recap from this
     // morning is worth reading while a newer one is being written, and it is
     // certainly worth more than an empty card.
-    final cached = prefs.aiDaySummaryText;
+    final cached = CloudAIAdapter.cleanDecorativeReply(prefs.aiDaySummaryText);
     if (mounted &&
         cached != null &&
         cached.isNotEmpty &&
@@ -706,11 +710,11 @@ class TimelineScreenState extends State<TimelineScreen>
     if (!force &&
         prefs.aiHeadlineDate == today &&
         prefs.aiHeadlineLang == langKey) {
-      final cached = prefs.aiHeadlineText;
+      final cached = CloudAIAdapter.cleanDecorativeReply(prefs.aiHeadlineText);
       if (mounted && cached != null && cached.isNotEmpty) {
         setState(() => _aiHeadlineText = cached);
+        return;
       }
-      return;
     }
     if (mounted) setState(() => _aiHeadlineLoading = true);
     final adapter = _aiAdapter();
@@ -740,13 +744,14 @@ class TimelineScreenState extends State<TimelineScreen>
     }
   }
 
-  /// Tapping the headline asks for a new one.
+  /// Holding the headline explicitly asks for a new one.
   ///
   /// With no provider configured there is still something to refresh — the
   /// local greeting has three phrasings per time of day, and re-rolling one
   /// is what the same tap does. A tap target that does nothing on half the
   /// installs would be worse than not having it.
   void _refreshHeadline() {
+    if (_aiHeadlineLoading) return;
     _tick();
     if (_aiHeaderAvailable) {
       unawaited(_loadAiHeadline(force: true));
@@ -822,7 +827,9 @@ class TimelineScreenState extends State<TimelineScreen>
 
   bool _recapIsStale(String fingerprint) => recapNeedsRefresh(
     at: widget.preferences.aiDaySummaryAt,
-    text: widget.preferences.aiDaySummaryText,
+    text: CloudAIAdapter.cleanDecorativeReply(
+      widget.preferences.aiDaySummaryText,
+    ),
     storedSource: widget.preferences.aiDaySummarySource,
     fingerprint: fingerprint,
     now: DateTime.now(),
@@ -1586,6 +1593,15 @@ class TimelineScreenState extends State<TimelineScreen>
         NexPageRoute(builder: (_) => PhotoPreviewScreen(image: original)),
       );
       if (cropped == null) return;
+      final encoded = identical(cropped, original)
+          ? cropped
+          : await compute(encodeEditedPhoto, (
+              bytes: cropped,
+              wasJpeg:
+                  original.length > 2 &&
+                  original[0] == 0xff &&
+                  original[1] == 0xd8,
+            ));
       final isPng =
           cropped.length >= 8 &&
           cropped[0] == 0x89 &&
@@ -1594,15 +1610,15 @@ class TimelineScreenState extends State<TimelineScreen>
           cropped[3] == 0x47;
       final dest = p.join(
         widget.services.mediaDir,
-        'photo-${DateTime.now().millisecondsSinceEpoch}${isPng ? '.png' : p.extension(picked.path)}',
+        'photo-${DateTime.now().microsecondsSinceEpoch}${identical(cropped, original) ? (isPng ? '.png' : p.extension(picked.path)) : photoExtension(encoded)}',
       );
-      await File(dest).writeAsBytes(cropped, flush: true);
+      await File(dest).writeAsBytes(encoded, flush: true);
       final note = await widget.services.capturePhoto(
         mediaUri: dest,
         // The bytes are already in hand and a photo fits in memory, so hash
         // them here rather than re-reading the file. The share path cannot:
         // what arrives there is whatever was shared, up to a video.
-        mediaHash: sha256OfBytes(cropped),
+        mediaHash: sha256OfBytes(encoded),
       );
       landedId = note.id;
       widget.services.scheduleEnrichment(note.id);
@@ -1628,8 +1644,14 @@ class TimelineScreenState extends State<TimelineScreen>
         CaptureFailure.unreadable => l10n.captureFailedUnreadable,
         CaptureFailure.unknown => l10n.captureFailed,
       },
-      actionLabel: l10n.retry,
-      onAction: () => unawaited(capturePhoto(source)),
+      actionLabel: failure == CaptureFailure.permission
+          ? l10n.openSettings
+          : l10n.retry,
+      onAction: () => unawaited(
+        failure == CaptureFailure.permission
+            ? openCaptureSettings()
+            : capturePhoto(source),
+      ),
     );
   }
 
@@ -1646,6 +1668,8 @@ class TimelineScreenState extends State<TimelineScreen>
       nexShowBanner(
         context,
         message: AppLocalizations.of(context).micDenied,
+        actionLabel: AppLocalizations.of(context).openSettings,
+        onAction: () => unawaited(openCaptureSettings()),
         kind: NexBannerKind.failed,
         haptics: widget.preferences.haptics,
       );
@@ -1980,7 +2004,7 @@ class TimelineScreenState extends State<TimelineScreen>
   ///
   /// - nothing set up at all — no header, just the search field, as before;
   /// - a name but no AI — the greeting *is* the headline, at headline size,
-  ///   and tapping it re-rolls the phrasing;
+  ///   and holding it re-rolls the phrasing;
   /// - AI but no name — the generated line alone;
   /// - both — the greeting small above, the generated line large below.
   ///
@@ -2003,6 +2027,7 @@ class TimelineScreenState extends State<TimelineScreen>
     if (!showLine) return const SizedBox.shrink();
     final headlineStyle = theme.textTheme.headlineSmall?.copyWith(
       fontWeight: FontWeight.w600,
+      fontSize: MediaQuery.sizeOf(context).height < 700 ? 20 : null,
       height: 1.25,
     );
     // The generated line is written at the daily recap's size and weight, not
@@ -2016,9 +2041,9 @@ class TimelineScreenState extends State<TimelineScreen>
     final hasHeadlineSlot = _aiHeaderAvailable && showGreeting;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         NexSpacing.md,
-        NexSpacing.sm,
+        MediaQuery.sizeOf(context).height < 700 ? NexSpacing.xs : NexSpacing.sm,
         NexSpacing.md,
         0,
       ),
@@ -2031,7 +2056,8 @@ class TimelineScreenState extends State<TimelineScreen>
         children: [
           if (showLine)
             NexTappable(
-              onTap: _refreshHeadline,
+              onTap: () {},
+              onLongPress: _refreshHeadline,
               semanticLabel: l10n.aiHeadlineRefresh,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(NexRadius.lg),
@@ -2110,7 +2136,7 @@ class TimelineScreenState extends State<TimelineScreen>
             // Not `tune`: the content-type filter at the head of the tag row
             // already wears that, and two identical icons on one screen
             // meaning two different things is worse than either.
-            icon: const Icon(Icons.dashboard_customize_outlined),
+            icon: const Icon(Icons.view_quilt_outlined),
             onPressed: () async {
               await nexShowSheet<void>(
                 context: context,
@@ -2238,6 +2264,17 @@ class TimelineScreenState extends State<TimelineScreen>
                               SliverPersistentHeader(
                                 key: const ValueKey('search-header'),
                                 delegate: SearchFieldHeader(
+                                  extent:
+                                      math.max(
+                                        nexMinTapTarget,
+                                        MediaQuery.textScalerOf(
+                                                  context,
+                                                ).scale(16) *
+                                                1.5 +
+                                            16,
+                                      ) +
+                                      NexSpacing.xs +
+                                      NexSpacing.sm,
                                   anchor: _searchAnchor,
                                   controller: _search.query,
                                   focusNode: _searchFocus,
@@ -2260,16 +2297,36 @@ class TimelineScreenState extends State<TimelineScreen>
                                 pinned: true,
                                 delegate: _FilterRowHeader(
                                   visible: !_searching,
+                                  extent:
+                                      math.max(
+                                        nexMinTapTarget,
+                                        MediaQuery.textScalerOf(
+                                                  context,
+                                                ).scale(14) *
+                                                1.5 +
+                                            16,
+                                      ) +
+                                      NexSpacing.md +
+                                      NexSpacing.sm,
                                   child: NexInertWhileSwiped(
                                     controller: _swipe,
                                     child: TagFilterRow(
                                       tags: filterTags,
                                       hasOtherFilters:
                                           selectedType != null || onlyReminders,
+                                      activeFilterLabel: [
+                                        if (selectedType != null)
+                                          l10n.noteType(selectedType!.wireName),
+                                        if (onlyReminders)
+                                          l10n.filterHasReminder,
+                                      ].join(' · '),
+                                      onOpenActiveFilter: () =>
+                                          unawaited(_pickFilters()),
                                       onClearAll: () =>
                                           unawaited(_clearFilters()),
                                       selectedTagIds: selectedTagIds,
                                       allLabel: l10n.all,
+                                      tagLabel: (tag) => nexTagLabel(tag, l10n),
                                       leading: _FilterButton(
                                         active:
                                             selectedType != null ||
@@ -2676,11 +2733,16 @@ class TimelineScreenState extends State<TimelineScreen>
                         : widget.preferences.trailingAction,
                   ),
                   onAction: (action) => unawaited(_runSwipe(action, note)),
-                  child: NoteCard(
-                    note: note,
-                    strings: nexCardStrings(context),
-                    onTap: () => _tapNote(note),
-                    expanded: widget.preferences.isNoteExpanded(note.id),
+                  child: NoteContextMenu(
+                    onOpen: () => _tapNote(note),
+                    onAddTag: () => unawaited(_addTagTo(note)),
+                    onDelete: () => unawaited(deleteWithUndo(note)),
+                    child: NoteCard(
+                      note: note,
+                      strings: nexCardStrings(context),
+                      onTap: () => _tapNote(note),
+                      expanded: widget.preferences.isNoteExpanded(note.id),
+                    ),
                   ),
                 ),
               ),
@@ -3224,7 +3286,11 @@ class _CollapsedRecap extends StatelessWidget {
 }
 
 class _FilterRowHeader extends SliverPersistentHeaderDelegate {
-  const _FilterRowHeader({required this.child, required this.visible});
+  const _FilterRowHeader({
+    required this.child,
+    required this.visible,
+    required this.extent,
+  });
 
   final Widget child;
 
@@ -3232,32 +3298,20 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
   final bool visible;
 
   // The row's own height: a 48px target plus the padding TagFilterRow carries.
-  static const _extent = nexMinTapTarget + NexSpacing.md + NexSpacing.sm;
+  final double extent;
 
   @override
-  double get minExtent => visible ? _extent : 0;
+  double get minExtent => visible ? extent : 0;
 
   @override
-  double get maxExtent => visible ? _extent : 0;
+  double get maxExtent => visible ? extent : 0;
 
-  /// The backing appears only once the row is holding its place against
-  /// content moving under it.
-  ///
-  /// Pinned headers need something opaque behind them or the list runs
-  /// through the chips — but that is only true while something is passing
-  /// underneath. Painted unconditionally it was a band of flat colour across
-  /// the top of a screen whose background the reader had just chosen, at the
-  /// one moment nothing was behind it to hide.
+  /// Opaque from the first frame, so glass or patterned content cannot leak
+  /// through the pinned strip or change its tone during scrolling.
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
-      AnimatedContainer(
-        duration: NexMotion.standard,
-        curve: NexMotion.curve,
-        color: Theme.of(context).colorScheme.surface,
-        child: child,
-      );
+      ColoredBox(color: Theme.of(context).colorScheme.surface, child: child);
 
-  @override
   /// Always, and for the same reason as [SearchFieldHeader].
   ///
   /// This one happened to rebuild anyway, because `child` is a fresh

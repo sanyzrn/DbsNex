@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform/display_date.dart';
 
 /// When a reminder is due, said two ways.
 ///
@@ -42,20 +43,38 @@ String nexDueCountdown(AppLocalizations l10n, DateTime due) {
 /// The day words and the date come from [MaterialLocalizations] rather than
 /// from a format string of our own: it already knows this locale's month
 /// names and, for the time, whether this phone is set to 24 hours.
-String nexDueExact(BuildContext context, DateTime due) {
+String nexDueExact(
+  BuildContext context,
+  DateTime due, {
+  bool solarCalendar = false,
+}) {
   final l10n = AppLocalizations.of(context);
   final material = MaterialLocalizations.of(context);
   final local = due.toLocal();
-  final time = material.formatTimeOfDay(
-    TimeOfDay.fromDateTime(local),
-    alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+  final time = nexDigits(
+    material.formatTimeOfDay(
+      TimeOfDay.fromDateTime(local),
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+    ),
+    persian: l10n.localeName == 'fa',
   );
-  final days = DateUtils.dateOnly(
-    local,
-  ).difference(DateUtils.dateOnly(DateTime.now())).inDays;
+  final now = DateTime.now();
+  final days = DateTime.utc(
+    local.year,
+    local.month,
+    local.day,
+  ).difference(DateTime.utc(now.year, now.month, now.day)).inDays;
   if (days == 0) return l10n.remindWhenToday(time);
   if (days == 1) return l10n.remindWhenTomorrow(time);
-  return l10n.remindWhenOn(material.formatMediumDate(local), time);
+  return l10n.remindWhenOn(
+    solarCalendar
+        ? nexDisplayDate(local, solar: true, persian: l10n.localeName == 'fa')
+        : nexDigits(
+            material.formatMediumDate(local),
+            persian: l10n.localeName == 'fa',
+          ),
+    time,
+  );
 }
 
 /// "Every day", "Every week" — or nothing at all for a one-off.

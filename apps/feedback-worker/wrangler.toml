@@ -2,6 +2,11 @@ name = "nex-feedback"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
+[[ratelimits]]
+name = "FEEDBACK_LIMITER"
+namespace_id = "14001"
+simple = { limit = 10, period = 60 }
+
 # Secrets — never committed. Set with:
 #   wrangler secret put TELEGRAM_BOT_TOKEN
 #   wrangler secret put TELEGRAM_CHAT_ID

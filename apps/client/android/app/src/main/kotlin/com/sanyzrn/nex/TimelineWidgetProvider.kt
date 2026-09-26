@@ -73,8 +73,13 @@ class TimelineWidgetProvider : AppWidgetProvider() {
     }
 
     private fun views(context: Context, manager: AppWidgetManager, id: Int): RemoteViews {
+        val displayContext = NexWidgetAppearance.localized(context)
         val views = RemoteViews(context.packageName, R.layout.widget_timeline)
+        views.setInt(R.id.nex_widget_timeline_root, "setLayoutDirection", displayContext.resources.configuration.layoutDirection)
         val snapshot = NexWidgetSnapshot.read(context)
+        NexWidgetAppearance.accent(context)?.let {
+            views.setInt(R.id.nex_widget_brand, "setColorFilter", it)
+        }
 
         // The header is common to every state: brand on one side, capture on
         // the other. Both survive the lock — the brand opens the app (which
@@ -89,7 +94,7 @@ class TimelineWidgetProvider : AppWidgetProvider() {
         )
         views.setContentDescription(
             R.id.nex_widget_capture_badge,
-            context.getString(R.string.widget_a11y_capture),
+            displayContext.getString(R.string.widget_a11y_capture),
         )
         // The body is one tap away from the timeline from any state.
         views.setOnClickPendingIntent(
@@ -104,11 +109,11 @@ class TimelineWidgetProvider : AppWidgetProvider() {
                 views.setViewVisibility(R.id.nex_widget_locked, View.VISIBLE)
                 views.setTextViewText(
                     R.id.nex_widget_locked_text,
-                    context.getString(R.string.widget_locked_title),
+                    displayContext.getString(R.string.widget_locked_title),
                 )
                 views.setContentDescription(
                     R.id.nex_widget_locked,
-                    context.getString(R.string.widget_locked_a11y),
+                    displayContext.getString(R.string.widget_locked_a11y),
                 )
             }
             snapshot == null || snapshot.notes.isEmpty() -> {
@@ -117,11 +122,11 @@ class TimelineWidgetProvider : AppWidgetProvider() {
                 views.setViewVisibility(R.id.nex_widget_empty, View.VISIBLE)
                 views.setTextViewText(
                     R.id.nex_widget_empty_title,
-                    context.getString(R.string.widget_empty_title),
+                    displayContext.getString(R.string.widget_empty_title),
                 )
                 views.setTextViewText(
                     R.id.nex_widget_empty_hint,
-                    context.getString(R.string.widget_empty_hint),
+                    displayContext.getString(R.string.widget_empty_hint),
                 )
             }
             else -> {

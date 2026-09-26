@@ -64,7 +64,7 @@ class TimelineWidgetService : RemoteViewsService() {
             // doc asks of a card read-out.
             val spoken = if (preview.isEmpty()) typeLabel(note.type) else preview
             views.setTextViewText(R.id.nex_widget_row_preview, spoken)
-            val time = NexWidgetTime.label(context, note.updatedAt, System.currentTimeMillis())
+            val time = NexWidgetTime.label(NexWidgetAppearance.localized(context), note.updatedAt, System.currentTimeMillis())
             views.setTextViewText(R.id.nex_widget_row_time, time)
             views.setContentDescription(R.id.nex_widget_row_root, "$spoken, $time")
             // The note id rides the template's fill-in intent, and the
@@ -97,7 +97,7 @@ class TimelineWidgetService : RemoteViewsService() {
             else -> R.drawable.nex_widget_ic_type_other
         }
 
-        private fun typeLabel(type: String): String = context.getString(
+        private fun typeLabel(type: String): String = NexWidgetAppearance.localized(context).getString(
             when (type) {
                 "voice" -> R.string.widget_type_voice
                 "photo" -> R.string.widget_type_photo

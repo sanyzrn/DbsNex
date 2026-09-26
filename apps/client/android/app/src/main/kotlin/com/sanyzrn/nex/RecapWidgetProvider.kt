@@ -74,15 +74,20 @@ class RecapWidgetProvider : AppWidgetProvider() {
     }
 
     private fun views(context: Context): RemoteViews {
+        val displayContext = NexWidgetAppearance.localized(context)
         val views = RemoteViews(context.packageName, R.layout.widget_recap)
+        views.setInt(R.id.nex_recap_root, "setLayoutDirection", displayContext.resources.configuration.layoutDirection)
         val snapshot = NexWidgetSnapshot.read(context)
+        NexWidgetAppearance.accent(context)?.let {
+            views.setInt(R.id.nex_recap_glyph, "setColorFilter", it)
+        }
 
         // The header is common to every state. Both of its controls survive
         // the lock: the title opens the app, which gates itself, and refresh
         // does the same thing plus an errand.
         views.setTextViewText(
             R.id.nex_recap_title,
-            context.getString(R.string.widget_recap_title),
+            displayContext.getString(R.string.widget_recap_title),
         )
         views.setOnClickPendingIntent(
             R.id.nex_recap_header,
@@ -94,7 +99,7 @@ class RecapWidgetProvider : AppWidgetProvider() {
         )
         views.setContentDescription(
             R.id.nex_recap_refresh,
-            context.getString(R.string.widget_a11y_recap_refresh),
+            displayContext.getString(R.string.widget_a11y_recap_refresh),
         )
         views.setOnClickPendingIntent(
             R.id.nex_recap_root,
@@ -107,22 +112,22 @@ class RecapWidgetProvider : AppWidgetProvider() {
                 show(views, R.id.nex_recap_locked)
                 views.setTextViewText(
                     R.id.nex_recap_locked_text,
-                    context.getString(R.string.widget_recap_locked_title),
+                    displayContext.getString(R.string.widget_recap_locked_title),
                 )
                 views.setContentDescription(
                     R.id.nex_recap_locked,
-                    context.getString(R.string.widget_recap_locked_a11y),
+                    displayContext.getString(R.string.widget_recap_locked_a11y),
                 )
             }
             recap.isEmpty() -> {
                 show(views, R.id.nex_recap_empty)
                 views.setTextViewText(
                     R.id.nex_recap_empty_title,
-                    context.getString(R.string.widget_recap_empty_title),
+                    displayContext.getString(R.string.widget_recap_empty_title),
                 )
                 views.setTextViewText(
                     R.id.nex_recap_empty_hint,
-                    context.getString(R.string.widget_recap_empty_hint),
+                    displayContext.getString(R.string.widget_recap_empty_hint),
                 )
             }
             else -> {

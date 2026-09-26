@@ -9,6 +9,38 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get calendar => 'Calendar';
+
+  @override
+  String get calendarPersian => 'Solar Hijri';
+
+  @override
+  String get calendarGregorian => 'Gregorian';
+
+  @override
+  String get openSettings => 'Open settings';
+
+  @override
+  String get chatNetworkError =>
+      'Could not reach the service. Check your connection and try again.';
+
+  @override
+  String get chatTimeout =>
+      'The service took too long to respond. Your message is kept; try again.';
+
+  @override
+  String get chatAuthError =>
+      'The service rejected access. Check your API key and account permissions.';
+
+  @override
+  String get chatRateLimited =>
+      'The service limit was reached. Wait a little and try again.';
+
+  @override
+  String get chatServiceError =>
+      'The service is temporarily unavailable. Try again later.';
+
+  @override
   String get appTitle => 'Nex';
 
   @override
@@ -1330,7 +1362,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get localBackupsExplained =>
-      'Nex automatically backs up the library and its media on this device. Local copies do not protect against losing the device. Use Share beside a backup to keep a copy elsewhere.';
+      'Nex backs up the library on this device. Local copies share unchanged media to save space; the listed size excludes shared files. Use Share beside a backup to keep a complete copy elsewhere, safe from losing the device.';
 
   @override
   String get backupNow => 'Back up now';
@@ -1653,7 +1685,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intelligenceOpen => 'Transcription, summaries, tags';
 
   @override
-  String get aiDaySummaryTitle => 'Daily Digest';
+  String get aiDaySummaryTitle => 'Smart summary';
 
   @override
   String get aiDaySummarySemanticLabel => 'Today\'s summary';
@@ -1671,7 +1703,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiDaySummaryExpand => 'Show the summary';
 
   @override
-  String get aiHeadlineRefresh => 'Tap for a new line';
+  String get aiHeadlineRefresh => 'Hold for a new greeting';
 
   @override
   String get aiOutputLanguage => 'AI output language';
@@ -2000,7 +2032,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatFailed =>
-      'No answer came back. Check the provider in Settings, or try again.';
+      'No answer came back. Your message is kept; try again.';
 
   @override
   String get chatPromptSummarise => 'Summarise what I captured this week';
@@ -2341,7 +2373,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantConfirmSetting => 'Change this setting?';
 
   @override
-  String get briefTitle => 'Daily brief';
+  String get briefTitle => 'Smart summary';
 
   @override
   String get briefSubtitle =>

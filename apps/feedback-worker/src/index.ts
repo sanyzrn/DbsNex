@@ -14,6 +14,7 @@
 export interface Env {
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
+  FEEDBACK_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
 
 // Telegram's own ceiling for a sendMessage text — reject past this rather
@@ -95,6 +96,18 @@ export async function handleRequest(
   if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
     return jsonResponse(503, { error: "FeedbackNotConfigured" });
   }
+  // A missing/failed binding must not expose an unlimited relay.
+  if (!env.FEEDBACK_LIMITER) return jsonResponse(503, { error: "RateLimitNotConfigured" });
+  try {
+    const { success } = await env.FEEDBACK_LIMITER.limit({
+      key: request.headers.get("CF-Connecting-IP") ?? "unknown",
+    });
+    if (!success) return new Response(JSON.stringify({ error: "RateLimited" }), {
+      status: 429, headers: { "content-type": "application/json", "retry-after": "60" },
+    });
+  } catch {
+    return jsonResponse(503, { error: "RateLimitUnavailable" });
+  }
 
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > MAX_BODY_BYTES) {
@@ -103,7 +116,26 @@ export async function handleRequest(
 
   let body: unknown;
   try {
-    body = await request.json();
+    const reader = request.body?.getReader();
+    if (!reader) return jsonResponse(400, { error: "BadRequest" });
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_BODY_BYTES) {
+          await reader.cancel();
+          return jsonResponse(413, { error: "PayloadTooLarge" });
+        }
+        chunks.push(value);
+      }
+    } finally { reader.releaseLock(); }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    body = JSON.parse(new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes));
   } catch {
     return jsonResponse(400, { error: "BadRequest" });
   }
@@ -115,14 +147,21 @@ export async function handleRequest(
 
   const text = buildTelegramText(payload);
 
-  const telegramRes = await fetch(
+  let telegramRes: Response;
+  try {
+    telegramRes = await fetch(
     `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text }),
+      signal: AbortSignal.timeout(10_000),
     },
   );
+  } catch {
+    // Exceptions can contain the token-bearing URL. Never log them.
+    return jsonResponse(502, { error: "UpstreamError" });
+  }
 
   if (!telegramRes.ok) {
     // Telegram's own response body is never surfaced to the client — only

@@ -3,7 +3,9 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform/display_date.dart';
 import 'due_label.dart';
+import 'tag_label.dart';
 
 /// The card's screen-reader strings, in the language the user chose.
 ///
@@ -15,6 +17,14 @@ import 'due_label.dart';
 NexCardStrings nexCardStrings(BuildContext context) {
   final l10n = AppLocalizations.of(context);
   return NexCardStrings(
+    tagName: (tag) => nexTagLabel(tag, l10n),
+    durationLabel: (milliseconds) {
+      final seconds = milliseconds ~/ 1000;
+      return nexDigits(
+        '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}',
+        persian: l10n.localeName == 'fa',
+      );
+    },
     // The type name arrives as a wire name ("voice"), so it is translated
     // here rather than interpolated raw.
     noteOfType: (type) => l10n.noteOfType(l10n.noteType(type)),

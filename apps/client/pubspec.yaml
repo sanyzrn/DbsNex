@@ -127,6 +127,7 @@ flutter:
     # byte-for-byte, so drift between the two fails CI instead of shipping
     # silently.
     - assets/CHANGELOG.md
+    - third_party/jalaali-js-LICENSE.txt
     # The user guide, one file per language. Prose rather than labels — see
     # the note on GuideScreen for why it is not in the ARB catalogues.
     - assets/guide/

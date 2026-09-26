@@ -7,6 +7,7 @@ import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/tag_label.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -85,8 +86,10 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
                 final value = loaded[index];
                 return ListTile(
                   minTileHeight: 56,
-                  leading: _ColorDot(color: value.tag.color),
-                  title: Text(value.tag.name),
+                  leading: value.tag.color == null
+                      ? const Icon(Icons.label_outline)
+                      : _ColorDot(color: value.tag.color),
+                  title: Text(nexTagLabel(value.tag, l10n)),
                   subtitle: Text(l10n.noteCount(value.count)),
                   trailing: PopupMenuButton<String>(
                     tooltip: l10n.tagActions,
@@ -99,10 +102,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
                       // one — that is, nothing — and the way out was to
                       // dismiss it.
                       if (loaded.length > 1)
-                        PopupMenuItem(
-                          value: 'merge',
-                          child: Text(l10n.merge),
-                        ),
+                        PopupMenuItem(value: 'merge', child: Text(l10n.merge)),
                       PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
                     ],
                   ),
@@ -215,7 +215,7 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
               (item) => item.tag.id != value.tag.id,
             ))
               ListTile(
-                title: Text(item.tag.name),
+                title: Text(nexTagLabel(item.tag, l10n)),
                 onTap: () => Navigator.pop(context, item),
               ),
           ],

@@ -7,6 +7,8 @@ import 'package:sqlite3/sqlite3.dart';
 
 import 'database.dart';
 import 'restore_transaction.dart';
+import 'backup_media_store.dart';
+import 'zip_file_writer.dart';
 
 /// A backup that contains everything, not only the database.
 ///
@@ -17,7 +19,10 @@ import 'restore_transaction.dart';
 /// came back with every picture missing and no error anywhere to say so: the
 /// notes were all there, so the backup looked like it had worked.
 ///
-/// The format is a plain zip. Nothing here is encrypted or obfuscated —
+/// Shared backups are self-contained ZIPs (format 1). Local automatic backups
+/// use format 2 manifests plus immutable `.media/<sha256>` blobs in the backup
+/// directory. [portable] materializes those blobs before sharing.
+/// Nothing here is encrypted or obfuscated —
 /// someone who has lost their phone should be able to get their notes out
 /// with any unzip tool and a copy of `sqlite3`, without this app and without
 /// us.
@@ -87,15 +92,54 @@ class NexBackupArchive {
     required String mediaDir,
     required String backupDir,
     int retention = NexDatabase.backupRetention,
+    bool compact = false,
   }) {
     final dir = Directory(backupDir)..createSync(recursive: true);
+    final cutoff = DateTime.now().subtract(const Duration(days: 7));
+    for (final stale in dir.listSync(followLinks: false).whereType<File>()) {
+      final name = p.basename(stale.path);
+      if ((name.startsWith('.snapshot-') ||
+              name.startsWith('.restore-source-') ||
+              (name.startsWith('nex-') && name.endsWith('.nexbak.partial'))) &&
+          stale.lastModifiedSync().isBefore(cutoff)) {
+        stale.deleteSync();
+      }
+    }
     final stamp = DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
     final target = File(p.join(dir.path, 'nex-$stamp$extension'));
     final partial = File('${target.path}.partial');
     final media = Directory(mediaDir);
     final files = media.existsSync()
-        ? media.listSync(recursive: true).whereType<File>().toList()
+        ? media
+              .listSync(recursive: true, followLinks: false)
+              .whereType<File>()
+              .toList()
         : <File>[];
+    final snapshot = sqlite3.open(snapshotPath, mode: OpenMode.readOnly);
+    final expected = <String, String>{};
+    try {
+      for (final row in snapshot.select(
+        'SELECT media_uri, media_hash FROM notes WHERE media_uri IS NOT NULL',
+      )) {
+        final uri = row['media_uri'] as String;
+        if (!File(uri).existsSync()) {
+          throw StateError('Referenced media is missing');
+        }
+        if (!p.isWithin(media.absolute.path, File(uri).absolute.path)) {
+          throw StateError('Referenced media is outside the library');
+        }
+        expected[p.normalize(File(uri).absolute.path)] =
+            row['media_hash'] as String? ?? '';
+      }
+    } finally {
+      snapshot.dispose();
+    }
+    final listed = files.map((f) => p.normalize(f.absolute.path)).toSet();
+    if (!listed.containsAll(expected.keys)) {
+      throw StateError('Referenced media changed during backup');
+    }
+    final store = BackupMediaStore(backupDir);
+    final manifest = <String, String>{};
 
     final encoder = ZipFileEncoder()..create(partial.path);
     try {
@@ -103,7 +147,7 @@ class NexBackupArchive {
       // it without awaiting produced a zip that closed before anything was
       // written into it — a backup file that exists, weighs nothing, and
       // fails only when someone tries to restore from it.
-      encoder.addFileSync(File(snapshotPath), _dbEntry);
+      addBoundedZipFile(encoder, File(snapshotPath), _dbEntry);
       for (final file in files) {
         // Relative, so restoring into a different sandbox path — which is
         // every reinstall on iOS and most on Android — puts them back in the
@@ -112,12 +156,20 @@ class NexBackupArchive {
           'media',
           p.relative(file.path, from: media.path).replaceAll(r'\', '/'),
         );
-        encoder.addFileSync(file, name);
+        // Freeze and verify before compression. An edit/delete racing this
+        // operation fails the backup instead of publishing mixed generations.
+        final hash = store.retain(
+          file,
+          expectedHash: expected[p.normalize(file.absolute.path)],
+        );
+        manifest[name] = hash;
+        if (!compact) addBoundedZipFile(encoder, store.file(hash), name);
       }
       final meta = jsonEncode({
-        'format': 1,
+        'format': compact ? 2 : 1,
         'createdAt': DateTime.now().toUtc().toIso8601String(),
         'mediaFiles': files.length,
+        if (compact) 'media': manifest,
       });
       final metaBytes = utf8.encode(meta);
       encoder.addArchiveFile(
@@ -185,6 +237,7 @@ class NexBackupArchive {
         dbEntry: dbEntry.first,
         liveDbPath: liveDbPath,
         mediaDir: mediaDir,
+        mediaStore: BackupMediaStore(backup.parent.path),
       );
     } finally {
       input.closeSync();
@@ -193,12 +246,7 @@ class NexBackupArchive {
 
   /// Writes one archive entry to [path] without holding it whole in memory.
   static void _extract(ArchiveFile entry, String path) {
-    final output = OutputFileStream(path);
-    try {
-      entry.writeContent(output);
-    } finally {
-      output.closeSync();
-    }
+    extractCheckedZipFile(entry, path);
   }
 
   static void _restoreFrom({
@@ -206,6 +254,7 @@ class NexBackupArchive {
     required ArchiveFile dbEntry,
     required String liveDbPath,
     required String mediaDir,
+    required BackupMediaStore mediaStore,
   }) {
     // Unpack beside the live files, validate, and only then swap. The staging
     // directory is a sibling so the rename at the end cannot cross a
@@ -218,8 +267,20 @@ class NexBackupArchive {
       _extract(dbEntry, stagedDb.path);
       NexDatabase.assertRestorable(stagedDb.path);
 
+      final manifest = _manifest(archive);
+      for (final entry in manifest.entries) {
+        final relative = _safeMediaName(entry.key);
+        mediaStore.restore(
+          entry.value,
+          File(p.join(staging.path, 'media', relative)),
+        );
+      }
+
       for (final file in archive.files) {
         if (!file.isFile || !file.name.startsWith(_mediaPrefix)) continue;
+        if (manifest.containsKey(file.name)) {
+          throw const FormatException('Duplicate backup media');
+        }
         final relative = file.name
             .substring(_mediaPrefix.length)
             .replaceAll(r'\', '/');
@@ -294,9 +355,8 @@ class NexBackupArchive {
   /// common case for a backup restored on the device that made it. For the
   /// rest, the file that actually arrived in the restore is matched by the
   /// longest tail of the stored path that exists under [mediaDir], down to
-  /// the bare basename. A row whose file matches nothing is left exactly as
-  /// it is — rewriting it to a path that does not exist would turn "stale
-  /// path, file findable" into "wrong path, file gone".
+  /// the bare basename. A missing referenced file fails the restore and rolls
+  /// back the live library instead of reporting an incomplete restore as saved.
   ///
   /// **Longest tail, not basename, and not two probes.** The archive keeps
   /// whatever structure the media directory had (`listSync(recursive: true)`
@@ -324,9 +384,9 @@ class NexBackupArchive {
       );
       for (final row in rows) {
         final stored = row['media_uri']! as String;
-        if (File(stored).existsSync()) continue;
+        if (p.isWithin(mediaDir, stored) && File(stored).existsSync()) continue;
 
-        final segments = p.split(stored);
+        final segments = p.url.split(stored.replaceAll(r'\', '/'));
         File? candidate;
         // From the longest tail down to the basename. The first segment is
         // the root (`/`, or a drive), which is never part of a path relative
@@ -334,7 +394,8 @@ class NexBackupArchive {
         for (var take = segments.length - 1; take >= 1; take--) {
           final tail = p.joinAll(segments.sublist(segments.length - take));
           final file = File(p.join(mediaDir, tail));
-          if (file.existsSync()) {
+          if (p.isWithin(p.normalize(mediaDir), p.normalize(file.path)) &&
+              file.existsSync()) {
             candidate = file;
             break;
           }
@@ -344,6 +405,8 @@ class NexBackupArchive {
             candidate.path,
             row['id']! as String,
           ]);
+        } else {
+          throw const FormatException('Referenced backup media is missing');
         }
       }
     } finally {
@@ -374,6 +437,114 @@ class NexBackupArchive {
           ..sort((a, b) => b.path.compareTo(a.path));
     for (final stale in existing.skip(retention)) {
       stale.deleteSync();
+    }
+    collectUnusedMedia(dir.path);
+  }
+
+  /// Preserve recent blobs for concurrent readers. An unreadable manifest stops
+  /// collection; it never authorizes deleting potentially referenced media.
+  static void collectUnusedMedia(String backupDir) {
+    final dir = Directory(backupDir);
+    final blobs = BackupMediaStore(backupDir).root;
+    if (!blobs.existsSync()) return;
+    final referenced = <String>{};
+    try {
+      for (final file in dir.listSync(followLinks: false).whereType<File>()) {
+        if (!file.path.endsWith(extension) &&
+            !p.basename(file.path).startsWith('.restore-source-')) {
+          continue;
+        }
+        final input = InputFileStream(file.path);
+        try {
+          referenced.addAll(_manifest(ZipDecoder().decodeStream(input)).values);
+        } finally {
+          input.closeSync();
+        }
+      }
+    } catch (_) {
+      return;
+    }
+    final cutoff = DateTime.now().subtract(const Duration(days: 7));
+    for (final file in blobs.listSync(followLinks: false).whereType<File>()) {
+      if (!referenced.contains(p.basename(file.path)) &&
+          file.lastModifiedSync().isBefore(cutoff)) {
+        file.deleteSync();
+      }
+    }
+  }
+
+  static String _safeMediaName(String name) {
+    if (!name.startsWith(_mediaPrefix)) {
+      throw const FormatException('Invalid media entry');
+    }
+    final relative = name.substring(_mediaPrefix.length).replaceAll(r'\', '/');
+    if (relative.isEmpty ||
+        p.url.isAbsolute(relative) ||
+        p.windows.isAbsolute(relative) ||
+        relative.contains(':') ||
+        p.url.split(relative).contains('..')) {
+      throw const FormatException('Unsafe media path');
+    }
+    return relative;
+  }
+
+  static Map<String, String> _manifest(Archive archive) {
+    final entries = archive.files.where((f) => f.name == _metaEntry);
+    if (entries.isEmpty) return {};
+    final meta = entries.single;
+    if (meta.size > 4 * 1024 * 1024) {
+      throw const FormatException('Backup manifest too large');
+    }
+    final value = jsonDecode(utf8.decode(meta.content as List<int>)) as Map;
+    if (value['format'] == 1) return {};
+    if (value['format'] != 2) {
+      throw const FormatException('Unknown backup format');
+    }
+    return Map<String, String>.from(value['media'] as Map);
+  }
+
+  /// Turn a local manifest into an ordinary self-contained format-1 archive.
+  static String portable(String source, String output) {
+    final input = InputFileStream(source);
+    final partial = File('$output.partial');
+    ZipFileEncoder? encoder;
+    Directory? staging;
+    try {
+      final archive = ZipDecoder().decodeStream(input);
+      final manifest = _manifest(archive);
+      if (manifest.isEmpty) {
+        File(source).copySync(output);
+        return output;
+      }
+      staging = Directory(p.dirname(output)).createTempSync('.nex-portable-');
+      encoder = ZipFileEncoder()..create(partial.path);
+      final database = archive.files.singleWhere((f) => f.name == _dbEntry);
+      final dbFile = File(p.join(staging.path, _dbEntry));
+      _extract(database, dbFile.path);
+      addBoundedZipFile(encoder, dbFile, _dbEntry);
+      final store = BackupMediaStore(p.dirname(source));
+      for (final entry in manifest.entries) {
+        _safeMediaName(entry.key);
+        final verified = File(p.join(staging.path, 'media'));
+        store.restore(entry.value, verified);
+        addBoundedZipFile(encoder, verified, entry.key);
+        verified.deleteSync();
+      }
+      final bytes = utf8.encode(
+        jsonEncode({'format': 1, 'mediaFiles': manifest.length}),
+      );
+      encoder.addArchiveFile(ArchiveFile(_metaEntry, bytes.length, bytes));
+      encoder.closeSync();
+      encoder = null;
+      partial.renameSync(output);
+      return output;
+    } finally {
+      encoder?.closeSync();
+      input.closeSync();
+      if (partial.existsSync()) partial.deleteSync();
+      if (staging != null && staging.existsSync()) {
+        staging.deleteSync(recursive: true);
+      }
     }
   }
 }

@@ -152,7 +152,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.tune));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Has a reminder'));
+    await tester.tap(find.widgetWithText(ListTile, 'Has a reminder'));
     await tester.pumpAndSettle();
 
     expect(find.text('call the dentist'), findsOneWidget);
@@ -161,7 +161,7 @@ void main() {
     // And off again from the same row, which is the whole of its state.
     await tester.tap(find.byIcon(Icons.tune));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Has a reminder'));
+    await tester.tap(find.widgetWithText(ListTile, 'Has a reminder'));
     await tester.pumpAndSettle();
 
     expect(find.text('a passing thought'), findsOneWidget);
@@ -977,7 +977,7 @@ void main() {
     // back in is the most visible thing about a brief. It is still one
     // setting for the whole app, which the sheet says in a line under it, and
     // which the rest of this test is about.
-    await tester.tap(find.text('Daily brief'));
+    await tester.tap(find.text('Smart summary'));
     await tester.pumpAndSettle();
     // Scrolled to rather than merely found. The brief is a pushed screen with
     // a `ListView` now, like the assistant's settings beside it, and a
@@ -1552,7 +1552,7 @@ void main() {
     expect(find.textContaining('Nezhad'), findsNothing);
   });
 
-  testWidgets('tapping the greeting re-rolls it when there is no AI', (
+  testWidgets('only holding the greeting re-rolls it when there is no AI', (
     tester,
   ) async {
     await preferences.setDisplayName('Sany');
@@ -1566,6 +1566,10 @@ void main() {
     final before = greeting();
 
     await tester.tap(find.textContaining('Sany').first);
+    await tester.pumpAndSettle();
+
+    expect(greeting(), before);
+    await tester.longPress(find.textContaining('Sany').first);
     await tester.pumpAndSettle();
 
     // The refresh never lands on the phrasing already showing — a button that

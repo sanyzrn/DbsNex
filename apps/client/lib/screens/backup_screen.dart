@@ -7,6 +7,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 
 import '../l10n/app_localizations.dart';
+import '../platform/display_date.dart';
 import '../platform/sharing.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -50,8 +51,22 @@ class _BackupScreenState extends State<BackupScreen> {
 
   Future<void> _load() async {
     final found = await widget.services.listBackups();
-    if (mounted) setState(() => _backups = found);
+    final metadata = <String, FileStat>{};
+    for (final file in found) {
+      final stat = file.statSync();
+      if (stat.type == FileSystemEntityType.file) metadata[file.path] = stat;
+    }
+    if (mounted) {
+      setState(() {
+        _metadata = metadata;
+        _backups = found
+            .where((file) => metadata.containsKey(file.path))
+            .toList();
+      });
+    }
   }
+
+  Map<String, FileStat> _metadata = {};
 
   void _say(String message) {
     if (!mounted) return;
@@ -137,7 +152,10 @@ class _BackupScreenState extends State<BackupScreen> {
 
   Future<void> _shareBackup(File backup) => _guard(() async {
     try {
-      await nexSendFileOut(backup.path, mimeType: 'application/zip');
+      await nexSendFileOut(
+        await widget.services.portableBackup(backup),
+        mimeType: 'application/zip',
+      );
     } catch (error) {
       if (mounted) {
         _say(
@@ -176,8 +194,10 @@ class _BackupScreenState extends State<BackupScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    await widget.services.deleteBackup(backup);
-    await _load();
+    await _guard(() async {
+      await widget.services.deleteBackup(backup);
+      await _load();
+    });
   }
 
   Future<void> _restore(File backup) => _guard(() => _confirmRestore(backup));
@@ -323,7 +343,9 @@ class _BackupScreenState extends State<BackupScreen> {
                 // Every backup is offered, not only the newest: the newest one
                 // is also the most likely to contain a mistake just made.
                 title: Text(_stamp(backup)),
-                subtitle: Text(nexFormatBytes(backup.lengthSync())),
+                subtitle: Text(
+                  nexFormatBytes(_metadata[backup.path]?.size ?? 0),
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -358,9 +380,13 @@ class _BackupScreenState extends State<BackupScreen> {
   /// Backups are named with a sortable timestamp; show the file's own mtime,
   /// which is the same instant and is already localised by the platform.
   String _stamp(File backup) {
-    final at = backup.lastModifiedSync();
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${at.year}-${two(at.month)}-${two(at.day)}  ${two(at.hour)}:${two(at.minute)}';
+    final at = _metadata[backup.path]?.modified ?? DateTime(1970);
+    return nexDisplayDate(
+      at,
+      solar: widget.preferences.solarCalendar,
+      persian: Localizations.localeOf(context).languageCode == 'fa',
+      time: true,
+    );
   }
 }
 

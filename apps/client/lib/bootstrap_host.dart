@@ -72,7 +72,10 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
         : Future<void>.delayed(_minimumSplashDuration);
 
     final preferences = await NexPreferences.load();
-    final services = await NexServices.bootstrap(preferences: preferences);
+    final services = await NexServices.bootstrap(
+      preferences: preferences,
+      recoverDrafts: !silent,
+    );
     services.applyAiPreferences(preferences);
 
     final bridge = OsCaptureBridge(services);
@@ -92,7 +95,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     try {
       await bridge.start();
     } catch (error) {
-      unawaited(NexServices.noteDiagnostic('shared capture failed: $error'));
+      unawaited(NexServices.noteDiagnostic('shared capture failed: ${error.runtimeType}'));
     }
 
     // What the home-screen widgets read. Started after the share above, so
@@ -114,7 +117,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     try {
       await widgets.start();
     } catch (error) {
-      unawaited(NexServices.noteDiagnostic('widget snapshot failed: $error'));
+      unawaited(NexServices.noteDiagnostic('widget snapshot failed: ${error.runtimeType}'));
     }
 
     if (silent) {

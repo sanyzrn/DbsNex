@@ -32,7 +32,8 @@
     <LinearLayout
         android:id="@+id/nex_recap_header"
         android:layout_width="match_parent"
-        android:layout_height="46dp"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="14dp"

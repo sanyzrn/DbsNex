@@ -78,11 +78,11 @@ All four combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode
 | **Capture Button (`+`)** | Universal entry point to text/voice/photo capture | Always visible on the Timeline, fixed position, largest single interactive element on screen |
 | **Home dock** | Thumb-reachable destinations on the Timeline | One floating surface with four 48dp actions and a raised 64dp Capture button at its centre. Positions stay fixed in English and Persian; on a narrow screen the outside margin yields before a tap target does. The list fades into its own page colour behind the dock. |
 | **Capture Sheet** | Presents the three capture types | Appears instantly (no loading state), dismissible by outside tap |
-| **Timeline Card** | Represents one note in the stream | Adapts preview to content type (text snippet / waveform + duration / photo thumbnail); shows relative timestamp and tag chips if present. **Every card is the same height** — two lines of preview and one line of metadata, filled or not. A card's height carried no meaning, so letting it vary only made the list ragged; a tag that does not fit the one line runs off the edge rather than wrapping onto a second |
+| **Timeline Card** | Represents one note in the stream | Adapts preview to content type (text / voice caption or type with duration / photo thumbnail). Exact creation and edit times live in details; cards omit visible timestamps by owner decision. Tags use compact accent marks with localized accessible names. Collapsed cards share a text-scale-aware height; expanded cards grow to their content. A recorded waveform preview is not currently stored |
 | **Tag Chip** | Represents a single tag | Neutral chip shape and text; an optional small accent dot (user-chosen, see [Tag Accent Color](#tag-accent-color)) may render beside the label. Rounded, removable via inline "×" in edit contexts |
 | **Search Bar** | Entry point + live query field | Paired with filter affordances (tag / date / type) that expand without navigating away |
 | **Filter Control** | Tag / date / content-type filters | Simple toggles/pills, combinable, always reversible with a single "clear" action |
-| **Note Detail Sheet** | Expanded view of a single note, tag editing, and the secondary actions of FR-2.9 | Sized to the note: a long one opens at reading height and scrolls, a short one stays short. The actions are labelled icons pinned under the body, not hidden in an overflow menu in the corner — the hardest place on a phone to reach, and one that said nothing about what was inside it |
+| **Note Detail Sheet** | Expanded view of a single note, tag editing, and the secondary actions of FR-2.9 | Sized to the note: a long one opens at reading height and scrolls, a short one stays short. Common actions are labelled and pinned under the body; secondary actions are in the labelled More menu (owner-approved v1.30.0 layout). Hide Copy when no text exists and expansion when no text/checklist can expand |
 | **Voice Recorder Bar** | Active recording state | Live waveform and elapsed time; the stop action is the single largest control on screen |
 | **Empty State** | Shown only when the Timeline has zero notes | A single, quiet prompt pointing at the `+` button — never a tutorial carousel |
 | **Swipe Action Reveal** | Quick Delete / Add Tag from the Timeline | See [Swipe Actions](#swipe-actions) below |
@@ -186,8 +186,22 @@ Accessibility is core functionality, not a compliance checkbox — a slow or con
 
 - **Contrast:** WCAG 2.1 AA (4.5:1 body text, 3:1 large text) in both palettes.
 - **Tap targets:** Minimum 48×48 dp — Material's floor, and the value `nexMinTapTarget` carries and `accessibility_test.dart` asserts. Most critically the `+` action and the voice stop control.
-- **Screen reader support:** Every icon-only control has a descriptive accessible label; Timeline cards announce content type, preview/transcription placeholder, timestamp, and tags in one coherent read-out.
+- **Screen reader support:** Every icon-only control has a descriptive accessible label; Timeline cards announce content type, preview/transcription placeholder, relative creation time, and tags in a coherent read-out; the visible exact timestamps remain in details.
 - **Dynamic type:** UI text scales with system font-size settings without breaking layout or truncating input.
 - **Voice capture alternative:** Text and photo capture remain full alternatives for users who cannot or prefer not to use audio input.
 - **Motion sensitivity:** All animation respects OS-level "reduce motion."
 - **Color independence:** No information is conveyed by color alone, by construction of the monochrome palette.
+
+## Audit follow-up decisions — September 2026
+
+- A hold on the greeting explicitly refreshes it; an ordinary tap does not call an AI provider.
+- Smart summary is the shared name in Settings, home and widget surfaces.
+- The filter strip has an opaque backing and names active non-tag filters.
+- Gregorian dates remain the default. An optional Persian calendar affects exact
+  detail dates, backup list dates and reminder dates; digits follow app language.
+  Profile birthday/commitment pickers still use their existing calendar controls.
+- Voice previews use recorded duration and caption/type; no synthetic waveform
+  is presented as if derived from the recording.
+- Secondary click or Shift+F10 offers Open, Add tag and Delete on timeline cards.
+- Practical acceptance (TalkBack, OS font scaling, launchers, Windows runtime)
+  remains with the owner; host widget tests do not replace those checks.

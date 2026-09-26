@@ -237,7 +237,7 @@ void main() {
     await tester.tap(find.text('brand new'));
     await tester.pumpAndSettle();
     expect(
-      find.textContaining(RegExp(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$')),
+      find.textContaining(RegExp(r'^\d{4}/\d{2}/\d{2}  \d{2}:\d{2}:\d{2}$')),
       findsOneWidget,
     );
   });
@@ -1362,7 +1362,7 @@ void main() {
       // "All" is its own chip and nothing else on the screen says it.
       expect(find.text('All'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
+      await tester.tap(find.byIcon(Icons.view_quilt_outlined));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tag row'));
       await tester.pumpAndSettle();
@@ -1385,7 +1385,7 @@ void main() {
       // only way to search at all.
       expect(find.byTooltip('Search'), findsNothing);
 
-      await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
+      await tester.tap(find.byIcon(Icons.view_quilt_outlined));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Search box'));
       await tester.pumpAndSettle();

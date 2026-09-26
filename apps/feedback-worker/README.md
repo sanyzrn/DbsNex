@@ -3,7 +3,7 @@
 A standalone Cloudflare Worker with exactly one job: receive `POST /feedback`
 from the Nex app and forward it to a Telegram chat. It shares no code, no
 infrastructure and no deployment with `apps/backend` — no Postgres, no
-Express, no rate limiter, no purge schedule. If this Worker disappeared
+Express or purge schedule. Rate limiting uses a Worker binding. If this Worker disappeared
 tomorrow, nothing else in the repo would notice.
 
 It exists because `apps/backend` is not deployed anywhere, and standing up
@@ -30,7 +30,8 @@ Responses:
 | 400 | Bad payload (empty/too-long message, malformed JSON, wrong shape) |
 | 413 | Body too large |
 | 404 | Wrong method or path |
-| 503 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` not configured |
+| 503 | Missing credentials or missing/unavailable rate limiter |
+| 429 | Rate limit exceeded; retry after 60 seconds |
 | 502 | Telegram itself rejected the message |
 
 The client only distinguishes 202 from everything else, so the exact
@@ -62,12 +63,18 @@ non-202 code is for humans reading logs, not for the app's own logic.
 
 ## Rate limiting
 
-Not implemented in code on purpose — Cloudflare's own dashboard-level
-**Security → WAF → Rate limiting rules** covers this for a single endpoint
-without adding a dependency, a binding, or a Durable Object to a worker this
-small. A rule like "more than 10 requests/minute per IP to `/feedback` →
-block" is the recommended equivalent of `apps/backend`'s `authLimiter`, and
-it costs no code.
+`wrangler.toml` binds `FEEDBACK_LIMITER`: 10 requests per minute per client IP.
+Choose an account-unique namespace ID before deployment; bindings with the same
+ID share counters. Limits are per Cloudflare location, not a global spending cap.
+See [Cloudflare's binding contract](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/).
+The Worker fails closed with 503 if this binding is missing or fails, and 429
+with Retry-After when the limit is exceeded. Only Cloudflare's CF-Connecting-IP
+header is used; the app supplies no embedded authentication secret.
+
+The request stream is bounded to 8 KiB even without Content-Length. Telegram
+requests time out after 10 seconds, and errors never log a token-bearing URL.
+Deployment remains pending: no bot/chat credentials, public URL or release
+variable has been supplied. Unit tests mock Telegram and do not send messages.
 
 ## Testing
 

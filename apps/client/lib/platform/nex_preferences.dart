@@ -120,23 +120,31 @@ class NexPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _writeProfileMirror() async {
+  Future<void> _profileWrites = Future.value();
+
+  Future<void> _writeProfileMirror() {
     final file = _profileMirror;
-    if (file == null) return;
-    try {
-      await file.parent.create(recursive: true);
-      await file.writeAsString(
-        jsonEncode({
-          'profile.name': _prefs.getString('profile.name'),
-          'profile.birthday': _prefs.getString('profile.birthday'),
-          'profile.bio': _prefs.getString('profile.bio'),
-        }),
-        flush: true,
-      );
-    } catch (_) {
-      // The primary preferences write succeeded. A mirror failure must not
-      // strand the profile screen in its saving state.
-    }
+    if (file == null) return Future.value();
+    final content = jsonEncode({
+      'profile.name': _prefs.getString('profile.name'),
+      'profile.birthday': _prefs.getString('profile.birthday'),
+      'profile.bio': _prefs.getString('profile.bio'),
+    });
+    return _profileWrites = _profileWrites.then((_) async {
+      try {
+        await file.parent.create(recursive: true);
+        final temporary = File('${file.path}.${const Uuid().v4()}.tmp');
+        try {
+          await temporary.writeAsString(content, flush: true);
+          await temporary.rename(file.path);
+        } finally {
+          if (await temporary.exists()) await temporary.delete();
+        }
+      } catch (_) {
+        // The primary preferences write succeeded. A mirror failure must not
+        // strand the profile screen in its saving state.
+      }
+    });
   }
 
   /// In-memory mirror of every provider's API key, hydrated once by [load]
@@ -149,6 +157,7 @@ class NexPreferences extends ChangeNotifier {
   /// model, which provider is active) is not a credential and stays in
   /// `_prefs`, read directly, the way it always was.
   final Map<String, String> _secureApiKeys = {};
+  bool secureStorageUnavailable = false;
 
   static const _kDeviceId = 'nex.device_id';
   static const _kSyncBaseUrl = 'sync.base_url';
@@ -256,13 +265,36 @@ class NexPreferences extends ChangeNotifier {
     for (final provider in AiProvider.values) {
       if (provider == AiProvider.none) continue;
       final key = 'ai.key.${provider.wireName}';
-      final legacy = _prefs.getString(key);
+      await _hydrateCredential(key, key, provider.wireName);
+    }
+    await _hydrateCredential(
+      _kSecureSyncToken,
+      _kSyncBearerToken,
+      _kSecureSyncToken,
+    );
+  }
+
+  Future<void> _hydrateCredential(
+    String key,
+    String legacyKey,
+    String cacheKey,
+  ) async {
+    try {
+      final legacy = _prefs.getString(legacyKey);
       if (legacy != null && legacy.isNotEmpty) {
         await _secureStorage.write(key: key, value: legacy);
-        await _prefs.remove(key);
+        if (await _secureStorage.read(key: key) != legacy) {
+          secureStorageUnavailable = true;
+          return;
+        }
+        await _prefs.remove(legacyKey);
       }
       final secured = await _secureStorage.read(key: key);
-      if (secured != null) _secureApiKeys[provider.wireName] = secured;
+      if (secured != null) _secureApiKeys[cacheKey] = secured;
+    } catch (_) {
+      // A transferred/unavailable keystore must not block the local library.
+      // Retain legacy credentials until a future successful migration.
+      secureStorageUnavailable = true;
     }
   }
 
@@ -367,26 +399,9 @@ class NexPreferences extends ChangeNotifier {
   /// The token is a bearer credential: whoever holds it can read and write the
   /// library on the server. It lives in secure storage (Android Keystore /
   /// Windows DPAPI) for the same reason the provider API keys moved there, and
-  /// a value found in the plaintext preference slot is migrated on read.
+  /// a legacy plaintext value is migrated and verified during load.
   static const _kSecureSyncToken = 'sync.secure.bearer_token';
-  static const _kSecureSyncTokenMigrated = 'sync.secure.bearer_token.migrated';
-
-  String? get syncBearerToken {
-    return _secureApiKeys[_kSecureSyncToken] ?? _migratedPlaintextSyncToken();
-  }
-
-  /// Reads a token left by an older build out of the plaintext slot, hands it
-  /// to secure storage and empties the old slot. Runs at most once.
-  String? _migratedPlaintextSyncToken() {
-    if (_prefs.getBool(_kSecureSyncTokenMigrated) ?? false) return null;
-    final legacy = _prefs.getString(_kSyncBearerToken);
-    _prefs.setBool(_kSecureSyncTokenMigrated, true);
-    if (legacy == null || legacy.isEmpty) return null;
-    unawaited(_secureStorage.write(key: _kSecureSyncToken, value: legacy));
-    _secureApiKeys[_kSecureSyncToken] = legacy;
-    _prefs.remove(_kSyncBearerToken);
-    return legacy;
-  }
+  String? get syncBearerToken => _secureApiKeys[_kSecureSyncToken];
 
   Future<void> setSyncBearerToken(String? value) async {
     if (value == null || value.isEmpty) {
@@ -396,6 +411,7 @@ class NexPreferences extends ChangeNotifier {
     } else {
       await _secureStorage.write(key: _kSecureSyncToken, value: value);
       _secureApiKeys[_kSecureSyncToken] = value;
+      await _prefs.remove(_kSyncBearerToken);
     }
     notifyListeners();
   }
@@ -681,6 +697,12 @@ class NexPreferences extends ChangeNotifier {
   Locale? get locale {
     final code = _prefs.getString('appearance.locale');
     return code == null || code == 'system' ? null : Locale(code);
+  }
+
+  bool get solarCalendar => _prefs.getBool('appearance.solar_calendar') ?? false;
+  Future<void> setSolarCalendar(bool enabled) async {
+    await _prefs.setBool('appearance.solar_calendar', enabled);
+    notifyListeners();
   }
 
   ThemeMode get themeMode => switch (_prefs.getString('appearance.theme')) {
@@ -1007,6 +1029,7 @@ class NexPreferences extends ChangeNotifier {
       await _secureStorage.write(key: key, value: config.apiKey);
       _secureApiKeys[wireName] = config.apiKey;
     }
+    await _prefs.remove(key);
     await _prefs.setString('ai.baseUrl.$wireName', config.baseUrl);
     await _prefs.setString('ai.model.$wireName', config.model);
     notifyListeners();

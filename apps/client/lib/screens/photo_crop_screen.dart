@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:crop_your_image/crop_your_image.dart';
@@ -16,7 +17,7 @@ import 'photo_annotate_screen.dart';
 /// that decode+rotate+encode on the main isolate would drop frames.
 Uint8List _rotateClockwise(Uint8List bytes) {
   final decoded = img.decodeImage(bytes);
-  if (decoded == null) return bytes;
+  if (decoded == null) throw const FormatException('Unsupported image');
   final rotated = img.copyRotate(decoded, angle: 90);
   // PNG, not the source format: re-encoding a JPEG here would compound
   // generation loss on every tap, for a step that is meant to be repeatable.
@@ -96,7 +97,18 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   Future<void> _rotate() async {
     if (_rotating || _cropping || !_ready) return;
     setState(() => _rotating = true);
-    final rotated = await compute(_rotateClockwise, _current);
+    Uint8List rotated;
+    try {
+      rotated = await compute(_rotateClockwise, _current);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _rotating = false);
+      nexShowBanner(
+        context,
+        message: AppLocalizations.of(context).captureFailed,
+      );
+      return;
+    }
     if (!mounted) return;
     setState(() {
       // A fresh key rather than `CropController.image = rotated` — the
@@ -280,9 +292,12 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
         body: SafeArea(
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: MediaQuery.systemGestureInsetsOf(
-                context,
-              ).left.clamp(24.0, 48.0),
+              horizontal: math
+                  .max(
+                    MediaQuery.systemGestureInsetsOf(context).left,
+                    MediaQuery.systemGestureInsetsOf(context).right,
+                  )
+                  .clamp(24.0, 80.0),
               vertical: 12,
             ),
             child: LayoutBuilder(

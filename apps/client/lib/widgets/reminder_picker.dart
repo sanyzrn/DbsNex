@@ -41,6 +41,7 @@ Future<bool> nexPickReminder({
       child: ReminderWheel(
         note: note,
         now: now,
+        solarCalendar: services.solarCalendar,
         onSubmit: (when, chosenRepeat) {
           repeat = chosenRepeat;
           Navigator.pop(sheetContext, when);

@@ -1,4 +1,6 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../platform/display_date.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -24,6 +26,7 @@ class ReminderWheel extends StatefulWidget {
     super.key,
     required this.note,
     required this.now,
+    this.solarCalendar = false,
     required this.onSubmit,
     required this.onClear,
   });
@@ -33,6 +36,7 @@ class ReminderWheel extends StatefulWidget {
   /// Passed in rather than read here so the sheet's idea of "today" cannot
   /// drift from the caller's between building the shortcuts and reading them.
   final DateTime now;
+  final bool solarCalendar;
 
   final void Function(DateTime when, NoteRepeat repeat) onSubmit;
   final VoidCallback onClear;
@@ -53,8 +57,6 @@ class ReminderWheel extends StatefulWidget {
 }
 
 class _ReminderWheelState extends State<ReminderWheel> {
-  static const _itemExtent = 44.0;
-
   late final FixedExtentScrollController _dayController;
   late final FixedExtentScrollController _hourController;
   late final FixedExtentScrollController _minuteController;
@@ -79,11 +81,7 @@ class _ReminderWheelState extends State<ReminderWheel> {
     final start = existing != null && existing.isAfter(now)
         ? existing
         : now.add(const Duration(hours: 1));
-    _day = DateTime(
-      start.year,
-      start.month,
-      start.day,
-    ).difference(_midnight).inDays.clamp(0, ReminderWheel.days - 1);
+    _day = _dayOffset(start).clamp(0, ReminderWheel.days - 1);
     _hour = start.hour;
     _minute = start.minute;
     _dayController = FixedExtentScrollController(initialItem: _day);
@@ -99,32 +97,46 @@ class _ReminderWheelState extends State<ReminderWheel> {
     super.dispose();
   }
 
-  DateTime get _chosen =>
-      _midnight.add(Duration(days: _day, hours: _hour, minutes: _minute));
+  DateTime get _chosen => DateTime(
+    _midnight.year,
+    _midnight.month,
+    _midnight.day + _day,
+    _hour,
+    _minute,
+  );
 
   bool get _isPast => !_chosen.isAfter(widget.now);
+
+  int _dayOffset(DateTime value) =>
+      DateTime.utc(value.year, value.month, value.day)
+          .difference(
+            DateTime.utc(_midnight.year, _midnight.month, _midnight.day),
+          )
+          .inDays;
 
   /// Drives the wheels from a shortcut, so the shortcut and the wheels are
   /// never showing different answers.
   void _goTo(DateTime when) {
-    final day = DateTime(
-      when.year,
-      when.month,
-      when.day,
-    ).difference(_midnight).inDays;
+    final day = _dayOffset(when);
     _dayController.animateToItem(
       day,
-      duration: NexMotion.standard,
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : NexMotion.standard,
       curve: NexMotion.curve,
     );
     _hourController.animateToItem(
       when.hour,
-      duration: NexMotion.standard,
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : NexMotion.standard,
       curve: NexMotion.curve,
     );
     _minuteController.animateToItem(
       when.minute,
-      duration: NexMotion.standard,
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : NexMotion.standard,
       curve: NexMotion.curve,
     );
   }
@@ -133,9 +145,16 @@ class _ReminderWheelState extends State<ReminderWheel> {
     final l10n = AppLocalizations.of(context);
     if (index == 0) return l10n.remindDayToday;
     if (index == 1) return l10n.remindDayTomorrow;
-    return MaterialLocalizations.of(
-      context,
-    ).formatMediumDate(_midnight.add(Duration(days: index)));
+    if (widget.solarCalendar) {
+      return nexDisplayDate(
+        DateTime(_midnight.year, _midnight.month, _midnight.day + index),
+        solar: true,
+        persian: Localizations.localeOf(context).languageCode == 'fa',
+      );
+    }
+    return MaterialLocalizations.of(context).formatMediumDate(
+      DateTime(_midnight.year, _midnight.month, _midnight.day + index),
+    );
   }
 
   String _action(BuildContext context) {
@@ -148,7 +167,16 @@ class _ReminderWheelState extends State<ReminderWheel> {
     return switch (_day) {
       0 => l10n.remindActionToday(time),
       1 => l10n.remindActionTomorrow(time),
-      _ => l10n.remindActionOn(material.formatMediumDate(_chosen), time),
+      _ => l10n.remindActionOn(
+        widget.solarCalendar
+            ? nexDisplayDate(
+                _chosen,
+                solar: true,
+                persian: Localizations.localeOf(context).languageCode == 'fa',
+              )
+            : material.formatMediumDate(_chosen),
+        time,
+      ),
     };
   }
 
@@ -159,151 +187,169 @@ class _ReminderWheelState extends State<ReminderWheel> {
     final material = MaterialLocalizations.of(context);
     final use24 = MediaQuery.alwaysUse24HourFormatOf(context);
     final now = widget.now;
+    final itemExtent = math.max(
+      44.0,
+      MediaQuery.textScalerOf(context).scale(16) * 1.5 + 8,
+    );
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            NexSpacing.lg,
-            NexSpacing.sm,
-            NexSpacing.lg,
-            0,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.remindTitle,
-                  style: theme.textTheme.titleLarge,
-                ),
-              ),
-              Icon(
-                Icons.notifications_none,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-        // What is already set, before anything that would replace it. Without
-        // it the sheet asks someone to change a reminder they cannot read.
-        if (widget.note.dueAt case final due?)
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(
               NexSpacing.lg,
-              NexSpacing.xs,
+              NexSpacing.sm,
               NexSpacing.lg,
               0,
             ),
-            child: Text(
-              l10n.remindCurrent(
-                widget.note.dueRepeat == NoteRepeat.once
-                    ? nexDueExact(context, due)
-                    : l10n.remindRepeatingAt(
-                        nexDueExact(context, due),
-                        nexRepeatLabel(l10n, widget.note.dueRepeat),
-                      ),
-              ),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
-            ),
-          ),
-        const SizedBox(height: NexSpacing.sm),
-        // The shortcuts, kept from the list this replaced. They set the wheels
-        // rather than closing the sheet: "tomorrow morning, but at eight" is
-        // then a tap and one flick instead of a different route through the
-        // interface.
-        SizedBox(
-          height: 48,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-            children: [
-              for (final (label, at) in _shortcuts(l10n, now))
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
-                  child: ActionChip(
-                    label: Text(label),
-                    onPressed: () => _goTo(at),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.remindTitle,
+                    style: theme.textTheme.titleLarge,
                   ),
                 ),
-            ],
-          ),
-        ),
-        const SizedBox(height: NexSpacing.sm),
-        _WheelRow(
-          itemExtent: _itemExtent,
-          children: [
-            _Wheel(
-              key: ReminderWheel.dayKey,
-              flex: 5,
-              controller: _dayController,
-              itemExtent: _itemExtent,
-              count: ReminderWheel.days,
-              onChanged: (index) => setState(() => _day = index),
-              builder: (context, index) => _dayLabel(context, index),
+                Icon(
+                  Icons.notifications_none,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
             ),
-            _Wheel(
-              key: ReminderWheel.hourKey,
-              flex: 2,
-              controller: _hourController,
-              itemExtent: _itemExtent,
-              count: 24,
-              looping: true,
-              onChanged: (index) => setState(() => _hour = index % 24),
-              builder: (context, index) => material.formatHour(
-                TimeOfDay(hour: index, minute: 0),
-                alwaysUse24HourFormat: use24,
+          ),
+          // What is already set, before anything that would replace it. Without
+          // it the sheet asks someone to change a reminder they cannot read.
+          if (widget.note.dueAt case final due?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                NexSpacing.lg,
+                NexSpacing.xs,
+                NexSpacing.lg,
+                0,
+              ),
+              child: Text(
+                l10n.remindCurrent(
+                  widget.note.dueRepeat == NoteRepeat.once
+                      ? nexDueExact(
+                          context,
+                          due,
+                          solarCalendar: widget.solarCalendar,
+                        )
+                      : l10n.remindRepeatingAt(
+                          nexDueExact(
+                            context,
+                            due,
+                            solarCalendar: widget.solarCalendar,
+                          ),
+                          nexRepeatLabel(l10n, widget.note.dueRepeat),
+                        ),
+                ),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
               ),
             ),
-            _Wheel(
-              key: ReminderWheel.minuteKey,
-              flex: 2,
-              controller: _minuteController,
-              itemExtent: _itemExtent,
-              count: 60,
-              looping: true,
-              onChanged: (index) => setState(() => _minute = index % 60),
-              builder: (context, index) =>
-                  material.formatMinute(TimeOfDay(hour: 0, minute: index)),
+          const SizedBox(height: NexSpacing.sm),
+          // The shortcuts, kept from the list this replaced. They set the wheels
+          // rather than closing the sheet: "tomorrow morning, but at eight" is
+          // then a tap and one flick instead of a different route through the
+          // interface.
+          SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+              children: [
+                for (final (label, at) in _shortcuts(l10n, now))
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(
+                      end: NexSpacing.sm,
+                    ),
+                    child: ActionChip(
+                      label: Text(label),
+                      onPressed: () => _goTo(at),
+                    ),
+                  ),
+              ],
             ),
-          ],
-        ),
-        const SizedBox(height: NexSpacing.sm),
-        Center(
-          child: _RepeatChip(
-            repeat: _repeat,
-            onChanged: (value) => setState(() => _repeat = value),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            NexSpacing.lg,
-            NexSpacing.md,
-            NexSpacing.lg,
-            NexSpacing.sm,
+          const SizedBox(height: NexSpacing.sm),
+          _WheelRow(
+            itemExtent: itemExtent,
+            children: [
+              _Wheel(
+                key: ReminderWheel.dayKey,
+                flex: 5,
+                controller: _dayController,
+                itemExtent: itemExtent,
+                count: ReminderWheel.days,
+                onChanged: (index) => setState(() => _day = index),
+                builder: (context, index) => _dayLabel(context, index),
+              ),
+              _Wheel(
+                key: ReminderWheel.hourKey,
+                flex: 2,
+                controller: _hourController,
+                itemExtent: itemExtent,
+                count: 24,
+                looping: true,
+                onChanged: (index) => setState(() => _hour = index % 24),
+                builder: (context, index) => material.formatHour(
+                  TimeOfDay(hour: index, minute: 0),
+                  alwaysUse24HourFormat: use24,
+                ),
+              ),
+              _Wheel(
+                key: ReminderWheel.minuteKey,
+                flex: 2,
+                controller: _minuteController,
+                itemExtent: itemExtent,
+                count: 60,
+                looping: true,
+                onChanged: (index) => setState(() => _minute = index % 60),
+                builder: (context, index) =>
+                    material.formatMinute(TimeOfDay(hour: 0, minute: index)),
+              ),
+            ],
           ),
-          child: FilledButton(
-            // A reminder in the past is a reminder that never arrives: the
-            // scheduler drops a past-due one-off on purpose, so a button that
-            // stayed live here would report "Reminder set" for an alarm that
-            // does not exist.
-            onPressed: _isPast ? null : () => widget.onSubmit(_chosen, _repeat),
-            child: Text(_isPast ? l10n.remindPast : _action(context)),
+          const SizedBox(height: NexSpacing.sm),
+          Center(
+            child: _RepeatChip(
+              repeat: _repeat,
+              onChanged: (value) => setState(() => _repeat = value),
+            ),
           ),
-        ),
-        if (widget.note.dueAt != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: NexSpacing.sm),
-            child: TextButton.icon(
-              onPressed: widget.onClear,
-              icon: const Icon(Icons.notifications_off_outlined, size: 18),
-              label: Text(l10n.remindClear),
+            padding: const EdgeInsets.fromLTRB(
+              NexSpacing.lg,
+              NexSpacing.md,
+              NexSpacing.lg,
+              NexSpacing.sm,
+            ),
+            child: FilledButton(
+              // A reminder in the past is a reminder that never arrives: the
+              // scheduler drops a past-due one-off on purpose, so a button that
+              // stayed live here would report "Reminder set" for an alarm that
+              // does not exist.
+              onPressed: _isPast
+                  ? null
+                  : () => widget.onSubmit(_chosen, _repeat),
+              child: Text(_isPast ? l10n.remindPast : _action(context)),
             ),
           ),
-      ],
+          if (widget.note.dueAt != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+              child: TextButton.icon(
+                onPressed: widget.onClear,
+                icon: const Icon(Icons.notifications_off_outlined, size: 18),
+                label: Text(l10n.remindClear),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -314,7 +360,9 @@ class _ReminderWheelState extends State<ReminderWheel> {
       (
         l10n.remindEvening,
         // Past eight already: "this evening" can only mean tomorrow's.
-        evening.isAfter(now) ? evening : evening.add(const Duration(days: 1)),
+        evening.isAfter(now)
+            ? evening
+            : DateTime(now.year, now.month, now.day + 1, 20),
       ),
       (l10n.remindTomorrow, DateTime(now.year, now.month, now.day + 1, 9)),
       (l10n.remindNextWeek, DateTime(now.year, now.month, now.day + 7, 9)),

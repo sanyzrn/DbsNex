@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'nex_preferences.dart';
+import 'ai_provider.dart';
 import 'nex_services.dart';
 
 /// One row of the widget snapshot: what a home-screen glance may see of a
@@ -209,7 +210,7 @@ class NexWidgetSnapshot {
     return NexWidgetSnapshot(
       appLock: false,
       generatedAt: now ?? DateTime.now(),
-      recap: recap.trim(),
+      recap: CloudAIAdapter.cleanDecorativeReply(recap) ?? '',
       notes: [
         for (final note in notes.take(maxNotes))
           NexWidgetNotePreview(
@@ -338,7 +339,8 @@ class NexWidgetBridge {
   String get _filterSignature =>
       '${(preferences.widgetTypes.toList()..sort()).join(',')}'
       '|${(preferences.widgetTagIds.toList()..sort()).join(',')}'
-      '|${preferences.widgetPinnedFirst}';
+      '|${preferences.widgetPinnedFirst}'
+      '|${preferences.locale?.languageCode}|${preferences.accentSeed}';
 
   /// Writes now, for a change this bridge cannot see coming.
   ///
@@ -361,7 +363,34 @@ class NexWidgetBridge {
     _timer = Timer(_debounce, () => unawaited(_write()));
   }
 
-  Future<void> _write() async {
+  Future<void> _writeTail = Future<void>.value();
+
+  Future<void> _write() {
+    // Privacy updates cannot wait behind a slow timeline query.
+    if (_hidden && !_disposed) {
+      final file = _file;
+      if (file != null) {
+        try {
+          final locked = NexWidgetSnapshot.build(
+            appLock: true,
+            notes: const [],
+          );
+          final temp = File('${file.path}.lock');
+          temp.writeAsStringSync(jsonEncode(locked.toJson()), flush: true);
+          temp.renameSync(file.path);
+          _lastWrittenLock = true;
+          return _push();
+        } catch (_) {
+          // Retry through the normal best-effort writer.
+        }
+      }
+    }
+    final next = _writeTail.then((_) => _writeSnapshot());
+    _writeTail = next;
+    return next;
+  }
+
+  Future<void> _writeSnapshot() async {
     if (_disposed) return;
     try {
       final file = _file;
@@ -396,13 +425,26 @@ class NexWidgetBridge {
         // [NexWidgetSnapshot.recap].
         recap: preferences.aiDaySummaryText ?? '',
       );
-      _lastWrittenLock = lock;
-      _lastWrittenFilter = _filterSignature;
       // Atomic swap. The reader runs whenever the launcher pleases; a
       // half-written file must never be the thing it finds.
       final temp = File('${file.path}.tmp');
       await temp.writeAsString(jsonEncode(snapshot.toJson()), flush: true);
-      await temp.rename(file.path);
+      // A lock can close while the database/file awaits above are in flight.
+      // Never publish that older unlocked snapshot after the lock change.
+      var publishedLock = lock;
+      if (_hidden && !publishedLock) {
+        publishedLock = true;
+        await temp.writeAsString(
+          jsonEncode(
+            NexWidgetSnapshot.build(appLock: true, notes: const []).toJson(),
+          ),
+          flush: true,
+        );
+      }
+      // No event-loop gap between the final privacy check and atomic publish.
+      temp.renameSync(file.path);
+      _lastWrittenLock = publishedLock;
+      _lastWrittenFilter = _filterSignature;
       await _push();
     } catch (_) {
       // The snapshot is a copy, not the library: any failure here leaves the
@@ -413,7 +455,10 @@ class NexWidgetBridge {
 
   Future<void> _push() async {
     try {
-      await _channel.invokeMethod<void>('pushWidgets');
+      await _channel.invokeMethod<void>('pushWidgets', {
+        'locale': preferences.locale?.languageCode,
+        'accent': preferences.accentSeed,
+      });
     } on MissingPluginException {
       // No native half on this platform — nothing to refresh.
     } on PlatformException {

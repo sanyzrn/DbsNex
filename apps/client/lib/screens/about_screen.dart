@@ -149,6 +149,9 @@ class AboutScreen extends StatelessWidget {
                 nexShowBanner(context, message: l10n.noDiagnosticsYet);
                 return;
               }
+              await log.file.writeAsString(
+                NexCrashLog.redact(await log.file.readAsString()),
+              );
               await nexSendFileOut(
                 log.file.path,
                 suggestedName: 'nex-diagnostics.txt',

@@ -2,6 +2,20 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
+/// Android owns permission recovery after a denial; another prompt may be
+/// suppressed permanently. Keep the action useful for either kind of denial.
+Future<void> openCaptureSettings() async {
+  try {
+    await const MethodChannel(
+      'nex/os_capture',
+    ).invokeMethod<void>('openAppSettings');
+  } on MissingPluginException {
+    // No Android permission settings on desktop.
+  } on PlatformException {
+    // Leave the permission explanation visible if the OS refuses to open it.
+  }
+}
+
 /// Why a capture did not make it into the library.
 ///
 /// Photo capture used to wrap everything in `catch (_)` and show one sentence —

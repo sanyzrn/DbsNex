@@ -291,7 +291,7 @@ class OsCaptureBridge {
           // Keep the request for the next launch, but do not retry forever
           // on a full disk or an expired provider permission.
           await _channel.invokeMethod<void>('deferPending', {'requestId': id});
-          await NexServices.noteDiagnostic('shared capture failed: $error');
+          await NexServices.noteDiagnostic('shared capture failed: ${error.runtimeType}');
         }
       }
     } on MissingPluginException {
@@ -372,7 +372,12 @@ class OsCaptureBridge {
         });
         if (note?.mediaUri != dest) await File(dest).delete();
         // A desktop picker hands us the original, not a disposable cache copy.
-        if (payload['uri'] != null || isSupported) await _discardIncoming(file);
+        // Durable share-inbox files belong to native ackPending, which runs
+        // only after the committed receipt. Picker/cache files are disposable.
+        if (payload['requestId'] == null &&
+            (payload['uri'] != null || isSupported)) {
+          await _discardIncoming(file);
+        }
       default:
         return false;
     }
@@ -419,7 +424,10 @@ class OsCaptureBridge {
     }
     final path =
         payload['path'] as String? ??
-        await _copyShared(payload['uri'] as String?);
+        await _copyShared(
+          payload['uri'] as String?,
+          payload['requestId'] as String?,
+        );
     if (path == null) throw StateError('Could not read the shared attachment');
     final file = File(path);
     if (!file.existsSync()) throw StateError('Shared attachment is missing');
@@ -440,11 +448,12 @@ class OsCaptureBridge {
   /// Null on every failure, including a platform with no native half: the
   /// caller does the same thing about all of them, which is to capture
   /// nothing and leave the library alone.
-  Future<String?> _copyShared(String? uri) async {
+  Future<String?> _copyShared(String? uri, String? requestId) async {
     if (uri == null) return null;
     try {
       return await _channel.invokeMethod<String>('copyShared', <String, Object>{
         'uri': uri,
+        if (requestId != null) 'requestId': requestId,
       });
     } on MissingPluginException {
       return null;

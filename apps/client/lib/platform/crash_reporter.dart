@@ -83,8 +83,12 @@ class NexCrashLog {
       final entry = StringBuffer()
         ..writeln(DateTime.now().toUtc().toIso8601String())
         ..writeln('Nex $nexAppVersion on ${Platform.operatingSystem}')
-        ..writeln(error.toString());
-      if (context != null) entry.writeln('while: $context');
+        // Exception text can carry SQL values, note text or provider replies.
+        // Published builds retain the exception type and stack only.
+        ..writeln(
+          kReleaseMode ? error.runtimeType.toString() : error.toString(),
+        );
+      if (!kReleaseMode && context != null) entry.writeln('while: $context');
       entry.write(stack);
       _append(entry.toString());
     } catch (_) {
@@ -101,6 +105,20 @@ class NexCrashLog {
         ? entries.sublist(entries.length - _maxEntries)
         : entries;
     file.parent.createSync(recursive: true);
-    file.writeAsStringSync(kept.join(_separator));
+    file.writeAsStringSync(kept.map(redact).join(_separator));
   }
+
+  static String redact(String text) => text
+      .replaceAll(RegExp(r'https?://[^\s<>]+', caseSensitive: false), '[url]')
+      .replaceAll(
+        RegExp(r'(?:Bearer\s+|\bsk-)[A-Za-z0-9_.\-]+', caseSensitive: false),
+        '[credential]',
+      )
+      .replaceAllMapped(
+        RegExp(
+          r'(api[_-]?key|token|authorization|password)\s*[:=]\s*[^\s,;]+',
+          caseSensitive: false,
+        ),
+        (m) => '${m[1]}=[redacted]',
+      );
 }

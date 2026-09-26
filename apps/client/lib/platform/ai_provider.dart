@@ -685,6 +685,7 @@ class CloudAIAdapter implements AIAdapter {
   /// check the provider in Settings" is actively misleading advice to give
   /// someone who chose to have no provider.
   String? get localFailure => _preferLocal ? _lastFailure?.message : null;
+  int? get lastFailureStatus => _lastFailure?.status;
 
   /// One turn, with optional inline media, normalised across all three shapes.
   Future<String?> _complete(
@@ -890,7 +891,6 @@ class CloudAIAdapter implements AIAdapter {
     return text.isEmpty ? null : text;
   }
 
-  @visibleForTesting
   static String? cleanDecorativeReply(String? raw) {
     if (raw == null) return null;
     final text = _answerOnly(raw);
@@ -898,7 +898,7 @@ class CloudAIAdapter implements AIAdapter {
     // Reject known prompt-echo openings on decorative surfaces. This is not
     // applied to user notes, translations or the assistant conversation.
     if (RegExp(
-      r'^(?:the user (?:wants|asks|requested)|(?:we|i) need to (?:produce|respond|generate|write)|let me (?:think|analyze))',
+      r'^(?:the user (?:wants|asks|requested)|(?:we|i) need to (?:produce|respond|generate|write)|let me (?:think|analyze)|(?:analysis|reasoning|system prompt)\s*:|کاربر (?:می[‌ ]?خواهد|خواسته|درخواست کرده)|(?:باید|لازم است) (?:یک پاسخ|پاسخی|یک خلاصه|خلاصه[‌ ]ای) (?:تولید|بنویس|ارائه)|(?:تحلیل|استدلال|دستور سیستم)\s*[:：]|اجازه (?:بده|دهید) (?:فکر|تحلیل))',
       caseSensitive: false,
     ).hasMatch(text)) {
       return null;
@@ -1145,7 +1145,10 @@ class CloudAIAdapter implements AIAdapter {
     // Line-aware, unlike the word clamp this replaced: that one collapsed
     // every run of whitespace in the reply, newlines included, which turned
     // a list back into the paragraph it was asked not to be.
-    return _plausible(nexTidyBrief(reply, maxLines: lines), shortLine: false);
+    return _plausible(
+      nexTidyBrief(cleanDecorativeReply(reply), maxLines: lines),
+      shortLine: false,
+    );
   }
 
   /// The model's share of a brief whose facts the app has already written.
@@ -1234,7 +1237,10 @@ class CloudAIAdapter implements AIAdapter {
       maxTokens: (budget * 60).clamp(120, 800),
       timeout: timeout,
     );
-    return _plausible(nexTidyBrief(reply, maxLines: budget), shortLine: false);
+    return _plausible(
+      nexTidyBrief(cleanDecorativeReply(reply), maxLines: budget),
+      shortLine: false,
+    );
   }
 
   /// The one-line headline over the timeline: a mood, not a summary.
@@ -1500,6 +1506,7 @@ class CloudAIAdapter implements AIAdapter {
     List<ChatMessage> history, {
     AiChatOptions options = const AiChatOptions(),
   }) async {
+    _lastFailure = null;
     if (history.isEmpty) return null;
     if (!config.isUsable) {
       if (!_preferLocal) return null;

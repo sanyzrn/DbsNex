@@ -239,8 +239,9 @@ Sure, here you go:
         reason: '"pin this" said which one it meant',
       );
       expect(
-        parseAssistantAction('{"action":"pin","id":"n-1","pinned":false}')
-            ?.flag,
+        parseAssistantAction(
+          '{"action":"pin","id":"n-1","pinned":false}',
+        )?.flag,
         isFalse,
       );
       final unpin = parseAssistantAction('{"action":"unpin","id":"n-1"}');
@@ -250,8 +251,9 @@ Sure, here you go:
 
     test('a title with no text clears it', () {
       expect(
-        parseAssistantAction('{"action":"title","id":"n-1","text":"Boiler"}')
-            ?.text,
+        parseAssistantAction(
+          '{"action":"title","id":"n-1","text":"Boiler"}',
+        )?.text,
         'Boiler',
       );
       final cleared = parseAssistantAction('{"action":"title","id":"n-1"}');
@@ -293,7 +295,10 @@ Sure, here you go:
         ),
         isNull,
       );
-      expect(parseAssistantAction('{"action":"rename_tag","tag":"work"}'), isNull);
+      expect(
+        parseAssistantAction('{"action":"rename_tag","tag":"work"}'),
+        isNull,
+      );
     });
 
     test('a tag colour must be one the app can paint', () {
@@ -763,6 +768,49 @@ Sure, here you go:
           ),
         )
         .textDirection;
+
+    testWidgets('retry keeps the question once and preserves a new draft', (
+      tester,
+    ) async {
+      final sent = <String>[];
+      await openSheet(
+        tester,
+        client: MockClient((request) async {
+          sent.add(request.body);
+          return sent.length == 1
+              ? http.Response('{}', 503)
+              : http.Response(
+                  jsonEncode({
+                    'choices': [
+                      {
+                        'message': {'content': 'Recovered answer'},
+                      },
+                    ],
+                  }),
+                  200,
+                );
+        }),
+      );
+      final field = find.descendant(
+        of: find.byType(AiChatSheet),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(field, 'original question');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      expect(find.text('Recovered answer'), findsNothing);
+      await tester.enterText(field, 'new draft');
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+      expect(sent, hasLength(2));
+      final messages = (jsonDecode(sent.last) as Map)['messages'] as List;
+      expect(
+        messages.where((m) => m['content'] == 'original question'),
+        hasLength(1),
+      );
+      expect(tester.widget<TextField>(field).controller!.text, 'new draft');
+      expect(find.text('Recovered answer'), findsOneWidget);
+    });
 
     testWidgets('the composer turns to the script being typed', (tester) async {
       await openSheet(

@@ -6,6 +6,7 @@ import { handleRequest, type Env } from "./index.ts";
 const configuredEnv: Env = {
   TELEGRAM_BOT_TOKEN: "test-token",
   TELEGRAM_CHAT_ID: "12345",
+  FEEDBACK_LIMITER: { limit: async () => ({ success: true }) },
 };
 
 function post(body: unknown, headers: Record<string, string> = {}): Request {
@@ -18,6 +19,21 @@ function post(body: unknown, headers: Record<string, string> = {}): Request {
 }
 
 describe("feedback worker", () => {
+  test("limits real bytes without trusting Content-Length", async () => {
+    const res = await handleRequest(post({ message: "x", padding: "x".repeat(9000) }), configuredEnv);
+    assert.equal(res.status, 413);
+  });
+
+  test("rejects rate-limited and unprotected relay requests", async () => {
+    const limited = await handleRequest(post({ message: "x" }), {
+      ...configuredEnv, FEEDBACK_LIMITER: { limit: async () => ({ success: false }) },
+    });
+    assert.equal(limited.status, 429);
+    const missing = await handleRequest(post({ message: "x" }), {
+      ...configuredEnv, FEEDBACK_LIMITER: undefined,
+    });
+    assert.equal(missing.status, 503);
+  });
   const realFetch = globalThis.fetch;
   let telegramCalls: { url: string; body: unknown }[];
   let telegramResponse: () => Response;

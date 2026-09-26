@@ -11,7 +11,7 @@
 
     <string name="widget_capture_picker_label">Nex Capture</string>
     <string name="widget_timeline_picker_label">Nex Timeline</string>
-    <string name="widget_recap_picker_label">Nex Recap</string>
+    <string name="widget_recap_picker_label">Smart summary</string>
 
     <string name="widget_capture_label">Capture</string>
     <string name="widget_capture_description">Capture a thought without opening Nex first</string>
@@ -33,7 +33,7 @@
 
     <!-- The Recap widget. The title is the same words the recap card at the
          top of the timeline uses, because it is the same text. -->
-    <string name="widget_recap_title">Daily Digest</string>
+    <string name="widget_recap_title">Smart summary</string>
     <string name="widget_recap_locked_title">Nex is locked</string>
     <string name="widget_recap_locked_a11y">Nex is locked. Unlock Nex to see your recap here.</string>
     <string name="widget_recap_empty_title">No recap yet.</string>

@@ -3,6 +3,7 @@ import 'dart:ui' show BoxWidthStyle;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
+import 'package:nex_core/nex_core.dart' show newUuidV7;
 import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -61,6 +62,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
   String? noteId;
   String persisted = '';
   String _latestText = '';
+  String _draftId = newUuidV7();
   Future<void> _writes = Future.value();
   bool _allowClose = false;
   bool _closing = false;
@@ -81,6 +83,14 @@ class _CaptureSheetState extends State<CaptureSheet> {
 
   void changed(String value) {
     _latestText = value;
+    try {
+      widget.services.captureJournal.write(_draftId, value);
+    } catch (_) {
+      NexBannerHost.of(context)?.show(
+        message: AppLocalizations.of(context).captureFailed,
+        kind: NexBannerKind.failed,
+      );
+    }
     setState(() {});
     if (noteId == null && value.isNotEmpty) {
       // One first write, not one per keystroke.
@@ -120,7 +130,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
   Future<void> _createFirstDraft(String value) async {
     var created = false;
     try {
-      final note = await widget.services.captureText(value);
+      final note = await widget.services.captureDraft(_draftId, value);
       if (note == null) return;
       created = true;
       noteId = note.id;
@@ -158,6 +168,11 @@ class _CaptureSheetState extends State<CaptureSheet> {
       await draft;
     }
     await _flushCurrent();
+    if (persisted == _latestText) {
+      try {
+        widget.services.captureJournal.complete(_draftId);
+      } catch (_) {}
+    }
   }
 
   Future<void> _flushCurrent() {
@@ -172,6 +187,14 @@ class _CaptureSheetState extends State<CaptureSheet> {
           draft = null;
           persisted = '';
           hasReminder = false;
+          widget.services.captureJournal.complete(_draftId);
+          _draftId = newUuidV7();
+          if (_latestText.isNotEmpty) {
+            widget.services.captureJournal.write(_draftId, _latestText);
+            // Let this serialized deletion finish before inserting the new
+            // draft typed while its database request was in flight.
+            unawaited(Future<void>(() => flush()));
+          }
         } catch (_) {
           if (mounted) {
             NexBannerHost.of(context)?.show(

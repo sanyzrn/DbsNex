@@ -153,7 +153,9 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
               // so the difference gets said here, where the typing happens.
               Padding(
                 padding: const EdgeInsetsDirectional.only(
-                  start: NexSpacing.sm,
+                  start: NexSpacing.md,
+                  end: NexSpacing.md,
+                  bottom: NexSpacing.md,
                   top: NexSpacing.xs,
                 ),
                 child: Text(
@@ -210,9 +212,7 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                     NexChoice(
                       value: AiResponseStyle.custom,
                       label: l10n.assistantStyleCustom,
-                      preview: const NexScriptSample(
-                        icon: Icons.edit_outlined,
-                      ),
+                      preview: const NexScriptSample(icon: Icons.edit_outlined),
                     ),
                   ],
                 ),
@@ -362,4 +362,3 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
         ),
       );
 }
-

@@ -26,10 +26,12 @@ class NexTappable extends StatefulWidget {
     this.semanticLabel,
     this.selected = false,
     this.minSize = nexMinTapTarget,
+    this.onLongPress,
   });
 
   final Widget child;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   /// The control's silhouette, **without a side** — the control draws its own
   /// border. This is only the outline the focus ring is shaped to.
@@ -60,13 +62,14 @@ class _NexTappableState extends State<NexTappable> {
         actions: {
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (_) {
-              widget.onTap();
+              (widget.onLongPress ?? widget.onTap)();
               return null;
             },
           ),
         },
         child: GestureDetector(
           onTap: widget.onTap,
+          onLongPress: widget.onLongPress,
           onTapDown: (_) => setState(() => _pressed = true),
           onTapUp: (_) => setState(() => _pressed = false),
           onTapCancel: () => setState(() => _pressed = false),
