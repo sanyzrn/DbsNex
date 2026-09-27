@@ -175,6 +175,14 @@ class InProcessDb implements NexDb {
   }
 
   @override
+  Future<void> convertMarkdown(
+    String id,
+    String text,
+    String? uri,
+    String? hash,
+  ) async => _repo.convertMarkdown(id, text, uri, hash);
+
+  @override
   Future<void> updateImageMedia(
     String id,
     String mediaUri,

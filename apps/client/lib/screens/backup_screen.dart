@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 
 import '../l10n/app_localizations.dart';
 import '../platform/display_date.dart';
+import '../platform/full_backup.dart';
+import '../platform/app_lock.dart';
 import '../platform/sharing.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -81,6 +83,109 @@ class _BackupScreenState extends State<BackupScreen> {
       await action();
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _exportFull() => _guard(() async {
+    final l10n = AppLocalizations.of(context);
+    final key = FullBackup.newKey();
+    var includeModel = false;
+    var includeVault = false;
+    var retainedKey = false;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, update) => AlertDialog(
+          title: Text(l10n.fullBackupTitle),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.fullBackupPrivateHint),
+                const SizedBox(height: 12),
+                SelectableText(key, textDirection: TextDirection.ltr),
+                CheckboxListTile(
+                  value: retainedKey,
+                  title: Text(l10n.backupKeySaved),
+                  onChanged: (v) => update(() => retainedKey = v ?? false),
+                ),
+                CheckboxListTile(
+                  value: includeModel,
+                  title: Text(l10n.backupIncludeModel),
+                  onChanged: (v) => update(() => includeModel = v ?? false),
+                ),
+                CheckboxListTile(
+                  value: includeVault,
+                  title: Text(l10n.backupIncludeVault),
+                  onChanged: (v) => update(() => includeVault = v ?? false),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: retainedKey ? () => Navigator.pop(ctx, true) : null,
+              child: Text(l10n.export),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    try {
+      if (includeVault &&
+          !await AppLockService().authenticate(
+            reason: l10n.vaultAuthReason,
+            biometricOnly: false,
+          )) {
+        return;
+      }
+      final path = await widget.services.exportFullBackup(
+        key,
+        includeModel: includeModel,
+        includeVault: includeVault,
+      );
+      if (!mounted) return;
+      await nexSendFileOut(path, mimeType: 'application/octet-stream');
+    } catch (_) {
+      _say(l10n.backupFailed);
+    }
+  });
+
+  Future<String?> _askRecoveryKey() async {
+    final controller = TextEditingController();
+    final l10n = AppLocalizations.of(context);
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.backupRecoveryKey),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            autocorrect: false,
+            enableSuggestions: false,
+            obscureText: true,
+            textDirection: TextDirection.ltr,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              child: Text(l10n.restore),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      controller.dispose();
     }
   }
 
@@ -168,7 +273,10 @@ class _BackupScreenState extends State<BackupScreen> {
   Future<void> _chooseBackup() async {
     final file = await openFile(
       acceptedTypeGroups: const [
-        XTypeGroup(label: 'Nex backup', extensions: ['nexbak', 'sqlite']),
+        XTypeGroup(
+          label: 'Nex backup',
+          extensions: ['nexbak', 'sqlite', 'nexfull'],
+        ),
       ],
     );
     if (file != null && mounted) await _restore(File(file.path));
@@ -227,7 +335,19 @@ class _BackupScreenState extends State<BackupScreen> {
     try {
       // The restore invalidates the whole service graph; the returned token
       // is the contract that the caller must rebuild it.
-      final result = await widget.services.restoreBackup(backup);
+      final full = backup.path.endsWith('.nexfull');
+      final key = full ? await _askRecoveryKey() : null;
+      if (full && (key == null || key.isEmpty)) return;
+      final result = full
+          ? await widget.services.restoreFullBackup(
+              backup,
+              key!,
+              authorizeVaultRestore: () => AppLockService().authenticate(
+                reason: l10n.vaultRestoreAuth,
+                biometricOnly: false,
+              ),
+            )
+          : await widget.services.restoreBackup(backup);
       if (!mounted) return;
       final restart = NexRestartScope.of(context).restart;
       if (result.error != null) {
@@ -247,6 +367,8 @@ class _BackupScreenState extends State<BackupScreen> {
         );
       }
       restart();
+    } on VaultAuthenticationRequired {
+      return;
     } on Object catch (error) {
       // The graph is already closed by the time restore touches live files —
       // this session cannot read or write the library anymore either way.
@@ -254,7 +376,9 @@ class _BackupScreenState extends State<BackupScreen> {
       // screen where every action answered "unavailable" with no reason.
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.restoreFailed(error.toString()))),
+        SnackBar(
+          content: Text(l10n.restoreFailed(error.runtimeType.toString())),
+        ),
       );
     }
   }
@@ -264,115 +388,125 @@ class _BackupScreenState extends State<BackupScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final backups = _backups;
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.dataAndBackup)),
-      body: ListView(
-        padding: EdgeInsets.only(
-          bottom: NexSpacing.xl + nexBottomInset(context),
-        ),
-        children: [
-          if (_busy) const LinearProgressIndicator(minHeight: 2),
-          _Heading(l10n.exportTitle),
-          _Explained(
-            icon: Icons.ios_share_outlined,
-            title: l10n.export,
-            body: l10n.exportExplained,
-            action: l10n.exportAndShare,
-            onPressed: _busy ? null : () => unawaited(_export()),
+    return PopScope(
+      canPop: !_busy,
+      child: Scaffold(
+        appBar: AppBar(title: Text(l10n.dataAndBackup)),
+        body: ListView(
+          padding: EdgeInsets.only(
+            bottom: NexSpacing.xl + nexBottomInset(context),
           ),
-          _Explained(
-            icon: Icons.file_download_outlined,
-            title: l10n.importTitle,
-            body: l10n.importExplained,
-            action: l10n.chooseFile,
-            onPressed: _busy ? null : () => unawaited(_import()),
-          ),
-          const Divider(height: NexSpacing.xl),
-          _Heading(l10n.localBackupsTitle),
-          _Explained(
-            icon: Icons.restore_page_outlined,
-            title: l10n.restoreBackup,
-            body: l10n.fullBackupExplained,
-            action: l10n.chooseFile,
-            onPressed: _busy ? null : () => unawaited(_chooseBackup()),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              NexSpacing.lg,
-              0,
-              NexSpacing.lg,
-              NexSpacing.md,
+          children: [
+            if (_busy) const LinearProgressIndicator(minHeight: 2),
+            _Explained(
+              icon: Icons.enhanced_encryption_outlined,
+              title: l10n.fullBackupTitle,
+              body: l10n.fullBackupPrivateHint,
+              action: l10n.exportAndShare,
+              onPressed: _busy ? null : () => unawaited(_exportFull()),
             ),
-            child: Text(
-              l10n.localBackupsExplained,
-              style: theme.textTheme.bodyMedium,
+            _Heading(l10n.exportTitle),
+            _Explained(
+              icon: Icons.ios_share_outlined,
+              title: l10n.export,
+              body: l10n.exportExplained,
+              action: l10n.exportAndShare,
+              onPressed: _busy ? null : () => unawaited(_export()),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: OutlinedButton.icon(
-                onPressed: _busy ? null : () => unawaited(_backupNow()),
-                icon: const Icon(Icons.backup_outlined),
-                label: Text(l10n.backupNow),
+            _Explained(
+              icon: Icons.file_download_outlined,
+              title: l10n.importTitle,
+              body: l10n.importExplained,
+              action: l10n.chooseFile,
+              onPressed: _busy ? null : () => unawaited(_import()),
+            ),
+            const Divider(height: NexSpacing.xl),
+            _Heading(l10n.localBackupsTitle),
+            _Explained(
+              icon: Icons.restore_page_outlined,
+              title: l10n.restoreBackup,
+              body: l10n.fullBackupExplained,
+              action: l10n.chooseFile,
+              onPressed: _busy ? null : () => unawaited(_chooseBackup()),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                NexSpacing.lg,
+                0,
+                NexSpacing.lg,
+                NexSpacing.md,
+              ),
+              child: Text(
+                l10n.localBackupsExplained,
+                style: theme.textTheme.bodyMedium,
               ),
             ),
-          ),
-          const SizedBox(height: NexSpacing.md),
-          if (backups == null)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-              child: NexSkeleton(height: 16),
-            )
-          else if (backups.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-              child: Text(
-                l10n.backupCount(0),
-                style: theme.textTheme.bodySmall,
-              ),
-            )
-          else
-            for (final backup in backups)
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: NexSpacing.lg,
-                ),
-                leading: const Icon(Icons.history),
-                // Every backup is offered, not only the newest: the newest one
-                // is also the most likely to contain a mistake just made.
-                title: Text(_stamp(backup)),
-                subtitle: Text(
-                  nexFormatBytes(_metadata[backup.path]?.size ?? 0),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: l10n.exportAndShare,
-                      icon: const Icon(Icons.ios_share_outlined),
-                      onPressed: _busy
-                          ? null
-                          : () => unawaited(_shareBackup(backup)),
-                    ),
-                    IconButton(
-                      tooltip: l10n.deleteBackup,
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: _busy
-                          ? null
-                          : () => unawaited(_deleteBackup(backup)),
-                    ),
-                    TextButton(
-                      onPressed: _busy
-                          ? null
-                          : () => unawaited(_restore(backup)),
-                      child: Text(l10n.restore),
-                    ),
-                  ],
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: OutlinedButton.icon(
+                  onPressed: _busy ? null : () => unawaited(_backupNow()),
+                  icon: const Icon(Icons.backup_outlined),
+                  label: Text(l10n.backupNow),
                 ),
               ),
-        ],
+            ),
+            const SizedBox(height: NexSpacing.md),
+            if (backups == null)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+                child: NexSkeleton(height: 16),
+              )
+            else if (backups.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+                child: Text(
+                  l10n.backupCount(0),
+                  style: theme.textTheme.bodySmall,
+                ),
+              )
+            else
+              for (final backup in backups)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.lg,
+                  ),
+                  leading: const Icon(Icons.history),
+                  // Every backup is offered, not only the newest: the newest one
+                  // is also the most likely to contain a mistake just made.
+                  title: Text(_stamp(backup)),
+                  subtitle: Text(
+                    nexFormatBytes(_metadata[backup.path]?.size ?? 0),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: l10n.exportAndShare,
+                        icon: const Icon(Icons.ios_share_outlined),
+                        onPressed: _busy
+                            ? null
+                            : () => unawaited(_shareBackup(backup)),
+                      ),
+                      IconButton(
+                        tooltip: l10n.deleteBackup,
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: _busy
+                            ? null
+                            : () => unawaited(_deleteBackup(backup)),
+                      ),
+                      TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () => unawaited(_restore(backup)),
+                        child: Text(l10n.restore),
+                      ),
+                    ],
+                  ),
+                ),
+          ],
+        ),
       ),
     );
   }

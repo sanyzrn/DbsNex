@@ -691,7 +691,7 @@ class TimelineScreenState extends State<TimelineScreen>
   /// alone and the global setting is right for it.
   AiOutputLanguage? get _headlineLanguage {
     final name = widget.preferences.shortDisplayName;
-    if (name == null) return null;
+
     return nexDirectionOf(name) == TextDirection.rtl
         ? AiOutputLanguage.persian
         : AiOutputLanguage.english;
@@ -1502,6 +1502,7 @@ class TimelineScreenState extends State<TimelineScreen>
     );
     if (items == null || items.isEmpty) return;
     final note = await widget.services.captureChecklist(items);
+    if (note != null) widget.preferences.editorDrafts?.clear('checklist-new');
     if (note != null) _landed(note.id);
     await widget.services.refreshTimeline();
   }
@@ -1514,6 +1515,7 @@ class TimelineScreenState extends State<TimelineScreen>
     );
     if (url == null) return;
     final note = await widget.services.captureLink(url);
+    if (note != null) widget.preferences.editorDrafts?.clear('link-new');
     if (note != null) {
       _landed(note.id);
       // The page is read after the note exists, never before: a bookmark is
@@ -1583,16 +1585,34 @@ class TimelineScreenState extends State<TimelineScreen>
       // Inside the try: this is the call that throws when the OS refuses the
       // camera or the photo library, which is the single most likely failure
       // and the one the old handler could not have caught.
-      final picked = await ImagePicker().pickImage(source: source);
-      if (picked == null) return;
-      final original = await picked.readAsBytes();
+      final recovered = widget.preferences.editorDrafts?.readImage('photo-new');
+      final picked = recovered == null
+          ? await ImagePicker().pickImage(source: source)
+          : null;
+      if (recovered == null && picked == null) return;
+      final original = recovered ?? await picked!.readAsBytes();
+      widget.preferences.editorDrafts?.writeImage('photo-new', original);
       if (!mounted) return;
       // The preview first, not the cropper. Most photos need no edit at all,
       // and putting one in the path of every capture was the report.
       final cropped = await Navigator.of(context).push<Uint8List>(
-        NexPageRoute(builder: (_) => PhotoPreviewScreen(image: original)),
+        NexPageRoute(
+          builder: (_) => PhotoPreviewScreen(
+            image: original,
+            drafts: widget.preferences.editorDrafts,
+          ),
+        ),
       );
-      if (cropped == null) return;
+      if (cropped == null) {
+        for (final key in [
+          'photo-new',
+          'photo-new-crop',
+          'photo-new-annotation',
+        ]) {
+          widget.preferences.editorDrafts?.clear(key);
+        }
+        return;
+      }
       final encoded = identical(cropped, original)
           ? cropped
           : await compute(encodeEditedPhoto, (
@@ -1610,7 +1630,7 @@ class TimelineScreenState extends State<TimelineScreen>
           cropped[3] == 0x47;
       final dest = p.join(
         widget.services.mediaDir,
-        'photo-${DateTime.now().microsecondsSinceEpoch}${identical(cropped, original) ? (isPng ? '.png' : p.extension(picked.path)) : photoExtension(encoded)}',
+        'photo-${DateTime.now().microsecondsSinceEpoch}${identical(cropped, original) ? (isPng ? '.png' : (picked == null ? '.jpg' : p.extension(picked.path))) : photoExtension(encoded)}',
       );
       await File(dest).writeAsBytes(encoded, flush: true);
       final note = await widget.services.capturePhoto(
@@ -1620,6 +1640,13 @@ class TimelineScreenState extends State<TimelineScreen>
         // what arrives there is whatever was shared, up to a video.
         mediaHash: sha256OfBytes(encoded),
       );
+      for (final key in [
+        'photo-new',
+        'photo-new-crop',
+        'photo-new-annotation',
+      ]) {
+        widget.preferences.editorDrafts?.clear(key);
+      }
       landedId = note.id;
       widget.services.scheduleEnrichment(note.id);
       if (widget.preferences.haptics) HapticFeedback.lightImpact();
@@ -1952,12 +1979,14 @@ class TimelineScreenState extends State<TimelineScreen>
     // Two words at most — a full name pushes this onto a second line and
     // shoves the headline under it out of place.
     final name = widget.preferences.shortDisplayName;
-    if (name == null) return null;
+
     // Greeted in the language you wrote your own name in, whatever the
     // interface is set to. "صبح بخیر, Sany" and "Good morning, سعید" are both
     // sentences nobody writes, and the name is the one word here the app did
     // not choose — so it is the one that decides.
-    final l10n = nexDirectionOf(name) == TextDirection.rtl
+    final l10n = name == null
+        ? interface
+        : nexDirectionOf(name) == TextDirection.rtl
         ? lookupAppLocalizations(const Locale('fa'))
         : lookupAppLocalizations(const Locale('en'));
     final v = _greetingVariant;
@@ -1990,10 +2019,13 @@ class TimelineScreenState extends State<TimelineScreen>
     // that language, so an ASCII comma in front of a Persian name is the same
     // seam this used to have between two half-sentences.
     if (aiPhrase != null && aiPhrase.isNotEmpty) {
+      if (name == null) return aiPhrase;
       final comma = nexDirectionOf(name) == TextDirection.rtl ? '،' : ',';
       return '$aiPhrase$comma $name';
     }
-    return text[v](name);
+    return name == null
+        ? text[v]('').replaceFirst(RegExp(r'[,،]\s*$'), '').trim()
+        : text[v](name);
   }
 
   /// Everything above the search field: the greeting, the generated headline,
@@ -2552,7 +2584,50 @@ class TimelineScreenState extends State<TimelineScreen>
   /// The `enabled` branch is not a nicety. A pull that does nothing is worse
   /// than no pull — this screen has the scar to prove it — so the gesture is
   /// only attached where it has something to do.
+  final _pinchPointers = <int, Offset>{};
+  double? _pinchDistance;
+  bool _pinchApplied = false;
+
+  void _pinchMove(PointerMoveEvent event) {
+    if (!_pinchPointers.containsKey(event.pointer)) return;
+    _pinchPointers[event.pointer] = event.localPosition;
+    if (_pinchPointers.length != 2 || _pinchApplied || _searching) return;
+    final points = _pinchPointers.values.toList();
+    final distance = (points[0] - points[1]).distance;
+    final initial = _pinchDistance;
+    if (initial == null || initial < 40) {
+      _pinchDistance = distance;
+      return;
+    }
+    final scale = distance / initial;
+    if (scale > .80 && scale < 1.25) return;
+    _pinchApplied = true;
+    nexBump();
+    setState(() {
+      _openingGroup = null;
+      _closingGroup = null;
+      _collapsedGroups = scale < 1
+          ? {'pinned', 'today', 'yesterday', 'week', 'month', 'older'}
+          : {};
+    });
+    unawaited(widget.preferences.setCollapsedTimelineGroups(_collapsedGroups));
+  }
+
   Widget _wrapInRefresh({required bool enabled, required Widget child}) {
+    child = Listener(
+      onPointerDown: (event) {
+        _pinchPointers[event.pointer] = event.localPosition;
+        if (_pinchPointers.length == 2) {
+          final points = _pinchPointers.values.toList();
+          _pinchDistance = (points[0] - points[1]).distance;
+          _pinchApplied = false;
+        }
+      },
+      onPointerMove: _pinchMove,
+      onPointerUp: (event) => _pinchPointers.remove(event.pointer),
+      onPointerCancel: (event) => _pinchPointers.remove(event.pointer),
+      child: child,
+    );
     if (!enabled) return child;
     final scheme = Theme.of(context).colorScheme;
     return RefreshIndicator(
@@ -3233,12 +3308,15 @@ class _AiDaySummaryPanel extends StatelessWidget {
         // Min, because this sits in an [IntrinsicHeight] row: a column that
         // asks for all the height there is has no intrinsic height to give.
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             lede,
             style: body.copyWith(fontSize: (base.fontSize ?? 14) * _ledeScale),
             textDirection: nexDirectionOf(lede),
+            textAlign: nexDirectionOf(lede) == TextDirection.rtl
+                ? TextAlign.right
+                : TextAlign.left,
           ),
           if (rest.isNotEmpty) ...[
             const SizedBox(height: NexSpacing.sm),
@@ -3306,11 +3384,17 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
   @override
   double get maxExtent => visible ? extent : 0;
 
-  /// Opaque from the first frame, so glass or patterned content cannot leak
-  /// through the pinned strip or change its tone during scrolling.
+  /// Let the page background continue beneath the resting row. Only the
+  /// pinned row needs a solid backing to keep scrolled notes from showing.
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
-      ColoredBox(color: Theme.of(context).colorScheme.surface, child: child);
+      ColoredBox(
+        key: const ValueKey('filter-header-background'),
+        color: overlaps || shrinkOffset > 0
+            ? Theme.of(context).colorScheme.surface
+            : Colors.transparent,
+        child: child,
+      );
 
   /// Always, and for the same reason as [SearchFieldHeader].
   ///

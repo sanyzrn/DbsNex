@@ -21,7 +21,7 @@ Future<void> cleanExportCache(Directory directory, {DateTime? now}) async {
     if (entity is! File) continue;
     final name = p.basename(entity.path);
     if (!RegExp(
-      r'^Nex-[0-9a-zA-Z-]+\.(zip|nexbak)(\.partial)?$',
+      r'^Nex-[0-9a-zA-Z-]+\.(zip|nexbak|nexfull)(\.partial)?$',
     ).hasMatch(name)) {
       continue;
     }

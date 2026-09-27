@@ -20,6 +20,7 @@ import '../platform/ai_provider.dart';
 import '../platform/assistant_actions.dart';
 import '../platform/chat_history.dart';
 import '../platform/nex_preferences.dart';
+import '../platform/display_date.dart';
 import '../platform/nex_services.dart';
 import 'card_strings.dart';
 import 'nex_banner.dart';
@@ -213,7 +214,24 @@ class _AiChatSheetState extends State<AiChatSheet> {
       client: widget.client,
     );
     unawaited(_loadNotesContext());
+    _input.text =
+        widget.preferences.editorDrafts?.read(_composerDraftKey)?['text']
+            as String? ??
+        '';
+    _input.addListener(_saveComposerDraft);
     _composerFocus.addListener(_growWhenTyping);
+  }
+
+  String get _composerDraftKey =>
+      'chat-${widget.resume?.id ?? widget.focus?.id ?? 'new'}';
+  void _saveComposerDraft() {
+    if (_input.text.isEmpty) {
+      widget.preferences.editorDrafts?.clear(_composerDraftKey);
+    } else {
+      widget.preferences.editorDrafts?.write(_composerDraftKey, {
+        'text': _input.text,
+      });
+    }
   }
 
   /// Takes the sheet to full height the moment the composer has the cursor.
@@ -454,6 +472,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     _composerFocus.removeListener(_growWhenTyping);
     _composerFocus.dispose();
     _sheet.dispose();
+    _input.removeListener(_saveComposerDraft);
     _input.dispose();
     _adapter.close();
     super.dispose();
@@ -1378,6 +1397,8 @@ class _AiChatSheetState extends State<AiChatSheet> {
                   ),
                 if (_pending.isNotEmpty)
                   _ActionCard(
+                    solar: widget.preferences.solarCalendar,
+                    persian: l10n.localeName == 'fa',
                     actions: _pending,
                     onApply: () => unawaited(_runPending()),
                     onDismiss: () => setState(() => _pending = const []),
@@ -1764,11 +1785,14 @@ class _Composer extends StatelessWidget {
 /// answer, and `{"action":"delete"}` is not.
 class _ActionCard extends StatelessWidget {
   const _ActionCard({
+    required this.solar,
+    required this.persian,
     required this.actions,
     required this.onApply,
     required this.onDismiss,
   });
 
+  final bool solar, persian;
   final List<AssistantAction> actions;
   final VoidCallback onApply;
   final VoidCallback onDismiss;
@@ -1813,7 +1837,7 @@ class _ActionCard extends StatelessWidget {
   /// What the action would actually do, in the user's own words where there
   /// are any — a confirmation that does not show the text being written is
   /// asking someone to approve something they cannot see.
-  static String _detail(AssistantAction action) => switch (action.kind) {
+  String _detail(AssistantAction action) => switch (action.kind) {
     AssistantActionKind.create ||
     AssistantActionKind.edit ||
     AssistantActionKind.merge ||
@@ -1870,11 +1894,8 @@ class _ActionCard extends StatelessWidget {
   /// Not a relative label ("in two days"), which is what the timeline cards
   /// use: this is the moment somebody is about to commit to, and "Friday"
   /// is exactly the word that was ambiguous enough to need confirming.
-  static String _whenLabel(DateTime when) {
-    String two(int value) => value.toString().padLeft(2, '0');
-    return '${when.year}-${two(when.month)}-${two(when.day)} '
-        '${two(when.hour)}:${two(when.minute)}';
-  }
+  String _whenLabel(DateTime when) =>
+      nexDisplayDate(when, solar: solar, persian: persian, time: true);
 
   @override
   Widget build(BuildContext context) {

@@ -34,6 +34,23 @@ Working convention:
 
 ## Unreleased
 
+## v1.60.0
+
+- **A cleaner tag strip.** Tags sit directly on the home background and gain a solid backing only when pinned during scrolling.
+- **A clearer capture action.** The larger capture button stays in place beside a quieter reminder control with its full touch target.
+- **A separate home for tools.** Open Tools from Settings for passwords and bank cards, away from the note timeline and AI.
+- **A private local vault.** Device authentication, masked details, favorites, search, field-by-field copy and a random password generator. Leaving the app or two minutes of inactivity locks it; unfinished edits have encrypted drafts.
+- **Optional encrypted vault backups.** Include the vault in Complete app backup after device authentication. Older backups without a vault preserve the receiving device's vault.
+
+## v1.50.0
+
+- **Resume more unfinished edits.** Text, captions, checklists, links, profile details, commitments and unsent chat text recover when their editor is reopened. Photo capture, crop position and completed annotations keep local recovery checkpoints.
+- **Complete backup option.** Export the library with encrypted settings and AI/sync keys, plus the installed offline model when selected. Keep the generated recovery code separately; library/media and model entries are not encrypted. Interrupted restores retain a recovery copy.
+- **Persian calendar throughout date controls.** Birthdays, commitments and reminder selection now support Persian months and days; date labels follow the selected calendar and interface numbers follow the app language.
+- **Convert long notes to Markdown and back.** Conversion keeps the same item, tags, pin and reminder, without leaving a duplicate note behind.
+- **A tidier home and settings.** Pinch date groups closed or open, see a greeting without setting a name, and read mixed Persian/English summaries with the correct alignment. Settings use collapsible categories, Smart summary is last in AI settings, and off switches have a visible track in both themes.
+- **Clearer media and guidance.** Crop ratios have a visible scroll indicator. Voice details show a waveform decoded from the actual recording on Android. The in-app guide has been rewritten in English and Persian.
+
 - **Recover interrupted text capture.** Draft text is journaled locally and replayed without creating duplicate notes after a restart.
 - **More durable incoming attachments.** Android retains shared files while permission is available, coordinates simultaneous share receivers and rejects private file paths.
 - **Backups use less space and memory.** Local backups reuse unchanged media; Share still produces a complete portable copy. Large attachments no longer require a full compression buffer. Restores validate file checksums and reject missing media.

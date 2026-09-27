@@ -39,9 +39,13 @@ class NoteEditorSheet extends StatefulWidget {
     required this.initial,
     required this.preferences,
     this.client,
+    this.draftKey,
+    this.allowEmpty = false,
   });
 
   final String initial;
+  final String? draftKey;
+  final bool allowEmpty;
   final NexPreferences preferences;
 
   /// Test seam for the AI calls, the same one the assistant sheet takes.
@@ -53,6 +57,8 @@ class NoteEditorSheet extends StatefulWidget {
     required String initial,
     required NexPreferences preferences,
     CloudAIAdapter Function()? client,
+    String? draftKey,
+    bool allowEmpty = false,
   }) => nexShowSheet<String>(
     context: context,
     dismissible: false,
@@ -60,6 +66,8 @@ class NoteEditorSheet extends StatefulWidget {
       initial: initial,
       preferences: preferences,
       client: client,
+      draftKey: draftKey,
+      allowEmpty: allowEmpty,
     ),
   );
 
@@ -109,6 +117,10 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
   @override
   void initState() {
     super.initState();
+    final recovered = widget.preferences.editorDrafts?.read(
+      widget.draftKey ?? '',
+    )?['text'];
+    if (widget.draftKey != null && recovered is String) _text.text = recovered;
     _lastText = _text.text;
     _text.addListener(_onChanged);
   }
@@ -138,7 +150,17 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
   /// there is text to rewrite. Direction is [NexAutoDirection]'s job now.
   void _onChanged() {
     if (_text.text == _lastText) return;
+    if (widget.draftKey case final key?) {
+      widget.preferences.editorDrafts?.write(key, {'text': _text.text});
+    }
     setState(() => _lastText = _text.text);
+  }
+
+  @override
+  void discardDraft() {
+    if (widget.draftKey case final key?) {
+      widget.preferences.editorDrafts?.clear(key);
+    }
   }
 
   bool get _aiAvailable =>
@@ -319,7 +341,9 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                     FilledButton(
                       // Empty is not an edit, it is a note being deleted by a
                       // route that cannot delete notes.
-                      onPressed: _text.text.trim().isEmpty || _running != null
+                      onPressed:
+                          (!widget.allowEmpty && _text.text.trim().isEmpty) ||
+                              _running != null
                           ? null
                           : _save,
                       child: Text(l10n.save),

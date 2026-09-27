@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform/editor_drafts.dart';
 import '../widgets/draft_guard.dart';
 import '../widgets/nex_banner.dart';
 import 'photo_annotate_screen.dart';
@@ -47,9 +48,16 @@ Uint8List _asPng(Uint8List bytes) {
 /// convention this follows: the X abandons the photo, the checkmark commits
 /// the crop and moves on.
 class PhotoCropScreen extends StatefulWidget {
-  const PhotoCropScreen({super.key, required this.image});
+  const PhotoCropScreen({
+    super.key,
+    required this.image,
+    this.drafts,
+    this.draftKey = 'photo-new',
+  });
 
   final Uint8List image;
+  final EditorDrafts? drafts;
+  final String draftKey;
 
   @override
   State<PhotoCropScreen> createState() => _PhotoCropScreenState();
@@ -71,17 +79,42 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   // Which action asked for the crop: the checkmark returns straight to the
   // caller, the pencil detours through the (optional) annotate screen first.
   bool _pendingAnnotate = false;
+  final _ratioScroll = ScrollController();
+  Rect? _restoredArea;
+  Rect? _area;
+  String get _key => '${widget.draftKey}-crop';
+  void _snapshot() => widget.drafts?.write(_key, {
+    'ratio': _aspectRatio,
+    if (_area != null)
+      'area': [_area!.left, _area!.top, _area!.right, _area!.bottom],
+  });
+  @override
+  void discardDraft() {
+    widget.drafts?.clear(_key);
+    widget.drafts?.clear('${widget.draftKey}-annotation');
+  }
+
+  @override
+  void dispose() {
+    _ratioScroll.dispose();
+    super.dispose();
+  }
+
   double? _aspectRatio;
 
   void _setAspectRatio(double? value) {
     if (!_ready || _cropping || _rotating) return;
     _controller.aspectRatio = value;
     setState(() => _aspectRatio = value);
+    _snapshot();
   }
 
   void _reset() {
     if (_cropping || _rotating) return;
     setState(() {
+      discardDraft();
+      _restoredArea = null;
+      _area = null;
       _current = Uint8List.fromList(widget.image);
       _aspectRatio = null;
       _ready = false;
@@ -91,7 +124,18 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
   @override
   void initState() {
     super.initState();
-    _current = widget.image;
+    _current = widget.drafts?.readImage(_key) ?? widget.image;
+    final draft = widget.drafts?.read(_key);
+    _aspectRatio = (draft?['ratio'] as num?)?.toDouble();
+    final area = draft?['area'];
+    if (area is List && area.length == 4) {
+      _restoredArea = Rect.fromLTRB(
+        (area[0] as num).toDouble(),
+        (area[1] as num).toDouble(),
+        (area[2] as num).toDouble(),
+        (area[3] as num).toDouble(),
+      );
+    }
   }
 
   Future<void> _rotate() async {
@@ -124,10 +168,14 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
       // `CropStatus.loading` on its own, so without this the stale `true`
       // from the widget it is replacing would let a crop through before the
       // new instance has parsed anything at all.
+      widget.drafts?.writeImage(_key, rotated);
+      _restoredArea = null;
+      _area = null;
       _current = rotated;
       _ready = false;
       _rotating = false;
     });
+    _snapshot();
   }
 
   void _startCrop({required bool annotate}) {
@@ -165,7 +213,11 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
         final annotated = await Navigator.of(context).push<Uint8List>(
           NexPageRoute(
             swipeBackEnabled: false,
-            builder: (_) => PhotoAnnotateScreen(image: png),
+            builder: (_) => PhotoAnnotateScreen(
+              image: png,
+              drafts: widget.drafts,
+              draftKey: widget.draftKey,
+            ),
           ),
         );
         if (!mounted) return;
@@ -216,27 +268,40 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
               children: [
                 SizedBox(
                   height: 48,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      _RatioOption(
-                        label: l10n.cropFree,
-                        selected: _aspectRatio == null,
-                        onTap: busy ? null : () => _setAspectRatio(null),
-                      ),
-                      for (final (label, value) in const [
-                        ('1:1', 1.0),
-                        ('4:3', 4 / 3),
-                        ('3:4', 3 / 4),
-                        ('16:9', 16 / 9),
-                        ('9:16', 9 / 16),
-                      ])
+                  child: Scrollbar(
+                    controller: _ratioScroll,
+                    thumbVisibility: true,
+                    child: ListView(
+                      controller: _ratioScroll,
+                      scrollDirection: Axis.horizontal,
+                      children: [
                         _RatioOption(
-                          label: label,
-                          selected: _aspectRatio == value,
-                          onTap: busy ? null : () => _setAspectRatio(value),
+                          label: l10n.cropFree,
+                          selected: _aspectRatio == null,
+                          onTap: busy ? null : () => _setAspectRatio(null),
                         ),
-                    ],
+                        for (final (label, value) in const [
+                          ('1:1', 1.0),
+                          ('4:3', 4 / 3),
+                          ('3:4', 3 / 4),
+                          ('16:9', 16 / 9),
+                          ('9:16', 9 / 16),
+                        ])
+                          _RatioOption(
+                            label: label,
+                            selected: _aspectRatio == value,
+                            onTap: busy ? null : () => _setAspectRatio(value),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Icon(
+                    Icons.swipe_outlined,
+                    color: Colors.white70,
+                    size: 20,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -311,6 +376,13 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                     image: _current,
                     aspectRatio: _aspectRatio,
                     controller: _controller,
+                    initialRectBuilder: _restoredArea == null
+                        ? null
+                        : InitialRectBuilder.withArea(_restoredArea!),
+                    onMoved: (_, area) {
+                      _area = area;
+                      _snapshot();
+                    },
                     onCropped: (result) => unawaited(_onCropped(result)),
                     // `_crop()` reports `.ready` again right after `.cropped`, in the
                     // same call — including once this screen has already popped itself

@@ -38,12 +38,14 @@ class ChecklistCaptureSheet extends StatefulWidget {
     super.key,
     required this.preferences,
     this.initial,
+    this.draftKey = 'checklist-new',
   });
 
   final NexPreferences preferences;
 
   /// The items to open with, for an edit. Null is a fresh capture.
   final List<ChecklistItem>? initial;
+  final String draftKey;
 
   @override
   State<ChecklistCaptureSheet> createState() => _ChecklistCaptureSheetState();
@@ -51,6 +53,9 @@ class ChecklistCaptureSheet extends StatefulWidget {
 
 class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
     with NexDraftGuard<ChecklistCaptureSheet> {
+  String get _draftKey => widget.draftKey;
+  @override
+  void discardDraft() => widget.preferences.editorDrafts?.clear(_draftKey);
   @override
   bool get hasUnsavedChanges =>
       _text.text != (widget.initial?.map((e) => e.text).join('\n') ?? '');
@@ -70,6 +75,8 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
         selection: TextSelection.collapsed(offset: lines.length),
       );
     }
+    final draft = widget.preferences.editorDrafts?.read(_draftKey)?['text'];
+    if (draft is String) _text.text = draft;
     _lastText = _text.text;
     _text.addListener(_onChanged);
   }
@@ -96,6 +103,7 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
 
   void _onChanged() {
     if (_text.text == _lastText) return;
+    widget.preferences.editorDrafts?.write(_draftKey, {'text': _text.text});
     setState(() => _lastText = _text.text);
   }
 
@@ -218,6 +226,9 @@ class LinkCaptureSheet extends StatefulWidget {
 
 class _LinkCaptureSheetState extends State<LinkCaptureSheet>
     with NexDraftGuard<LinkCaptureSheet> {
+  String get _draftKey => 'link-new';
+  @override
+  void discardDraft() => widget.preferences.editorDrafts?.clear(_draftKey);
   @override
   bool get hasUnsavedChanges => _text.text.isNotEmpty;
   final TextEditingController _text = TextEditingController();
@@ -225,6 +236,8 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet>
   @override
   void initState() {
     super.initState();
+    final draft = widget.preferences.editorDrafts?.read(_draftKey)?['text'];
+    if (draft is String) _text.text = draft;
     _lastText = _text.text;
     _text.addListener(_onChanged);
     // Most link captures are a paste, so the clipboard is offered rather than
@@ -247,6 +260,7 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet>
 
   void _onChanged() {
     if (_text.text == _lastText) return;
+    widget.preferences.editorDrafts?.write(_draftKey, {'text': _text.text});
     setState(() => _lastText = _text.text);
   }
 

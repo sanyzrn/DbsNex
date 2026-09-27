@@ -69,6 +69,73 @@ void main() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
+  testWidgets(
+    'two-finger pinch folds every date group and spreading opens them',
+    (tester) async {
+      await services.captureText('Pinch example');
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
+      expect(preferences.displayName, isNull);
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(TimelineScreen)),
+      );
+      final greetings = [
+        l10n.greetingMorning,
+        l10n.greetingMorningB,
+        l10n.greetingMorningC,
+        l10n.greetingAfternoon,
+        l10n.greetingAfternoonB,
+        l10n.greetingAfternoonC,
+        l10n.greetingEvening,
+        l10n.greetingEveningB,
+        l10n.greetingEveningC,
+        l10n.greetingNight,
+        l10n.greetingNightB,
+        l10n.greetingNightC,
+      ].map((f) => f('').replaceFirst(RegExp(r'[,،]\s*$'), '').trim()).toSet();
+      expect(
+        tester
+            .widgetList<Text>(find.byType(Text))
+            .any((t) => greetings.contains(t.data)),
+        isTrue,
+      );
+      final point = tester.getCenter(find.byType(CustomScrollView).first);
+      final first = await tester.startGesture(
+        point - const Offset(90, 0),
+        pointer: 1,
+      );
+      final second = await tester.startGesture(
+        point + const Offset(90, 0),
+        pointer: 2,
+      );
+      await first.moveTo(point - const Offset(35, 0));
+      await second.moveTo(point + const Offset(35, 0));
+      await first.up();
+      await second.up();
+      await tester.pumpAndSettle();
+      expect(
+        preferences.collapsedTimelineGroups,
+        containsAll(['today', 'older', 'pinned']),
+      );
+      final a = await tester.startGesture(
+        point - const Offset(35, 0),
+        pointer: 3,
+      );
+      final b = await tester.startGesture(
+        point + const Offset(35, 0),
+        pointer: 4,
+      );
+      await a.moveTo(point - const Offset(95, 0));
+      await b.moveTo(point + const Offset(95, 0));
+      await a.up();
+      await b.up();
+      await tester.pumpAndSettle();
+      expect(preferences.collapsedTimelineGroups, isEmpty);
+    },
+  );
+
   testWidgets('a cold launch with notes never flashes the onboarding screen', (
     tester,
   ) async {
@@ -423,6 +490,9 @@ void main() {
       reason: 'the pinned note leads even though it is the older one',
     );
 
+    // The greeting now occupies a row even without a profile name.
+    await tester.ensureVisible(find.text('newer note'));
+    await tester.pumpAndSettle();
     // Pinning another note keeps the first one pinned as well.
     await tester.tap(find.text('newer note'));
     await tester.pumpAndSettle();
@@ -1118,6 +1188,29 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('filter backing appears only after the row is pinned', (
+    tester,
+  ) async {
+    for (var i = 0; i < 14; i++) {
+      await services.captureText('Scroll note $i');
+    }
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    final backing = find.byKey(const ValueKey('filter-header-background'));
+    Color color() => tester.widget<ColoredBox>(backing).color;
+    expect(color(), Colors.transparent);
+    final list = find.byType(CustomScrollView).first;
+    await tester.drag(list, const Offset(0, -550));
+    await tester.pumpAndSettle();
+    expect(color(), isNot(Colors.transparent));
+    await tester.drag(list, const Offset(0, 650));
+    await tester.pumpAndSettle();
+    expect(color(), Colors.transparent);
   });
 
   testWidgets('the filter row and the cards share one edge on a wide window', (

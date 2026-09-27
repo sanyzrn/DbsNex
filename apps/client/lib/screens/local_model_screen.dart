@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/local_ai_support.dart';
+import '../platform/display_date.dart';
 import '../platform/model_install_controller.dart';
 import '../platform/model_store.dart';
 import '../platform/nex_preferences.dart';
@@ -346,7 +347,10 @@ class _InstallControls extends StatelessWidget {
           if (progress != null &&
               install.phase == ModelInstallPhase.downloading)
             Text(
-              l10n.localModelBytes(_size(progress.receivedBytes), _size(total)),
+              l10n.localModelBytes(
+                _size(context, progress.receivedBytes),
+                _size(context, total),
+              ),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -383,8 +387,8 @@ class _InstallControls extends StatelessWidget {
           const SizedBox(height: NexSpacing.sm),
           Text(
             l10n.localModelPaused(
-              _size(progress?.receivedBytes ?? 0),
-              _size(total),
+              _size(context, progress?.receivedBytes ?? 0),
+              _size(context, total),
             ),
             style: theme.textTheme.bodySmall,
           ),
@@ -413,16 +417,26 @@ class _InstallControls extends StatelessWidget {
       _ => FilledButton.icon(
         onPressed: enabled ? onStart : null,
         icon: const Icon(Icons.download_outlined),
-        label: Text(l10n.localModelDownload(_gigabytes(model.sizeBytes))),
+        label: Text(
+          l10n.localModelDownload(_gigabytes(context, model.sizeBytes)),
+        ),
       ),
     };
   }
 }
 
-String _gigabytes(int bytes) => (bytes / 1000000000).toStringAsFixed(1);
+String _gigabytes(BuildContext context, int bytes) => nexDigits(
+  (bytes / 1000000000).toStringAsFixed(1),
+  persian: Localizations.localeOf(context).languageCode == 'fa',
+);
 
 /// Bytes as someone reads them on a data plan.
-String _size(int bytes) {
+String _size(BuildContext context, int bytes) => nexDigits(
+  _rawSize(bytes),
+  persian: Localizations.localeOf(context).languageCode == 'fa',
+);
+
+String _rawSize(int bytes) {
   if (bytes >= 1000000000) {
     return '${(bytes / 1000000000).toStringAsFixed(2)} GB';
   }
@@ -500,7 +514,7 @@ class _Blocked extends StatelessWidget {
             LocalAiBlocker.platform => l10n.localModelBlockedPlatform,
             LocalAiBlocker.architecture => l10n.localModelBlockedArchitecture,
             LocalAiBlocker.storage => l10n.localModelBlockedStorage(
-              _gigabytes(model.sizeBytes * 2),
+              _gigabytes(context, model.sizeBytes * 2),
             ),
             LocalAiBlocker.notPublished => l10n.localModelBlockedUnpublished,
           }, style: theme.textTheme.bodyMedium),
@@ -529,7 +543,7 @@ class _Installed extends StatelessWidget {
             const SizedBox(width: NexSpacing.sm),
             Expanded(
               child: Text(
-                l10n.localModelInstalled(_gigabytes(bytes)),
+                l10n.localModelInstalled(_gigabytes(context, bytes)),
                 style: theme.textTheme.bodyMedium,
               ),
             ),

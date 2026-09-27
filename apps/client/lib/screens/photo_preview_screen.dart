@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform/editor_drafts.dart';
 import '../widgets/photo_action_bar.dart';
 import 'photo_crop_screen.dart';
 
@@ -21,9 +22,16 @@ import 'photo_crop_screen.dart';
 ///
 /// Returns the bytes to store, or null if the user backed out.
 class PhotoPreviewScreen extends StatelessWidget {
-  const PhotoPreviewScreen({super.key, required this.image});
+  const PhotoPreviewScreen({
+    super.key,
+    required this.image,
+    this.drafts,
+    this.draftKey = 'photo-new',
+  });
 
   final Uint8List image;
+  final EditorDrafts? drafts;
+  final String draftKey;
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +84,8 @@ class PhotoPreviewScreen extends StatelessWidget {
     final edited = await Navigator.of(context).push<Uint8List>(
       NexPageRoute(
         swipeBackEnabled: false,
-        builder: (_) => PhotoCropScreen(image: image),
+        builder: (_) =>
+            PhotoCropScreen(image: image, drafts: drafts, draftKey: draftKey),
       ),
     );
     if (!context.mounted) return;

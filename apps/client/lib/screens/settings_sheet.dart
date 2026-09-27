@@ -32,6 +32,7 @@ import 'profile_screen.dart';
 import 'security_screen.dart';
 import 'widget_settings_screen.dart';
 import 'update_sheet.dart';
+import 'tools_screen.dart';
 
 /// The v1 preference surface.
 ///
@@ -198,6 +199,22 @@ class SettingsSheet extends StatelessWidget {
 
   List<Widget> _groups(BuildContext context, AppLocalizations l10n) => [
     _ProfileCard(services: services, preferences: preferences),
+    Padding(
+      padding: const EdgeInsets.only(bottom: NexSpacing.md),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: ListTile(
+          leading: const Icon(Icons.space_dashboard_outlined),
+          title: Text(l10n.toolsTitle),
+          subtitle: Text(l10n.toolsPrivateHint),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(builder: (_) => const ToolsScreen()),
+          ),
+        ),
+      ),
+    ),
     // First, and on its own. Someone who opens Settings looking for how a
     // thing works should not have to guess which of seven sections it was
     // filed under.
@@ -254,27 +271,6 @@ class SettingsSheet extends StatelessWidget {
     _Section(
       title: l10n.intelligence,
       children: [
-        // Above the provider, not below it, and in this section rather than
-        // under Appearance — because what the brief says is the question
-        // people actually have about it, and one of the answers is "nothing
-        // leaves this phone", which belongs exactly here.
-        _Row(
-          icon: Icons.article_outlined,
-          title: l10n.briefTitle,
-          value: switch (preferences.briefStyle) {
-            NexBriefStyle.assistant => l10n.briefStyleAssistant,
-            NexBriefStyle.blended => l10n.briefStyleBlended,
-            NexBriefStyle.report => l10n.briefStyleReport,
-            NexBriefStyle.planner => l10n.briefStylePlanner,
-            NexBriefStyle.custom => l10n.briefStyleCustom,
-          },
-          onTap: () => Navigator.push(
-            context,
-            NexPageRoute<void>(
-              builder: (_) => BriefScreen(preferences: preferences),
-            ),
-          ),
-        ),
         _Row(
           icon: Icons.auto_awesome_outlined,
           title: l10n.intelligenceOpen,
@@ -292,7 +288,7 @@ class SettingsSheet extends StatelessWidget {
           ),
         ),
         // The AI language used to have a row of its own here. It is in the
-        // Daily brief sheet above instead — it is the most visible thing
+        // Smart summary screen instead — it is the most visible thing
         // about a brief and this was the last place anyone looked for it.
         // Still one setting: the assistant answers in it and transcriptions
         // come back in it, which the line under the picker says.
@@ -304,6 +300,24 @@ class SettingsSheet extends StatelessWidget {
             context,
             NexPageRoute<void>(
               builder: (_) => AssistantScreen(preferences: preferences),
+            ),
+          ),
+        ),
+        // Configure the provider and assistant before customizing the summary.
+        _Row(
+          icon: Icons.article_outlined,
+          title: l10n.briefTitle,
+          value: switch (preferences.briefStyle) {
+            NexBriefStyle.assistant => l10n.briefStyleAssistant,
+            NexBriefStyle.blended => l10n.briefStyleBlended,
+            NexBriefStyle.report => l10n.briefStyleReport,
+            NexBriefStyle.planner => l10n.briefStylePlanner,
+            NexBriefStyle.custom => l10n.briefStyleCustom,
+          },
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => BriefScreen(preferences: preferences),
             ),
           ),
         ),
@@ -766,50 +780,29 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: NexSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsetsDirectional.only(
-              start: NexSpacing.sm,
-              bottom: NexSpacing.sm,
-            ),
-            child: Text(
-              title,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ),
-          Material(
-            color: theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(NexRadius.lg),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var i = 0; i < children.length; i++) ...[
-                  if (i > 0)
-                    // The quiet token, now that the section has no outline
-                    // around it: `outline` is for a boundary you can act on,
-                    // and at full strength with nothing enclosing it these
-                    // read as the loudest thing in Settings. Indented past
-                    // the icon tiles so the run of rows reads as a column of
-                    // labels rather than a stack of boxes.
-                    Divider(
-                      height: 1,
-                      indent: _dividerIndent,
-                      endIndent: NexSpacing.md,
-                      color: theme.colorScheme.outlineVariant,
-                    ),
-                  children[i],
-                ],
-              ],
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+      child: Material(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+        clipBehavior: Clip.antiAlias,
+        child: ExpansionTile(
+          key: PageStorageKey(title),
+          title: Text(title, style: theme.textTheme.titleSmall),
+          shape: const Border(),
+          collapsedShape: const Border(),
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0)
+                Divider(
+                  height: 1,
+                  indent: _dividerIndent,
+                  endIndent: NexSpacing.md,
+                  color: theme.colorScheme.outlineVariant,
+                ),
+              children[i],
+            ],
+          ],
+        ),
       ),
     );
   }

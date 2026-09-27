@@ -433,7 +433,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                IconButton.filledTonal(
+                IconButton(
                   constraints: const BoxConstraints.tightFor(
                     width: nexMinTapTarget,
                     height: nexMinTapTarget,
@@ -444,19 +444,29 @@ class _CaptureSheetState extends State<CaptureSheet> {
                   tooltip: l10n.remind,
                   icon: Icon(
                     hasReminder ? Icons.alarm_on : Icons.alarm_add_outlined,
+                    size: 20,
+                    color: hasReminder
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
                   ),
                 ),
+                const SizedBox(width: 4),
                 IconButton.filled(
-                  // The app-wide 48px tap floor. 44 read as a deliberate
-                  // exception on the single most-pressed control in the app;
-                  // nothing about the filled style needs the smaller box.
+                  // Keep the primary action anchored while attachment tools scroll.
+                  // The quieter reminder retains a full 48px touch target.
                   constraints: const BoxConstraints.tightFor(
-                    width: nexMinTapTarget,
-                    height: nexMinTapTarget,
+                    width: 60,
+                    height: 60,
                   ),
-                  onPressed: close,
+                  onPressed: _closing ? null : close,
                   tooltip: l10n.capture,
-                  icon: const Icon(Icons.arrow_upward),
+                  icon: _closing
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.arrow_upward, size: 32),
                 ),
               ],
             ),

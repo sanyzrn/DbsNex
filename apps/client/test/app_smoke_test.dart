@@ -233,6 +233,11 @@ void main() {
         matching: find.byTooltip('Capture'),
       );
       final sendPosition = tester.getCenter(send);
+      expect(tester.getSize(send).width, 60);
+      expect(
+        tester.getSize(find.byTooltip('Remind')).width,
+        greaterThanOrEqualTo(48),
+      );
       final captureField = find.descendant(
         of: find.byType(CaptureSheet),
         matching: find.byType(TextField),
@@ -803,6 +808,9 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Intelligence'));
+    await tester.tap(find.text('Intelligence'));
+    await tester.pumpAndSettle();
 
     // The sheet offers a way in, not a row of switches that quietly did
     // nothing because no provider stood behind them.
@@ -874,6 +882,12 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Capture'));
+    await tester.tap(find.text('Capture'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Appearance'));
+    await tester.tap(find.text('Appearance'));
+    await tester.pumpAndSettle();
 
     // The pickers are behind their rows now, so what the list shows is the
     // name of each setting and what it is currently set to. Nothing is
@@ -908,6 +922,9 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Appearance'));
+    await tester.tap(find.text('Appearance'));
     await tester.pumpAndSettle();
 
     expect(preferences.themeMode, ThemeMode.system);
@@ -944,6 +961,9 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Appearance'));
+    await tester.tap(find.text('Appearance'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Background'));
     await tester.pumpAndSettle();
@@ -969,6 +989,9 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Intelligence'));
+    await tester.tap(find.text('Intelligence'));
     await tester.pumpAndSettle();
 
     expect(preferences.aiOutputLanguage, AiOutputLanguage.auto);
@@ -1005,6 +1028,9 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Appearance'));
+    await tester.tap(find.text('Appearance'));
     await tester.pumpAndSettle();
 
     expect(preferences.accentSeed, isNull);
@@ -1045,6 +1071,9 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Capture'));
+    await tester.tap(find.text('Capture'));
     await tester.pumpAndSettle();
     // Where this row falls depends on how many sections sit above it, which
     // is not what this test is about.
@@ -1095,6 +1124,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('ثبت'));
+    await tester.tap(find.text('ثبت'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('کشیدن انگشت'));
     await tester.pumpAndSettle();
@@ -1293,6 +1325,9 @@ void main() {
       NexApp(services: services, preferences: preferences),
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Appearance'));
+    await tester.tap(find.text('Appearance'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Language'));
