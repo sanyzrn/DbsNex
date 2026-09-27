@@ -45,6 +45,8 @@ a note keeps its alarms exactly as honest as the notes themselves.
 **Your data stays yours** — export and import a full archive, automatic throttled local
 backups you can prune by hand, and a storage breakdown that tells you what is using space.
 
+**Private tools** — a separate Settings → Tools page holds passwords and bank cards behind device authentication, with a password generator and field-by-field copy. Vault data is excluded from notes, AI and ordinary library backups; encrypted vault export is an explicit option in Complete app backup.
+
 **Intelligence, optional and off by default** — transcription, OCR, summarization, tag
 suggestions, semantic search and related notes, each behind its own switch, against a
 provider you configure and can test, plus an assistant you can actually talk to about what

@@ -4867,6 +4867,366 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter the recovery code'**
   String get backupRecoveryKey;
+
+  /// No description provided for @toolsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tools'**
+  String get toolsTitle;
+
+  /// No description provided for @toolsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your essentials, in their own space.'**
+  String get toolsSubtitle;
+
+  /// No description provided for @toolsPrivateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Separate from notes, search and AI.'**
+  String get toolsPrivateHint;
+
+  /// No description provided for @vaultPasswords.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords'**
+  String get vaultPasswords;
+
+  /// No description provided for @vaultPasswordsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts, secure passwords and a generator.'**
+  String get vaultPasswordsHint;
+
+  /// No description provided for @vaultCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank cards'**
+  String get vaultCards;
+
+  /// No description provided for @vaultCardsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Card details and IBAN, ready to copy.'**
+  String get vaultCardsHint;
+
+  /// No description provided for @vaultLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Your vault is locked'**
+  String get vaultLocked;
+
+  /// No description provided for @vaultUnlockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your device fingerprint or screen lock to open this private space.'**
+  String get vaultUnlockHint;
+
+  /// No description provided for @vaultUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock vault'**
+  String get vaultUnlock;
+
+  /// No description provided for @vaultAuthReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your identity to open the Nex vault'**
+  String get vaultAuthReason;
+
+  /// No description provided for @vaultUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock was not completed. Set up a screen lock if needed, then try again.'**
+  String get vaultUnavailable;
+
+  /// No description provided for @vaultError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not access the vault. Your stored data has not been reset.'**
+  String get vaultError;
+
+  /// No description provided for @vaultLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock vault'**
+  String get vaultLock;
+
+  /// No description provided for @vaultSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Find in this vault'**
+  String get vaultSearch;
+
+  /// No description provided for @vaultEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your first item here'**
+  String get vaultEmpty;
+
+  /// No description provided for @vaultEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an item to keep its details private and easy to copy.'**
+  String get vaultEmptyHint;
+
+  /// No description provided for @vaultAddPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Add password'**
+  String get vaultAddPassword;
+
+  /// No description provided for @vaultAddCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Add bank card'**
+  String get vaultAddCard;
+
+  /// No description provided for @vaultAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All items'**
+  String get vaultAll;
+
+  /// No description provided for @vaultFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get vaultFavorites;
+
+  /// No description provided for @vaultFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite'**
+  String get vaultFavorite;
+
+  /// No description provided for @vaultNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching items'**
+  String get vaultNoResults;
+
+  /// No description provided for @vaultTitleField.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get vaultTitleField;
+
+  /// No description provided for @vaultLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Username or email'**
+  String get vaultLogin;
+
+  /// No description provided for @vaultPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get vaultPassword;
+
+  /// No description provided for @vaultWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get vaultWebsite;
+
+  /// No description provided for @vaultNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Private notes'**
+  String get vaultNotes;
+
+  /// No description provided for @vaultBank.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank'**
+  String get vaultBank;
+
+  /// No description provided for @vaultHolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Cardholder'**
+  String get vaultHolder;
+
+  /// No description provided for @vaultNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Card number'**
+  String get vaultNumber;
+
+  /// No description provided for @vaultExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiry as printed (MM/YY)'**
+  String get vaultExpiry;
+
+  /// No description provided for @vaultIban.
+  ///
+  /// In en, this message translates to:
+  /// **'IBAN'**
+  String get vaultIban;
+
+  /// No description provided for @vaultAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account number'**
+  String get vaultAccount;
+
+  /// No description provided for @vaultRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required'**
+  String get vaultRequired;
+
+  /// No description provided for @vaultInvalidCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the card number'**
+  String get vaultInvalidCard;
+
+  /// No description provided for @vaultInvalidIban.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the IBAN'**
+  String get vaultInvalidIban;
+
+  /// No description provided for @vaultInvalidExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a month from 01 to 12 and a 2- or 4-digit year'**
+  String get vaultInvalidExpiry;
+
+  /// No description provided for @vaultShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Reveal'**
+  String get vaultShow;
+
+  /// No description provided for @vaultHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get vaultHide;
+
+  /// No description provided for @vaultCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get vaultCopied;
+
+  /// No description provided for @vaultCopyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not copy. Try again.'**
+  String get vaultCopyFailed;
+
+  /// No description provided for @vaultGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate a new password'**
+  String get vaultGenerate;
+
+  /// No description provided for @vaultGenerator.
+  ///
+  /// In en, this message translates to:
+  /// **'Password generator'**
+  String get vaultGenerator;
+
+  /// No description provided for @vaultSymbols.
+  ///
+  /// In en, this message translates to:
+  /// **'Include symbols'**
+  String get vaultSymbols;
+
+  /// No description provided for @vaultUseGenerated.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this password'**
+  String get vaultUseGenerated;
+
+  /// No description provided for @vaultLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Length'**
+  String get vaultLength;
+
+  /// No description provided for @vaultEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit item'**
+  String get vaultEdit;
+
+  /// No description provided for @vaultSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save securely'**
+  String get vaultSave;
+
+  /// No description provided for @vaultSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved securely'**
+  String get vaultSaved;
+
+  /// No description provided for @vaultDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard draft'**
+  String get vaultDiscard;
+
+  /// No description provided for @vaultResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue unfinished edit'**
+  String get vaultResume;
+
+  /// No description provided for @vaultDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete item'**
+  String get vaultDelete;
+
+  /// No description provided for @vaultDeleteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the item from this vault.'**
+  String get vaultDeleteHint;
+
+  /// No description provided for @vaultDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently'**
+  String get vaultDeleteConfirm;
+
+  /// No description provided for @vaultBackupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For a transferable copy, select Include vault in Complete app backup and keep its recovery code separately.'**
+  String get vaultBackupHint;
+
+  /// No description provided for @vaultPrivacyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted on this device. Locks when you leave the app or after 2 minutes without activity.'**
+  String get vaultPrivacyHint;
+
+  /// No description provided for @vaultEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Unfinished edits are kept as an encrypted draft.'**
+  String get vaultEditHint;
+
+  /// No description provided for @backupIncludeVault.
+  ///
+  /// In en, this message translates to:
+  /// **'Include private vault (requires device authentication)'**
+  String get backupIncludeVault;
+
+  /// No description provided for @vaultRestoreAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your identity before restoring this complete backup'**
+  String get vaultRestoreAuth;
 }
 
 class _AppLocalizationsDelegate

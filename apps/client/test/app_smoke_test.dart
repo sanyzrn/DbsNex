@@ -233,6 +233,11 @@ void main() {
         matching: find.byTooltip('Capture'),
       );
       final sendPosition = tester.getCenter(send);
+      expect(tester.getSize(send).width, 60);
+      expect(
+        tester.getSize(find.byTooltip('Remind')).width,
+        greaterThanOrEqualTo(48),
+      );
       final captureField = find.descendant(
         of: find.byType(CaptureSheet),
         matching: find.byType(TextField),

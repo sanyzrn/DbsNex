@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
 import '../platform/display_date.dart';
 import '../platform/full_backup.dart';
+import '../platform/app_lock.dart';
 import '../platform/sharing.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -89,6 +90,7 @@ class _BackupScreenState extends State<BackupScreen> {
     final l10n = AppLocalizations.of(context);
     final key = FullBackup.newKey();
     var includeModel = false;
+    var includeVault = false;
     var retainedKey = false;
     final ok = await showDialog<bool>(
       context: context,
@@ -112,6 +114,11 @@ class _BackupScreenState extends State<BackupScreen> {
                   title: Text(l10n.backupIncludeModel),
                   onChanged: (v) => update(() => includeModel = v ?? false),
                 ),
+                CheckboxListTile(
+                  value: includeVault,
+                  title: Text(l10n.backupIncludeVault),
+                  onChanged: (v) => update(() => includeVault = v ?? false),
+                ),
               ],
             ),
           ),
@@ -130,9 +137,17 @@ class _BackupScreenState extends State<BackupScreen> {
     );
     if (ok != true) return;
     try {
+      if (includeVault &&
+          !await AppLockService().authenticate(
+            reason: l10n.vaultAuthReason,
+            biometricOnly: false,
+          )) {
+        return;
+      }
       final path = await widget.services.exportFullBackup(
         key,
         includeModel: includeModel,
+        includeVault: includeVault,
       );
       if (!mounted) return;
       await nexSendFileOut(path, mimeType: 'application/octet-stream');
@@ -324,7 +339,14 @@ class _BackupScreenState extends State<BackupScreen> {
       final key = full ? await _askRecoveryKey() : null;
       if (full && (key == null || key.isEmpty)) return;
       final result = full
-          ? await widget.services.restoreFullBackup(backup, key!)
+          ? await widget.services.restoreFullBackup(
+              backup,
+              key!,
+              authorizeVaultRestore: () => AppLockService().authenticate(
+                reason: l10n.vaultRestoreAuth,
+                biometricOnly: false,
+              ),
+            )
           : await widget.services.restoreBackup(backup);
       if (!mounted) return;
       final restart = NexRestartScope.of(context).restart;
@@ -345,6 +367,8 @@ class _BackupScreenState extends State<BackupScreen> {
         );
       }
       restart();
+    } on VaultAuthenticationRequired {
+      return;
     } on Object catch (error) {
       // The graph is already closed by the time restore touches live files —
       // this session cannot read or write the library anymore either way.
@@ -352,7 +376,9 @@ class _BackupScreenState extends State<BackupScreen> {
       // screen where every action answered "unavailable" with no reason.
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.restoreFailed(error.toString()))),
+        SnackBar(
+          content: Text(l10n.restoreFailed(error.runtimeType.toString())),
+        ),
       );
     }
   }

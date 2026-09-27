@@ -32,6 +32,7 @@ import 'profile_screen.dart';
 import 'security_screen.dart';
 import 'widget_settings_screen.dart';
 import 'update_sheet.dart';
+import 'tools_screen.dart';
 
 /// The v1 preference surface.
 ///
@@ -198,6 +199,22 @@ class SettingsSheet extends StatelessWidget {
 
   List<Widget> _groups(BuildContext context, AppLocalizations l10n) => [
     _ProfileCard(services: services, preferences: preferences),
+    Padding(
+      padding: const EdgeInsets.only(bottom: NexSpacing.md),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: ListTile(
+          leading: const Icon(Icons.space_dashboard_outlined),
+          title: Text(l10n.toolsTitle),
+          subtitle: Text(l10n.toolsPrivateHint),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(builder: (_) => const ToolsScreen()),
+          ),
+        ),
+      ),
+    ),
     // First, and on its own. Someone who opens Settings looking for how a
     // thing works should not have to guess which of seven sections it was
     // filed under.

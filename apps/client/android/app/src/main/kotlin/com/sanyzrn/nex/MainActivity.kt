@@ -316,6 +316,19 @@ open class MainActivity : FlutterFragmentActivity() {
                 }
                 result.success(null)
             }
+            "copyPrivate" -> {
+                val text = call.argument<String>("text")
+                if (text == null || text.length > 10000) {
+                    result.error("invalid_clip", "Invalid private clipboard value", null)
+                } else {
+                    try {
+                        NexPrivateClipboard.copy(this, text)
+                        result.success(null)
+                    } catch (_: Exception) {
+                        result.error("clipboard_unavailable", "Private clipboard unavailable", null)
+                    }
+                }
+            }
             "pickFile" -> {
                 picker = result
                 startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {

@@ -3037,4 +3037,195 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get backupRecoveryKey => 'کد بازیابی را وارد کنید';
+
+  @override
+  String get toolsTitle => 'ابزارها';
+
+  @override
+  String get toolsSubtitle => 'چیزهای مهم، جای خودشان.';
+
+  @override
+  String get toolsPrivateHint => 'جدا از یادداشت‌ها، جست‌وجو و هوش مصنوعی.';
+
+  @override
+  String get vaultPasswords => 'رمزها';
+
+  @override
+  String get vaultPasswordsHint => 'حساب‌ها، رمزهای امن و تولید رمز تصادفی.';
+
+  @override
+  String get vaultCards => 'کارت‌های بانکی';
+
+  @override
+  String get vaultCardsHint => 'اطلاعات کارت و شبا، آمادهٔ کپی.';
+
+  @override
+  String get vaultLocked => 'خزانه قفل است';
+
+  @override
+  String get vaultUnlockHint =>
+      'با اثر انگشت یا قفل دستگاه، این فضای خصوصی را باز کنید.';
+
+  @override
+  String get vaultUnlock => 'بازکردن خزانه';
+
+  @override
+  String get vaultAuthReason =>
+      'برای بازکردن خزانهٔ نکس هویت خود را تأیید کنید';
+
+  @override
+  String get vaultUnavailable =>
+      'قفل باز نشد. در صورت نیاز قفل صفحهٔ دستگاه را تنظیم کنید و دوباره تلاش کنید.';
+
+  @override
+  String get vaultError =>
+      'دسترسی به خزانه ممکن نشد. اطلاعات ذخیره‌شده بازنشانی نشده است.';
+
+  @override
+  String get vaultLock => 'قفل‌کردن خزانه';
+
+  @override
+  String get vaultSearch => 'جست‌وجو در این خزانه';
+
+  @override
+  String get vaultEmpty => 'اولین مورد را اینجا نگه دارید';
+
+  @override
+  String get vaultEmptyHint =>
+      'موردی اضافه کنید تا اطلاعاتش خصوصی و برای کپی در دسترس باشد.';
+
+  @override
+  String get vaultAddPassword => 'افزودن رمز';
+
+  @override
+  String get vaultAddCard => 'افزودن کارت بانکی';
+
+  @override
+  String get vaultAll => 'همه';
+
+  @override
+  String get vaultFavorites => 'منتخب‌ها';
+
+  @override
+  String get vaultFavorite => 'منتخب';
+
+  @override
+  String get vaultNoResults => 'موردی پیدا نشد';
+
+  @override
+  String get vaultTitleField => 'نام';
+
+  @override
+  String get vaultLogin => 'نام کاربری یا ایمیل';
+
+  @override
+  String get vaultPassword => 'رمز عبور';
+
+  @override
+  String get vaultWebsite => 'وب‌سایت';
+
+  @override
+  String get vaultNotes => 'توضیحات خصوصی';
+
+  @override
+  String get vaultBank => 'بانک';
+
+  @override
+  String get vaultHolder => 'نام صاحب کارت';
+
+  @override
+  String get vaultNumber => 'شمارهٔ کارت';
+
+  @override
+  String get vaultExpiry => 'انقضای درج‌شده روی کارت (ماه/سال)';
+
+  @override
+  String get vaultIban => 'شمارهٔ شبا';
+
+  @override
+  String get vaultAccount => 'شمارهٔ حساب';
+
+  @override
+  String get vaultRequired => 'این فیلد ضروری است';
+
+  @override
+  String get vaultInvalidCard => 'شمارهٔ کارت را بررسی کنید';
+
+  @override
+  String get vaultInvalidIban => 'شمارهٔ شبا را بررسی کنید';
+
+  @override
+  String get vaultInvalidExpiry =>
+      'ماه ۰۱ تا ۱۲ و سال دو یا چهار رقمی وارد کنید';
+
+  @override
+  String get vaultShow => 'نمایش';
+
+  @override
+  String get vaultHide => 'پنهان‌کردن';
+
+  @override
+  String get vaultCopied => 'کپی شد';
+
+  @override
+  String get vaultCopyFailed => 'کپی انجام نشد. دوباره تلاش کنید.';
+
+  @override
+  String get vaultGenerate => 'تولید رمز تازه';
+
+  @override
+  String get vaultGenerator => 'تولیدکنندهٔ رمز';
+
+  @override
+  String get vaultSymbols => 'استفاده از نمادها';
+
+  @override
+  String get vaultUseGenerated => 'استفاده از این رمز';
+
+  @override
+  String get vaultLength => 'طول';
+
+  @override
+  String get vaultEdit => 'ویرایش';
+
+  @override
+  String get vaultSave => 'ذخیرهٔ امن';
+
+  @override
+  String get vaultSaved => 'با موفقیت ذخیره شد';
+
+  @override
+  String get vaultDiscard => 'کنارگذاشتن پیش‌نویس';
+
+  @override
+  String get vaultResume => 'ادامهٔ ویرایش نیمه‌تمام';
+
+  @override
+  String get vaultDelete => 'حذف مورد';
+
+  @override
+  String get vaultDeleteHint => 'این مورد از خزانه حذف می‌شود.';
+
+  @override
+  String get vaultDeleteConfirm => 'حذف نهایی';
+
+  @override
+  String get vaultBackupHint =>
+      'برای نسخهٔ قابل انتقال، در پشتیبان کامل برنامه «خزانه هم ذخیره شود» را انتخاب کنید و کد بازیابی را جدا نگه دارید.';
+
+  @override
+  String get vaultPrivacyHint =>
+      'روی این دستگاه رمزگذاری می‌شود؛ با خروج از برنامه یا ۲ دقیقه بی‌استفاده‌ماندن قفل می‌شود.';
+
+  @override
+  String get vaultEditHint =>
+      'ویرایش نیمه‌تمام به‌صورت پیش‌نویس رمزگذاری‌شده نگهداری می‌شود.';
+
+  @override
+  String get backupIncludeVault =>
+      'خزانه هم ذخیره شود (نیازمند تأیید هویت دستگاه)';
+
+  @override
+  String get vaultRestoreAuth =>
+      'پیش از بازیابی پشتیبان کامل، هویت خود را تأیید کنید';
 }

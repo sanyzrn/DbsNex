@@ -9,7 +9,28 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-Current work (2026-09-27): the owner's new **13-item feature/polish request**
+Latest follow-up (2026-09-27), after commit `e81dc7a` preparing 1.50.0:
+implement a transparent-at-rest/pinned-opaque tag row, stronger Capture action,
+and a separate Settings → Tools hub with password/card vaults. This follow-up
+is prepared as **1.60.0** on `codex/work`; the owner authorized commit/push.
+Version constants and both changelogs agree. No tag or release is created here.
+Recurring enhancements were requested as ideas: the prioritized proposal is
+under «ایده — مرکز پیگیری Recurring» in `docs/NEX_V2_ROADMAP.md`, not implemented.
+
+The vault uses a separate FlutterSecureStorage Android namespace with
+resetOnError disabled. Never route vault entries through notes, AI, widgets,
+plain editor drafts or unencrypted export. Screen protection is reference-counted
+with the existing app lock. Vault export is explicit and authenticated; full
+backup stores it only inside settings.aes.zip. Legacy backups leave it alone.
+Use the latest section of AUDIT_FOLLOW_UP.md for checks and device-only gates.
+
+The prior CI run 36330541904 failed in client analysis and AI deletion proof:
+`current_features_test.dart:202` had two untyped empty Map literals. Both
+are explicitly typed in this batch; client analysis is clean. The previous
+push itself succeeded. Recheck CI for the new commit before tagging. The
+release-repository API still reports v1.40.0 as latest (2026-09-27).
+
+Previous batch (2026-09-27, committed/pushed as `e81dc7a`): the owner's new **13-item feature/polish request**
 following the 1–35 audit backlog, on **`codex/work` only**. See the latest section
 of `AUDIT_FOLLOW_UP.md` for implementation scope and verification. The prior
 batch was committed/pushed as `64f9c28` and merged via PR #250. The owner has

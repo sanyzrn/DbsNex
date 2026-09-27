@@ -61,3 +61,21 @@ Restoring a backup replaces the library and restarts Nex. Device identity and in
 Open **Settings → About** for the installed version, update check and changelog. App releases come from **DbsNex-releases**. Install updates over the existing app to retain its data.
 
 If something fails, record the app version, what you tried and the error shown. Diagnostic export can help investigation. Feedback delivery depends on the service being configured; an unavailable service does not mean your message was received.
+
+## Tools and private vault
+
+Open **Settings → Tools**, then Passwords or Bank cards. Device authentication
+is required. Save account names, logins, passwords, websites and private notes;
+the generator offers password length and symbol controls. Cards have bank,
+holder, number, printed expiry, IBAN and account fields. Tap a field or its copy
+icon to copy it. Passwords and card numbers stay masked until revealed.
+
+The vault uses device secure storage and does not enter notes, widgets, general
+search or AI context. It locks when the app loses focus or after two idle minutes.
+Unfinished edits are encrypted drafts that can be resumed after unlocking.
+Android marks copied values sensitive; clipboard expiry after 30 seconds is best
+effort and depends on OS access. Autofill and vault sync are not included yet.
+
+For transfer, explicitly select **Include private vault** in Complete app backup
+and authenticate. The vault is inside its encrypted settings entry. Keep the
+recovery code separately. Ordinary note/library backups do not include it.

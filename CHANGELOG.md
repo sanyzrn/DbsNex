@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v1.60.0
+
+- **A cleaner tag strip.** Tags sit directly on the home background and gain a solid backing only when pinned during scrolling.
+- **A clearer capture action.** The larger capture button stays in place beside a quieter reminder control with its full touch target.
+- **A separate home for tools.** Open Tools from Settings for passwords and bank cards, away from the note timeline and AI.
+- **A private local vault.** Device authentication, masked details, favorites, search, field-by-field copy and a random password generator. Leaving the app or two minutes of inactivity locks it; unfinished edits have encrypted drafts.
+- **Optional encrypted vault backups.** Include the vault in Complete app backup after device authentication. Older backups without a vault preserve the receiving device's vault.
+
 ## v1.50.0
 
 - **Resume more unfinished edits.** Text, captions, checklists, links, profile details, commitments and unsent chat text recover when their editor is reopened. Photo capture, crop position and completed annotations keep local recovery checkpoints.

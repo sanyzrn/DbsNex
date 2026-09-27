@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
 /// Whether the operating system is allowed to capture what this window shows.
 ///
@@ -19,6 +20,20 @@ abstract final class NexSecureWindow {
   /// The same channel the share intent, the file picker and the previews use.
   /// A second one would be a second thing to register and forget to register.
   static const _channel = MethodChannel('nex/os_capture');
+  static bool _appSecure = false;
+  static int _privateSurfaces = 0;
+
+  /// A vault must stay protected even when the general app lock is disabled.
+  static Future<bool> acquirePrivateSurface() async {
+    _privateSurfaces++;
+    final applied = await _apply(true);
+    return applied || defaultTargetPlatform != TargetPlatform.android;
+  }
+
+  static Future<void> releasePrivateSurface() async {
+    if (_privateSurfaces > 0) _privateSurfaces--;
+    await _apply(_appSecure || _privateSurfaces > 0);
+  }
 
   /// Asks the platform to start or stop blocking capture of this window.
   ///
@@ -31,14 +46,21 @@ abstract final class NexSecureWindow {
   /// no equivalent flag, and the app lock still locks. So nothing is thrown
   /// back at the caller, whose only alternative would be to ignore it.
   static Future<void> setSecure(bool on) async {
+    _appSecure = on;
+    await _apply(on || _privateSurfaces > 0);
+  }
+
+  static Future<bool> _apply(bool on) async {
     try {
       await _channel.invokeMethod<void>('setSecure', <String, Object>{
         'on': on,
       });
+      return true;
     } on MissingPluginException {
       // No native half on this platform.
     } on PlatformException {
       // A window that would not take the flag. Nothing the caller can do.
     }
+    return false;
   }
 }

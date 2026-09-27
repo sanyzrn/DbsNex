@@ -12,6 +12,7 @@ import 'package:path/path.dart' as p;
 import 'ai_provider.dart';
 import 'chat_history.dart';
 import 'editor_drafts.dart';
+import 'vault_store.dart';
 import 'package:uuid/uuid.dart';
 
 /// When the app lock puts itself back on.
@@ -112,6 +113,9 @@ class NexPreferences extends ChangeNotifier {
   }
 
   static void validateBackupSettings(Map<String, dynamic> value) {
+    if (value.containsKey('vault')) {
+      VaultSnapshot.fromJson(Map<String, dynamic>.from(value['vault'] as Map));
+    }
     if (value['version'] != 1 ||
         value['preferences'] is! Map ||
         value['credentials'] is! Map) {
@@ -139,11 +143,13 @@ class NexPreferences extends ChangeNotifier {
   }
 
   static const _restoreRecoveryKey = 'nex.full_restore.recovery';
-  Future<void> beginRestoreRecovery(String library) async {
-    final value = jsonEncode({
-      'library': library,
-      'settings': backupSettings(),
-    });
+  Future<void> beginRestoreRecovery(
+    String library, {
+    bool includeVault = false,
+  }) async {
+    final settings = backupSettings();
+    if (includeVault) settings['vault'] = await VaultStore().backup();
+    final value = jsonEncode({'library': library, 'settings': settings});
     await _secureStorage.write(key: _restoreRecoveryKey, value: value);
     if (await _secureStorage.read(key: _restoreRecoveryKey) != value) {
       throw StateError('Cannot protect current settings');
@@ -166,6 +172,12 @@ class NexPreferences extends ChangeNotifier {
 
   Future<void> restoreSettings(Map<String, dynamic> value) async {
     validateBackupSettings(value);
+    // Older/library-only backups must never clear or modify a newer vault.
+    if (value.containsKey('vault')) {
+      await VaultStore().restore(
+        Map<String, dynamic>.from(value['vault'] as Map),
+      );
+    }
     // Verify secure writes before changing ordinary preferences.
     final credentials = Map<String, String>.from(value['credentials'] as Map);
     for (final entry in credentials.entries) {

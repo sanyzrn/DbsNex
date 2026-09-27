@@ -199,7 +199,11 @@ void main() {
         library: library.path,
         output: output,
         key: key,
-        settings: {'version': 1, 'preferences': {}, 'credentials': {}},
+        settings: {
+          'version': 1,
+          'preferences': <String, dynamic>{},
+          'credentials': <String, String>{},
+        },
         model: model.path,
         modelHash: hash,
       );

@@ -196,7 +196,7 @@ Accessibility is core functionality, not a compliance checkbox — a slow or con
 
 - A hold on the greeting explicitly refreshes it; an ordinary tap does not call an AI provider.
 - Smart summary is the shared name in Settings, home and widget surfaces.
-- The filter strip has an opaque backing and names active non-tag filters.
+- The filter strip is transparent at rest and gets an opaque backing only while pinned; active non-tag filters retain their names.
 - Gregorian dates remain the default. An optional Persian calendar affects exact
   detail dates, backup list dates, assistant action dates and reminder dates;
   birthday, commitment and reminder pickers use a Persian month grid when selected.
@@ -217,3 +217,12 @@ Accessibility is core functionality, not a compliance checkbox — a slow or con
   explicit discard or successful save removes that editor's checkpoint.
 - Text/Markdown conversion replaces the representation of the same item while
   preserving its identity, tags, pin and reminder. It is not a duplicate capture.
+
+## Independent tools
+
+Settings opens a standalone Tools page. Passwords and bank cards live in a
+separate authenticated vault, never in timeline cards, AI context or widgets.
+Details use labeled tap-to-copy rows and explicit reveal controls. Capture stays
+the primary home action; tools add no destination to the existing dock.
+The capture confirmation is 60px with a 32px icon; the reminder retains a 48px
+touch target with a quieter 20px icon. Its position remains fixed while typing.

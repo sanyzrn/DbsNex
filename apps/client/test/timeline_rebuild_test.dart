@@ -1190,6 +1190,29 @@ void main() {
     );
   });
 
+  testWidgets('filter backing appears only after the row is pinned', (
+    tester,
+  ) async {
+    for (var i = 0; i < 14; i++) {
+      await services.captureText('Scroll note $i');
+    }
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    final backing = find.byKey(const ValueKey('filter-header-background'));
+    Color color() => tester.widget<ColoredBox>(backing).color;
+    expect(color(), Colors.transparent);
+    final list = find.byType(CustomScrollView).first;
+    await tester.drag(list, const Offset(0, -550));
+    await tester.pumpAndSettle();
+    expect(color(), isNot(Colors.transparent));
+    await tester.drag(list, const Offset(0, 650));
+    await tester.pumpAndSettle();
+    expect(color(), Colors.transparent);
+  });
+
   testWidgets('the filter row and the cards share one edge on a wide window', (
     tester,
   ) async {

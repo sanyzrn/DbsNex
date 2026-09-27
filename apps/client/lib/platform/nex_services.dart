@@ -17,6 +17,7 @@ import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'backup_policy.dart';
 import 'full_backup.dart';
+import 'vault_store.dart';
 import 'editor_drafts.dart';
 import 'capture_journal.dart';
 import 'export_cache.dart';
@@ -38,6 +39,9 @@ class SyncNotConfigured implements Exception {
   String toString() =>
       'Sync is not configured. Pair this device with a Nex server first.';
 }
+
+/// No files have been replaced when authorization is declined or unavailable.
+class VaultAuthenticationRequired implements Exception {}
 
 /// Returned by [NexServices.restoreBackup] so a restore cannot silently leave a
 /// dead service graph in place. The caller must feed it to NexRestartScope.
@@ -779,8 +783,10 @@ class NexServices {
   Future<String> exportFullBackup(
     String key, {
     required bool includeModel,
+    bool includeVault = false,
   }) async {
     final settings = _preferences.backupSettings();
+    if (includeVault) settings['vault'] = await VaultStore().backup();
     await worker.backup(backupDir, mediaDir: mediaDir);
     final backups =
         Directory(backupDir)
@@ -813,7 +819,12 @@ class NexServices {
   }
 
   @useResult
-  Future<RestartRequired> restoreFullBackup(File source, String key) async {
+  Future<RestartRequired> restoreFullBackup(
+    File source,
+    String key, {
+    bool allowVaultRestore = false,
+    Future<bool> Function()? authorizeVaultRestore,
+  }) async {
     final cache = await getTemporaryDirectory();
     final staging = await cache.createTemp('.nex-portable-full-');
     var recoveryStarted = false;
@@ -829,6 +840,11 @@ class NexServices {
         ),
       );
       NexPreferences.validateBackupSettings(settings);
+      if (settings.containsKey('vault') &&
+          !allowVaultRestore &&
+          !(await authorizeVaultRestore?.call() ?? false)) {
+        throw VaultAuthenticationRequired();
+      }
       // A secure undo journal survives force-close between library, preference
       // and model installation. Bootstrap rolls the whole restore back if the
       // final commit marker was never cleared.
@@ -839,7 +855,10 @@ class NexServices {
           .whereType<File>()
           .firstWhere((file) => file.path.endsWith('.nexbak'))
           .path;
-      await _preferences.beginRestoreRecovery(safetyLibrary);
+      await _preferences.beginRestoreRecovery(
+        safetyLibrary,
+        includeVault: settings.containsKey('vault'),
+      );
       recoveryStarted = true;
       final result = await restoreBackup(File(p.join(path, 'library.nexbak')));
       if (result.error != null) return result;

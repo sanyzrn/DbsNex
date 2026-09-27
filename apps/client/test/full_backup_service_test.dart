@@ -8,6 +8,7 @@ import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/full_backup.dart';
+import 'package:nex_client/platform/vault_store.dart';
 import 'support/in_process_db.dart';
 
 class _Paths extends PathProviderPlatform {
@@ -51,10 +52,52 @@ void main() {
       await preferences.setDisplayName('Original profile');
       final note = (await services.captureText('Original text'))!;
       final key = FullBackup.newKey();
-      final backup = await services.exportFullBackup(key, includeModel: false);
+      VaultEntry secret(String value) => VaultEntry(
+        id: 'vault-one',
+        kind: VaultKind.password,
+        fields: {'title': 'Private account', 'password': value},
+        updatedAt: DateTime.utc(2026),
+      );
+      final vault = VaultStore();
+      await vault.save(secret('original-vault-secret'));
+      final ordinary = await services.exportFullBackup(
+        key,
+        includeModel: false,
+      );
+      final ordinarySettings = FullBackup.unpack(
+        ordinary,
+        '${root.path}/ordinary',
+        key,
+        modelHash: 'unused',
+        modelBytes: 0,
+      );
+      expect(ordinarySettings.containsKey('vault'), isFalse);
+      final backup = await services.exportFullBackup(
+        key,
+        includeModel: false,
+        includeVault: true,
+      );
+      await vault.save(secret('changed-vault-secret'));
       await services.updateNote(note.id, 'Changed text');
       await preferences.setDisplayName('Changed profile');
-      final result = await services.restoreFullBackup(File(backup), key);
+      await expectLater(
+        services.restoreFullBackup(File(backup), key),
+        throwsA(isA<VaultAuthenticationRequired>()),
+      );
+      expect(preferences.displayName, 'Changed profile');
+      expect(
+        (await vault.read()).entries.single.value('password'),
+        'changed-vault-secret',
+      );
+      final result = await services.restoreFullBackup(
+        File(backup),
+        key,
+        allowVaultRestore: true,
+      );
+      expect(
+        (await vault.read()).entries.single.value('password'),
+        'original-vault-secret',
+      );
       expect(result.error, isNull);
       expect(preferences.displayName, 'Original profile');
       expect(await preferences.pendingRestoreRecovery(), isNull);

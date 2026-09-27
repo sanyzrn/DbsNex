@@ -3384,11 +3384,17 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
   @override
   double get maxExtent => visible ? extent : 0;
 
-  /// Opaque from the first frame, so glass or patterned content cannot leak
-  /// through the pinned strip or change its tone during scrolling.
+  /// Let the page background continue beneath the resting row. Only the
+  /// pinned row needs a solid backing to keep scrolled notes from showing.
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
-      ColoredBox(color: Theme.of(context).colorScheme.surface, child: child);
+      ColoredBox(
+        key: const ValueKey('filter-header-background'),
+        color: overlaps || shrinkOffset > 0
+            ? Theme.of(context).colorScheme.surface
+            : Colors.transparent,
+        child: child,
+      );
 
   /// Always, and for the same reason as [SearchFieldHeader].
   ///
