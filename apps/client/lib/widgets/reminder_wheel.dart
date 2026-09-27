@@ -6,6 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'due_label.dart';
+import 'nex_time_picker.dart';
 
 /// When a reminder should fire, chosen on one screen.
 ///
@@ -212,9 +213,33 @@ class _ReminderWheelState extends State<ReminderWheel> {
                     style: theme.textTheme.titleLarge,
                   ),
                 ),
-                Icon(
-                  Icons.notifications_none,
-                  color: theme.colorScheme.onSurfaceVariant,
+                IconButton(
+                  tooltip: l10n.calendar,
+                  icon: const Icon(Icons.calendar_month_outlined),
+                  onPressed: () async {
+                    final picked = await nexPickDate(
+                      context,
+                      initial: _chosen,
+                      first: _midnight,
+                      last: DateTime(
+                        _midnight.year,
+                        _midnight.month,
+                        _midnight.day + ReminderWheel.days - 1,
+                      ),
+                      solar: widget.solarCalendar,
+                    );
+                    if (picked != null && mounted) {
+                      _goTo(
+                        DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                          _hour,
+                          _minute,
+                        ),
+                      );
+                    }
+                  },
                 ),
               ],
             ),

@@ -4819,6 +4819,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pause audio'**
   String get pauseAudio;
+
+  /// No description provided for @convertToMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as Markdown'**
+  String get convertToMarkdown;
+
+  /// No description provided for @convertToNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert to note'**
+  String get convertToNote;
+
+  /// No description provided for @markdownConvertFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not convert this file. The original is still safe. Markdown files must be UTF-8 and at most 16 MB.'**
+  String get markdownConvertFailed;
+
+  /// No description provided for @fullBackupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete device backup'**
+  String get fullBackupTitle;
+
+  /// No description provided for @fullBackupPrivateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes the library, settings and API keys. Settings and keys are encrypted; library files and the optional model are not. Save this recovery code separately: without it the settings and keys cannot be restored. This backup can replace your current library.'**
+  String get fullBackupPrivateHint;
+
+  /// No description provided for @backupKeySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'I saved the recovery code somewhere safe'**
+  String get backupKeySaved;
+
+  /// No description provided for @backupIncludeModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Include downloaded offline model (about 2.6 GB)'**
+  String get backupIncludeModel;
+
+  /// No description provided for @backupRecoveryKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the recovery code'**
+  String get backupRecoveryKey;
 }
 
 class _AppLocalizationsDelegate

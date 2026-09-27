@@ -52,6 +52,18 @@ class NexSwitch extends StatelessWidget {
       fit: BoxFit.contain,
       child: Switch(
         value: value,
+        inactiveTrackColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF53565C)
+            : const Color(0xFFC1C5CB),
+        inactiveThumbColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFFE0E3E8)
+            : const Color(0xFF4A4F57),
+        trackOutlineWidth: const WidgetStatePropertyAll(1.5),
+        trackOutlineColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? Colors.transparent
+              : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         onChanged: onChanged,
         // Pinned here rather than left to the theme, because the scale factor
         // is only correct against a known size: with the tap padding on, the

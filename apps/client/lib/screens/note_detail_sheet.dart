@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
-import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show compute;
@@ -30,6 +29,7 @@ import '../platform/reminders.dart';
 import '../platform/video_preview.dart';
 import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/note_editor_sheet.dart';
+import '../widgets/audio_waveform.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
 import '../widgets/tag_picker.dart';
@@ -308,7 +308,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
       final edited = await Navigator.of(context).push<Uint8List>(
         NexPageRoute(
           swipeBackEnabled: false,
-          builder: (_) => PhotoCropScreen(image: original),
+          builder: (_) => PhotoCropScreen(
+            image: original,
+            drafts: widget.preferences?.editorDrafts,
+            draftKey: 'photo-${note.id}',
+          ),
         ),
       );
       if (edited == null || !mounted) return;
@@ -332,6 +336,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         dest,
         sha256OfBytes(encoded),
       );
+      widget.preferences?.editorDrafts?.clear('photo-${note.id}-crop');
+      widget.preferences?.editorDrafts?.clear('photo-${note.id}-annotation');
       await _reload();
     } catch (_) {
       if (mounted) {
@@ -393,6 +399,26 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   /// with the AI edits on it when there is a model to ask. It was an
   /// `AlertDialog` with three lines in it, which is the shape a question has
   /// rather than the shape of somebody's writing.
+  bool _convertingMarkdown = false;
+  Future<void> _convertMarkdown() async {
+    final note = _note;
+    if (note == null || _convertingMarkdown) return;
+    setState(() => _convertingMarkdown = true);
+    try {
+      await widget.services.convertMarkdown(note);
+      await _reload();
+    } catch (_) {
+      if (mounted) {
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).markdownConvertFailed,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _convertingMarkdown = false);
+    }
+  }
+
   Future<void> _editContent() async {
     final note = _note;
     final preferences = widget.preferences;
@@ -401,11 +427,17 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final value = await NoteEditorSheet.show(
       context,
       initial: note.content ?? '',
+      draftKey: 'note-${note.id}',
       preferences: preferences,
     );
     final trimmed = value?.trim();
-    if (trimmed == null || trimmed.isEmpty || trimmed == note.content) return;
+    if (trimmed == null || trimmed.isEmpty) return;
+    if (trimmed == note.content) {
+      preferences.editorDrafts?.clear('note-${note.id}');
+      return;
+    }
     await widget.services.updateNote(note.id, trimmed);
+    preferences.editorDrafts?.clear('note-${note.id}');
     await widget.services.refreshTimeline();
     await _reload();
   }
@@ -430,13 +462,20 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final edited = await nexShowSheet<List<ChecklistItem>>(
       context: context,
       dismissible: false,
-      builder: (_) =>
-          ChecklistCaptureSheet(preferences: preferences, initial: before),
+      builder: (_) => ChecklistCaptureSheet(
+        preferences: preferences,
+        initial: before,
+        draftKey: 'checklist-${note.id}',
+      ),
     );
     if (edited == null) return;
     final content = formatChecklist(restoreTicks(edited, before));
-    if (content == note.content) return;
+    if (content == note.content) {
+      preferences.editorDrafts?.clear('checklist-${note.id}');
+      return;
+    }
     await widget.services.updateNote(note.id, content);
+    preferences.editorDrafts?.clear('checklist-${note.id}');
     await widget.services.refreshTimeline();
     await _reload();
   }
@@ -493,7 +532,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
               if (file != null && file.existsSync())
                 _DetailRow(
                   label: l10n.size,
-                  value: nexFormatBytes(file.lengthSync()),
+                  value: nexDigits(
+                    nexFormatBytes(file.lengthSync()),
+                    persian:
+                        Localizations.localeOf(context).languageCode == 'fa',
+                  ),
                 ),
             ],
           ),
@@ -510,7 +553,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
 
   String _formatTimestamp(DateTime value) => nexDisplayDate(
     value,
-    solar: widget.preferences?.solarCalendar ?? false,
+    solar: widget.services.solarCalendar,
     persian: Localizations.localeOf(context).languageCode == 'fa',
     time: true,
     seconds: true,
@@ -570,46 +613,18 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   Future<void> _editCaption() async {
     final note = _note;
     if (note == null || note.type == NoteType.text) return;
-    final l10n = AppLocalizations.of(context);
-    final controller = TextEditingController(text: note.caption ?? '');
-    final value = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.caption),
-        content: NexDialogBody(
-          // [NexAutoDirection] rather than a `StatefulBuilder` re-reading the
-          // controller: it rebuilds only when the direction actually changes,
-          // and it owns the `Directionality` so the hint sits on the same side
-          // as the caption being typed.
-          child: NexAutoDirection(
-            controller: controller,
-            builder: (context, direction) => TextField(
-              controller: controller,
-              autofocus: true,
-              maxLines: 3,
-              textDirection: direction,
-              textAlign: TextAlign.start,
-              selectionWidthStyle: BoxWidthStyle.tight,
-              contextMenuBuilder: nexReadingMenu,
-              decoration: InputDecoration(hintText: l10n.captionHint),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
+    final preferences = widget.preferences;
+    if (preferences == null) return;
+    final value = await NoteEditorSheet.show(
+      context,
+      initial: note.caption ?? '',
+      preferences: preferences,
+      draftKey: 'caption-${note.id}',
+      allowEmpty: true,
     );
-    controller.dispose();
     if (value == null) return;
     await widget.services.setCaption(widget.noteId, value);
+    preferences.editorDrafts?.clear('caption-${note.id}');
     await widget.services.refreshTimeline();
     await _reload();
   }
@@ -727,7 +742,15 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              subtitle: Text(l10n.similarity(hit.score.toStringAsFixed(2))),
+              subtitle: Text(
+                l10n.similarity(
+                  nexDigits(
+                    hit.score.toStringAsFixed(2),
+                    persian:
+                        Localizations.localeOf(context).languageCode == 'fa',
+                  ),
+                ),
+              ),
             ),
         ],
         if (!_loadingAi &&
@@ -896,6 +919,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       if (_player != null) ...[
                         const SizedBox(height: NexSpacing.sm),
                         _VoicePlayerControls(
+                          path: note.mediaUri,
                           player: _player!,
                           position: _position,
                           duration: _duration > Duration.zero
@@ -980,8 +1004,15 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                                         File(note.mediaUri!).existsSync())
                                       Text(
                                         [
-                                          nexFormatBytes(
-                                            File(note.mediaUri!).lengthSync(),
+                                          nexDigits(
+                                            nexFormatBytes(
+                                              File(note.mediaUri!).lengthSync(),
+                                            ),
+                                            persian:
+                                                Localizations.localeOf(
+                                                  context,
+                                                ).languageCode ==
+                                                'fa',
                                           ),
                                           if (note.mimeType != null)
                                             note.mimeType!,
@@ -1176,6 +1207,22 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           label: l10n.edit,
                           onPressed: _editChecklist,
                         ),
+                      if (note.type == NoteType.text ||
+                          (note.type == NoteType.file &&
+                              (note.mimeType == 'text/markdown' ||
+                                  p
+                                          .extension(note.mediaUri ?? '')
+                                          .toLowerCase() ==
+                                      '.md')))
+                        _DetailAction(
+                          icon: Icons.description_outlined,
+                          label: note.type == NoteType.text
+                              ? l10n.convertToMarkdown
+                              : l10n.convertToNote,
+                          onPressed: _convertingMarkdown
+                              ? null
+                              : _convertMarkdown,
+                        ),
                       if (note.type == NoteType.link)
                         _DetailAction(
                           icon: Icons.open_in_new,
@@ -1363,11 +1410,13 @@ class _DetailRow extends StatelessWidget {
 
 class _VoicePlayerControls extends StatelessWidget {
   const _VoicePlayerControls({
+    this.path,
     required this.player,
     required this.position,
     required this.duration,
   });
 
+  final String? path;
   final AudioPlayer player;
   final Duration position;
   final Duration duration;
@@ -1383,6 +1432,11 @@ class _VoicePlayerControls extends StatelessWidget {
     final totalMs = duration.inMilliseconds == 0 ? 1 : duration.inMilliseconds;
     return Column(
       children: [
+        if (path != null)
+          AudioWaveform(
+            path: path!,
+            progress: position.inMilliseconds / totalMs,
+          ),
         Row(
           children: [
             StreamBuilder<PlayerState>(

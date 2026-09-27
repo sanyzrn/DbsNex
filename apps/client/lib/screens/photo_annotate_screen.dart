@@ -7,6 +7,8 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:flutter/rendering.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform/editor_drafts.dart';
+import 'package:crypto/crypto.dart';
 import '../widgets/draft_guard.dart';
 import '../widgets/nex_banner.dart';
 
@@ -47,9 +49,16 @@ class _TextMark extends _Mark {
 /// caller then keeps the plain cropped photo — annotating is additive, never
 /// a second required confirmation).
 class PhotoAnnotateScreen extends StatefulWidget {
-  const PhotoAnnotateScreen({super.key, required this.image});
+  const PhotoAnnotateScreen({
+    super.key,
+    required this.image,
+    this.drafts,
+    this.draftKey = 'photo-new',
+  });
 
   final Uint8List image;
+  final EditorDrafts? drafts;
+  final String draftKey;
 
   @override
   State<PhotoAnnotateScreen> createState() => _PhotoAnnotateScreenState();
@@ -59,6 +68,82 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
     with NexDraftGuard<PhotoAnnotateScreen> {
   @override
   bool get hasUnsavedChanges => _hasChanges;
+  String get _draftKey => '${widget.draftKey}-annotation';
+  late final String _imageHash = sha256.convert(widget.image).toString();
+  @override
+  void discardDraft() => widget.drafts?.clear(_draftKey);
+  void _snapshot() {
+    final box = _boundaryKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || box.size.width <= 0) return;
+    final width = box.size.width;
+    widget.drafts?.write(_draftKey, {
+      'image': _imageHash,
+      'marks': [
+        for (final mark in _marks)
+          switch (mark) {
+            _Stroke() => {
+              'kind': 'stroke',
+              'color': mark.color.toARGB32(),
+              'width': mark.width / width,
+              'points': [
+                for (final point in mark.points)
+                  [point.dx / width, point.dy / width],
+              ],
+            },
+            _TextMark() => {
+              'kind': 'text',
+              'color': mark.color.toARGB32(),
+              'text': mark.text,
+              'x': mark.position.dx / width,
+              'y': mark.position.dy / width,
+            },
+          },
+      ],
+    });
+  }
+
+  void _restoreMarks() {
+    final d = widget.drafts?.read(_draftKey);
+    final box = _boundaryKey.currentContext?.findRenderObject() as RenderBox?;
+    if (d == null || d['image'] != _imageHash || box == null) return;
+    final width = box.size.width;
+    final marks = <_Mark>[];
+    try {
+      for (final mark in d['marks'] as List) {
+        final color = Color(mark['color'] as int);
+        if (mark['kind'] == 'stroke') {
+          final stroke = _Stroke(
+            color: color,
+            width: (mark['width'] as num).toDouble() * width,
+          );
+          for (final point in mark['points'] as List) {
+            stroke.points.add(
+              Offset(
+                (point[0] as num).toDouble() * width,
+                (point[1] as num).toDouble() * width,
+              ),
+            );
+          }
+          marks.add(stroke);
+        } else {
+          marks.add(
+            _TextMark(
+              text: mark['text'] as String,
+              color: color,
+              position: Offset(
+                (mark['x'] as num).toDouble() * width,
+                (mark['y'] as num).toDouble() * width,
+              ),
+            ),
+          );
+        }
+      }
+      if (mounted) setState(() => _marks.addAll(marks));
+    } catch (_) {
+      /* Preserve unreadable draft for recovery. */
+    }
+  }
+
   final _boundaryKey = GlobalKey();
   _Mode _mode = _Mode.draw;
   Color _color = _palette.first;
@@ -71,7 +156,15 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
   @override
   void initState() {
     super.initState();
-    unawaited(_readNativeSize());
+    unawaited(
+      _readNativeSize().then((_) {
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _restoreMarks();
+          });
+        }
+      }),
+    );
   }
 
   Future<void> _readNativeSize() async {
@@ -133,16 +226,19 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
         _TextMark(text: text.trim(), position: position, color: _color),
       );
     });
+    _snapshot();
   }
 
   void _undo() {
     if (_marks.isEmpty) return;
     setState(() => _marks.removeLast());
+    _snapshot();
   }
 
   void _clear() {
     if (_marks.isEmpty) return;
     setState(_marks.clear);
+    _snapshot();
   }
 
   Future<void> _done() async {
@@ -220,6 +316,8 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
                             onPanUpdate: _mode == _Mode.draw
                                 ? _onPanUpdate
                                 : null,
+                            onPanEnd: (_) => _snapshot(),
+                            onPanCancel: _snapshot,
                             onTapUp: _mode == _Mode.text
                                 ? (d) => unawaited(_placeText(d.localPosition))
                                 : null,
@@ -234,6 +332,7 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
                               left: mark.position.dx,
                               top: mark.position.dy,
                               child: GestureDetector(
+                                onPanEnd: (_) => _snapshot(),
                                 onPanUpdate: (d) {
                                   final boundary =
                                       _boundaryKey.currentContext

@@ -111,6 +111,9 @@ void main() {
       tester,
     ) async {
       await openSettings(tester);
+      await scrollTo(tester, find.text('Notifications'));
+      await tester.tap(find.text('Notifications'));
+      await tester.pumpAndSettle();
       await scrollTo(tester, find.text('Daily nudge'));
       expect(find.text('Time'), findsNothing);
 

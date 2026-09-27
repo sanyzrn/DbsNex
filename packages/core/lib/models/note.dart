@@ -177,7 +177,11 @@ class Note {
       case NoteType.photo:
         return _joinSearchable([title, ocrText, caption]);
       case NoteType.file:
-        return _joinSearchable([title, content, caption]);
+        return _joinSearchable([
+          title, content, caption,
+          // Markdown conversion retains the original body in this text cache.
+          if (mimeType == 'text/markdown') ocrText,
+        ]);
       // The markers are stripped: searching for "milk" should find a ticked
       // item, and nobody searches for "[x]".
       case NoteType.checklist:

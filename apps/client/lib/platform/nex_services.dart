@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'dart:isolate';
 import 'dart:io';
 
@@ -14,6 +16,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'backup_policy.dart';
+import 'full_backup.dart';
+import 'editor_drafts.dart';
 import 'capture_journal.dart';
 import 'export_cache.dart';
 import 'db_worker.dart';
@@ -79,6 +83,7 @@ class NexServices {
 
   final BackupPolicy _backupPolicy;
   final NexPreferences _preferences;
+  EditorDrafts? get editorDrafts => _preferences.editorDrafts;
   bool get solarCalendar => _preferences.solarCalendar;
 
   /// Whether the intelligence layer is on and actually has a provider behind
@@ -114,6 +119,24 @@ class NexServices {
     // Async filesystem APIs — createSync blocked the UI isolate.
     await Directory(mediaDir).create(recursive: true);
     await Directory(backupDir).create(recursive: true);
+    final interrupted = await preferences.pendingRestoreRecovery();
+    if (interrupted != null) {
+      final library = interrupted['library'] as String;
+      if (!p.isWithin(backupDir, library)) {
+        throw StateError('Invalid recovery path');
+      }
+      await Isolate.run(
+        () => NexBackupArchive.restore(
+          liveDbPath: dbPath,
+          mediaDir: mediaDir,
+          backupFile: library,
+        ),
+      );
+      await preferences.restoreSettings(
+        Map<String, dynamic>.from(interrupted['settings'] as Map),
+      );
+      await preferences.finishRestoreRecovery();
+    }
     await preferences.attachProfileMirror(mediaDir);
 
     final profilePhoto = resolveProfilePhoto(
@@ -375,6 +398,39 @@ class NexServices {
       }
     } catch (_) {}
     await refreshTimeline();
+  }
+
+  Future<void> convertMarkdown(Note note) async {
+    if (note.type == NoteType.text) {
+      final text = note.content ?? '';
+      final bytes = utf8.encode(text);
+      final target = File(p.join(mediaDir, '${newUuidV7()}.md'));
+      final staging = File('${target.path}.partial');
+      await staging.writeAsBytes(bytes, flush: true);
+      await staging.rename(target.path);
+      // Retain the file if the worker's response is lost after COMMIT.
+      // Library maintenance later removes genuinely unreferenced media.
+      await worker.convertMarkdown(
+        note.id,
+        text,
+        target.path,
+        sha256.convert(bytes).toString(),
+      );
+    } else {
+      final source = File(note.mediaUri!);
+      if (await source.length() > 16 * 1024 * 1024) {
+        throw StateError('Markdown exceeds 16 MiB');
+      }
+      final text = await source.readAsString(encoding: utf8);
+      await worker.convertMarkdown(note.id, text, null, null);
+    }
+    try {
+      final fresh = await worker.getById(note.id);
+      if (fresh != null && fresh.dueAt != null) await reminders.schedule(fresh);
+      await refreshTimeline();
+    } catch (_) {
+      /* Conversion is already durable. */
+    }
   }
 
   Future<void> updateImageMedia(
@@ -718,6 +774,115 @@ class NexServices {
     await cleanExportCache(dir);
     final out = p.join(dir.path, 'Nex-$stamp.zip');
     return worker.exportArchive(outputPath: out, mediaRoot: mediaDir);
+  }
+
+  Future<String> exportFullBackup(
+    String key, {
+    required bool includeModel,
+  }) async {
+    final settings = _preferences.backupSettings();
+    await worker.backup(backupDir, mediaDir: mediaDir);
+    final backups =
+        Directory(backupDir)
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.nexbak'))
+            .toList()
+          ..sort((a, b) => b.path.compareTo(a.path));
+    final library = await portableBackup(backups.first);
+    final cache = await getTemporaryDirectory();
+    final output = p.join(
+      cache.path,
+      'Nex-${DateTime.now().microsecondsSinceEpoch}.nexfull',
+    );
+    final store = await NexModelStore.open();
+    final model = includeModel && store.isInstalled(NexModels.gemma4E2B)
+        ? store.fileFor(NexModels.gemma4E2B).path
+        : null;
+    await Isolate.run(
+      () => FullBackup.create(
+        library: library,
+        output: output,
+        settings: settings,
+        key: key,
+        model: model,
+        modelHash: model == null ? null : NexModels.gemma4E2B.sha256,
+      ),
+    );
+    return output;
+  }
+
+  @useResult
+  Future<RestartRequired> restoreFullBackup(File source, String key) async {
+    final cache = await getTemporaryDirectory();
+    final staging = await cache.createTemp('.nex-portable-full-');
+    var recoveryStarted = false;
+    try {
+      final path = staging.path;
+      final settings = await Isolate.run(
+        () => FullBackup.unpack(
+          source.path,
+          path,
+          key,
+          modelHash: NexModels.gemma4E2B.sha256,
+          modelBytes: NexModels.gemma4E2B.sizeBytes,
+        ),
+      );
+      NexPreferences.validateBackupSettings(settings);
+      // A secure undo journal survives force-close between library, preference
+      // and model installation. Bootstrap rolls the whole restore back if the
+      // final commit marker was never cleared.
+      final safety = await Directory(backupDir).createTemp('full-restore-');
+      await worker.backup(safety.path, mediaDir: mediaDir);
+      final safetyLibrary = safety
+          .listSync()
+          .whereType<File>()
+          .firstWhere((file) => file.path.endsWith('.nexbak'))
+          .path;
+      await _preferences.beginRestoreRecovery(safetyLibrary);
+      recoveryStarted = true;
+      final result = await restoreBackup(File(p.join(path, 'library.nexbak')));
+      if (result.error != null) return result;
+      try {
+        await _preferences.restoreSettings(settings);
+        final model = File(p.join(path, 'model.litertlm'));
+        if (await model.exists()) {
+          final store = await NexModelStore.open();
+          final target = store.fileFor(NexModels.gemma4E2B);
+          await target.parent.create(recursive: true);
+          // Stage beside the destination so rename remains atomic across volumes.
+          final pending = await model.copy('${target.path}.restore');
+          await pending.rename(target.path);
+        }
+      } catch (error) {
+        // The restart path reads the secure journal and restores the original
+        // library and settings together, even after another process death.
+        return RestartRequired(error: describeFailure(error));
+      }
+      try {
+        await _preferences.finishRestoreRecovery();
+      } catch (error) {
+        return RestartRequired(error: describeFailure(error));
+      }
+      try {
+        if (p.isWithin(backupDir, safety.path)) {
+          await safety.delete(recursive: true);
+        }
+      } catch (_) {
+        /* A leftover safety copy does not invalidate a committed restore. */
+      }
+      return const RestartRequired();
+    } catch (error) {
+      if (_closed) return RestartRequired(error: describeFailure(error));
+      if (recoveryStarted) await _preferences.finishRestoreRecovery();
+      rethrow;
+    } finally {
+      try {
+        if (await staging.exists()) await staging.delete(recursive: true);
+      } catch (_) {
+        /* Export-cache cleanup retries stale staging directories. */
+      }
+    }
   }
 
   Future<String> portableBackup(File backup) async {

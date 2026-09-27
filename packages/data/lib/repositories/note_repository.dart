@@ -180,6 +180,50 @@ WHERE id = ? AND deleted_at IS NULL
     _reindex(noteId);
   }
 
+  /// Changes representation in place: tags, reminders, title and identity survive.
+  void convertMarkdown(String id, String text, String? uri, String? hash) {
+    final note = getById(id);
+    final toFile = uri != null;
+    if (note == null ||
+        (toFile
+            ? note.type != NoteType.text
+            : note.type != NoteType.file ||
+                  !(note.mimeType == 'text/markdown' ||
+                      p.extension(note.mediaUri ?? '').toLowerCase() ==
+                          '.md'))) {
+      throw StateError('Invalid Markdown conversion');
+    }
+    db.execute('BEGIN IMMEDIATE');
+    try {
+      db.execute(
+        """
+UPDATE notes SET type = ?, content = ?, media_uri = ?, media_hash = ?, mime_type = ?,
+  ocr_text = ?, transcript_text = NULL, summary_text = NULL,
+  updated_at = ?, rev = rev + 1, sync_state = 'pending'
+  ${localDeviceId != null ? ', device_id = ?' : ''}
+WHERE id = ? AND deleted_at IS NULL
+""",
+        [
+          toFile ? 'file' : 'text',
+          toFile ? 'note.md' : text,
+          uri,
+          hash,
+          toFile ? 'text/markdown' : null,
+          toFile ? text : null,
+          DateTime.now().toUtc().toIso8601String(),
+          if (localDeviceId != null) localDeviceId,
+          id,
+        ],
+      );
+      db.execute('DELETE FROM note_embeddings WHERE note_id = ?', [id]);
+      _reindex(id);
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    }
+  }
+
   /// Replaces the media of an existing image note. The old file is left in
   /// place until library maintenance can verify that no note references it.
   void updateImageMedia(String noteId, String mediaUri, String mediaHash) {

@@ -1223,5 +1223,13 @@
   "annotateColor": "{color, select, white{سفید} black{سیاه} red{قرمز} yellow{زرد} green{سبز} blue{آبی} other{رنگ}}",
   "annotateStrokeWidth": "ضخامت قلم",
   "playAudio": "پخش صدا",
-  "pauseAudio": "توقف صدا"
+  "pauseAudio": "توقف صدا",
+  "convertToMarkdown": "ذخیره به صورت Markdown",
+  "convertToNote": "تبدیل به یادداشت",
+  "markdownConvertFailed": "تبدیل انجام نشد؛ اصل محفوظ است. فایل Markdown باید UTF-8 و حداکثر ۱۶ مگابایت باشد.",
+  "fullBackupTitle": "پشتیبان کامل برنامه",
+  "fullBackupPrivateHint": "شامل کتابخانه، تنظیمات و کلیدهای سرویس‌هاست. تنظیمات و کلیدها رمزگذاری می‌شوند؛ فایل‌های کتابخانه و مدل اختیاری رمزگذاری نمی‌شوند. کد بازیابی را جدا نگه دارید؛ بدون آن بازیابی تنظیمات و کلیدها ممکن نیست. این بکاپ می‌تواند جایگزین کتابخانه فعلی شود.",
+  "backupKeySaved": "کد بازیابی را در جای امن ذخیره کردم",
+  "backupIncludeModel": "مدل آفلاین دانلودشده هم ذخیره شود (حدود ۲٫۶ گیگابایت)",
+  "backupRecoveryKey": "کد بازیابی را وارد کنید"
 }

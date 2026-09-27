@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:record/record.dart';
 import '../l10n/app_localizations.dart';
+import '../platform/display_date.dart';
 
 /// The live recording surface.
 ///
@@ -73,7 +74,10 @@ class _RecordingSheetState extends State<RecordingSheet> {
         .remainder(60)
         .toString()
         .padLeft(2, '0');
-    return '$minutes:$seconds';
+    return nexDigits(
+      '$minutes:$seconds',
+      persian: Localizations.localeOf(context).languageCode == 'fa',
+    );
   }
 
   @override

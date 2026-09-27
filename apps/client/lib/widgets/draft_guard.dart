@@ -6,10 +6,12 @@ import '../l10n/app_localizations.dart';
 mixin NexDraftGuard<T extends StatefulWidget> on State<T> {
   bool get hasUnsavedChanges;
   bool _confirmingDiscard = false;
+  void discardDraft() {}
 
   Future<void> requestDiscard() async {
     if (_confirmingDiscard) return;
     if (!hasUnsavedChanges) {
+      discardDraft();
       Navigator.of(context).pop();
       return;
     }
@@ -32,7 +34,10 @@ mixin NexDraftGuard<T extends StatefulWidget> on State<T> {
       ),
     );
     _confirmingDiscard = false;
-    if (discard == true && mounted) Navigator.of(context).pop();
+    if (discard == true && mounted) {
+      discardDraft();
+      Navigator.of(context).pop();
+    }
   }
 
   Widget guardDraft(Widget child) => PopScope(

@@ -78,7 +78,7 @@ All four combinations retain WCAG 2.1 AA contrast for body text — Comfort Mode
 | **Capture Button (`+`)** | Universal entry point to text/voice/photo capture | Always visible on the Timeline, fixed position, largest single interactive element on screen |
 | **Home dock** | Thumb-reachable destinations on the Timeline | One floating surface with four 48dp actions and a raised 64dp Capture button at its centre. Positions stay fixed in English and Persian; on a narrow screen the outside margin yields before a tap target does. The list fades into its own page colour behind the dock. |
 | **Capture Sheet** | Presents the three capture types | Appears instantly (no loading state), dismissible by outside tap |
-| **Timeline Card** | Represents one note in the stream | Adapts preview to content type (text / voice caption or type with duration / photo thumbnail). Exact creation and edit times live in details; cards omit visible timestamps by owner decision. Tags use compact accent marks with localized accessible names. Collapsed cards share a text-scale-aware height; expanded cards grow to their content. A recorded waveform preview is not currently stored |
+| **Timeline Card** | Represents one note in the stream | Adapts preview to content type (text / voice caption or type with duration / photo thumbnail). Exact creation and edit times live in details; cards omit visible timestamps by owner decision. Tags use compact accent marks with localized accessible names. Collapsed cards share a text-scale-aware height; expanded cards grow to their content. Cards retain caption/type and duration; Android detail playback decodes and caches a real waveform |
 | **Tag Chip** | Represents a single tag | Neutral chip shape and text; an optional small accent dot (user-chosen, see [Tag Accent Color](#tag-accent-color)) may render beside the label. Rounded, removable via inline "×" in edit contexts |
 | **Search Bar** | Entry point + live query field | Paired with filter affordances (tag / date / type) that expand without navigating away |
 | **Filter Control** | Tag / date / content-type filters | Simple toggles/pills, combinable, always reversible with a single "clear" action |
@@ -198,10 +198,22 @@ Accessibility is core functionality, not a compliance checkbox — a slow or con
 - Smart summary is the shared name in Settings, home and widget surfaces.
 - The filter strip has an opaque backing and names active non-tag filters.
 - Gregorian dates remain the default. An optional Persian calendar affects exact
-  detail dates, backup list dates and reminder dates; digits follow app language.
-  Profile birthday/commitment pickers still use their existing calendar controls.
-- Voice previews use recorded duration and caption/type; no synthetic waveform
-  is presented as if derived from the recording.
+  detail dates, backup list dates, assistant action dates and reminder dates;
+  birthday, commitment and reminder pickers use a Persian month grid when selected.
+  Digits follow app language. Stored timestamps remain Gregorian instants.
+- Voice cards use recorded duration and caption/type. Android detail playback
+  decodes PCM amplitudes into a cached waveform; unsupported/failed decoding
+  hides the waveform and leaves ordinary playback controls available.
 - Secondary click or Shift+F10 offers Open, Add tag and Delete on timeline cards.
 - Practical acceptance (TalkBack, OS font scaling, launchers, Windows runtime)
   remains with the owner; host widget tests do not replace those checks.
+
+- Settings categories are collapsible; the AI category lists provider tools,
+  assistant, then Smart summary. Off switches keep a visible track in both themes.
+- Two-finger pinch on the home list collapses/expands all date groups; ordinary
+  scrolling, card expansion and search remain separate controls.
+- Summaries follow their content direction even when the interface is English.
+- Reopening supported editors restores their last local draft checkpoint;
+  explicit discard or successful save removes that editor's checkpoint.
+- Text/Markdown conversion replaces the representation of the same item while
+  preserving its identity, tags, pin and reminder. It is not a duplicate capture.

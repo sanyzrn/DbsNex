@@ -84,6 +84,7 @@ open class MainActivity : FlutterFragmentActivity() {
      * One thread, not a pool: each of these holds a full-size bitmap, and two
      * at once is two of them.
      */
+    private val waveformExecutor = Executors.newSingleThreadExecutor()
     private val renderExecutor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "nex-preview").apply { isDaemon = true }
     }
@@ -129,6 +130,16 @@ open class MainActivity : FlutterFragmentActivity() {
         super.configureFlutterEngine(engine)
         channel = MethodChannel(engine.dartExecutor.binaryMessenger, "nex/os_capture")
         channel?.setMethodCallHandler { call, result -> when (call.method) {
+            "audioWaveform" -> {
+                val path = call.argument<String>("path")
+                if (path == null) result.error("path", "Missing audio path", null)
+                else replyAsync(result, waveformExecutor) {
+                    val file = java.io.File(path).canonicalFile
+                    val roots = listOf(filesDir.canonicalPath, cacheDir.canonicalPath, applicationInfo.dataDir)
+                    require(roots.any { file.path.startsWith(it + java.io.File.separator) })
+                    NexAudioWaveform.read(file.path)
+                }
+            }
             "peekPending" -> result.success(nextCapture())
             "ackPending" -> {
                 val id = call.argument<String>("requestId")
@@ -367,6 +378,7 @@ open class MainActivity : FlutterFragmentActivity() {
         // parked thread behind. `shutdown`, not `shutdownNow`: work already
         // running finishes and posts its answer, which the reply guards
         // against a channel that has gone.
+        waveformExecutor.shutdownNow()
         renderExecutor.shutdown()
         ioExecutor.shutdown()
         super.onDestroy()

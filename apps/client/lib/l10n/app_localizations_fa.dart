@@ -292,17 +292,29 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String securityLockSeconds(int count) {
-    return '$count ثانیه';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString ثانیه';
   }
 
   @override
   String securityLockMinutes(int count) {
-    return '$count دقیقه';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString دقیقه';
   }
 
   @override
   String securityLockHours(int count) {
-    return '$count ساعت';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString ساعت';
   }
 
   @override
@@ -413,10 +425,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String resultCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count نتیجه',
+      other: '$countString نتیجه',
       one: 'یک نتیجه',
       zero: 'نتیجه‌ای پیدا نشد',
     );
@@ -504,10 +520,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String timelineGroupCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count یادداشت',
+      other: '$countString یادداشت',
       one: '۱ یادداشت',
     );
     return '$_temp0';
@@ -521,10 +541,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String noteCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count یادداشت',
+      other: '$countString یادداشت',
       one: 'یک یادداشت',
       zero: 'بدون یادداشت',
     );
@@ -772,10 +796,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String backupCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count پشتیبان',
+      other: '$countString پشتیبان',
       one: 'یک پشتیبان',
       zero: 'بدون پشتیبان',
     );
@@ -1331,17 +1359,24 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String importDone(int added, int skipped) {
+    final intl.NumberFormat addedNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String addedString = addedNumberFormat.format(added);
+    final intl.NumberFormat skippedNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String skippedString = skippedNumberFormat.format(skipped);
+
     String _temp0 = intl.Intl.pluralLogic(
       added,
       locale: localeName,
-      other: '$added یادداشت اضافه شد',
+      other: '$addedString یادداشت اضافه شد',
       one: 'یک یادداشت اضافه شد',
       zero: 'چیز تازه‌ای نبود',
     );
     String _temp1 = intl.Intl.pluralLogic(
       skipped,
       locale: localeName,
-      other: '$skipped تا از قبل بودند',
+      other: '$skippedString تا از قبل بودند',
       one: 'یکی از قبل بود',
       zero: '',
     );
@@ -1408,10 +1443,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String catchUpDone(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count یادداشت خوانده شد',
+      other: '$countString یادداشت خوانده شد',
       one: 'یک یادداشت خوانده شد',
       zero: 'چیزی برای خواندن نمانده',
     );
@@ -1436,32 +1475,56 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String timeMinutesAgo(int count) {
-    return '$count دقیقه قبل';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString دقیقه قبل';
   }
 
   @override
   String timeHoursAgo(int count) {
-    return '$count ساعت قبل';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString ساعت قبل';
   }
 
   @override
   String timeDaysAgo(int count) {
-    return '$count روز قبل';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString روز قبل';
   }
 
   @override
   String timeWeeksAgo(int count) {
-    return '$count هفته قبل';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString هفته قبل';
   }
 
   @override
   String timeMonthsAgo(int count) {
-    return '$count ماه قبل';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString ماه قبل';
   }
 
   @override
   String timeYearsAgo(int count) {
-    return '$count سال قبل';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString سال قبل';
   }
 
   @override
@@ -2247,7 +2310,15 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String commitmentTally(int done, int total) {
-    return '$done از $total امروز';
+    final intl.NumberFormat doneNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String doneString = doneNumberFormat.format(done);
+    final intl.NumberFormat totalNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String totalString = totalNumberFormat.format(total);
+
+    return '$doneString از $totalString امروز';
   }
 
   @override
@@ -2267,10 +2338,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String cadenceHours(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'هر $count ساعت',
+      other: 'هر $countString ساعت',
       one: 'هر ساعت',
     );
     return '$_temp0';
@@ -2278,10 +2353,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String cadenceDays(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'هر $count روز',
+      other: 'هر $countString روز',
       one: 'هر روز',
     );
     return '$_temp0';
@@ -2289,10 +2368,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String cadenceWeeks(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'هر $count هفته',
+      other: 'هر $countString هفته',
       one: 'هر هفته',
     );
     return '$_temp0';
@@ -2300,10 +2383,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String cadenceMonths(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'هر $count ماه',
+      other: 'هر $countString ماه',
       one: 'هر ماه',
     );
     return '$_temp0';
@@ -2311,10 +2398,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String cadenceYears(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'هر $count سال',
+      other: 'هر $countString سال',
       one: 'هر سال',
     );
     return '$_temp0';
@@ -2322,40 +2413,56 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String spanMinutes(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count دقیقه',
+      other: '$countString دقیقه',
     );
     return '$_temp0';
   }
 
   @override
   String spanHours(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count ساعت',
+      other: '$countString ساعت',
     );
     return '$_temp0';
   }
 
   @override
   String spanDays(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count روز',
+      other: '$countString روز',
     );
     return '$_temp0';
   }
 
   @override
   String spanMonths(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count ماه',
+      other: '$countString ماه',
     );
     return '$_temp0';
   }
@@ -2444,7 +2551,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String briefLineChecklist(String title, int remaining, int total) {
-    return '$title — $remaining از $total باقی مانده';
+    final intl.NumberFormat remainingNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String remainingString = remainingNumberFormat.format(remaining);
+    final intl.NumberFormat totalNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String totalString = totalNumberFormat.format(total);
+
+    return '$title — $remainingString از $totalString باقی مانده';
   }
 
   @override
@@ -2462,10 +2576,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String commitmentsCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count مورد تکرارشونده',
+      other: '$countString مورد تکرارشونده',
       one: '۱ مورد تکرارشونده',
     );
     return '$_temp0';
@@ -2597,17 +2715,29 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String timeMinutesShort(int count) {
-    return '$count دقیقه';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString دقیقه';
   }
 
   @override
   String timeHoursShort(int count) {
-    return '$count ساعت';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString ساعت';
   }
 
   @override
   String timeDaysShort(int count) {
-    return '$count روز';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString روز';
   }
 
   @override
@@ -2674,7 +2804,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String tableTruncated(int count) {
-    return 'فقط $count سطر اول نشان داده شده است.';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return 'فقط $countString سطر اول نشان داده شده است.';
   }
 
   @override
@@ -2772,10 +2906,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String remindInDays(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count روز',
+      other: '$countString روز',
       one: '۱ روز',
     );
     return '$_temp0';
@@ -2783,10 +2921,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String remindInHours(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count ساعت',
+      other: '$countString ساعت',
       one: '۱ ساعت',
     );
     return '$_temp0';
@@ -2794,10 +2936,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String remindInMinutes(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count دقیقه',
+      other: '$countString دقیقه',
       one: '۱ دقیقه',
     );
     return '$_temp0';
@@ -2835,7 +2981,11 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String checklistItemCount(int count) {
-    return '$count مورد';
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString مورد';
   }
 
   @override
@@ -2860,4 +3010,31 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get pauseAudio => 'توقف صدا';
+
+  @override
+  String get convertToMarkdown => 'ذخیره به صورت Markdown';
+
+  @override
+  String get convertToNote => 'تبدیل به یادداشت';
+
+  @override
+  String get markdownConvertFailed =>
+      'تبدیل انجام نشد؛ اصل محفوظ است. فایل Markdown باید UTF-8 و حداکثر ۱۶ مگابایت باشد.';
+
+  @override
+  String get fullBackupTitle => 'پشتیبان کامل برنامه';
+
+  @override
+  String get fullBackupPrivateHint =>
+      'شامل کتابخانه، تنظیمات و کلیدهای سرویس‌هاست. تنظیمات و کلیدها رمزگذاری می‌شوند؛ فایل‌های کتابخانه و مدل اختیاری رمزگذاری نمی‌شوند. کد بازیابی را جدا نگه دارید؛ بدون آن بازیابی تنظیمات و کلیدها ممکن نیست. این بکاپ می‌تواند جایگزین کتابخانه فعلی شود.';
+
+  @override
+  String get backupKeySaved => 'کد بازیابی را در جای امن ذخیره کردم';
+
+  @override
+  String get backupIncludeModel =>
+      'مدل آفلاین دانلودشده هم ذخیره شود (حدود ۲٫۶ گیگابایت)';
+
+  @override
+  String get backupRecoveryKey => 'کد بازیابی را وارد کنید';
 }

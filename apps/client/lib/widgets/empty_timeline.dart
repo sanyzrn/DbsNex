@@ -90,7 +90,7 @@ class _Ghost extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
-      padding: const EdgeInsets.all(NexSpacing.cardInset),
+      padding: const EdgeInsets.all(NexSpacing.sm),
       decoration: BoxDecoration(
         border: Border.all(color: scheme.outline),
         borderRadius: BorderRadius.circular(NexRadius.lg),
@@ -98,8 +98,8 @@ class _Ghost extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: nexCardLeadingSize,
-            height: nexCardLeadingSize,
+            width: 28,
+            height: 28,
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHighest,
               // Matches the real leading icon box — NexRadius.cardLeading.

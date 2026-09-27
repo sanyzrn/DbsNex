@@ -85,3 +85,32 @@ String nexDisplayDate(
       '${time ? '  ${two(local.hour)}:${two(local.minute)}${seconds ? ':${two(local.second)}' : ''}' : ''}';
   return nexDigits(text, persian: persian);
 }
+
+/// Converts a validated Solar Hijri date to the local civil date used by storage.
+DateTime nexGregorianDate(int year, int month, int day) {
+  if (month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > nexPersianMonthDays(year, month)) {
+    throw RangeError('Invalid Persian date');
+  }
+  final offset = month <= 6 ? (month - 1) * 31 : 186 + (month - 7) * 30;
+  final utc = DateTime.utc(
+    year + 621,
+    3,
+    _marchDay(year),
+  ).add(Duration(days: offset + day - 1));
+  return DateTime(utc.year, utc.month, utc.day);
+}
+
+int nexPersianMonthDays(int year, int month) {
+  if (month < 1 || month > 12) throw RangeError('Persian month');
+  if (month <= 6) return 31;
+  if (month <= 11) return 30;
+  final days = DateTime.utc(
+    year + 622,
+    3,
+    _marchDay(year + 1),
+  ).difference(DateTime.utc(year + 621, 3, _marchDay(year))).inDays;
+  return days - 336;
+}

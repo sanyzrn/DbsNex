@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 
 import 'ai_provider.dart';
 import 'chat_history.dart';
+import 'editor_drafts.dart';
 import 'package:uuid/uuid.dart';
 
 /// When the app lock puts itself back on.
@@ -85,6 +86,142 @@ class NexPreferences extends ChangeNotifier {
   final SharedPreferences _prefs;
   final FlutterSecureStorage _secureStorage;
   File? _profileMirror;
+  EditorDrafts? editorDrafts;
+
+  // Device identity and absolute paths belong to the receiving installation.
+  static bool _portablePreference(String key) =>
+      key != _kDeviceId &&
+      key != 'profile.photo' &&
+      key != 'sponsor.image_path' &&
+      key != _kSyncBearerToken &&
+      !key.startsWith('ai.key.') &&
+      !key.startsWith('restore.');
+
+  Map<String, dynamic> backupSettings() {
+    if (secureStorageUnavailable) {
+      throw StateError('Secure storage unavailable');
+    }
+    return {
+      'version': 1,
+      'preferences': {
+        for (final key in _prefs.getKeys())
+          if (_portablePreference(key)) key: _prefs.get(key),
+      },
+      'credentials': Map<String, String>.from(_secureApiKeys),
+    };
+  }
+
+  static void validateBackupSettings(Map<String, dynamic> value) {
+    if (value['version'] != 1 ||
+        value['preferences'] is! Map ||
+        value['credentials'] is! Map) {
+      throw const FormatException('Invalid settings backup');
+    }
+    for (final entry in (value['preferences'] as Map).entries) {
+      final v = entry.value;
+      if (entry.key is! String ||
+          !(v is String ||
+              v is bool ||
+              v is num ||
+              v is List && v.every((e) => e is String))) {
+        throw const FormatException('Invalid preference value');
+      }
+    }
+    final keys = {
+      for (final provider in AiProvider.values) provider.wireName,
+      _kSecureSyncToken,
+    };
+    for (final entry in (value['credentials'] as Map).entries) {
+      if (!keys.contains(entry.key) || entry.value is! String) {
+        throw const FormatException('Invalid credential');
+      }
+    }
+  }
+
+  static const _restoreRecoveryKey = 'nex.full_restore.recovery';
+  Future<void> beginRestoreRecovery(String library) async {
+    final value = jsonEncode({
+      'library': library,
+      'settings': backupSettings(),
+    });
+    await _secureStorage.write(key: _restoreRecoveryKey, value: value);
+    if (await _secureStorage.read(key: _restoreRecoveryKey) != value) {
+      throw StateError('Cannot protect current settings');
+    }
+    if (!await _prefs.setBool('restore.in_progress', true)) {
+      throw StateError('Cannot protect restore state');
+    }
+  }
+
+  Future<Map<String, dynamic>?> pendingRestoreRecovery() async {
+    if (_prefs.getBool('restore.in_progress') != true) return null;
+    final value = await _secureStorage.read(key: _restoreRecoveryKey);
+    return value == null ? null : jsonDecode(value) as Map<String, dynamic>;
+  }
+
+  Future<void> finishRestoreRecovery() async {
+    await _secureStorage.delete(key: _restoreRecoveryKey);
+    await _prefs.remove('restore.in_progress');
+  }
+
+  Future<void> restoreSettings(Map<String, dynamic> value) async {
+    validateBackupSettings(value);
+    // Verify secure writes before changing ordinary preferences.
+    final credentials = Map<String, String>.from(value['credentials'] as Map);
+    for (final entry in credentials.entries) {
+      final key = entry.key == _kSecureSyncToken
+          ? entry.key
+          : 'ai.key.${entry.key}';
+      await _secureStorage.write(key: key, value: entry.value);
+      if (await _secureStorage.read(key: key) != entry.value) {
+        throw StateError('Credential restore failed');
+      }
+    }
+    for (final provider in AiProvider.values) {
+      if (!credentials.containsKey(provider.wireName)) {
+        await _secureStorage.delete(key: 'ai.key.${provider.wireName}');
+      }
+    }
+    if (!credentials.containsKey(_kSecureSyncToken)) {
+      await _secureStorage.delete(key: _kSecureSyncToken);
+    }
+    final prefs = Map<String, dynamic>.from(value['preferences'] as Map);
+    for (final key in _prefs.getKeys().toList()) {
+      if (_portablePreference(key) && !prefs.containsKey(key)) {
+        if (!await _prefs.remove(key)) {
+          throw StateError('Preference restore failed');
+        }
+      }
+    }
+    for (final entry in prefs.entries) {
+      if (!_portablePreference(entry.key)) continue;
+      final v = entry.value;
+      final bool saved;
+      if (v is String) {
+        saved = await _prefs.setString(entry.key, v);
+      } else if (v is bool) {
+        saved = await _prefs.setBool(entry.key, v);
+      } else if (v is int) {
+        saved = await _prefs.setInt(entry.key, v);
+      } else if (v is double) {
+        saved = await _prefs.setDouble(entry.key, v);
+      } else {
+        saved = await _prefs.setStringList(
+          entry.key,
+          List<String>.from(v as List),
+        );
+      }
+      if (!saved) throw StateError('Preference restore failed');
+    }
+    _secureApiKeys
+      ..clear()
+      ..addAll(credentials);
+    _expandedNoteIds
+      ..clear()
+      ..addAll(_prefs.getStringList('timeline.expanded') ?? []);
+    // Rehydrate derived caches through the mandatory application restart.
+    await _writeProfileMirror();
+  }
 
   /// Keep profile details beside the photo in media/profile, which is included
   /// in library backups. SharedPreferences can be absent after a restore even
@@ -92,6 +229,7 @@ class NexPreferences extends ChangeNotifier {
   /// refreshed from the merged values. A deliberately cleared field is also
   /// cleared in the mirror by its setter.
   Future<void> attachProfileMirror(String mediaDir) async {
+    editorDrafts = EditorDrafts(p.join(p.dirname(mediaDir), 'editor-drafts'));
     final file = File(p.join(mediaDir, 'profile', 'details.json'));
     if (await file.exists()) {
       try {
@@ -699,7 +837,8 @@ class NexPreferences extends ChangeNotifier {
     return code == null || code == 'system' ? null : Locale(code);
   }
 
-  bool get solarCalendar => _prefs.getBool('appearance.solar_calendar') ?? false;
+  bool get solarCalendar =>
+      _prefs.getBool('appearance.solar_calendar') ?? false;
   Future<void> setSolarCalendar(bool enabled) async {
     await _prefs.setBool('appearance.solar_calendar', enabled);
     notifyListeners();

@@ -9,15 +9,28 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-Current work (2026-09-26): implement backlog **items 1–35**, on **`codex/work`
-only**. The owner explicitly takes responsibility for all practical/device/
-emulator acceptance tests; do not run those. Host automated tests are allowed.
-1.40.0 preparation was merged in PR #249 with green CI; this subsequent batch
-is **Unreleased**, with no new version selected. Check actual published tags
-only in `sanyzrn/DbsNex-releases`; a source merge does not establish publication.
-Read the current status at the top of **`AUDIT_FOLLOW_UP.md`**; its older sections
-are historical. Items 17–35 are now authorized; see their status table, including
-owner-only acceptance and undeployed feedback configuration. Do not create branches.
+Current work (2026-09-27): the owner's new **13-item feature/polish request**
+following the 1–35 audit backlog, on **`codex/work` only**. See the latest section
+of `AUDIT_FOLLOW_UP.md` for implementation scope and verification. The prior
+batch was committed/pushed as `64f9c28` and merged via PR #250. The owner has
+authorized committing/pushing this batch as **1.50.0**.
+The owner handles practical/device/emulator tests; do not run them. Host
+unit/widget tests are allowed. Do not create branches or publish/tag. These
+changes are recorded under **v1.50.0**, with a fresh Unreleased section.
+Latest verified publication is v1.40.0 (release API checked 2026-09-27); v1.50.0
+was not published/tagged at preparation time. Check versions only in
+`sanyzrn/DbsNex-releases`. The owner will tag after reviewing release gates.
+Use `C:/src/flutter-3.35.5/bin/flutter.bat` and cached dependencies (`--no-pub`);
+the PATH SDK is not the pinned version. Local APK compilation remains blocked
+by resolving AGP 9.3.2; standalone waveform Kotlin compilation is not an APK build.
+
+Complete backups use a generated 256-bit recovery code and authenticated
+WinZip AES for settings/credentials; do not replace it with a weak human
+password. Library and optional model are plaintext entries. A secure recovery
+journal and safety library let bootstrap roll back an interrupted restore.
+Draft checkpoints are per editor; reopening that editor resumes them. Chat
+attachments and an actively recording audio stream are not recovery drafts.
+
 The 1.21.1 audit fixes are recorded in §8 and `NEX_RELEASE_AUDIT.md`. The
 1.22.0 work redesigns Liquid Glass and the home dock; 1.22.1 addresses the
 first round of user feedback; 1.22.2 fixes photo previews and gestures. New

@@ -19,14 +19,14 @@
   "layoutSearchField": "Search box",
   "layoutTagRow": "Tag row",
   "chatAboutGroup": "About {label} · {count} notes",
-  "@chatAboutGroup": {"placeholders": {"label": {"type": "String"}, "count": {"type": "int"}}},
+  "@chatAboutGroup": {"placeholders": {"label": {"type": "String"}, "count": {"type": "int", "format": "decimalPattern"}}},
   "groupActions": "Group actions",
   "groupAsk": "Ask about these",
   "groupDelete": "Delete this group",
   "groupDeleteBody": "{count} notes move to Trash. You can put them back from Library → Trash.",
-  "@groupDeleteBody": {"placeholders": {"count": {"type": "int"}}},
+  "@groupDeleteBody": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "groupDeleted": "{count} notes deleted",
-  "@groupDeleted": {"placeholders": {"count": {"type": "int"}}},
+  "@groupDeleted": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "assistantVoiceGroup": "How it talks",
   "assistantReachGroup": "What it can see",
   "assistantAboutYouNote": "Included with your messages to the provider you choose.",
@@ -186,7 +186,7 @@
       "description": "A lock delay under a minute",
       "placeholders": {
           "count": {
-              "type": "int"
+              "type": "int", "format": "decimalPattern"
           }
       }
   },
@@ -195,7 +195,7 @@
       "description": "A lock delay in minutes",
       "placeholders": {
           "count": {
-              "type": "int"
+              "type": "int", "format": "decimalPattern"
           }
       }
   },
@@ -204,7 +204,7 @@
       "description": "A lock delay in hours",
       "placeholders": {
           "count": {
-              "type": "int"
+              "type": "int", "format": "decimalPattern"
           }
       }
   },
@@ -246,7 +246,7 @@
   "@resultCount": {
     "placeholders": {
       "count": {
-        "type": "int"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -291,7 +291,7 @@
   "timelineGroupCount": "{count, plural, =1{1 note} other{{count} notes}}",
   "@timelineGroupCount": {
     "description": "How many notes a collapsed section holds",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "tags": "Tags",
   "tagActions": "Tag actions",
@@ -299,7 +299,7 @@
   "@noteCount": {
     "placeholders": {
       "count": {
-        "type": "int"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -426,7 +426,7 @@
   "@backupCount": {
     "placeholders": {
       "count": {
-        "type": "int"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -630,7 +630,7 @@
     "description": "Voice note header in the detail sheet",
     "placeholders": {
       "seconds": {
-        "type": "int"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -736,7 +736,7 @@
   },
   "searchFiltersClear": "Clear all ({count})",
   "@searchFiltersClear": {
-    "placeholders": { "count": { "type": "int" } },
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } },
     "description": "Drops every active search filter"
   },
   "searchFilterTags": "Tags",
@@ -773,7 +773,7 @@
   },
   "searchFiltersActive": "{count} active",
   "@searchFiltersActive": {
-    "placeholders": { "count": { "type": "int" } },
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } },
     "description": "Count of active filters, shown in the filter sheet"
   },
   "showFilters": "Show filters",
@@ -889,7 +889,7 @@
     "description": "Confirmation body for emptying the trash",
     "placeholders": {
       "count": {
-        "type": "int"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -1096,8 +1096,8 @@
   "@importDone": {
     "description": "Result of an import",
     "placeholders": {
-      "added": { "type": "int" },
-      "skipped": { "type": "int" }
+      "added": { "type": "int", "format": "decimalPattern" },
+      "skipped": { "type": "int", "format": "decimalPattern" }
     }
   },
   "importFailed": "That file could not be read as a Nex export. Your notes were not changed.",
@@ -1172,7 +1172,7 @@
   "catchUpDone": "{count, plural, =0{Nothing left to read} =1{1 note read} other{{count} notes read}}",
   "@catchUpDone": {
     "description": "Result of a backfill pass",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "noteOfType": "{type} note",
   "@noteOfType": {
@@ -1195,32 +1195,32 @@
   "timeMinutesAgo": "{count}m",
   "@timeMinutesAgo": {
     "description": "Card timestamp: updated N minutes ago",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeHoursAgo": "{count}h",
   "@timeHoursAgo": {
     "description": "Card timestamp: updated N hours ago",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeDaysAgo": "{count}d",
   "@timeDaysAgo": {
     "description": "Card timestamp: updated N days ago",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeWeeksAgo": "{count}w",
   "@timeWeeksAgo": {
     "description": "Card timestamp: updated N weeks ago",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeMonthsAgo": "{count}mo",
   "@timeMonthsAgo": {
     "description": "Card timestamp: updated N months ago",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeYearsAgo": "{count}y",
   "@timeYearsAgo": {
     "description": "Card timestamp: updated N years ago",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "captureFailedPermission": "Nex was not allowed to use the camera or your photos. You can grant it in your device settings.",
   "@captureFailedPermission": {
@@ -1610,10 +1610,10 @@
       "description": "How many checklist items are ticked",
       "placeholders": {
           "done": {
-              "type": "int"
+              "type": "int", "format": "decimalPattern"
           },
           "total": {
-              "type": "int"
+              "type": "int", "format": "decimalPattern"
           }
       }
   },
@@ -1634,7 +1634,7 @@
   "foreignImportDone": "{count, plural, =0{No notes found in that file.} =1{1 note imported.} other{{count} notes imported.}}",
   "@foreignImportDone": {
     "description": "How many notes an import brought in",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}
   },
   "foreignImportUnreadable": "Nex could not read that file. Pick the .zip you downloaded, or a .json, .md or .txt file.",
   "@foreignImportUnreadable": {"description": "Shown when a picked file held nothing importable"},
@@ -1686,7 +1686,7 @@
   "localModelDownloadingPart": "Downloading part {index} of {count}",
   "@localModelDownloadingPart": {
     "description": "Which piece of the model is downloading",
-    "placeholders": {"index": {"type": "int"}, "count": {"type": "int"}}
+    "placeholders": {"index": {"type": "int", "format": "decimalPattern"}, "count": {"type": "int", "format": "decimalPattern"}}
   },
   "localModelJoining": "Putting the pieces together and checking them…",
   "@localModelJoining": {"description": "Shown while parts are joined and verified"},
@@ -1948,7 +1948,7 @@
     "description": "How many recent notes are shared",
     "placeholders": {
       "count": {
-        "type": "int"
+        "type": "int", "format": "decimalPattern"
       }
     }
   },
@@ -2041,7 +2041,7 @@
   "commitmentWindowTo": "Until",
   "@commitmentWindowTo": {"description": "Window end"},
   "commitmentTally": "{done} of {total} today",
-  "@commitmentTally": {"description": "How many times an hourly item has been done today", "placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
+  "@commitmentTally": {"description": "How many times an hourly item has been done today", "placeholders": {"done": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
   "commitmentDueIn": "due in {span}",
   "@commitmentDueIn": {"description": "Time until due", "placeholders": {"span": {"type": "String"}}},
   "commitmentOverdue": "{span} overdue",
@@ -2049,23 +2049,23 @@
   "commitmentLeadAuto": "Automatic ({span})",
   "@commitmentLeadAuto": {"description": "Lead time following the cadence", "placeholders": {"span": {"type": "String"}}},
   "cadenceHours": "{count, plural, =1{every hour} other{every {count} hours}}",
-  "@cadenceHours": {"description": "Hourly cadence", "placeholders": {"count": {"type": "int"}}},
+  "@cadenceHours": {"description": "Hourly cadence", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cadenceDays": "{count, plural, =1{every day} other{every {count} days}}",
-  "@cadenceDays": {"description": "Daily cadence", "placeholders": {"count": {"type": "int"}}},
+  "@cadenceDays": {"description": "Daily cadence", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cadenceWeeks": "{count, plural, =1{every week} other{every {count} weeks}}",
-  "@cadenceWeeks": {"description": "Weekly cadence", "placeholders": {"count": {"type": "int"}}},
+  "@cadenceWeeks": {"description": "Weekly cadence", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cadenceMonths": "{count, plural, =1{every month} other{every {count} months}}",
-  "@cadenceMonths": {"description": "Monthly cadence", "placeholders": {"count": {"type": "int"}}},
+  "@cadenceMonths": {"description": "Monthly cadence", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "cadenceYears": "{count, plural, =1{every year} other{every {count} years}}",
-  "@cadenceYears": {"description": "Yearly cadence", "placeholders": {"count": {"type": "int"}}},
+  "@cadenceYears": {"description": "Yearly cadence", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "spanMinutes": "{count, plural, =1{1 minute} other{{count} minutes}}",
-  "@spanMinutes": {"description": "A span in minutes", "placeholders": {"count": {"type": "int"}}},
+  "@spanMinutes": {"description": "A span in minutes", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "spanHours": "{count, plural, =1{1 hour} other{{count} hours}}",
-  "@spanHours": {"description": "A span in hours", "placeholders": {"count": {"type": "int"}}},
+  "@spanHours": {"description": "A span in hours", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "spanDays": "{count, plural, =1{1 day} other{{count} days}}",
-  "@spanDays": {"description": "A span in days", "placeholders": {"count": {"type": "int"}}},
+  "@spanDays": {"description": "A span in days", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "spanMonths": "{count, plural, =1{1 month} other{{count} months}}",
-  "@spanMonths": {"description": "A span in months", "placeholders": {"count": {"type": "int"}}},
+  "@spanMonths": {"description": "A span in months", "placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "assistantConfirmSetting": "Change this setting?",
   "@assistantConfirmSetting": {
     "description": "Confirmation for an assistant-proposed settings change"
@@ -2115,7 +2115,7 @@
   "briefLineDue": "{title} — due in {span}",
   "@briefLineDue": {"description": "A brief line for something falling due.", "placeholders": {"title": {"type": "String"}, "span": {"type": "String"}}},
   "briefLineChecklist": "{title} — {remaining} of {total} left",
-  "@briefLineChecklist": {"description": "A brief line for a checklist with items unticked.", "placeholders": {"title": {"type": "String"}, "remaining": {"type": "int"}, "total": {"type": "int"}}},
+  "@briefLineChecklist": {"description": "A brief line for a checklist with items unticked.", "placeholders": {"title": {"type": "String"}, "remaining": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
   "commitmentsAbout": "Nex keeps the next date for each one, brings it up in the daily brief, and can send a notification before it falls due.",
   "@commitmentsAbout": {
     "description": "The paragraph under the title on the recurring sheet, explaining what a recurring item actually does."
@@ -2135,7 +2135,7 @@
   "commitmentsCount": "{count, plural, =1{1 recurring item} other{{count} recurring items}}",
   "@commitmentsCount": {
     "description": "How many recurring items there are, shown beside the title.",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "assistantConfirmRemind": "Set this reminder?",
   "@assistantConfirmRemind": {
@@ -2285,17 +2285,17 @@
   "timeMinutesShort": "{count}m",
   "@timeMinutesShort": {
     "description": "Reminder countdown on a card, minutes",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeHoursShort": "{count}h",
   "@timeHoursShort": {
     "description": "Reminder countdown on a card, hours",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "timeDaysShort": "{count}d",
   "@timeDaysShort": {
     "description": "Reminder countdown on a card, days",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "remindOverdue": "Overdue",
   "@remindOverdue": {"description": "A reminder whose time has passed"},
@@ -2349,7 +2349,7 @@
   "tableTruncated": "Showing the first {count} rows.",
   "@tableTruncated": {
     "description": "A CSV or TSV file with more rows than the preview draws",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "formatBold": "Bold",
   "@formatBold": {"description": "Selection menu: make the selected text bold"},
@@ -2414,15 +2414,15 @@
   },
   "remindInDays": "{count, plural, =1{1 day} other{{count} days}}",
   "@remindInDays": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "remindInHours": "{count, plural, =1{1 hour} other{{count} hours}}",
   "@remindInHours": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "remindInMinutes": "{count, plural, =1{1 minute} other{{count} minutes}}",
   "@remindInMinutes": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
   },
   "remindNotScheduled": "That time was saved on the note, but this phone would not take the alarm.",
   "@remindNotScheduled": {"description": "Scheduling failed even though the due date was stored"},
@@ -2450,10 +2450,18 @@
   "unsavedChanges": "Discard unsaved changes?",
   "keepEditing": "Keep editing",
   "checklistItemCount": "{count, plural, one{1 item} other{{count} items}}",
-  "@checklistItemCount": {"placeholders": {"count": {"type": "int"}}},
+  "@checklistItemCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "annotateColor": "{color, select, white{White} black{Black} red{Red} yellow{Yellow} green{Green} blue{Blue} other{Color}}",
   "annotateStrokeWidth": "Stroke width",
   "playAudio": "Play audio",
   "pauseAudio": "Pause audio",
-  "@annotateColor": {"placeholders": {"color": {"type": "String"}}}
+  "@annotateColor": {"placeholders": {"color": {"type": "String"}}},
+  "convertToMarkdown": "Save as Markdown",
+  "convertToNote": "Convert to note",
+  "markdownConvertFailed": "Could not convert this file. The original is still safe. Markdown files must be UTF-8 and at most 16 MB.",
+  "fullBackupTitle": "Complete device backup",
+  "fullBackupPrivateHint": "Includes the library, settings and API keys. Settings and keys are encrypted; library files and the optional model are not. Save this recovery code separately: without it the settings and keys cannot be restored. This backup can replace your current library.",
+  "backupKeySaved": "I saved the recovery code somewhere safe",
+  "backupIncludeModel": "Include downloaded offline model (about 2.6 GB)",
+  "backupRecoveryKey": "Enter the recovery code"
 }
