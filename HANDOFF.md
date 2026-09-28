@@ -9,6 +9,34 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
+## Current batch — 1.70.0 (2026-09-28)
+
+This section supersedes release/permission statements below. All work stays on
+`codex/work`. The owner explicitly requested completing the latest 15 items,
+then committing, pushing and publishing **1.70.0**. No new branches. Practical
+phone/emulator tests belong to the owner; host unit/widget checks are allowed.
+Release artifacts must come from `sanyzrn/DbsNex-releases`; source tag v1.70.0
+triggers the source repository's verified Android release workflow. Check live
+GitHub status before claiming publication. Last verified public release before
+this batch was v1.60.0; its CI run 36348107512 succeeded.
+
+Implemented: persisted/default-open settings categories, original layout icon,
+Tools/Recurring/Capture/Library/Settings dock, note folding and hold menu,
+standalone generator, Chrome CSV import, readable authenticated vault fields,
+private text messages, swipe-back, capsule notices, fading pinned tags,
+first-capture hold hint, whole-app palettes and Theme settings page. Liquid
+Glass is disabled by explicit owner decision; code and stored preference remain.
+Recurring roadmap items 1–6 are implemented with a backwards-compatible
+`details_json` column: occurrence actions/history/notes, calendar schedules,
+templates and separate upcoming totals per currency. Pure calendar utilities
+now live in core; the client file re-exports its public compatibility API.
+
+Read `REMAINING_WORK.md` for actual remaining work and practical checks. No
+secret should enter notes/AI/ordinary library export. Private messages use the
+same authenticated secure vault; their unsent composer clears on locking.
+
+### Historical entries
+
 Latest follow-up (2026-09-27), after commit `e81dc7a` preparing 1.50.0:
 implement a transparent-at-rest/pinned-opaque tag row, stronger Capture action,
 and a separate Settings → Tools hub with password/card vaults. This follow-up

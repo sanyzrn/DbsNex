@@ -20,7 +20,6 @@ import '../platform/ai_provider.dart';
 import '../platform/assistant_actions.dart';
 import '../platform/chat_history.dart';
 import '../platform/nex_preferences.dart';
-import '../platform/display_date.dart';
 import '../platform/nex_services.dart';
 import 'card_strings.dart';
 import 'nex_banner.dart';

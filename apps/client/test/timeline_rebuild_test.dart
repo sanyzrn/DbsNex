@@ -1202,7 +1202,12 @@ void main() {
     );
     await tester.pumpAndSettle();
     final backing = find.byKey(const ValueKey('filter-header-background'));
-    Color color() => tester.widget<ColoredBox>(backing).color;
+    Color color() =>
+        ((tester.widget<DecoratedBox>(backing).decoration as BoxDecoration)
+                    .gradient!
+                as LinearGradient)
+            .colors
+            .first;
     expect(color(), Colors.transparent);
     final list = find.byType(CustomScrollView).first;
     await tester.drag(list, const Offset(0, -550));
@@ -1455,7 +1460,7 @@ void main() {
       // "All" is its own chip and nothing else on the screen says it.
       expect(find.text('All'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.view_quilt_outlined));
+      await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tag row'));
       await tester.pumpAndSettle();
@@ -1478,7 +1483,7 @@ void main() {
       // only way to search at all.
       expect(find.byTooltip('Search'), findsNothing);
 
-      await tester.tap(find.byIcon(Icons.view_quilt_outlined));
+      await tester.tap(find.byIcon(Icons.dashboard_customize_outlined));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Search box'));
       await tester.pumpAndSettle();

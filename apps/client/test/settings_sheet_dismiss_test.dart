@@ -73,6 +73,45 @@ void main() {
     ).dispatch(scrollable.context);
   }
 
+  testWidgets('category choices survive a new app tree and language change', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    final guide = find.byKey(const ValueKey('settings-section-guide'));
+    await tester.ensureVisible(guide);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: guide, matching: find.byType(ListTile)).first,
+    );
+    await tester.pumpAndSettle();
+    expect(preferences.isSettingsSectionExpanded('guide'), isTrue);
+    expect(preferences.isSettingsSectionExpanded('security'), isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    final reloaded = await NexPreferences.load();
+    await reloaded.setLocale('fa');
+    await tester.pumpWidget(NexApp(services: services, preferences: reloaded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    expect(tester.widget<ExpansionTile>(guide).initiallyExpanded, isTrue);
+    await tester.ensureVisible(guide);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: guide, matching: find.byType(ListTile)).first,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      (await NexPreferences.load()).isSettingsSectionExpanded('guide'),
+      isFalse,
+    );
+  });
+
   testWidgets('a fling settling past the top does not close Settings', (
     tester,
   ) async {

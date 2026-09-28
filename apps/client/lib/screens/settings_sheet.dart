@@ -23,6 +23,8 @@ import '../platform/reminders.dart';
 import '../platform/update_service.dart';
 import '../platform/os_capture_bridge.dart';
 import 'about_screen.dart';
+import '../widgets/feature_label.dart';
+import '../platform/theme_presets.dart';
 import 'backup_screen.dart';
 import 'guide_screen.dart';
 import 'assistant_screen.dart';
@@ -32,7 +34,6 @@ import 'profile_screen.dart';
 import 'security_screen.dart';
 import 'widget_settings_screen.dart';
 import 'update_sheet.dart';
-import 'tools_screen.dart';
 
 /// The v1 preference surface.
 ///
@@ -199,42 +200,14 @@ class SettingsSheet extends StatelessWidget {
 
   List<Widget> _groups(BuildContext context, AppLocalizations l10n) => [
     _ProfileCard(services: services, preferences: preferences),
-    Padding(
-      padding: const EdgeInsets.only(bottom: NexSpacing.md),
-      child: Card(
-        margin: EdgeInsets.zero,
-        child: ListTile(
-          leading: const Icon(Icons.space_dashboard_outlined),
-          title: Text(l10n.toolsTitle),
-          subtitle: Text(l10n.toolsPrivateHint),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(
-            context,
-            NexPageRoute<void>(builder: (_) => const ToolsScreen()),
-          ),
-        ),
-      ),
-    ),
-    // First, and on its own. Someone who opens Settings looking for how a
-    // thing works should not have to guess which of seven sections it was
-    // filed under.
-    _Section(
-      title: l10n.guideTitle,
-      children: [
-        _Row(
-          icon: Icons.menu_book_outlined,
-          title: l10n.guideTitle,
-          value: l10n.guideSubtitle,
-          onTap: () => unawaited(GuideScreen.show(context)),
-        ),
-      ],
-    ),
     // Recurring items used to have a section here, because Settings was the
     // only place they could be reached from. They have a button in the bar
     // along the bottom of the timeline now, which is where they belong: a
     // list of somebody's bills and medication is their data, not a
     // preference about how the app behaves.
     _Section(
+      id: 'security',
+      preferences: preferences,
       title: l10n.securityTitle,
       children: [
         _Row(
@@ -252,23 +225,11 @@ class SettingsSheet extends StatelessWidget {
             ),
           ),
         ),
-        _Row(
-          icon: Icons.widgets_outlined,
-          title: l10n.widgetSettingsTitle,
-          value: _widgetFilterSummary(l10n, preferences),
-          onTap: () => Navigator.push(
-            context,
-            NexPageRoute<void>(
-              builder: (_) => WidgetSettingsScreen(
-                preferences: preferences,
-                services: services,
-              ),
-            ),
-          ),
-        ),
       ],
     ),
     _Section(
+      id: 'intelligence',
+      preferences: preferences,
       title: l10n.intelligence,
       children: [
         _Row(
@@ -324,6 +285,8 @@ class SettingsSheet extends StatelessWidget {
       ],
     ),
     _Section(
+      id: 'appearance',
+      preferences: preferences,
       title: l10n.appearance,
       children: [
         _Row(
@@ -393,124 +356,35 @@ class SettingsSheet extends StatelessWidget {
           ),
         ),
         _Row(
-          icon: Icons.dark_mode_outlined,
+          icon: Icons.palette_outlined,
           title: l10n.theme,
-          value: switch (preferences.themeMode) {
-            ThemeMode.light => l10n.themeLight,
-            ThemeMode.dark => l10n.themeDark,
-            ThemeMode.system => l10n.themeSystem,
-          },
-          onTap: () => unawaited(
-            _pick<ThemeMode>(
-              context: context,
-              title: l10n.theme,
-              selected: preferences.themeMode,
-              onSelected: preferences.setThemeMode,
-              choices: [
-                NexChoice(
-                  value: ThemeMode.light,
-                  label: l10n.themeLight,
-                  preview: NexThemeSwatch(
-                    mode: ThemeMode.light,
-                    comfort: preferences.comfortMode,
-                  ),
-                ),
-                NexChoice(
-                  value: ThemeMode.dark,
-                  label: l10n.themeDark,
-                  preview: NexThemeSwatch(
-                    mode: ThemeMode.dark,
-                    comfort: preferences.comfortMode,
-                  ),
-                ),
-                NexChoice(
-                  value: ThemeMode.system,
-                  label: l10n.themeSystem,
-                  preview: NexThemeSwatch(
-                    mode: ThemeMode.system,
-                    comfort: preferences.comfortMode,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        _AccentColorRow(preferences: preferences),
-        _SwitchRow(
-          icon: Icons.blur_on_outlined,
-          title: l10n.liquidGlass,
-          subtitle: l10n.liquidGlassSubtitle,
-          value: preferences.liquidGlass,
-          onChanged: preferences.setLiquidGlass,
-        ),
-        _Row(
-          icon: Icons.wallpaper_outlined,
-          title: l10n.backgroundStyle,
-          value: _backgroundLabel(l10n, preferences.backgroundPattern),
-          onTap: () => unawaited(
-            _pick<NexBackgroundPattern>(
-              context: context,
-              title: l10n.backgroundStyle,
-              selected: preferences.backgroundPattern,
-              onSelected: preferences.setBackgroundPattern,
-              footnote: l10n.backgroundStyleSubtitle,
-              choices: [
-                for (final pattern in NexBackgroundPattern.values)
-                  NexChoice(
-                    value: pattern,
-                    label: _backgroundLabel(l10n, pattern),
-                    preview: NexBackgroundPreview(pattern: pattern),
-                  ),
-              ],
+          value: nexThemePresetLabel(context, preferences.themePreset),
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => _ThemeScreen(preferences: preferences),
             ),
           ),
         ),
         _Row(
-          icon: Icons.format_size,
-          title: l10n.uiScale,
-          value: switch (preferences.uiScale) {
-            < 1.0 => l10n.uiScaleSmall,
-            < 1.1 => l10n.uiScaleDefault,
-            < 1.25 => l10n.uiScaleLarge,
-            _ => l10n.uiScaleLarger,
-          },
-          // The four steps are unchanged, but the type ramp underneath them
-          // came down a step — so "Large" is roughly what "Default" used to
-          // be, which is where anyone who liked the old size should land.
-          onTap: () => unawaited(
-            _pick<double>(
-              context: context,
-              title: l10n.uiScale,
-              selected: preferences.uiScale,
-              onSelected: preferences.setUiScale,
-              choices: [
-                NexChoice(
-                  value: 0.9,
-                  label: l10n.uiScaleSmall,
-                  preview: const _TextSizePreview(fontSize: 13),
-                ),
-                NexChoice(
-                  value: 1.0,
-                  label: l10n.uiScaleDefault,
-                  preview: const _TextSizePreview(fontSize: 17),
-                ),
-                NexChoice(
-                  value: 1.15,
-                  label: l10n.uiScaleLarge,
-                  preview: const _TextSizePreview(fontSize: 21),
-                ),
-                NexChoice(
-                  value: 1.3,
-                  label: l10n.uiScaleLarger,
-                  preview: const _TextSizePreview(fontSize: 25),
-                ),
-              ],
+          icon: Icons.widgets_outlined,
+          title: l10n.widgetSettingsTitle,
+          value: _widgetFilterSummary(l10n, preferences),
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => WidgetSettingsScreen(
+                preferences: preferences,
+                services: services,
+              ),
             ),
           ),
         ),
       ],
     ),
     _Section(
+      id: 'capture',
+      preferences: preferences,
       title: l10n.capture,
       children: [
         _SwitchRow(
@@ -548,6 +422,8 @@ class SettingsSheet extends StatelessWidget {
       ],
     ),
     _Section(
+      id: 'notifications',
+      preferences: preferences,
       title: l10n.notifications,
       children: [
         _SwitchRow(
@@ -594,6 +470,8 @@ class SettingsSheet extends StatelessWidget {
       ],
     ),
     _Section(
+      id: 'data',
+      preferences: preferences,
       title: l10n.dataAndBackup,
       children: [
         FutureBuilder<List<File>>(
@@ -620,6 +498,21 @@ class SettingsSheet extends StatelessWidget {
       ],
     ),
     _Section(
+      id: 'guide',
+      preferences: preferences,
+      title: l10n.guideTitle,
+      children: [
+        _Row(
+          icon: Icons.menu_book_outlined,
+          title: l10n.guideTitle,
+          value: l10n.guideSubtitle,
+          onTap: () => unawaited(GuideScreen.show(context)),
+        ),
+      ],
+    ),
+    _Section(
+      id: 'about',
+      preferences: preferences,
       title: l10n.about,
       children: [
         _UpdateRow(updates: updates, preferences: preferences),
@@ -674,18 +567,6 @@ String _widgetFilterSummary(AppLocalizations l10n, NexPreferences preferences) {
       : types.map(l10n.noteType).join(', ');
   return tags.isEmpty ? kinds : '$kinds · ${tags.join(', ')}';
 }
-
-String _backgroundLabel(AppLocalizations l10n, NexBackgroundPattern pattern) =>
-    switch (pattern) {
-      NexBackgroundPattern.plain => l10n.backgroundPlain,
-      NexBackgroundPattern.aurora => l10n.backgroundAurora,
-      NexBackgroundPattern.ripple => l10n.backgroundRipple,
-      NexBackgroundPattern.weave => l10n.backgroundWeave,
-      NexBackgroundPattern.dots => l10n.backgroundDots,
-      NexBackgroundPattern.dusk => l10n.backgroundDusk,
-      NexBackgroundPattern.topography => l10n.backgroundTopography,
-      NexBackgroundPattern.prism => l10n.backgroundPrism,
-    };
 
 /// Opens one setting's choices as their own sheet, and applies the pick.
 ///
@@ -771,7 +652,15 @@ const _rowPadding = EdgeInsetsDirectional.only(
 /// now leading with an icon tile of its own, a seventh icon floating above
 /// them was the one that meant least and drew the most.
 class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.children});
+  const _Section({
+    required this.id,
+    required this.preferences,
+    required this.title,
+    required this.children,
+  });
+
+  final String id;
+  final NexPreferences preferences;
 
   final String title;
   final List<Widget> children;
@@ -786,7 +675,10 @@ class _Section extends StatelessWidget {
         borderRadius: BorderRadius.circular(NexRadius.lg),
         clipBehavior: Clip.antiAlias,
         child: ExpansionTile(
-          key: PageStorageKey(title),
+          key: ValueKey('settings-section-$id'),
+          initiallyExpanded: preferences.isSettingsSectionExpanded(id),
+          onExpansionChanged: (expanded) =>
+              unawaited(preferences.setSettingsSectionExpanded(id, expanded)),
           title: Text(title, style: theme.textTheme.titleSmall),
           shape: const Border(),
           collapsedShape: const Border(),
@@ -1631,6 +1523,143 @@ class _UpdateRow extends StatelessWidget {
         waiting: service.hasUpdate,
         version: service.available?.version.toString(),
         ready: service.downloaded != null,
+      ),
+    );
+  }
+}
+
+class _ThemeScreen extends StatelessWidget {
+  const _ThemeScreen({required this.preferences});
+  final NexPreferences preferences;
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.theme)),
+      body: ListenableBuilder(
+        listenable: preferences,
+        builder: (context, _) => ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              nexLabel(
+                context,
+                'Your everyday atmosphere',
+                'حال‌وهوای روزمرهٔ شما',
+              ),
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 16),
+            for (final preset in nexThemePresets)
+              Card(
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: preset.seed,
+                    child: Icon(preset.icon, color: Colors.white),
+                  ),
+                  title: Text(nexThemePresetLabel(context, preset.id)),
+                  subtitle: Text(
+                    nexLabel(
+                      context,
+                      preset.enDescription,
+                      preset.faDescription,
+                    ),
+                  ),
+                  trailing: preferences.themePreset == preset.id
+                      ? const Icon(Icons.check_circle)
+                      : null,
+                  onTap: () => preferences.setThemePreset(preset.id),
+                ),
+              ),
+            _Row(
+              icon: Icons.dark_mode_outlined,
+              title: l10n.theme,
+              value: switch (preferences.themeMode) {
+                ThemeMode.light => l10n.themeLight,
+                ThemeMode.dark => l10n.themeDark,
+                ThemeMode.system => l10n.themeSystem,
+              },
+              onTap: () => unawaited(
+                _pick<ThemeMode>(
+                  context: context,
+                  title: l10n.theme,
+                  selected: preferences.themeMode,
+                  onSelected: preferences.setThemeMode,
+                  choices: [
+                    NexChoice(
+                      value: ThemeMode.light,
+                      label: l10n.themeLight,
+                      preview: NexThemeSwatch(
+                        mode: ThemeMode.light,
+                        comfort: preferences.comfortMode,
+                      ),
+                    ),
+                    NexChoice(
+                      value: ThemeMode.dark,
+                      label: l10n.themeDark,
+                      preview: NexThemeSwatch(
+                        mode: ThemeMode.dark,
+                        comfort: preferences.comfortMode,
+                      ),
+                    ),
+                    NexChoice(
+                      value: ThemeMode.system,
+                      label: l10n.themeSystem,
+                      preview: NexThemeSwatch(
+                        mode: ThemeMode.system,
+                        comfort: preferences.comfortMode,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            _AccentColorRow(preferences: preferences),
+            _Row(
+              icon: Icons.format_size,
+              title: l10n.uiScale,
+              value: switch (preferences.uiScale) {
+                < 1.0 => l10n.uiScaleSmall,
+                < 1.1 => l10n.uiScaleDefault,
+                < 1.25 => l10n.uiScaleLarge,
+                _ => l10n.uiScaleLarger,
+              },
+              // The four steps are unchanged, but the type ramp underneath them
+              // came down a step — so "Large" is roughly what "Default" used to
+              // be, which is where anyone who liked the old size should land.
+              onTap: () => unawaited(
+                _pick<double>(
+                  context: context,
+                  title: l10n.uiScale,
+                  selected: preferences.uiScale,
+                  onSelected: preferences.setUiScale,
+                  choices: [
+                    NexChoice(
+                      value: 0.9,
+                      label: l10n.uiScaleSmall,
+                      preview: const _TextSizePreview(fontSize: 13),
+                    ),
+                    NexChoice(
+                      value: 1.0,
+                      label: l10n.uiScaleDefault,
+                      preview: const _TextSizePreview(fontSize: 17),
+                    ),
+                    NexChoice(
+                      value: 1.15,
+                      label: l10n.uiScaleLarge,
+                      preview: const _TextSizePreview(fontSize: 21),
+                    ),
+                    NexChoice(
+                      value: 1.3,
+                      label: l10n.uiScaleLarger,
+                      preview: const _TextSizePreview(fontSize: 25),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

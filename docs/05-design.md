@@ -220,9 +220,17 @@ Accessibility is core functionality, not a compliance checkbox — a slow or con
 
 ## Independent tools
 
-Settings opens a standalone Tools page. Passwords and bank cards live in a
+The leftmost home dock action opens a standalone Tools page. Recurring sits
+beside capture; holding capture opens the assistant. Passwords and bank cards live in a
 separate authenticated vault, never in timeline cards, AI context or widgets.
 Details use labeled tap-to-copy rows and explicit reveal controls. Capture stays
 the primary home action; tools add no destination to the existing dock.
 The capture confirmation is 60px with a 32px icon; the reminder retains a 48px
 touch target with a quieter 20px icon. Its position remains fixed while typing.
+
+
+## 1.70.0 appearance and navigation override
+
+The owner temporarily disabled Liquid Glass and retired background-only patterns. The implementation remains for a future redesign. Current appearance is whole-app Classic, Paper, Autumn, Rose atelier or Forest with light/dark/system modes. Appearance → Theme contains palette, mode, accent and text size; widgets remain in Appearance. Earlier glass/comfort specifications describe retained historical code, not available controls.
+
+The dock is fixed left-to-right: Tools, Recurring, Capture, Library, Settings. Holding Capture opens the assistant. Private tools are authenticated vaults for passwords, cards and text-only saved messages; the password generator is a separate tool. Authenticated vault fields are unmasked by owner request. Capsule notices retain readable, accessible actions.

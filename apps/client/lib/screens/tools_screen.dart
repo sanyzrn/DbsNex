@@ -1,3 +1,5 @@
+import '../widgets/feature_label.dart';
+import 'password_generator_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
@@ -44,6 +46,32 @@ class ToolsScreen extends StatelessWidget {
               subtitle: l.vaultCardsHint,
               icon: Icons.credit_card_rounded,
             ),
+            const SizedBox(height: 16),
+            _ToolTile(
+              kind: VaultKind.message,
+              title: nexLabel(
+                context,
+                'Private saved messages',
+                'پیام‌های ذخیره‌شدهٔ خصوصی',
+              ),
+              subtitle: nexLabel(
+                context,
+                'A private space for your words',
+                'فضایی خصوصی برای متن‌های شما',
+              ),
+              icon: Icons.chat_bubble_outline,
+            ),
+            const SizedBox(height: 16),
+            _ToolTile(
+              title: l.vaultGenerator,
+              subtitle: nexLabel(
+                context,
+                'Create and copy a strong password',
+                'ساخت و کپی رمز قوی',
+              ),
+              icon: Icons.casino_outlined,
+              destination: const PasswordGeneratorScreen(),
+            ),
             const SizedBox(height: 28),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,12 +99,14 @@ class ToolsScreen extends StatelessWidget {
 
 class _ToolTile extends StatelessWidget {
   const _ToolTile({
-    required this.kind,
+    this.kind,
+    this.destination,
     required this.title,
     required this.subtitle,
     required this.icon,
   });
-  final VaultKind kind;
+  final VaultKind? kind;
+  final Widget? destination;
   final String title, subtitle;
   final IconData icon;
   @override
@@ -94,8 +124,7 @@ class _ToolTile extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           NexPageRoute<void>(
-            swipeBackEnabled: false,
-            builder: (_) => VaultScreen(kind: kind),
+            builder: (_) => destination ?? VaultScreen(kind: kind!),
           ),
         ),
         child: Padding(

@@ -1,3 +1,4 @@
+import 'package:nex_client/widgets/nex_banner.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -44,6 +45,7 @@ void main() {
   });
 
   tearDown(() async {
+    nexHideBanner();
     await services.dispose();
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
@@ -79,11 +81,27 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    return AppLocalizations.of(
-      tester.element(find.byType(CommitmentsSheet)),
-    );
+    return AppLocalizations.of(tester.element(find.byType(CommitmentsSheet)));
   }
 
+  testWidgets(
+    'snoozing preserves the occurrence and undo restores its due date',
+    (tester) async {
+      final due = DateTime.now().add(const Duration(days: 1));
+      await add('rent', due);
+      await open(tester);
+      await tester.tap(find.byIcon(Icons.more_horiz));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('In one hour'));
+      await tester.pumpAndSettle();
+      final changed = (await services.commitments()).single;
+      expect(changed.dueAt.isBefore(due), isTrue);
+      expect(changed.scheduledDue, due);
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect((await services.commitments()).single.dueAt, due);
+    },
+  );
   testWidgets('the page says what a recurring item is for', (tester) async {
     // It said nothing at all. A title, a plus and an empty list is a page
     // that only makes sense to whoever built it.
@@ -112,7 +130,7 @@ void main() {
     final l10n = await open(tester);
     expect(find.text(l10n.commitmentsCount(4)), findsOneWidget);
 
-    double y(String text) => tester.getTopLeft(find.text(text)).dy;
+    double y(String text) => tester.getTopLeft(find.text(text).last).dy;
     expect(y(l10n.commitmentsOverdue), lessThan(y('rent')));
     expect(y('rent'), lessThan(y(l10n.commitmentsComingUp)));
     expect(y(l10n.commitmentsComingUp), lessThan(y('insurance')));
@@ -125,7 +143,10 @@ void main() {
     await add('insurance', DateTime.now().add(const Duration(days: 2)));
     final l10n = await open(tester);
     expect(find.text(l10n.commitmentsComingUp), findsOneWidget);
-    expect(find.text(l10n.commitmentsOverdue), findsNothing);
+    expect(
+      find.text(l10n.commitmentsOverdue),
+      findsOneWidget,
+    ); // dashboard filter
     expect(find.text(l10n.commitmentsRested), findsNothing);
   });
 }

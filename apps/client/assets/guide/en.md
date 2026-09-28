@@ -22,6 +22,9 @@ Voice details offer playback, a position slider and a waveform derived from the 
 
 ## Long notes and Markdown
 
+Long note details initially show a short preview; tap **More** to read the rest and **Less** to fold it. Hold a home item for Pin, Copy, Edit, Remind and Delete.
+
+
 In a text note's actions, choose **Save as Markdown**. Nex replaces the item's representation with a `.md` file and preserves its identity, tags and reminders. You can share the file with another app. For a Markdown attachment, **Convert to note** restores editable text. Imported Markdown must be UTF-8 and no larger than 16 MB. A failed conversion leaves the original intact.
 
 ## Recover unfinished work
@@ -34,15 +37,19 @@ A note reminder brings one item back at a chosen time. Use the quick choices, wh
 
 Open **Commitments** from the bottom navigation for recurring obligations such as rent or medication. Give it a title, interval and next due time; optionally set advance notice and a daily window. Mark it done to advance its schedule.
 
+
+
+Recurring has Today, Overdue and Next 7 days filters. Use a template for a subscription, installment, task or habit. Its menu can snooze one occurrence, skip it or open history; Undo restores an accidental completion or change. History entries accept a short note. Choose weekdays, a month day or the last day of the month. Persian recurrence calculates monthly/yearly dates using the Persian calendar. An optional amount and currency contribute to upcoming 30-day totals, with each currency kept separate. Snoozing preserves the original schedule.
+
 ## AI and the smart summary
 
-In **Settings → Intelligence**, configure a provider or an available offline model, adjust the assistant, then choose how the smart summary works. Cloud providers receive the content needed for the requested action; offline processing stays on the device. An API key and a working connection are needed for cloud features.
+Hold **+** to open the assistant. In **Settings → Intelligence**, configure a provider or an available offline model, adjust the assistant, then choose how the smart summary works. Cloud providers receive the content needed for the requested action; offline processing stays on the device. An API key and a working connection are needed for cloud features.
 
 Tap the summary to expand or fold it; pull down to refresh it. Hold the greeting to request another phrase. The greeting also works without a profile name. Review the assistant's proposed changes before applying them.
 
 ## Appearance, language and calendar
 
-Settings uses expandable categories. Under **Appearance**, choose theme, accent, background, glass, text size, language and calendar. The Persian calendar controls displayed dates and date selection independently of the interface language. Stored instants stay unchanged. Choose Gregorian to switch back.
+Settings remembers which categories you open or close, including after restarting the app. Security, Intelligence and Appearance start open. Under **Appearance → Theme**, choose Classic, Paper, Autumn, Rose atelier or Forest, light/dark/system mode, accent and text size. Language, calendar and home-screen widget settings remain under Appearance. Liquid Glass is temporarily unavailable. The Persian calendar controls displayed dates and date selection independently of the interface language. Stored instants stay unchanged. Choose Gregorian to switch back.
 
 Under **Capture**, configure Enter, haptics and swipe actions. Under **Notifications**, choose the daily nudge and open Android's sound settings. Under **Security**, configure app lock and its timing. Widget privacy follows the app lock.
 
@@ -64,11 +71,15 @@ If something fails, record the app version, what you tried and the error shown. 
 
 ## Tools and private vault
 
-Open **Settings → Tools**, then Passwords or Bank cards. Device authentication
+Tap **Tools** at the left of the bottom navigation, then Passwords or Bank cards. Device authentication
 is required. Save account names, logins, passwords, websites and private notes;
-the generator offers password length and symbol controls. Cards have bank,
+the password generator is a separate tool with length and symbol controls. Cards have bank,
 holder, number, printed expiry, IBAN and account fields. Tap a field or its copy
-icon to copy it. Passwords and card numbers stay masked until revealed.
+icon to copy it. After authentication, saved fields are readable immediately.
+
+In Passwords, use **Import Chrome CSV** to select an exported UTF-8 CSV file. Review the number of new entries before confirming; identical website/login/password entries are skipped. The source CSV is not encrypted, so remove it safely after import.
+
+**Private saved messages** is a separate authenticated text space: type, send to save, then copy or delete. Unsent message text is cleared when it locks. Swipe back to return from a tool or its details.
 
 The vault uses device secure storage and does not enter notes, widgets, general
 search or AI context. It locks when the app loses focus or after two idle minutes.

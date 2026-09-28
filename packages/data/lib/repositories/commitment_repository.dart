@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:nex_core/nex_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -62,8 +63,8 @@ class SqliteCommitmentRepository {
 INSERT OR REPLACE INTO commitments (
   id, title, cadence, every, due_at, lead_seconds,
   window_start, window_end, last_met_at, met_today, met_today_on,
-  paused, notify, created_at, updated_at, deleted_at, device_id, rev
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
+  paused, notify, created_at, updated_at, deleted_at, device_id, rev, details_json
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
 ''',
       [
         commitment.id,
@@ -83,6 +84,7 @@ INSERT OR REPLACE INTO commitments (
         commitment.updatedAt.toUtc().toIso8601String(),
         localDeviceId ?? '',
         commitment.rev,
+        jsonEncode(commitment.details),
       ],
     );
     return commitment;
@@ -121,6 +123,9 @@ INSERT OR REPLACE INTO commitments (
   }
 
   NexCommitment _fromRow(Row row) => NexCommitment(
+    details:
+        jsonDecode(row['details_json'] as String? ?? '{}')
+            as Map<String, dynamic>,
     id: row['id'] as String,
     title: row['title'] as String,
     cadence: NexCadence.fromWire(row['cadence'] as String?),

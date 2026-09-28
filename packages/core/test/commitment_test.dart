@@ -61,8 +61,8 @@ void main() {
       final march = february.met(DateTime(2026, 2, 28, 10));
       expect(
         march.dueAt,
-        DateTime(2026, 3, 28, 9),
-        reason: 'from the 28th, the next month is the 28th',
+        DateTime(2026, 3, 31, 9),
+        reason: 'the original 31st is preserved after February clamps it',
       );
     });
 

@@ -49,6 +49,7 @@ import '../widgets/reminder_picker.dart';
 import '../widgets/swipe_actions.dart';
 import '../widgets/tag_picker.dart';
 import 'home_layout_sheet.dart';
+import 'tools_screen.dart';
 import 'intelligence_screen.dart';
 import 'library_screen.dart';
 import 'note_detail_sheet.dart';
@@ -766,11 +767,21 @@ class TimelineScreenState extends State<TimelineScreen>
 
   /// Opens the assistant, held rather than tapped — see the capture button.
   ///
-  /// Silent when nothing is configured: the glow still ran, because it tracks
-  /// the finger and cannot know the outcome in advance, but nothing opens. A
-  /// sheet that can only say "unavailable" is not worth the trip.
+  /// Offers provider setup when the assistant is not configured yet.
   void _openAssistant() {
-    if (!AiChatSheet.availableFor(widget.preferences)) return;
+    if (!AiChatSheet.availableFor(widget.preferences)) {
+      final l10n = AppLocalizations.of(context);
+      _tick();
+      nexShowBanner(
+        context,
+        kind: NexBannerKind.ai,
+        haptics: widget.preferences.haptics,
+        message: l10n.assistantNeedsIntelligence,
+        actionLabel: l10n.assistantTurnOnIntelligence,
+        onAction: () => unawaited(_openIntelligence()),
+      );
+      return;
+    }
     HapticFeedback.mediumImpact();
     unawaited(
       AiChatSheet.show(
@@ -2168,7 +2179,7 @@ class TimelineScreenState extends State<TimelineScreen>
             // Not `tune`: the content-type filter at the head of the tag row
             // already wears that, and two identical icons on one screen
             // meaning two different things is worse than either.
-            icon: const Icon(Icons.view_quilt_outlined),
+            icon: const Icon(Icons.dashboard_customize_outlined),
             onPressed: () async {
               await nexShowSheet<void>(
                 context: context,
@@ -2447,7 +2458,7 @@ class TimelineScreenState extends State<TimelineScreen>
 
   /// One dock along the bottom, with capture lifted above its quieter actions.
   ///
-  /// Recurring items and the assistant stay to one side, library and settings
+  /// Tools and recurring items stay to one side, library and settings
   /// to the other. The four destinations share a surface so the raised capture
   /// button is unmistakably the primary action.
   ///
@@ -2456,123 +2467,123 @@ class TimelineScreenState extends State<TimelineScreen>
   /// places at the bottom edge of the screen, and which thumb reaches which
   /// is not a fact about the language being read.
   Widget _bottomBar(AppLocalizations l10n) {
-    return NexNavigationDock(
-      leading: [
-        NexDockAction(
-          icon: Icons.event_repeat_outlined,
-          tooltip: l10n.commitmentsTitle,
-          onPressed: () async {
-            if (_claimedBySwipe()) return;
-            _tick();
-            await CommitmentsSheet.show(context, services: widget.services);
-            await _loadCommitments();
-          },
-        ),
-        // Always drawn, even with nothing configured to answer. It used
-        // to appear only when the assistant was usable, which left the
-        // leading group one slot wide on most installs and two on
-        // some: the bar visibly lopsided, and its buttons in different
-        // places on different phones. A place in a bar is a promise
-        // about where to put a thumb, and a place that comes and goes
-        // is not one.
-        //
-        // What changes is the answer, not the button. With no provider
-        // a tap says so and offers the screen that fixes it, which is
-        // better than both of the things this used to do — open a chat
-        // that cannot reply, or show nothing at all.
-        NexDockAction(
-          icon: Icons.auto_awesome,
-          tooltip: l10n.assistant,
-          onPressed: () {
-            if (_claimedBySwipe()) return;
-            if (AiChatSheet.availableFor(widget.preferences)) {
-              _openAssistant();
-              return;
-            }
-            _tick();
-            nexShowBanner(
-              context,
-              // `ai`, because that is what it is about. There is no
-              // `info` kind and this is not a failure: nothing was
-              // attempted and nothing went wrong.
-              kind: NexBannerKind.ai,
-              haptics: widget.preferences.haptics,
-              message: l10n.assistantNeedsIntelligence,
-              actionLabel: l10n.assistantTurnOnIntelligence,
-              onAction: () => unawaited(_openIntelligence()),
-            );
-          },
-        ),
-      ],
-      // Hold capture to reach the assistant. The gesture stays even
-      // though the assistant now has a button of its own: it has been
-      // the way in for long enough that removing it would cost
-      // somebody a habit, and it costs nothing to keep.
-      //
-      // Not the accent. Tapping this button and holding it are
-      // different things, and lighting the same blue for both said
-      // they were the same. Every assistant with an entrance uses a
-      // spectrum for this reason — see [nexAssistantSpectrum].
-      capture: NexLongPressGlow(
-        colors: nexAssistantSpectrum,
-        onHoldStart: _tick,
-        onTriggered: () {
-          if (_claimedBySwipe()) return;
-          _openAssistant();
-        },
-        child: FloatingActionButton(
-          key: _captureAnchor,
-          onPressed: () {
-            if (_claimedBySwipe()) return;
-            openCapture();
-          },
-          tooltip: l10n.capture,
-          child: const Icon(Icons.add, size: 32),
-        ),
-      ),
-      trailing: [
-        NexDockAction(
-          key: _libraryAnchor,
-          icon: Icons.inventory_2_outlined,
-          tooltip: l10n.libraryTitle,
-          // Awaited, and the timeline reloads on the way back. Tags
-          // and Trash both live behind here and both change what this
-          // screen shows, and neither refreshes it on its own.
-          onPressed: () async {
-            if (_claimedBySwipe()) return;
-            await Navigator.push(
-              context,
-              NexPageRoute<void>(
-                builder: (_) => LibraryScreen(
-                  services: widget.services,
-                  preferences: widget.preferences,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!widget.preferences.captureHoldHintSeen)
+          GestureDetector(
+            onTap: () => widget.preferences.dismissCaptureHoldHint(),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 230),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.inverseSurface,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Text(
+                Localizations.localeOf(context).languageCode == 'fa'
+                    ? 'برای دستیار + را نگه دار • فهمیدم'
+                    : 'Hold + for the assistant • Got it',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onInverseSurface,
+                  fontSize: 12,
                 ),
               ),
-            );
-            await _refresh();
-          },
-        ),
-        NexDockAction(
-          key: _settingsAnchor,
-          icon: Icons.settings_outlined,
-          tooltip: l10n.settings,
-          badge: _updateDot(l10n),
-          // Awaited so the commitments can be re-read on the way
-          // back: they are not on the timeline stream that refreshes
-          // everything else, and a brief that had not noticed the one
-          // just added would look broken to whoever just added it.
-          onPressed: () async {
-            if (_claimedBySwipe()) return;
-            await nexShowSheet<void>(
-              context: context,
-              builder: (_) => SettingsSheet(
-                services: widget.services,
-                preferences: widget.preferences,
-                updates: widget.updates,
-              ),
-            );
-            await _loadCommitments();
-          },
+            ),
+          ),
+        NexNavigationDock(
+          leading: [
+            NexDockAction(
+              icon: Icons.space_dashboard_outlined,
+              tooltip: l10n.toolsTitle,
+              onPressed: () {
+                if (_claimedBySwipe()) return;
+                _tick();
+                unawaited(
+                  Navigator.push<void>(
+                    context,
+                    NexPageRoute<void>(builder: (_) => const ToolsScreen()),
+                  ),
+                );
+              },
+            ),
+            NexDockAction(
+              icon: Icons.event_repeat_outlined,
+              tooltip: l10n.commitmentsTitle,
+              onPressed: () async {
+                if (_claimedBySwipe()) return;
+                _tick();
+                await CommitmentsSheet.show(context, services: widget.services);
+                await _loadCommitments();
+              },
+            ),
+          ],
+          // Hold capture for the assistant; the leftmost destination is Tools.
+          capture: NexLongPressGlow(
+            colors: nexAssistantSpectrum,
+            onHoldStart: _tick,
+            onTriggered: () {
+              if (_claimedBySwipe()) return;
+              unawaited(widget.preferences.dismissCaptureHoldHint());
+              _openAssistant();
+            },
+            child: FloatingActionButton(
+              key: _captureAnchor,
+              onPressed: () {
+                if (_claimedBySwipe()) return;
+                openCapture();
+              },
+              tooltip: l10n.capture,
+              child: const Icon(Icons.add, size: 32),
+            ),
+          ),
+          trailing: [
+            NexDockAction(
+              key: _libraryAnchor,
+              icon: Icons.inventory_2_outlined,
+              tooltip: l10n.libraryTitle,
+              // Awaited, and the timeline reloads on the way back. Tags
+              // and Trash both live behind here and both change what this
+              // screen shows, and neither refreshes it on its own.
+              onPressed: () async {
+                if (_claimedBySwipe()) return;
+                await Navigator.push(
+                  context,
+                  NexPageRoute<void>(
+                    builder: (_) => LibraryScreen(
+                      services: widget.services,
+                      preferences: widget.preferences,
+                    ),
+                  ),
+                );
+                await _refresh();
+              },
+            ),
+            NexDockAction(
+              key: _settingsAnchor,
+              icon: Icons.settings_outlined,
+              tooltip: l10n.settings,
+              badge: _updateDot(l10n),
+              // Awaited so the commitments can be re-read on the way
+              // back: they are not on the timeline stream that refreshes
+              // everything else, and a brief that had not noticed the one
+              // just added would look broken to whoever just added it.
+              onPressed: () async {
+                if (_claimedBySwipe()) return;
+                await nexShowSheet<void>(
+                  context: context,
+                  builder: (_) => SettingsSheet(
+                    services: widget.services,
+                    preferences: widget.preferences,
+                    updates: widget.updates,
+                  ),
+                );
+                await _loadCommitments();
+              },
+            ),
+          ],
         ),
       ],
     );
@@ -2810,6 +2821,29 @@ class TimelineScreenState extends State<TimelineScreen>
                   onAction: (action) => unawaited(_runSwipe(action, note)),
                   child: NoteContextMenu(
                     onOpen: () => _tapNote(note),
+                    pinned: note.pinnedAt != null,
+                    onPin: () => unawaited(_runSwipe(NexSwipeAction.pin, note)),
+                    onRemind: () =>
+                        unawaited(_runSwipe(NexSwipeAction.remind, note)),
+                    onCopy:
+                        (note.content ??
+                                note.transcriptText ??
+                                note.ocrText ??
+                                '')
+                            .isEmpty
+                        ? null
+                        : () => unawaited(
+                            Clipboard.setData(
+                              ClipboardData(
+                                text:
+                                    note.content ??
+                                    note.transcriptText ??
+                                    note.ocrText ??
+                                    '',
+                              ),
+                            ),
+                          ),
+                    onEdit: () => unawaited(_openNote(note, edit: true)),
                     onAddTag: () => unawaited(_addTagTo(note)),
                     onDelete: () => unawaited(deleteWithUndo(note)),
                     child: NoteCard(
@@ -3076,10 +3110,11 @@ class TimelineScreenState extends State<TimelineScreen>
     await widget.services.refreshTimeline();
   }
 
-  Future<void> _openNote(Note note) async {
+  Future<void> _openNote(Note note, {bool edit = false}) async {
     final result = await nexShowSheet<DetailResult>(
       context: context,
       builder: (_) => NoteDetailSheet(
+        editOnOpen: edit,
         services: widget.services,
         preferences: widget.preferences,
         noteId: note.id,
@@ -3189,7 +3224,7 @@ class _GreetingLine extends StatelessWidget {
 ///
 /// Nothing here is a button any more, and none of the three that left was
 /// lost:
-///   * the recurring items are in the bottom bar, next to the assistant;
+///   * the recurring items are in the bottom bar, next to capture;
 ///   * refresh is the pull, which now has something to do — see the comment
 ///     on the timeline's `RefreshIndicator`;
 ///   * folding it away is still a tap, on the text itself.
@@ -3388,11 +3423,21 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
   /// pinned row needs a solid backing to keep scrolled notes from showing.
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
-      ColoredBox(
+      DecoratedBox(
         key: const ValueKey('filter-header-background'),
-        color: overlaps || shrinkOffset > 0
-            ? Theme.of(context).colorScheme.surface
-            : Colors.transparent,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: overlaps || shrinkOffset > 0
+                ? [
+                    Theme.of(context).colorScheme.surface,
+                    Theme.of(context).colorScheme.surface.withValues(alpha: 0),
+                  ]
+                : [Colors.transparent, Colors.transparent],
+            stops: const [0.6, 1],
+          ),
+        ),
         child: child,
       );
 

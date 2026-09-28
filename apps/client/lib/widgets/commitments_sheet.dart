@@ -1,3 +1,5 @@
+import 'feature_label.dart';
+import 'recurring_options.dart';
 import 'dart:async';
 import 'dart:ui' show BoxWidthStyle;
 
@@ -12,7 +14,6 @@ import 'nex_dialog.dart';
 import 'nex_banner.dart';
 import 'draft_guard.dart';
 import 'nex_time_picker.dart';
-import '../platform/display_date.dart';
 
 /// The standing obligations: the insurance every year, the rent every month,
 /// the tablet every eight hours, the glass of water every two.
@@ -24,10 +25,7 @@ import '../platform/display_date.dart';
 /// daily brief, each one from its own lead time, and here when somebody wants
 /// to see the whole list.
 ///
-/// Reached from Settings. Not from the capture button, and not from a tab: it
-/// is a list somebody sets up once and then mostly reads about in the brief,
-/// so putting it one tap from the timeline would be giving permanent screen
-/// furniture to something touched twice a month.
+/// Reached from Recurring beside Capture in the home dock.
 class CommitmentsSheet extends StatefulWidget {
   const CommitmentsSheet({super.key, required this.services});
 
@@ -47,6 +45,8 @@ class CommitmentsSheet extends StatefulWidget {
 
 class _CommitmentsSheetState extends State<CommitmentsSheet> {
   List<NexCommitment>? _all;
+  String _view = 'all';
+  bool _working = false;
 
   @override
   void initState() {
@@ -74,8 +74,7 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
   /// reminder is spent once it has rung, and this one is due again — the
   /// useful thing the app can do at that moment is work out when.
   Future<void> _markMet(NexCommitment commitment) async {
-    await widget.services.markCommitmentMet(commitment.id);
-    await _load();
+    await _applyOccurrence(commitment, commitment.met(DateTime.now()));
   }
 
   Future<void> _delete(NexCommitment commitment) async {
@@ -106,11 +105,332 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
     await _load();
   }
 
+  Future<void> _applyOccurrence(
+    NexCommitment before,
+    NexCommitment next,
+  ) async {
+    if (_working) return;
+    _working = true;
+    try {
+      final current = (await widget.services.commitments())
+          .where((c) => c.id == before.id)
+          .firstOrNull;
+      if (current == null || current.rev != before.rev) {
+        await _load();
+        return;
+      }
+      final saved = await widget.services.saveCommitment(next);
+      await _load();
+      if (!mounted) return;
+      nexShowBanner(
+        context,
+        message: nexLabel(context, 'Recurring item updated', 'تعهد به‌روز شد'),
+        actionLabel: AppLocalizations.of(context).undo,
+        onAction: () async {
+          final latest = (await widget.services.commitments())
+              .where((c) => c.id == before.id)
+              .firstOrNull;
+          if (latest == null || latest.rev != saved.rev) return;
+          await widget.services.saveCommitment(
+            NexCommitment(
+              id: before.id,
+              title: before.title,
+              cadence: before.cadence,
+              every: before.every,
+              dueAt: before.dueAt,
+              createdAt: before.createdAt,
+              updatedAt: DateTime.now(),
+              lead: before.lead,
+              windowStart: before.windowStart,
+              windowEnd: before.windowEnd,
+              lastMetAt: before.lastMetAt,
+              metToday: before.metToday,
+              metTodayOn: before.metTodayOn,
+              paused: before.paused,
+              notify: before.notify,
+              details: before.details,
+              rev: saved.rev + 1,
+            ),
+          );
+          await _load();
+        },
+      );
+    } catch (_) {
+      if (mounted) {
+        nexShowBanner(
+          context,
+          message: AppLocalizations.of(context).captureFailed,
+        );
+      }
+    } finally {
+      _working = false;
+    }
+  }
+
+  Future<void> _actions(NexCommitment c) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (id, en, fa, icon) in [
+              ('hour', 'In one hour', 'یک ساعت دیگر', Icons.snooze),
+              (
+                'tomorrow',
+                'Tomorrow, same time',
+                'فردا همین ساعت',
+                Icons.event,
+              ),
+              ('custom', 'Choose a time', 'زمان دلخواه', Icons.schedule),
+              ('skip', 'Skip this occurrence', 'رد این نوبت', Icons.skip_next),
+              ('history', 'Completion history', 'سابقهٔ انجام', Icons.history),
+            ])
+              ListTile(
+                leading: Icon(icon),
+                title: Text(nexLabel(ctx, en, fa)),
+                onTap: () => Navigator.pop(ctx, id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'history') {
+      await _history(c);
+      return;
+    }
+    final now = DateTime.now();
+    if (choice == 'skip') {
+      await _applyOccurrence(
+        c,
+        c.copyWith(
+          dueAt: nexAdvance(c, after: now),
+          details: c.recordOccurrence('skip', now),
+          updatedAt: now,
+        ),
+      );
+      return;
+    }
+    DateTime? date;
+    if (choice == 'hour') date = now.add(const Duration(hours: 1));
+    if (choice == 'tomorrow') {
+      date = DateTime(
+        now.year,
+        now.month,
+        now.day + 1,
+        c.dueAt.hour,
+        c.dueAt.minute,
+      );
+    }
+    if (choice == 'custom') {
+      final d = await nexPickDate(
+        context,
+        solar: widget.services.solarCalendar,
+        initial: now,
+        first: now,
+        last: DateTime(2100),
+      );
+      if (!mounted || d == null) return;
+      final t = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(now),
+      );
+      if (!mounted || t == null) return;
+      date = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+    }
+    if (date == null || !date.isAfter(now)) return;
+    await _applyOccurrence(
+      c,
+      c.copyWith(
+        dueAt: date,
+        details: {
+          ...c.details,
+          'scheduledDue': c.scheduledDue.toIso8601String(),
+        },
+        updatedAt: now,
+      ),
+    );
+  }
+
+  Future<void> _history(NexCommitment c) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(ctx).height * .65,
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Text(
+                nexLabel(
+                  ctx,
+                  'Completion history · latest 500',
+                  'سابقهٔ انجام · ۵۰۰ نوبت آخر',
+                ),
+                style: Theme.of(ctx).textTheme.titleLarge,
+              ),
+              if (c.history.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    nexLabel(ctx, 'No history yet', 'هنوز سابقه‌ای نیست'),
+                  ),
+                ),
+              for (final item in c.history.reversed)
+                ListTile(
+                  leading: Icon(
+                    item['action'] == 'done'
+                        ? Icons.check_circle_outline
+                        : Icons.skip_next,
+                  ),
+                  title: Text(
+                    nexDisplayDate(
+                      DateTime.parse(item['at'] as String),
+                      solar: widget.services.solarCalendar,
+                      persian: Localizations.localeOf(ctx).languageCode == 'fa',
+                      time: true,
+                    ),
+                  ),
+                  subtitle: Text(item['note'] as String? ?? ''),
+                  trailing: const Icon(Icons.edit_note),
+                  onTap: () async {
+                    final controller = TextEditingController(
+                      text: item['note'] as String? ?? '',
+                    );
+                    final note = await showDialog<String>(
+                      context: ctx,
+                      builder: (dialog) => AlertDialog(
+                        title: Text(
+                          nexLabel(
+                            dialog,
+                            'Occurrence note',
+                            'یادداشت این نوبت',
+                          ),
+                        ),
+                        content: TextField(
+                          controller: controller,
+                          maxLength: 300,
+                          maxLines: 3,
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialog),
+                            child: Text(AppLocalizations.of(dialog).cancel),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pop(dialog, controller.text.trim()),
+                            child: Text(AppLocalizations.of(dialog).save),
+                          ),
+                        ],
+                      ),
+                    );
+                    // Controller is kept until the dialog's exit animation has finished.
+                    Future<void>.delayed(
+                      const Duration(milliseconds: 350),
+                      controller.dispose,
+                    );
+                    if (note == null || !mounted) return;
+                    final latest = (await widget.services.commitments())
+                        .where((v) => v.id == c.id)
+                        .firstOrNull;
+                    if (latest == null) return;
+                    await widget.services.saveCommitment(
+                      latest.copyWith(
+                        details: {
+                          ...latest.details,
+                          'history': [
+                            for (final h in latest.history)
+                              if (h['at'] == item['at'] &&
+                                  h['due'] == item['due'])
+                                {...h, 'note': note}
+                              else
+                                h,
+                          ],
+                        },
+                        updatedAt: DateTime.now(),
+                      ),
+                    );
+                    await _load();
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _costSummary(List<NexCommitment> all, DateTime now) {
+    final end = DateTime(now.year, now.month, now.day + 30);
+    final totals = <String, int>{};
+    for (final c in all.where((c) => !c.paused && c.amountMinor != null)) {
+      var due = c.dueAt.isBefore(now)
+          ? nexAdvance(c, after: now.subtract(const Duration(microseconds: 1)))
+          : c.dueAt;
+      for (var count = 0; due.isBefore(end) && count < 1000; count++) {
+        if (!due.isBefore(now)) {
+          totals[c.currency] = (totals[c.currency] ?? 0) + c.amountMinor!;
+        }
+        due = nexAdvance(
+          c.copyWith(dueAt: due, details: {...c.details, 'scheduledDue': null}),
+          after: due,
+        );
+      }
+    }
+    return totals.isEmpty
+        ? const SizedBox.shrink()
+        : Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    nexLabel(
+                      context,
+                      'Payments in the next 30 days',
+                      'پرداخت‌های ۳۰ روز آینده',
+                    ),
+                  ),
+                  for (final e in totals.entries)
+                    Text(
+                      nexDigits(
+                        '${(e.value / 100).toStringAsFixed(2)} ${e.key}',
+                        persian:
+                            Localizations.localeOf(context).languageCode ==
+                            'fa',
+                      ),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                ],
+              ),
+            ),
+          );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final all = _all;
+    final source = _all;
+    final today = DateUtils.dateOnly(DateTime.now());
+    final all = source
+        ?.where(
+          (c) => switch (_view) {
+            'today' => !c.paused && DateUtils.isSameDay(c.dueAt, today),
+            'overdue' => c.isOverdue(DateTime.now()),
+            'week' =>
+              !c.paused &&
+                  !c.dueAt.isBefore(today) &&
+                  c.dueAt.isBefore(today.add(const Duration(days: 7))),
+            _ => true,
+          },
+        )
+        .toList();
     final now = DateTime.now();
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -168,6 +488,24 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
             textDirection: nexDirectionOf(l10n.commitmentsAbout),
           ),
           const SizedBox(height: NexSpacing.md),
+          Wrap(
+            spacing: 6,
+            children: [
+              for (final (id, en, fa) in [
+                ('all', 'All', 'همه'),
+                ('today', 'Today', 'امروز'),
+                ('overdue', 'Overdue', 'عقب‌افتاده'),
+                ('week', 'Next 7 days', '۷ روز آینده'),
+              ])
+                ChoiceChip(
+                  label: Text(nexLabel(context, en, fa)),
+                  selected: _view == id,
+                  onSelected: (_) => setState(() => _view = id),
+                ),
+            ],
+          ),
+          if (source != null) _costSummary(source, now),
+          const SizedBox(height: 8),
           if (all == null)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: NexSpacing.xl),
@@ -216,6 +554,7 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
       onMet: () => unawaited(_markMet(c)),
       onEdit: () => unawaited(_edit(c)),
       onDelete: () => unawaited(_delete(c)),
+      onActions: () => unawaited(_actions(c)),
     );
 
     return ListView(
@@ -311,12 +650,14 @@ class _CommitmentRow extends StatelessWidget {
     required this.onMet,
     required this.onEdit,
     required this.onDelete,
+    required this.onActions,
   });
 
   final NexCommitment commitment;
   final VoidCallback onMet;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onActions;
 
   @override
   Widget build(BuildContext context) {
@@ -334,6 +675,11 @@ class _CommitmentRow extends StatelessWidget {
           padding: const EdgeInsets.all(NexSpacing.sm),
           child: Row(
             children: [
+              IconButton(
+                tooltip: nexLabel(context, 'More actions', 'بیشتر'),
+                onPressed: onActions,
+                icon: const Icon(Icons.more_horiz),
+              ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -437,6 +783,10 @@ class CommitmentEditor extends StatefulWidget {
 class _CommitmentEditorState extends State<CommitmentEditor>
     with NexDraftGuard<CommitmentEditor> {
   String get _draftKey => 'commitment-${widget.existing?.id ?? 'new'}';
+  late Map<String, dynamic> _details = {
+    ...?widget.existing?.details,
+    if (widget.existing == null) 'solar': widget.services.solarCalendar,
+  };
   bool _dirty = false;
   @override
   bool get hasUnsavedChanges => _dirty;
@@ -445,6 +795,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
   void _snapshot() {
     _dirty = true;
     widget.services.editorDrafts?.write(_draftKey, {
+      'details': _details,
       'title': _title.text,
       'cadence': _cadence.index,
       'every': _every,
@@ -462,6 +813,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
     super.initState();
     final d = widget.services.editorDrafts?.read(_draftKey);
     if (d != null) {
+      _details = Map<String, dynamic>.from(d['details'] as Map? ?? _details);
       _title.text = d['title'] as String;
       _cadence = NexCadence.values[d['cadence'] as int];
       _every = d['every'] as int;
@@ -540,6 +892,29 @@ class _CommitmentEditorState extends State<CommitmentEditor>
   Future<void> _save() async {
     final title = _title.text.trim();
     if (title.isEmpty || _saving) return;
+    if (_details['invalidAmount'] == true) {
+      nexShowBanner(
+        context,
+        message: nexLabel(
+          context,
+          'Enter a valid amount with up to two decimal places.',
+          'مبلغ معتبر با حداکثر دو رقم اعشار وارد کنید.',
+        ),
+      );
+      return;
+    }
+    _details = {
+      ..._details,
+      'currency': _details['currency'] ?? 'IRT',
+      'anchor':
+          widget.existing == null ||
+              widget.existing!.dueAt != _dueAt ||
+              widget.existing!.cadence != _cadence ||
+              widget.existing!.every != _every
+          ? _dueAt.toIso8601String()
+          : _details['anchor'] ?? _dueAt.toIso8601String(),
+      if (widget.existing?.dueAt != _dueAt) 'scheduledDue': null,
+    };
     setState(() => _saving = true);
     final now = DateTime.now();
     final existing = widget.existing;
@@ -547,6 +922,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
         ? NexCommitment(
             id: newUuidV7(),
             title: title,
+            details: _details,
             cadence: _cadence,
             every: _every,
             dueAt: _dueAt,
@@ -559,6 +935,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
           )
         : existing.copyWith(
             title: title,
+            details: _details,
             cadence: _cadence,
             every: _every,
             dueAt: _dueAt,
@@ -606,6 +983,41 @@ class _CommitmentEditorState extends State<CommitmentEditor>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (widget.existing == null)
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    for (final (id, en, fa, cadence) in [
+                      (
+                        'subscription',
+                        'Subscription',
+                        'اشتراک',
+                        NexCadence.months,
+                      ),
+                      ('installment', 'Installment', 'قسط', NexCadence.months),
+                      (
+                        'routine',
+                        'Recurring task',
+                        'کار دوره‌ای',
+                        NexCadence.weeks,
+                      ),
+                      ('habit', 'Habit', 'عادت', NexCadence.days),
+                    ])
+                      ActionChip(
+                        label: Text(nexLabel(context, en, fa)),
+                        onPressed: () => setState(() {
+                          _title.text = nexLabel(context, en, fa);
+                          _cadence = cadence;
+                          _every = 1;
+                          _lead = id == 'subscription' || id == 'installment'
+                              ? const Duration(days: 2)
+                              : Duration.zero;
+                          _details = {..._details, 'template': id};
+                        }),
+                      ),
+                  ],
+                ),
+
               Text(
                 widget.existing == null
                     ? l10n.commitmentAdd
@@ -676,6 +1088,11 @@ class _CommitmentEditorState extends State<CommitmentEditor>
                 subtitle: Text(_dateLabel(_dueAt)),
                 trailing: const Icon(Icons.event_outlined),
                 onTap: () => unawaited(_pickDate()),
+              ),
+              RecurringOptions(
+                cadence: _cadence,
+                value: _details,
+                onChanged: (v) => setState(() => _details = v),
               ),
               // The field the whole feature turns on, and the one that is
               // usually left alone.

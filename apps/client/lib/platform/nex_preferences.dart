@@ -394,6 +394,11 @@ class NexPreferences extends ChangeNotifier {
   /// The same "this app has run before" rule applies as above — an existing
   /// install is not walked through a screen it has been using for months — so
   /// [load] marks it seen for anyone who already had preferences.
+  bool get captureHoldHintSeen =>
+      _prefs.getBool('home.capture_hold_hint_seen') ?? tourComplete;
+  Future<void> dismissCaptureHoldHint() =>
+      _setBool('home.capture_hold_hint_seen', true);
+
   bool get tourComplete => _prefs.getBool(_kTourComplete) ?? false;
 
   Future<void> completeTour() async {
@@ -590,7 +595,16 @@ class NexPreferences extends ChangeNotifier {
 
   bool get comfortMode => _prefs.getBool('appearance.comfort') ?? false;
 
-  bool get liquidGlass => _prefs.getBool('appearance.liquid_glass') ?? false;
+  // Temporarily disabled by the owner (1.70.0). Keep stored choice and
+  // rendering code for a later redesign; do not silently re-enable it.
+  bool get liquidGlass => false;
+
+  String get themePreset =>
+      _prefs.getString('appearance.theme_preset') ?? 'classic';
+  Future<void> setThemePreset(String value) async {
+    await _prefs.setString('appearance.theme_preset', value);
+    notifyListeners();
+  }
 
   /// The sponsor card's raw JSON as last fetched, or null for none.
   ///
@@ -699,10 +713,8 @@ class NexPreferences extends ChangeNotifier {
 
   Set<String> get widgetTagIds => widgetTags.keys.toSet();
 
-  NexBackgroundPattern get backgroundPattern =>
-      NexBackgroundPatternWire.fromWire(
-        _prefs.getString('appearance.background_pattern'),
-      );
+  // Background-only styles are retired in favour of whole-app themes.
+  NexBackgroundPattern get backgroundPattern => NexBackgroundPattern.plain;
 
   /// The one accent colour a user actually picks — `#RRGGBB`, or null for
   /// the shipped default. The other three accent roles follow from it; see
@@ -734,6 +746,14 @@ class NexPreferences extends ChangeNotifier {
       _prefs.getBool('capture.enter_submits') ?? true;
 
   bool get haptics => _prefs.getBool('accessibility.haptics') ?? true;
+
+  /// Stable IDs keep each category's choice across restarts and languages.
+  bool isSettingsSectionExpanded(String id) =>
+      _prefs.getBool('settings.expanded.$id') ??
+      const {'security', 'intelligence', 'appearance'}.contains(id);
+
+  Future<void> setSettingsSectionExpanded(String id, bool expanded) =>
+      _setBool('settings.expanded.$id', expanded);
 
   /* --------------------------------------------------- Home screen layout */
 

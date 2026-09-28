@@ -3116,8 +3116,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vaultPasswords => 'Passwords';
 
   @override
-  String get vaultPasswordsHint =>
-      'Accounts, secure passwords and a generator.';
+  String get vaultPasswordsHint => 'Accounts, passwords and Chrome CSV import.';
 
   @override
   String get vaultCards => 'Bank cards';
@@ -3280,7 +3279,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vaultPrivacyHint =>
-      'Encrypted on this device. Locks when you leave the app or after 2 minutes without activity.';
+      'Vaults are encrypted on this device. They lock when you leave the app or after 2 minutes without activity.';
 
   @override
   String get vaultEditHint =>

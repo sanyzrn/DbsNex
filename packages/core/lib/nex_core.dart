@@ -65,3 +65,5 @@ export 'ai/tools/tool_definition.dart';
 export 'ai/tools/tool_executor.dart';
 export 'capture/capture_service.dart';
 export 'sync/field_aware_merger.dart';
+
+export 'models/calendar_date.dart';

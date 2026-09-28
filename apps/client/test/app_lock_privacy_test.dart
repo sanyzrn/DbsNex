@@ -84,7 +84,7 @@ void main() {
         (call.arguments as Map<Object?, Object?>)['on'],
   ];
 
-  testWidgets('the lock gate is opaque even when the scaffold is not', (
+  testWidgets('the lock gate stays opaque while glass is temporarily disabled', (
     tester,
   ) async {
     // Liquid glass on, which is what the report was running. The theme then
@@ -109,8 +109,8 @@ void main() {
     // and this says so instead of passing quietly.
     expect(
       Theme.of(tester.element(gate)).scaffoldBackgroundColor.a,
-      0.0,
-      reason: 'the surrounding theme really is see-through',
+      1.0,
+      reason: 'the saved glass preference is temporarily disabled',
     );
 
     // And the gate is not — over the whole window, not a panel in the middle
