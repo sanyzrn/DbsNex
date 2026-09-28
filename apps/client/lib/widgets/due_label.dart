@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
 
 import '../l10n/app_localizations.dart';
-import '../platform/display_date.dart';
 
 /// When a reminder is due, said two ways.
 ///

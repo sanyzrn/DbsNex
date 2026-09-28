@@ -34,6 +34,16 @@ Working convention:
 
 ## Unreleased
 
+## v1.70.0
+
+- **A richer Recurring hub.** Today, overdue and next-week views; snooze or skip one occurrence; subscription, installment, task and habit templates; completion history with notes and Undo.
+- **Schedules that fit your calendar.** Choose several weekdays, a day of the month or its last day, including actual Persian monthly/yearly recurrence. Optional amounts show upcoming 30-day totals separately for each currency.
+- **Whole-app themes.** Paper, Autumn, Rose atelier and Forest join the classic look. Theme mode, accent and text size now share one page. Liquid Glass is temporarily disabled while it is redesigned.
+- **Faster private tools.** Tools is now at the left of the home dock, beside Recurring and Capture. The password generator has its own tile; unlocked passwords and cards are immediately readable. Import Chrome password CSV files with duplicate detection.
+- **Private saved messages.** A separate, device-authenticated space to save, copy and delete text, included only when you explicitly back up the encrypted vault.
+- **A more useful note menu.** Hold a home item to pin, copy, edit, remind or delete it. Long note details expand with More, and the first-launch hint explains holding Capture for the assistant.
+- **Small details, restored.** Capsule notices and Undo, swipe-back navigation in Tools, the original layout icon, and a fading backdrop for pinned tags. Settings remember opened categories; Security, Intelligence and Appearance start open. Widget settings now live under Appearance, and the guide sits above About.
+
 ## v1.60.0
 
 - **A cleaner tag strip.** Tags sit directly on the home background and gain a solid backing only when pinned during scrolling.

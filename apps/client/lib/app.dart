@@ -1,3 +1,4 @@
+import 'platform/theme_presets.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -462,7 +463,16 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // the interface's face, and a Persian note inside an English UI keeps its
     // direction (see NexBodyText) without dragging the whole chrome with it.
     final font = nexFontFor(prefs.locale ?? _systemLocale(context));
-    final accentSeed = nexParseTagColor(prefs.accentSeed);
+    final accentSeed =
+        nexParseTagColor(prefs.accentSeed) ??
+        (prefs.themePreset == 'classic'
+            ? null
+            : nexThemePresets
+                  .firstWhere(
+                    (p) => p.id == prefs.themePreset,
+                    orElse: () => nexThemePresets.first,
+                  )
+                  .seed);
     final transparentScaffold =
         prefs.liquidGlass ||
         prefs.backgroundPattern != NexBackgroundPattern.plain;
@@ -478,19 +488,27 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       themeMode: prefs.themeMode,
       themeAnimationDuration: NexMotion.slow,
       themeAnimationCurve: NexMotion.curve,
-      theme: nexLightTheme(
-        comfortMode: prefs.comfortMode,
-        liquidGlass: prefs.liquidGlass,
-        transparentScaffold: transparentScaffold,
-        fontFamily: font,
-        accentSeed: accentSeed,
+      theme: nexApplyThemePreset(
+        nexLightTheme(
+          comfortMode: prefs.comfortMode,
+          liquidGlass: prefs.liquidGlass,
+          transparentScaffold: transparentScaffold,
+          fontFamily: font,
+          accentSeed: accentSeed,
+        ),
+        prefs.themePreset,
+        accentSeed,
       ),
-      darkTheme: nexDarkTheme(
-        comfortMode: prefs.comfortMode,
-        liquidGlass: prefs.liquidGlass,
-        transparentScaffold: transparentScaffold,
-        fontFamily: font,
-        accentSeed: accentSeed,
+      darkTheme: nexApplyThemePreset(
+        nexDarkTheme(
+          comfortMode: prefs.comfortMode,
+          liquidGlass: prefs.liquidGlass,
+          transparentScaffold: transparentScaffold,
+          fontFamily: font,
+          accentSeed: accentSeed,
+        ),
+        prefs.themePreset,
+        accentSeed,
       ),
       localizationsDelegates: const [
         AppLocalizations.delegate,

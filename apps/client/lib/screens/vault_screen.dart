@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'package:file_selector/file_selector.dart';
+import '../widgets/feature_label.dart';
+import '../platform/password_csv.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
@@ -32,9 +36,10 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       busy = false,
       authenticating = false,
       favorites = false;
-  bool reveal = false, confirmDelete = false;
+  bool confirmDelete = false;
   String? error, copiedField;
   Timer? idle, draftTimer, copiedTimer;
+  final messageInput = TextEditingController();
   int generation = 0;
 
   @override
@@ -46,6 +51,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    messageInput.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _flushDraft();
     idle?.cancel();
@@ -89,6 +95,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   }
 
   void _lock() {
+    messageInput.clear();
     _flushDraft();
     idle?.cancel();
     copiedTimer?.cancel();
@@ -102,7 +109,6 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       selected = null;
       editing = null;
       draft = null;
-      reveal = false;
       confirmDelete = false;
       copiedField = null;
       search.clear();
@@ -188,7 +194,6 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     setState(() {
       editing = entry;
       draft = entry;
-      reveal = false;
       copiedField = null;
     });
     _touch();
@@ -209,7 +214,6 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     setState(() {
       editing = null;
       selected = null;
-      reveal = false;
       confirmDelete = false;
       error = null;
     });
@@ -237,7 +241,13 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final title = widget.kind == VaultKind.password
+    final title = widget.kind == VaultKind.message
+        ? nexLabel(
+            context,
+            'Private saved messages',
+            'پیام‌های ذخیره‌شدهٔ خصوصی',
+          )
+        : widget.kind == VaultKind.password
         ? l.vaultPasswords
         : l.vaultCards;
     return PopScope(
@@ -262,6 +272,18 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
             ),
             title: Text(editing == null ? title : l.vaultEdit),
             actions: [
+              if (unlocked &&
+                  widget.kind == VaultKind.password &&
+                  editing == null)
+                IconButton(
+                  tooltip: nexLabel(
+                    context,
+                    'Import Chrome CSV',
+                    'ورود رمزهای Chrome',
+                  ),
+                  onPressed: busy ? null : _importPasswords,
+                  icon: const Icon(Icons.file_download_outlined),
+                ),
               if (unlocked)
                 IconButton(
                   tooltip: l.vaultLock,
@@ -303,6 +325,8 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                         )
                       : selected != null
                       ? _detail(l, theme, selected!)
+                      : widget.kind == VaultKind.message
+                      ? _messages(l, theme)
                       : _list(l, theme),
                 ),
               ],
@@ -310,6 +334,211 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _importPasswords() async {
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(
+          label: 'Chrome CSV',
+          extensions: ['csv'],
+          mimeTypes: ['text/csv', 'text/comma-separated-values'],
+        ),
+      ],
+    );
+    if (file == null || !mounted) return;
+    if (!unlocked) await _unlock();
+    if (!mounted || !unlocked) return;
+    final ticket = generation;
+    try {
+      if (await file.length() > 4 * 1024 * 1024) {
+        throw const FormatException('File too large');
+      }
+      final imported = parsePasswordCsv(utf8.decode(await file.readAsBytes()));
+      if (!mounted || !unlocked || ticket != generation) return;
+      final seen = entries
+          .where((e) => e.kind == VaultKind.password)
+          .map(passwordIdentity)
+          .toSet();
+      final count = imported.where((e) => seen.add(passwordIdentity(e))).length;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(nexLabel(context, 'Import passwords', 'ورود رمزها')),
+          content: Text(
+            nexLabel(
+              context,
+              '$count new passwords. Exact duplicates are skipped. Chrome CSV is unencrypted; delete the export after importing.',
+              '$count رمز تازه وارد می‌شود؛ تکراری‌های یکسان رد می‌شوند. فایل خروجی Chrome رمزگذاری نشده است؛ پس از ورود آن را پاک کنید.',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(AppLocalizations.of(context).cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(nexLabel(context, 'Import', 'واردکردن')),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted || !unlocked || ticket != generation) {
+        return;
+      }
+      await _operate(() => store.importPasswords(imported));
+    } catch (_) {
+      if (mounted && unlocked && ticket == generation) {
+        setState(
+          () => error = nexLabel(
+            context,
+            'Could not import. Choose a valid Chrome password CSV (up to 2,000 rows / 4 MB). Nothing was imported.',
+            'ورود انجام نشد. فایل معتبر CSV رمزهای Chrome تا ۲۰۰۰ ردیف و ۴ مگابایت انتخاب کنید.',
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _messages(AppLocalizations l, ThemeData theme) {
+    final messages = entries.where((e) => e.kind == VaultKind.message).toList()
+      ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            reverse: true,
+            padding: const EdgeInsets.all(16),
+            children: [
+              for (final e in messages.reversed)
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            e.value('text'),
+                            textDirection:
+                                RegExp('[ا-ی]').hasMatch(e.value('text'))
+                                ? TextDirection.rtl
+                                : TextDirection.ltr,
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: l.copy,
+                                onPressed: () => _copy(e.id, e.value('text')),
+                                icon: Icon(
+                                  copiedField == e.id
+                                      ? Icons.check
+                                      : Icons.copy_outlined,
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: l.delete,
+                                onPressed: busy
+                                    ? null
+                                    : () async {
+                                        final yes = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: Text(l.delete),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, false),
+                                                child: Text(l.cancel),
+                                              ),
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, true),
+                                                child: Text(l.delete),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (yes == true &&
+                                            mounted &&
+                                            unlocked) {
+                                          await _operate(
+                                            () => store.delete(e.id),
+                                          );
+                                        }
+                                      },
+                                icon: const Icon(Icons.delete_outline),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: messageInput,
+                  minLines: 1,
+                  maxLines: 5,
+                  maxLength: 10000,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  enableIMEPersonalizedLearning: false,
+                  onChanged: (_) => _touch(),
+                  decoration: InputDecoration(
+                    counterText: '',
+                    hintText: nexLabel(
+                      context,
+                      'Write a private message',
+                      'پیام خصوصی بنویسید',
+                    ),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              IconButton.filled(
+                tooltip: l.vaultSave,
+                onPressed: busy
+                    ? null
+                    : () async {
+                        final text = messageInput.text.trim();
+                        if (text.isEmpty) return;
+                        final empty = VaultStore.empty(VaultKind.message);
+                        await _operate(
+                          () => store.save(
+                            VaultEntry(
+                              id: empty.id,
+                              kind: empty.kind,
+                              fields: {'text': text},
+                              updatedAt: empty.updatedAt,
+                            ),
+                          ),
+                        );
+                        if (mounted &&
+                            error == null &&
+                            messageInput.text.trim() == text) {
+                          messageInput.clear();
+                        }
+                      },
+                icon: const Icon(Icons.send_rounded),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -514,9 +743,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
 
   Widget _bankCard(ThemeData theme, VaultEntry entry, {VoidCallback? onTap}) {
     final number = vaultCardDigits(entry.value('number'));
-    final suffix = number.length >= 4
-        ? number.substring(number.length - 4)
-        : '••••';
+
     return Material(
       color: theme.colorScheme.primaryContainer,
       borderRadius: BorderRadius.circular(24),
@@ -565,7 +792,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  '••••  ••••  ••••  $suffix',
+                  number,
                   textDirection: TextDirection.ltr,
                   style: const TextStyle(
                     fontSize: 21,
@@ -659,9 +886,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                   minVerticalPadding: 16,
                   title: Text(label, style: theme.textTheme.labelMedium),
                   subtitle: Text(
-                    (key == 'password' || key == 'number') && !reveal
-                        ? '••••••••••••'
-                        : entry.value(key),
+                    entry.value(key),
                     textDirection:
                         [
                           'password',
@@ -682,16 +907,6 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (key == 'password' || key == 'number')
-                        IconButton(
-                          tooltip: reveal ? l.vaultHide : l.vaultShow,
-                          onPressed: () => setState(() => reveal = !reveal),
-                          icon: Icon(
-                            reveal
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                          ),
-                        ),
                       IconButton(
                         tooltip: copiedField == key ? l.vaultCopied : l.copy,
                         onPressed: () => _copy(key, entry.value(key)),

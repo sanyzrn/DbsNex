@@ -14,6 +14,7 @@ import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
+import 'package:nex_client/screens/tools_screen.dart';
 import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:nex_client/widgets/nex_banner.dart';
 
@@ -79,22 +80,18 @@ void main() {
 
       double x(Finder f) => tester.getCenter(f).dx;
       final recurring = x(find.byIcon(Icons.event_repeat_outlined));
-      final assistant = x(find.byIcon(Icons.auto_awesome));
+      final tools = x(find.byIcon(Icons.space_dashboard_outlined));
       // By type, not by its glyph: `Icons.add` is the sort of icon another
       // surface starts wearing, and there is exactly one capture button.
       final capture = x(find.byType(FloatingActionButton));
       final library = x(find.byIcon(Icons.inventory_2_outlined));
       final settings = x(find.byIcon(Icons.settings_outlined));
 
+      expect(tools, lessThan(recurring), reason: 'tools is first, $locale');
       expect(
         recurring,
-        lessThan(assistant),
-        reason: 'recurring is first, $locale',
-      );
-      expect(
-        assistant,
         lessThan(capture),
-        reason: 'assistant is second, $locale',
+        reason: 'recurring is beside capture, $locale',
       );
       expect(capture, lessThan(library), reason: 'capture is middle, $locale');
       expect(library, lessThan(settings), reason: 'settings is last, $locale');
@@ -121,7 +118,7 @@ void main() {
     await open(tester);
     for (final icon in [
       Icons.event_repeat_outlined,
-      Icons.auto_awesome,
+      Icons.space_dashboard_outlined,
       Icons.inventory_2_outlined,
       Icons.settings_outlined,
     ]) {
@@ -157,48 +154,53 @@ void main() {
     }
   });
 
-  testWidgets('glass settings sheet blurs the timeline behind it', (
-    tester,
-  ) async {
-    // An opaque modal Material used to be painted before the glass wrapper,
-    // leaving the backdrop filter only its own solid colour to sample.
-    await preferences.setLiquidGlass(true);
-    await open(tester);
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'temporarily disabled glass stays opaque despite saved preference',
+    (tester) async {
+      // An opaque modal Material used to be painted before the glass wrapper,
+      // leaving the backdrop filter only its own solid colour to sample.
+      await preferences.setLiquidGlass(true);
+      await open(tester);
+      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await tester.pumpAndSettle();
 
-    final sheets = tester.widgetList<BottomSheet>(find.byType(BottomSheet));
-    expect(sheets.last.backgroundColor, Colors.transparent);
-    expect(
-      find.descendant(
-        of: find.byType(BottomSheet).last,
-        matching: find.byType(BackdropFilter),
-      ),
-      findsWidgets,
-    );
-  });
+      final sheets = tester.widgetList<BottomSheet>(find.byType(BottomSheet));
+      expect(sheets.last.backgroundColor, Colors.transparent);
+      expect(
+        find.descendant(
+          of: find.byType(BottomSheet).last,
+          matching: find.byType(BackdropFilter),
+        ),
+        findsNothing,
+      );
+    },
+  );
 
-  testWidgets('the assistant keeps its place with nothing to answer it', (
-    tester,
-  ) async {
-    // Nothing is configured in this file's setUp, which is the state most
-    // installs are in. The button used to vanish there, leaving the left
-    // capsule half the width of the right one.
-    await open(tester);
-    expect(find.byIcon(Icons.auto_awesome), findsOneWidget);
-
-    expect(find.byType(NexNavigationDock), findsOneWidget);
-    expect(find.byType(NexDockAction), findsNWidgets(4));
-
-    // And the tap says so rather than opening a chat that cannot reply.
-    final l10n = AppLocalizations.of(
-      tester.element(find.byType(TimelineScreen)),
-    );
-    await tester.tap(find.byIcon(Icons.auto_awesome));
-    await tester.pumpAndSettle();
-    expect(find.text(l10n.assistantNeedsIntelligence), findsOneWidget);
-    expect(find.byType(AiChatSheet), findsNothing);
-  });
+  testWidgets(
+    'tools opens from the dock; hold capture offers assistant setup',
+    (tester) async {
+      await open(tester);
+      expect(find.byIcon(Icons.auto_awesome), findsNothing);
+      expect(find.byType(NexDockAction), findsNWidgets(4));
+      await tester.tap(find.byIcon(Icons.space_dashboard_outlined));
+      await tester.pumpAndSettle();
+      expect(find.byType(ToolsScreen), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(TimelineScreen)),
+      );
+      final hold = await tester.startGesture(
+        tester.getCenter(find.byType(FloatingActionButton)),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await hold.up();
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.assistantNeedsIntelligence), findsOneWidget);
+      expect(find.byType(AiChatSheet), findsNothing);
+    },
+  );
 
   testWidgets('the brief is the first card, and the sponsor is not', (
     tester,

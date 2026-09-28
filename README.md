@@ -45,7 +45,7 @@ a note keeps its alarms exactly as honest as the notes themselves.
 **Your data stays yours** — export and import a full archive, automatic throttled local
 backups you can prune by hand, and a storage breakdown that tells you what is using space.
 
-**Private tools** — a separate Settings → Tools page holds passwords and bank cards behind device authentication, with a password generator and field-by-field copy. Vault data is excluded from notes, AI and ordinary library backups; encrypted vault export is an explicit option in Complete app backup.
+**Private tools** — a separate Tools page at the left of the home dock holds passwords, bank cards and private saved messages behind device authentication. A standalone password generator, Chrome CSV import and field-by-field copy make access quick. Vault data is excluded from notes, AI and ordinary library backups; encrypted vault export is an explicit option in Complete app backup.
 
 **Intelligence, optional and off by default** — transcription, OCR, summarization, tag
 suggestions, semantic search and related notes, each behind its own switch, against a
@@ -54,9 +54,7 @@ you have written. Its tone is yours to set, including one you write yourself. It
 part of Nex that can send a note off the device, it says so before it is switched on, and
 cloud requests may include your preferred name and selected note context. With only the offline model enabled, generation stays on the device. See [`docs/09-ai.md`](./docs/09-ai.md).
 
-**Comfort** — light, dark and system themes, an optional Liquid Glass appearance with four
-built-in backgrounds, an independent Comfort Mode that warms and softens any of them for
-night capture, reduce-motion support, and a 48px minimum tap target enforced by tests.
+**Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier and Forest palettes, custom accents and text size. Liquid Glass is temporarily disabled by owner request; its implementation is retained. Reduce-motion support and 48px minimum action targets remain.
 
 **Locked if you want it** — the app can ask for the device credential or a fingerprint
 whenever it comes back to the foreground. The lock is local; nothing about it is synced.

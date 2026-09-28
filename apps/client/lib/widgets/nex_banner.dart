@@ -267,51 +267,58 @@ class _NexBannerState extends State<_NexBanner>
                     color: scheme.surfaceContainerHighest,
                     elevation: 8,
                     shadowColor: scheme.shadow.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(NexRadius.xl),
+                    borderRadius: BorderRadius.circular(100),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: NexSpacing.md,
                         vertical: NexSpacing.sm + 2,
                       ),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(NexRadius.xl),
+                        borderRadius: BorderRadius.circular(100),
                         border: Border.all(
                           color: scheme.outlineVariant.withValues(alpha: 0.6),
                         ),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final message = Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              widget.message,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                          final action = widget.actionLabel == null
+                              ? null
+                              : TextButton(
+                                  onPressed: _act,
+                                  style: TextButton.styleFrom(
+                                    minimumSize: const Size(48, 48),
+                                  ),
+                                  child: Text(widget.actionLabel!),
+                                );
+                          if (MediaQuery.textScalerOf(context).scale(1) > 1.4 ||
+                              constraints.maxWidth < 260) {
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [message, if (action != null) action],
+                            );
+                          }
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               _Glyph(kind: widget.kind),
                               const SizedBox(width: NexSpacing.sm),
-                              Expanded(
-                                child: Semantics(
-                                  liveRegion: true,
-                                  child: Text(
-                                    widget.message,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              Expanded(child: message),
+                              if (action != null) ...[
+                                const SizedBox(width: 8),
+                                action,
+                              ],
                             ],
-                          ),
-                          if (widget.actionLabel != null)
-                            Align(
-                              alignment: AlignmentDirectional.centerEnd,
-                              child: TextButton(
-                                onPressed: _act,
-                                style: TextButton.styleFrom(
-                                  minimumSize: const Size(48, 48),
-                                ),
-                                child: Text(widget.actionLabel!),
-                              ),
-                            ),
-                        ],
+                          );
+                        },
                       ),
                     ),
                   ),

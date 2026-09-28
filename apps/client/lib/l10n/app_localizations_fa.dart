@@ -3051,7 +3051,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get vaultPasswords => 'رمزها';
 
   @override
-  String get vaultPasswordsHint => 'حساب‌ها، رمزهای امن و تولید رمز تصادفی.';
+  String get vaultPasswordsHint => 'حساب‌ها، رمزها و ورود از فایل Chrome.';
 
   @override
   String get vaultCards => 'کارت‌های بانکی';
@@ -3215,7 +3215,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get vaultPrivacyHint =>
-      'روی این دستگاه رمزگذاری می‌شود؛ با خروج از برنامه یا ۲ دقیقه بی‌استفاده‌ماندن قفل می‌شود.';
+      'خزانه‌ها روی این دستگاه رمزگذاری می‌شوند؛ با خروج از برنامه یا ۲ دقیقه بی‌استفاده‌ماندن قفل می‌شوند.';
 
   @override
   String get vaultEditHint =>

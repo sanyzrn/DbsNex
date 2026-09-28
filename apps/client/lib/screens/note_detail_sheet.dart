@@ -1,3 +1,4 @@
+import '../widgets/folded_note.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
@@ -5,7 +6,6 @@ import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show compute;
 import '../platform/photo_encoding.dart';
-import '../platform/display_date.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:nex_core/nex_core.dart';
@@ -50,6 +50,7 @@ class NoteDetailSheet extends StatefulWidget {
     required this.noteId,
     this.preferences,
     this.focusAddTag = false,
+    this.editOnOpen = false,
   });
 
   final NexServices services;
@@ -63,6 +64,7 @@ class NoteDetailSheet extends StatefulWidget {
   /// button that is simply absent where nobody wired it up.
   final NexPreferences? preferences;
   final bool focusAddTag;
+  final bool editOnOpen;
 
   @override
   State<NoteDetailSheet> createState() => _NoteDetailSheetState();
@@ -103,6 +105,21 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   void initState() {
     super.initState();
     _reload();
+    if (widget.editOnOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _reload();
+        if (!mounted) return;
+        if (_note?.type == NoteType.text || _note?.type == NoteType.link) {
+          await _editContent();
+        } else if (_note?.type == NoteType.checklist) {
+          await _editChecklist();
+        } else if (_note?.type == NoteType.photo) {
+          await _editImage();
+        } else {
+          await _editCaption();
+        }
+      });
+    }
     if (widget.focusAddTag) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _addTag());
     }
@@ -868,46 +885,12 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                     else if (note.type == NoteType.link)
                       _LinkBody(note: note, onOpen: _openLink)
                     else if (note.type == NoteType.text)
-                      // Only the body turns. The "Text" label, the action row and the
-                      // rest of the sheet keep the interface's direction.
-                      //
-                      // Rendered where the writer reached for the formatting menu and
-                      // left exactly as typed where they did not — the same predicate
-                      // the card strips by, so the two always agree about what a note
-                      // says. A sentence with a stray asterisk in it is a sentence.
-                      nexLooksLikeMarkdown(note.content ?? '')
-                          // Selection belongs to the area rather than to the text,
-                          // which is what lets a link and a `code` span still
-                          // answer a tap — `SelectableText` handles every gesture
-                          // itself and dispatches none of them onward.
-                          ? SelectionArea(
-                              contextMenuBuilder: nexSelectionMenu,
-                              child: NexMarkdown(
-                                note.content!,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyLarge?.copyWith(height: 1.62),
-                                selectable: false,
-                                onTapLink: _openHref,
-                                onCopyCode: (code) =>
-                                    unawaited(_copyCodeSpan(context, code)),
-                              ),
-                            )
-                          : NexBodyText(
-                              note.content ?? '',
-                              // The same as the markdown branch above it, which
-                              // has had a `SelectionArea` all along. Which of the
-                              // two a note got depended on whether it happened to
-                              // contain an asterisk — so whether a note could be
-                              // copied out of was, from the reader's side, random.
-                              selectable: true,
-                              // Looser leading than the timeline card: this is the surface a
-                              // person actually reads a long note on, and 1.5 at 16px runs
-                              // the lines together over a screenful of text.
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyLarge?.copyWith(height: 1.62),
-                            )
+                      FoldedNote(
+                        text: note.content ?? '',
+                        onTapLink: _openHref,
+                        onCopyCode: (code) =>
+                            unawaited(_copyCodeSpan(context, code)),
+                      )
                     else if (note.type == NoteType.voice) ...[
                       if (_player == null)
                         Text(

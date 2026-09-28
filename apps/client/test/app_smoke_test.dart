@@ -599,8 +599,8 @@ void main() {
       await preferences.setLiquidGlass(true);
       await preferences.setBackgroundPattern(NexBackgroundPattern.aurora);
 
-      expect(preferences.liquidGlass, isTrue);
-      expect(preferences.backgroundPattern, NexBackgroundPattern.aurora);
+      expect(preferences.liquidGlass, isFalse);
+      expect(preferences.backgroundPattern, NexBackgroundPattern.plain);
       expect(preferences.themeMode, ThemeMode.system);
     },
   );
@@ -809,7 +809,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Intelligence'));
-    await tester.tap(find.text('Intelligence'));
+    // Intelligence starts expanded.
     await tester.pumpAndSettle();
 
     // The sheet offers a way in, not a row of switches that quietly did
@@ -886,7 +886,7 @@ void main() {
     await tester.tap(find.text('Capture'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Appearance'));
-    await tester.tap(find.text('Appearance'));
+    // Appearance starts expanded.
     await tester.pumpAndSettle();
 
     // The pickers are behind their rows now, so what the list shows is the
@@ -897,83 +897,49 @@ void main() {
     expect(find.text('Comfort Mode'), findsNothing);
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Theme'), findsOneWidget);
-    expect(find.text('Liquid Glass'), findsOneWidget);
-    expect(find.text('Background'), findsOneWidget);
-    expect(find.text('Text & UI size'), findsOneWidget);
+    expect(find.text('Liquid Glass'), findsNothing);
+    expect(find.text('Background'), findsNothing);
+    expect(find.text('Text & UI size'), findsNothing);
     expect(find.byType(NexChoiceCards<ThemeMode>), findsNothing);
     expect(find.byType(NexChoiceCards<double>), findsNothing);
 
     // The current value sits under each name — the whole reason a collapsed
     // row is not a step backwards from an expanded picker.
     expect(find.text('System'), findsWidgets);
-    expect(find.text('Default'), findsOneWidget);
+    expect(find.text('Nex'), findsWidgets);
   });
 
-  testWidgets('a settings row opens its picker, and the pick sticks', (
+  testWidgets('Theme page owns theme mode and whole-app presets', (
     tester,
   ) async {
-    // Settings is a long list on a short test surface, and a scroll view
-    // only mounts what is within reach.
     tester.view.physicalSize = const Size(800, 2000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Appearance'));
-    await tester.tap(find.text('Appearance'));
-    await tester.pumpAndSettle();
-
-    expect(preferences.themeMode, ThemeMode.system);
+    await tester.ensureVisible(find.text('Theme'));
     await tester.tap(find.text('Theme'));
     await tester.pumpAndSettle();
-
-    // Same cards as before, previews and all — only where they live moved.
+    await tester.tap(find.text('Paper notebook'));
+    await tester.pumpAndSettle();
+    expect(preferences.themePreset, 'paper');
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.theme!.scaffoldBackgroundColor, const Color(0xFFF5EEDC));
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ListTile, 'Theme'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.widgetWithText(ListTile, 'Theme'));
+    await tester.pumpAndSettle();
     expect(find.byType(NexChoiceCards<ThemeMode>), findsOneWidget);
     await tester.tap(find.text('Dark'));
     await tester.pumpAndSettle();
-
     expect(preferences.themeMode, ThemeMode.dark);
-    // Closed on selection, and the row it came from now reads back the pick
-    // rather than the value it opened with.
-    expect(find.byType(NexChoiceCards<ThemeMode>), findsNothing);
-    expect(
-      find.descendant(
-        of: find.widgetWithText(ListTile, 'Theme'),
-        matching: find.text('Dark'),
-      ),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('background picker applies a built-in preset immediately', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(800, 2000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Appearance'));
-    await tester.tap(find.text('Appearance'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Background'));
-    await tester.pumpAndSettle();
-    expect(find.byType(NexChoiceCards<NexBackgroundPattern>), findsOneWidget);
-
-    await tester.tap(find.text('Aurora'));
-    await tester.pumpAndSettle();
-
-    expect(preferences.backgroundPattern, NexBackgroundPattern.aurora);
-    expect(find.byType(NexChoiceCards<NexBackgroundPattern>), findsNothing);
+    expect((await NexPreferences.load()).themePreset, 'paper');
   });
 
   testWidgets('the AI output language is its own setting, not the app locale', (
@@ -991,7 +957,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Intelligence'));
-    await tester.tap(find.text('Intelligence'));
+    // Intelligence starts expanded.
     await tester.pumpAndSettle();
 
     expect(preferences.aiOutputLanguage, AiOutputLanguage.auto);
@@ -1030,10 +996,18 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Appearance'));
-    await tester.tap(find.text('Appearance'));
+    // Appearance starts expanded.
     await tester.pumpAndSettle();
 
     expect(preferences.accentSeed, isNull);
+    await tester.ensureVisible(find.text('Theme'));
+    await tester.tap(find.text('Theme'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Accent color'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('Accent color'));
     await tester.pumpAndSettle();
     expect(find.byType(TagColorPicker), findsOneWidget);
@@ -1051,7 +1025,9 @@ void main() {
 
     expect(preferences.accentSeed, isNotNull);
     final seed = nexParseTagColor(preferences.accentSeed)!;
-    final theme = Theme.of(tester.element(find.byType(TimelineScreen)));
+    final theme = Theme.of(
+      tester.element(find.byType(TimelineScreen, skipOffstage: false)),
+    );
     expect(theme.colorScheme.primary, nexAccentPaletteFrom(seed).light);
     // Not the shipped default — a colour someone did not pick would defeat
     // the whole point.
@@ -1327,7 +1303,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Appearance'));
-    await tester.tap(find.text('Appearance'));
+    // Appearance starts expanded.
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Language'));

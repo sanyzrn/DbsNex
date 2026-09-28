@@ -4895,7 +4895,7 @@ abstract class AppLocalizations {
   /// No description provided for @vaultPasswordsHint.
   ///
   /// In en, this message translates to:
-  /// **'Accounts, secure passwords and a generator.'**
+  /// **'Accounts, passwords and Chrome CSV import.'**
   String get vaultPasswordsHint;
 
   /// No description provided for @vaultCards.
@@ -5207,7 +5207,7 @@ abstract class AppLocalizations {
   /// No description provided for @vaultPrivacyHint.
   ///
   /// In en, this message translates to:
-  /// **'Encrypted on this device. Locks when you leave the app or after 2 minutes without activity.'**
+  /// **'Vaults are encrypted on this device. They lock when you leave the app or after 2 minutes without activity.'**
   String get vaultPrivacyHint;
 
   /// No description provided for @vaultEditHint.

@@ -2468,7 +2468,7 @@
   "toolsSubtitle": "Your essentials, in their own space.",
   "toolsPrivateHint": "Separate from notes, search and AI.",
   "vaultPasswords": "Passwords",
-  "vaultPasswordsHint": "Accounts, secure passwords and a generator.",
+  "vaultPasswordsHint": "Accounts, passwords and Chrome CSV import.",
   "vaultCards": "Bank cards",
   "vaultCardsHint": "Card details and IBAN, ready to copy.",
   "vaultLocked": "Your vault is locked",
@@ -2520,7 +2520,7 @@
   "vaultDeleteHint": "This removes the item from this vault.",
   "vaultDeleteConfirm": "Delete permanently",
   "vaultBackupHint": "For a transferable copy, select Include vault in Complete app backup and keep its recovery code separately.",
-  "vaultPrivacyHint": "Encrypted on this device. Locks when you leave the app or after 2 minutes without activity.",
+  "vaultPrivacyHint": "Vaults are encrypted on this device. They lock when you leave the app or after 2 minutes without activity.",
   "vaultEditHint": "Unfinished edits are kept as an encrypted draft.",
   "backupIncludeVault": "Include private vault (requires device authentication)",
   "vaultRestoreAuth": "Verify your identity before restoring this complete backup"

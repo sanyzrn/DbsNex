@@ -73,6 +73,25 @@ void main() {
     expect(got.rev, written.rev);
   }
 
+  test('advanced recurrence and history persist after reopening storage', () {
+    final c = full().copyWith(
+      details: {
+        'solar': true,
+        'monthDay': 0,
+        'amountMinor': 15000,
+        'currency': 'IRT',
+        'history': [
+          {'action': 'done', 'at': '2026-01-01T00:00:00Z', 'note': 'paid'},
+        ],
+      },
+    );
+    repo.save(c);
+    db.close();
+    db = NexDatabase.open(p.join(tmp.path, 'nex.sqlite'));
+    repo = SqliteCommitmentRepository(db);
+    expect(repo.getById(c.id)!.details, c.details);
+  });
+
   test('every field comes back the way it went in', () {
     final written = full();
     repo.save(written);

@@ -3,7 +3,6 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
-import '../platform/display_date.dart';
 import 'due_label.dart';
 import 'tag_label.dart';
 

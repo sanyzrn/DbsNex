@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nex_ui/nex_ui.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/app_lock.dart';
 import 'package:nex_client/platform/secure_window.dart';
 import 'package:nex_client/platform/vault_store.dart';
+import 'package:nex_client/platform/password_csv.dart';
 import 'package:nex_client/screens/vault_screen.dart';
 
 class _Auth extends AppLockService {
@@ -36,16 +38,19 @@ void main() {
         },
         updatedAt: DateTime.utc(2026),
       );
-  Widget app({AppLockService? auth, Locale locale = const Locale('en')}) =>
-      MaterialApp(
-        locale: locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: VaultScreen(
-          kind: VaultKind.password,
-          authentication: auth ?? _Auth(Future.value(true)),
-        ),
-      );
+  Widget app({
+    AppLockService? auth,
+    Locale locale = const Locale('en'),
+    VaultKind kind = VaultKind.password,
+  }) => MaterialApp(
+    locale: locale,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: VaultScreen(
+      kind: kind,
+      authentication: auth ?? _Auth(Future.value(true)),
+    ),
+  );
 
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({});
@@ -59,6 +64,86 @@ void main() {
     messenger.setMockMethodCallHandler(channel, null);
   });
 
+  testWidgets('swipe back leaves details before leaving the vault', (
+    tester,
+  ) async {
+    await VaultStore().save(entry('one'));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  NexPageRoute<void>(
+                    builder: (_) => VaultScreen(
+                      kind: VaultKind.password,
+                      authentication: _Auth(Future.value(true)),
+                    ),
+                  ),
+                ),
+                child: const Text('Open tools vault'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open tools vault'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unlock vault'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Account one'));
+    await tester.pumpAndSettle();
+    expect(find.text('private-value'), findsOneWidget);
+    await tester.dragFrom(const Offset(20, 450), const Offset(600, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('private-value'), findsNothing);
+    expect(find.text('Account one'), findsOneWidget);
+    await tester.dragFrom(const Offset(20, 450), const Offset(600, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Open tools vault'), findsOneWidget);
+    expect(find.text('Account one'), findsNothing);
+  });
+  test(
+    'Chrome imports are additive and exact duplicates are skipped',
+    () async {
+      final store = VaultStore();
+      await store.save(entry('original'));
+      final imported = parsePasswordCsv(
+        'name,url,username,password\nSite,https://example.test,user,secret',
+      );
+      await store.importPasswords(imported);
+      await store.importPasswords(imported);
+      expect((await store.read()).entries.length, 2);
+      expect((await store.read()).entries.first.id, 'original');
+    },
+  );
+  testWidgets(
+    'private messages stay outside notes and lock when backgrounded',
+    (tester) async {
+      await tester.pumpWidget(app(kind: VaultKind.message));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Unlock vault'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'A private saved message');
+      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.pumpAndSettle();
+      expect(
+        (await VaultStore().read()).entries.single.kind,
+        VaultKind.message,
+      );
+      expect(find.text('A private saved message'), findsOneWidget);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      expect(find.text('A private saved message'), findsNothing);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   test(
     'concurrent saves, draft recovery and delete retain other records',
     () async {
@@ -122,31 +207,29 @@ void main() {
       expect((calls.last.arguments as Map)['on'], isFalse);
     },
   );
-  testWidgets('vault masks credentials and hides all content on background', (
-    tester,
-  ) async {
-    await VaultStore().save(entry('one'));
-    await tester.pumpWidget(app());
-    await tester.pumpAndSettle();
-    expect(find.text('Account one'), findsNothing);
-    await tester.tap(find.text('Unlock vault'));
-    await tester.pumpAndSettle();
-    expect(find.text('Account one'), findsOneWidget);
-    await tester.tap(find.text('Account one'));
-    await tester.pumpAndSettle();
-    expect(find.text('private-value'), findsNothing);
-    await tester.tap(find.byTooltip('Reveal'));
-    await tester.pump();
-    expect(find.text('private-value'), findsOneWidget);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    await tester.pump();
-    expect(find.text('private-value'), findsNothing);
-    expect(find.text('Account one'), findsNothing);
-    expect(find.text('Your vault is locked'), findsOneWidget);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump();
-  });
+  testWidgets(
+    'vault shows unlocked credentials and hides all content on background',
+    (tester) async {
+      await VaultStore().save(entry('one'));
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      expect(find.text('Account one'), findsNothing);
+      await tester.tap(find.text('Unlock vault'));
+      await tester.pumpAndSettle();
+      expect(find.text('Account one'), findsOneWidget);
+      await tester.tap(find.text('Account one'));
+      await tester.pumpAndSettle();
+      expect(find.text('private-value'), findsOneWidget);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      expect(find.text('private-value'), findsNothing);
+      expect(find.text('Account one'), findsNothing);
+      expect(find.text('Your vault is locked'), findsOneWidget);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    },
+  );
   testWidgets('a late authentication reply cannot unlock after backgrounding', (
     tester,
   ) async {

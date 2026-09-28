@@ -246,6 +246,11 @@ CREATE TABLE IF NOT EXISTS commitments (
     // expecting in the first place. After the CREATE, not before it: on a
     // fresh database there would otherwise be no table to alter.
     _addColumnIfMissing('commitments', 'notify', 'INTEGER NOT NULL DEFAULT 1');
+    _addColumnIfMissing(
+      'commitments',
+      'details_json',
+      "TEXT NOT NULL DEFAULT '{}'",
+    );
 
     // Records one-off data migrations, so a seed that the user has since
     // edited or deleted is never quietly put back.

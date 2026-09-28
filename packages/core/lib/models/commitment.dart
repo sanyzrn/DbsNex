@@ -22,6 +22,8 @@
 /// clock.
 library;
 
+import 'calendar_date.dart';
+
 /// The unit a commitment repeats in. Paired with a count, so "every 8 hours"
 /// and "every 3 months" are both expressible without an entry per shape.
 enum NexCadence {
@@ -61,7 +63,43 @@ class NexCommitment {
     this.paused = false,
     this.notify = true,
     this.rev = 1,
+    this.details = const {},
   });
+
+  /// Versioned optional recurrence, cost and occurrence history metadata.
+  /// Stored alongside the obligation, so ordinary backups preserve it too.
+  final Map<String, dynamic> details;
+  List<int> get weekdays =>
+      (details['weekdays'] as List? ?? const []).cast<int>();
+  bool get solar => details['solar'] == true;
+  int? get monthDay => details['monthDay'] as int?;
+  int? get amountMinor => details['amountMinor'] as int?;
+  String get currency => details['currency'] as String? ?? '';
+  List<Map<String, dynamic>> get history =>
+      (details['history'] as List? ?? const [])
+          .map((v) => Map<String, dynamic>.from(v as Map))
+          .toList();
+  DateTime get scheduledDue =>
+      DateTime.tryParse(details['scheduledDue'] as String? ?? '')?.toLocal() ??
+      dueAt;
+  Map<String, dynamic> recordOccurrence(
+    String action,
+    DateTime at, {
+    String note = '',
+  }) => {
+    ...details,
+    'anchor': details['anchor'] ?? scheduledDue.toIso8601String(),
+    'scheduledDue': null,
+    'history': [
+      ...history,
+      {
+        'action': action,
+        'at': at.toUtc().toIso8601String(),
+        'due': scheduledDue.toUtc().toIso8601String(),
+        'note': note,
+      },
+    ].reversed.take(500).toList().reversed.toList(),
+  };
 
   final String id;
   final String title;
@@ -180,8 +218,7 @@ class NexCommitment {
   ///
   /// Zero once the day rolls over, without anything having to run at
   /// midnight to reset it — the stored day key simply stops matching.
-  int metOn(DateTime now) =>
-      metTodayOn == nexDayKey(now) ? metToday : 0;
+  int metOn(DateTime now) => metTodayOn == nexDayKey(now) ? metToday : 0;
 
   /// The same commitment, met at [at] and rolled forward to its next turn.
   NexCommitment met(DateTime at) {
@@ -189,6 +226,7 @@ class NexCommitment {
     final today = nexDayKey(at);
     return copyWith(
       dueAt: next,
+      details: recordOccurrence('done', at),
       lastMetAt: at,
       metToday: (metTodayOn == today ? metToday : 0) + 1,
       metTodayOn: today,
@@ -212,6 +250,7 @@ class NexCommitment {
     bool? paused,
     bool? notify,
     DateTime? updatedAt,
+    Map<String, dynamic>? details,
   }) => NexCommitment(
     id: id,
     title: title ?? this.title,
@@ -229,6 +268,7 @@ class NexCommitment {
     paused: paused ?? this.paused,
     notify: notify ?? this.notify,
     rev: rev + 1,
+    details: details ?? this.details,
   );
 }
 
@@ -278,6 +318,13 @@ Duration nexDefaultLead(NexCadence cadence, int every) => switch (cadence) {
 ///   month that has one. The same arithmetic returns the 29th of February to
 ///   a yearly commitment every fourth year.
 DateTime nexAdvance(NexCommitment commitment, {required DateTime after}) {
+  if (commitment.details.containsKey('anchor') ||
+      commitment.weekdays.isNotEmpty ||
+      commitment.solar ||
+      commitment.monthDay != null ||
+      commitment.details['scheduledDue'] != null) {
+    return _advanceDetailed(commitment, after);
+  }
   final period = commitment.period;
   if (period != null) {
     var next = commitment.dueAt.add(period);
@@ -322,8 +369,7 @@ DateTime _addMonths(DateTime from, int months) {
   return DateTime(year, month, day, from.hour, from.minute, from.second);
 }
 
-int _daysInMonth(int year, int month) =>
-    DateTime(year, month + 1, 0).day;
+int _daysInMonth(int year, int month) => DateTime(year, month + 1, 0).day;
 
 /// Moves an hourly occurrence that landed outside its waking window to the
 /// next moment inside one.
@@ -349,8 +395,7 @@ DateTime _intoWindow(NexCommitment commitment, DateTime when) {
       : openingToday.add(const Duration(days: 1));
 }
 
-bool _insideWindow(int minutes, int start, int end) =>
-    end > start
+bool _insideWindow(int minutes, int start, int end) => end > start
     ? minutes >= start && minutes <= end
     // Wraps past midnight — a night shift.
     : minutes >= start || minutes <= end;
@@ -363,3 +408,77 @@ String nexDayKey(DateTime when) =>
     '${when.year.toString().padLeft(4, '0')}-'
     '${when.month.toString().padLeft(2, '0')}-'
     '${when.day.toString().padLeft(2, '0')}';
+
+DateTime _advanceDetailed(NexCommitment c, DateTime after) {
+  final due = c.scheduledDue;
+  final threshold = after.isAfter(due) ? after : due;
+  final anchor =
+      DateTime.tryParse(c.details['anchor'] as String? ?? '')?.toLocal() ?? due;
+  final every = c.every.clamp(1, 1000);
+  if (c.cadence == NexCadence.weeks && c.weekdays.isNotEmpty) {
+    final start = DateTime(threshold.year, threshold.month, threshold.day);
+    final monday = DateTime.utc(
+      anchor.year,
+      anchor.month,
+      anchor.day - anchor.weekday + 1,
+    );
+    for (var offset = 0; offset <= every * 7 + 7; offset++) {
+      final d = DateTime(
+        start.year,
+        start.month,
+        start.day + offset,
+        due.hour,
+        due.minute,
+      );
+      final days = DateTime.utc(
+        d.year,
+        d.month,
+        d.day,
+      ).difference(monday).inDays;
+      if (d.isAfter(threshold) &&
+          c.weekdays.contains(d.weekday) &&
+          (days ~/ 7) % every == 0) {
+        return d;
+      }
+    }
+  }
+  if (c.cadence == NexCadence.months || c.cadence == NexCadence.years) {
+    final a = c.solar
+        ? nexPersianDate(anchor)
+        : (year: anchor.year, month: anchor.month, day: anchor.day);
+    final t = c.solar
+        ? nexPersianDate(threshold)
+        : (year: threshold.year, month: threshold.month, day: threshold.day);
+    final step = every * (c.cadence == NexCadence.years ? 12 : 1);
+    final start = (((t.year - a.year) * 12 + t.month - a.month) ~/ step).clamp(
+      0,
+      120000,
+    );
+    for (var turn = start; turn <= start + 2; turn++) {
+      final total = a.year * 12 + a.month - 1 + turn * step;
+      final year = total ~/ 12, month = total % 12 + 1;
+      final last = c.solar
+          ? nexPersianMonthDays(year, month)
+          : DateTime(year, month + 1, 0).day;
+      final day = c.monthDay == 0 ? last : (c.monthDay ?? a.day).clamp(1, last);
+      final date = c.solar
+          ? nexGregorianDate(year, month, day)
+          : DateTime(year, month, day);
+      final next = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        due.hour,
+        due.minute,
+      );
+      if (next.isAfter(threshold)) return next;
+    }
+    throw StateError('Cannot advance recurring calendar');
+  }
+  // Hourly windows retain the original implementation; snoozing does not
+  // change the next cycle's anchor.
+  return nexAdvance(
+    c.copyWith(dueAt: due, details: const {}),
+    after: threshold,
+  );
+}

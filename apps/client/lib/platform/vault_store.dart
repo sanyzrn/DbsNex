@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
-enum VaultKind { password, card }
+enum VaultKind { password, card, message }
 
 /// This data never enters the note database, FTS, widgets or AI context.
 class VaultEntry {
@@ -138,6 +138,19 @@ class VaultStore {
       entry,
     ], old.draft?.id == entry.id ? null : old.draft),
   );
+  Future<void> importPasswords(List<VaultEntry> imported) => _change((old) {
+    String identity(VaultEntry e) =>
+        jsonEncode([e.value('website'), e.value('login'), e.value('password')]);
+    final seen = old.entries
+        .where((e) => e.kind == VaultKind.password)
+        .map(identity)
+        .toSet();
+    return VaultSnapshot([
+      ...old.entries,
+      for (final e in imported)
+        if (e.kind == VaultKind.password && seen.add(identity(e))) e,
+    ], old.draft);
+  });
   Future<void> delete(String id) => _change(
     (old) => VaultSnapshot(
       old.entries.where((e) => e.id != id).toList(),

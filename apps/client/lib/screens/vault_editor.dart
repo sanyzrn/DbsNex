@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
-import '../platform/display_date.dart';
 import '../platform/vault_store.dart';
 import '../platform/private_clipboard.dart';
 
@@ -41,10 +40,8 @@ class _VaultEditorState extends State<VaultEditor> {
     ])
       key: TextEditingController(text: widget.entry.value(key)),
   };
-  bool reveal = false, generator = false, symbols = true, discard = false;
-  int length = 20;
+  bool discard = false;
   late bool favorite = widget.entry.favorite;
-  String generated = '';
   @override
   void dispose() {
     for (final c in fields.values) {
@@ -76,9 +73,6 @@ class _VaultEditorState extends State<VaultEditor> {
   }
 
   void _changed() => widget.onChanged(_value());
-  void _generate() => setState(() {
-    generated = generateVaultPassword(length: length, symbols: symbols);
-  });
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -101,88 +95,6 @@ class _VaultEditorState extends State<VaultEditor> {
               secret: true,
               ltr: true,
             ),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: TextButton.icon(
-                onPressed: widget.busy
-                    ? null
-                    : () {
-                        setState(() => generator = !generator);
-                        if (generated.isEmpty) _generate();
-                      },
-                icon: const Icon(Icons.casino_outlined),
-                label: Text(l.vaultGenerator),
-              ),
-            ),
-            if (generator)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        generated,
-                        textDirection: TextDirection.ltr,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        '${l.vaultLength}: ${nexDigits('$length', persian: Localizations.localeOf(context).languageCode == 'fa')}',
-                      ),
-                      Slider(
-                        value: length.toDouble(),
-                        min: 12,
-                        max: 48,
-                        divisions: 36,
-                        onChanged: widget.busy
-                            ? null
-                            : (v) {
-                                length = v.round();
-                                _generate();
-                              },
-                      ),
-                      Row(
-                        children: [
-                          Expanded(child: Text(l.vaultSymbols)),
-                          NexSwitch(
-                            value: symbols,
-                            onChanged: widget.busy
-                                ? null
-                                : (v) {
-                                    symbols = v;
-                                    _generate();
-                                  },
-                          ),
-                        ],
-                      ),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          IconButton(
-                            tooltip: l.vaultGenerate,
-                            onPressed: widget.busy ? null : _generate,
-                            icon: const Icon(Icons.refresh),
-                          ),
-                          FilledButton.tonal(
-                            onPressed: widget.busy
-                                ? null
-                                : () {
-                                    fields['password']!.text = generated;
-                                    _changed();
-                                    setState(() => generator = false);
-                                  },
-                            child: Text(l.vaultUseGenerated),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             _field(
               'website',
               l.vaultWebsite,
@@ -301,7 +213,7 @@ class _VaultEditorState extends State<VaultEditor> {
       key: ValueKey('vault-field-$key'),
       controller: fields[key],
       enabled: !widget.busy,
-      obscureText: secret && !reveal,
+      obscureText: false,
       maxLines: lines,
       minLines: 1,
       maxLength: key == 'notes' ? 2000 : 256,
@@ -365,17 +277,6 @@ class _VaultEditorState extends State<VaultEditor> {
         labelText: label,
         counterText: '',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-        suffixIcon: secret
-            ? IconButton(
-                tooltip: reveal ? l.vaultHide : l.vaultShow,
-                onPressed: () => setState(() => reveal = !reveal),
-                icon: Icon(
-                  reveal
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                ),
-              )
-            : null,
       ),
     );
     return Padding(
