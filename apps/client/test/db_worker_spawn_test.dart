@@ -44,19 +44,23 @@ void main() {
       mediaDir: mediaDir,
     );
     try {
-      await Future.wait(
-        List.generate(40, (i) async {
-          final payload = {
-            'requestId': 'r-$i',
-            'type': 'shared_text',
-            'text': 'note $i',
-          };
-          await Future.wait([
-            first.captureShared(payload),
-            second.captureShared(payload),
-          ]);
-        }),
-      );
+      // Race the two connections against each other for every request, which
+      // is the invariant this test owns. Running all forty races at once also
+      // queued forty unrelated writes on each worker; under a loaded CI host
+      // one connection could keep winning long enough to exhaust SQLite's
+      // five-second busy timeout. That tested scheduler starvation, not
+      // duplicate-delivery safety, and made release CI flaky.
+      for (var i = 0; i < 40; i++) {
+        final payload = {
+          'requestId': 'r-$i',
+          'type': 'shared_text',
+          'text': 'note $i',
+        };
+        await Future.wait([
+          first.captureShared(payload),
+          second.captureShared(payload),
+        ]);
+      }
       expect(await first.timeline(limit: 100), hasLength(40));
       await first.backup(p.join(tmp.path, 'backups'), mediaDir: mediaDir);
       expect(
