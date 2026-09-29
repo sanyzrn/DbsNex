@@ -593,7 +593,10 @@ class NexPreferences extends ChangeNotifier {
   SwipeAction get trailingAction =>
       SwipeActionWire.fromWire(_prefs.getString('swipe.trailing') ?? 'delete');
 
-  bool get comfortMode => _prefs.getBool('appearance.comfort') ?? false;
+  // Comfort Mode left Settings in 1.30.0 and nothing can turn it off any
+  // more, so a stored `true` is no longer honoured. The whole-app palettes are
+  // where a warmer look lives now.
+  bool get comfortMode => false;
 
   // Temporarily disabled by the owner (1.70.0). Keep stored choice and
   // rendering code for a later redesign; do not silently re-enable it.
@@ -1414,6 +1417,19 @@ class NexPreferences extends ChangeNotifier {
   /// nothing for anyone who was happy with it. The one that asks nothing of a
   /// provider is a choice people make deliberately, not one they should be
   /// moved to behind their backs.
+  /// Whether the smart summary and the greeting may use as many tokens as
+  /// the provider allows, instead of the few hundred they are normally held
+  /// to. Off by default: the summary refreshes many times a day, and a cap is
+  /// what keeps that cheap. It exists for "thinking" models, which spend
+  /// their budget reasoning before they write and come back empty under it.
+  bool get aiSummaryUnlimited =>
+      _prefs.getBool('brief.unlimited_tokens') ?? false;
+
+  Future<void> setAiSummaryUnlimited(bool value) async {
+    await _prefs.setBool('brief.unlimited_tokens', value);
+    notifyListeners();
+  }
+
   NexBriefStyle get briefStyle =>
       NexBriefStyle.fromWire(_prefs.getString('brief.style'));
 

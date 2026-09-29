@@ -57,6 +57,15 @@ const nexThemePresets = <NexThemePreset>[
     icon: Icons.forest_outlined,
   ),
 ];
+
+/// The seed a palette brings with it, or null for the classic look, which
+/// keeps the shipped accent.
+Color? nexThemePresetSeed(String id) => id == 'classic'
+    ? null
+    : nexThemePresets
+          .firstWhere((p) => p.id == id, orElse: () => nexThemePresets.first)
+          .seed;
+
 String nexThemePresetLabel(BuildContext context, String id) {
   final p = nexThemePresets.firstWhere(
     (p) => p.id == id,

@@ -27,7 +27,9 @@ Files shared to Nex from another app land the same way as ones picked inside it.
 that fold (pinch the timeline to fold or open them all). Cards are a fixed height, so the
 list stays even. Swipe an edge for delete or add-tag; hold a card for pin, copy, edit,
 remind and delete. Up to five notes can be pinned to the top. Long notes open folded,
-with **More** to read the rest, and can be converted to a Markdown file and back.
+with **More** to read the rest. A note converts only one way — to a Markdown file — while
+any file that is mostly words (text, Word `.docx`/`.doc`, `.odt`, `.rtf`, HTML, EPUB, CSV,
+code, older Windows-1256 Persian text) converts into an editable note.
 
 **Find** — SQLite FTS5 full-text search, plus tag, content-type and date filters with
 tappable chips beside the search field (the `tag:`/`type:` operators still work in the
@@ -57,12 +59,13 @@ code), optionally the offline model and the private vault. An interrupted restor
 back on the next launch, and unfinished edits in most editors survive the app being
 killed.
 
-**Private tools** — a separate Tools page at the left of the home dock holds passwords, bank cards and private saved messages behind device authentication. A standalone password generator, Chrome CSV import and field-by-field copy make access quick. Vault data is excluded from notes, AI and ordinary library backups; encrypted vault export is an explicit option in Complete app backup.
+**Private tools** — a compact Tools page at the left of the home dock holds passwords, bank cards and private saved messages behind device authentication. One unlock opens every private tool and lasts two minutes after the last touch, including time spent in another app; leaving the app always hides the contents. Every field is shown and copyable on the list itself, bank cards take a colour of their own, and there is a standalone password generator and Chrome CSV import. Vault data is excluded from notes, AI and ordinary library backups; encrypted vault export is an explicit option in Complete app backup.
 
 **Intelligence, optional and off by default** — transcription, OCR, summarization, tag
 suggestions, semantic search and related notes, each behind its own switch, against a
 provider you configure and can test, plus an assistant you can actually talk to about what
-you have written. Its tone is yours to set, including one you write yourself. It is the only
+you have written — held open from the capture button, it pours out of the button with a
+wave of light across the screen. Its tone is yours to set, including one you write yourself. It is the only
 part of Nex that can send a note off the device, it says so before it is switched on, and
 cloud requests may include your preferred name and selected note context. With only the offline model enabled, generation stays on the device. See [`docs/09-ai.md`](./docs/09-ai.md).
 
@@ -72,7 +75,11 @@ app's language and accent, and stay private while the app lock is on.
 **Persian calendar** — optional Solar Hijri dates for display and every date picker,
 independent of the interface language.
 
-**Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier and Forest palettes, custom accents and text size. Liquid Glass is temporarily disabled by owner request; its implementation is retained. Reduce-motion support and 48px minimum action targets remain.
+**Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier and Forest palettes, custom accents and text size. In-app notices are one capsule that drips out of the top edge (a "gooey" metaball effect, `packages/ui/lib/widgets/nex_gooey.dart`). Liquid Glass is temporarily disabled by owner request; its implementation is retained. Reduce-motion support and 48px minimum action targets remain.
+
+**Feedback** — a compose sheet with a category and an optional reply address, relayed to
+Telegram by a separate Cloudflare Worker (`apps/feedback-worker`). It stays unavailable
+until that Worker is deployed and its URL is set for release builds.
 
 **Locked if you want it** — the app can ask for the device credential or a fingerprint
 whenever it comes back to the foreground. The lock is local; nothing about it is synced.

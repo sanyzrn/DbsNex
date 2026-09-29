@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +24,8 @@ enum NexBannerKind {
   ai,
 }
 
-/// A notification that arrives from the top of the screen.
+/// A notification that arrives from the top of the screen, as a capsule that
+/// drips out of the top edge and is drawn back into it when it goes.
 ///
 /// Replaces a bottom SnackBar, and the position is the point: on a phone the
 /// bottom of the screen is where this app's own controls live — the capture
@@ -154,8 +157,8 @@ class _NexBannerState extends State<_NexBanner>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: NexMotion.slow,
-    reverseDuration: NexMotion.standard,
+    duration: const Duration(milliseconds: 720),
+    reverseDuration: const Duration(milliseconds: 420),
   );
 
   Timer? _timer;
@@ -219,109 +222,100 @@ class _NexBannerState extends State<_NexBanner>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final dark = theme.brightness == Brightness.dark;
+    // A capsule of its own colour in both themes, the way One UI's pop-ups
+    // and the island they grow from are: near-black on a light page, a lifted
+    // graphite on a dark one, where black would disappear into the page.
+    final capsule = dark ? const Color(0xFF2C2E33) : const Color(0xFF17181B);
+    final accent = dark ? scheme.primary : scheme.inversePrimary;
+    final top = MediaQuery.paddingOf(context).top;
+    const gap = NexSpacing.sm;
+
+    final message = Semantics(
+      liveRegion: true,
+      child: Text(
+        widget.message,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+    final action = widget.actionLabel == null
+        ? null
+        : TextButton(
+            onPressed: _act,
+            style: TextButton.styleFrom(
+              foregroundColor: accent,
+              minimumSize: const Size(48, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              textStyle: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            child: Text(widget.actionLabel!),
+          );
 
     return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: NexSpacing.md,
-            vertical: NexSpacing.sm,
-          ),
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              final t = _controller.value;
-              // easeOutBack on the way in gives the small overshoot that makes
-              // it land rather than stop. Not on the way out — a banner that
-              // bounces as it leaves reads as a bug.
-              final eased = _leaving || reduceMotion
-                  ? t
-                  : Curves.easeOutBack.transform(t);
-              return Opacity(
-                opacity: t.clamp(0.0, 1.0),
-                child: FractionalTranslation(
-                  translation: Offset(0, reduceMotion ? 0 : eased - 1),
-                  child: child,
-                ),
-              );
+      top: top + gap,
+      left: NexSpacing.md,
+      right: NexSpacing.md,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480, minWidth: 140),
+          child: GestureDetector(
+            onTap: _dismiss,
+            // Up, not down. A downward flick is how a phone opens the
+            // notification shade, and this is sitting exactly where that
+            // gesture starts.
+            onVerticalDragEnd: (details) {
+              if ((details.primaryVelocity ?? 0) < -80) {
+                unawaited(_dismiss());
+              }
             },
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: GestureDetector(
-                  onTap: _dismiss,
-                  // Up, not down. A downward flick is how a phone opens the
-                  // notification shade, and this is sitting exactly where that
-                  // gesture starts.
-                  onVerticalDragEnd: (details) {
-                    if ((details.primaryVelocity ?? 0) < -80) {
-                      unawaited(_dismiss());
-                    }
-                  },
-                  child: Material(
-                    color: scheme.surfaceContainerHighest,
-                    elevation: 8,
-                    shadowColor: scheme.shadow.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(100),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: NexSpacing.md,
-                        vertical: NexSpacing.sm + 2,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                        border: Border.all(
-                          color: scheme.outlineVariant.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final message = Semantics(
-                            liveRegion: true,
-                            child: Text(
-                              widget.message,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          );
-                          final action = widget.actionLabel == null
-                              ? null
-                              : TextButton(
-                                  onPressed: _act,
-                                  style: TextButton.styleFrom(
-                                    minimumSize: const Size(48, 48),
-                                  ),
-                                  child: Text(widget.actionLabel!),
-                                );
-                          if (MediaQuery.textScalerOf(context).scale(1) > 1.4 ||
-                              constraints.maxWidth < 260) {
-                            return Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [message, if (action != null) action],
-                            );
-                          }
-                          return Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _Glyph(kind: widget.kind),
-                              const SizedBox(width: NexSpacing.sm),
-                              Expanded(child: message),
-                              if (action != null) ...[
-                                const SizedBox(width: 8),
-                                action,
-                              ],
-                            ],
-                          );
-                        },
-                      ),
-                    ),
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                final t = _controller.value;
+                return CustomPaint(
+                  painter: _CapsulePainter(
+                    t: t,
+                    color: capsule,
+                    // From the capsule's top edge to the top of the screen:
+                    // where the island it drips from sits.
+                    lift: top + gap,
+                    hairline: Colors.white.withValues(alpha: dark ? .08 : 0),
                   ),
+                  child: Opacity(
+                    opacity: _CapsulePainter.span(t, .55, .9),
+                    child: child,
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(10, 8, 14, 8),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (MediaQuery.textScalerOf(context).scale(1) > 1.4 ||
+                        constraints.maxWidth < 260) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [message, ?action],
+                      );
+                    }
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _Glyph(kind: widget.kind, accent: accent),
+                        const SizedBox(width: 10),
+                        Flexible(child: message),
+                        if (action != null) ...[
+                          const SizedBox(width: 4),
+                          action,
+                        ],
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -332,28 +326,111 @@ class _NexBannerState extends State<_NexBanner>
   }
 }
 
+/// The capsule and the drop it arrives as.
+///
+/// Out of a small island at the top of the screen — roughly where the camera
+/// sits — a drop falls on a thread of liquid, lands where the capsule goes and
+/// spreads sideways into it; the thread thins and lets go of the island. The
+/// exit is the same film run backwards, so the capsule is drawn back up into
+/// the edge it came from. The gooey pass runs only while that is happening;
+/// at rest this is one rounded rectangle and a shadow.
+class _CapsulePainter extends CustomPainter {
+  _CapsulePainter({
+    required this.t,
+    required this.color,
+    required this.lift,
+    required this.hairline,
+  });
+
+  final double t;
+  final Color color;
+  final double lift;
+  final Color hairline;
+
+  static double span(double t, double a, double b, [Curve c = Curves.linear]) =>
+      c.transform(((t - a) / (b - a)).clamp(0.0, 1.0));
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final radius = Radius.circular(math.min(size.height / 2, 28));
+    final full = RRect.fromRectAndRadius(Offset.zero & size, radius);
+    if (t >= 1) {
+      canvas.drawShadow(Path()..addRRect(full), Colors.black, 6, false);
+      canvas.drawRRect(full, Paint()..color = color);
+      if (hairline.a > 0) {
+        canvas.drawRRect(
+          full.deflate(0.5),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..color = hairline,
+        );
+      }
+      return;
+    }
+    final cx = size.width / 2;
+    final h = size.height;
+    final fall = span(t, 0, .4, Curves.easeOutCubic);
+    final spread = span(t, .28, .72, Curves.easeOutBack);
+    final letGo = span(t, .3, .6, Curves.easeInCubic);
+    final island = Offset(cx, -lift + 4);
+    final dropCenter = Offset(cx, ui.lerpDouble(-lift + 10, h / 2, fall)!);
+    final dropRadius = ui.lerpDouble(8, h / 2, fall)!;
+    final width = ui.lerpDouble(dropRadius * 2, size.width, spread)!;
+    final capsule = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: dropCenter,
+        width: math.max(width, 1),
+        height: dropRadius * 2,
+      ),
+      Radius.circular(math.min(dropRadius, radius.x)),
+    );
+    final thread = ui.lerpDouble(7, 0, letGo)!;
+    nexPaintGooey(
+      canvas,
+      bounds: Rect.fromLTRB(-24, -lift - 30, size.width + 24, h + 24),
+      color: color,
+      softness: 6,
+      shapes: [
+        nexGooeyCircle(island, ui.lerpDouble(16, 0, letGo)!),
+        RRect.fromRectAndRadius(
+          Rect.fromLTRB(cx - thread, island.dy, cx + thread, dropCenter.dy),
+          Radius.circular(thread),
+        ),
+        capsule,
+      ],
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CapsulePainter old) =>
+      old.t != t ||
+      old.color != color ||
+      old.lift != lift ||
+      old.hairline != hairline;
+}
+
 class _Glyph extends StatelessWidget {
-  const _Glyph({required this.kind});
+  const _Glyph({required this.kind, required this.accent});
 
   final NexBannerKind kind;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final icon = switch (kind) {
-      NexBannerKind.done => Icons.check_circle_outline,
-      NexBannerKind.failed => Icons.error_outline,
+      NexBannerKind.done => Icons.check_rounded,
+      NexBannerKind.failed => Icons.priority_high_rounded,
       NexBannerKind.ai => Icons.auto_awesome,
     };
     return Container(
-      width: 28,
-      height: 28,
+      width: 30,
+      height: 30,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: scheme.primary.withValues(alpha: 0.16),
+        color: accent.withValues(alpha: 0.22),
       ),
-      child: Icon(icon, size: 16, color: scheme.primary),
+      child: Icon(icon, size: 18, color: accent),
     );
   }
 }

@@ -150,6 +150,30 @@ class AiProviderConfig {
     return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
   }
 
+  /// Custom's address, exactly as it was typed.
+  ///
+  /// Every other provider has one known host, and the app adds the path it
+  /// needs. Custom used to be treated the same way — `/v1/chat/completions`
+  /// was appended to whatever was entered — which only works for servers
+  /// that happen to lay their API out like OpenAI's own. Gateways that live
+  /// at `/api/v3/…`, `/openai/v1/…` or a path with no `/v1` at all could not
+  /// be reached. So for Custom the field *is* the chat endpoint: nothing is
+  /// added, nothing is removed but surrounding spaces.
+  String get customEndpoint => baseUrl.trim();
+
+  /// A sibling of the Custom chat endpoint — `embeddings` beside
+  /// `chat/completions` — or null when the address does not end the
+  /// OpenAI way and there is nothing honest to derive it from.
+  String? customSibling(String path) {
+    final endpoint = customEndpoint;
+    final bare = endpoint.endsWith('/')
+        ? endpoint.substring(0, endpoint.length - 1)
+        : endpoint;
+    const chat = '/chat/completions';
+    if (!bare.endsWith(chat)) return null;
+    return '${bare.substring(0, bare.length - chat.length)}/$path';
+  }
+
   String get resolvedModel =>
       model.trim().isEmpty ? provider.defaultModel : model.trim();
 
@@ -537,6 +561,7 @@ class CloudAIAdapter implements AIAdapter {
   CloudAIAdapter({
     required this.config,
     this.outputLanguage = AiOutputLanguage.auto,
+    this.unlimitedSummary = false,
     http.Client? client,
     @visibleForTesting ChatAdapter? localModel,
   }) : _client = client ?? _defaultClient(),
@@ -544,6 +569,10 @@ class CloudAIAdapter implements AIAdapter {
        _localOverride = localModel;
 
   final AiProviderConfig config;
+
+  /// Lifts the token ceiling on the smart summary and the greeting — see
+  /// [NexPreferences.aiSummaryUnlimited]. Nothing else is affected.
+  final bool unlimitedSummary;
 
   /// Injected only by tests. Production reads the process-wide binding every
   /// time rather than capturing it, because a model can finish downloading —
@@ -661,9 +690,10 @@ class CloudAIAdapter implements AIAdapter {
       '${config.resolvedBaseUrl}/v1beta/models/'
       '${config.resolvedModel}:generateContent',
     ),
-    AiWireFormat.openai => Uri.parse(
-      '${config.resolvedBaseUrl}/v1/chat/completions',
-    ),
+    AiWireFormat.openai =>
+      config.provider == AiProvider.custom
+          ? Uri.parse(config.customEndpoint)
+          : Uri.parse('${config.resolvedBaseUrl}/v1/chat/completions'),
   };
 
   /// What the provider said the last time it refused, or null.
@@ -688,10 +718,12 @@ class CloudAIAdapter implements AIAdapter {
   int? get lastFailureStatus => _lastFailure?.status;
 
   /// One turn, with optional inline media, normalised across all three shapes.
+  /// A null [maxTokens] leaves the ceiling to the provider: omitted where the
+  /// API allows that, and Anthropic's required field set generously.
   Future<String?> _complete(
     String system,
     String user, {
-    int maxTokens = 300,
+    int? maxTokens = 300,
     Uint8List? media,
     String? mediaMimeType,
     Duration? timeout,
@@ -709,7 +741,7 @@ class CloudAIAdapter implements AIAdapter {
     final body = switch (config.provider.format) {
       AiWireFormat.anthropic => {
         'model': config.resolvedModel,
-        'max_tokens': maxTokens,
+        'max_tokens': maxTokens ?? 8192,
         'system': system,
         'messages': [
           {
@@ -750,11 +782,11 @@ class CloudAIAdapter implements AIAdapter {
             ],
           },
         ],
-        'generationConfig': {'maxOutputTokens': maxTokens},
+        'generationConfig': {'maxOutputTokens': ?maxTokens},
       },
       AiWireFormat.openai => {
         'model': config.resolvedModel,
-        'max_tokens': maxTokens,
+        'max_tokens': ?maxTokens,
         'messages': [
           {'role': 'system', 'content': system},
           {
@@ -1139,7 +1171,7 @@ class CloudAIAdapter implements AIAdapter {
       // Room for the whole budget and then some, because a reply cut off by
       // the token ceiling ends mid-word and the tidier cannot tell that from
       // a model that simply stopped.
-      maxTokens: (lines * 60).clamp(200, 800),
+      maxTokens: unlimitedSummary ? null : (lines * 60).clamp(200, 800),
       timeout: timeout,
     );
     // Line-aware, unlike the word clamp this replaced: that one collapsed
@@ -1234,7 +1266,7 @@ class CloudAIAdapter implements AIAdapter {
       'language only. '
       'Reply with the lines only. ${outputLanguage.promptRule}',
       recentNotesText,
-      maxTokens: (budget * 60).clamp(120, 800),
+      maxTokens: unlimitedSummary ? null : (budget * 60).clamp(120, 800),
       timeout: timeout,
     );
     return _plausible(
@@ -1285,7 +1317,7 @@ class CloudAIAdapter implements AIAdapter {
                 '${DateTime.now().hour}:00.'
           : 'The local time is ${DateTime.now().hour}:00. Their recent '
                 'notes:\n$recentNotesText',
-      maxTokens: 60,
+      maxTokens: unlimitedSummary ? null : 60,
       timeout: timeout,
     );
     return _plausible(_clamped(cleanDecorativeReply(reply), 6));
@@ -1905,9 +1937,13 @@ class CloudAIAdapter implements AIAdapter {
       if (values is! List) throw const AiUnavailableException();
       return Vector([for (final value in values) (value as num).toDouble()]);
     }
+    final embeddings = config.provider == AiProvider.custom
+        ? config.customSibling('embeddings')
+        : '${config.resolvedBaseUrl}/v1/embeddings';
+    if (embeddings == null) throw const AiUnavailableException();
     final response = await _client
         .post(
-          Uri.parse('${config.resolvedBaseUrl}/v1/embeddings'),
+          Uri.parse(embeddings),
           headers: _headers,
           body: jsonEncode({'model': config.embeddingModel, 'input': text}),
         )

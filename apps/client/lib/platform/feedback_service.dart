@@ -29,6 +29,9 @@ enum FeedbackOutcome {
   unavailable,
 }
 
+/// What a piece of feedback is about, as the relay's `kind` field names it.
+enum FeedbackKind { bug, idea, other }
+
 /// Sends feedback to the app's own backend, which forwards it to Telegram —
 /// never a bot token embedded in this client, which a public app cannot keep
 /// secret from anyone who unpacks the APK.
@@ -50,10 +53,15 @@ class FeedbackService {
   final http.Client _client;
   final bool _ownsClient;
 
-  Future<FeedbackOutcome> send(String message) async {
+  Future<FeedbackOutcome> send(
+    String message, {
+    FeedbackKind? kind,
+    String? contact,
+  }) async {
     if (baseUrl.isEmpty) return FeedbackOutcome.unavailable;
     final trimmed = message.trim();
     if (trimmed.isEmpty) return FeedbackOutcome.failed;
+    final reply = contact?.trim() ?? '';
 
     try {
       final response = await _client
@@ -64,6 +72,8 @@ class FeedbackService {
               'message': trimmed,
               'appVersion': nexAppVersion,
               'platform': Platform.operatingSystem,
+              'kind': ?kind?.name,
+              if (reply.isNotEmpty) 'contact': reply,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -93,12 +103,50 @@ class FeedbackService {
   Future<void> flushPending() async {
     final pending = preferences.pendingFeedback;
     if (pending == null) return;
-    final outcome = await send(pending);
+    final held = decodePending(pending);
+    final outcome = await send(
+      held.message,
+      kind: held.kind,
+      contact: held.contact,
+    );
     // `.sent` already cleared it; `.failed` means the server rejected this
     // exact text, so holding onto it would only retry a fixed rejection.
     if (outcome == FeedbackOutcome.failed) {
       await preferences.setPendingFeedback(null);
     }
+  }
+
+  /// What [NexPreferences.pendingFeedback] holds: the message with its
+  /// category and reply address, so a retry sends what was typed rather than
+  /// the text alone. A plain string from before these existed is a message.
+  static String encodePending(
+    String message, {
+    FeedbackKind? kind,
+    String? contact,
+  }) => jsonEncode({
+    'message': message,
+    'kind': ?kind?.name,
+    if (contact != null && contact.trim().isNotEmpty) 'contact': contact.trim(),
+  });
+
+  static ({String message, FeedbackKind? kind, String? contact}) decodePending(
+    String raw,
+  ) {
+    try {
+      final value = jsonDecode(raw);
+      if (value is Map && value['message'] is String) {
+        return (
+          message: value['message'] as String,
+          kind: FeedbackKind.values
+              .where((k) => k.name == value['kind'])
+              .firstOrNull,
+          contact: value['contact'] as String?,
+        );
+      }
+    } on FormatException {
+      // Not JSON: a message queued by an older build.
+    }
+    return (message: raw, kind: null, contact: null);
   }
 
   void close() {

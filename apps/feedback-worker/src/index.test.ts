@@ -81,6 +81,24 @@ describe("feedback worker", () => {
     assert.match(body.text, /android/);
   });
 
+  test("a category and a reply address travel with the message", async () => {
+    const res = await handleRequest(
+      post({ message: "search misses a word", kind: "bug", contact: "@someone" }),
+      configuredEnv,
+    );
+    assert.equal(res.status, 202);
+    const body = telegramCalls[0]!.body as { text: string };
+    assert.equal(body.text, "🐞 Bug\n\nsearch misses a word\n\nReply to: @someone");
+  });
+
+  test("an unknown category or an overlong contact is refused", async () => {
+    for (const extra of [{ kind: "spam" }, { contact: "x".repeat(81) }, { contact: 7 }]) {
+      const res = await handleRequest(post({ message: "hi", ...extra }), configuredEnv);
+      assert.equal(res.status, 400);
+    }
+    assert.equal(telegramCalls.length, 0);
+  });
+
   test("unconfigured credentials answer 503 without ever touching Telegram", async () => {
     const res = await handleRequest(post({ message: "hello" }), {});
 

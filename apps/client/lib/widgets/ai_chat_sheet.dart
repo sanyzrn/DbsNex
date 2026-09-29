@@ -107,23 +107,44 @@ class AiChatSheet extends StatefulWidget {
     List<Note>? scope,
     String? scopeLabel,
     http.Client? client,
+    Rect? emergeFrom,
   }) => showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: false,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => AiChatSheet(
-      preferences: preferences,
-      services: services,
-      history: history,
-      resume: resume,
-      focus: focus,
-      scope: scope,
-      scopeLabel: scopeLabel,
-      client: client,
+    // A touch slower and softer than a plain sheet, so it rises together
+    // with the drop that pours out of the capture button ahead of it.
+    sheetAnimationStyle: const AnimationStyle(
+      duration: Duration(milliseconds: 460),
+      reverseDuration: Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    ),
+    // Held from the capture button, the sheet grows out of it instead of
+    // sliding up. Opened from anywhere else it is an ordinary sheet.
+    builder: (context) => NexEmergeFrom(
+      origin: emergeFrom,
+      color:
+          Theme.of(context).floatingActionButtonTheme.backgroundColor ??
+          Theme.of(context).colorScheme.primary,
+      radius: NexRadius.xl,
+      child: AiChatSheet(
+        preferences: preferences,
+        services: services,
+        history: history,
+        resume: resume,
+        focus: focus,
+        scope: scope,
+        scopeLabel: scopeLabel,
+        client: client,
+      ),
     ),
   );
+
+  /// The share of the screen the sheet opens at. The launch animation aims
+  /// its drop at this edge.
+  static const initialSize = 0.55;
 
   @override
   State<AiChatSheet> createState() => _AiChatSheetState();
@@ -1261,13 +1282,13 @@ class _AiChatSheetState extends State<AiChatSheet> {
       child: DraggableScrollableSheet(
         controller: _sheet,
         // Starts as a question, not a room you moved into.
-        initialChildSize: 0.55,
+        initialChildSize: AiChatSheet.initialSize,
         minChildSize: 0.35,
         maxChildSize: 1,
         // Snaps to the two ends so a half-dragged sheet settles somewhere
         // deliberate instead of wherever the finger let go.
         snap: true,
-        snapSizes: const [0.55],
+        snapSizes: const [AiChatSheet.initialSize],
         expand: false,
         builder: (context, sheetScroll) {
           _scroll = sheetScroll;

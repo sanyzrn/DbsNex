@@ -126,6 +126,53 @@ void main() {
       expect(summary.text, 'a short summary');
     });
 
+    test('Custom is called at exactly the address that was typed', () async {
+      // It used to have `/v1/chat/completions` appended, so a gateway whose
+      // chat endpoint lives anywhere else could not be reached at all.
+      final seen = <Uri>[];
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.custom,
+          apiKey: 'secret',
+          baseUrl: ' https://gw.example.invalid/api/v3/chat/completions ',
+          model: 'm',
+        ),
+        client: MockClient((request) async {
+          seen.add(request.url);
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': 'ok'},
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+      await adapter.summarize(textNote('a long note'));
+      expect(
+        seen.single.toString(),
+        'https://gw.example.invalid/api/v3/chat/completions',
+      );
+
+      const other = AiProviderConfig(
+        provider: AiProvider.custom,
+        baseUrl: 'https://llm.example.invalid/generate',
+      );
+      expect(other.customEndpoint, 'https://llm.example.invalid/generate');
+      // Nothing honest to derive embeddings from.
+      expect(other.customSibling('embeddings'), isNull);
+      expect(
+        const AiProviderConfig(
+          provider: AiProvider.custom,
+          baseUrl: 'https://gw.example.invalid/api/v3/chat/completions/',
+        ).customSibling('embeddings'),
+        'https://gw.example.invalid/api/v3/embeddings',
+      );
+    });
+
     test('an unusable config asks for nothing at all', () {
       var called = false;
       final adapter = CloudAIAdapter(
@@ -172,6 +219,56 @@ void main() {
       final userTurn = (body['messages'] as List).last as Map;
       expect(userTurn['content'], 'milk, eggs\nfinish the report');
       expect(recap, 'Busy week, three grocery lists!');
+    });
+
+    test('the summary token ceiling lifts only when asked to', () async {
+      // A model that thinks before it writes spent the whole 200-800 token
+      // budget reasoning and came back empty, so the card never refreshed.
+      Future<Map<String, dynamic>> bodyOf(
+        AiProvider provider, {
+        required bool unlimited,
+      }) async {
+        late http.Request seen;
+        final adapter = CloudAIAdapter(
+          config: AiProviderConfig(
+            provider: provider,
+            apiKey: 'k',
+            model: 'm',
+          ),
+          unlimitedSummary: unlimited,
+          client: MockClient((request) async {
+            seen = request;
+            return http.Response(
+              jsonEncode({
+                'choices': [
+                  {
+                    'message': {'content': 'A calm day ahead.'},
+                  },
+                ],
+                'content': [
+                  {'type': 'text', 'text': 'A calm day ahead.'},
+                ],
+              }),
+              200,
+            );
+          }),
+        );
+        await adapter.digest('milk, eggs');
+        return jsonDecode(seen.body) as Map<String, dynamic>;
+      }
+
+      expect((await bodyOf(AiProvider.openai, unlimited: false))['max_tokens'],
+          isA<int>());
+      expect(
+        (await bodyOf(AiProvider.openai, unlimited: true))
+            .containsKey('max_tokens'),
+        isFalse,
+      );
+      // Anthropic requires the field, so it is set high rather than dropped.
+      expect(
+        (await bodyOf(AiProvider.anthropic, unlimited: true))['max_tokens'],
+        8192,
+      );
     });
 
     group('token soup is dropped rather than shown', () {

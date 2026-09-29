@@ -102,6 +102,53 @@ void main() {
       expect((await services.commitments()).single.dueAt, due);
     },
   );
+  testWidgets('the add sheet closes with a swipe on its handle', (
+    tester,
+  ) async {
+    // It could only be closed with Cancel: drag dismissal is off on guarded
+    // editors, because Flutter's own drag skips the unsaved-changes check.
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () =>
+                  CommitmentEditor.show(context, services: services),
+              child: const Text('open editor'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open editor'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CommitmentEditor), findsOneWidget);
+
+    final handle = find.byKey(const ValueKey('nex-sheet-swipe-handle'));
+    // A short tug springs back.
+    await tester.drag(handle, const Offset(0, 40));
+    await tester.pumpAndSettle();
+    expect(find.byType(CommitmentEditor), findsOneWidget);
+
+    // Something typed: the swipe asks before throwing it away.
+    await tester.enterText(find.byType(TextField).first, 'Gym');
+    await tester.pumpAndSettle();
+    await tester.fling(handle, const Offset(0, 500), 2000);
+    await tester.pumpAndSettle();
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(CommitmentEditor)),
+    );
+    expect(find.text(l10n.unsavedChanges), findsOneWidget);
+    await tester.tap(find.text(l10n.discard));
+    await tester.pumpAndSettle();
+    expect(find.byType(CommitmentEditor), findsNothing);
+  });
+
   testWidgets('the page says what a recurring item is for', (tester) async {
     // It said nothing at all. A title, a plus and an empty list is a page
     // that only makes sense to whoever built it.

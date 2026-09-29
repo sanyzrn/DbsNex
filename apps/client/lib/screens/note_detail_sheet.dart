@@ -14,6 +14,7 @@ import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../documents/docx_markdown.dart';
+import '../documents/text_import.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/dismiss_on_overscroll.dart';
@@ -479,6 +480,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final edited = await nexShowSheet<List<ChecklistItem>>(
       context: context,
       dismissible: false,
+      swipeToClose: true,
       builder: (_) => ChecklistCaptureSheet(
         preferences: preferences,
         initial: before,
@@ -1192,11 +1194,10 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                         ),
                       if (note.type == NoteType.text ||
                           (note.type == NoteType.file &&
-                              (note.mimeType == 'text/markdown' ||
-                                  p
-                                          .extension(note.mediaUri ?? '')
-                                          .toLowerCase() ==
-                                      '.md')))
+                              NexTextImport.canConvert(
+                                note.originalFilename ?? note.mediaUri,
+                                mimeType: note.mimeType,
+                              )))
                         _DetailAction(
                           icon: Icons.description_outlined,
                           label: note.type == NoteType.text

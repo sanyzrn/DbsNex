@@ -97,6 +97,31 @@ void main() {
       expect(preferences.pendingFeedback, isNull);
     });
 
+    test('a queued category and reply address are retried with it', () async {
+      await preferences.setPendingFeedback(
+        FeedbackService.encodePending(
+          'crash on export',
+          kind: FeedbackKind.bug,
+          contact: ' @me ',
+        ),
+      );
+      final service = FeedbackService(
+        preferences: preferences,
+        baseUrl: 'https://example.invalid',
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body['message'], 'crash on export');
+          expect(body['kind'], 'bug');
+          expect(body['contact'], '@me');
+          return http.Response('', 202);
+        }),
+      );
+      addTearDown(service.close);
+
+      await service.flushPending();
+      expect(preferences.pendingFeedback, isNull);
+    });
+
     test('still offline leaves it pending for the next resume', () async {
       await preferences.setPendingFeedback('typed while offline');
       final service = FeedbackService(

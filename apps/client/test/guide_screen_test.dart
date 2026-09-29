@@ -29,7 +29,7 @@ void main() {
     await open(tester, const Locale('en'));
 
     expect(find.text('How Nex works'), findsOneWidget);
-    expect(find.byType(NexMarkdown), findsOneWidget);
+    expect(find.byType(NexMarkdown), findsWidgets);
     // A heading arrives without its hashes, which is the whole reason this
     // goes through the renderer rather than a Text.
     expect(find.textContaining('Reminders'), findsWidgets);
@@ -42,16 +42,16 @@ void main() {
     await open(tester, const Locale('fa'));
 
     expect(find.text('نکس چطور کار می‌کند'), findsOneWidget);
-    expect(find.byType(NexMarkdown), findsOneWidget);
+    expect(find.byType(NexMarkdown), findsWidgets);
     expect(find.textContaining('یادآورها'), findsWidgets);
     // The English file must not be what a Persian reader gets.
     expect(find.textContaining('Reminders'), findsNothing);
   });
 
   group('the two languages stay in step', () {
-    String read(String name) =>
-        File(p.join(Directory.current.path, 'assets', 'guide', name))
-            .readAsStringSync();
+    String read(String name) => File(
+      p.join(Directory.current.path, 'assets', 'guide', name),
+    ).readAsStringSync();
 
     List<String> sectionsOf(String source) => [
       for (final line in source.split('\n'))
@@ -72,6 +72,27 @@ void main() {
         sectionsOf(read('fa.md')).length,
         sectionsOf(read('en.md')).length,
       );
+    });
+
+    test('both guides show the same pictures, and every one exists', () {
+      // The same screenshots in both languages, so neither reader is shown
+      // less; and a name with no file is a hole in the page.
+      List<String> images(String source) => [
+        for (final m in RegExp(r'!\[[^\]]*\]\(([^)]+)\)').allMatches(source))
+          m[1]!,
+      ];
+      final english = images(read('en.md'));
+      expect(english, isNotEmpty);
+      expect(images(read('fa.md')), english);
+      for (final name in english) {
+        expect(
+          File(
+            p.join(Directory.current.path, 'assets', 'guide', 'images', name),
+          ).existsSync(),
+          isTrue,
+          reason: name,
+        );
+      }
     });
 
     test('the Persian guide is actually in Persian', () {

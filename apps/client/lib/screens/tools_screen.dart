@@ -16,72 +16,66 @@ class ToolsScreen extends StatelessWidget {
       appBar: AppBar(title: Text(l.toolsTitle)),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           children: [
-            Icon(
-              Icons.space_dashboard_outlined,
-              size: 44,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(height: 20),
-            Text(l.toolsSubtitle, style: theme.textTheme.headlineSmall),
-            const SizedBox(height: 10),
             Text(
               l.toolsPrivateHint,
-              style: theme.textTheme.bodyLarge?.copyWith(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 28),
-            _ToolTile(
-              kind: VaultKind.password,
-              title: l.vaultPasswords,
-              subtitle: l.vaultPasswordsHint,
-              icon: Icons.key_rounded,
-            ),
-            const SizedBox(height: 16),
-            _ToolTile(
-              kind: VaultKind.card,
-              title: l.vaultCards,
-              subtitle: l.vaultCardsHint,
-              icon: Icons.credit_card_rounded,
-            ),
-            const SizedBox(height: 16),
-            _ToolTile(
-              kind: VaultKind.message,
-              title: nexLabel(
-                context,
-                'Private saved messages',
-                'پیام‌های ذخیره‌شدهٔ خصوصی',
+            const SizedBox(height: 14),
+            // Two to a row: four tools fit on one screen with room to spare,
+            // where the old full-width panels needed a scroll to reach the
+            // last one.
+            _pairs([
+              _ToolTile(
+                kind: VaultKind.password,
+                title: l.vaultPasswords,
+                subtitle: l.vaultPasswordsHint,
+                icon: Icons.key_rounded,
               ),
-              subtitle: nexLabel(
-                context,
-                'A private space for your words',
-                'فضایی خصوصی برای متن‌های شما',
+              _ToolTile(
+                kind: VaultKind.card,
+                title: l.vaultCards,
+                subtitle: l.vaultCardsHint,
+                icon: Icons.credit_card_rounded,
               ),
-              icon: Icons.chat_bubble_outline,
-            ),
-            const SizedBox(height: 16),
-            _ToolTile(
-              title: l.vaultGenerator,
-              subtitle: nexLabel(
-                context,
-                'Create and copy a strong password',
-                'ساخت و کپی رمز قوی',
+              _ToolTile(
+                kind: VaultKind.message,
+                title: nexLabel(
+                  context,
+                  'Private saved messages',
+                  'پیام‌های ذخیره‌شدهٔ خصوصی',
+                ),
+                subtitle: nexLabel(
+                  context,
+                  'A private space for your words',
+                  'فضایی خصوصی برای متن‌های شما',
+                ),
+                icon: Icons.chat_bubble_outline,
               ),
-              icon: Icons.casino_outlined,
-              destination: const PasswordGeneratorScreen(),
-            ),
-            const SizedBox(height: 28),
+              _ToolTile(
+                title: l.vaultGenerator,
+                subtitle: nexLabel(
+                  context,
+                  'Create and copy a strong password',
+                  'ساخت و کپی رمز قوی',
+                ),
+                icon: Icons.casino_outlined,
+                destination: const PasswordGeneratorScreen(),
+              ),
+            ]),
+            const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
                   Icons.lock_outline,
-                  size: 20,
+                  size: 18,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     l.vaultPrivacyHint,
@@ -96,6 +90,32 @@ class ToolsScreen extends StatelessWidget {
     );
   }
 }
+
+/// Tiles two to a row, each row as tall as its taller tile, so a large text
+/// size grows the rows instead of clipping them the way a fixed-ratio grid
+/// would.
+Widget _pairs(List<Widget> tiles) => Column(
+  children: [
+    for (var i = 0; i < tiles.length; i += 2)
+      Padding(
+        padding: EdgeInsets.only(top: i == 0 ? 0 : 12),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: tiles[i]),
+              const SizedBox(width: 12),
+              Expanded(
+                child: i + 1 < tiles.length
+                    ? tiles[i + 1]
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+      ),
+  ],
+);
 
 class _ToolTile extends StatelessWidget {
   const _ToolTile({
@@ -116,7 +136,7 @@ class _ToolTile extends StatelessWidget {
     return Material(
       color: scheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(22),
         side: BorderSide(color: scheme.outlineVariant),
       ),
       clipBehavior: Clip.antiAlias,
@@ -128,37 +148,31 @@ class _ToolTile extends StatelessWidget {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 30,
-                      color: scheme.onPrimaryContainer,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.arrow_forward_rounded,
-                    textDirection: Directionality.of(context),
-                  ),
-                ],
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, size: 22, color: scheme.onPrimaryContainer),
               ),
-              const SizedBox(height: 24),
-              Text(title, style: theme.textTheme.titleLarge),
-              const SizedBox(height: 8),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall,
+              ),
+              const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
               ),

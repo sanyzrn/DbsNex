@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'dart:ui' as ui;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// The light that runs around the inside of the screen while a long press is
@@ -75,27 +78,81 @@ class _EdgeGlowPainter extends CustomPainter {
       colors: [...colors, colors.first],
     ).createShader(rect);
 
-    // Three passes, softest first. Two was enough to read as a glow but not
-    // to read as a soft one: the bloom's own edge was visible, because
-    // nothing was wider and dimmer than it to hide behind.
+    // The two soft passes are the expensive part — a wide stroke under a
+    // large blur, around the whole screen — and they were redrawn on every
+    // frame of the hold and of the hand-off, the same frames the assistant's
+    // sheet is rising in. That was the stutter when the assistant opened.
+    // They are drawn once per screen size into an image now, and each frame
+    // only fades that image; the thin line on top stays live, so the light
+    // still turns as the hold builds.
+    final bloom = _Bloom.of(size, rrect, colors);
+    canvas.drawImage(
+      bloom,
+      Offset.zero,
+      Paint()
+        ..filterQuality = FilterQuality.low
+        ..color = Colors.white.withValues(alpha: (t * spread).clamp(0.0, 1.0)),
+    );
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..shader = sweep
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5 + 1.5 * spread
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 + spread)
+        ..color = Colors.white.withValues(alpha: 0.85 * t),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_EdgeGlowPainter old) =>
+      old.progress != progress || old.colors != colors;
+}
+
+/// The glow's soft passes, rendered once and reused.
+///
+/// One entry: the screen is one size at a time, and a rotation or resize
+/// simply replaces it.
+class _Bloom {
+  static Size? _size;
+  static List<Color>? _colors;
+  static ui.Image? _image;
+
+  static ui.Image of(Size size, RRect rrect, List<Color> colors) {
+    final cached = _image;
+    if (cached != null && _size == size && listEquals(_colors, colors)) {
+      return cached;
+    }
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final rect = Offset.zero & size;
+    final sweep = SweepGradient(
+      transform: const GradientRotation(math.pi / 2 + math.pi * 0.55),
+      colors: [...colors, colors.first],
+    ).createShader(rect);
     void ring(double width, double blur, double alpha) => canvas.drawRRect(
       rrect,
       Paint()
         ..shader = sweep
         ..style = PaintingStyle.stroke
         ..strokeWidth = width
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, math.max(blur, 0.1))
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, blur)
         ..color = Colors.white.withValues(alpha: alpha),
     );
-
-    ring(54 * spread, 34 * spread, 0.22 * t);
-    ring(22 * spread, 16 * spread, 0.42 * t);
-    ring(2.5 + 1.5 * spread, 2 + spread, 0.85 * t);
+    ring(54, 34, 0.22);
+    ring(22, 16, 0.42);
+    final picture = recorder.endRecording();
+    final image = picture.toImageSync(
+      math.max(size.width.ceil(), 1),
+      math.max(size.height.ceil(), 1),
+    );
+    picture.dispose();
+    _image?.dispose();
+    _image = image;
+    _size = size;
+    _colors = List.of(colors);
+    return image;
   }
-
-  @override
-  bool shouldRepaint(_EdgeGlowPainter old) =>
-      old.progress != progress || old.colors != colors;
 }
 
 /// The same light, left at a whisper for as long as its child is on screen.

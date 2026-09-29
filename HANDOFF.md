@@ -9,7 +9,28 @@ the pipeline will and will not catch for you, and the specific traps that have
 cost real time. Where this file and `docs/` disagree, `docs/` is the spec and
 this is the field report.
 
-## Current batch — 1.70.0 (2026-09-28)
+## Current batch — 1.80.0 (2026-09-29)
+
+Work is on branch `release/1.80.0` (created at the owner's request; the owner
+said there are no existing users, so migrations for old preferences are not a
+concern). Implemented: shared two-minute vault session (`vault_session.dart`)
+with inline password/card details and per-card colours; compact Tools grid;
+Theme page order/spacing and accent row showing the palette seed; About links
+to DbsStudio.ir and DbsStudio.ir/nex/ with the changelog and source link
+removed; the guide moved under About, rewritten, with 13 placeholder images in
+`assets/guide/images/` for the owner to replace (1080×1350 WebP); feedback kind
+and contact fields end to end; guarded swipe-to-close for editor sheets
+(`nexShowSheet(swipeToClose: true)` routes the drag through `maybePop`, so
+draft guards still ask); file-to-note conversion for text-like formats
+(`documents/text_import.dart`, including a `.doc` piece-table reader and a
+Windows-1256 fallback; note → file stays Markdown-only); gooey capsule notices
+and the assistant's emergence from the capture button (`nex_gooey.dart`), plus
+a cached edge-glow bloom that removes the per-frame full-screen blur behind the
+opening stutter. Comfort Mode is retired (getter returns false). Scratch
+screenshot tests used during this work live only in an untracked
+`test/zz_shots/` excluded via `.git/info/exclude`.
+
+## Previous batch — 1.70.0 (2026-09-28)
 
 This section supersedes release/permission statements below. All work stays on
 `codex/work`. The owner explicitly requested completing the latest 15 items,

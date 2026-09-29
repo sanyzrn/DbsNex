@@ -34,8 +34,25 @@ Working convention:
 
 ## Unreleased
 
-- **The assistant changes only settings you can see.** It can now switch the whole-app theme (Paper, Autumn and the rest). It no longer offers background patterns or Comfort Mode, which left Settings: one changed nothing and the other had no switch to turn it back off. An accent colour written without its `#` is applied instead of being silently dropped after you confirm it.
-- **The guide matches the app.** Recurring and the theme names are called what the screens call them.
+## v1.80.0
+
+- **The assistant grows out of the + button.** Hold + and a wave of light crosses the screen while the panel pours out of the button like liquid. Opening it no longer stutters.
+- **Notices drip from the top.** Every confirmation and warning is now one capsule that drops out of the top edge and is drawn back up when it leaves. Tap it or swipe it up to dismiss it; Undo stays long enough to reach.
+- **One unlock for all private tools.** Passwords, bank cards and private messages stay open together for two minutes after you last touch them, even while you paste a password in another app. Leaving the app still hides everything, and Lock closes them at once.
+- **Everything on one page in the vault.** Each password shows its login, password, website and notes on the list, and each bank card shows every detail beneath it — tap any value to copy it. Bank cards can have their own colour, chosen with the same picker as tags.
+- **A more compact Tools page.** All four tools fit on one screen.
+- **Turn documents into notes.** Convert to note now works for plain text, Word (.docx and .doc), OpenDocument, RTF, web pages, e-books, CSV tables and code files as well as Markdown, including older Persian text files. A note is still only ever turned into Markdown.
+- **Swipe to close editors.** The Recurring editor — and the note, checklist and link editors — close with a swipe down on their handle, asking first if you have typed something.
+- **A tidier Theme page.** Mode, text size and accent come first, followed by the palettes with a little room between them. Choosing a palette brings its own accent, and the accent row now shows the colour actually in use.
+- **Better feedback.** Say whether it is a problem, an idea or something else, and leave a Telegram ID or email if you want a reply. If sending is unavailable, your message can be copied instead.
+- **A complete guide, now under About.** How Nex works has been rewritten for every current feature, with pictures, and sits with About Nex. About links to DbsStudio.ir and Nex's own page.
+- **Choose your app icon.** The end of the Theme page offers six launcher icons.
+- **Custom AI providers are called at exactly the address you enter.** Nothing is appended to it any more, so gateways whose chat endpoint is not at `/v1/chat/completions` work.
+- **Smart summary for thinking models.** An optional No token limit switch, with a warning about cost, lets models that reason before answering finish their summary.
+- **Card previews read on from the first paragraph** instead of showing the first line of each paragraph.
+- **A tidier hold menu.** Every action has an icon, the menu matches the rest of the app, and Delete is red.
+- **The sponsor card reaches more phones.** When GitHub is unreachable it is fetched from a mirror, and a card whose picture cannot load is shown in words.
+- **The assistant changes only settings you can see.** It can switch the whole-app palette, no longer offers the retired background patterns or Comfort Mode, and applies an accent colour written without its `#` instead of dropping it after you confirm.
 
 ## v1.70.0
 

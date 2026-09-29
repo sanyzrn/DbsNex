@@ -19,6 +19,14 @@ https://raw.githubusercontent.com/sanyzrn/DbsNex-releases/main/banner.json
 Taking a card down is deleting that file. A 404 is not an error: it is how a
 campaign ends, and the app clears its cache when it sees one.
 
+`raw.githubusercontent.com` is filtered on many networks in Iran. When it
+cannot be reached at all, the app asks jsDelivr's copy of the same file
+(`https://cdn.jsdelivr.net/gh/sanyzrn/DbsNex-releases@main/banner.json`), and
+does the same for a picture hosted on `raw.githubusercontent.com`. jsDelivr
+caches for up to 12 hours, so a change can take that long to reach phones on
+the mirror; purge it at `https://purge.jsdelivr.net/gh/sanyzrn/DbsNex-releases@main/banner.json`
+to hurry it. A 404 from GitHub itself is final and the mirror is not asked.
+
 ## The file
 
 `docs/banner.example.json` is a working card, ready to copy:
@@ -60,8 +68,11 @@ decoder is a large thing to carry for a card the height of one note.
   the leading edge so the label and title stay legible.
 - The file is cached on the device, replaced in place, and deleted when the
   campaign ends.
-- **A card whose picture cannot be fetched is not shown at all.** A banner
-  with a hole where its design was is worse than an empty space.
+- **A card whose picture cannot be fetched is shown in words.** Its `title`
+  (and `body`) are drawn on the plain card instead, so write a title that
+  stands on its own even for a picture-led campaign. (It used to be hidden
+  altogether, which on a network that blocks the picture's host meant the
+  card never appeared.)
 
 ## When nothing appears
 

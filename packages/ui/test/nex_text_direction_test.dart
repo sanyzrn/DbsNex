@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
 
@@ -161,7 +162,7 @@ void main() {
     expect(tester.getRect(find.text(persian)).right, 400);
   });
 
-  testWidgets('a clamped block shows no more lines than it was given', (
+  testWidgets('a clamped block shows no more rows than it was given', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -175,12 +176,61 @@ void main() {
       ),
     );
 
-    expect(find.text('one'), findsOneWidget);
-    expect(find.text('two'), findsOneWidget);
-    // The budget is spent in the note's own lines now rather than in wrapped
-    // rows, which is what keeps a two-line card two lines tall.
-    expect(find.text('three'), findsNothing);
-    expect(find.text('four'), findsNothing);
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.byType(RichText),
+    );
+    expect(paragraph.maxLines, 2);
+    expect(paragraph.didExceedMaxLines, isTrue);
+  });
+
+  testWidgets('a preview reads on from its first paragraph', (tester) async {
+    // Three long paragraphs in a two-row preview used to show the first row
+    // of the first and the first row of the second: two half-sentences that
+    // read as nonsense. The first paragraph now runs on into row two.
+    final first = 'word ' * 60;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 300,
+            child: NexBodyText(
+              '$first\n\nsecond paragraph\nthird',
+              maxLines: 2,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.byType(RichText),
+    );
+    // Both rows are the first paragraph: the second one starts after it.
+    final secondRow = paragraph.getPositionForOffset(
+      Offset(1, paragraph.size.height - 2),
+    );
+    expect(secondRow.offset, lessThan(first.length));
+    // The blank line between paragraphs is not spent as a row.
+    expect(paragraph.text.toPlainText().contains('\n\n'), isFalse);
+  });
+
+  testWidgets('mixed-direction lines share the budget in reading order', (
+    tester,
+  ) async {
+    final english = 'word ' * 60;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 300,
+            child: NexBodyText('$english\nیک خط فارسی', maxLines: 2),
+          ),
+        ),
+      ),
+    );
+    // The long first line fills both rows; the Persian one is never drawn.
+    expect(find.text('یک خط فارسی'), findsNothing);
+    expect(tester.widget<Text>(find.text(english)).maxLines, 2);
   });
 }
 

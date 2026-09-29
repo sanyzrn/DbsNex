@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 1.70.0
+version: 1.80.0
 
 environment:
   sdk: ^3.9.0
@@ -131,6 +131,12 @@ flutter:
     # The user guide, one file per language. Prose rather than labels — see
     # the note on GuideScreen for why it is not in the ARB catalogues.
     - assets/guide/
+    # The guide's screenshots. A directory entry does not include its
+    # subdirectories, so this needs its own line.
+    - assets/guide/images/
+    # Previews for the app-icon picker, generated with the launcher icons
+    # themselves by tools/generate_app_icons.py.
+    - assets/app_icons/
   fonts:
     # Shipped as assets rather than left to the platform: without them Android
     # renders Roboto, Windows Segoe UI Variable and iOS SF Pro, so the same

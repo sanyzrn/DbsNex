@@ -137,16 +137,57 @@ class NexTextDirection extends StatelessWidget {
   }
 }
 
+/// A clamped preview of lines in more than one direction.
+///
+/// Each line keeps its own direction, and the row budget is handed out in
+/// reading order: the first line takes as many rows as it wraps to, the next
+/// whatever is left, and so on — measured, not guessed, so a long first
+/// paragraph fills the preview on its own the way it would in one language.
+class _MixedPreview extends StatelessWidget {
+  const _MixedPreview(this.lines, this.style, this.budget);
+
+  final List<String> lines;
+  final TextStyle? style;
+  final int budget;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final base = DefaultTextStyle.of(context).style.merge(style);
+      final scaler = MediaQuery.textScalerOf(context);
+      var left = budget;
+      final children = <Widget>[];
+      for (final line in lines) {
+        if (left <= 0) break;
+        final painter = TextPainter(
+          text: TextSpan(text: line, style: base),
+          textDirection: nexDirectionOf(line) ?? Directionality.of(context),
+          textScaler: scaler,
+          maxLines: left,
+        )..layout(maxWidth: constraints.maxWidth);
+        final rows = painter.computeLineMetrics().length.clamp(1, left);
+        painter.dispose();
+        children.add(_DirectionalLine(line, style, rows: rows));
+        left -= rows;
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: children,
+      );
+    },
+  );
+}
+
 class _DirectionalLine extends StatelessWidget {
-  const _DirectionalLine(this.text, this.style, {this.clamp = false});
+  const _DirectionalLine(this.text, this.style, {this.rows});
 
   final String text;
   final TextStyle? style;
 
-  /// Whether this line is one of a fixed few — a preview rather than the
-  /// whole note — in which case it takes one row and ends in an ellipsis
-  /// rather than wrapping into its neighbours' space.
-  final bool clamp;
+  /// How many rows this line may take when it is part of a clamped preview,
+  /// ending in an ellipsis past them; null lets it wrap freely.
+  final int? rows;
 
   @override
   Widget build(BuildContext context) {
@@ -164,8 +205,8 @@ class _DirectionalLine extends StatelessWidget {
       child: Text(
         text.isEmpty ? '\u200B' : text,
         style: style,
-        maxLines: clamp ? 1 : null,
-        overflow: clamp ? TextOverflow.ellipsis : null,
+        maxLines: rows,
+        overflow: rows != null ? TextOverflow.ellipsis : null,
         textDirection: direction,
         textAlign: direction == TextDirection.rtl
             ? TextAlign.right
@@ -249,7 +290,14 @@ class NexBodyText extends StatelessWidget {
       // wrap into the whole budget — and it is the right one for a preview:
       // the first three lines of somebody's note tell you more about it than
       // the first three rows of its first sentence.
-      final lines = text.split('\n');
+      final all = text.split('\n');
+      // In a short preview a blank line is a row that says nothing, so it is
+      // dropped there; with room to spare it is the gap between paragraphs
+      // the writer put in, and it stays.
+      final lines = maxLines != null && maxLines! <= 3
+          ? all.where((line) => line.trim().isNotEmpty).toList()
+          : all;
+      if (lines.isEmpty) return _paragraph(null);
       // Split only when the lines actually disagree. A note written wholly in
       // one language is one paragraph, and saying so matters once the text
       // can be selected: a column of separate paragraphs is a column of
@@ -260,24 +308,29 @@ class NexBodyText extends StatelessWidget {
       //
       // Only when nothing is clamping, because the budget above is spent in
       // source lines and a single [Text] would spend it in wrapped ones.
-      if (maxLines == null) {
-        final directions = <TextDirection>{};
-        for (final line in lines) {
-          final direction = nexDirectionOf(line);
-          if (direction != null) directions.add(direction);
-        }
-        if (directions.length <= 1) {
-          return _paragraph(directions.isEmpty ? null : directions.first);
-        }
+      final directions = <TextDirection>{};
+      for (final line in lines) {
+        final direction = nexDirectionOf(line);
+        if (direction != null) directions.add(direction);
       }
-      final shown = maxLines == null ? lines : lines.take(maxLines!).toList();
+      if (directions.length <= 1) {
+        // One language throughout: one paragraph, and a clamped budget is
+        // spent in wrapped rows. It used to be spent one source line per
+        // row, so a two-line preview of three long paragraphs showed the
+        // first row of the first and the first row of the second — two
+        // half-sentences that read as nonsense. Now the first paragraph
+        // runs on into the second row the way a reader would read it.
+        return _paragraph(
+          directions.isEmpty ? null : directions.first,
+          lines.join('\n'),
+        );
+      }
+      if (maxLines != null) return _MixedPreview(lines, style, maxLines!);
+      final shown = lines;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final line in shown)
-            _DirectionalLine(line, style, clamp: maxLines != null),
-        ],
+        children: [for (final line in shown) _DirectionalLine(line, style)],
       );
     }
     return _paragraph(nexDirectionOf(text));
@@ -288,13 +341,13 @@ class NexBodyText extends StatelessWidget {
   /// A [Directionality] as well as the argument, for the reason spelled out
   /// in [_DirectionalLine]: the argument places the glyphs, and the selection
   /// handles are placed by the ambient direction.
-  Widget _paragraph(TextDirection? direction) {
+  Widget _paragraph(TextDirection? direction, [String? source]) {
     final body = SizedBox(
       // Full width, so a short right-to-left line reaches the right edge
       // rather than hugging the left one it happens to start at.
       width: double.infinity,
       child: Text(
-        text,
+        source ?? text,
         style: style,
         maxLines: maxLines,
         overflow: maxLines == null ? null : TextOverflow.ellipsis,

@@ -181,16 +181,17 @@ WHERE id = ? AND deleted_at IS NULL
   }
 
   /// Changes representation in place: tags, reminders, title and identity survive.
+  ///
+  /// With [uri], a text note becomes the Markdown file at that path — the
+  /// only file a note is ever turned into. Without it, a file note becomes a
+  /// text note holding [text]: any file the app could read words out of
+  /// (see the client's `NexTextImport`), not only Markdown. The file itself is
+  /// left on disk for library maintenance, exactly as before.
   void convertMarkdown(String id, String text, String? uri, String? hash) {
     final note = getById(id);
     final toFile = uri != null;
     if (note == null ||
-        (toFile
-            ? note.type != NoteType.text
-            : note.type != NoteType.file ||
-                  !(note.mimeType == 'text/markdown' ||
-                      p.extension(note.mediaUri ?? '').toLowerCase() ==
-                          '.md'))) {
+        (toFile ? note.type != NoteType.text : note.type != NoteType.file)) {
       throw StateError('Invalid Markdown conversion');
     }
     db.execute('BEGIN IMMEDIATE');

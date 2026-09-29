@@ -2520,7 +2520,7 @@
   "vaultDeleteHint": "This removes the item from this vault.",
   "vaultDeleteConfirm": "Delete permanently",
   "vaultBackupHint": "For a transferable copy, select Include vault in Complete app backup and keep its recovery code separately.",
-  "vaultPrivacyHint": "Vaults are encrypted on this device. They lock when you leave the app or after 2 minutes without activity.",
+  "vaultPrivacyHint": "Vaults are encrypted on this device. One unlock opens every private tool; they lock after 2 minutes without activity, even while you are in another app. Leaving the app always hides their contents.",
   "vaultEditHint": "Unfinished edits are kept as an encrypted draft.",
   "backupIncludeVault": "Include private vault (requires device authentication)",
   "vaultRestoreAuth": "Verify your identity before restoring this complete backup"
