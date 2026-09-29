@@ -571,7 +571,24 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
                           ),
                         ),
                       ),
-                    Transform.translate(offset: Offset(dx, 0), child: child),
+                    Transform.translate(
+                      offset: Offset(dx, 0),
+                      // While open, the card is a handle and nothing else:
+                      // a tap on it puts it away. It used to reach the card
+                      // underneath, and since the list closes every open card
+                      // the moment a finger lands, the tap then arrived at a
+                      // card that looked closed — and opened the note.
+                      // Same structure open or closed, so the note card is
+                      // never rebuilt from scratch by the switch.
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _isClosed ? null : _close,
+                        child: AbsorbPointer(
+                          absorbing: !_isClosed,
+                          child: child,
+                        ),
+                      ),
+                    ),
                   ],
                 );
               },

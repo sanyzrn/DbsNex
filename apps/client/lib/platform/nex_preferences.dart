@@ -12,6 +12,7 @@ import 'package:path/path.dart' as p;
 import 'ai_provider.dart';
 import 'chat_history.dart';
 import 'editor_drafts.dart';
+import 'hold_menu.dart';
 import 'vault_store.dart';
 import 'package:uuid/uuid.dart';
 
@@ -334,7 +335,20 @@ class NexPreferences extends ChangeNotifier {
       // the app having forgotten who they are.
       await prefs.setBool(_kTourComplete, true);
     }
-    final preferences = NexPreferences._(prefs, const FlutterSecureStorage());
+    final preferences = NexPreferences._(
+      prefs,
+      // resetOnError off. The plugin's default is on, and it means that one
+      // failed decryption — a keystore hiccup after a system update, a lock
+      // screen change, a restored backup — silently deletes the entry, or
+      // every entry, in this store: API keys, the sync token, the restore
+      // recovery key. A key that cannot be read today is still there to be
+      // read tomorrow; a deleted one is gone, and the user finds out only
+      // when the assistant stops answering. The vault's store made the same
+      // choice for the same reason. Only the error behaviour changes: the
+      // store's name and encryption are the plugin defaults, so every key
+      // saved before this still reads.
+      const FlutterSecureStorage(aOptions: AndroidOptions(resetOnError: false)),
+    );
     await preferences._migrateAndHydrateApiKeys();
     return preferences;
   }
@@ -1197,7 +1211,13 @@ class NexPreferences extends ChangeNotifier {
     final key = 'ai.key.$wireName';
     await _prefs.setString('ai.provider', wireName);
     if (config.apiKey.isEmpty) {
-      await _secureStorage.delete(key: key);
+      // An empty field is not proof the key is gone: when secure storage
+      // could not be read at launch the field simply had nothing to show,
+      // and saving the screen then deleted the one copy of a key that was
+      // still stored. Only a key this session actually read can be cleared.
+      if (!secureStorageUnavailable || _secureApiKeys.containsKey(wireName)) {
+        await _secureStorage.delete(key: key);
+      }
       _secureApiKeys.remove(wireName);
     } else {
       await _secureStorage.write(key: key, value: config.apiKey);
@@ -1417,6 +1437,28 @@ class NexPreferences extends ChangeNotifier {
   /// nothing for anyone who was happy with it. The one that asks nothing of a
   /// provider is a choice people make deliberately, not one they should be
   /// moved to behind their backs.
+  /// What a note's hold menu offers, in menu order. Unset means the default
+  /// five; an unknown name (from a newer build's backup) is skipped.
+  List<NexHoldAction> get holdMenuActions {
+    final stored = _prefs.getStringList('hold_menu.actions');
+    if (stored == null) return NexHoldAction.defaults;
+    final chosen = {
+      for (final name in stored)
+        if (NexHoldAction.fromWire(name) case final action?) action,
+    };
+    return [
+      for (final action in NexHoldAction.values)
+        if (chosen.contains(action)) action,
+    ];
+  }
+
+  Future<void> setHoldMenuActions(Iterable<NexHoldAction> actions) async {
+    await _prefs.setStringList('hold_menu.actions', [
+      for (final action in actions) action.name,
+    ]);
+    notifyListeners();
+  }
+
   /// Whether the smart summary and the greeting may use as many tokens as
   /// the provider allows, instead of the few hundred they are normally held
   /// to. Off by default: the summary refreshes many times a day, and a cap is

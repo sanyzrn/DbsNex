@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../documents/docx_markdown.dart';
 import '../documents/text_import.dart';
+import '../platform/hold_menu.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/dismiss_on_overscroll.dart';
@@ -52,6 +53,7 @@ class NoteDetailSheet extends StatefulWidget {
     this.preferences,
     this.focusAddTag = false,
     this.editOnOpen = false,
+    this.runOnOpen,
   });
 
   final NexServices services;
@@ -66,6 +68,11 @@ class NoteDetailSheet extends StatefulWidget {
   final NexPreferences? preferences;
   final bool focusAddTag;
   final bool editOnOpen;
+
+  /// An action chosen from the note's hold menu that only this sheet knows
+  /// how to do — the description, a conversion, a summary, a translation,
+  /// the details. Run once, as soon as the note has loaded.
+  final NexHoldAction? runOnOpen;
 
   @override
   State<NoteDetailSheet> createState() => _NoteDetailSheetState();
@@ -123,6 +130,36 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     }
     if (widget.focusAddTag) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _addTag());
+    }
+    if (widget.runOnOpen case final action?) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _reload();
+        final note = _note;
+        if (!mounted || note == null) return;
+        switch (action) {
+          case NexHoldAction.caption:
+            await _editCaption();
+          case NexHoldAction.convert:
+            await _convertMarkdown();
+          case NexHoldAction.summarize:
+            await _summarize(note.id);
+          case NexHoldAction.details:
+            await _showDetails();
+          case NexHoldAction.translate:
+            final preferences = widget.preferences;
+            final text = _translatableText(note);
+            if (preferences != null && text.isNotEmpty) {
+              await TranslateSheet.show(
+                context,
+                text: text,
+                preferences: preferences,
+                services: widget.services,
+              );
+            }
+          default:
+            break;
+        }
+      });
     }
     // Deliberately not loading the intelligence layer's output here. It does
     // its work on its own, in the background; showing it is the user's call,

@@ -130,6 +130,54 @@ void main() {
     },
   );
 
+  testWidgets('a tap on an open card closes it and opens nothing', (
+    tester,
+  ) async {
+    // It reached the card underneath: the list had already closed every card
+    // on touch-down, so the tap arrived at a card that looked closed and the
+    // note opened behind the gesture meant to put the card away.
+    var opened = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            child: SwipeableNoteCard(
+              resolveAction: ({required bool isLeading}) =>
+                  isLeading ? _tagSpec : _deleteSpec,
+              onAction: (_) {},
+              child: GestureDetector(
+                onTap: () => opened++,
+                child: const SizedBox(
+                  height: 80,
+                  width: double.infinity,
+                  child: ColoredBox(
+                    color: Colors.white,
+                    child: Center(child: Text('Note')),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await _dragCard(tester, find.text('Note'), -200);
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsOneWidget);
+
+    await tester.tap(find.text('Note'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(opened, 0);
+    expect(find.text('Delete'), findsNothing);
+
+    // Closed again, the card opens as it always did.
+    await tester.tap(find.text('Note'));
+    await tester.pumpAndSettle();
+    expect(opened, 1);
+  });
+
   testWidgets('the trailing zone is the same width as the leading one', (
     tester,
   ) async {

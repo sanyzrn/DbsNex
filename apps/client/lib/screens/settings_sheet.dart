@@ -25,6 +25,7 @@ import '../platform/os_capture_bridge.dart';
 import 'about_screen.dart';
 import '../widgets/feature_label.dart';
 import '../platform/app_icon.dart';
+import '../platform/hold_menu.dart';
 import '../platform/theme_presets.dart';
 import 'backup_screen.dart';
 import 'guide_screen.dart';
@@ -417,6 +418,22 @@ class SettingsSheet extends StatelessWidget {
                 // keeps its own widget and stays open across both.
                 child: _SwipeMapping(preferences: preferences),
               ),
+            ),
+          ),
+        ),
+        // Right after the swipe: the other gesture a note answers to.
+        _Row(
+          icon: Icons.touch_app_outlined,
+          title: nexLabel(context, 'Hold menu', 'منوی نگه‌داشتن'),
+          value: nexLabel(
+            context,
+            '${preferences.holdMenuActions.length} actions',
+            '${preferences.holdMenuActions.length} گزینه',
+          ),
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => _HoldMenuScreen(preferences: preferences),
             ),
           ),
         ),
@@ -1856,6 +1873,80 @@ class _AppIconTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Which actions a note's hold menu offers: every action on the detail sheet
+/// and its More menu, each switched on or off.
+class _HoldMenuScreen extends StatelessWidget {
+  const _HoldMenuScreen({required this.preferences});
+
+  final NexPreferences preferences;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(nexLabel(context, 'Hold menu', 'منوی نگه‌داشتن')),
+        actions: [
+          TextButton(
+            onPressed: () => unawaited(
+              preferences.setHoldMenuActions(NexHoldAction.defaults),
+            ),
+            child: Text(nexLabel(context, 'Reset', 'پیش‌فرض')),
+          ),
+        ],
+      ),
+      body: ListenableBuilder(
+        listenable: preferences,
+        builder: (context, _) {
+          final chosen = preferences.holdMenuActions.toSet();
+          return ListView(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                child: Text(
+                  nexLabel(
+                    context,
+                    'Choose what appears when you hold a note on the home '
+                        'screen. A note only shows the actions it can use — '
+                        'Open link on a link, Translate when there is a '
+                        'provider to ask.',
+                    'انتخاب کنید با نگه‌داشتن یادداشت در صفحهٔ اصلی چه '
+                        'گزینه‌هایی بیاید. هر یادداشت فقط گزینه‌هایی را نشان '
+                        'می‌دهد که برایش کار می‌کنند؛ مثلاً باز کردن لینک فقط '
+                        'برای لینک.',
+                  ),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              for (final action in NexHoldAction.values)
+                CheckboxListTile(
+                  key: ValueKey('hold-action-${action.name}'),
+                  value: chosen.contains(action),
+                  secondary: Icon(
+                    action.icon,
+                    color: action == NexHoldAction.delete
+                        ? theme.colorScheme.error
+                        : null,
+                  ),
+                  title: Text(action.label(context)),
+                  onChanged: (on) => unawaited(
+                    preferences.setHoldMenuActions([
+                      for (final a in NexHoldAction.values)
+                        if (a == action ? on == true : chosen.contains(a)) a,
+                    ]),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

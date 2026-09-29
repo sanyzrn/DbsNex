@@ -149,6 +149,41 @@ void main() {
     expect(find.byType(CommitmentEditor), findsNothing);
   });
 
+  testWidgets('the add sheet closes when dragged down from its body', (
+    tester,
+  ) async {
+    // Only the handle did; everywhere else on the sheet a downward swipe did
+    // nothing, unlike every other sheet in the app.
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () =>
+                  CommitmentEditor.show(context, services: services),
+              child: const Text('open editor'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open editor'));
+    await tester.pumpAndSettle();
+    final sheet = tester.getRect(find.byType(CommitmentEditor));
+    await tester.flingFrom(
+      Offset(sheet.center.dx, sheet.top + sheet.height * 0.4),
+      const Offset(0, 500),
+      2000,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(CommitmentEditor), findsNothing);
+  });
+
   testWidgets('the page says what a recurring item is for', (tester) async {
     // It said nothing at all. A title, a plus and an empty list is a page
     // that only makes sense to whoever built it.

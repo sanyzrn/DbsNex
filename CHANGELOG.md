@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v1.80.1
+
+- **A tap outside the hold menu only closes it.** It no longer goes on to open another note or press whatever was underneath.
+- **A tap on a swiped-open card only closes it.** It no longer opens the note's details.
+- **Choose what the hold menu offers.** Settings → Capture → Hold menu lists every action from a note's details and its More menu. By default it shows Pin, Copy, Edit, Remind and Delete.
+- **Swipe the Recurring editor away from anywhere on it**, not only its handle — the same goes for the note, checklist and link editors. Each still asks first if you have typed something.
+- **A smoother assistant opening.** The liquid that pours out of the + button turns into the panel's own colour as it spreads, instead of flashing a large block of accent colour.
+- **Saved AI keys are safer.** A key that Android briefly could not read is no longer deleted, either by the storage itself or by saving the provider screen while it looked empty.
+
 ## v1.80.0
 
 - **The assistant grows out of the + button.** Hold + and a wave of light crosses the screen while the panel pours out of the button like liquid. Opening it no longer stutters.

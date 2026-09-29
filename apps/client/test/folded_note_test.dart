@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/widgets/folded_note.dart';
+import 'package:nex_client/platform/hold_menu.dart';
 import 'package:nex_client/widgets/note_context_menu.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 
@@ -34,13 +35,13 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: NoteContextMenu(
-            onOpen: () {},
-            onAddTag: () {},
-            onDelete: () {},
-            onCopy: () {},
-            onRemind: () {},
-            onEdit: () {},
-            onPin: () => pinned = true,
+            entries: [
+              NoteMenuEntry(NexHoldAction.pin, () => pinned = true),
+              NoteMenuEntry(NexHoldAction.copy, () {}),
+              NoteMenuEntry(NexHoldAction.edit, () {}),
+              NoteMenuEntry(NexHoldAction.remind, () {}),
+              NoteMenuEntry(NexHoldAction.delete, () {}),
+            ],
             child: const SizedBox(
               width: 300,
               height: 100,

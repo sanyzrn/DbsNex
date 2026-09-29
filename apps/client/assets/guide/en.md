@@ -14,7 +14,7 @@ Photos first open in a full-size preview. Choose **Edit** only when you want to 
 
 Everything lives in one reverse-chronological stream, grouped under date headings. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again.
 
-Hold a note for a quick menu: **Pin**, **Copy**, **Edit**, **Remind** and **Delete**. Up to five notes can be pinned to the top. Swipe a card from either edge for the actions you chose under **Settings → Capture → Swipe actions**. The bottom bar holds, from left to right: **Tools**, **Recurring**, **+**, **Library** and **Settings**.
+Hold a note for a quick menu: **Pin**, **Copy**, **Edit**, **Remind** and **Delete** by default. **Settings → Capture → Hold menu** can add any action from a note's details — Share, Add tag, Translate and the rest — or take some away. Up to five notes can be pinned to the top. Swipe a card from either edge for the actions you chose under **Settings → Capture → Swipe actions**. The bottom bar holds, from left to right: **Tools**, **Recurring**, **+**, **Library** and **Settings**.
 
 ![The home timeline](home.webp)
 
@@ -56,7 +56,7 @@ A reminder brings one note back at the time you choose, once or repeating. Use t
 
 **Recurring**, on the bottom bar, is for the things that come back round: rent, insurance, a tablet every eight hours, a glass of water every two. They are not notes and never crowd the timeline.
 
-Tap **+** on the Recurring page to add one: a title, how often, and when it is next due; optionally how far ahead to be told, a daily window for hourly items, several weekdays, a day of the month or its last day, and an amount with its currency. Persian monthly and yearly repeats follow the Persian calendar. The editor closes with a swipe down on its handle, and asks first if you have typed something.
+Tap **+** on the Recurring page to add one: a title, how often, and when it is next due; optionally how far ahead to be told, a daily window for hourly items, several weekdays, a day of the month or its last day, and an amount with its currency. Persian monthly and yearly repeats follow the Persian calendar. Swipe the editor down from anywhere on it to close it; it asks first if you have typed something.
 
 Today, Overdue and Next 7 days narrow the list. Mark an item done to move it to its next turn; its menu can snooze one occurrence, skip it or open its history, where each entry can carry a short note. Undo restores an accidental change, and snoozing never moves the underlying schedule. Upcoming 30-day totals are shown per currency.
 

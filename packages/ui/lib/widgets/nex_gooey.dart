@@ -400,8 +400,23 @@ class _NexEmergeFromState extends State<NexEmergeFrom> {
                 Positioned.fill(
                   child: IgnorePointer(
                     child: ColoredBox(
-                      color: widget.color.withValues(
-                        alpha: 1 - _EmergeClipper.span(v, .4, .72),
+                      // The button's colour only while the liquid is small.
+                      // It turns toward the panel's own surface as it
+                      // climbs, so by the time it is panel-sized it is
+                      // nearly the panel — a large block of saturated
+                      // accent flashed across the sheet before, most
+                      // visibly in the dark theme — and then clears to
+                      // show what is on it.
+                      color: Color.lerp(
+                        widget.color,
+                        // The panel, with a breath of the button left in it.
+                        Color.alphaBlend(
+                          widget.color.withValues(alpha: .22),
+                          Theme.of(context).colorScheme.surface,
+                        ),
+                        _EmergeClipper.span(v, .12, .42, Curves.easeIn),
+                      )!.withValues(
+                        alpha: 1 - _EmergeClipper.span(v, .42, .7),
                       ),
                     ),
                   ),
@@ -445,14 +460,17 @@ class _EmergeClipper extends CustomClipper<Path> {
 
     final swell = r * (1 + 0.2 * span(t, 0, .15, Curves.easeOut));
     final buttonRadius = swell * (1 - span(t, .34, .6, Curves.easeIn));
-    final rise = span(t, 0, .4, Curves.easeInOutCubic);
+    final rise = span(t, 0, .38, Curves.easeInOutCubic);
+    // The drop climbs to where the panel's top edge will rest and spreads
+    // from there — down and out — rather than swelling in mid-air and
+    // jumping to full size.
+    final dropRadius = ui.lerpDouble(r * .7, r * 1.5, rise)!;
     final dropCenter = Offset.lerp(
       button,
-      Offset(size.width / 2, size.height * .42),
+      Offset(size.width / 2, dropRadius + 6),
       rise,
     )!;
-    final dropRadius = ui.lerpDouble(r * .7, r * 1.8, rise)!;
-    final grow = span(t, .3, .95, Curves.easeOutBack);
+    final grow = span(t, .28, .92, const Cubic(0.2, 0.9, 0.3, 1.04));
     final from = Rect.fromCircle(center: dropCenter, radius: dropRadius);
     final body = Rect.lerp(from, full, grow)!;
     // easeOutBack overshoots past 1 on purpose — the panel lands with a

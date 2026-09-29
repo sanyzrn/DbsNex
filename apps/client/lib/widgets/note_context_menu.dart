@@ -2,28 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
-import '../l10n/app_localizations.dart';
+import '../platform/hold_menu.dart';
 
-/// Secondary pointer and keyboard access to the same timeline actions.
+/// One line of a note's hold menu: what it is, and what pressing it does.
+class NoteMenuEntry {
+  const NoteMenuEntry(this.action, this.onPressed, {this.label, this.icon});
+
+  final NexHoldAction action;
+  final VoidCallback onPressed;
+
+  /// Overrides for a line whose words depend on the note — Unpin for a
+  /// pinned note, Collapse for an expanded card.
+  final String? label;
+  final IconData? icon;
+}
+
+/// The note's hold menu, also reached with a secondary click or the
+/// keyboard's menu key.
+///
+/// What it lists is decided by the caller from [NexHoldAction] and the
+/// user's choice in Settings; this widget only draws it.
 class NoteContextMenu extends StatefulWidget {
   const NoteContextMenu({
     super.key,
     required this.child,
-    required this.onOpen,
-    required this.onAddTag,
-    required this.onDelete,
-    this.onPin,
-    this.onCopy,
-    this.onEdit,
-    this.onRemind,
-    this.pinned = false,
+    required this.entries,
   });
   final Widget child;
-  final VoidCallback onOpen;
-  final VoidCallback onAddTag;
-  final VoidCallback onDelete;
-  final VoidCallback? onPin, onCopy, onEdit, onRemind;
-  final bool pinned;
+  final List<NoteMenuEntry> entries;
   @override
   State<NoteContextMenu> createState() => _NoteContextMenuState();
 }
@@ -36,7 +42,6 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
   final _controller = MenuController();
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     // The same menu as a date heading's: rounded, on a raised surface, and
@@ -70,6 +75,10 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
 
     return MenuAnchor(
       controller: _controller,
+      // A tap outside closes the menu and does nothing else, like the date
+      // heading's menu (a modal popup). Without this the same tap went on to
+      // whatever was under it — opening another note, or pressing a button.
+      consumeOutsideTap: true,
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(scheme.surfaceContainerHigh),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
@@ -84,27 +93,14 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
         ),
       ),
       menuChildren: [
-        if (widget.onPin != null)
+        for (final entry in widget.entries)
           item(
-            widget.pinned ? Icons.push_pin : Icons.push_pin_outlined,
-            widget.pinned ? l10n.unpin : l10n.pin,
-            widget.onPin,
+            entry.icon ?? entry.action.icon,
+            entry.label ?? entry.action.label(context),
+            entry.onPressed,
+            // In the error colour, like every other delete in Nex.
+            destructive: entry.action == NexHoldAction.delete,
           ),
-        if (widget.onCopy != null)
-          item(Icons.copy_outlined, l10n.copy, widget.onCopy),
-        if (widget.onEdit != null)
-          item(Icons.edit_outlined, l10n.edit, widget.onEdit),
-        if (widget.onRemind != null)
-          item(Icons.notifications_outlined, l10n.remind, widget.onRemind),
-        item(Icons.label_outline, l10n.addTag, widget.onAddTag),
-        item(Icons.open_in_new, l10n.open, widget.onOpen),
-        // Last, and in the error colour, like every other delete in Nex.
-        item(
-          Icons.delete_outline,
-          l10n.delete,
-          widget.onDelete,
-          destructive: true,
-        ),
       ],
       builder: (context, controller, child) => Shortcuts(
         shortcuts: const {
@@ -116,16 +112,20 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
           actions: {
             _NoteMenuIntent: CallbackAction<_NoteMenuIntent>(
               onInvoke: (_) {
-                controller.open();
+                if (widget.entries.isNotEmpty) controller.open();
                 return null;
               },
             ),
           },
+          // With every action turned off in Settings there is no menu, and
+          // a hold does nothing rather than opening an empty box.
           child: GestureDetector(
-            onLongPressStart: (details) =>
-                controller.open(position: details.localPosition),
-            onSecondaryTapDown: (details) =>
-                controller.open(position: details.localPosition),
+            onLongPressStart: widget.entries.isEmpty
+                ? null
+                : (details) => controller.open(position: details.localPosition),
+            onSecondaryTapDown: widget.entries.isEmpty
+                ? null
+                : (details) => controller.open(position: details.localPosition),
             child: child,
           ),
         ),
