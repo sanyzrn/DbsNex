@@ -1417,6 +1417,19 @@ class NexPreferences extends ChangeNotifier {
   /// nothing for anyone who was happy with it. The one that asks nothing of a
   /// provider is a choice people make deliberately, not one they should be
   /// moved to behind their backs.
+  /// Whether the smart summary and the greeting may use as many tokens as
+  /// the provider allows, instead of the few hundred they are normally held
+  /// to. Off by default: the summary refreshes many times a day, and a cap is
+  /// what keeps that cheap. It exists for "thinking" models, which spend
+  /// their budget reasoning before they write and come back empty under it.
+  bool get aiSummaryUnlimited =>
+      _prefs.getBool('brief.unlimited_tokens') ?? false;
+
+  Future<void> setAiSummaryUnlimited(bool value) async {
+    await _prefs.setBool('brief.unlimited_tokens', value);
+    notifyListeners();
+  }
+
   NexBriefStyle get briefStyle =>
       NexBriefStyle.fromWire(_prefs.getString('brief.style'));
 

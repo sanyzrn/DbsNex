@@ -24,6 +24,7 @@ import '../platform/update_service.dart';
 import '../platform/os_capture_bridge.dart';
 import 'about_screen.dart';
 import '../widgets/feature_label.dart';
+import '../platform/app_icon.dart';
 import '../platform/theme_presets.dart';
 import 'backup_screen.dart';
 import 'guide_screen.dart';
@@ -1672,7 +1673,188 @@ class _ThemeScreen extends StatelessWidget {
                   },
                 ),
               ),
+            // Last on the page: the icon on the home screen is part of how
+            // the app looks, but it is the one choice that is not about the
+            // inside of it.
+            if (NexAppIcons.supported) const _AppIconPicker(),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Six launcher icons to choose from, at the end of the Theme page.
+class _AppIconPicker extends StatefulWidget {
+  const _AppIconPicker();
+
+  @override
+  State<_AppIconPicker> createState() => _AppIconPickerState();
+}
+
+class _AppIconPickerState extends State<_AppIconPicker> {
+  String? _current;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(
+      NexAppIcons.current().then((id) {
+        if (mounted) setState(() => _current = id);
+      }),
+    );
+  }
+
+  Future<void> _choose(String id) async {
+    if (_busy || id == _current) return;
+    setState(() => _busy = true);
+    final ok = await NexAppIcons.set(id);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (ok) _current = id;
+    });
+    nexShowBanner(
+      context,
+      kind: ok ? NexBannerKind.done : NexBannerKind.failed,
+      message: ok
+          ? nexLabel(
+              context,
+              'Icon changed. Your launcher may take a moment to show it.',
+              'آیکون عوض شد. ممکن است چند لحظه طول بکشد تا لانچر نشانش دهد.',
+            )
+          : nexLabel(
+              context,
+              'The icon could not be changed.',
+              'تغییر آیکون انجام نشد.',
+            ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 12),
+        Text(
+          nexLabel(context, 'App icon', 'آیکون برنامه'),
+          style: theme.textTheme.titleLarge,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          nexLabel(
+            context,
+            'Changes the icon on your home screen and app drawer. A shortcut '
+                'you placed on the home screen may need adding again.',
+            'آیکون صفحهٔ اصلی و فهرست برنامه‌ها را عوض می‌کند. ممکن است لازم '
+                'باشد میان‌بری را که روی صفحهٔ اصلی گذاشته‌اید دوباره اضافه کنید.',
+          ),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GridView.count(
+          crossAxisCount: 3,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          children: [
+            for (final (index, id) in NexAppIcons.ids.indexed)
+              _AppIconTile(
+                id: id,
+                label: index == 0
+                    ? nexLabel(context, 'Nex', 'نکس')
+                    : nexLabel(
+                        context,
+                        'Icon ${index + 1}',
+                        'آیکون ${index + 1}',
+                      ),
+                selected: _current == id,
+                onTap: _busy ? null : () => unawaited(_choose(id)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+}
+
+class _AppIconTile extends StatelessWidget {
+  const _AppIconTile({
+    required this.id,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String id;
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        key: ValueKey('app-icon-$id'),
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: NexMotion.standard,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              width: selected ? 2 : 1,
+              color: selected ? scheme.primary : scheme.outlineVariant,
+            ),
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: ClipOval(
+                    child: Image.asset(
+                      NexAppIcons.preview(id),
+                      fit: BoxFit.cover,
+                      excludeFromSemantics: true,
+                      errorBuilder: (context, _, _) =>
+                          ColoredBox(color: scheme.surfaceContainerHigh),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (selected) ...[
+                    Icon(Icons.check_circle, size: 16, color: scheme.primary),
+                    const SizedBox(width: 4),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

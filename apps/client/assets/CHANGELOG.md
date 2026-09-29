@@ -46,6 +46,12 @@ Working convention:
 - **A tidier Theme page.** Mode, text size and accent come first, followed by the palettes with a little room between them. Choosing a palette brings its own accent, and the accent row now shows the colour actually in use.
 - **Better feedback.** Say whether it is a problem, an idea or something else, and leave a Telegram ID or email if you want a reply. If sending is unavailable, your message can be copied instead.
 - **A complete guide, now under About.** How Nex works has been rewritten for every current feature, with pictures, and sits with About Nex. About links to DbsStudio.ir and Nex's own page.
+- **Choose your app icon.** The end of the Theme page offers six launcher icons.
+- **Custom AI providers are called at exactly the address you enter.** Nothing is appended to it any more, so gateways whose chat endpoint is not at `/v1/chat/completions` work.
+- **Smart summary for thinking models.** An optional No token limit switch, with a warning about cost, lets models that reason before answering finish their summary.
+- **Card previews read on from the first paragraph** instead of showing the first line of each paragraph.
+- **A tidier hold menu.** Every action has an icon, the menu matches the rest of the app, and Delete is red.
+- **The sponsor card reaches more phones.** When GitHub is unreachable it is fetched from a mirror, and a card whose picture cannot load is shown in words.
 - **The assistant changes only settings you can see.** It can switch the whole-app palette, no longer offers the retired background patterns or Comfort Mode, and applies an accent colour written without its `#` instead of dropping it after you confirm.
 
 ## v1.70.0

@@ -6,6 +6,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/feature_label.dart';
 import '../widgets/nex_banner.dart';
 import 'local_model_screen.dart';
 import '../platform/ai_provider.dart';
@@ -276,8 +277,21 @@ class _AiProviderScreenState extends State<AiProviderScreen> {
                 textDirection: TextDirection.ltr,
                 textAlign: TextAlign.left,
                 decoration: InputDecoration(
-                  labelText: l10n.baseUrl,
-                  hintText: 'https://…',
+                  labelText: nexLabel(
+                    context,
+                    'Chat endpoint URL',
+                    'آدرس کامل سرویس گفتگو',
+                  ),
+                  hintText: 'https://api.example.com/v1/chat/completions',
+                  // Said outright, because every other app in this space
+                  // quietly appends a path and people have learned to type
+                  // only the host.
+                  helperText: nexLabel(
+                    context,
+                    'Used exactly as written — nothing is added to it.',
+                    'دقیقاً همان‌طور که نوشته می‌شود استفاده می‌شود و چیزی به آن اضافه نمی‌شود.',
+                  ),
+                  helperMaxLines: 3,
                   border: const OutlineInputBorder(),
                 ),
                 onChanged: (_) => setState(() => _result = null),

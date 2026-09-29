@@ -512,6 +512,7 @@ class TimelineScreenState extends State<TimelineScreen>
   CloudAIAdapter _aiAdapter() => CloudAIAdapter(
     config: widget.preferences.aiProvider,
     outputLanguage: widget.preferences.aiOutputLanguage,
+    unlimitedSummary: widget.preferences.aiSummaryUnlimited,
   );
 
   /// Fetches (or restores) the recap. Called on every timeline delivery; what
@@ -615,7 +616,11 @@ class TimelineScreenState extends State<TimelineScreen>
         // not. On a network that is joined but not connected, ninety seconds
         // of spinner at the top of the timeline is what "the app loads slowly"
         // turns out to mean.
-        timeout: force ? null : CloudAIAdapter.ambientTimeout,
+        // With the ceiling lifted the model is one that thinks first, and
+        // twenty seconds is rarely enough for it even on launch.
+        timeout: force || prefs.aiSummaryUnlimited
+            ? null
+            : CloudAIAdapter.ambientTimeout,
       );
       // The app's lines stand whether or not the model answered. That is the
       // point of stating them separately: a brief that loses the rent being
@@ -727,8 +732,11 @@ class TimelineScreenState extends State<TimelineScreen>
       text = await adapter.headline(
         _aiHeadlineSource(),
         language: language,
-        // Same rule as the recap: a tap waits, a launch does not.
-        timeout: force ? null : CloudAIAdapter.ambientTimeout,
+        // Same rule as the recap: a tap waits, a launch does not — unless
+        // the ceiling is lifted for a model that thinks first.
+        timeout: force || widget.preferences.aiSummaryUnlimited
+            ? null
+            : CloudAIAdapter.ambientTimeout,
       );
     } catch (_) {
       text = null;

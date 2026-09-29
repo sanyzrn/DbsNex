@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/feature_label.dart';
 import '../platform/ai_provider.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/choice_cards.dart';
@@ -164,8 +165,7 @@ class _BriefScreenState extends State<BriefScreen> {
                 label: l10n.briefToneLabel,
                 child: NexChoiceCards<AiResponseStyle>(
                   selected: prefs.briefTone,
-                  onSelected: (value) =>
-                      unawaited(prefs.setBriefTone(value)),
+                  onSelected: (value) => unawaited(prefs.setBriefTone(value)),
                   choices: [
                     NexChoice(
                       value: AiResponseStyle.natural,
@@ -219,6 +219,29 @@ class _BriefScreenState extends State<BriefScreen> {
                 ],
               ),
             ),
+            // Only where a model writes something: the plain report asks
+            // for no tokens at all.
+            if (style.usesModel)
+              NexSwitchTile(
+                key: const ValueKey('brief-unlimited-tokens'),
+                secondary: const Icon(Icons.all_inclusive),
+                title: Text(
+                  nexLabel(context, 'No token limit', 'بدون سقف توکن'),
+                ),
+                subtitle: Text(
+                  nexLabel(
+                    context,
+                    'For models that think before answering and come back '
+                        'empty under the usual limit. The summary refreshes '
+                        'many times a day, so token use can rise a lot.',
+                    'برای مدل‌هایی که پیش از پاسخ فکر می‌کنند و با سقف معمول '
+                        'پاسخ خالی برمی‌گردانند. خلاصه در طول روز بارها تازه '
+                        'می‌شود، پس مصرف توکن ممکن است بسیار بالا برود.',
+                  ),
+                ),
+                value: prefs.aiSummaryUnlimited,
+                onChanged: (on) => unawaited(_setUnlimited(on)),
+              ),
             // The language, here rather than in a row of its own three
             // sections up. It is the most visible thing about a brief and
             // that was the last place anybody looked for it — but it is not
@@ -254,6 +277,52 @@ class _BriefScreenState extends State<BriefScreen> {
         ),
       ],
     );
+  }
+
+  /// Turning the ceiling off costs money on every refresh, so it is asked
+  /// for twice: the switch, and a sentence saying what it means. Turning it
+  /// back on needs no confirmation.
+  Future<void> _setUnlimited(bool on) async {
+    final prefs = widget.preferences;
+    if (!on) {
+      await prefs.setAiSummaryUnlimited(false);
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded),
+        title: Text(
+          nexLabel(context, 'Remove the token limit?', 'سقف توکن برداشته شود؟'),
+        ),
+        content: Text(
+          nexLabel(
+            context,
+            'Each refresh of the smart summary and the greeting may then use '
+                'as many tokens as your model allows. They refresh several '
+                'times a day, so with a paid provider your costs can grow '
+                'quickly. Turn this on only if your model returns an empty '
+                'summary under the normal limit.',
+            'از این پس هر بار تازه شدن خلاصهٔ هوشمند و خوشامدگویی می‌تواند '
+                'تا سقف مجاز مدل شما توکن مصرف کند. این دو چند بار در روز تازه '
+                'می‌شوند، پس با سرویس پولی هزینه ممکن است سریع بالا برود. فقط '
+                'وقتی روشنش کنید که مدلتان با سقف معمول خلاصهٔ خالی برمی‌گرداند.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(nexLabel(context, 'Remove the limit', 'برداشتن سقف')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await prefs.setAiSummaryUnlimited(true);
   }
 
   List<_StyleEntry> _styles(AppLocalizations l10n) => [

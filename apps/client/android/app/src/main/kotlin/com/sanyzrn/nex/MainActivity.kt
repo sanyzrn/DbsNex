@@ -316,6 +316,15 @@ open class MainActivity : FlutterFragmentActivity() {
                 }
                 result.success(null)
             }
+            "appIcon" -> result.success(NexAppIcon.current(this))
+            "setAppIcon" -> {
+                val id = call.argument<String>("id")
+                if (id == null || !NexAppIcon.set(this, id)) {
+                    result.error("invalid_icon", "Unknown app icon", null)
+                } else {
+                    result.success(null)
+                }
+            }
             "copyPrivate" -> {
                 val text = call.argument<String>("text")
                 if (text == null || text.length > 10000) {

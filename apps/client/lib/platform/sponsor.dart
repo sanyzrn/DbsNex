@@ -213,6 +213,42 @@ class NexSponsorService {
   /// first successful fetch of a card that has one.
   File? _image;
 
+  /// Whether the picture has been looked for since launch. Until then a
+  /// card with a picture waits rather than drawing its text version for a
+  /// frame and then changing under the reader.
+  bool _imageSettled = false;
+
+  /// The same file through jsDelivr's copy of the repository.
+  ///
+  /// `raw.githubusercontent.com` is filtered on many networks in Iran, and on
+  /// those phones the card simply never arrived — which read as "the banner
+  /// sometimes does not show". The mirror serves the identical file from a
+  /// different host. It is asked only when the first host cannot be reached
+  /// at all: a 404 from GitHub still means the campaign has ended.
+  static String? mirrorOf(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.host != 'raw.githubusercontent.com') return null;
+    final parts = uri.pathSegments;
+    if (parts.length < 4) return null;
+    final rest = parts.skip(3).join('/');
+    return 'https://cdn.jsdelivr.net/gh/${parts[0]}/${parts[1]}@${parts[2]}/$rest';
+  }
+
+  /// One GET, falling back to [mirrorOf] when the host cannot be reached.
+  Future<http.Response> _get(
+    http.Client client,
+    String url,
+    Duration timeout,
+  ) async {
+    try {
+      return await client.get(Uri.parse(url)).timeout(timeout);
+    } catch (_) {
+      final mirror = mirrorOf(url);
+      if (mirror == null) rethrow;
+      return client.get(Uri.parse(mirror)).timeout(timeout);
+    }
+  }
+
   /// What was fetched last, whenever that was. Read synchronously so the
   /// first frame of the timeline already knows.
   NexSponsor? get cached {
@@ -237,7 +273,10 @@ class NexSponsorService {
     if (sponsor == null) return null;
     // A card that asked for a picture and has none is not a card. Better an
     // empty space than a banner with a hole where its design was.
-    if (sponsor.image != null && _image == null) return null;
+    // A picture that could not be had leaves the card in words: its title is
+    // required and always says what it is. Only the first moments after
+    // launch wait, while yesterday's picture is still being found on disk.
+    if (sponsor.image != null && _image == null && !_imageSettled) return null;
     return sponsor.visibleAt(
           now: _now(),
           languageCode: languageCode,
@@ -269,6 +308,7 @@ class NexSponsorService {
     if (path == null) return;
     final file = File(path);
     if (await file.exists()) _image = file;
+    _imageSettled = true;
   }
 
   /// Refreshes at most once a day. Never throws, and never reports: a card
@@ -281,22 +321,24 @@ class NexSponsorService {
     }
     final client = _client ?? http.Client();
     try {
-      final response = await client
-          .get(Uri.parse(endpoint))
-          .timeout(const Duration(seconds: 10));
+      final response = await _get(
+        client,
+        endpoint,
+        const Duration(seconds: 10),
+      );
       final sponsor = response.statusCode == 200 &&
               response.bodyBytes.length <= maxBytes
           ? NexSponsor.parse(response.body)
           : null;
       if (sponsor != null) {
-        // The picture first. A card whose image cannot be had is not shown
-        // at all, so writing the payload before knowing would leave the
-        // timeline briefly certain of a card it cannot draw.
+        // The picture first, then the card. A picture that cannot be had —
+        // blocked host, too large, not an image — no longer takes the whole
+        // card down with it; the card is shown in words instead.
         final kept = await _cacheImage(sponsor, client);
         if (sponsor.image != null && !kept) {
-          await _forget();
-          return;
+          await _dropImage();
         }
+        _imageSettled = true;
         await preferences.setSponsorPayload(response.body);
       } else {
         // A 404 is the ordinary way a campaign ends. Clearing rather than
@@ -315,6 +357,20 @@ class NexSponsorService {
   }
 
   /// Takes the card and its picture off the device.
+  Future<void> _dropImage() async {
+    final path = preferences.sponsorImagePath;
+    if (path != null) {
+      try {
+        final file = File(path);
+        if (await file.exists()) await file.delete();
+      } catch (_) {
+        // Left for the next successful fetch to overwrite.
+      }
+    }
+    await preferences.setSponsorImagePath(null);
+    _image = null;
+  }
+
   Future<void> _forget() async {
     await preferences.setSponsorPayload(null);
     final path = preferences.sponsorImagePath;
@@ -348,9 +404,11 @@ class NexSponsorService {
       return false;
     }
     try {
-      final response = await client
-          .get(uri)
-          .timeout(const Duration(seconds: 15));
+      final response = await _get(
+        client,
+        url,
+        const Duration(seconds: 15),
+      );
       final bytes = response.bodyBytes;
       if (response.statusCode != 200 ||
           bytes.length > maxImageBytes ||

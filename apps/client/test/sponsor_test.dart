@@ -396,8 +396,10 @@ void main() {
       expect(preferences.sponsorImagePath, isNotNull);
     });
 
-    test('a card whose picture will not come is not shown at all', () async {
-      // Better an empty space than a banner with a hole where its design was.
+    test('a card whose picture will not come is shown in words', () async {
+      // It used to vanish altogether, which on networks that block the
+      // picture's host meant the banner simply never appeared. The title is
+      // required, so the words always say what the card is.
       final s = service(
         (request) => request.url.path.endsWith('.gif')
             ? http.Response('', 404)
@@ -405,7 +407,42 @@ void main() {
       );
       await s.refresh();
 
-      expect(s.visible(languageCode: 'en'), isNull);
+      expect(s.visible(languageCode: 'en')?.id, 'c1');
+      expect(s.image, isNull);
+      expect(preferences.sponsorImagePath, isNull);
+    });
+
+    test('an unreachable GitHub is asked again through its mirror', () async {
+      final asked = <String>[];
+      final s = service((request) {
+        asked.add(request.url.host);
+        if (request.url.host == 'raw.githubusercontent.com') {
+          throw const SocketFailure();
+        }
+        return http.Response(card(), 200);
+      });
+      await s.refresh();
+
+      expect(asked, ['raw.githubusercontent.com', 'cdn.jsdelivr.net']);
+      expect(s.visible(languageCode: 'en')?.id, 'c1');
+      expect(
+        NexSponsorService.mirrorOf(
+          'https://raw.githubusercontent.com/o/r/main/img/banner.webp',
+        ),
+        'https://cdn.jsdelivr.net/gh/o/r@main/img/banner.webp',
+      );
+      expect(NexSponsorService.mirrorOf('https://example.com/a.png'), isNull);
+    });
+
+    test('a 404 from GitHub is final, not a reason to ask the mirror', () async {
+      final asked = <String>[];
+      await preferences.setSponsorPayload(card());
+      final s = service((request) {
+        asked.add(request.url.host);
+        return http.Response('', 404);
+      });
+      await s.refresh();
+      expect(asked, ['raw.githubusercontent.com']);
       expect(preferences.sponsorPayload, isNull);
     });
 
@@ -419,7 +456,7 @@ void main() {
       );
       await s.refresh();
 
-      expect(s.visible(languageCode: 'en'), isNull);
+      expect(s.image, isNull, reason: 'shown in words, never as a broken image');
     });
 
     test('a picture over the ceiling is refused', () async {
@@ -434,7 +471,7 @@ void main() {
       );
       await s.refresh();
 
-      expect(s.visible(languageCode: 'en'), isNull);
+      expect(s.image, isNull);
     });
 
     test('a card with no picture needs none', () async {

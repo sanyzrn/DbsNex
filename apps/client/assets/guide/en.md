@@ -64,9 +64,11 @@ Today, Overdue and Next 7 days narrow the list. Mark an item done to move it to 
 
 ## The assistant and AI
 
-AI is optional and off until you turn it on. In **Settings → Intelligence**, choose a provider (or a downloaded offline model), test it, and pick which features to use: transcription, text in photos, summaries, tag suggestions, related notes and the daily smart summary.
+AI is optional and off until you turn it on. In **Settings → Intelligence**, choose a provider (or a downloaded offline model) — for **Custom**, enter the full chat address, which is used exactly as written — test it, and pick which features to use: transcription, text in photos, summaries, tag suggestions, related notes and the daily smart summary.
 
 **Hold +** to open the assistant: a light washes across the screen and the panel grows out of the button. Ask about your notes, or ask it to act — create, edit, tag, remind, pin, merge, add a recurring item, or change a setting such as the theme palette, accent, text size or language. Nothing is applied until you confirm it. A cloud provider receives only what the request needs; an offline model keeps everything on the phone.
+
+If your model thinks before it answers and the summary comes back empty, turn on **No token limit** in the Smart summary settings — it can use many more tokens, as the summary refreshes several times a day.
 
 Tap the smart summary to open or fold it and pull down to refresh it. Hold the greeting for another phrase.
 
@@ -87,6 +89,8 @@ The vault uses the phone's secure storage and never enters notes, widgets, searc
 ## Appearance, language and calendar
 
 **Settings → Appearance → Theme** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier or Forest retreat. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.
+
+At the end of the Theme page, **App icon** changes the icon on your home screen to one of six; a home-screen shortcut may need adding again afterwards.
 
 Language, calendar and the home-screen widget are also under Appearance. The Persian calendar changes how dates are shown and picked, independently of the interface language; what is stored never changes. Settings remembers which categories you opened; Security, Intelligence and Appearance start open.
 
