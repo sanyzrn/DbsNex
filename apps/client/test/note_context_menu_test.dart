@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
+import 'package:nex_client/platform/hold_menu.dart';
 import 'package:nex_client/widgets/note_context_menu.dart';
 
 /// The note's hold menu, which a tap outside must only close.
@@ -19,10 +20,10 @@ void main() {
           body: Column(
             children: [
               NoteContextMenu(
-                onOpen: () {},
-                onAddTag: () {},
-                onDelete: () {},
-                onCopy: () {},
+                entries: [
+                  NoteMenuEntry(NexHoldAction.copy, () {}),
+                  NoteMenuEntry(NexHoldAction.delete, () {}),
+                ],
                 child: const SizedBox(
                   height: 80,
                   width: double.infinity,

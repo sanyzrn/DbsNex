@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/widgets/nex_banner.dart';
+import 'package:nex_client/platform/hold_menu.dart';
 import 'package:nex_client/widgets/note_context_menu.dart';
 import 'package:nex_client/widgets/reminder_wheel.dart';
 import 'package:nex_core/nex_core.dart';
@@ -110,9 +111,11 @@ void main() {
     await tester.pumpWidget(
       host(
         NoteContextMenu(
-          onOpen: () {},
-          onAddTag: () => added++,
-          onDelete: () {},
+          entries: [
+            NoteMenuEntry(NexHoldAction.open, () {}),
+            NoteMenuEntry(NexHoldAction.addTag, () => added++),
+            NoteMenuEntry(NexHoldAction.delete, () {}),
+          ],
           child: TextButton(
             focusNode: focus,
             onPressed: () {},

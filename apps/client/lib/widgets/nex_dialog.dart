@@ -108,7 +108,9 @@ Future<T?> nexShowSheet<T>({
   },
 );
 
-/// Swipe-down for a sheet whose editor guards unsaved work.
+/// Swipe-down for a sheet whose editor guards unsaved work — from its handle,
+/// from anywhere that does not scroll, or by pulling its content past the
+/// top.
 ///
 /// Those sheets turn Flutter's own drag dismissal off, because it pops the
 /// route directly and walks straight past the editor's "discard changes?"
@@ -156,15 +158,56 @@ class _SwipeToCloseState extends State<_SwipeToClose>
     if (fling || far) unawaited(Navigator.of(context).maybePop());
   }
 
+  /// Whether the current drag is pulling the sheet down past the top of its
+  /// own scrolling content.
+  bool _pulling = false;
+
+  /// From anywhere on the sheet, not only its handle: a list already at its
+  /// top that is pulled further down takes the sheet with it, the way a
+  /// bottom sheet does everywhere else on the phone.
+  bool _onScroll(ScrollNotification n) {
+    if (n.metrics.axis != Axis.vertical) return false;
+    if (n is OverscrollNotification &&
+        n.dragDetails != null &&
+        (n.overscroll < 0 || _pulling)) {
+      _pulling = true;
+      _offset.value = (_offset.value - n.overscroll).clamp(0, 10000);
+    } else if (n is ScrollUpdateNotification &&
+        _pulling &&
+        n.dragDetails != null) {
+      // Pushed back up while pulling: the sheet rises before the content
+      // scrolls.
+      _offset.value = (_offset.value - n.scrollDelta!).clamp(0, 10000);
+      if (_offset.value == 0) _pulling = false;
+    } else if (n is ScrollEndNotification && _pulling) {
+      _pulling = false;
+      _end(
+        DragEndDetails(primaryVelocity: n.dragDetails?.primaryVelocity ?? 0),
+      );
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) => _SwipeScope(
     onUpdate: _drag,
     onEnd: _end,
-    child: AnimatedBuilder(
-      animation: _offset,
-      builder: (context, child) =>
-          Transform.translate(offset: Offset(0, _offset.value), child: child),
-      child: widget.child,
+    child: NotificationListener<ScrollNotification>(
+      onNotification: _onScroll,
+      // Parts of the sheet that do not scroll — its heading, the space
+      // between fields — drag it directly.
+      child: GestureDetector(
+        onVerticalDragUpdate: _drag,
+        onVerticalDragEnd: _end,
+        child: AnimatedBuilder(
+          animation: _offset,
+          builder: (context, child) => Transform.translate(
+            offset: Offset(0, _offset.value),
+            child: child,
+          ),
+          child: widget.child,
+        ),
+      ),
     ),
   );
 }

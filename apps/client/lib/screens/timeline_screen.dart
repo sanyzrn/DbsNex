@@ -3,6 +3,10 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show compute;
+import '../documents/text_import.dart';
+import '../platform/file_opener.dart';
+import '../platform/hold_menu.dart';
+import '../widgets/translate_sheet.dart';
 import '../platform/photo_encoding.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -2844,32 +2848,7 @@ class TimelineScreenState extends State<TimelineScreen>
                   ),
                   onAction: (action) => unawaited(_runSwipe(action, note)),
                   child: NoteContextMenu(
-                    onOpen: () => _tapNote(note),
-                    pinned: note.pinnedAt != null,
-                    onPin: () => unawaited(_runSwipe(NexSwipeAction.pin, note)),
-                    onRemind: () =>
-                        unawaited(_runSwipe(NexSwipeAction.remind, note)),
-                    onCopy:
-                        (note.content ??
-                                note.transcriptText ??
-                                note.ocrText ??
-                                '')
-                            .isEmpty
-                        ? null
-                        : () => unawaited(
-                            Clipboard.setData(
-                              ClipboardData(
-                                text:
-                                    note.content ??
-                                    note.transcriptText ??
-                                    note.ocrText ??
-                                    '',
-                              ),
-                            ),
-                          ),
-                    onEdit: () => unawaited(_openNote(note, edit: true)),
-                    onAddTag: () => unawaited(_addTagTo(note)),
-                    onDelete: () => unawaited(deleteWithUndo(note)),
+                    entries: _holdEntries(note),
                     child: NoteCard(
                       note: note,
                       strings: nexCardStrings(context),
@@ -2892,6 +2871,135 @@ class TimelineScreenState extends State<TimelineScreen>
   /// is a second way to reach it, not a second implementation of it — which is
   /// why the reminder picker and the share path are shared functions rather
   /// than copies.
+  /// The hold menu for [note]: the actions chosen in Settings, less any
+  /// this particular note cannot do — no Open file on a text note, no
+  /// Translate with nothing to translate or no provider to ask.
+  List<NoteMenuEntry> _holdEntries(Note note) {
+    final prefs = widget.preferences;
+    final l10n = AppLocalizations.of(context);
+    final words = note.content ?? note.transcriptText ?? note.ocrText ?? '';
+    final expanded = prefs.isNoteExpanded(note.id);
+    NoteMenuEntry? entry(NexHoldAction action) => switch (action) {
+      NexHoldAction.pin => NoteMenuEntry(
+        action,
+        () => unawaited(_runSwipe(NexSwipeAction.pin, note)),
+        label: note.pinnedAt != null ? l10n.unpin : null,
+        icon: note.pinnedAt != null ? Icons.push_pin : null,
+      ),
+      NexHoldAction.copy =>
+        words.isEmpty
+            ? null
+            : NoteMenuEntry(
+                action,
+                () => unawaited(Clipboard.setData(ClipboardData(text: words))),
+              ),
+      NexHoldAction.edit => NoteMenuEntry(
+        action,
+        () => unawaited(_openNote(note, edit: true)),
+      ),
+      NexHoldAction.remind => NoteMenuEntry(
+        action,
+        () => unawaited(_runSwipe(NexSwipeAction.remind, note)),
+      ),
+      NexHoldAction.share =>
+        !nexCanShare
+            ? null
+            : NoteMenuEntry(
+                action,
+                () => unawaited(_runSwipe(NexSwipeAction.share, note)),
+              ),
+      NexHoldAction.addTag => NoteMenuEntry(
+        action,
+        () => unawaited(_addTagTo(note)),
+      ),
+      NexHoldAction.expand =>
+        note.displayText == null && note.type != NoteType.checklist
+            ? null
+            : NoteMenuEntry(
+                action,
+                () => unawaited(
+                  prefs
+                      .setNoteExpanded(note.id, !expanded)
+                      .then((_) => mounted ? setState(() {}) : null),
+                ),
+                label: expanded ? l10n.collapseCard : null,
+                icon: expanded ? Icons.unfold_less : null,
+              ),
+      NexHoldAction.open => NoteMenuEntry(
+        action,
+        () => unawaited(_openNote(note)),
+      ),
+      NexHoldAction.openFile =>
+        note.mediaUri == null
+            ? null
+            : NoteMenuEntry(
+                action,
+                () => unawaited(
+                  nexOpenFile(note.mediaUri!, mimeType: note.mimeType),
+                ),
+              ),
+      NexHoldAction.openLink =>
+        note.linkUrl == null
+            ? null
+            : NoteMenuEntry(
+                action,
+                () => unawaited(
+                  launchUrl(
+                    Uri.parse(note.linkUrl!),
+                    mode: LaunchMode.externalApplication,
+                  ).catchError((_) => false),
+                ),
+              ),
+      NexHoldAction.convert =>
+        note.type == NoteType.text ||
+                (note.type == NoteType.file &&
+                    NexTextImport.canConvert(
+                      note.originalFilename ?? note.mediaUri,
+                      mimeType: note.mimeType,
+                    ))
+            ? NoteMenuEntry(
+                action,
+                () => unawaited(_openNote(note, run: action)),
+              )
+            : null,
+      NexHoldAction.ask =>
+        !AiChatSheet.availableFor(prefs)
+            ? null
+            : NoteMenuEntry(
+                action,
+                () => unawaited(_runSwipe(NexSwipeAction.ask, note)),
+              ),
+      NexHoldAction.translate =>
+        !TranslateSheet.availableFor(prefs) ||
+                (note.displayText ?? words).trim().isEmpty
+            ? null
+            : NoteMenuEntry(
+                action,
+                () => unawaited(_openNote(note, run: action)),
+              ),
+      NexHoldAction.summarize =>
+        !prefs.effectiveAiCapabilities.summarization ||
+                !aiTextAvailableWith(prefs.aiProvider)
+            ? null
+            : NoteMenuEntry(
+                action,
+                () => unawaited(_openNote(note, run: action)),
+              ),
+      NexHoldAction.caption || NexHoldAction.details => NoteMenuEntry(
+        action,
+        () => unawaited(_openNote(note, run: action)),
+      ),
+      NexHoldAction.delete => NoteMenuEntry(
+        action,
+        () => unawaited(deleteWithUndo(note)),
+      ),
+    };
+    return [
+      for (final action in prefs.holdMenuActions)
+        if (entry(action) case final value?) value,
+    ];
+  }
+
   Future<void> _runSwipe(NexSwipeAction action, Note note) async {
     final l10n = AppLocalizations.of(context);
     switch (action) {
@@ -3134,11 +3242,16 @@ class TimelineScreenState extends State<TimelineScreen>
     await widget.services.refreshTimeline();
   }
 
-  Future<void> _openNote(Note note, {bool edit = false}) async {
+  Future<void> _openNote(
+    Note note, {
+    bool edit = false,
+    NexHoldAction? run,
+  }) async {
     final result = await nexShowSheet<DetailResult>(
       context: context,
       builder: (_) => NoteDetailSheet(
         editOnOpen: edit,
+        runOnOpen: run,
         services: widget.services,
         preferences: widget.preferences,
         noteId: note.id,
