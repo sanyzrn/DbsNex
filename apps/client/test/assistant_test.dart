@@ -350,7 +350,7 @@ Sure, here you go:
         );
       }
       // And a few that are.
-      for (final key in ['text_size', 'daily_nudge', 'accent', 'show_tags']) {
+      for (final key in ['text_size', 'daily_nudge', 'palette', 'show_tags']) {
         expect(
           parseAssistantAction(
             '{"action":"setting","key":"$key","value":"x"}',
@@ -358,6 +358,34 @@ Sure, here you go:
           key,
         );
       }
+    });
+
+    test('settings that left the settings screen left the list too', () {
+      // Background patterns were replaced by whole-app palettes and Comfort
+      // Mode was hidden. Offered to the model, the first reported a change
+      // that showed nothing and the second turned on something with no
+      // switch left to turn it off.
+      for (final key in ['background', 'comfort_mode']) {
+        expect(
+          parseAssistantAction(
+            '{"action":"setting","key":"$key","value":"on"}',
+          ),
+          isNull,
+          reason: '$key has no control a person can reach',
+        );
+      }
+    });
+
+    test('an accent is normalised before it is offered for confirmation', () {
+      // Passed through raw, a colour without its `#` was confirmed by the user
+      // and then silently rejected by the check that applies it.
+      String? accent(String value) => parseAssistantAction(
+        '{"action":"setting","key":"accent","value":"$value"}',
+      )?.settingValue;
+      expect(accent('1d4ed8'), '#1D4ED8');
+      expect(accent('#1d4ed8'), '#1D4ED8');
+      expect(accent('default'), 'default');
+      expect(accent('blue'), isNull);
     });
 
     test('a recurring item needs to say how often', () {

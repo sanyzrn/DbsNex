@@ -23,9 +23,11 @@ what ships. iOS is not in progress.
 capture is committed the moment it exists. Photos go through a crop step on the way in.
 Files shared to Nex from another app land the same way as ones picked inside it.
 
-**Timeline** — one reverse-chronological stream, no folders. Cards are a fixed height, so
-the list stays even. Swipe an edge for delete or add-tag; hold and drag to reorder; one
-up to five notes can be pinned to the top.
+**Timeline** — one reverse-chronological stream, no folders, grouped under date headings
+that fold (pinch the timeline to fold or open them all). Cards are a fixed height, so the
+list stays even. Swipe an edge for delete or add-tag; hold a card for pin, copy, edit,
+remind and delete. Up to five notes can be pinned to the top. Long notes open folded,
+with **More** to read the rest, and can be converted to a Markdown file and back.
 
 **Find** — SQLite FTS5 full-text search, plus tag, content-type and date filters with
 tappable chips beside the search field (the `tag:`/`type:` operators still work in the
@@ -34,6 +36,12 @@ rather than an empty box.
 
 **Organize later** — tags with free-form colours, a tag manager that renames, merges and
 deletes, and a trash that holds deleted notes for 30 days.
+
+**Recurring** — things that come back round (rent, insurance, a tablet every eight hours)
+live in their own hub on the home dock, not on the timeline. Today, overdue and next-week
+views; several weekdays, a day of the month or its last day, with real Persian-calendar
+monthly and yearly repeats; snooze or skip one occurrence, completion history with notes
+and Undo, templates, and optional amounts totalled per currency for the next 30 days.
 
 **Come back to it** — a reminder on any note, one-off or repeating, and an optional daily
 nudge at an hour you pick. Both go through the OS scheduler, and when Android refuses to
@@ -44,6 +52,10 @@ a note keeps its alarms exactly as honest as the notes themselves.
 
 **Your data stays yours** — export and import a full archive, automatic throttled local
 backups you can prune by hand, and a storage breakdown that tells you what is using space.
+A **complete backup** adds settings and service keys (encrypted with a generated recovery
+code), optionally the offline model and the private vault. An interrupted restore rolls
+back on the next launch, and unfinished edits in most editors survive the app being
+killed.
 
 **Private tools** — a separate Tools page at the left of the home dock holds passwords, bank cards and private saved messages behind device authentication. A standalone password generator, Chrome CSV import and field-by-field copy make access quick. Vault data is excluded from notes, AI and ordinary library backups; encrypted vault export is an explicit option in Complete app backup.
 
@@ -53,6 +65,12 @@ provider you configure and can test, plus an assistant you can actually talk to 
 you have written. Its tone is yours to set, including one you write yourself. It is the only
 part of Nex that can send a note off the device, it says so before it is switched on, and
 cloud requests may include your preferred name and selected note context. With only the offline model enabled, generation stays on the device. See [`docs/09-ai.md`](./docs/09-ai.md).
+
+**Home-screen widgets** — Capture, Timeline and Recap widgets on Android that follow the
+app's language and accent, and stay private while the app lock is on.
+
+**Persian calendar** — optional Solar Hijri dates for display and every date picker,
+independent of the interface language.
 
 **Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier and Forest palettes, custom accents and text size. Liquid Glass is temporarily disabled by owner request; its implementation is retained. Reduce-motion support and 48px minimum action targets remain.
 

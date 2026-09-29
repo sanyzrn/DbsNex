@@ -21,6 +21,7 @@ import '../platform/assistant_actions.dart';
 import '../platform/chat_history.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../platform/theme_presets.dart';
 import 'card_strings.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
@@ -1149,23 +1150,18 @@ class _AiChatSheetState extends State<AiChatSheet> {
           _ => null,
         };
         if (scale != null) await widget.preferences.setUiScale(scale);
-      case 'background':
-        for (final pattern in NexBackgroundPattern.values) {
-          if (pattern.wireName != value) continue;
-          await widget.preferences.setBackgroundPattern(pattern);
-          break;
+      // The whole-app palettes on the Theme page, by the same ids it stores.
+      case 'palette':
+        if (nexThemePresets.any((preset) => preset.id == value)) {
+          await widget.preferences.setThemePreset(value!);
         }
-      // Already normalised to `#RRGGBB` by the parser, or null for the
+      // Already normalised to `#RRGGBB` by the parser, or `default` for the
       // shipped accent.
       case 'accent':
         if (value == 'default') {
           await widget.preferences.setAccentSeed(null);
         } else if (value != null && _hexSeed.hasMatch(value)) {
           await widget.preferences.setAccentSeed(value.toUpperCase());
-        }
-      case 'comfort_mode':
-        if (_onOff(value) case final on?) {
-          await widget.preferences.setComfortMode(on);
         }
       case 'haptics':
         if (_onOff(value) case final on?) {

@@ -34,6 +34,9 @@ Working convention:
 
 ## Unreleased
 
+- **The assistant changes only settings you can see.** It can now switch the whole-app theme (Paper, Autumn and the rest). It no longer offers background patterns or Comfort Mode, which left Settings: one changed nothing and the other had no switch to turn it back off. An accent colour written without its `#` is applied instead of being silently dropped after you confirm it.
+- **The guide matches the app.** Recurring and the theme names are called what the screens call them.
+
 ## v1.70.0
 
 - **A richer Recurring hub.** Today, overdue and next-week views; snooze or skip one occurrence; subscription, installment, task and habit templates; completion history with notes and Undo.
