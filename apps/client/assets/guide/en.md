@@ -1,89 +1,127 @@
 # Using Nex
 
-Save a thought, photo, recording or file in one place. You can use the library without enabling AI.
+Nex is the fastest way to put something down and find it again: a thought, a photo, a recording, a file or a link, all in one stream. Everything stays on this phone unless you choose otherwise, and the library works completely without AI.
 
 ## Capture something
 
-Tap **+** and choose text, checklist, voice, photo, file or link. Quick text is saved when you close its sheet. Other editors have a **Save** or **Confirm** button. A checklist uses one item per line. A link needs a complete address.
+Tap **+** at the centre of the bottom bar and choose text, checklist, voice, photo, file or link. There is no Save button for quick text: it is saved when you close its sheet. Checklists, links and other editors have a **Save** or **Confirm** button. A checklist uses one item per line; a link needs a complete address.
 
-Photos first open in a full-image preview. Choose **Edit** only when you want to crop, rotate or annotate. Swipe the aspect-ratio row to see every size. You can also edit an existing image from its details.
+Photos first open in a full-size preview. Choose **Edit** only when you want to crop, rotate or annotate; swipe the aspect-ratio row to see every size. Files shared into Nex from another app arrive exactly like files you pick inside it.
+
+![The capture menu](capture.webp)
+
+## The home timeline
+
+Everything lives in one reverse-chronological stream, grouped under date headings. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again.
+
+Hold a note for a quick menu: **Pin**, **Copy**, **Edit**, **Remind** and **Delete**. Up to five notes can be pinned to the top. Swipe a card from either edge for the actions you chose under **Settings → Capture → Swipe actions**. The bottom bar holds, from left to right: **Tools**, **Recurring**, **+**, **Library** and **Settings**.
+
+![The home timeline](home.webp)
 
 ## Find and organize
 
-Tap anywhere in the search box and type part of a word: **tor** also finds **Generator**. Filters narrow results by type or tag. The smart summary stays out of search.
+Tap anywhere in the search field and type part of a word: **tor** also finds **Generator**. The chips beside the field narrow results by type, tag or date, and `tag:` and `type:` still work in the field itself. When nothing matches, Nex offers the closest thing you actually wrote.
 
-Use tags to group related notes. Pin important notes to keep them at the top. A date heading folds its group; pinch two fingers together on the timeline to fold all date groups, or spread them to open all groups. Individual group controls remain available without gestures.
+Tags group related notes and can carry any colour. **Library → Tags** renames, merges and deletes them; **Library → Trash** keeps deleted notes for 30 days, so a mistake can be undone.
+
+![Search with filters](search.webp)
 
 ## Read, edit and share
 
-Open an item for its exact date and time, tags, description and actions. The most common actions are visible; **More** holds the rest. Select text to copy or format it. Open a photo to zoom with two fingers, then drag to inspect it. Drag down to close the photo.
+Open an item for its exact date and time, tags, description and every action. The common actions are always visible; **More** holds the rest. Select text to copy or format it. Open a photo to zoom with two fingers, drag to look around, and drag down to close it.
 
-Voice details offer playback, a position slider and a waveform derived from the recording on Android. Unsupported audio still uses the player without a waveform.
+Voice notes show playback, a position slider and a waveform drawn from the recording itself on Android. Formats without a waveform still play.
 
-## Long notes and Markdown
+![A note's details](note-details.webp)
 
-Long note details initially show a short preview; tap **More** to read the rest and **Less** to fold it. Hold a home item for Pin, Copy, Edit, Remind and Delete.
+## Long notes, Markdown and files
 
-In a text note's actions, choose **Save as Markdown**. Nex replaces the item's representation with a `.md` file and preserves its identity, tags and reminders. You can share the file with another app. For a Markdown attachment, **Convert to note** restores editable text. Imported Markdown must be UTF-8 and no larger than 16 MB. A failed conversion leaves the original intact.
+Long notes open folded; tap **More** to read the rest and **Less** to fold them again.
+
+A text note can become a Markdown file with **Save as Markdown**: the same item, with its tags, pin and reminder, now a `.md` file you can share. That is the only direction a note is ever converted — Markdown is what a note already is.
+
+The other way round works for any file that is mostly words. Open a file item and tap **Convert to note** to turn it into editable, searchable text. This works for Markdown, plain text and logs, Word (`.docx` and older `.doc`), OpenDocument (`.odt`), Rich Text (`.rtf`), web pages (`.html`), e-books (`.epub`), spreadsheets saved as `.csv` or `.tsv` (they become a table), and source or configuration files (they keep a fixed-width font). Older Persian text files in Windows encoding are read correctly. PDFs stay files: their text has no reliable reading order. Files up to 16 MB are supported, and a failed conversion leaves the original untouched.
+
+![Turning a file into a note](files-to-notes.webp)
 
 ## Recover unfinished work
 
-If Android closes Nex while you are editing, reopen the same editor to recover its saved draft. This includes note text, captions, checklists, links, profile details and commitments. To resume an unfinished photo capture, choose Photo again; crop and annotation drafts reopen from their editors. Explicitly discarding a draft removes it. Quick text has automatic startup recovery.
+If Android closes Nex while you are editing, reopen the same editor to find its draft waiting: note text, captions, checklists, links, profile details and recurring items are all kept. To resume an unfinished photo, choose Photo again; crop and annotation drafts reopen from their own editors. Discarding a draft on purpose removes it, and quick text is recovered automatically at startup.
 
-## Reminders and commitments
+## Reminders
 
-A note reminder brings one item back at a chosen time. Use the quick choices, wheels or calendar button, and confirm the time shown. Android notification permission is required.
+A reminder brings one note back at the time you choose, once or repeating. Use the quick choices, the wheels or the calendar button, and confirm the time shown. Android's notification permission is required. If Android refuses to schedule one — exact alarms off, notifications blocked, battery optimisation — Nex tells you in Android's own words, and **Settings → Notifications** has a test notification to tell "Nex never sent it" apart from "the phone swallowed it".
 
-Open **Recurring** from the bottom navigation for recurring obligations such as rent or medication. Give it a title, interval and next due time; optionally set advance notice and a daily window. Mark it done to advance its schedule.
+## Recurring
 
-Recurring has Today, Overdue and Next 7 days filters. Use a template for a subscription, installment, task or habit. Its menu can snooze one occurrence, skip it or open history; Undo restores an accidental completion or change. History entries accept a short note. Choose weekdays, a month day or the last day of the month. Persian recurrence calculates monthly/yearly dates using the Persian calendar. An optional amount and currency contribute to upcoming 30-day totals, with each currency kept separate. Snoozing preserves the original schedule.
+**Recurring**, on the bottom bar, is for the things that come back round: rent, insurance, a tablet every eight hours, a glass of water every two. They are not notes and never crowd the timeline.
 
-## AI and the smart summary
+Tap **+** on the Recurring page to add one: a title, how often, and when it is next due; optionally how far ahead to be told, a daily window for hourly items, several weekdays, a day of the month or its last day, and an amount with its currency. Persian monthly and yearly repeats follow the Persian calendar. The editor closes with a swipe down on its handle, and asks first if you have typed something.
 
-Hold **+** to open the assistant. In **Settings → Intelligence**, configure a provider or an available offline model, adjust the assistant, then choose how the smart summary works. Cloud providers receive the content needed for the requested action; offline processing stays on the device. An API key and a working connection are needed for cloud features.
+Today, Overdue and Next 7 days narrow the list. Mark an item done to move it to its next turn; its menu can snooze one occurrence, skip it or open its history, where each entry can carry a short note. Undo restores an accidental change, and snoozing never moves the underlying schedule. Upcoming 30-day totals are shown per currency.
 
-Tap the summary to expand or fold it; pull down to refresh it. Hold the greeting to request another phrase. The greeting also works without a profile name. Review the assistant's proposed changes before applying them.
+![The Recurring page](recurring.webp)
 
-## Appearance, language and calendar
+## The assistant and AI
 
-Settings remembers which categories you open or close, including after restarting the app. Security, Intelligence and Appearance start open. Under **Appearance → Theme**, choose Nex (the classic look), Paper notebook, Autumn, Rose atelier or Forest retreat, light/dark/system mode, accent and text size. Language, calendar and home-screen widget settings remain under Appearance. Liquid Glass is temporarily unavailable. The Persian calendar controls displayed dates and date selection independently of the interface language. Stored instants stay unchanged. Choose Gregorian to switch back.
+AI is optional and off until you turn it on. In **Settings → Intelligence**, choose a provider (or a downloaded offline model), test it, and pick which features to use: transcription, text in photos, summaries, tag suggestions, related notes and the daily smart summary.
 
-Under **Capture**, configure Enter, haptics and swipe actions. Under **Notifications**, choose the daily nudge and open Android's sound settings. Under **Security**, configure app lock and its timing. Widget privacy follows the app lock.
+**Hold +** to open the assistant: a light washes across the screen and the panel grows out of the button. Ask about your notes, or ask it to act — create, edit, tag, remind, pin, merge, add a recurring item, or change a setting such as the theme palette, accent, text size or language. Nothing is applied until you confirm it. A cloud provider receives only what the request needs; an offline model keeps everything on the phone.
 
-## Backups and restoring
+Tap the smart summary to open or fold it and pull down to refresh it. Hold the greeting for another phrase.
 
-**Settings → Data and backup** offers three different operations:
-
-- **Export / Import:** transfer library content. Import adds content to the current library.
-- **Library backup / Restore:** keep or replace the library, including its attachments. Local automatic copies live on the same device; export a copy somewhere else for protection against losing the device.
-- **Complete device backup:** include settings and service keys, plus an optional downloaded offline model. Settings and keys are encrypted with a generated recovery code. Save the code separately: it cannot be recovered from the backup. Library files and model weights are not encrypted. The model can add about 2.6 GB.
-
-Restoring a backup replaces the library and restarts Nex. Device identity and installation-specific file paths stay local. Keep the old backup until you have checked the restored contents.
-
-## Updates and help
-
-Open **Settings → About** for the installed version, update check and changelog. App releases come from **DbsNex-releases**. Install updates over the existing app to retain its data.
-
-If something fails, record the app version, what you tried and the error shown. Diagnostic export can help investigation. Feedback delivery depends on the service being configured; an unavailable service does not mean your message was received.
+![The assistant opening](assistant.webp)
 
 ## Tools and private vault
 
-Tap **Tools** at the left of the bottom navigation, then Passwords or Bank cards. Device authentication
-is required. Save account names, logins, passwords, websites and private notes;
-the password generator is a separate tool with length and symbol controls. Cards have bank,
-holder, number, printed expiry, IBAN and account fields. Tap a field or its copy
-icon to copy it. After authentication, saved fields are readable immediately.
+**Tools**, at the left of the bottom bar, holds **Passwords**, **Bank cards**, **Private saved messages** and a **Password generator**. The private tools need your fingerprint or screen lock, and one unlock opens all of them for as long as you are using them. They lock after two minutes without activity — including time spent in another app, so you can copy a password, paste it in your browser and come straight back. Leaving the app always hides their contents from the task switcher, and **Lock** closes them at once.
 
-In Passwords, use **Import Chrome CSV** to select an exported UTF-8 CSV file. Review the number of new entries before confirming; identical website/login/password entries are skipped. The source CSV is not encrypted, so remove it safely after import.
+Everything is shown on the list itself: each password with its login, password, website and notes, and each card as a card with every detail underneath. Tap any field, or its copy icon, to copy it. Use the **⋮** menu on an item to edit it, favourite it or delete it. Each bank card can have its own colour, chosen with the same picker as tags. In Passwords, **Import Chrome CSV** adds passwords exported from Chrome, skipping exact duplicates; delete the exported file afterwards, as it is not encrypted.
 
-**Private saved messages** is a separate authenticated text space: type, send to save, then copy or delete. Unsent message text is cleared when it locks. Swipe back to return from a tool or its details.
+The vault uses the phone's secure storage and never enters notes, widgets, search or AI. Unfinished edits are kept as encrypted drafts. Copied values are marked sensitive, and the clipboard is cleared after 30 seconds where Android allows it. The vault is included in a backup only when you choose **Include private vault** in a complete backup.
 
-The vault uses device secure storage and does not enter notes, widgets, general
-search or AI context. It locks when the app loses focus or after two idle minutes.
-Unfinished edits are encrypted drafts that can be resumed after unlocking.
-Android marks copied values sensitive; clipboard expiry after 30 seconds is best
-effort and depends on OS access. Autofill and vault sync are not included yet.
+![Tools](tools.webp)
 
-For transfer, explicitly select **Include private vault** in Complete app backup
-and authenticate. The vault is inside its encrypted settings entry. Keep the
-recovery code separately. Ordinary note/library backups do not include it.
+![Bank cards with every detail on the list](vault-cards.webp)
+
+## Appearance, language and calendar
+
+**Settings → Appearance → Theme** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier or Forest retreat. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.
+
+Language, calendar and the home-screen widget are also under Appearance. The Persian calendar changes how dates are shown and picked, independently of the interface language; what is stored never changes. Settings remembers which categories you opened; Security, Intelligence and Appearance start open.
+
+![The Theme page](theme.webp)
+
+## Notices inside the app
+
+Confirmations and warnings arrive as a small capsule that drips down from the top of the screen and is drawn back up when it leaves. Tap it or swipe it upwards to dismiss it early. When it offers **Undo**, it stays a little longer so there is time to reach it.
+
+![A notice with Undo](notices.webp)
+
+## Home-screen widgets
+
+Add the **Capture**, **Timeline** or **Recap** widget from your launcher. Under **Settings → Appearance → Home screen widget**, choose which kinds of note and which tag the timeline widget shows and whether pinned notes come first. Widgets follow the app's language and accent. While the app lock is closed they hide your notes, unless you choose otherwise.
+
+![Home-screen widgets](widgets.webp)
+
+## Backups and restoring
+
+**Settings → Data & backup** offers three separate things:
+
+- **Export / Import** moves library content in and out. Importing adds to the current library, including exports from Google Keep and Takeout.
+- **Library backup / Restore** keeps or replaces the whole library with its attachments. Automatic local copies stay on this phone; share a copy somewhere else to survive losing the phone.
+- **Complete backup** adds settings and service keys, the private vault if you choose it, and optionally the downloaded offline model (about 2.6 GB). Settings, keys and vault are encrypted with a generated recovery code — keep it separately, because it cannot be recovered from the backup.
+
+Restoring replaces the library and restarts Nex. If a restore is interrupted, the next launch puts everything back as it was.
+
+![Data and backup](backup.webp)
+
+## Security and privacy
+
+Under **Settings → Security**, Nex can ask for your fingerprint or screen lock whenever it returns to the foreground, after a delay you choose. The lock is local and hides the screen in the task switcher. Nothing leaves the phone unless you turn on a cloud AI provider, send feedback or share something yourself.
+
+## Updates, feedback and help
+
+**Settings → About Nex** shows the installed version and checks for updates; releases download inside the app and install over the existing one, keeping all your data. The same page links to the maker, **DbsStudio.ir**, and to Nex's own page with news, downloads and help.
+
+**Send feedback** goes straight to the people who make Nex. Choose whether it is a problem, an idea or something else, and add a Telegram ID or email if you would like a reply; nothing from your notes is attached. If sending is not available, copy your message and send it another way. If something fails, **Share diagnostics** creates a report with personal details removed.

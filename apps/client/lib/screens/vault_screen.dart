@@ -79,7 +79,13 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   void _armIdle() {
     idle?.cancel();
     idle = Timer(session.remaining, () {
-      if (!session.isOpen) _lock();
+      // Another private screen may have extended the unlock meanwhile: wait
+      // for the new deadline instead of giving up on locking at all.
+      if (session.isOpen) {
+        _armIdle();
+      } else {
+        _lock();
+      }
     });
   }
 

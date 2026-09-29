@@ -783,12 +783,26 @@ class TimelineScreenState extends State<TimelineScreen>
       return;
     }
     HapticFeedback.mediumImpact();
+    // The button that was held: the panel grows out of it, and a ring of the
+    // assistant's light washes out across the screen from the same point.
+    final box = _captureAnchor.currentContext?.findRenderObject();
+    final origin = box is RenderBox && box.attached
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
+    if (origin != null) {
+      NexAssistantLaunch.play(
+        context,
+        origin: origin,
+        spectrum: nexAssistantSpectrum,
+      );
+    }
     unawaited(
       AiChatSheet.show(
         context,
         preferences: widget.preferences,
         services: widget.services,
         history: widget.preferences.chatHistory,
+        emergeFrom: origin,
       ),
     );
   }

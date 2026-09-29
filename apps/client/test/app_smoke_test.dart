@@ -861,7 +861,7 @@ void main() {
     expect(preferences.effectiveAiCapabilities.transcription, isTrue);
   });
 
-  testWidgets('UI tokens apply bg-primary; Comfort swaps tokens', (
+  testWidgets('UI tokens apply bg-primary; retired Comfort changes nothing', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -870,10 +870,12 @@ void main() {
     var app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.theme!.scaffoldBackgroundColor, NexColors.bgPrimaryLight);
 
+    // Comfort Mode has no switch left in Settings, so a stored value no
+    // longer tints the app; the warm palettes are the whole-app themes now.
     await preferences.setComfortMode(true);
     await tester.pump();
     app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.theme!.scaffoldBackgroundColor, NexColors.bgPrimaryLightComfort);
+    expect(app.theme!.scaffoldBackgroundColor, NexColors.bgPrimaryLight);
   });
 
   testWidgets('Settings lists one row per setting, values and all', (

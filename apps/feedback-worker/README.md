@@ -61,6 +61,22 @@ non-202 code is for humans reading logs, not for the app's own logic.
    Nothing else changes — `FeedbackService` already reads this constant and
    already handles every status code above.
 
+## Reaching it from Iran
+
+`*.workers.dev` addresses are commonly filtered in Iran, and the phones sending
+feedback are exactly the ones that cannot reach them. Put the Worker behind a
+domain you own instead — for example `feedback.dbsstudio.ir`, added under the
+Worker's **Settings → Domains & Routes → Custom domain** once the domain's DNS is
+on Cloudflare — and use that address for `NEX_FEEDBACK_API_URL`. Telegram's API
+being blocked in Iran does not matter: the Worker, not the phone, talks to it.
+
+## Payload fields
+
+Besides `message`, `appVersion` and `platform`, the app sends `kind` (`bug`,
+`idea` or `other`, shown as a label at the top of the Telegram message) and an
+optional `contact` (up to 80 characters, shown as "Reply to:"). Anything else in
+those fields is refused with 400.
+
 ## Rate limiting
 
 `wrangler.toml` binds `FEEDBACK_LIMITER`: 10 requests per minute per client IP.

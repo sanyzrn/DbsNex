@@ -17,6 +17,7 @@ import 'platform/nex_widget.dart';
 import 'platform/os_capture_bridge.dart';
 import 'platform/share_window.dart';
 import 'restart_scope.dart';
+import 'widgets/nex_banner.dart';
 
 class NexBootstrapHost extends StatefulWidget {
   const NexBootstrapHost({super.key});
@@ -319,7 +320,7 @@ class _OpenFailed extends StatelessWidget {
     );
     if (file == null || !context.mounted) return;
 
-    final messenger = ScaffoldMessenger.of(context);
+    final banner = NexBannerHost.of(context);
     try {
       // Same composition as NexServices.bootstrap computes — this screen
       // exists precisely when no services object does.
@@ -335,8 +336,9 @@ class _OpenFailed extends StatelessWidget {
       );
       onRestored();
     } on Object catch (restoreError) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.restoreFailed('$restoreError'))),
+      banner?.show(
+        message: l10n.restoreFailed('$restoreError'),
+        kind: NexBannerKind.failed,
       );
     }
   }

@@ -375,10 +375,10 @@ class _BackupScreenState extends State<BackupScreen> {
       // Failing silently here was the one path that left a user staring at a
       // screen where every action answered "unavailable" with no reason.
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.restoreFailed(error.runtimeType.toString())),
-        ),
+      nexShowBanner(
+        context,
+        message: l10n.restoreFailed(error.runtimeType.toString()),
+        kind: NexBannerKind.failed,
       );
     }
   }
