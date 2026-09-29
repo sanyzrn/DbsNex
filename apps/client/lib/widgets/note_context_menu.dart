@@ -70,6 +70,10 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
 
     return MenuAnchor(
       controller: _controller,
+      // A tap outside closes the menu and does nothing else, like the date
+      // heading's menu (a modal popup). Without this the same tap went on to
+      // whatever was under it — opening another note, or pressing a button.
+      consumeOutsideTap: true,
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(scheme.surfaceContainerHigh),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),

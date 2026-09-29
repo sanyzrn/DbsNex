@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.80.1
+
+- **A tap outside the hold menu only closes it.** It no longer goes on to open another note or press whatever was underneath.
+- **A tap on a swiped-open card only closes it.** It no longer opens the note's details.
+
 ## v1.80.0
 
 - **The assistant grows out of the + button.** Hold + and a wave of light crosses the screen while the panel pours out of the button like liquid. Opening it no longer stutters.
