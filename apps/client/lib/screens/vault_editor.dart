@@ -3,6 +3,8 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/vault_store.dart';
 import '../platform/private_clipboard.dart';
+import '../widgets/feature_label.dart';
+import '../widgets/tag_color_picker.dart';
 
 class VaultEditor extends StatefulWidget {
   const VaultEditor({
@@ -41,6 +43,12 @@ class _VaultEditorState extends State<VaultEditor> {
       key: TextEditingController(text: widget.entry.value(key)),
   };
   bool discard = false;
+
+  /// A card's own colour as `#RRGGBB`, or null for the theme's. Chosen with
+  /// the same picker tags and the app accent use, not a second one.
+  late String? color = nexParseTagColor(widget.entry.value('color')) == null
+      ? null
+      : widget.entry.value('color');
   late bool favorite = widget.entry.favorite;
   @override
   void dispose() {
@@ -62,6 +70,9 @@ class _VaultEditorState extends State<VaultEditor> {
       ).replaceAll(RegExp(r'\s'), '').toUpperCase();
       values['account'] = vaultLatinDigits(values['account']!);
       values['expiry'] = vaultLatinDigits(values['expiry']!);
+    }
+    if (widget.entry.kind == VaultKind.card && color != null) {
+      values['color'] = color!;
     }
     return VaultEntry(
       id: widget.entry.id,
@@ -139,6 +150,7 @@ class _VaultEditorState extends State<VaultEditor> {
               ltr: true,
               keyboard: TextInputType.number,
             ),
+            _colorRow(theme),
           ],
           _field('notes', l.vaultNotes, lines: 4),
           CheckboxListTile(
@@ -194,6 +206,51 @@ class _VaultEditorState extends State<VaultEditor> {
               child: Text(l.vaultDiscard),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _colorRow(ThemeData theme) {
+    final title = nexLabel(context, 'Card color', 'رنگ کارت');
+    final swatch = nexParseTagColor(color);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: ListTile(
+        key: const ValueKey('vault-card-color'),
+        contentPadding: const EdgeInsetsDirectional.only(start: 12, end: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: theme.colorScheme.outline),
+        ),
+        leading: const Icon(Icons.palette_outlined),
+        title: Text(title),
+        subtitle: Text(
+          swatch == null
+              ? nexLabel(context, 'Follows the theme', 'هماهنگ با تم')
+              : color!,
+          textDirection: swatch == null ? null : TextDirection.ltr,
+        ),
+        trailing: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: swatch ?? theme.colorScheme.primaryContainer,
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+        ),
+        enabled: !widget.busy,
+        onTap: () async {
+          final result = await TagColorPicker.show(
+            context,
+            initial: color,
+            title: title,
+            defaultColor: theme.colorScheme.primaryContainer,
+          );
+          if (result == null || !mounted) return;
+          setState(() => color = result.color);
+          _changed();
+        },
       ),
     );
   }

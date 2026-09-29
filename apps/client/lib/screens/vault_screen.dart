@@ -8,7 +8,9 @@ import '../l10n/app_localizations.dart';
 import '../platform/app_lock.dart';
 import '../platform/private_clipboard.dart';
 import '../platform/secure_window.dart';
+import '../platform/vault_session.dart';
 import '../platform/vault_store.dart';
+import 'package:nex_ui/nex_ui.dart';
 import 'vault_editor.dart';
 
 class VaultScreen extends StatefulWidget {
@@ -29,24 +31,31 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   late final store = widget.store ?? VaultStore();
   late final auth = widget.authentication ?? AppLockService();
   late final Future<bool> protection;
+  final session = VaultSession.instance;
   final search = TextEditingController();
   List<VaultEntry> entries = [];
-  VaultEntry? draft, selected, editing;
+  VaultEntry? draft, editing;
   bool unlocked = false,
       busy = false,
       authenticating = false,
       favorites = false;
-  bool confirmDelete = false;
   String? error, copiedField;
   Timer? idle, draftTimer, copiedTimer;
   final messageInput = TextEditingController();
   int generation = 0;
+
+  /// Whether the editor was open when the app went to the background, so a
+  /// return inside the grace period lands back in it rather than on the list.
+  bool _resumeEditing = false;
+  Future<void>? _loading;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     protection = NexSecureWindow.acquirePrivateSurface();
+    // Another private tool was unlocked moments ago: open straight away.
+    if (session.isOpen) unawaited(_reload());
   }
 
   @override
@@ -63,17 +72,33 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
 
   void _touch() {
     if (!unlocked) return;
+    session.touch();
+    _armIdle();
+  }
+
+  void _armIdle() {
     idle?.cancel();
-    idle = Timer(const Duration(minutes: 2), _lock);
+    idle = Timer(session.remaining, () {
+      if (!session.isOpen) _lock();
+    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.detached ||
-        (state == AppLifecycleState.inactive && !authenticating)) {
-      _lock();
+    switch (state) {
+      case AppLifecycleState.detached:
+        _lock();
+      case AppLifecycleState.paused || AppLifecycleState.hidden:
+        _hide();
+      case AppLifecycleState.inactive:
+        if (!authenticating) _hide();
+      case AppLifecycleState.resumed:
+        if (unlocked || authenticating) return;
+        if (session.isOpen) {
+          unawaited(_reload());
+        } else {
+          _lock();
+        }
     }
   }
 
@@ -94,25 +119,63 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _lock() {
-    messageInput.clear();
+  /// Takes everything private off the screen without ending the unlock.
+  ///
+  /// Used whenever the app leaves the foreground: the task switcher, a
+  /// screenshot or someone glancing at the phone sees nothing, but coming
+  /// back inside [VaultSession.grace] reopens without authenticating.
+  void _hide({bool keepPlace = true}) {
     _flushDraft();
-    idle?.cancel();
     copiedTimer?.cancel();
     generation++;
     if (!mounted) return;
+    if (unlocked) _resumeEditing = keepPlace && editing != null;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       unlocked = false;
       busy = false;
       entries = [];
-      selected = null;
       editing = null;
       draft = null;
-      confirmDelete = false;
       copiedField = null;
-      search.clear();
     });
+  }
+
+  /// Ends the unlock for every private tool.
+  void _lock() {
+    session.close();
+    idle?.cancel();
+    messageInput.clear();
+    search.clear();
+    _resumeEditing = false;
+    _hide(keepPlace: false);
+  }
+
+  Future<void> _reload() =>
+      _loading ??= _load().whenComplete(() => _loading = null);
+
+  Future<void> _load() async {
+    final ticket = generation;
+    try {
+      if (!await protection) throw StateError('Secure window unavailable');
+      final data = await store.read();
+      if (!mounted || ticket != generation || !session.isOpen) return;
+      setState(() {
+        entries = data.entries;
+        draft = data.draft;
+        unlocked = true;
+        error = null;
+        if (_resumeEditing && data.draft?.kind == widget.kind) {
+          editing = data.draft;
+        }
+        _resumeEditing = false;
+      });
+      _touch();
+    } catch (_) {
+      if (mounted && ticket == generation) {
+        setState(() => error = AppLocalizations.of(context).vaultError);
+      }
+    }
   }
 
   Future<void> _unlock() async {
@@ -135,14 +198,9 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
         setState(() => error = l.vaultUnavailable);
         return;
       }
-      final data = await store.read();
-      if (!mounted || ticket != generation) return;
-      setState(() {
-        entries = data.entries;
-        draft = data.draft;
-        unlocked = true;
-      });
-      _touch();
+      session.open();
+      authenticating = false;
+      await _load();
     } catch (_) {
       if (mounted && ticket == generation) setState(() => error = l.vaultError);
     } finally {
@@ -158,7 +216,6 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
   Future<void> _operate(
     Future<void> Function() action, {
     bool closeEditor = false,
-    bool remove = false,
   }) async {
     if (busy) return;
     final ticket = generation;
@@ -175,11 +232,6 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
         entries = data.entries;
         draft = data.draft;
         if (closeEditor) editing = null;
-        if (remove) selected = null;
-        if (selected != null) {
-          selected = entries.where((e) => e.id == selected!.id).firstOrNull;
-        }
-        confirmDelete = false;
       });
     } catch (_) {
       if (mounted && ticket == generation) {
@@ -213,8 +265,6 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     _flushDraft();
     setState(() {
       editing = null;
-      selected = null;
-      confirmDelete = false;
       error = null;
     });
   }
@@ -237,6 +287,46 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _toggleFavorite(VaultEntry entry) => _operate(
+    () => store.save(
+      VaultEntry(
+        id: entry.id,
+        kind: entry.kind,
+        fields: entry.fields,
+        updatedAt: DateTime.now(),
+        favorite: !entry.favorite,
+      ),
+    ),
+  );
+
+  Future<void> _confirmDelete(VaultEntry entry) async {
+    final l = AppLocalizations.of(context);
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.vaultDelete),
+        content: Text(l.vaultDeleteHint),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            child: Text(l.vaultDeleteConfirm),
+          ),
+        ],
+      ),
+    );
+    if (yes == true && mounted && unlocked) {
+      await _operate(() => store.delete(entry.id));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -251,7 +341,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
         ? l.vaultPasswords
         : l.vaultCards;
     return PopScope(
-      canPop: !busy && editing == null && selected == null,
+      canPop: !busy && editing == null,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && !busy) _back();
       },
@@ -263,7 +353,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
               onPressed: busy
                   ? null
                   : () {
-                      if (editing != null || selected != null) {
+                      if (editing != null) {
                         _back();
                       } else {
                         Navigator.maybePop(context);
@@ -323,8 +413,6 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                             closeEditor: true,
                           ),
                         )
-                      : selected != null
-                      ? _detail(l, theme, selected!)
                       : widget.kind == VaultKind.message
                       ? _messages(l, theme)
                       : _list(l, theme),
@@ -348,7 +436,9 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
       ],
     );
     if (file == null || !mounted) return;
-    if (!unlocked) await _unlock();
+    if (!unlocked) {
+      await (session.isOpen ? _reload() : _unlock());
+    }
     if (!mounted || !unlocked) return;
     final ticket = generation;
     try {
@@ -542,49 +632,53 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _locked(AppLocalizations l, ThemeData theme) => Center(
-    child: SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.lock_person_outlined,
-              size: 56,
-              color: theme.colorScheme.onPrimaryContainer,
+  Widget _locked(AppLocalizations l, ThemeData theme) => session.isOpen
+      // Still unlocked, only off screen for a moment (or about to load):
+      // no prompt to authenticate, just nothing private to see.
+      ? const Center(child: CircularProgressIndicator())
+      : Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.lock_person_outlined,
+                    size: 56,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(l.vaultLocked, style: theme.textTheme.headlineSmall),
+                const SizedBox(height: 12),
+                Text(l.vaultUnlockHint, textAlign: TextAlign.center),
+                const SizedBox(height: 28),
+                FilledButton.icon(
+                  onPressed: busy ? null : _unlock,
+                  icon: const Icon(Icons.fingerprint),
+                  label: Text(l.vaultUnlock),
+                ),
+                if (error != null)
+                  TextButton(
+                    onPressed: auth.openDeviceSecurity,
+                    child: Text(l.settings),
+                  ),
+                const SizedBox(height: 24),
+                Text(
+                  l.vaultPrivacyHint,
+                  style: theme.textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
-          Text(l.vaultLocked, style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 12),
-          Text(l.vaultUnlockHint, textAlign: TextAlign.center),
-          const SizedBox(height: 28),
-          FilledButton.icon(
-            onPressed: busy ? null : _unlock,
-            icon: const Icon(Icons.fingerprint),
-            label: Text(l.vaultUnlock),
-          ),
-          if (error != null)
-            TextButton(
-              onPressed: auth.openDeviceSecurity,
-              child: Text(l.settings),
-            ),
-          const SizedBox(height: 24),
-          Text(
-            l.vaultPrivacyHint,
-            style: theme.textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    ),
-  );
+        );
   Widget _list(AppLocalizations l, ThemeData theme) {
     final query = search.text.trim().toLowerCase();
     final items =
@@ -596,6 +690,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                   [
                     e.title,
                     e.value('login'),
+                    e.value('website'),
                     e.value('bank'),
                     e.value('holder'),
                   ].join(' ').toLowerCase().contains(query),
@@ -607,81 +702,78 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                 ? favorite
                 : b.updatedAt.compareTo(a.updatedAt);
           });
+    final password = widget.kind == VaultKind.password;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       children: [
-        FilledButton.icon(
-          onPressed: busy || draft != null
-              ? null
-              : () => _edit(VaultStore.empty(widget.kind)),
-          icon: Icon(
-            widget.kind == VaultKind.password
-                ? Icons.add_moderator_outlined
-                : Icons.add_card,
-          ),
-          label: Text(
-            widget.kind == VaultKind.password
-                ? l.vaultAddPassword
-                : l.vaultAddCard,
-          ),
-        ),
-        if (draft != null)
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.edit_note),
-              title: Text(l.vaultResume),
-              subtitle: Text(
-                draft!.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _edit(draft!),
-            ),
-          ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: search,
-          autocorrect: false,
-          enableSuggestions: false,
-          enableIMEPersonalizedLearning: false,
-          onChanged: (_) {
-            _touch();
-            setState(() {});
-          },
-          decoration: InputDecoration(
-            hintText: l.vaultSearch,
-            prefixIcon: const Icon(Icons.search),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
+        Row(
           children: [
-            ChoiceChip(
-              label: Text(l.vaultAll),
-              selected: !favorites,
-              onSelected: (_) => setState(() => favorites = false),
+            Expanded(
+              child: TextField(
+                controller: search,
+                autocorrect: false,
+                enableSuggestions: false,
+                enableIMEPersonalizedLearning: false,
+                onChanged: (_) {
+                  _touch();
+                  setState(() {});
+                },
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: l.vaultSearch,
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+              ),
             ),
-            ChoiceChip(
-              label: Text(l.vaultFavorites),
-              avatar: const Icon(Icons.star_outline, size: 18),
-              selected: favorites,
-              onSelected: (_) => setState(() => favorites = true),
+            const SizedBox(width: 8),
+            IconButton.filledTonal(
+              tooltip: l.vaultFavorites,
+              isSelected: favorites,
+              onPressed: () => setState(() => favorites = !favorites),
+              icon: const Icon(Icons.star_outline_rounded),
+              selectedIcon: const Icon(Icons.star_rounded),
+            ),
+            const SizedBox(width: 4),
+            IconButton.filled(
+              tooltip: password ? l.vaultAddPassword : l.vaultAddCard,
+              onPressed: busy || draft != null
+                  ? null
+                  : () => _edit(VaultStore.empty(widget.kind)),
+              icon: Icon(
+                password ? Icons.add_moderator_outlined : Icons.add_card,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        if (draft != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: const Icon(Icons.edit_note),
+                title: Text(l.vaultResume),
+                subtitle: Text(
+                  draft!.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _edit(draft!),
+              ),
+            ),
+          ),
+        const SizedBox(height: 14),
         if (items.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 40),
             child: Column(
               children: [
                 Icon(
-                  widget.kind == VaultKind.password
-                      ? Icons.key_outlined
-                      : Icons.credit_card,
+                  password ? Icons.key_outlined : Icons.credit_card,
                   size: 44,
                   color: theme.colorScheme.primary,
                 ),
@@ -694,275 +786,364 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                 ),
                 const SizedBox(height: 8),
                 Text(l.vaultEmptyHint, textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: busy || draft != null
+                      ? null
+                      : () => _edit(VaultStore.empty(widget.kind)),
+                  icon: Icon(
+                    password ? Icons.add_moderator_outlined : Icons.add_card,
+                  ),
+                  label: Text(password ? l.vaultAddPassword : l.vaultAddCard),
+                ),
               ],
             ),
           ),
         for (final entry in items)
           Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 14),
             child: entry.kind == VaultKind.card
-                ? _bankCard(
-                    theme,
-                    entry,
-                    onTap: () => setState(() => selected = entry),
-                  )
-                : Card(
-                    margin: EdgeInsets.zero,
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 8,
-                      ),
-                      leading: CircleAvatar(
-                        child: Icon(
-                          entry.favorite
-                              ? Icons.star_rounded
-                              : Icons.key_rounded,
-                        ),
-                      ),
-                      title: Text(
-                        entry.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        entry.value('login'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => setState(() => selected = entry),
-                    ),
-                  ),
+                ? _cardItem(l, theme, entry)
+                : _passwordItem(l, theme, entry),
           ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
         Text(l.vaultBackupHint, style: theme.textTheme.bodySmall),
       ],
     );
   }
 
-  Widget _bankCard(ThemeData theme, VaultEntry entry, {VoidCallback? onTap}) {
-    final number = vaultCardDigits(entry.value('number'));
-
-    return Material(
-      color: theme.colorScheme.primaryContainer,
-      borderRadius: BorderRadius.circular(24),
+  /// Everything about one password on the list itself.
+  ///
+  /// There used to be a details page between the list and the value, which
+  /// made the most common thing anyone does here — copy a password — cost an
+  /// extra tap and a page transition every time.
+  Widget _passwordItem(AppLocalizations l, ThemeData theme, VaultEntry entry) {
+    final scheme = theme.colorScheme;
+    return Card(
+      key: ValueKey('vault-item-${entry.id}'),
+      margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.primaryContainer,
-                theme.colorScheme.secondaryContainer,
-              ],
-            ),
-          ),
-          padding: const EdgeInsets.all(22),
-          child: DefaultTextStyle(
-            style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 4, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.credit_card,
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        entry.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ),
-                    if (entry.favorite)
-                      Icon(
-                        Icons.star_rounded,
-                        size: 20,
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  number,
-                  textDirection: TextDirection.ltr,
-                  style: const TextStyle(
-                    fontSize: 21,
-                    letterSpacing: 2,
-                    fontFeatures: [FontFeature.tabularFigures()],
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: scheme.primaryContainer,
+                  child: Icon(
+                    Icons.key_rounded,
+                    size: 20,
+                    color: scheme.onPrimaryContainer,
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  entry.value('holder'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    entry.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium,
+                  ),
                 ),
+                if (entry.favorite)
+                  Icon(Icons.star_rounded, size: 20, color: scheme.primary),
+                _itemMenu(l, entry),
               ],
             ),
-          ),
+            for (final (key, label) in [
+              ('login', l.vaultLogin),
+              ('password', l.vaultPassword),
+              ('website', l.vaultWebsite),
+              ('notes', l.vaultNotes),
+            ])
+              if (entry.value(key).isNotEmpty)
+                _fieldRow(theme, entry, key, label),
+          ],
         ),
       ),
     );
   }
 
-  Widget _detail(AppLocalizations l, ThemeData theme, VaultEntry entry) {
-    final fields = entry.kind == VaultKind.password
-        ? [
-            ('login', l.vaultLogin),
-            ('password', l.vaultPassword),
-            ('website', l.vaultWebsite),
-            ('notes', l.vaultNotes),
-          ]
-        : [
-            ('bank', l.vaultBank),
-            ('holder', l.vaultHolder),
-            ('number', l.vaultNumber),
-            ('expiry', l.vaultExpiry),
-            ('iban', l.vaultIban),
-            ('account', l.vaultAccount),
-            ('notes', l.vaultNotes),
-          ];
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        if (entry.kind == VaultKind.card)
-          _bankCard(theme, entry)
-        else ...[
-          Icon(Icons.key_rounded, color: theme.colorScheme.primary, size: 44),
-          const SizedBox(height: 16),
-          Text(
-            entry.title,
-            style: theme.textTheme.headlineSmall,
-            textAlign: TextAlign.center,
-          ),
-        ],
-        const SizedBox(height: 20),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+  /// The card itself, then every detail under it, copyable in one tap.
+  Widget _cardItem(AppLocalizations l, ThemeData theme, VaultEntry entry) {
+    return Card(
+      key: ValueKey('vault-item-${entry.id}'),
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            FilledButton.tonalIcon(
-              onPressed: busy || draft != null ? null : () => _edit(entry),
-              icon: const Icon(Icons.edit_outlined),
-              label: Text(l.vaultEdit),
+            _bankCard(
+              theme,
+              entry,
+              menu: _itemMenu(l, entry),
+              onTap: () => _copy(
+                '${entry.id}:number',
+                vaultCardDigits(entry.value('number')),
+              ),
             ),
-            FilterChip(
-              label: Text(l.vaultFavorite),
-              selected: entry.favorite,
-              avatar: const Icon(Icons.star_outline, size: 18),
-              onSelected: busy
-                  ? null
-                  : (v) => _operate(
-                      () => store.save(
-                        VaultEntry(
-                          id: entry.id,
-                          kind: entry.kind,
-                          fields: entry.fields,
-                          updatedAt: DateTime.now(),
-                          favorite: v,
-                        ),
-                      ),
-                    ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsetsDirectional.only(start: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (key, label) in [
+                    ('number', l.vaultNumber),
+                    ('expiry', l.vaultExpiry),
+                    ('iban', l.vaultIban),
+                    ('account', l.vaultAccount),
+                    ('holder', l.vaultHolder),
+                    ('bank', l.vaultBank),
+                    ('notes', l.vaultNotes),
+                  ])
+                    if (entry.value(key).isNotEmpty)
+                      _fieldRow(theme, entry, key, label),
+                ],
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        for (final (key, label) in fields)
-          if (entry.value(key).isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Card(
-                margin: EdgeInsets.zero,
-                child: ListTile(
-                  minVerticalPadding: 16,
-                  title: Text(label, style: theme.textTheme.labelMedium),
-                  subtitle: Text(
-                    entry.value(key),
-                    textDirection:
-                        [
-                          'password',
-                          'number',
-                          'iban',
-                          'expiry',
-                          'account',
-                          'website',
-                          'login',
-                        ].contains(key)
+      ),
+    );
+  }
+
+  Widget _itemMenu(AppLocalizations l, VaultEntry entry) =>
+      PopupMenuButton<String>(
+        tooltip: nexLabel(context, 'More', 'بیشتر'),
+        enabled: !busy,
+        icon: const Icon(Icons.more_vert),
+        onSelected: (choice) {
+          _touch();
+          switch (choice) {
+            case 'edit':
+              if (draft == null) _edit(entry);
+            case 'favorite':
+              unawaited(_toggleFavorite(entry));
+            case 'delete':
+              unawaited(_confirmDelete(entry));
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: 'edit',
+            enabled: draft == null,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.edit_outlined),
+              title: Text(l.vaultEdit),
+            ),
+          ),
+          PopupMenuItem(
+            value: 'favorite',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                entry.favorite ? Icons.star_rounded : Icons.star_outline,
+              ),
+              title: Text(l.vaultFavorite),
+            ),
+          ),
+          PopupMenuItem(
+            value: 'delete',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l.vaultDelete),
+            ),
+          ),
+        ],
+      );
+
+  static const _ltrFields = {
+    'password',
+    'number',
+    'iban',
+    'expiry',
+    'account',
+    'website',
+    'login',
+  };
+
+  /// One labelled value. The whole row copies; the icon says it did.
+  Widget _fieldRow(
+    ThemeData theme,
+    VaultEntry entry,
+    String key,
+    String label,
+  ) {
+    final l = AppLocalizations.of(context);
+    final id = '${entry.id}:$key';
+    final copied = copiedField == id;
+    final raw = entry.value(key);
+    final shown = key == 'number' ? _groupDigits(vaultCardDigits(raw)) : raw;
+    final value = key == 'number' ? vaultCardDigits(raw) : raw;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => _copy(id, value),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.only(start: 2, top: 2, bottom: 2),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    shown,
+                    textDirection: _ltrFields.contains(key)
                         ? TextDirection.ltr
                         : null,
-                    style: theme.textTheme.bodyLarge,
-                    maxLines: key == 'notes' ? 8 : 3,
+                    maxLines: key == 'notes' ? 6 : 2,
                     overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontFeatures: _ltrFields.contains(key)
+                          ? const [FontFeature.tabularFigures()]
+                          : null,
+                    ),
                   ),
-                  onTap: () => _copy(key, entry.value(key)),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: copiedField == key ? l.vaultCopied : l.copy,
-                        onPressed: () => _copy(key, entry.value(key)),
-                        icon: Icon(
-                          copiedField == key
-                              ? Icons.check_rounded
-                              : Icons.copy_outlined,
-                          color: copiedField == key
-                              ? theme.colorScheme.primary
-                              : null,
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: copied ? l.vaultCopied : '${l.copy} · $label',
+              onPressed: () => _copy(id, value),
+              icon: Icon(
+                copied ? Icons.check_rounded : Icons.copy_outlined,
+                size: 20,
+                color: copied ? theme.colorScheme.primary : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _groupDigits(String digits) => [
+    for (var i = 0; i < digits.length; i += 4)
+      digits.substring(i, i + 4 > digits.length ? digits.length : i + 4),
+  ].join(' ');
+
+  Widget _bankCard(
+    ThemeData theme,
+    VaultEntry entry, {
+    VoidCallback? onTap,
+    Widget? menu,
+  }) {
+    final number = vaultCardDigits(entry.value('number'));
+    final chosen = nexParseTagColor(entry.value('color'));
+    final base = chosen ?? theme.colorScheme.primaryContainer;
+    final second = chosen == null
+        ? theme.colorScheme.secondaryContainer
+        : Color.lerp(chosen, Colors.black, 0.35)!;
+    final ink =
+        ThemeData.estimateBrightnessForColor(Color.lerp(base, second, .5)!) ==
+            Brightness.dark
+        ? Colors.white
+        : const Color(0xFF14161A);
+    final foreground = chosen == null
+        ? theme.colorScheme.onPrimaryContainer
+        : ink;
+    return AspectRatio(
+      aspectRatio: 1.9,
+      child: Material(
+        color: base,
+        borderRadius: BorderRadius.circular(22),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [base, second],
+              ),
+            ),
+            padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 4, 16),
+            child: IconTheme.merge(
+              data: IconThemeData(color: foreground),
+              child: DefaultTextStyle.merge(
+                style: TextStyle(color: foreground),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.credit_card),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            entry.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: foreground,
+                            ),
+                          ),
+                        ),
+                        if (entry.favorite)
+                          const Icon(Icons.star_rounded, size: 20),
+                        ?menu,
+                        if (menu == null) const SizedBox(height: 48),
+                      ],
+                    ),
+                    const Spacer(),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        _groupDigits(number),
+                        textDirection: TextDirection.ltr,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          letterSpacing: 1.5,
+                          fontFeatures: [FontFeature.tabularFigures()],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(end: 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              entry.value('holder'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (entry.value('expiry').isNotEmpty)
+                            Text(
+                              entry.value('expiry'),
+                              textDirection: TextDirection.ltr,
+                              style: const TextStyle(
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-        if (copiedField != null)
-          Semantics(
-            liveRegion: true,
-            child: Text(l.vaultCopied, textAlign: TextAlign.center),
           ),
-        const SizedBox(height: 24),
-        if (confirmDelete) ...[
-          Text(l.vaultDeleteHint),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: [
-              TextButton(
-                onPressed: () => setState(() => confirmDelete = false),
-                child: Text(l.cancel),
-              ),
-              FilledButton(
-                onPressed: busy
-                    ? null
-                    : () =>
-                          _operate(() => store.delete(entry.id), remove: true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.error,
-                  foregroundColor: theme.colorScheme.onError,
-                ),
-                child: Text(l.vaultDeleteConfirm),
-              ),
-            ],
-          ),
-        ] else
-          TextButton.icon(
-            onPressed: busy ? null : () => setState(() => confirmDelete = true),
-            icon: const Icon(Icons.delete_outline),
-            label: Text(l.vaultDelete),
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
-            ),
-          ),
-      ],
+        ),
+      ),
     );
   }
 }

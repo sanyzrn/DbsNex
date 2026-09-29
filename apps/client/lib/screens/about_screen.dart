@@ -9,13 +9,13 @@ import '../platform/feedback_service.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/sharing.dart';
-import '../widgets/changelog_panel.dart';
+import '../widgets/feature_label.dart';
 import '../widgets/feedback_sheet.dart';
 import '../widgets/nex_banner.dart';
 import 'update_sheet.dart';
 
-const _websiteUrl = 'https://SaeedZarrini.ir';
-const _repositoryUrl = 'https://github.com/sanyzrn/DbsNex';
+const _websiteUrl = 'https://DbsStudio.ir';
+const _appPageUrl = 'https://DbsStudio.ir/nex/';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({
@@ -93,16 +93,20 @@ class AboutScreen extends StatelessWidget {
           _LinkTile(
             icon: Icons.language,
             title: l10n.website,
-            subtitle: 'SaeedZarrini.ir',
+            subtitle: 'DbsStudio.ir',
             url: _websiteUrl,
             copiedLabel: l10n.copied,
             copyTooltip: l10n.copy,
           ),
           _LinkTile(
-            icon: Icons.code,
-            title: l10n.sourceCode,
-            subtitle: 'github.com/sanyzrn/DbsNex',
-            url: _repositoryUrl,
+            icon: Icons.auto_awesome_outlined,
+            title: nexLabel(
+              context,
+              'Nex home page — news, downloads and help',
+              'صفحهٔ Nex — تازه‌ها، دانلود و راهنما',
+            ),
+            subtitle: 'DbsStudio.ir/nex',
+            url: _appPageUrl,
             copiedLabel: l10n.copied,
             copyTooltip: l10n.copy,
           ),
@@ -168,20 +172,6 @@ class AboutScreen extends StatelessWidget {
               applicationName: 'Nex',
               applicationVersion: nexAppVersion,
             ),
-          ),
-          // Last, and here rather than under the update screen's offer, which
-          // is where it used to be: a question about one build is no place for
-          // every build before it. This page is already the one that answers
-          // "what is this and where has it been".
-          _Heading(l10n.changelogTitle),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(
-              NexSpacing.md,
-              0,
-              NexSpacing.md,
-              NexSpacing.lg,
-            ),
-            child: ChangelogPanel(),
           ),
         ],
       ),

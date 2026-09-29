@@ -498,19 +498,6 @@ class SettingsSheet extends StatelessWidget {
       ],
     ),
     _Section(
-      id: 'guide',
-      preferences: preferences,
-      title: l10n.guideTitle,
-      children: [
-        _Row(
-          icon: Icons.menu_book_outlined,
-          title: l10n.guideTitle,
-          value: l10n.guideSubtitle,
-          onTap: () => unawaited(GuideScreen.show(context)),
-        ),
-      ],
-    ),
-    _Section(
       id: 'about',
       preferences: preferences,
       title: l10n.about,
@@ -522,6 +509,14 @@ class SettingsSheet extends StatelessWidget {
           subtitle: l10n.autoUpdateCheckHint,
           value: preferences.autoUpdateCheck,
           onChanged: preferences.setAutoUpdateCheck,
+        ),
+        // The guide lives with the rest of "what is this app", rather than
+        // as a category of its own holding one row.
+        _Row(
+          icon: Icons.menu_book_outlined,
+          title: l10n.guideTitle,
+          value: l10n.guideSubtitle,
+          onTap: () => unawaited(GuideScreen.show(context)),
         ),
         _Row(
           icon: Icons.auto_stories_outlined,
@@ -1416,7 +1411,7 @@ class _AccentColorRow extends StatelessWidget {
       // starter blue meant for a brand-new tag — here it has to be today's
       // actual accent, seed or default, so editing starts from what is
       // already on screen rather than jumping to an unrelated hue.
-      initial: preferences.accentSeed ?? _hex(NexColors.accentLight),
+      initial: preferences.accentSeed ?? _hex(_themeAccent(preferences)),
       title: l10n.accentColorPickerTitle,
       preferences: preferences,
       // The app always has an accent — something is drawing the caret right
@@ -1424,11 +1419,15 @@ class _AccentColorRow extends StatelessWidget {
       // was offering it anyway, as a crossed-out empty dot, for what is
       // actually "back to the one Nex ships with". Naming the colour lets the
       // swatch show it.
-      defaultColor: NexColors.accentLight,
+      defaultColor: _themeAccent(preferences),
     );
     if (result == null) return;
     await preferences.setAccentSeed(result.color);
   }
+
+  /// The accent the chosen palette brings, or the shipped one for Classic.
+  static Color _themeAccent(NexPreferences preferences) =>
+      nexThemePresetSeed(preferences.themePreset) ?? NexColors.accentLight;
 
   static String _hex(Color color) =>
       '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
@@ -1437,8 +1436,11 @@ class _AccentColorRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // What is actually on screen: a palette's own accent when nothing custom
+    // was picked. Showing the shipped blue here after choosing Forest made
+    // the row disagree with every control around it.
     final swatch =
-        nexParseTagColor(preferences.accentSeed) ?? NexColors.accentLight;
+        nexParseTagColor(preferences.accentSeed) ?? _themeAccent(preferences);
     return _Row(
       icon: Icons.color_lens_outlined,
       title: l10n.accentColorSetting,
@@ -1541,36 +1543,6 @@ class _ThemeScreen extends StatelessWidget {
         builder: (context, _) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              nexLabel(
-                context,
-                'Your everyday atmosphere',
-                'حال‌وهوای روزمرهٔ شما',
-              ),
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 16),
-            for (final preset in nexThemePresets)
-              Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: preset.seed,
-                    child: Icon(preset.icon, color: Colors.white),
-                  ),
-                  title: Text(nexThemePresetLabel(context, preset.id)),
-                  subtitle: Text(
-                    nexLabel(
-                      context,
-                      preset.enDescription,
-                      preset.faDescription,
-                    ),
-                  ),
-                  trailing: preferences.themePreset == preset.id
-                      ? const Icon(Icons.check_circle)
-                      : null,
-                  onTap: () => preferences.setThemePreset(preset.id),
-                ),
-              ),
             _Row(
               icon: Icons.dark_mode_outlined,
               title: l10n.theme,
@@ -1614,7 +1586,6 @@ class _ThemeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            _AccentColorRow(preferences: preferences),
             _Row(
               icon: Icons.format_size,
               title: l10n.uiScale,
@@ -1658,6 +1629,49 @@ class _ThemeScreen extends StatelessWidget {
                 ),
               ),
             ),
+            _AccentColorRow(preferences: preferences),
+            const SizedBox(height: 24),
+            Text(
+              nexLabel(
+                context,
+                'Your everyday atmosphere',
+                'حال‌وهوای روزمرهٔ شما',
+              ),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            for (final preset in nexThemePresets)
+              Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: preset.seed,
+                    child: Icon(preset.icon, color: Colors.white),
+                  ),
+                  title: Text(nexThemePresetLabel(context, preset.id)),
+                  subtitle: Text(
+                    nexLabel(
+                      context,
+                      preset.enDescription,
+                      preset.faDescription,
+                    ),
+                  ),
+                  trailing: preferences.themePreset == preset.id
+                      ? const Icon(Icons.check_circle)
+                      : null,
+                  // A palette arrives with its own accent. A custom accent
+                  // picked earlier would otherwise keep overriding it, and
+                  // choosing "Forest" would leave a blue caret behind.
+                  onTap: () async {
+                    await preferences.setAccentSeed(null);
+                    await preferences.setThemePreset(preset.id);
+                  },
+                ),
+              ),
           ],
         ),
       ),

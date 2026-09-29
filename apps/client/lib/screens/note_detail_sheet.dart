@@ -479,6 +479,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     final edited = await nexShowSheet<List<ChecklistItem>>(
       context: context,
       dismissible: false,
+      swipeToClose: true,
       builder: (_) => ChecklistCaptureSheet(
         preferences: preferences,
         initial: before,

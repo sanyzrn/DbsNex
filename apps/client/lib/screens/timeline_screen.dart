@@ -1509,6 +1509,7 @@ class TimelineScreenState extends State<TimelineScreen>
     final items = await nexShowSheet<List<ChecklistItem>>(
       context: context,
       dismissible: false,
+      swipeToClose: true,
       builder: (_) => ChecklistCaptureSheet(preferences: widget.preferences),
     );
     if (items == null || items.isEmpty) return;
@@ -1522,6 +1523,7 @@ class TimelineScreenState extends State<TimelineScreen>
     final url = await nexShowSheet<String>(
       context: context,
       dismissible: false,
+      swipeToClose: true,
       builder: (_) => LinkCaptureSheet(preferences: widget.preferences),
     );
     if (url == null) return;

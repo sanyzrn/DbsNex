@@ -28,15 +28,26 @@ const MAX_CONTEXT_FIELD = 40;
 // fast and cheaply for the common case of an oversized payload.
 const MAX_BODY_BYTES = 8 * 1024;
 
+// What the person says it is. Anything else is refused rather than guessed,
+// so the chat only ever shows a label the app actually offered.
+const KINDS = { bug: "🐞 Bug", idea: "💡 Idea", other: "💬 Feedback" } as const;
+type FeedbackKind = keyof typeof KINDS;
+const MAX_CONTACT = 80;
+
 interface FeedbackPayload {
   message: string;
   appVersion?: string;
   platform?: string;
+  kind?: FeedbackKind;
+  contact?: string;
 }
 
 function parsePayload(body: unknown): FeedbackPayload | null {
   if (typeof body !== "object" || body === null) return null;
-  const { message, appVersion, platform } = body as Record<string, unknown>;
+  const { message, appVersion, platform, kind, contact } = body as Record<
+    string,
+    unknown
+  >;
 
   if (typeof message !== "string") return null;
   const trimmed = message.trim();
@@ -55,10 +66,23 @@ function parsePayload(body: unknown): FeedbackPayload | null {
     return null;
   }
 
+  if (kind !== undefined && (typeof kind !== "string" || !(kind in KINDS))) {
+    return null;
+  }
+  let reply: string | undefined;
+  if (contact !== undefined) {
+    if (typeof contact !== "string") return null;
+    reply = contact.trim();
+    if (reply.length > MAX_CONTACT) return null;
+    if (reply.length === 0) reply = undefined;
+  }
+
   return {
     message: trimmed,
     appVersion: appVersion as string | undefined,
     platform: platform as string | undefined,
+    kind: kind as FeedbackKind | undefined,
+    contact: reply,
   };
 }
 
@@ -71,7 +95,14 @@ function buildTelegramText(payload: FeedbackPayload): string {
   ]
     .filter(Boolean)
     .join(" · ");
-  return context ? `${payload.message}\n\n— ${context}` : payload.message;
+  const lines = [
+    payload.kind ? `${KINDS[payload.kind]}\n` : null,
+    payload.message,
+    context || payload.contact ? "" : null,
+    context ? `— ${context}` : null,
+    payload.contact ? `Reply to: ${payload.contact}` : null,
+  ];
+  return lines.filter((line) => line !== null).join("\n");
 }
 
 function jsonResponse(status: number, body: unknown): Response {

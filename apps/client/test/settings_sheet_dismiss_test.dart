@@ -82,14 +82,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    final guide = find.byKey(const ValueKey('settings-section-guide'));
-    await tester.ensureVisible(guide);
+    final about = find.byKey(const ValueKey('settings-section-about'));
+    await tester.ensureVisible(about);
     await tester.pumpAndSettle();
     await tester.tap(
-      find.descendant(of: guide, matching: find.byType(ListTile)).first,
+      find.descendant(of: about, matching: find.byType(ListTile)).first,
     );
     await tester.pumpAndSettle();
-    expect(preferences.isSettingsSectionExpanded('guide'), isTrue);
+    expect(preferences.isSettingsSectionExpanded('about'), isTrue);
     expect(preferences.isSettingsSectionExpanded('security'), isTrue);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
@@ -99,15 +99,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    expect(tester.widget<ExpansionTile>(guide).initiallyExpanded, isTrue);
-    await tester.ensureVisible(guide);
+    expect(tester.widget<ExpansionTile>(about).initiallyExpanded, isTrue);
+    await tester.ensureVisible(about);
     await tester.pumpAndSettle();
     await tester.tap(
-      find.descendant(of: guide, matching: find.byType(ListTile)).first,
+      find.descendant(of: about, matching: find.byType(ListTile)).first,
     );
     await tester.pumpAndSettle();
     expect(
-      (await NexPreferences.load()).isSettingsSectionExpanded('guide'),
+      (await NexPreferences.load()).isSettingsSectionExpanded('about'),
       isFalse,
     );
   });

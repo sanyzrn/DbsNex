@@ -90,8 +90,8 @@ void main() {
   );
 
   testWidgets(
-    'feedback opens a compose sheet, and falls back to the issue tracker '
-    'when no feedback server is configured',
+    'feedback opens a compose sheet, and keeps the words when no feedback '
+    'server is configured',
     (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1;
@@ -130,25 +130,29 @@ void main() {
       await tester.tap(find.text('Send feedback'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'the timeline is great');
+      await tester.enterText(
+        find.byType(TextField).first,
+        'the timeline is great',
+      );
       await tester.tap(find.text('Send'));
       await tester.pumpAndSettle();
 
       // This test build has no NEX_FEEDBACK_API_URL, so sending answers
       // "unavailable" without ever touching the network — the sheet stays
-      // open, with the typed text still there, and offers the old link as a
-      // fallback rather than a dead end.
+      // open, with the typed text still there, and offers to copy it rather
+      // than a dead end. (It used to copy a link to a private issue tracker
+      // nobody outside the repository could open.)
       expect(
         find.text("Feedback isn't available in this build yet"),
         findsOneWidget,
       );
       expect(find.text('the timeline is great'), findsOneWidget);
 
-      await tester.tap(find.text('Open a GitHub issue instead'));
+      await tester.tap(find.textContaining('Copy your message'));
       await tester.pumpAndSettle();
 
       final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
-      expect(clipboard?.text, 'https://github.com/sanyzrn/DbsNex/issues/new');
+      expect(clipboard?.text, 'the timeline is great');
     },
   );
 

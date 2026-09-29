@@ -584,10 +584,12 @@ void main() {
     },
   );
 
-  test('Comfort Mode defaults off and toggles (ADR-023)', () async {
+  test('Comfort Mode is retired: a stored value cannot turn it on', () async {
+    // Hidden from Settings with no way back to its switch, so an old `true`
+    // would have been a warm tint nobody could remove.
     expect(preferences.comfortMode, isFalse);
     await preferences.setComfortMode(true);
-    expect(preferences.comfortMode, isTrue);
+    expect(preferences.comfortMode, isFalse);
   });
 
   test(

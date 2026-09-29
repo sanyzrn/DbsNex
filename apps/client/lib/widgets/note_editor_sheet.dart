@@ -62,6 +62,7 @@ class NoteEditorSheet extends StatefulWidget {
   }) => nexShowSheet<String>(
     context: context,
     dismissible: false,
+    swipeToClose: true,
     builder: (_) => NoteEditorSheet(
       initial: initial,
       preferences: preferences,

@@ -3279,7 +3279,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vaultPrivacyHint =>
-      'Vaults are encrypted on this device. They lock when you leave the app or after 2 minutes without activity.';
+      'Vaults are encrypted on this device. One unlock opens every private tool; they lock after 2 minutes without activity, even while you are in another app. Leaving the app always hides their contents.';
 
   @override
   String get vaultEditHint =>

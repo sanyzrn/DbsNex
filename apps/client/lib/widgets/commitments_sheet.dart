@@ -773,6 +773,7 @@ class CommitmentEditor extends StatefulWidget {
   }) => nexShowSheet<bool>(
     context: context,
     dismissible: false,
+    swipeToClose: true,
     builder: (_) => CommitmentEditor(services: services, existing: existing),
   );
 

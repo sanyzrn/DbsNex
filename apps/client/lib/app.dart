@@ -465,14 +465,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     final font = nexFontFor(prefs.locale ?? _systemLocale(context));
     final accentSeed =
         nexParseTagColor(prefs.accentSeed) ??
-        (prefs.themePreset == 'classic'
-            ? null
-            : nexThemePresets
-                  .firstWhere(
-                    (p) => p.id == prefs.themePreset,
-                    orElse: () => nexThemePresets.first,
-                  )
-                  .seed);
+        nexThemePresetSeed(prefs.themePreset);
     final transparentScaffold =
         prefs.liquidGlass ||
         prefs.backgroundPattern != NexBackgroundPattern.plain;
