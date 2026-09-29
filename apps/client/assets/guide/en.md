@@ -24,7 +24,6 @@ Voice details offer playback, a position slider and a waveform derived from the 
 
 Long note details initially show a short preview; tap **More** to read the rest and **Less** to fold it. Hold a home item for Pin, Copy, Edit, Remind and Delete.
 
-
 In a text note's actions, choose **Save as Markdown**. Nex replaces the item's representation with a `.md` file and preserves its identity, tags and reminders. You can share the file with another app. For a Markdown attachment, **Convert to note** restores editable text. Imported Markdown must be UTF-8 and no larger than 16 MB. A failed conversion leaves the original intact.
 
 ## Recover unfinished work
@@ -35,9 +34,7 @@ If Android closes Nex while you are editing, reopen the same editor to recover i
 
 A note reminder brings one item back at a chosen time. Use the quick choices, wheels or calendar button, and confirm the time shown. Android notification permission is required.
 
-Open **Commitments** from the bottom navigation for recurring obligations such as rent or medication. Give it a title, interval and next due time; optionally set advance notice and a daily window. Mark it done to advance its schedule.
-
-
+Open **Recurring** from the bottom navigation for recurring obligations such as rent or medication. Give it a title, interval and next due time; optionally set advance notice and a daily window. Mark it done to advance its schedule.
 
 Recurring has Today, Overdue and Next 7 days filters. Use a template for a subscription, installment, task or habit. Its menu can snooze one occurrence, skip it or open history; Undo restores an accidental completion or change. History entries accept a short note. Choose weekdays, a month day or the last day of the month. Persian recurrence calculates monthly/yearly dates using the Persian calendar. An optional amount and currency contribute to upcoming 30-day totals, with each currency kept separate. Snoozing preserves the original schedule.
 
@@ -49,7 +46,7 @@ Tap the summary to expand or fold it; pull down to refresh it. Hold the greeting
 
 ## Appearance, language and calendar
 
-Settings remembers which categories you open or close, including after restarting the app. Security, Intelligence and Appearance start open. Under **Appearance → Theme**, choose Classic, Paper, Autumn, Rose atelier or Forest, light/dark/system mode, accent and text size. Language, calendar and home-screen widget settings remain under Appearance. Liquid Glass is temporarily unavailable. The Persian calendar controls displayed dates and date selection independently of the interface language. Stored instants stay unchanged. Choose Gregorian to switch back.
+Settings remembers which categories you open or close, including after restarting the app. Security, Intelligence and Appearance start open. Under **Appearance → Theme**, choose Nex (the classic look), Paper notebook, Autumn, Rose atelier or Forest retreat, light/dark/system mode, accent and text size. Language, calendar and home-screen widget settings remain under Appearance. Liquid Glass is temporarily unavailable. The Persian calendar controls displayed dates and date selection independently of the interface language. Stored instants stay unchanged. Choose Gregorian to switch back.
 
 Under **Capture**, configure Enter, haptics and swipe actions. Under **Notifications**, choose the daily nudge and open Android's sound settings. Under **Security**, configure app lock and its timing. Widget privacy follows the app lock.
 

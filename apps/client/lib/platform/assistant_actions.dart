@@ -185,11 +185,14 @@ const assistantSettableKeys = {
   'language',
   'ai_language',
   // Appearance. Each of these is a switch or a slider on the Appearance
-  // screen and shows its effect on the frame after it changes.
+  // screen and shows its effect on the frame after it changes. `background`
+  // and `comfort_mode` used to sit here too; both left the settings screen
+  // (the whole-app palettes replaced background patterns), and a key the user
+  // cannot reach by hand fails the rule above — the assistant would report a
+  // change that shows nothing, or one the user has no switch to undo.
   'text_size',
-  'background',
+  'palette',
   'accent',
-  'comfort_mode',
   'haptics',
   // The timeline's own furniture — the four parts of the home screen a
   // person can already turn off one at a time.
@@ -294,9 +297,8 @@ Settings you may change, and nothing else:
 `theme` (light/dark/system), `language` (en/fa/system),
 `ai_language` (auto/en/fa),
 `text_size` (small/default/large/larger),
-`background` (plain/aurora/ripple/weave/dots/dusk/topography/prism),
-`accent` (a `#RRGGBB` colour, or `default`),
-`comfort_mode` (on/off), `haptics` (on/off),
+`palette` (classic/paper/autumn/blossom/forest),
+`accent` (a `#RRGGBB` colour, or `default`), `haptics` (on/off),
 `show_greeting`, `show_digest`, `show_search`, `show_tags` (on/off),
 `daily_nudge` (on/off), `daily_nudge_time` (`HH:MM`).
 
@@ -545,9 +547,7 @@ AssistantAction? _commitmentAction(Map<Object?, Object?> decoded) {
       final int value when value >= 1 => value.clamp(1, 1000),
       _ => 1,
     },
-    at: parsed == null
-        ? null
-        : (parsed.isUtc ? parsed.toLocal() : parsed),
+    at: parsed == null ? null : (parsed.isUtc ? parsed.toLocal() : parsed),
   );
 }
 
@@ -618,9 +618,7 @@ AssistantAction? _tagColorAction(Map<Object?, Object?> decoded) {
   final tag = _string(decoded['tag']);
   final color = _string(decoded['color']) ?? _string(decoded['value']);
   if (tag == null || color == null) return null;
-  final normalised = color.toLowerCase() == 'default'
-      ? null
-      : _hexColor(color);
+  final normalised = color.toLowerCase() == 'default' ? null : _hexColor(color);
   if (normalised == null && color.toLowerCase() != 'default') return null;
   return AssistantAction(
     kind: AssistantActionKind.tagColor,
@@ -647,10 +645,18 @@ AssistantAction? _settingAction(Map<Object?, Object?> decoded) {
   final value = _string(decoded['value'])?.toLowerCase();
   if (key == null || value == null) return null;
   if (!assistantSettableKeys.contains(key)) return null;
+  // The accent is normalised here, where a missing `#` can still be put
+  // back. Passed through raw, "1d4ed8" was offered for confirmation and then
+  // dropped by the stricter check that applies it — the user said yes to a
+  // change that never happened.
+  final normalized = key == 'accent' && value != 'default'
+      ? _hexColor(value)
+      : value;
+  if (normalized == null) return null;
   return AssistantAction(
     kind: AssistantActionKind.setting,
     settingKey: key,
-    settingValue: value,
+    settingValue: normalized,
   );
 }
 
