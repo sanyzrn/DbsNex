@@ -1,3 +1,4 @@
+import '../documents/text_import.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
@@ -421,11 +422,18 @@ class NexServices {
         sha256.convert(bytes).toString(),
       );
     } else {
+      // Any file the app can read words out of — Markdown, plain text, a
+      // Word or OpenDocument file, RTF, HTML — becomes a text note. Never the
+      // other way round: a note only ever becomes Markdown (above).
       final source = File(note.mediaUri!);
-      if (await source.length() > 16 * 1024 * 1024) {
-        throw StateError('Markdown exceeds 16 MiB');
+      if (await source.length() > NexTextImport.maxBytes) {
+        throw StateError('File exceeds ${NexTextImport.maxBytes} bytes');
       }
-      final text = await source.readAsString(encoding: utf8);
+      final text = await NexTextImport.extract(
+        await source.readAsBytes(),
+        note.originalFilename ?? note.mediaUri!,
+      );
+      if (text == null) throw StateError('No readable text');
       await worker.convertMarkdown(note.id, text, null, null);
     }
     try {
