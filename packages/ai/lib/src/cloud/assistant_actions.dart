@@ -305,7 +305,7 @@ Settings you may change, and nothing else:
 `theme` (light/dark/system), `language` (en/fa/system),
 `ai_language` (auto/en/fa),
 `text_size` (small/default/large/larger),
-`palette` (classic/paper/autumn/blossom/forest),
+`palette` (classic/paper/autumn/blossom/forest/turquoise/saffron/midnight/ocean/graphite),
 `accent` (a `#RRGGBB` colour, or `default`), `haptics` (on/off),
 `show_greeting`, `show_digest`, `show_search`, `show_tags` (on/off),
 `daily_nudge` (on/off), `daily_nudge_time` (`HH:MM`).
