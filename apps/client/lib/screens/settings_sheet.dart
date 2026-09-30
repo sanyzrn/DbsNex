@@ -33,6 +33,7 @@ import 'guide_screen.dart';
 import 'assistant_screen.dart';
 import 'brief_screen.dart';
 import 'disclosures_screen.dart';
+import 'metrics_screen.dart';
 import 'intelligence_screen.dart';
 import 'profile_screen.dart';
 import 'security_screen.dart';
@@ -689,6 +690,21 @@ class SettingsSheet extends StatelessWidget {
           keywords: 'help guide how راهنما',
           value: l10n.guideSubtitle,
           onTap: () => unawaited(GuideScreen.show(context)),
+        ),
+        _Row(
+          icon: Icons.speed_outlined,
+          title: l10n.metricsTitle,
+          keywords:
+              'speed performance metrics measure startup reliability crash سرعت کارایی اندازه‌گیری پایداری',
+          value: preferences.metricsEnabled
+              ? l10n.metricsRowOn
+              : l10n.metricsRowOff,
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => MetricsScreen(preferences: preferences),
+            ),
+          ),
         ),
         _Row(
           icon: Icons.auto_stories_outlined,

@@ -3479,4 +3479,87 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get backupFolderCopyFailed => 'کپی در پوشه انجام نشد';
+
+  @override
+  String get metricsTitle => 'سرعت و پایداری';
+
+  @override
+  String get metricsRowOn => 'در حال اندازه‌گیری روی همین دستگاه';
+
+  @override
+  String get metricsRowOff => 'خاموش';
+
+  @override
+  String get metricsSwitch => 'اندازه‌گیری روی همین دستگاه';
+
+  @override
+  String get metricsIntro =>
+      'Nex می‌تواند زمان باز شدنش، زمان ثبت از باز کردن تا ذخیره، و زمان جست‌وجو تا باز کردن یادداشت را اندازه بگیرد. این اعداد فقط روی همین گوشی می‌مانند: هرگز فرستاده نمی‌شوند، در پشتیبان نمی‌روند و چیزی از یادداشت‌ها یا جست‌وجوهایتان در آن‌ها نیست. با خاموش کردن، پاک می‌شوند.';
+
+  @override
+  String get metricsEmpty =>
+      'هنوز چیزی اندازه‌گیری نشده. مثل همیشه از Nex استفاده کنید و بعداً سر بزنید.';
+
+  @override
+  String get metricsLaunch => 'باز شدن تا آماده شدن کتابخانه';
+
+  @override
+  String get metricsTimeline => 'باز شدن تا نمایش یادداشت‌ها';
+
+  @override
+  String get metricsTimelineHint => 'شامل انیمیشن آغاز برنامه';
+
+  @override
+  String get metricsCapture => 'ثبت، از باز کردن تا ذخیره';
+
+  @override
+  String get metricsSearch => 'جست‌وجو تا باز کردن یادداشت';
+
+  @override
+  String metricsValue(String median, String slow) {
+    return 'معمولاً $median · کندترین $slow';
+  }
+
+  @override
+  String metricsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count بار',
+      one: '۱ بار',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get metricsNoData => 'هنوز اندازه‌گیری نشده';
+
+  @override
+  String get metricsSessions => 'ثبت‌های بدون خطا';
+
+  @override
+  String metricsSessionsValue(String clean, String total) {
+    return '$clean از $total نوبتِ همراه با ثبت';
+  }
+
+  @override
+  String metricsMs(String value) {
+    return '$value میلی‌ثانیه';
+  }
+
+  @override
+  String metricsSeconds(String value) {
+    return '$value ثانیه';
+  }
+
+  @override
+  String get metricsFootnote =>
+      'از لحظهٔ شروع کد خود Nex و فقط در شروع سرد اندازه‌گیری می‌شود. «کندترین» یعنی کندترین از هر ده بار.';
+
+  @override
+  String get feedbackAttachMetrics => 'پیوست اندازه‌گیری‌های سرعت';
+
+  @override
+  String get feedbackAttachMetricsHint =>
+      'فقط زمان‌ها و شمارش‌ها، بدون هیچ چیزی از یادداشت‌ها. پیش از ارسال در زیر نمایش داده می‌شود.';
 }

@@ -1,7 +1,14 @@
 part of '../nex_preferences.dart';
 
-/// The sponsor card and update checks.
+/// The sponsor card, update checks and the app's own measurements.
 mixin _ServicePreferences on _PreferencesStore {
+  /// Whether Nex measures its own speed on this phone (W3.4, [NexMetrics]).
+  /// Off unless the person switches it on.
+  bool get metricsEnabled => _prefs.getBool('metrics.enabled') ?? false;
+
+  Future<void> setMetricsEnabled(bool value) =>
+      _setBool('metrics.enabled', value);
+
   /// The sponsor card's raw JSON as last fetched, or null for none.
   ///
   /// Stored as the file rather than as parsed fields: the parser is the one

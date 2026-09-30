@@ -100,6 +100,7 @@ extension _TimelineCapture on TimelineScreenState {
   void _landed(String id) {
     if (!mounted) return;
     _rebuild(() => landedId = id);
+    NexMetrics.shared.markCapture();
     unawaited(_offerThread(id));
     if (widget.preferences.haptics) HapticFeedback.lightImpact();
   }
@@ -232,6 +233,7 @@ extension _TimelineCapture on TimelineScreenState {
         widget.preferences.editorDrafts?.clear(key);
       }
       landedId = note.id;
+      NexMetrics.shared.markCapture();
       widget.services.scheduleEnrichment(note.id);
       if (widget.preferences.haptics) HapticFeedback.lightImpact();
       await widget.services.refreshTimeline();
@@ -318,6 +320,7 @@ extension _TimelineCapture on TimelineScreenState {
       durationMs: elapsed.elapsedMilliseconds,
     );
     landedId = note.id;
+    NexMetrics.shared.markCapture();
     widget.services.scheduleEnrichment(note.id);
     if (widget.preferences.haptics) HapticFeedback.lightImpact();
     widget.services.refreshTimeline();
@@ -332,5 +335,6 @@ extension _TimelineCapture on TimelineScreenState {
       'filename': picked.filename,
       'mimeType': picked.mimeType,
     });
+    NexMetrics.shared.markCapture();
   }
 }

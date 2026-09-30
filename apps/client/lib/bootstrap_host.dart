@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
 import 'l10n/app_localizations.dart';
+import 'platform/metrics.dart';
 import 'platform/app_lock.dart';
 import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
@@ -82,6 +83,21 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
       recoverDrafts: !silent,
     );
     services.applyAiPreferences(preferences);
+    // A share's invisible window is not a launch anyone waited through, so it
+    // is neither timed nor counted as a session.
+    if (!silent) {
+      try {
+        final metrics = NexMetrics.shared = await NexMetrics.open(
+          enabled: preferences.metricsEnabled,
+        );
+        metrics
+          ..installErrorHook()
+          ..recordLaunchReady()
+          ..beginSession();
+      } catch (_) {
+        // Measuring is never a reason for the app not to open.
+      }
+    }
 
     final bridge = OsCaptureBridge(services);
     // A share that fails must not look like a library that will not open.
@@ -119,6 +135,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     // is written here — and a locked library whose notes sat in it until the
     // first frame would be a lock with a hole in it.
     await preferences.setAppLockClosed(nexLockClosedOnLaunch(preferences));
+    if (preferences.appLockClosed) NexMetrics.shared.skipTimeline();
     final widgets = NexWidgetBridge(
       services: services,
       preferences: preferences,

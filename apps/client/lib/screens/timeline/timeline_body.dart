@@ -248,7 +248,13 @@ extension _TimelineBody on TimelineScreenState {
           _search.query.text = query;
           _search.run();
         },
-        onOpen: (note) => unawaited(_openNote(note)),
+        onOpen: (note) {
+          if (_searchStarted case final started?) {
+            NexMetrics.shared.record(NexMetric.searchToOpen, started.elapsed);
+            _searchStarted = null;
+          }
+          unawaited(_openNote(note));
+        },
       );
     }
 

@@ -3549,4 +3549,87 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupFolderCopyFailed => 'Could not copy to the folder';
+
+  @override
+  String get metricsTitle => 'Speed and reliability';
+
+  @override
+  String get metricsRowOn => 'Measuring on this device';
+
+  @override
+  String get metricsRowOff => 'Off';
+
+  @override
+  String get metricsSwitch => 'Measure on this device';
+
+  @override
+  String get metricsIntro =>
+      'Nex can time how fast it opens, how long a capture takes from opening to saved, and how long a search takes to find the note you open. The numbers stay on this phone: they are never sent, never backed up, and never include your notes or what you searched for. Turning this off deletes them.';
+
+  @override
+  String get metricsEmpty =>
+      'Nothing measured yet. Use Nex as usual and come back later.';
+
+  @override
+  String get metricsLaunch => 'Opening, to your library';
+
+  @override
+  String get metricsTimeline => 'Opening, to your notes on screen';
+
+  @override
+  String get metricsTimelineHint => 'Includes the opening animation';
+
+  @override
+  String get metricsCapture => 'Capture, from opening to saved';
+
+  @override
+  String get metricsSearch => 'Search, to opening a note';
+
+  @override
+  String metricsValue(String median, String slow) {
+    return 'Usually $median · slowest $slow';
+  }
+
+  @override
+  String metricsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count times',
+      one: '1 time',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get metricsNoData => 'Not measured yet';
+
+  @override
+  String get metricsSessions => 'Captures without an error';
+
+  @override
+  String metricsSessionsValue(String clean, String total) {
+    return '$clean of $total sessions with a capture';
+  }
+
+  @override
+  String metricsMs(String value) {
+    return '$value ms';
+  }
+
+  @override
+  String metricsSeconds(String value) {
+    return '$value s';
+  }
+
+  @override
+  String get metricsFootnote =>
+      'Timed from Nex\'s own code starting, on cold starts only. \"Slowest\" is the slowest one in ten.';
+
+  @override
+  String get feedbackAttachMetrics => 'Attach my speed measurements';
+
+  @override
+  String get feedbackAttachMetricsHint =>
+      'Timings and counts only — nothing from your notes. Shown below before sending.';
 }
