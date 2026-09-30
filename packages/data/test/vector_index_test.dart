@@ -157,4 +157,51 @@ void main() {
     expect(repo.getEmbedding('a'), [0.0, 1.0, 0.0]);
     expect(repo.nearestEmbeddings([0, 1, 0]).single.noteId, 'a');
   });
+
+  test('a large library, searched by sign first, still finds what matters', () {
+    // Past VectorIndex.binaryThreshold only the rows closest by sign get the
+    // int8 pass. Real embeddings cluster by topic; so does this library, and
+    // the closest notes to a query about a topic have to survive the cut.
+    final rnd = Random(11);
+    const dims = 128;
+    const topics = 60;
+    List<double> around(List<double> centre, double spread) => [
+      for (final v in centre) v + (rnd.nextDouble() * 2 - 1) * spread,
+    ];
+    final centres = [
+      for (var t = 0; t < topics; t++)
+        List.generate(dims, (_) => rnd.nextDouble() * 2 - 1),
+    ];
+    final vectors = <String, List<double>>{};
+    db.db.beginImmediate();
+    for (var i = 0; i < VectorIndex.binaryThreshold + 2000; i++) {
+      final id = 'n$i';
+      addNote(id);
+      final v = around(centres[i % topics], 0.8);
+      vectors[id] = v;
+      repo.setEmbedding(id, v);
+    }
+    db.db.execute('COMMIT');
+
+    var found = 0;
+    var wanted = 0;
+    for (var trial = 0; trial < 30; trial++) {
+      final query = around(centres[trial % topics], 0.8);
+      final expected =
+          (vectors.entries
+                  .map((e) => (id: e.key, score: cosine(query, e.value)))
+                  .toList()
+                ..sort((a, b) => b.score.compareTo(a.score)))
+              .take(10)
+              .map((e) => e.id)
+              .toSet();
+      final got = repo
+          .nearestEmbeddings(query, limit: 10, minScore: -1)
+          .map((h) => h.noteId)
+          .toSet();
+      found += got.intersection(expected).length;
+      wanted += expected.length;
+    }
+    expect(found / wanted, greaterThanOrEqualTo(0.95));
+  });
 }

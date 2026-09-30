@@ -91,7 +91,30 @@ class VectorIndex {
   final _ids = <String>[];
   final _codes = <Int8List>[];
   final _scales = <double>[];
+  final _bits = <Uint32List>[];
   final _slot = <String, int>{};
+
+  /// Below this many rows every vector gets the int8 pass and the answer is
+  /// exact; above it a sign pass chooses which do (W2.3).
+  static const binaryThreshold = 4000;
+
+  /// The sign of each dimension, packed 32 to a word. Two vectors pointing
+  /// the same way agree on most signs, so the Hamming distance between these
+  /// ranks candidates by angle at a small fraction of a dot product's cost.
+  static Uint32List _signs(List<num> values) {
+    final bits = Uint32List((values.length + 31) >> 5);
+    for (var i = 0; i < values.length; i++) {
+      if (values[i] > 0) bits[i >> 5] |= 1 << (i & 31);
+    }
+    return bits;
+  }
+
+  static int _popcount(int x) {
+    x = x - ((x >> 1) & 0x55555555);
+    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+    x = (x + (x >> 4)) & 0x0F0F0F0F;
+    return ((x * 0x01010101) & 0xFFFFFFFF) >> 24;
+  }
 
   int get length => _ids.length;
 
@@ -105,16 +128,19 @@ class VectorIndex {
     final codes = Int8List.fromList(
       q8.buffer.asInt8List(q8.offsetInBytes, q8.length),
     );
+    final bits = _signs(codes);
     final at = _slot[id];
     if (at != null) {
       _codes[at] = codes;
       _scales[at] = scale;
+      _bits[at] = bits;
       return;
     }
     _slot[id] = _ids.length;
     _ids.add(id);
     _codes.add(codes);
     _scales.add(scale);
+    _bits.add(bits);
   }
 
   void remove(String id) {
@@ -125,11 +151,13 @@ class VectorIndex {
       _ids[at] = _ids[last];
       _codes[at] = _codes[last];
       _scales[at] = _scales[last];
+      _bits[at] = _bits[last];
       _slot[_ids[at]] = at;
     }
     _ids.removeLast();
     _codes.removeLast();
     _scales.removeLast();
+    _bits.removeLast();
   }
 
   /// The [k] rows closest to [query] (unit length, [dims] long) by the
@@ -141,12 +169,20 @@ class VectorIndex {
     Set<String>? exclude,
   }) {
     if (query.length != dims || k <= 0 || _ids.isEmpty) return const [];
+    // Which rows get the int8 pass: all of them in a small library, the
+    // closest by sign in a large one — a tenth of the library, at least 400
+    // and at most 3,000, far wider than the handful a caller keeps.
+    final rows = _ids.length > binaryThreshold
+        ? _closestBySign(_signs(query), (_ids.length ~/ 10).clamp(400, 3000))
+        : null;
+    final count = rows?.length ?? _ids.length;
     // A bounded min-heap would be tidier; with k in the hundreds a sorted
     // insert into a short list costs less than it saves.
     final best = <({String id, double score})>[];
     var floor = double.negativeInfinity;
     final n = dims;
-    for (var row = 0; row < _ids.length; row++) {
+    for (var r = 0; r < count; r++) {
+      final row = rows == null ? r : rows[r];
       final codes = _codes[row];
       var dot = 0.0;
       for (var i = 0; i < n; i++) {
@@ -165,5 +201,35 @@ class VectorIndex {
       if (best.length >= k) floor = best.last.score;
     }
     return best;
+  }
+
+  /// The rows whose sign bits differ least from [query]'s — at least [keep]
+  /// of them (all of those tied at the cut-off distance).
+  List<int> _closestBySign(Uint32List query, int keep) {
+    final words = query.length;
+    // Distances are small integers, so a histogram finds the cut-off in one
+    // pass instead of sorting fifty thousand rows.
+    final distance = Int32List(_ids.length);
+    final histogram = Int32List(words * 32 + 1);
+    for (var row = 0; row < _ids.length; row++) {
+      final bits = _bits[row];
+      var d = 0;
+      for (var w = 0; w < words; w++) {
+        d += _popcount(bits[w] ^ query[w]);
+      }
+      distance[row] = d;
+      histogram[d]++;
+    }
+    var cutoff = 0;
+    var total = 0;
+    while (cutoff < histogram.length) {
+      total += histogram[cutoff];
+      if (total >= keep) break;
+      cutoff++;
+    }
+    return [
+      for (var row = 0; row < _ids.length; row++)
+        if (distance[row] <= cutoff) row,
+    ];
   }
 }

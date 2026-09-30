@@ -490,12 +490,12 @@ class _AiChatSheetState extends State<AiChatSheet> {
     responseStyle: widget.preferences.aiResponseStyle,
     userName: widget.preferences.aiUserName,
     userIntroduction: widget.preferences.aiUserIntroduction,
-    notesContext: _notesContext,
+    notesContext: _context,
     attachments: _attachments,
     // Acting needs ids to act on. With no notes in context every id the model
     // could produce would be invented, which is the one thing the prompt
     // tells it not to do.
-    canAct: _notesContext.isNotEmpty,
+    canAct: _context.isNotEmpty,
   );
 
   @override
@@ -603,6 +603,45 @@ class _AiChatSheetState extends State<AiChatSheet> {
     _input.selection = TextSelection.collapsed(offset: _input.text.length);
   }
 
+  /// The notes that best match the latest question, as context lines.
+  ///
+  /// Replaced on every question rather than accumulated: it answers "what in
+  /// the library is about this?", and the answer to the last question is not
+  /// the answer to this one.
+  String _retrieved = '';
+
+  /// How many matching notes a question brings into the context.
+  static const _retrievedCount = 8;
+
+  /// Finds the notes a question is about through the same ranked search the
+  /// search field uses (W2.4) — words and meaning, best first — so the
+  /// assistant answers from the notes that match, not only from the most
+  /// recent ones. Skipped for a chat about one note or one day: there the
+  /// reader has already said what the question is about.
+  Future<void> _retrieveFor(String question) async {
+    if (widget.focus != null || widget.scope != null) return;
+    List<Note> found;
+    try {
+      found = await widget.services.fusedSearch(SearchFilters(query: question));
+    } catch (_) {
+      found = const [];
+    }
+    final lines = <String>[
+      for (final note in found.take(_retrievedCount))
+        if (_contextLine(note) case final line?) line,
+    ];
+    _remember(found.take(_retrievedCount));
+    _retrieved = lines.join('\n');
+  }
+
+  /// Everything the assistant answers from: the notes it was given when the
+  /// chat opened, and those matching the latest question.
+  String get _context => [
+    if (_notesContext.isNotEmpty) _notesContext,
+    if (_retrieved.isNotEmpty)
+      'Notes matching the latest question, best match first:\n$_retrieved',
+  ].join('\n\n');
+
   Future<void> _send(String text, {bool retry = false}) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty || _sending) return;
@@ -620,6 +659,8 @@ class _AiChatSheetState extends State<AiChatSheet> {
       if (!retry) _input.clear();
     });
     _toBottom();
+
+    await _retrieveFor(trimmed);
 
     String? reply;
     String? requestError;
@@ -702,8 +743,12 @@ class _AiChatSheetState extends State<AiChatSheet> {
       final query = lookup.text ?? '';
       List<Note> found;
       try {
+        // The same ranked list the search field gives (W2.4): words and
+        // meaning together, best first. It used to be keyword matches only,
+        // newest first — a different answer from the one the reader gets by
+        // typing the same thing.
         final parsed = parseSearchQuery(query);
-        found = await widget.services.search(
+        found = await widget.services.fusedSearch(
           SearchFilters(query: parsed.text, types: parsed.types),
         );
       } catch (_) {

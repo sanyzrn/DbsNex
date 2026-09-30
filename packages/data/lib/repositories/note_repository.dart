@@ -447,6 +447,27 @@ LIMIT ? OFFSET ?
         .toList();
   }
 
+  /// The tags of every note in [noteIds], in one query rather than one each.
+  Map<String, List<Tag>> tagsForNotes(List<String> noteIds) {
+    final out = <String, List<Tag>>{for (final id in noteIds) id: <Tag>[]};
+    for (var at = 0; at < noteIds.length; at += 500) {
+      final chunk = noteIds.sublist(
+        at,
+        at + 500 > noteIds.length ? noteIds.length : at + 500,
+      );
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      for (final row in db.select('''
+SELECT nt.note_id AS owner, t.* FROM tags t
+INNER JOIN note_tags nt ON nt.tag_id = t.id
+WHERE nt.note_id IN ($placeholders)
+ORDER BY t.name COLLATE NOCASE
+''', chunk)) {
+        out[row['owner']! as String]!.add(Tag.fromRow(row));
+      }
+    }
+    return out;
+  }
+
   List<Tag> tagsForNote(String noteId) {
     final rows = db.select(
       '''
@@ -1401,16 +1422,31 @@ n.id IN (
     if (q.isEmpty) return const [];
     final (where, args) = _filterClause(filters);
     final filter = where.join(' AND ');
+    // Deleted notes are taken out of the index when they are deleted, so a
+    // search with no filters needs nothing from `notes` at all — and at
+    // 50,000 notes the join was a primary-key lookup per match.
+    final unfiltered =
+        filters.tagIds.isEmpty &&
+        filters.types.isEmpty &&
+        filters.createdFrom == null &&
+        filters.createdTo == null;
     final ids = <String>[
       for (final row in db.select(
-        '''
+        unfiltered
+            ? '''
+SELECT note_id AS id FROM notes_fts
+WHERE notes_fts MATCH ?
+ORDER BY bm25(notes_fts), rowid DESC
+LIMIT ?
+'''
+            : '''
 SELECT f.note_id AS id FROM notes_fts f
 JOIN notes n ON n.id = f.note_id
 WHERE notes_fts MATCH ? AND $filter
 ORDER BY bm25(notes_fts), n.created_at DESC, n.rowid DESC
 LIMIT ?
 ''',
-        [_ftsQuery(q), ...args, limit],
+        [_ftsQuery(q), if (!unfiltered) ...args, limit],
       ))
         row['id']! as String,
     ];
@@ -1477,10 +1513,9 @@ WHERE n.id IN ($placeholders) AND ${where.join(' AND ')}
       now: DateTime.now().toUtc(),
       query: filters.query,
     );
-    return [
-      for (final id in ordered.take(limit))
-        Note.fromRow(rows[id]!, tags: tagsForNote(id)),
-    ];
+    final kept = ordered.take(limit).toList();
+    final tags = tagsForNotes(kept);
+    return [for (final id in kept) Note.fromRow(rows[id]!, tags: tags[id]!)];
   }
 
   @override
