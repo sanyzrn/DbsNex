@@ -383,6 +383,22 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 
 ---
 
+## ADR-036 — Nex measures itself only on the phone, only when asked
+
+- **Context:** The vision's success metrics — a capture under three seconds, a search that finds something, crash-free capture sessions — had never been measured on a phone; Nex had no telemetry of any kind, on principle, and the roadmap asked whether any measurement was acceptable at all (§10, question 5). Roadmap item W3.4 proposed local, opt-in metrics.
+- **Decision:**
+  1. `NexMetrics` (`apps/client/lib/platform/metrics.dart`) times cold starts (to the library open, and to the timeline showing notes), a capture from the capture sheet opening to the note saved, and a search to the first note it opens; and counts sessions with a capture and those in which no error reached Flutter's global handlers.
+  2. **Off until the person switches it on** in Settings → About → Speed and reliability. Switching it off deletes what was kept.
+  3. **On the phone only**: one small JSON file in the application support directory, beside the crash log; never sent, never in a backup. The newest 100 samples per measure and 100 sessions are kept.
+  4. **About the app, never the content**: durations, counts and timestamps — no note text, search words, ids or tags.
+  5. **Attached to feedback only by choice**: a checkbox on the feedback sheet, unticked every time, showing the exact text that will be appended to the message.
+- **Rationale:** The promises are about speed on real phones, which no CI runner resembles; the only honest measurement is on the device, and the only acceptable one for this product is one the person turns on, can read, and can delete. A central collector would answer questions about everyone by watching everyone, which is the thing Nex is built not to do.
+- **Consequences and limits:** A process the system kills outright cannot report itself, so "without an error" is an upper bound. A launch through the share window is neither timed nor counted, and a launch behind the app lock does not time the timeline, since the unlock is the person's time. The timeline number includes the opening animation's floor, and says so on screen. Totals across users do not exist and will not.
+- **Alternatives Considered:** A privacy-preserving analytics service (aggregated, anonymised) — rejected: it still transmits by default or behind a consent banner, and the product has no use for the aggregate that would justify either. Measuring nothing — rejected: the vision's targets would stay unverifiable, and the owner answered §10's question 5 by approving W3.4.
+- **Status:** Accepted at v1.89.0.
+
+---
+
 ## Decision-Making Heuristic
 
 When facing a new choice, run it through the product's filter:

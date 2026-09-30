@@ -1,0 +1,6 @@
+# The timeline budget (test/performance/) seeds 5,000 notes and times frames,
+# so it runs in its own CI job — `flutter test --tags budget --run-skipped
+# test/performance/` — rather than in every ordinary run (W6.3).
+tags:
+  budget:
+    skip: "Run with: flutter test --tags budget --run-skipped test/performance/"

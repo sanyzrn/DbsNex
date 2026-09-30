@@ -5641,6 +5641,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not copy to the folder'**
   String get backupFolderCopyFailed;
+
+  /// No description provided for @metricsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed and reliability'**
+  String get metricsTitle;
+
+  /// No description provided for @metricsRowOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Measuring on this device'**
+  String get metricsRowOn;
+
+  /// No description provided for @metricsRowOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get metricsRowOff;
+
+  /// No description provided for @metricsSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Measure on this device'**
+  String get metricsSwitch;
+
+  /// No description provided for @metricsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex can time how fast it opens, how long a capture takes from opening to saved, and how long a search takes to find the note you open. The numbers stay on this phone: they are never sent, never backed up, and never include your notes or what you searched for. Turning this off deletes them.'**
+  String get metricsIntro;
+
+  /// No description provided for @metricsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing measured yet. Use Nex as usual and come back later.'**
+  String get metricsEmpty;
+
+  /// No description provided for @metricsLaunch.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening, to your library'**
+  String get metricsLaunch;
+
+  /// No description provided for @metricsTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening, to your notes on screen'**
+  String get metricsTimeline;
+
+  /// No description provided for @metricsTimelineHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes the opening animation'**
+  String get metricsTimelineHint;
+
+  /// No description provided for @metricsCapture.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture, from opening to saved'**
+  String get metricsCapture;
+
+  /// No description provided for @metricsSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search, to opening a note'**
+  String get metricsSearch;
+
+  /// No description provided for @metricsValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Usually {median} · slowest {slow}'**
+  String metricsValue(String median, String slow);
+
+  /// No description provided for @metricsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 time} other{{count} times}}'**
+  String metricsCount(int count);
+
+  /// No description provided for @metricsNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'Not measured yet'**
+  String get metricsNoData;
+
+  /// No description provided for @metricsSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Captures without an error'**
+  String get metricsSessions;
+
+  /// No description provided for @metricsSessionsValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{clean} of {total} sessions with a capture'**
+  String metricsSessionsValue(String clean, String total);
+
+  /// No description provided for @metricsMs.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} ms'**
+  String metricsMs(String value);
+
+  /// No description provided for @metricsSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} s'**
+  String metricsSeconds(String value);
+
+  /// No description provided for @metricsFootnote.
+  ///
+  /// In en, this message translates to:
+  /// **'Timed from Nex\'s own code starting, on cold starts only. \"Slowest\" is the slowest one in ten.'**
+  String get metricsFootnote;
+
+  /// No description provided for @feedbackAttachMetrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach my speed measurements'**
+  String get feedbackAttachMetrics;
+
+  /// No description provided for @feedbackAttachMetricsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Timings and counts only — nothing from your notes. Shown below before sending.'**
+  String get feedbackAttachMetricsHint;
 }
 
 class _AppLocalizationsDelegate

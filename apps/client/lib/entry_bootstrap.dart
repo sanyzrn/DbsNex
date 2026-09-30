@@ -3,12 +3,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'platform/crash_reporter.dart';
+import 'platform/metrics.dart';
 
 /// The setup every Dart entry point (`main.dart`, `main_ai.dart` — ADR-031)
 /// needs before binding its adapters and calling `runApp`. Factored out so
 /// the two entry points differ only by which adapters they bind, not by
 /// re-declaring this sequence.
 Future<void> bootstrapEntry() async {
+  // First, so a cold start is timed from as near the start as Dart can see.
+  // Only a clock: nothing is kept unless the person has switched measuring
+  // on (W3.4).
+  NexMetrics.markLaunched();
   WidgetsFlutterBinding.ensureInitialized();
   LicenseRegistry.addLicense(() async* {
     yield LicenseEntryWithLineBreaks([

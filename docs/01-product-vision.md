@@ -137,6 +137,8 @@ These constraints apply to every version of Nex, forever:
 | Crash-free capture sessions | > 99.9% | A lost capture is a broken promise |
 | Sync convergence (v2+) | > 99.9% of changes converge across devices | Confirms cross-device coherence |
 
+Since 1.89 three of these are measured — on the person's own phone, and only if they switch it on in Settings → About → Speed and reliability ([ADR-036](./10-decisions.md#adr-036--nex-measures-itself-only-on-the-phone-only-when-asked)): capture duration (from opening capture to the note saved), search-to-open, and crash-free capture sessions, next to cold-start time. Nothing is collected centrally, so these targets are checked one phone at a time, by a person who chooses to attach the numbers to feedback. CI holds the timeline to its own budget at 5,000 notes.
+
 Metrics Nex explicitly does **not** optimize for: daily session count, time spent in app, streaks, or notification open rate — these directly contradict the mission.
 
 ---

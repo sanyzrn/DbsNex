@@ -229,9 +229,7 @@ content and media with a pairing-derived key; leave ids, `rev` and timestamps in
 the clear so merge works, and say so. Design in 2.0, ship in 2.1 unless a hosted
 service for other people is planned.
 
-**W3.4 Local, opt-in metrics.** Time-to-stored-note, search-to-open, crash-free
-capture sessions — on-device, shown in Settings, attachable to feedback, never
-sent silently.
+*W3.4 shipped in 1.89 — see §13.*
 
 ### W4 — Foundation (invisible, and first)
 
@@ -281,9 +279,10 @@ vault screens, which the audit cannot reach without an unlock.
 
 *W6.2 shipped in 1.86 — see §13.*
 
-**W6.3 Startup and scroll budgets.** Cold start to first timeline frame and
-timeline scroll jank measured in CI (integration test on an emulator), next to
-the existing search budget. Capture speed is principle #1 and has no budget.
+*W6.3 shipped in 1.89 — see §13.* Not done as written: an emulator on a CI
+runner can only run a debug build, whose frame times say nothing about a phone.
+The CI budget runs in the test VM instead, and a real phone's numbers come from
+W3.4 on that phone.
 
 *W6.4 shipped in 1.85 — see §13.*
 
@@ -304,10 +303,9 @@ separate authenticator app.
 
 3. W1.3 media sync
 4. W3.1 encryption at rest — only when the migration is proved
-5. W6.3 performance budgets, W3.4 local metrics
-6. W7 the home screen: sticky day headers, density, continuous transition,
+5. W7 the home screen: sticky day headers, density, continuous transition,
    empty states that act, bulk selection
-7. W6.1 on-device TalkBack pass, W1.4 conflict surface
+6. W6.1 on-device TalkBack pass, W1.4 conflict surface
 
 **Could have / deferred to 2.1:**
 
@@ -331,7 +329,7 @@ Release numbers are indicative; the ordering is the argument.
 | ~~1.86~~ | *Shipped* | Foundation II: W4.1 text surface · W4.5 tap rule · W6.2 goldens — see §13. W4.2 continues as files are touched |
 | ~~1.87~~ | *Shipped* | Safety net: W1.6 backup to a chosen folder · W6.1 accessibility audit — see §13 |
 | ~~1.88~~ | *Shipped* | Foundation III: W4.4 AI layer into its package · W4.2 screens and preferences split — see §13 |
-| **1.89** | Measured | W6.3 startup and scroll budgets · W3.4 local metrics |
+| ~~1.89~~ | *Shipped* | Measured: W6.3 timeline budget · W3.4 local, opt-in measurements — see §13 |
 | **1.90** | The home screen | W7.1 sticky day headers · W7.2 density · W7.3 continuous transition · W7.4 empty states that act |
 | **1.91** | Many at once | W7.5 bulk selection |
 | *later* | Continuity | W1.1 pairing · W1.2 background sync · W1.3 media sync · W1.4 conflict surface — the owner has put sync aside for now |
@@ -400,8 +398,8 @@ Release numbers are indicative; the ordering is the argument.
    self-host plus pairing the permanent shape? Decides W3.3 and §7.
 4. **Is encryption at rest worth a migration risk to existing users?** Possibly
    "yes, new installs first".
-5. **Is any measurement acceptable**, even local, opt-in and never transmitted?
-   If not, the vision's metrics should be removed rather than left unmeasured.
+5. ~~**Is any measurement acceptable**, even local, opt-in and never transmitted?~~
+   Answered at 1.89: local and opt-in, yes — W3.4, ADR-036.
 
 ---
 
@@ -450,6 +448,25 @@ Release numbers are indicative; the ordering is the argument.
 
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
+
+### In 1.89.0 — measured
+
+- **W6.3 Timeline budget.** `apps/client/test/performance/timeline_budget_test.dart`
+  seeds 5,000 notes and holds three things to a budget in its own CI job
+  (`timeline-budget`, tag `budget`): opening the timeline, a steady 600-frame
+  drag past the first window, and a capture reaching the top. Exact counts do
+  the guarding — the first read is one 200-note window, at most 12 cards are
+  built on the first frame and 20 stay alive while scrolling, and after the
+  recap folds on the first scroll nothing already built rebuilds. CPU-time
+  limits (open < 1 s, scroll p90 < 50 ms and p99 < 120 ms, a window-loading
+  frame < 500 ms, capture to screen < 600 ms) sit about 2.5× above what they
+  measured. A `setState` per scroll frame fails both kinds.
+- **W3.4 Speed and reliability, on the phone.** Settings → About → Speed and
+  reliability, off by default: cold start to the library and to the timeline,
+  capture from opening to saved, search to the note opened, and sessions with
+  a capture that ran without an error. One file beside the crash log; never
+  sent or backed up; no content; switching off deletes it. The feedback sheet
+  can attach it as text, shown before sending, unticked every time. ADR-036.
 
 ### In 1.88.0 — foundation III
 

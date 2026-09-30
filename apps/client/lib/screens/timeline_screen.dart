@@ -21,6 +21,7 @@ import '../platform/capture_failure.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
+import '../platform/metrics.dart';
 import 'timeline/timeline_model.dart';
 import 'update_sheet.dart';
 import '../platform/brief_report.dart';
@@ -185,6 +186,11 @@ class TimelineScreenState extends State<TimelineScreen>
   /// no AI provider that re-roll *is* the refresh.
   int _greetingVariant = math.Random().nextInt(3);
   bool _searching = false;
+
+  /// When the current search began, for [NexMetric.searchToOpen]. Null
+  /// outside a search, and after its first note has been opened: the
+  /// question is how long finding took, not how long the reading went on.
+  Stopwatch? _searchStarted;
 
   /// The AI-generated recap under the headline — see [_loadAiSummary].
   String? _aiSummaryText;
@@ -443,6 +449,7 @@ class TimelineScreenState extends State<TimelineScreen>
     }
     if (!mounted) return;
     setState(() => _searching = true);
+    _searchStarted = Stopwatch()..start();
     // After the frame: with the field switched off it is not in the list
     // until this setState puts it there, and a focus request aimed at a node
     // no widget has attached yet is simply dropped.
@@ -453,6 +460,7 @@ class TimelineScreenState extends State<TimelineScreen>
   }
 
   void _exitSearch() {
+    _searchStarted = null;
     _searchFocus.unfocus();
     _search.clear();
     setState(() => _searching = false);
@@ -469,6 +477,9 @@ class TimelineScreenState extends State<TimelineScreen>
     if (!mounted || loaded == null) return;
     _requestAiHeader(loaded);
     _tourWhenReady();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => NexMetrics.shared.recordTimelineShown(),
+    );
   }
 
   void _onModelChanged() {
@@ -633,6 +644,9 @@ class TimelineScreenState extends State<TimelineScreen>
 
   Future<void> openCapture() async {
     String? committed;
+    // The three-second promise, timed the way a person lives it: from the
+    // sheet opening to the note existing (W3.4).
+    final opened = Stopwatch()..start();
     await nexShowSheet<void>(
       context: context,
       builder: (sheetContext) => CaptureSheet(
@@ -641,6 +655,9 @@ class TimelineScreenState extends State<TimelineScreen>
         onCommitted: (id) {
           committed = id;
           landedId = id;
+          NexMetrics.shared
+            ..record(NexMetric.capture, opened.elapsed)
+            ..markCapture();
           if (widget.preferences.haptics) HapticFeedback.lightImpact();
         },
         onVoice: () {

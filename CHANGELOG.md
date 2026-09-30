@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.89.0
+
+- **See how fast Nex is on your phone.** Settings → About → Speed and reliability can time how long Nex takes to open, how long a capture takes from opening to saved, and how long a search takes to find the note you open. It is off until you switch it on. The numbers stay on your phone, never include your notes or searches, and are deleted when you switch it off.
+- **Send the numbers with feedback, if you want.** With measuring on, the feedback form offers to attach them and shows exactly what will be added before you send. The form also scrolls now, so nothing is cut off on a small screen with the keyboard open.
+
 ## v1.88.0
 
 - **Groundwork, nothing to relearn.** This release reorganises how Nex is built — the assistant's connection to AI providers, the home screen and the larger sheets — so the home-screen features coming next (a date that stays on screen while scrolling, compact or roomier cards, selecting several notes at once) can be added safely. Everything works and looks as it did.
