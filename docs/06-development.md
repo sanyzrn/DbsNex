@@ -50,10 +50,10 @@ nex/
 │   ├── ui/                        # Shared Flutter widget/design-system package
 │   │   ├── widgets/
 │   │   └── tokens/                  # colors, typography, spacing — see 05-design.md
-│   └── ai/                        # Optional AI adapters (v3+) — never imported by capture
-│       ├── transcription/
-│       ├── ocr/
-│       └── tagging/
+│   └── ai/                        # The AI layer (ADR-035) — never imported by core, data or ui
+│       └── lib/
+│           ├── cloud.dart         # provider adapters, assistant actions, disclosure record
+│           └── nex_ai.dart        # on-device runtime — only the "ai" flavor's entry point
 ├── docs/                           # This documentation set
 └── README.md
 ```
@@ -87,6 +87,8 @@ Nex's state needs are intentionally modest.
 - **Persisted domain state** (notes, tags): owned by the **Data layer** (SQLite-backed repositories, via `drift`/`sqflite`), exposed to the UI via reactive streams — the Timeline updates automatically as the local store changes, including from background sync writes.
 - **Local, ephemeral UI state** (capture sheet open/closed, in-progress text before persistence, active search filters, swipe-reveal position): local widget state (`StatefulWidget` / `ValueNotifier`). A minimal reactive layer (`Provider` or `Riverpod`) is enough for cross-cutting app state (active filters, current Settings values) — a large, generalized framework (e.g., BLoC's full ceremony) would be over-engineering relative to the product's scope.
 - **Explicit rule:** state management choices must never introduce a delay between "user provided content" and "content is durably saved." Any layer between UI and Data must be write-through, not write-behind, for capture actions.
+
+- **A screen's data has a view-model; its size has parts (W4.2).** What a large screen shows — the timeline's notes, filters, paging and folded groups — lives in a `ChangeNotifier` beside it (`screens/timeline/timeline_model.dart`) that the State listens to and that is tested without a widget. What remains of a large State is split by topic into private extensions in part files in a folder named after the screen (`timeline/`, `note_detail/`, `ai_chat/`, `vault/`), next to the screen's leaf widgets. Fields, lifecycle overrides and listener callbacks stay in the State class: an extension cannot hold fields, and a tear-off of an extension method is not guaranteed to equal the previous one, so `removeListener` might not find it. Extensions call `_rebuild(...)`, the State's one wrapper around the protected `setState`. `NexPreferences` follows the same idea with one mixin per domain under `platform/preferences/`.
 
 ```mermaid
 flowchart LR

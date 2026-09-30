@@ -237,17 +237,37 @@ sent silently.
 
 *W4.1 shipped in 1.86 — see §13.*
 
-**W4.2 Split the mega-screens.** A `ChangeNotifier` view-model per screen, no
-framework migration. Target: no file in `apps/client/lib` over ~800 lines (11
-today). Split `nex_preferences.dart` by domain at the same time.
+*W4.2 shipped in 1.88 — see §13.* Left open: three service classes are
+still one class of over 800 lines each — `db_worker.dart`, `nex_services.dart`
+and `reminders.dart`. Tests subclass `NexServices`, so splitting it into
+extensions would turn overridable methods into static ones; it waits for a
+reason to touch them.
 
 *W4.3 shipped in 1.85 — see §13.*
 
-**W4.4 Resolve the `packages/ai` fiction.** CI proves the package is deletable,
-but the AI code that matters lives in `apps/client/lib/platform/ai_provider.dart`
-(1,994 lines). **Move the provider layer into `packages/ai`.**
+*W4.4 shipped in 1.88 — see §13.*
 
 *W4.5 shipped in 1.86 — see §13.*
+
+### W7 — The home screen *(from §11, planned at 1.88)*
+
+**W7.1 Sticky day headers.** The date of the run being scrolled stays under
+the filter row, so an old note says when it is from.
+
+**W7.2 List density.** Two card modes in Settings → Appearance: compact and
+more readable.
+
+**W7.3 Continuous transition to details.** A card opens into its detail sheet
+with its picture and title keeping their place.
+
+**W7.4 Empty states that act.** An empty page offers a shortcut to capture its
+first item instead of only explaining itself.
+
+**W7.5 Bulk selection.** The owner's design: a **Select** entry in every card's
+hold menu selects that card; while anything is selected, tapping a card adds it
+and tapping a selected card removes it, and selection ends when none is left.
+The bottom bar is replaced meanwhile by a selection bar with the count and the
+actions — tag, thread, pin, share, copy, delete with Undo — and a close button.
 
 ### W5 — Product
 
@@ -284,16 +304,16 @@ separate authenticator app.
 
 3. W1.3 media sync
 4. W3.1 encryption at rest — only when the migration is proved
-5. W4.2 screen decomposition — continuous
-6. W6.1 on-device TalkBack pass, W6.3 performance budgets
-7. W3.4 local metrics, W1.4 conflict surface
+5. W6.3 performance budgets, W3.4 local metrics
+6. W7 the home screen: sticky day headers, density, continuous transition,
+   empty states that act, bulk selection
+7. W6.1 on-device TalkBack pass, W1.4 conflict surface
 
 **Could have / deferred to 2.1:**
 
 8. W3.3 end-to-end encrypted sync
 9. iOS
-10. W4.4 AI layer into its package
-11. W6.5 vault health — land opportunistically
+10. W6.5 vault health — land opportunistically
 
 ---
 
@@ -310,10 +330,13 @@ Release numbers are indicative; the ordering is the argument.
 | ~~1.85~~ | *Shipped* | Foundation I: phase names fixed · W3.2 disclosure screen + ADR-033 · W4.3 harness · W6.4 nightly stress — see §13 |
 | ~~1.86~~ | *Shipped* | Foundation II: W4.1 text surface · W4.5 tap rule · W6.2 goldens — see §13. W4.2 continues as files are touched |
 | ~~1.87~~ | *Shipped* | Safety net: W1.6 backup to a chosen folder · W6.1 accessibility audit — see §13 |
-| **1.88** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
-| **1.89** | Continuity II | W1.3 media sync · W3.4 local metrics · W6.3 startup/scroll budgets |
-| **1.90** | The second device | W1.5 Windows un-paused, re-qualified, released |
-| **1.91** | Trust | W3.1 encryption at rest, behind a proved migration |
+| ~~1.88~~ | *Shipped* | Foundation III: W4.4 AI layer into its package · W4.2 screens and preferences split — see §13 |
+| **1.89** | Measured | W6.3 startup and scroll budgets · W3.4 local metrics |
+| **1.90** | The home screen | W7.1 sticky day headers · W7.2 density · W7.3 continuous transition · W7.4 empty states that act |
+| **1.91** | Many at once | W7.5 bulk selection |
+| *later* | Continuity | W1.1 pairing · W1.2 background sync · W1.3 media sync · W1.4 conflict surface — the owner has put sync aside for now |
+| *later* | The second device | W1.5 Windows un-paused, re-qualified, released |
+| *later* | Trust | W3.1 encryption at rest, behind a proved migration |
 | **2.0** | The release | Docs and vision rewritten · threads and citations synced across devices |
 
 - **The invisible work is first on purpose.** Retrieval and the shared UI
@@ -386,23 +409,13 @@ Release numbers are indicative; the ordering is the argument.
 
 پیشنهادهای قابل بررسی، نه تصمیم یا تعهد انتشار. موارد انجام‌شده (جستجوهای
 ذخیره‌شده، همهٔ موارد مرکز Recurring و جای «ابزارها» در نوار پایین) حذف
-شده‌اند.
+شده‌اند. عملیات گروهی و همهٔ ایده‌های ظاهر و تجربهٔ کاربری در ۱.۸۸ برنامه‌ریزی
+شدند و به W7 رفتند؛ اسکن چندصفحه‌ای به تصمیم مالک کنار گذاشته شد.
 
 ### امکانات
 
 1. **تاریخچهٔ تغییرات یادداشت:** دیدن نسخه‌های قبلی و بازگرداندن یک نسخه.
 2. **پیوند دوطرفهٔ یادداشت‌ها:** دیدن یادداشت‌های مرتبط و مسیر رفت‌وبرگشت میان آن‌ها.
-3. **عملیات گروهی:** انتخاب چند یادداشت برای برچسب‌گذاری، سنجاق یا حذف یک‌جا.
-4. **اسکن چندصفحه‌ای:** ثبت چند صفحهٔ سند در یک یادداشت، با امکان مرتب‌کردن صفحات.
-
-### ظاهر و تجربهٔ کاربری
-
-1. **انتقال پیوسته به جزئیات:** بازشدن کارت با حفظ جای تصویر و عنوان.
-2. **تراکم قابل انتخاب فهرست:** دو حالت فشرده و خواناتر برای کارت‌ها.
-3. **سرصفحهٔ چسبان روزها:** نمایش تاریخ روز هنگام پیمایش یادداشت‌های قدیمی
-   (امروز فقط ردیف فیلترها چسبان است).
-4. **راهنمای کاربردی صفحه‌های خالی:** میان‌بر ثبت اولین محتوای مرتبط به‌جای متن
-   صرفاً توضیحی.
 
 ---
 
@@ -437,6 +450,26 @@ Release numbers are indicative; the ordering is the argument.
 
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
+
+### In 1.88.0 — foundation III
+
+- **W4.4 The AI layer lives in its package.** The cloud provider adapters, the
+  assistant's actions and the record of what left the device moved from
+  `apps/client/lib/platform` into `packages/ai` as `package:nex_ai/cloud.dart`,
+  with their tests. The on-device runtime stays `package:nex_ai/nex_ai.dart`,
+  imported only by the "ai" flavor's entry point. CI's deletion proof now
+  removes the on-device runtime (library, plugin, entry point) and proves
+  core, data, ui, the rest of `packages/ai` and the standard client still
+  build; it also asserts core, data and ui never import `nex_ai`. ADR-035.
+- **W4.2 The mega-screens split.** `TimelineModel`, a `ChangeNotifier`, owns
+  what the timeline shows — notes, filters, paging, folded groups, recurring
+  items, retiring spent reminders — and has its own test. The timeline, note
+  detail, settings, chat, vault and recurring sheets keep their state and
+  lifecycle in the original file; leaf widgets moved to part files and larger
+  States' behaviour into private extensions by topic. `nex_preferences.dart`
+  is one mixin per domain under `platform/preferences/`. Files over 800 lines
+  in `apps/client/lib`: 11 → 5 (`timeline_screen.dart` 4,170 → 700,
+  `nex_preferences.dart` 1,906 → 613).
 
 ### In 1.87.0 — safety net
 

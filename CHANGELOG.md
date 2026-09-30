@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v1.88.0
+
+- **Groundwork, nothing to relearn.** This release reorganises how Nex is built — the assistant's connection to AI providers, the home screen and the larger sheets — so the home-screen features coming next (a date that stays on screen while scrolling, compact or roomier cards, selecting several notes at once) can be added safely. Everything works and looks as it did.
+
 ## v1.87.0
 
 - **Your notes survive losing the phone — no server needed.** Settings → Data & backup → Automatic copy to a folder puts a complete backup into a folder you choose once a day: on the phone, or one Google Drive, Nextcloud or Syncthing offers. The newest three are kept. Settings and keys in it are locked with a recovery code; the private vault is never included.
