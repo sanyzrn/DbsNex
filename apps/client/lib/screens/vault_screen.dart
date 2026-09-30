@@ -19,10 +19,20 @@ class VaultScreen extends StatefulWidget {
     required this.kind,
     this.store,
     this.authentication,
+    this.focusId,
+    this.picking = false,
   });
   final VaultKind kind;
   final VaultStore? store;
   final AppLockService? authentication;
+
+  /// Show only this entry — a Recurring item's linked card (W5.4). The
+  /// unlock is the same as ever; only what is listed after it changes.
+  final String? focusId;
+
+  /// Choosing a card to link: tapping one pops with its id. Nothing about
+  /// the card leaves the vault; the id is all the caller keeps.
+  final bool picking;
   @override
   State<VaultScreen> createState() => _VaultScreenState();
 }
@@ -692,6 +702,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
             .where(
               (e) =>
                   e.kind == widget.kind &&
+                  (widget.focusId == null || e.id == widget.focusId) &&
                   (!favorites || e.favorite) &&
                   [
                     e.title,
@@ -808,7 +819,20 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
         for (final entry in items)
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
-            child: entry.kind == VaultKind.card
+            child: widget.picking
+                ? Card(
+                    key: ValueKey('vault-pick-${entry.id}'),
+                    margin: EdgeInsets.zero,
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context, entry.id),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: _bankCard(theme, entry, menu: null, onTap: null),
+                      ),
+                    ),
+                  )
+                : entry.kind == VaultKind.card
                 ? _cardItem(l, theme, entry)
                 : _passwordItem(l, theme, entry),
           ),

@@ -284,4 +284,80 @@ void main() {
       expect(water.met(DateTime(2026, 3, 2, 9)).metToday, 1);
     });
   });
+
+  group('occurrences for the calendar', () {
+    test('a monthly item keeps its day, and a paused one has none', () {
+      final rent = make(
+        cadence: NexCadence.months,
+        every: 1,
+        dueAt: DateTime(2026, 1, 31, 9),
+      );
+      final got = nexOccurrences(
+        rent,
+        from: DateTime(2026, 1, 1),
+        to: DateTime(2026, 5, 1),
+      );
+      expect(got, [
+        DateTime(2026, 1, 31, 9),
+        DateTime(2026, 2, 28, 9),
+        DateTime(2026, 3, 31, 9),
+        DateTime(2026, 4, 30, 9),
+      ]);
+      final paused = make(
+        cadence: NexCadence.months,
+        every: 1,
+        dueAt: DateTime(2026, 1, 31, 9),
+        paused: true,
+      );
+      expect(
+        nexOccurrences(
+          paused,
+          from: DateTime(2026, 1, 1),
+          to: DateTime(2026, 5, 1),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a moved occurrence moves alone; the schedule stays', () {
+      final weekly = make(
+        cadence: NexCadence.weeks,
+        every: 1,
+        dueAt: DateTime(2026, 3, 2, 8),
+      );
+      final moved = weekly.copyWith(
+        dueAt: DateTime(2026, 3, 4, 18),
+        details: {'scheduledDue': DateTime(2026, 3, 2, 8).toIso8601String()},
+      );
+      expect(
+        nexOccurrences(
+          moved,
+          from: DateTime(2026, 3, 1),
+          to: DateTime(2026, 3, 20),
+        ),
+        [
+          DateTime(2026, 3, 4, 18),
+          DateTime(2026, 3, 9, 8),
+          DateTime(2026, 3, 16, 8),
+        ],
+      );
+    });
+
+    test('an hourly item is bounded', () {
+      final water = make(
+        cadence: NexCadence.hours,
+        every: 1,
+        dueAt: DateTime(2026, 3, 1, 8),
+      );
+      expect(
+        nexOccurrences(
+          water,
+          from: DateTime(2026, 3, 1),
+          to: DateTime(2026, 6, 1),
+          max: 50,
+        ),
+        hasLength(50),
+      );
+    });
+  });
 }

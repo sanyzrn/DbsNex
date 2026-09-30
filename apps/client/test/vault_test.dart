@@ -353,4 +353,75 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
   });
+
+  VaultEntry card(String id, String title, String number) => VaultEntry(
+    id: id,
+    kind: VaultKind.card,
+    fields: {'title': title, 'number': number},
+    updatedAt: DateTime.utc(2026),
+  );
+
+  testWidgets('a Recurring item\'s card is shown alone, after the unlock', (
+    tester,
+  ) async {
+    await VaultStore().save(card('a', 'Salary', '4111111111111111'));
+    await VaultStore().save(card('b', 'Savings', '5500000000000004'));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: VaultScreen(
+          kind: VaultKind.card,
+          focusId: 'b',
+          authentication: _Auth(Future.value(true)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // Nothing of it before the unlock.
+    expect(find.text('Savings'), findsNothing);
+    await tester.tap(find.text('Unlock vault'));
+    await tester.pumpAndSettle();
+    expect(find.text('Savings'), findsWidgets);
+    expect(find.text('Salary'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
+  testWidgets('picking a card to link hands back only its id', (tester) async {
+    await VaultStore().save(card('a', 'Salary', '4111111111111111'));
+    String? picked;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async => picked = await Navigator.push<String>(
+                context,
+                NexPageRoute<String>(
+                  builder: (_) => VaultScreen(
+                    kind: VaultKind.card,
+                    picking: true,
+                    authentication: _Auth(Future.value(true)),
+                  ),
+                ),
+              ),
+              child: const Text('pick'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('pick'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unlock vault'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('vault-pick-a')));
+    await tester.pumpAndSettle();
+    expect(picked, 'a');
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
 }
