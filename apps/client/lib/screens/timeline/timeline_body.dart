@@ -383,12 +383,14 @@ extension _TimelineBody on TimelineScreenState {
                   child: SwipeableNoteCard(
                     haptics: widget.preferences.haptics,
                     controller: _swipe,
-                    resolveAction: ({required bool isLeading}) => nexSwipeSpec(
-                      l10n,
-                      isLeading
-                          ? widget.preferences.leadingAction
-                          : widget.preferences.trailingAction,
-                    ),
+                    resolveAction: ({required bool isLeading}) => _selecting
+                        ? null
+                        : nexSwipeSpec(
+                            l10n,
+                            isLeading
+                                ? widget.preferences.leadingAction
+                                : widget.preferences.trailingAction,
+                          ),
                     onAction: (action) => unawaited(_runSwipe(action, note)),
                     child: NoteContextMenu(
                       entries: _holdEntries(note),
@@ -399,6 +401,9 @@ extension _TimelineBody on TimelineScreenState {
                           note: note,
                           strings: nexCardStrings(context),
                           onTap: () => _tapNote(note, from: card),
+                          selected: _selecting
+                              ? _selected.contains(note.id)
+                              : null,
                           expanded: widget.preferences.isNoteExpanded(note.id),
                         ),
                       ),

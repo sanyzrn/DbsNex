@@ -3592,4 +3592,35 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cardDensityReadable => 'خواناتر';
+
+  @override
+  String get selectNotes => 'انتخاب';
+
+  @override
+  String selectionCount(int count) {
+    return '$count انتخاب‌شده';
+  }
+
+  @override
+  String get selectionClose => 'بستن انتخاب';
+
+  @override
+  String selectionCopied(int count) {
+    return '$count یادداشت کپی شد';
+  }
+
+  @override
+  String selectionTagged(int count) {
+    return 'برچسب به $count یادداشت اضافه شد';
+  }
+
+  @override
+  String selectionPinned(int count) {
+    return '$count یادداشت پین شد';
+  }
+
+  @override
+  String selectionUnpinned(int count) {
+    return 'پین $count یادداشت برداشته شد';
+  }
 }

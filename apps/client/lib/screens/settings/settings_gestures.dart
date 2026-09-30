@@ -262,7 +262,7 @@ class _HoldMenuScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              for (final action in NexHoldAction.values)
+              for (final action in NexHoldAction.choices)
                 CheckboxListTile(
                   key: ValueKey('hold-action-${action.name}'),
                   value: chosen.contains(action),
@@ -275,7 +275,7 @@ class _HoldMenuScreen extends StatelessWidget {
                   title: Text(action.label(context)),
                   onChanged: (on) => unawaited(
                     preferences.setHoldMenuActions([
-                      for (final a in NexHoldAction.values)
+                      for (final a in NexHoldAction.choices)
                         if (a == action ? on == true : chosen.contains(a)) a,
                     ]),
                   ),

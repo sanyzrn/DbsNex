@@ -1405,5 +1405,17 @@
   "cardDensity": "اندازهٔ کارت‌ها",
   "cardDensityCompact": "فشرده",
   "cardDensityStandard": "معمولی",
-  "cardDensityReadable": "خواناتر"
+  "cardDensityReadable": "خواناتر",
+  "selectNotes": "انتخاب",
+  "selectionCount": "{count} انتخاب‌شده",
+  "@selectionCount": {"placeholders": {"count": {"type": "int"}}},
+  "selectionClose": "بستن انتخاب",
+  "selectionCopied": "{count} یادداشت کپی شد",
+  "@selectionCopied": {"placeholders": {"count": {"type": "int"}}},
+  "selectionTagged": "برچسب به {count} یادداشت اضافه شد",
+  "@selectionTagged": {"placeholders": {"count": {"type": "int"}}},
+  "selectionPinned": "{count} یادداشت پین شد",
+  "@selectionPinned": {"placeholders": {"count": {"type": "int"}}},
+  "selectionUnpinned": "پین {count} یادداشت برداشته شد",
+  "@selectionUnpinned": {"placeholders": {"count": {"type": "int"}}}
 }

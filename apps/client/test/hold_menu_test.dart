@@ -43,4 +43,13 @@ void main() {
     final preferences = await NexPreferences.load();
     expect(preferences.holdMenuActions, [NexHoldAction.copy]);
   });
+
+  test('Select is on every menu, never a choice in Settings', () async {
+    SharedPreferences.setMockInitialValues({
+      'hold_menu.actions': ['select', 'copy'],
+    });
+    final preferences = await NexPreferences.load();
+    expect(preferences.holdMenuActions, [NexHoldAction.copy]);
+    expect(NexHoldAction.choices, isNot(contains(NexHoldAction.select)));
+  });
 }

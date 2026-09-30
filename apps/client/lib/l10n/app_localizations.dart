@@ -5815,6 +5815,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Easier to read'**
   String get cardDensityReadable;
+
+  /// No description provided for @selectNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get selectNotes;
+
+  /// No description provided for @selectionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 selected} other{{count} selected}}'**
+  String selectionCount(int count);
+
+  /// No description provided for @selectionClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop selecting'**
+  String get selectionClose;
+
+  /// No description provided for @selectionCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Copied 1 note} other{Copied {count} notes}}'**
+  String selectionCopied(int count);
+
+  /// No description provided for @selectionTagged.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Tagged 1 note} other{Tagged {count} notes}}'**
+  String selectionTagged(int count);
+
+  /// No description provided for @selectionPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Pinned 1 note} other{Pinned {count} notes}}'**
+  String selectionPinned(int count);
+
+  /// No description provided for @selectionUnpinned.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Unpinned 1 note} other{Unpinned {count} notes}}'**
+  String selectionUnpinned(int count);
 }
 
 class _AppLocalizationsDelegate

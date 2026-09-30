@@ -3662,4 +3662,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cardDensityReadable => 'Easier to read';
+
+  @override
+  String get selectNotes => 'Select';
+
+  @override
+  String selectionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count selected',
+      one: '1 selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get selectionClose => 'Stop selecting';
+
+  @override
+  String selectionCopied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Copied $count notes',
+      one: 'Copied 1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String selectionTagged(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tagged $count notes',
+      one: 'Tagged 1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String selectionPinned(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Pinned $count notes',
+      one: 'Pinned 1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String selectionUnpinned(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Unpinned $count notes',
+      one: 'Unpinned 1 note',
+    );
+    return '$_temp0';
+  }
 }

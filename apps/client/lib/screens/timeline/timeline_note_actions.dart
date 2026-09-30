@@ -152,6 +152,10 @@ extension _TimelineNoteActions on TimelineScreenState {
     final words = note.content ?? note.transcriptText ?? note.ocrText ?? '';
     final expanded = prefs.isNoteExpanded(note.id);
     NoteMenuEntry? entry(NexHoldAction action) => switch (action) {
+      NexHoldAction.select => NoteMenuEntry(
+        action,
+        () => _toggleSelected(note),
+      ),
       NexHoldAction.pin => NoteMenuEntry(
         action,
         () => unawaited(_runSwipe(NexSwipeAction.pin, note)),
@@ -273,6 +277,7 @@ extension _TimelineNoteActions on TimelineScreenState {
       ),
     };
     return [
+      entry(NexHoldAction.select)!,
       for (final action in prefs.holdMenuActions)
         if (entry(action) case final value?) value,
     ];
@@ -337,6 +342,7 @@ extension _TimelineNoteActions on TimelineScreenState {
   /// closes it; opening a note takes its own, second tap.
   void _tapNote(Note note, {BuildContext? from}) {
     if (_claimedByOverlay()) return;
+    if (_selecting) return _toggleSelected(note);
     unawaited(
       _openNote(
         note,

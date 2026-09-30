@@ -71,9 +71,12 @@ extension _TimelineLayout on TimelineScreenState {
       ),
       // Android's back gesture leaves search before it leaves the screen.
       body: PopScope(
-        canPop: !_searching,
+        canPop: !_searching && !_selecting,
         onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) _exitSearch();
+          if (didPop) return;
+          // Picking several notes is left before anything else.
+          if (_selecting) return _endSelection();
+          _exitSearch();
         },
         // The list keeps drawing all the way down, and stops *listening*
         // where the system's own navigation gestures begin. Without this the
@@ -346,7 +349,20 @@ extension _TimelineLayout on TimelineScreenState {
       // Capture is a timeline action. Left up while searching, the bar read
       // as part of the search flow itself rather than what it actually still
       // did — open a fresh note, unrelated to whatever was just searched.
-      floatingActionButton: _searching ? null : _bottomBar(l10n),
+      floatingActionButton: _searching
+          ? null
+          : AnimatedSwitcher(
+              duration: NexMotion.standard,
+              child: _selecting
+                  ? KeyedSubtree(
+                      key: const ValueKey('selection'),
+                      child: _selectionBar(l10n),
+                    )
+                  : KeyedSubtree(
+                      key: const ValueKey('dock'),
+                      child: _bottomBar(l10n),
+                    ),
+            ),
     );
   }
 

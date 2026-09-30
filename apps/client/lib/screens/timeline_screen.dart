@@ -75,6 +75,7 @@ part 'timeline/timeline_navigation.dart';
 part 'timeline/timeline_layout.dart';
 part 'timeline/timeline_sticky_day.dart';
 part 'timeline/timeline_body.dart';
+part 'timeline/timeline_selection.dart';
 
 class TimelineScreen extends StatefulWidget {
   const TimelineScreen({
@@ -191,6 +192,10 @@ class TimelineScreenState extends State<TimelineScreen>
   /// The note rows on screen, and the day of the one passing under the
   /// filter row — see [TimelineStickyDay].
   final Set<_DayMarkState> _dayMarks = {};
+
+  /// The notes picked while picking several — see [_TimelineSelection].
+  /// Empty is not picking.
+  final Set<String> _selected = {};
   final ValueNotifier<String?> _stickyDay = ValueNotifier(null);
   final GlobalKey _stickyLine = GlobalKey();
 
@@ -455,7 +460,10 @@ class TimelineScreenState extends State<TimelineScreen>
       );
     }
     if (!mounted) return;
-    setState(() => _searching = true);
+    setState(() {
+      _searching = true;
+      _selected.clear();
+    });
     _searchStarted = Stopwatch()..start();
     // After the frame: with the field switched off it is not in the list
     // until this setState puts it there, and a focus request aimed at a node

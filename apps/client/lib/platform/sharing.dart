@@ -84,3 +84,34 @@ Future<bool> nexShareNote(Note note) async {
   await SharePlus.instance.share(ShareParams(text: text));
   return true;
 }
+
+/// Hands several notes to the share sheet at once, from the selection bar.
+///
+/// One note is exactly [nexShareNote]. Several go as one share: every file
+/// the notes carry, and the words of the ones that are only words, a blank
+/// line between each, in the order they were picked. Returns false when
+/// none of them had anything to send.
+Future<bool> nexShareNotes(List<Note> notes) async {
+  if (notes.length == 1) return nexShareNote(notes.single);
+  final files = <XFile>[];
+  final words = <String>[];
+  for (final note in notes) {
+    final uri = note.mediaUri;
+    if (uri != null && File(uri).existsSync()) {
+      files.add(XFile(uri, mimeType: note.mimeType));
+      final caption = note.caption?.trim() ?? '';
+      if (caption.isNotEmpty) words.add(caption);
+      continue;
+    }
+    final text = note.displayText?.trim() ?? '';
+    if (text.isNotEmpty) words.add(text);
+  }
+  if (files.isEmpty && words.isEmpty) return false;
+  await SharePlus.instance.share(
+    ShareParams(
+      files: files.isEmpty ? null : files,
+      text: words.isEmpty ? null : words.join('\n\n'),
+    ),
+  );
+  return true;
+}

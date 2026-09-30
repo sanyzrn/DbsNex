@@ -2637,5 +2637,17 @@
   "cardDensity": "Card size",
   "cardDensityCompact": "Compact",
   "cardDensityStandard": "Standard",
-  "cardDensityReadable": "Easier to read"
+  "cardDensityReadable": "Easier to read",
+  "selectNotes": "Select",
+  "selectionCount": "{count, plural, =1{1 selected} other{{count} selected}}",
+  "@selectionCount": {"placeholders": {"count": {"type": "int"}}},
+  "selectionClose": "Stop selecting",
+  "selectionCopied": "{count, plural, =1{Copied 1 note} other{Copied {count} notes}}",
+  "@selectionCopied": {"placeholders": {"count": {"type": "int"}}},
+  "selectionTagged": "{count, plural, =1{Tagged 1 note} other{Tagged {count} notes}}",
+  "@selectionTagged": {"placeholders": {"count": {"type": "int"}}},
+  "selectionPinned": "{count, plural, =1{Pinned 1 note} other{Pinned {count} notes}}",
+  "@selectionPinned": {"placeholders": {"count": {"type": "int"}}},
+  "selectionUnpinned": "{count, plural, =1{Unpinned 1 note} other{Unpinned {count} notes}}",
+  "@selectionUnpinned": {"placeholders": {"count": {"type": "int"}}}
 }

@@ -180,7 +180,7 @@ mixin _HomePreferences on _PreferencesStore {
         if (NexHoldAction.fromWire(name) case final action?) action,
     };
     return [
-      for (final action in NexHoldAction.values)
+      for (final action in NexHoldAction.choices)
         if (chosen.contains(action)) action,
     ];
   }
