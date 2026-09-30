@@ -89,12 +89,13 @@ void main() {
   });
 
   test('the key, the path and the content never reach the record', () async {
-    await adapter().suggestTags(note('n1', 'my bank pin is 4321'))!;
+    // Letters, not digits: a number could turn up inside the timestamp.
+    await adapter().suggestTags(note('n1', 'my bank pin is QZXPIN'))!;
     final raw = File(
       p.join(dir.path, NexDisclosureLog.fileName),
     ).readAsStringSync();
     expect(raw, isNot(contains('sk-secret')));
-    expect(raw, isNot(contains('4321')));
+    expect(raw, isNot(contains('QZXPIN')));
     expect(raw, isNot(contains('/v1/')));
   });
 
