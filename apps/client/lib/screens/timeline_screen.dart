@@ -122,6 +122,19 @@ class TimelineScreenState extends State<TimelineScreen>
   /// Keeps one card open at a time and lets a scroll close it.
   final NexSwipeController _swipe = NexSwipeController();
 
+  /// The screen's one "a tap while something is open only closes it" rule
+  /// (W4.5): a swiped card and a card's hold menu both register here, and
+  /// every control that must not act meanwhile is a [NexTapGuarded].
+  final NexTapGuardController _guard = NexTapGuardController();
+
+  void _onSwipeChanged() {
+    if (_swipe.openCard != null) {
+      _guard.open(_swipe, close: _swipe.closeAll);
+    } else {
+      _guard.closed(_swipe);
+    }
+  }
+
   /// Date groups the user has folded away, by their stable key.
   ///
   /// Persisted rather than kept for the session: someone who collapses "Last
@@ -272,6 +285,7 @@ class TimelineScreenState extends State<TimelineScreen>
   @override
   void initState() {
     super.initState();
+    _swipe.addListener(_onSwipeChanged);
     _collapsedGroups = widget.preferences.collapsedTimelineGroups;
     // Fire and forget, and deliberately not awaited anywhere: the card that
     // is already cached draws on this frame, and a fetch that never comes
@@ -1493,7 +1507,9 @@ class TimelineScreenState extends State<TimelineScreen>
     _tour?.remove();
     _tour = null;
     subscription?.cancel();
+    _swipe.removeListener(_onSwipeChanged);
     _swipe.dispose();
+    _guard.dispose();
     _search.removeListener(_onSearchChanged);
     _search.dispose();
     _searchFocus.dispose();
@@ -2236,7 +2252,10 @@ class TimelineScreenState extends State<TimelineScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      NexTapGuard(controller: _guard, child: _screen(context));
+
+  Widget _screen(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final glass = context.nexVisualStyle.liquidGlass;
     // The same condition the header uses to decide whether to draw the recap
@@ -2320,8 +2339,8 @@ class TimelineScreenState extends State<TimelineScreen>
           children: [
             GestureDetector(
               behavior: HitTestBehavior.translucent,
-              // A tap anywhere that is not a card closes an open swipe.
-              onTap: _swipe.closeAll,
+              // A tap anywhere that is not a card closes what is open.
+              onTap: _guard.claim,
               child: NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
                   // Scrolling dismisses an open card, the way every list with
@@ -2390,8 +2409,8 @@ class TimelineScreenState extends State<TimelineScreen>
                             // the list, the same reason the two headers below do.
                             SliverToBoxAdapter(
                               key: const ValueKey('timeline-header'),
-                              child: NexInertWhileSwiped(
-                                controller: _swipe,
+                              child: NexTapGuarded(
+                                controller: _guard,
                                 child: AnimatedSize(
                                   duration: NexMotion.slow,
                                   curve: NexMotion.curve,
@@ -2458,8 +2477,8 @@ class TimelineScreenState extends State<TimelineScreen>
                                       ) +
                                       NexSpacing.md +
                                       NexSpacing.sm,
-                                  child: NexInertWhileSwiped(
-                                    controller: _swipe,
+                                  child: NexTapGuarded(
+                                    controller: _guard,
                                     child: TagFilterRow(
                                       tags: filterTags,
                                       hasOtherFilters:
@@ -2606,7 +2625,7 @@ class TimelineScreenState extends State<TimelineScreen>
               icon: Icons.space_dashboard_outlined,
               tooltip: l10n.toolsTitle,
               onPressed: () {
-                if (_claimedBySwipe()) return;
+                if (_claimedByOverlay()) return;
                 _tick();
                 unawaited(
                   Navigator.push<void>(
@@ -2620,7 +2639,7 @@ class TimelineScreenState extends State<TimelineScreen>
               icon: Icons.event_repeat_outlined,
               tooltip: l10n.commitmentsTitle,
               onPressed: () async {
-                if (_claimedBySwipe()) return;
+                if (_claimedByOverlay()) return;
                 _tick();
                 await CommitmentsSheet.show(context, services: widget.services);
                 await _loadCommitments();
@@ -2632,14 +2651,14 @@ class TimelineScreenState extends State<TimelineScreen>
             colors: nexAssistantSpectrum,
             onHoldStart: _tick,
             onTriggered: () {
-              if (_claimedBySwipe()) return;
+              if (_claimedByOverlay()) return;
               unawaited(widget.preferences.dismissCaptureHoldHint());
               _openAssistant();
             },
             child: FloatingActionButton(
               key: _captureAnchor,
               onPressed: () {
-                if (_claimedBySwipe()) return;
+                if (_claimedByOverlay()) return;
                 openCapture();
               },
               tooltip: l10n.capture,
@@ -2655,7 +2674,7 @@ class TimelineScreenState extends State<TimelineScreen>
               // and Trash both live behind here and both change what this
               // screen shows, and neither refreshes it on its own.
               onPressed: () async {
-                if (_claimedBySwipe()) return;
+                if (_claimedByOverlay()) return;
                 await Navigator.push(
                   context,
                   NexPageRoute<void>(
@@ -2678,7 +2697,7 @@ class TimelineScreenState extends State<TimelineScreen>
               // everything else, and a brief that had not noticed the one
               // just added would look broken to whoever just added it.
               onPressed: () async {
-                if (_claimedBySwipe()) return;
+                if (_claimedByOverlay()) return;
                 await nexShowSheet<void>(
                   context: context,
                   builder: (_) => SettingsSheet(
@@ -2875,8 +2894,8 @@ class TimelineScreenState extends State<TimelineScreen>
             // Inert while a card is open: the fold, the menu and Ask all sit
             // in the same list as the swiped card, and the tap that puts it
             // away must not also do one of them.
-            return NexInertWhileSwiped(
-              controller: _swipe,
+            return NexTapGuarded(
+              controller: _guard,
               child: _GroupHeader(
                 label: group.label,
                 count: group.notes.length,
@@ -3226,23 +3245,17 @@ class TimelineScreenState extends State<TimelineScreen>
   /// off the same touch. The first tap while something is open now only
   /// closes it; opening a note takes its own, second tap.
   void _tapNote(Note note) {
-    if (_claimedBySwipe()) return;
+    if (_claimedByOverlay()) return;
     unawaited(_openNote(note));
   }
 
-  /// Whether this touch belongs to closing an open card rather than to what
-  /// it landed on.
+  /// Whether this touch belongs to closing an open card or menu rather than
+  /// to what it landed on.
   ///
   /// The controls inside the list are made inert structurally — see
-  /// [NexInertWhileSwiped] — because a touch there falls through to the
-  /// handler that closes. The capture button and the app bar are `Scaffold`
-  /// slots outside that handler's reach, so ignoring their pointers would
-  /// leave the card open with the tap going nowhere. They ask instead.
-  bool _claimedBySwipe() {
-    if (_swipe.openCard == null) return false;
-    _swipe.closeAll();
-    return true;
-  }
+  /// [NexTapGuarded]. The capture button and the app bar are `Scaffold` slots
+  /// that ask instead.
+  bool _claimedByOverlay() => _guard.claim();
 
   /// Brings the timeline itself to the front, before an OS surface acts on
   /// it.
