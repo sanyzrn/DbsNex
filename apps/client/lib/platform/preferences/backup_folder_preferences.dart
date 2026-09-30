@@ -8,6 +8,7 @@ mixin _BackupFolderPreferences on _PreferencesStore {
   static const _kBackupFolderName = 'backup_folder.name';
   static const _kBackupFolderLastAt = 'backup_folder.last_at_ms';
   static const _kBackupFolderFailedAt = 'backup_folder.failed_at_ms';
+  static const _kBackupFolderFailure = 'backup_folder.failure';
   static const _kBackupFolderKey = 'nex.backup_folder.key';
 
   String? get backupFolderUri => _prefs.getString(_kBackupFolderUri);
@@ -18,6 +19,10 @@ mixin _BackupFolderPreferences on _PreferencesStore {
 
   /// When the last attempt failed, if it failed after the last success.
   DateTime? get backupFolderFailedAt => _millis(_kBackupFolderFailedAt);
+
+  /// What went wrong with that attempt, as [NexBackupFolderFailure]'s name,
+  /// with the device's own words after a colon when there are any.
+  String? get backupFolderFailure => _prefs.getString(_kBackupFolderFailure);
 
   /// The recovery code every automatic backup is encrypted with, kept where
   /// the API keys are.
@@ -37,6 +42,7 @@ mixin _BackupFolderPreferences on _PreferencesStore {
     await _prefs.setString(_kBackupFolderName, name);
     await _prefs.remove(_kBackupFolderLastAt);
     await _prefs.remove(_kBackupFolderFailedAt);
+    await _prefs.remove(_kBackupFolderFailure);
     notifyListeners();
   }
 
@@ -47,6 +53,7 @@ mixin _BackupFolderPreferences on _PreferencesStore {
       _kBackupFolderName,
       _kBackupFolderLastAt,
       _kBackupFolderFailedAt,
+      _kBackupFolderFailure,
     ]) {
       await _prefs.remove(key);
     }
@@ -59,13 +66,21 @@ mixin _BackupFolderPreferences on _PreferencesStore {
       DateTime.now().millisecondsSinceEpoch,
     );
     await _prefs.remove(_kBackupFolderFailedAt);
+    await _prefs.remove(_kBackupFolderFailure);
     notifyListeners();
   }
 
-  Future<void> markBackupFolderFailed() async {
+  Future<void> markBackupFolderFailed(
+    NexBackupFolderFailure why, {
+    String? detail,
+  }) async {
     await _prefs.setInt(
       _kBackupFolderFailedAt,
       DateTime.now().millisecondsSinceEpoch,
+    );
+    await _prefs.setString(
+      _kBackupFolderFailure,
+      detail == null ? why.name : '${why.name}:$detail',
     );
     notifyListeners();
   }

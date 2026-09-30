@@ -3562,4 +3562,22 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get feedbackAttachMetricsHint =>
       'فقط زمان‌ها و شمارش‌ها، بدون هیچ چیزی از یادداشت‌ها. پیش از ارسال در زیر نمایش داده می‌شود.';
+
+  @override
+  String get backupFolderFailedCode =>
+      'کد بازیابی این پوشه پیدا نشد. برای ساخت کد تازه، پوشه را دوباره انتخاب کنید.';
+
+  @override
+  String get backupFolderFailedAccess =>
+      'نکس دیگر به این پوشه دسترسی ندارد. آن را دوباره انتخاب کنید.';
+
+  @override
+  String backupFolderFailedBackup(String detail) {
+    return 'پشتیبان ساخته نشد ($detail).';
+  }
+
+  @override
+  String backupFolderFailedWrite(String detail) {
+    return 'برنامهٔ این پوشه فایل را نپذیرفت ($detail). دوباره امتحان کنید یا پوشه‌ای روی همین گوشی انتخاب کنید.';
+  }
 }

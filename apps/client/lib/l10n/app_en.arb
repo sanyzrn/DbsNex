@@ -2627,5 +2627,11 @@
   "@metricsSeconds": {"placeholders": {"value": {"type": "String"}}},
   "metricsFootnote": "Timed from Nex's own code starting, on cold starts only. \"Slowest\" is the slowest one in ten.",
   "feedbackAttachMetrics": "Attach my speed measurements",
-  "feedbackAttachMetricsHint": "Timings and counts only — nothing from your notes. Shown below before sending."
+  "feedbackAttachMetricsHint": "Timings and counts only — nothing from your notes. Shown below before sending.",
+  "backupFolderFailedCode": "The recovery code for this folder is missing. Choose the folder again to make a new one.",
+  "backupFolderFailedAccess": "Nex no longer has access to this folder. Choose it again.",
+  "backupFolderFailedBackup": "The backup could not be made ({detail}).",
+  "@backupFolderFailedBackup": {"placeholders": {"detail": {"type": "String"}}},
+  "backupFolderFailedWrite": "The folder's app did not accept the file ({detail}). Try again, or choose a folder on this phone.",
+  "@backupFolderFailedWrite": {"placeholders": {"detail": {"type": "String"}}}
 }

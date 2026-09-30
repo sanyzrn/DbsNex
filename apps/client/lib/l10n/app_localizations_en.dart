@@ -3632,4 +3632,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get feedbackAttachMetricsHint =>
       'Timings and counts only — nothing from your notes. Shown below before sending.';
+
+  @override
+  String get backupFolderFailedCode =>
+      'The recovery code for this folder is missing. Choose the folder again to make a new one.';
+
+  @override
+  String get backupFolderFailedAccess =>
+      'Nex no longer has access to this folder. Choose it again.';
+
+  @override
+  String backupFolderFailedBackup(String detail) {
+    return 'The backup could not be made ($detail).';
+  }
+
+  @override
+  String backupFolderFailedWrite(String detail) {
+    return 'The folder\'s app did not accept the file ($detail). Try again, or choose a folder on this phone.';
+  }
 }

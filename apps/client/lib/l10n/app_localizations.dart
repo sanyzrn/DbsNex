@@ -5767,6 +5767,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Timings and counts only — nothing from your notes. Shown below before sending.'**
   String get feedbackAttachMetricsHint;
+
+  /// No description provided for @backupFolderFailedCode.
+  ///
+  /// In en, this message translates to:
+  /// **'The recovery code for this folder is missing. Choose the folder again to make a new one.'**
+  String get backupFolderFailedCode;
+
+  /// No description provided for @backupFolderFailedAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex no longer has access to this folder. Choose it again.'**
+  String get backupFolderFailedAccess;
+
+  /// No description provided for @backupFolderFailedBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup could not be made ({detail}).'**
+  String backupFolderFailedBackup(String detail);
+
+  /// No description provided for @backupFolderFailedWrite.
+  ///
+  /// In en, this message translates to:
+  /// **'The folder\'s app did not accept the file ({detail}). Try again, or choose a folder on this phone.'**
+  String backupFolderFailedWrite(String detail);
 }
 
 class _AppLocalizationsDelegate

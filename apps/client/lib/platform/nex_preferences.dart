@@ -92,6 +92,21 @@ extension SwipeActionWire on SwipeAction {
   };
 }
 
+/// Why a copy into the backup folder did not land (W1.6).
+enum NexBackupFolderFailure {
+  /// The recovery code is not in secure storage.
+  code,
+
+  /// Nex no longer has access to the folder.
+  access,
+
+  /// The backup itself could not be made.
+  backup,
+
+  /// The folder's app refused the file.
+  write,
+}
+
 /// What every preference domain reads and writes through.
 ///
 /// [NexPreferences] is one object to its callers; its members live in one

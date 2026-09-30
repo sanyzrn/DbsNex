@@ -42,13 +42,13 @@ class _FakeFolder implements NexBackupFolderChannel {
   Future<void> release(String uri) async => released.add(uri);
 
   @override
-  Future<bool> copy(String uri, String path, String name) async {
+  Future<String?> copy(String uri, String path, String name) async {
     // The file has to be whole and there while Android copies it.
     expect(File(path).existsSync(), isTrue);
     expect(File(path).lengthSync(), greaterThan(0));
-    if (!copyWorks) return false;
+    if (!copyWorks) return 'write: IOException';
     copies.add(name);
-    return true;
+    return null;
   }
 }
 
@@ -123,16 +123,20 @@ void main() {
     folder.reachableNow = false;
     expect(await harness.services.backupToFolderIfDue(), isFalse);
     expect(harness.preferences.backupFolderFailedAt, isNotNull);
+    expect(harness.preferences.backupFolderFailure, 'access');
 
     folder
       ..reachableNow = true
       ..copyWorks = false;
     expect(await harness.services.backupToFolderIfDue(), isFalse);
     expect(harness.preferences.backupFolderLastAt, isNull);
+    // The reason is kept, in the device's own words, for Settings to show.
+    expect(harness.preferences.backupFolderFailure, 'write:write: IOException');
 
     folder.copyWorks = true;
     expect(await harness.services.backupToFolderIfDue(), isTrue);
     expect(harness.preferences.backupFolderFailedAt, isNull);
+    expect(harness.preferences.backupFolderFailure, isNull);
   });
 
   test('the folder and its code stay on this phone', () async {

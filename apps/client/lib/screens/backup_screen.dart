@@ -280,6 +280,21 @@ class _BackupScreenState extends State<BackupScreen> {
     if (mounted) setState(() {});
   }
 
+  /// The reason the last copy did not land, in words someone can act on.
+  /// Older builds recorded no reason; they get the general sentence.
+  static String _failure(AppLocalizations l10n, String? recorded) {
+    final split = recorded?.indexOf(':') ?? -1;
+    final kind = split < 0 ? recorded : recorded!.substring(0, split);
+    final detail = split < 0 ? '' : recorded!.substring(split + 1);
+    return switch (kind) {
+      'code' => l10n.backupFolderFailedCode,
+      'access' => l10n.backupFolderFailedAccess,
+      'backup' => l10n.backupFolderFailedBackup(detail),
+      'write' => l10n.backupFolderFailedWrite(detail),
+      _ => l10n.backupFolderFailed,
+    };
+  }
+
   Widget _folderSection(AppLocalizations l10n, ThemeData theme) {
     final uri = widget.preferences.backupFolderUri;
     final name = widget.preferences.backupFolderName;
@@ -327,7 +342,7 @@ class _BackupScreenState extends State<BackupScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: NexSpacing.xs),
                     child: Text(
-                      l10n.backupFolderFailed,
+                      _failure(l10n, widget.preferences.backupFolderFailure),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.error,
                       ),

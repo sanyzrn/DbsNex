@@ -143,8 +143,7 @@ class NexSponsorService {
   /// On the maker's own site. Publishing a card is putting a file there;
   /// taking it down is deleting it, and a 404 is the "nothing to show" case
   /// working exactly as intended.
-  static const defaultEndpoint =
-      'https://saeedzarrini.ir/banner.json';
+  static const defaultEndpoint = 'https://saeedzarrini.ir/banner.json';
 
   static const refreshInterval = Duration(hours: 24);
 
