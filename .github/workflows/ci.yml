@@ -717,8 +717,13 @@ jobs:
   # deletability now means proving the *standard* flavor survives deleting
   # packages/ai, which needs main_ai.dart and the pubspec dependency line
   # removed too — both would otherwise reference the now-deleted package.
+  # ADR-035: packages/ai holds the whole AI layer. The cloud provider layer
+  # (package:nex_ai/cloud.dart) is imported by the client freely; the
+  # on-device runtime (package:nex_ai/nex_ai.dart, LiteRT) is the removable
+  # half, confined to the "ai" flavor's entry point. This job removes it and
+  # proves everything else still builds.
   ai-deletion-proof:
-    name: packages/ai deletion proof (downstream graph still builds)
+    name: packages/ai on-device runtime deletion proof (the rest still builds)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: changes
@@ -732,42 +737,53 @@ jobs:
           cache: true
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
 
-      - name: Assert nex_ai is only imported by packages/ai and the ai-flavor entry point
+      - name: Assert core, data and ui never import nex_ai
         run: |
-          if grep -Rn --include='*.dart' "package:nex_ai/" apps/client packages/core packages/data packages/ui \
+          if grep -Rn --include='*.dart' "package:nex_ai/" packages/core packages/data packages/ui | grep -q .; then
+            echo "::error::packages/core, packages/data and packages/ui must not import package:nex_ai (09-ai.md, ADR-035)"
+            exit 1
+          fi
+
+      - name: Assert the on-device runtime is only imported by the ai-flavor entry point
+        run: |
+          if grep -Rn --include='*.dart' -e "package:nex_ai/nex_ai.dart" -e "package:nex_ai/src/" apps/client \
               | grep -v '^apps/client/lib/main_ai\.dart:' | grep -q .; then
-            echo "::error::only packages/ai and apps/client/lib/main_ai.dart may import package:nex_ai (09-ai.md, ADR-031)"
+            echo "::error::only apps/client/lib/main_ai.dart may import package:nex_ai/nex_ai.dart; the client uses package:nex_ai/cloud.dart (ADR-031, ADR-035)"
             exit 1
           fi
 
-      # The deletion step below assumes this exact shape when it strips the
-      # dependency with sed — checked here so a repin (a git/hosted source
-      # instead of the local path) or reformatting fails loudly instead of
-      # leaving that sed a silent no-op.
-      - name: Assert apps/client's nex_ai dependency is still the local path
+      # The removal step below strips the plugin with sed — checked here so a
+      # repin or reformatting fails loudly instead of leaving that sed a
+      # silent no-op.
+      - name: Assert the on-device plugin is still one pubspec line
         run: |
-          if ! grep -A1 '^  nex_ai:$' apps/client/pubspec.yaml \
-              | grep -q '^    path: \.\./\.\./packages/ai$'; then
-            echo "::error::apps/client's nex_ai dependency must stay 'path: ../../packages/ai' (09-ai.md, ADR-031)"
+          if [ "$(grep -c '^  flutter_litert_lm: ' packages/ai/pubspec.yaml)" != 1 ]; then
+            echo "::error::packages/ai must list flutter_litert_lm as exactly one '  flutter_litert_lm: <version>' line (ADR-035)"
             exit 1
           fi
 
-      - name: Delete packages/ai and its two integration points in apps/client
+      - name: Remove the on-device runtime and the ai-flavor entry point
         run: |
-          rm -rf packages/ai
-          rm -f apps/client/lib/main_ai.dart
-          sed -i '/^  nex_ai:$/,+1d' apps/client/pubspec.yaml
+          rm -f packages/ai/lib/nex_ai.dart \
+                packages/ai/lib/src/litert_chat_adapter.dart \
+                packages/ai/lib/src/local_chat_placeholder.dart \
+                apps/client/lib/main_ai.dart
+          grep -Rl "package:nex_ai/nex_ai.dart" packages/ai/test | xargs -r rm
+          sed -i '/^  flutter_litert_lm: /d' packages/ai/pubspec.yaml
+          if grep -Rn "package:flutter_litert_lm/" packages/ai/lib apps/client/lib | grep -q .; then
+            echo "::error::something outside the removed files still reaches flutter_litert_lm"
+            exit 1
+          fi
 
-      # Resolve and analyze only. The claim being proved is that the graph
-      # still *compiles* without packages/ai; re-running every suite and
-      # building an APK again proves nothing the other jobs have not already
-      # proved, and it was doing so for seven minutes — longer than the rest of
-      # CI put together.
-      - name: Downstream graph still resolves and analyzes
+      # Resolve and analyze only: the claim being proved is that the graph
+      # still *compiles* without the on-device runtime; every suite already
+      # runs in the other jobs.
+      - name: Everything else still resolves and analyzes
         run: |
           cd packages/core && dart pub get && dart analyze --fatal-infos && cd -
           cd packages/data && dart pub get && dart analyze --fatal-infos && cd -
           cd packages/ui   && flutter pub get && flutter analyze --fatal-infos && cd -
+          cd packages/ai   && flutter pub get && flutter analyze --fatal-infos && cd -
           cd apps/client   && flutter pub get && flutter analyze --fatal-infos
 
   # Single required check for branch protection.

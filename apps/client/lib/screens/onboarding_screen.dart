@@ -6,7 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'guide_screen.dart';
-import '../platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/choice_cards.dart';
 
@@ -196,10 +196,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         title: l10n.onboardingYoursTitle,
                         body: l10n.onboardingYoursBody,
                       ),
-                      _SetupPage(
-                        preferences: widget.preferences,
-                        name: _name,
-                      ),
+                      _SetupPage(preferences: widget.preferences, name: _name),
                     ],
                   ),
                 ),
@@ -351,10 +348,7 @@ class _Page extends StatelessWidget {
 /// which is the point. Picking Persian and only finding out on the next screen
 /// that it took would be a worse way to ask.
 class _SetupPage extends StatelessWidget {
-  const _SetupPage({
-    required this.preferences,
-    required this.name,
-  });
+  const _SetupPage({required this.preferences, required this.name});
 
   final NexPreferences preferences;
   final TextEditingController name;
@@ -406,9 +400,7 @@ class _SetupPage extends StatelessWidget {
                 // No error state: there is nothing to get wrong here any
                 // more. Leaving it blank is a valid answer, and the header
                 // simply does not greet anyone who has not said who they are.
-                decoration: InputDecoration(
-                  hintText: l10n.yourNamePlaceholder,
-                ),
+                decoration: InputDecoration(hintText: l10n.yourNamePlaceholder),
               ),
             ),
             const SizedBox(height: NexSpacing.lg),

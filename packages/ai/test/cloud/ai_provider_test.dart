@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:nex_client/platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import 'package:nex_core/nex_core.dart';
 
 void main() {

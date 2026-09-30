@@ -2,7 +2,7 @@ import 'package:nex_core/nex_core.dart';
 
 import '../l10n/app_localizations.dart';
 import '../l10n/relative_span.dart';
-import 'ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 
 /// The brief the app writes itself, from what it already knows.
 ///

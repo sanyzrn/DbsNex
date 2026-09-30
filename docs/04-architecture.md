@@ -48,12 +48,12 @@ This choice is deliberate: the core problem is **lost and scattered ideas**. A p
 
 The system is organized into independently testable modules with a strict dependency direction: **UI depends on Core, and Data depends on Core. Core depends on nothing.**
 
-That is dependency inversion, not the naive stack it is often drawn as, and the difference is the point. Core owns the *interfaces* — `packages/core/lib/ports/` holds `NoteRepository`, `SyncPort` and `MemoryRepository`, and `packages/core/lib/ai/ai_adapter.dart` holds `AIAdapter` — and the layers around it implement them: `SqliteNoteRepository` and `SyncClient` in `packages/data`, `CloudAIAdapter` in the client. Every file in `packages/data` imports `nex_core`; no file in `packages/core` imports `nex_data`, and CI asserts it (the `packages/core must not re-export the storage layer` job).
+That is dependency inversion, not the naive stack it is often drawn as, and the difference is the point. Core owns the *interfaces* — `packages/core/lib/ports/` holds `NoteRepository`, `SyncPort` and `MemoryRepository`, and `packages/core/lib/ai/ai_adapter.dart` holds `AIAdapter` — and the layers around it implement them: `SqliteNoteRepository` and `SyncClient` in `packages/data`, `CloudAIAdapter` in `packages/ai`. Every file in `packages/data` imports `nex_core`; no file in `packages/core` imports `nex_data`, and CI asserts it (the `packages/core must not re-export the storage layer` job).
 
 Two things follow, and both are load-bearing rather than tidy:
 
 - **Core is testable with no database at all.** The business rules are exercised against whatever implements the port, which is why `packages/core` runs under plain `dart test` with no SQLite, no emulator and no Flutter.
-- **The AI layer's deletability uses the same shape.** `AIAdapter` is a port in Core; the implementations are elsewhere and can be removed. "AI can be deleted from the build" is the same property as "storage can be swapped", stated about a different port.
+- **The AI layer's optionality uses the same shape.** `AIAdapter` is a port in Core; the implementations live in `packages/ai`, and Core, Data and UI never import it. CI removes its on-device runtime and proves the rest still builds ([ADR-035](./10-decisions.md#adr-035--the-ai-provider-layer-lives-in-packagesai-the-on-device-runtime-is-the-removable-half)).
 
 ```mermaid
 flowchart LR
@@ -72,9 +72,9 @@ flowchart LR
 | **Core Domain Layer** | Capture orchestration, tag management, search query composition, sync orchestration (what to sync, when, conflict policy). **Owns the ports** — `NoteRepository`, `AIAdapter`, `SyncPort` — that the layers below implement. | Platform-agnostic; pure business logic, fully unit-testable without a UI or database, because it names its collaborators rather than importing them. |
 | **Data Layer** | Local persistent storage (SQLite), the concrete repositories, the sync client. Implements Core's ports; defines none of its own. | Owns the schema described in [`02-product-specification.md`](./02-product-specification.md#data-model). |
 | **Backend (minimal)** | Small REST/JSON API plus PostgreSQL, providing durable multi-device storage and conflict-aware replication. | Present from v1 as infrastructure, not exercised until v2 sync ships. |
-| **AI Layer (optional)** | Transcription, OCR, tag suggestion, semantic search, summarization. | Strictly additive; communicates with Core through well-defined, asynchronous, non-blocking interfaces. Fully removable without breaking any other layer. |
+| **AI Layer (optional)** | Transcription, OCR, tag suggestion, semantic search, summarization. | Strictly additive; communicates with Core through well-defined, asynchronous, non-blocking interfaces. Lives in `packages/ai`; no other layer below the UI depends on it, and its on-device runtime is removable. |
 
-This separation guarantees that **AI can be deleted from the build entirely and the product still fully satisfies its MVP promise** — the architectural expression of "AI-optional."
+This separation guarantees that **the product fully satisfies its MVP promise with AI switched off**, and that no layer below the UI depends on it — the architectural expression of "AI-optional."
 
 ---
 

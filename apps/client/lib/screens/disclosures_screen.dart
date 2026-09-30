@@ -5,7 +5,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
-import '../platform/disclosure_log.dart';
+import 'package:nex_ai/cloud.dart';
 import '../platform/nex_services.dart';
 import '../widgets/nex_dialog.dart';
 

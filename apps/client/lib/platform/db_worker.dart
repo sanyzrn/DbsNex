@@ -6,8 +6,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 
-import 'ai_provider.dart';
-import 'disclosure_log.dart';
+import 'package:nex_ai/cloud.dart';
 import 'nex_db.dart';
 
 /// Commands the worker isolate understands.

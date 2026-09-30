@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
-import 'package:nex_client/platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/widgets/persian_date_picker.dart';
 import 'package:nex_client/widgets/note_editor_sheet.dart';
 import 'package:nex_client/l10n/app_localizations.dart';

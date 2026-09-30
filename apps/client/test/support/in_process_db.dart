@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:nex_client/platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/platform/nex_db.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';

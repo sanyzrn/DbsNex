@@ -7,7 +7,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'draft_guard.dart';
-import '../platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';

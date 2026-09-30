@@ -9,7 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../widgets/feature_label.dart';
 import '../widgets/nex_banner.dart';
 import 'local_model_screen.dart';
-import '../platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import '../platform/local_ai_support.dart';
 import '../platform/nex_preferences.dart';
 
