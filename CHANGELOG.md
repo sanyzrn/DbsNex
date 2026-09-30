@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.80.2
+
+- **A tap on a note whose hold menu is open only closes the menu.** It no longer opens the note's details behind it.
+- **Something shared into Nex while the app is busy saving is no longer lost.** When the share window and the app wrote at the same moment and the phone was slow to finish, the share could fail with "database is locked"; it now waits its turn.
+
 ## v1.80.1
 
 - **A tap outside the hold menu only closes it.** It no longer goes on to open another note or press whatever was underneath.

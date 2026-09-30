@@ -5,6 +5,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' show Database;
 
+import '../schema/write_lock.dart';
 import 'note_repository.dart';
 
 /// Library maintenance: the trash view, the tag manager and the storage
@@ -229,7 +230,7 @@ class LibraryMaintenance {
   }
 
   void mergeTag({required String sourceId, required String targetId}) {
-    repo.db.execute('BEGIN IMMEDIATE');
+    repo.db.beginImmediate();
     try {
       repo.db.execute(
         '''

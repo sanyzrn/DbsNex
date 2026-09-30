@@ -6,6 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../repositories/note_repository.dart' show suggestedStarterTags;
 import 'restore_transaction.dart';
+import 'write_lock.dart';
 
 /// Opens (or creates) the Nex SQLite database and applies the Phase 1 schema.
 ///
@@ -343,7 +344,7 @@ CREATE TABLE IF NOT EXISTS memory_records (
     // Foreign keys off for the swap: note_tags points at notes(id), and the
     // rows have to survive the table being dropped out from under them.
     db.execute('PRAGMA foreign_keys = OFF;');
-    db.execute('BEGIN;');
+    db.beginImmediate();
     try {
       db.execute('''
 CREATE TABLE notes_rebuilt (

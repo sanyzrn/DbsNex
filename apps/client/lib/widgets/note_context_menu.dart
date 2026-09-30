@@ -40,6 +40,17 @@ class _NoteMenuIntent extends Intent {
 
 class _NoteContextMenuState extends State<NoteContextMenu> {
   final _controller = MenuController();
+
+  /// Whether the menu is showing. The card it was opened from sits inside
+  /// the menu's own tap region, so `consumeOutsideTap` never saw a tap on
+  /// it: the menu stayed open and the card opened the note's details
+  /// underneath it.
+  bool _open = false;
+
+  void _setOpen(bool open) {
+    if (mounted && open != _open) setState(() => _open = open);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -79,6 +90,8 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
       // heading's menu (a modal popup). Without this the same tap went on to
       // whatever was under it — opening another note, or pressing a button.
       consumeOutsideTap: true,
+      onOpen: () => _setOpen(true),
+      onClose: () => _setOpen(false),
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(scheme.surfaceContainerHigh),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
@@ -126,7 +139,12 @@ class _NoteContextMenuState extends State<NoteContextMenu> {
             onSecondaryTapDown: widget.entries.isEmpty
                 ? null
                 : (details) => controller.open(position: details.localPosition),
-            child: child,
+            // A tap on the card that owns the open menu closes the menu and
+            // nothing else, the same as a tap anywhere outside it. The card
+            // stays in the tree either way (only `absorbing` changes), so an
+            // expanded card does not fold when its menu opens.
+            onTap: _open ? controller.close : null,
+            child: AbsorbPointer(absorbing: _open, child: child),
           ),
         ),
       ),
