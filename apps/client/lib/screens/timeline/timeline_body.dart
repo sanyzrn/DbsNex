@@ -351,49 +351,53 @@ extension _TimelineBody on TimelineScreenState {
             );
           }
           final note = row.note!;
-          return _FoldingRow(
-            // Keyed on the note so the controller survives a rebuild of the
-            // list and an entrance is never restarted mid-flight.
-            key: ValueKey('fold-${note.id}'),
-            open: row.groupKey != _closingGroup,
-            animateIn: row.groupKey == _openingGroup,
-            child: NoteSpotlight(
-              key: _spotlightId == note.id ? _spotlightAnchor : null,
-              active: _spotlightId == note.id,
-              onDone: () {
-                if (mounted && _spotlightId == note.id) {
-                  _rebuild(() => _spotlightId = null);
-                }
-              },
-              child: CommitReceipt(
-                key: ValueKey(note.id),
-                active: landedId == note.id,
-                // Cleared when it finishes, so the receipt is a moment rather than
-                // a permanent mark on whichever note was captured last.
+          return _DayMark(
+            label: _dayLabel(note, l10n),
+            marks: _dayMarks,
+            child: _FoldingRow(
+              // Keyed on the note so the controller survives a rebuild of the
+              // list and an entrance is never restarted mid-flight.
+              key: ValueKey('fold-${note.id}'),
+              open: row.groupKey != _closingGroup,
+              animateIn: row.groupKey == _openingGroup,
+              child: NoteSpotlight(
+                key: _spotlightId == note.id ? _spotlightAnchor : null,
+                active: _spotlightId == note.id,
                 onDone: () {
-                  if (mounted && landedId == note.id) {
-                    _rebuild(() => landedId = null);
+                  if (mounted && _spotlightId == note.id) {
+                    _rebuild(() => _spotlightId = null);
                   }
                 },
-                // ADR-022: the action set is open, and each edge is bound
-                // independently.
-                child: SwipeableNoteCard(
-                  haptics: widget.preferences.haptics,
-                  controller: _swipe,
-                  resolveAction: ({required bool isLeading}) => nexSwipeSpec(
-                    l10n,
-                    isLeading
-                        ? widget.preferences.leadingAction
-                        : widget.preferences.trailingAction,
-                  ),
-                  onAction: (action) => unawaited(_runSwipe(action, note)),
-                  child: NoteContextMenu(
-                    entries: _holdEntries(note),
-                    child: NoteCard(
-                      note: note,
-                      strings: nexCardStrings(context),
-                      onTap: () => _tapNote(note),
-                      expanded: widget.preferences.isNoteExpanded(note.id),
+                child: CommitReceipt(
+                  key: ValueKey(note.id),
+                  active: landedId == note.id,
+                  // Cleared when it finishes, so the receipt is a moment rather than
+                  // a permanent mark on whichever note was captured last.
+                  onDone: () {
+                    if (mounted && landedId == note.id) {
+                      _rebuild(() => landedId = null);
+                    }
+                  },
+                  // ADR-022: the action set is open, and each edge is bound
+                  // independently.
+                  child: SwipeableNoteCard(
+                    haptics: widget.preferences.haptics,
+                    controller: _swipe,
+                    resolveAction: ({required bool isLeading}) => nexSwipeSpec(
+                      l10n,
+                      isLeading
+                          ? widget.preferences.leadingAction
+                          : widget.preferences.trailingAction,
+                    ),
+                    onAction: (action) => unawaited(_runSwipe(action, note)),
+                    child: NoteContextMenu(
+                      entries: _holdEntries(note),
+                      child: NoteCard(
+                        note: note,
+                        strings: nexCardStrings(context),
+                        onTap: () => _tapNote(note),
+                        expanded: widget.preferences.isNoteExpanded(note.id),
+                      ),
                     ),
                   ),
                 ),

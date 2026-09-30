@@ -210,12 +210,27 @@ extension _TimelineLayout on TimelineScreenState {
                                   ),
                                 ),
                               ),
+                            // Without the tag row, a pinned hairline still
+                            // carries the sticky day.
+                            if (!widget.preferences.showTagRow)
+                              SliverPersistentHeader(
+                                pinned: true,
+                                delegate: _FilterRowHeader(
+                                  visible: !_searching,
+                                  extent: 1,
+                                  lineKey: _stickyLine,
+                                  below: TimelineStickyDay(day: _stickyDay),
+                                  child: const SizedBox.shrink(),
+                                ),
+                              ),
                             if (widget.preferences.showTagRow)
                               SliverPersistentHeader(
                                 key: const ValueKey('filter-header'),
                                 pinned: true,
                                 delegate: _FilterRowHeader(
                                   visible: !_searching,
+                                  lineKey: _stickyLine,
+                                  below: TimelineStickyDay(day: _stickyDay),
                                   extent:
                                       math.max(
                                         nexMinTapTarget,

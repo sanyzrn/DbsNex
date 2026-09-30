@@ -136,7 +136,9 @@ void main() {
     var rebuilds = 0;
     var frameRebuilds = 0;
     debugOnRebuildDirtyWidget = (element, _) {
-      if (!built.add(element) && counting) frameRebuilds++;
+      if (!built.add(element) && counting && !_inStickyDay(element)) {
+        frameRebuilds++;
+      }
     };
     addTearDown(() => debugOnRebuildDirtyWidget = null);
     await open(tester);
@@ -194,7 +196,9 @@ void main() {
     expect(
       rebuilds,
       0,
-      reason: 'a widget already built rebuilt while scrolling',
+      reason:
+          'a widget already built, other than the sticky day, rebuilt '
+          'while scrolling',
     );
     expect(
       find.byType(NoteCard).evaluate().length,
@@ -230,3 +234,9 @@ void main() {
     expect(watch.elapsedMilliseconds, lessThan(600));
   });
 }
+
+/// The sticky day (W7.1) is the one thing meant to change while scrolling:
+/// it names the day passing under the filter row. Nothing else may rebuild.
+bool _inStickyDay(Element element) =>
+    element.widget is TimelineStickyDay ||
+    element.findAncestorWidgetOfExactType<TimelineStickyDay>() != null;
