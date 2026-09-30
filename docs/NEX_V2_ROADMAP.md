@@ -206,12 +206,9 @@ keep mine / keep theirs / keep both. Rare by design, invisible today.
 still builds and the job is one `if: false` away; iOS (signing, store review,
 background execution) belongs in 2.1.
 
-**W1.6 Continuity without a server** *(new)*. Most owners of one phone will
-never run a server. An automatic encrypted backup copied to a folder the user
-picks through Android's Storage Access Framework — a Google Drive, Syncthing or
-Nextcloud folder — gives "my notes survive losing the phone" with zero
-infrastructure, reusing the existing complete-backup format and recovery code.
-*Cost:* small. The backup exists; this is scheduling plus a SAF target.
+*W1.6 shipped in 1.87 — see §13.* Left open: the complete-backup format
+encrypts settings and keys but not the notes, so a copy in a cloud folder is
+readable by that cloud. Encrypting the library file belongs with W3.1/W3.3.
 
 ### W2 — Retrieval
 
@@ -258,10 +255,9 @@ All of W5 shipped in 1.81 — see §13.
 
 ### W6 — Proposals from the v1.80.2 revision *(new)*
 
-**W6.1 Accessibility pass.** 94 semantic labels/tooltips across the whole
-client. A TalkBack audit of capture, timeline, detail sheet and vault; minimum
-touch targets; a test that every icon-only button has a label; checking the
-largest text size in both directions.
+*W6.1's automated half shipped in 1.87 — see §13.* Left open: a TalkBack
+session on a real phone (reading order, what each card announces), and the
+vault screens, which the audit cannot reach without an unlock.
 
 *W6.2 shipped in 1.86 — see §13.*
 
@@ -286,19 +282,18 @@ separate authenticator app.
 
 **Should have:**
 
-5. W1.3 media sync
-6. W1.6 continuity without a server
-7. W3.1 encryption at rest — only when the migration is proved
-8. W4.2 screen decomposition — continuous
-9. W6.1 accessibility, W6.3 performance budgets
-10. W3.4 local metrics, W1.4 conflict surface
+3. W1.3 media sync
+4. W3.1 encryption at rest — only when the migration is proved
+5. W4.2 screen decomposition — continuous
+6. W6.1 on-device TalkBack pass, W6.3 performance budgets
+7. W3.4 local metrics, W1.4 conflict surface
 
 **Could have / deferred to 2.1:**
 
-11. W3.3 end-to-end encrypted sync
-12. iOS
-13. W4.4 AI layer into its package
-14. W6.5 vault health — land opportunistically
+8. W3.3 end-to-end encrypted sync
+9. iOS
+10. W4.4 AI layer into its package
+11. W6.5 vault health — land opportunistically
 
 ---
 
@@ -314,7 +309,7 @@ Release numbers are indicative; the ordering is the argument.
 | ~~1.84~~ | *Shipped* | Nex's own camera, the wordmark in the header — see §13 |
 | ~~1.85~~ | *Shipped* | Foundation I: phase names fixed · W3.2 disclosure screen + ADR-033 · W4.3 harness · W6.4 nightly stress — see §13 |
 | ~~1.86~~ | *Shipped* | Foundation II: W4.1 text surface · W4.5 tap rule · W6.2 goldens — see §13. W4.2 continues as files are touched |
-| **1.87** | Safety net | W1.6 backup to a chosen folder · W6.1 accessibility |
+| ~~1.87~~ | *Shipped* | Safety net: W1.6 backup to a chosen folder · W6.1 accessibility audit — see §13 |
 | **1.88** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
 | **1.89** | Continuity II | W1.3 media sync · W3.4 local metrics · W6.3 startup/scroll budgets |
 | **1.90** | The second device | W1.5 Windows un-paused, re-qualified, released |
@@ -442,6 +437,24 @@ Release numbers are indicative; the ordering is the argument.
 
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
+
+### In 1.87.0 — safety net
+
+- **W1.6 Automatic copy to a folder.** Settings → Data & backup: Android's
+  folder picker (any SAF tree — the phone, Google Drive, Nextcloud,
+  Syncthing), the grant kept across restarts. Once a day while Nex is open a
+  complete backup is written there as `Nex-auto-<UTC time>.nexfull` (through
+  a `.partial` renamed when whole); the newest three of Nex's own are kept and
+  nothing else in the folder is touched. One recovery code, shown with the
+  must-confirm dialog, kept in secure storage and shown again behind the app
+  lock. Never the private vault. The folder and its code do not travel in
+  backups. The screen says the notes in the file are not encrypted.
+- **W6.1 Accessibility audit.** `apps/client/test/accessibility_audit_test.dart`
+  runs Flutter's labelled-target, target-size and text-contrast guidelines over
+  seven main screens in English/light and Persian/dark at 2× text. It found and
+  this release fixes: a screen-wide nameless tap area on the timeline, a
+  nameless 48px search pill around a 20px field, an invalid pinned filter row
+  that broke the timeline at large text, and two overflows at large text.
 
 ### In 1.86.0 — foundation II
 
