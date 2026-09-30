@@ -209,6 +209,11 @@ abstract interface class NexDb {
   /// is configured to embed with — see [EnrichmentService.semanticSearch].
   Future<List<SemanticHit>> semanticSearch(String query, {int limit});
 
+  /// One ranked list: the keyword matches for [filters] fused with what a
+  /// meaning search finds for its query (W2.2). Waits on the provider for
+  /// the query's embedding; without one it is the keyword ranking alone.
+  Future<List<Note>> fusedSearch(SearchFilters filters);
+
   Future<void> setAiCapabilities(AiCapabilities capabilities);
 
   /// Points the enrichment service at a provider.

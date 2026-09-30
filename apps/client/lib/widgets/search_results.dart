@@ -128,7 +128,6 @@ List<Widget> searchResultSlivers({
   }
 
   if (search.results.isEmpty) {
-    final hasSemantic = search.semanticResults.isNotEmpty;
     return [
       SliverToBoxAdapter(
         child: Padding(
@@ -147,7 +146,7 @@ List<Widget> searchResultSlivers({
               if (search.nearest != null) ...[
                 Text(l10n.closestThing, style: theme.textTheme.bodySmall),
                 const SizedBox(height: NexSpacing.sm),
-              ] else if (!hasSemantic)
+              ] else
                 Text(l10n.nothingClose, style: theme.textTheme.bodyMedium),
             ],
           ),
@@ -164,35 +163,6 @@ List<Widget> searchResultSlivers({
             ),
           ),
         ),
-      // Nothing shares a word with the query, but these share its meaning —
-      // a keyword index can never surface them, only an embedding can.
-      if (hasSemantic) ...[
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              NexSpacing.lg,
-              NexSpacing.md,
-              NexSpacing.lg,
-              NexSpacing.sm,
-            ),
-            child: Text(l10n.semanticMatches, style: theme.textTheme.bodySmall),
-          ),
-        ),
-        SliverList.builder(
-          itemCount: search.semanticResults.length,
-          itemBuilder: (context, index) {
-            final note = search.semanticResults[index];
-            return TapRegion(
-              groupId: nexSearchTapGroup,
-              child: NoteCard(
-                note: note,
-                strings: nexCardStrings(context),
-                onTap: () => onOpen(note),
-              ),
-            );
-          },
-        ),
-      ],
     ];
   }
 
@@ -216,13 +186,47 @@ List<Widget> searchResultSlivers({
       itemCount: search.results.length,
       itemBuilder: (context, index) {
         final note = search.results[index];
+        final card = NoteCard(
+          note: note,
+          strings: nexCardStrings(context),
+          onTap: () => onOpen(note),
+        );
         return TapRegion(
           groupId: nexSearchTapGroup,
-          child: NoteCard(
-            note: note,
-            strings: nexCardStrings(context),
-            onTap: () => onOpen(note),
-          ),
+          // Ranked in with the rest (W2.2), and marked: a note that shares
+          // no word with the query needs a reason to be in the list.
+          child: search.meaningOnly.contains(note.id)
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        NexSpacing.lg,
+                        NexSpacing.xs,
+                        NexSpacing.lg,
+                        0,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.auto_awesome,
+                            size: 14,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: NexSpacing.xs),
+                          Text(
+                            l10n.searchByMeaning,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    card,
+                  ],
+                )
+              : card,
         );
       },
     ),

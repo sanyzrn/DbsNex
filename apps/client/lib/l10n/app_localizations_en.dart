@@ -3378,4 +3378,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get threadSuggestionsSubtitle =>
       'Only when a new note clearly continues an earlier one. Nothing is added without a tap.';
+
+  @override
+  String get searchByMeaning => 'Found by meaning';
 }

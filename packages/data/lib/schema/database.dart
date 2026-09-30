@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:nex_core/nex_core.dart' show stableUuidV5;
 import 'package:path/path.dart' as p;
@@ -6,6 +7,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../repositories/note_repository.dart' show suggestedStarterTags;
 import 'restore_transaction.dart';
+import '../search/vector_index.dart';
 import 'write_lock.dart';
 
 /// Opens (or creates) the Nex SQLite database and applies the Phase 1 schema.
@@ -110,14 +112,49 @@ CREATE TABLE IF NOT EXISTS note_tags (
 
     // FTS5 content table for text-note bodies only (FR-4.2 / ADR-028).
     // ZWNJ (U+200C) listed in separators so Persian compounds tokenize cleanly.
+    //
+    // `prefix = '1 2 3'` (W2.3): the last word of every query is a prefix
+    // ("boi" while typing "boiler"), and a short prefix expands to every
+    // word that starts with it — hundreds of doclists merged per keystroke.
+    // Prefix indexes for one to three characters make those lookups direct:
+    // at 50,000 notes a two-letter prefix went from 150 ms to under 40.
     final zwnj = String.fromCharCode(0x200C);
-    db.execute('''
-CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+    String ftsTable(String name) =>
+        '''
+CREATE VIRTUAL TABLE IF NOT EXISTS $name USING fts5(
   note_id UNINDEXED,
   content,
-  tokenize = "unicode61 remove_diacritics 2 separators ' $zwnj'"
+  tokenize = "unicode61 remove_diacritics 2 separators ' $zwnj'",
+  prefix = '1 2 3'
 );
-''');
+''';
+    db.execute(ftsTable('notes_fts'));
+    // Libraries indexed before the prefix option: rebuilt once, in one
+    // transaction, from the index's own content.
+    final ftsSql =
+        db
+                .select(
+                  "SELECT sql FROM sqlite_master WHERE name = 'notes_fts'",
+                )
+                .first['sql']
+            as String;
+    if (!ftsSql.contains('prefix')) {
+      db.beginImmediate();
+      try {
+        db.execute('DROP TABLE IF EXISTS notes_fts_rebuilt');
+        db.execute(ftsTable('notes_fts_rebuilt'));
+        db.execute(
+          'INSERT INTO notes_fts_rebuilt (note_id, content) '
+          'SELECT note_id, content FROM notes_fts',
+        );
+        db.execute('DROP TABLE notes_fts');
+        db.execute('ALTER TABLE notes_fts_rebuilt RENAME TO notes_fts');
+        db.execute('COMMIT');
+      } catch (_) {
+        db.execute('ROLLBACK');
+        rethrow;
+      }
+    }
 
     db.execute(
       'CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at DESC);',
@@ -196,6 +233,19 @@ CREATE TABLE IF NOT EXISTS note_embeddings (
   updated_at TEXT NOT NULL
 );
 ''');
+    // W2.1: the vectors as BLOBs — unit-length float32 and an int8 copy with
+    // its scale; see `VectorCodec`. `values_json` stays for older databases
+    // and is emptied as each row is re-encoded.
+    _addColumnIfMissing('note_embeddings', 'vec', 'BLOB');
+    _addColumnIfMissing('note_embeddings', 'q8', 'BLOB');
+    _addColumnIfMissing('note_embeddings', 'scale', 'REAL NOT NULL DEFAULT 0');
+    // What tells the in-memory index that another connection changed the
+    // vectors: a count and the newest write, which this makes a lookup.
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_note_embeddings_updated '
+      'ON note_embeddings(updated_at);',
+    );
+    _reencodeEmbeddings();
 
     // The recurring obligations — the insurance, the rent, the tablet every
     // eight hours. Deliberately a table of their own rather than notes with a
@@ -424,6 +474,51 @@ CREATE TABLE notes_rebuilt (
     } finally {
       db.execute('PRAGMA foreign_keys = ON;');
     }
+  }
+
+  /// Moves vectors stored as JSON text into the BLOB columns, a batch per
+  /// transaction so a large library never holds the write lock for long, and
+  /// resumable: a run cut short leaves the rest for the next open.
+  void _reencodeEmbeddings() {
+    while (true) {
+      final rows = db.select(
+        "SELECT note_id, values_json FROM note_embeddings "
+        "WHERE vec IS NULL AND values_json != '' LIMIT 200",
+      );
+      if (rows.isEmpty) return;
+      db.beginImmediate();
+      try {
+        for (final row in rows) {
+          final values = _parseJsonVector(row['values_json']! as String);
+          final encoded = VectorCodec.encode(values);
+          db.execute(
+            "UPDATE note_embeddings SET vec = ?, q8 = ?, scale = ?, "
+            "values_json = '' WHERE note_id = ?",
+            [
+              encoded?.vec ?? Uint8List(0),
+              encoded?.q8 ?? Uint8List(0),
+              encoded?.scale ?? 0.0,
+              row['note_id'],
+            ],
+          );
+        }
+        db.execute('COMMIT');
+      } catch (_) {
+        db.execute('ROLLBACK');
+        rethrow;
+      }
+    }
+  }
+
+  static List<double> _parseJsonVector(String json) {
+    final trimmed = json.trim();
+    if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) return const [];
+    final inner = trimmed.substring(1, trimmed.length - 1).trim();
+    if (inner.isEmpty) return const [];
+    return [
+      for (final part in inner.split(','))
+        if (double.tryParse(part.trim()) case final value?) value,
+    ];
   }
 
   void _addColumnIfMissing(String table, String column, String type) {

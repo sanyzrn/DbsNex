@@ -53,6 +53,17 @@ abstract interface class NoteRepository {
 
   List<NoteEmbedding> listEmbeddings();
 
+  /// The notes whose embeddings are closest to [query] by cosine similarity,
+  /// best first: at most [limit], none below [minScore], never a deleted
+  /// note, never [excludeNoteId]. How every semantic search and "related
+  /// notes" asks, so no caller ever has to load the whole library's vectors.
+  List<({String noteId, double score})> nearestEmbeddings(
+    List<double> query, {
+    int limit,
+    double minScore,
+    String? excludeNoteId,
+  });
+
   /// Notes with text and no embedding yet, newest first.
   ///
   /// Separate from `listNeedingEnrichment`, which only ever returns media

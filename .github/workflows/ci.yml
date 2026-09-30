@@ -181,6 +181,33 @@ jobs:
       - run: dart analyze --fatal-infos
       - run: dart test
 
+  # W2.3: search at 50,000 notes, each with a 1,536-dimension embedding —
+  # keyword, meaning and fused, each held to a p95. Its own job because
+  # seeding takes a minute that the ordinary suite should not pay; the test
+  # is tagged `budget` and skipped by `dart test` everywhere else.
+  retrieval-budget:
+    name: packages/data retrieval budget (50k notes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: changes
+    if: needs.changes.outputs.dart == 'true'
+    defaults:
+      run:
+        working-directory: packages/data
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.9.0"
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      - uses: actions/cache@v6
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml') }}
+          restore-keys: pub-${{ runner.os }}-
+      - run: dart pub get
+      - run: dart test --tags budget --run-skipped test/retrieval_budget_test.dart
+
   core-boundary:
     name: packages/core must not re-export the storage layer
     runs-on: ubuntu-latest
@@ -760,6 +787,7 @@ jobs:
     needs:
       - changes
       - dart-packages
+      - retrieval-budget
       - core-boundary
       - widget-layouts
       - flutter-ai-package

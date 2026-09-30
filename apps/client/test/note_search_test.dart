@@ -103,12 +103,11 @@ void main() {
       search.query.text = 'dinner';
       await search.run();
 
-      // Nothing in either note shares the word "dinner" — a keyword index
-      // finds nothing at all.
-      expect(search.results, isEmpty);
-      // But the soup note sits on the same meaning-axis as "dinner"; the
-      // budget note does not.
-      expect(search.semanticResults.map((n) => n.id), [meal.id]);
+      // Nothing in either note shares the word "dinner", but the soup note
+      // sits on the same meaning-axis; the budget note does not. It is in
+      // the one ranked list, marked as found by meaning (W2.2).
+      expect(search.results.map((n) => n.id), [meal.id]);
+      expect(search.meaningOnly, {meal.id});
     },
   );
 
@@ -128,12 +127,12 @@ void main() {
       await search.run();
 
       expect(search.results, isEmpty);
-      expect(search.semanticResults, isEmpty);
+      expect(search.meaningOnly, isEmpty);
     },
   );
 
   test(
-    'clear() drops any semantic results left over from the last search',
+    'clear() drops any meaning matches left over from the last search',
     () async {
       await services.worker.setAiCapabilities(
         const AiCapabilities(semanticSearch: true),
@@ -146,11 +145,32 @@ void main() {
       final search = NoteSearchController(services: services);
       search.query.text = 'dinner';
       await search.run();
-      expect(search.semanticResults, isNotEmpty);
+      expect(search.meaningOnly, isNotEmpty);
 
       search.clear();
 
-      expect(search.semanticResults, isEmpty);
+      expect(search.meaningOnly, isEmpty);
+      expect(search.results, isEmpty);
     },
   );
+
+  test('a word match and a meaning match share one list', () async {
+    await services.worker.setAiCapabilities(
+      const AiCapabilities(semanticSearch: true),
+    );
+    final meal = await services.captureText(
+      "My grandmother's soup recipe for winter",
+    );
+    final dinner = await services.captureText('dinner plans for Friday');
+    await services.worker.enrichNote(meal!.id);
+    await services.worker.enrichNote(dinner!.id);
+
+    final search = NoteSearchController(services: services);
+    search.query.text = 'dinner';
+    await search.run();
+
+    expect(search.results.map((n) => n.id), containsAll([dinner.id, meal.id]));
+    expect(search.results.first.id, dinner.id);
+    expect(search.meaningOnly, {meal.id});
+  });
 }

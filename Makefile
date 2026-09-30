@@ -4,7 +4,7 @@
 # matrix (see .github/workflows/ci.yml). This header used to say it mirrored
 # the pipeline one-to-one, and it never did.
 
-.PHONY: check check-dart check-ui check-client check-backend \
+.PHONY: check check-dart budget check-ui check-client check-backend \
         fmt clean bootstrap backend-dev migrate
 
 # Each Dart package resolves independently, and every lockfile is committed.
@@ -41,6 +41,11 @@ bootstrap:
 check-dart:
 	cd packages/core && dart analyze --fatal-infos && dart test
 	cd packages/data && dart analyze --fatal-infos && dart test
+
+# Search at 50,000 notes (W2.3): about a minute, so not part of `check`. CI
+# runs it as its own job.
+budget:
+	cd packages/data && dart test --tags budget --run-skipped test/retrieval_budget_test.dart
 
 # nex_ai is not one of those two, and putting it in that list broke this whole
 # file. It carries a Flutter dependency, so its dev dependency is

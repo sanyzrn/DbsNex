@@ -21,15 +21,19 @@ enum NoteDatePreset {
       end: now,
     ),
     last7Days => DateTimeRange(
-      start: DateTime(now.year, now.month, now.day).subtract(
-        const Duration(days: 6),
-      ),
+      start: DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(const Duration(days: 6)),
       end: now,
     ),
     last30Days => DateTimeRange(
-      start: DateTime(now.year, now.month, now.day).subtract(
-        const Duration(days: 29),
-      ),
+      start: DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(const Duration(days: 29)),
       end: now,
     ),
   };
@@ -57,11 +61,10 @@ class NoteSearchController extends ChangeNotifier {
   /// The closest thing the user did write, when nothing matched.
   Note? nearest;
 
-  /// Notes with no keyword overlap at all, surfaced by meaning instead —
-  /// only ever populated once keyword search has already come up empty, and
-  /// silently empty itself whenever semantic search is off or unconfigured
-  /// (see [NexServices.semanticSearch]).
-  List<Note> semanticResults = const [];
+  /// The results that no word of the query matched — found by meaning and
+  /// fused into [results] (W2.2). Empty whenever semantic search is off or
+  /// unconfigured. Kept so the list can say why such a note is there.
+  Set<String> meaningOnly = const {};
 
   /// Null until the first search resolves, so "no results" and "not searched
   /// yet" are different states rather than the same empty list.
@@ -176,59 +179,69 @@ class NoteSearchController extends ChangeNotifier {
       for (final name in typed.tagNames)
         if (_tagIdNamed(name) case final id?) id else _noSuchTag,
     ];
+    final filters = SearchFilters(
+      query: typed.text,
+      tagIds: {...tags, ...typedTagIds}.toList(),
+      types: {...types, ...typed.types}.toList(),
+      createdFrom: range?.start,
+      createdTo: range?.end.add(const Duration(days: 1)),
+    );
+    final trimmed = typed.text.trim();
     try {
-      final found = await services.search(
-        SearchFilters(
-          query: typed.text,
-          tagIds: {...tags, ...typedTagIds}.toList(),
-          types: {...types, ...typed.types}.toList(),
-          createdFrom: range?.start,
-          createdTo: range?.end.add(const Duration(days: 1)),
-        ),
-      );
-      final trimmed = typed.text.trim();
-      Note? close;
-      List<Note> semantic = const [];
-      if (found.isEmpty && trimmed.isNotEmpty) {
-        final widened = await Future.wait([
-          services.nearestMiss(trimmed),
-          _semanticMatches(trimmed),
-        ]);
-        close = widened[0] as Note?;
-        semantic = (widened[1] as List<Note>)
-            .where((note) => note.id != close?.id)
-            .toList();
+      // Keyword matches first, ranked: they come straight from the local
+      // index, so they are on screen while the meaning search is still
+      // asking the provider for the query's embedding.
+      final found = await services.search(filters);
+      if (current != _request) return;
+      // Shown now unless there is nothing to show yet: "nothing matches"
+      // flashing up before the meaning search answers would be wrong half
+      // the time.
+      if (found.isNotEmpty || trimmed.isEmpty) {
+        results = found;
+        meaningOnly = const {};
+        nearest = null;
+        _failure = null;
+        _hasRun = true;
+        notifyListeners();
+      }
+
+      if (trimmed.isEmpty) return;
+      // Then one list: the same matches fused with what means the same
+      // thing (W2.2). Without a provider this is the keyword ranking again,
+      // and nothing on screen moves.
+      List<Note> fused;
+      try {
+        fused = await services.fusedSearch(filters);
+      } catch (_) {
+        fused = found;
       }
       if (current != _request) return;
-      results = found;
-      nearest = close;
-      semanticResults = semantic;
+      final byWord = {for (final note in found) note.id};
       _failure = null;
+      nearest = null;
+      results = fused;
+      meaningOnly = {
+        for (final note in fused)
+          if (!byWord.contains(note.id)) note.id,
+      };
+      if (fused.isEmpty) {
+        final close = await services.nearestMiss(trimmed);
+        if (current != _request) return;
+        nearest = close;
+      }
     } catch (error) {
       // A newer query is already in flight and will report for itself; an
       // older one's failure is not news.
       if (current != _request) return;
       results = const [];
       nearest = null;
-      semanticResults = const [];
+      meaningOnly = const {};
       _failure = '$error';
     }
     // Either way the search has now been *attempted*, which is what stops the
     // skeletons. Reached only by the paths that did not return early above.
     _hasRun = true;
     notifyListeners();
-  }
-
-  /// Notes ranked by embedding similarity, resolved from ids to full [Note]s
-  /// here so the widget layer never has to cross the isolate boundary itself.
-  Future<List<Note>> _semanticMatches(String query) async {
-    final hits = await services.semanticSearch(query, limit: 5);
-    final notes = <Note>[];
-    for (final hit in hits) {
-      final note = await services.getById(hit.noteId);
-      if (note != null) notes.add(note);
-    }
-    return notes;
   }
 
   /// Back to a blank search, without disposing anything.
@@ -240,7 +253,7 @@ class NoteSearchController extends ChangeNotifier {
     range = null;
     results = const [];
     nearest = null;
-    semanticResults = const [];
+    meaningOnly = const {};
     _hasRun = false;
     _failure = null;
     notifyListeners();

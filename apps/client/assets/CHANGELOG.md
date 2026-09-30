@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v1.82.0
+
+- **Search puts the best match first.** Results are ranked by how well they match rather than by date.
+- **Words and meaning in one list.** With semantic search on, notes about the same thing join the results even without a shared word, marked "Found by meaning" — no longer only when nothing else matched.
+- **Much faster meaning search.** On a large library it answers in a fraction of the time and the database takes far less space. The first launch after updating converts the stored vectors once.
+- **Typing a search stays quick** in large libraries, even for one or two letters.
+- **The assistant looks up what you ask about.** Each question brings in the notes that best match it, so answers come from the notes about your question, not only the most recent ones.
+
 ## v1.81.0
 
 - **The assistant shows which notes it used.** An answer drawn from your notes lists them underneath; tap one to open it. With "Stay in my notes" off, an answer from general knowledge says so.

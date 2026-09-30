@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' show Random;
+import 'dart:typed_data';
 
 import 'package:archive/archive_io.dart';
 import 'package:nex_core/nex_core.dart';
@@ -10,6 +11,7 @@ import 'package:sqlite3/sqlite3.dart';
 import '../schema/backup_archive.dart';
 import '../schema/database.dart';
 import '../schema/write_lock.dart';
+import '../search/vector_index.dart';
 import '../schema/zip_file_writer.dart';
 
 /// Suggested starter tags (FR-3.3) — offered, never enforced.
@@ -217,7 +219,7 @@ WHERE id = ? AND deleted_at IS NULL
           id,
         ],
       );
-      db.execute('DELETE FROM note_embeddings WHERE note_id = ?', [id]);
+      _forgetEmbedding(id);
       _reindex(id);
       db.execute('COMMIT');
     } catch (_) {
@@ -260,7 +262,7 @@ WHERE id = ? AND deleted_at IS NULL
           noteId,
         ],
       );
-      db.execute('DELETE FROM note_embeddings WHERE note_id = ?', [noteId]);
+      _forgetEmbedding(noteId);
       _reindex(noteId);
       db.execute('COMMIT');
     } catch (_) {
@@ -443,6 +445,27 @@ LIMIT ? OFFSET ?
     return rows
         .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
         .toList();
+  }
+
+  /// The tags of every note in [noteIds], in one query rather than one each.
+  Map<String, List<Tag>> tagsForNotes(List<String> noteIds) {
+    final out = <String, List<Tag>>{for (final id in noteIds) id: <Tag>[]};
+    for (var at = 0; at < noteIds.length; at += 500) {
+      final chunk = noteIds.sublist(
+        at,
+        at + 500 > noteIds.length ? noteIds.length : at + 500,
+      );
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      for (final row in db.select('''
+SELECT nt.note_id AS owner, t.* FROM tags t
+INNER JOIN note_tags nt ON nt.tag_id = t.id
+WHERE nt.note_id IN ($placeholders)
+ORDER BY t.name COLLATE NOCASE
+''', chunk)) {
+        out[row['owner']! as String]!.add(Tag.fromRow(row));
+      }
+    }
+    return out;
   }
 
   List<Tag> tagsForNote(String noteId) {
@@ -1041,19 +1064,146 @@ WHERE deleted_at IS NULL
 
   @override
   void setEmbedding(String noteId, List<double> values) {
-    final json = '[${values.join(',')}]';
+    // An empty or directionless vector is still written — as the marker that
+    // says "asked, and there is nothing" — so the note is not retried.
+    final encoded = VectorCodec.encode(values);
     final now = DateTime.now().toUtc().toIso8601String();
     db.execute(
       '''
-INSERT INTO note_embeddings (note_id, dims, values_json, updated_at)
-VALUES (?, ?, ?, ?)
+INSERT INTO note_embeddings (note_id, dims, values_json, updated_at, vec, q8, scale)
+VALUES (?, ?, '', ?, ?, ?, ?)
 ON CONFLICT(note_id) DO UPDATE SET
   dims = excluded.dims,
-  values_json = excluded.values_json,
-  updated_at = excluded.updated_at
+  values_json = '',
+  updated_at = excluded.updated_at,
+  vec = excluded.vec,
+  q8 = excluded.q8,
+  scale = excluded.scale
 ''',
-      [noteId, values.length, json, now],
+      [
+        noteId,
+        encoded == null ? 0 : values.length,
+        now,
+        encoded?.vec ?? Uint8List(0),
+        encoded?.q8 ?? Uint8List(0),
+        encoded?.scale ?? 0.0,
+      ],
     );
+    final index = _vectors;
+    if (index != null) {
+      if (encoded == null) {
+        index.remove(noteId);
+      } else if (index.dims == values.length) {
+        index.put(noteId, encoded.q8, encoded.scale);
+      } else {
+        // A different space arriving; the next search rebuilds.
+        _vectors = null;
+      }
+      _vectorsSignature = _embeddingsSignature();
+    }
+  }
+
+  /// The in-memory quantised vectors, built on the first semantic search and
+  /// kept in step with every write this connection makes (W2.1).
+  VectorIndex? _vectors;
+
+  /// What the table looked like when [_vectors] last matched it. A different
+  /// answer means another connection — the share window — wrote vectors,
+  /// and the index is rebuilt rather than trusted.
+  String? _vectorsSignature;
+
+  String _embeddingsSignature() {
+    final row = db
+        .select(
+          'SELECT COUNT(*) AS c, MAX(updated_at) AS m FROM note_embeddings',
+        )
+        .first;
+    return '${row['c']}|${row['m']}';
+  }
+
+  /// Drops one note's vector, and keeps the index in step.
+  void _forgetEmbedding(String noteId) {
+    db.execute('DELETE FROM note_embeddings WHERE note_id = ?', [noteId]);
+    final index = _vectors;
+    if (index != null) {
+      index.remove(noteId);
+      _vectorsSignature = _embeddingsSignature();
+    }
+  }
+
+  VectorIndex? _freshVectors() {
+    final signature = _embeddingsSignature();
+    if (_vectors != null && signature == _vectorsSignature) return _vectors;
+    final space = db.select(
+      'SELECT dims, COUNT(*) AS c FROM note_embeddings '
+      'WHERE length(q8) > 0 GROUP BY dims ORDER BY c DESC LIMIT 1',
+    );
+    if (space.isEmpty) {
+      _vectors = null;
+      _vectorsSignature = signature;
+      return null;
+    }
+    final index = VectorIndex(space.first['dims']! as int);
+    for (final row in db.select(
+      'SELECT note_id, q8, scale FROM note_embeddings '
+      'WHERE dims = ? AND length(q8) > 0',
+      [index.dims],
+    )) {
+      index.put(
+        row['note_id']! as String,
+        row['q8']! as Uint8List,
+        (row['scale']! as num).toDouble(),
+      );
+    }
+    _vectors = index;
+    _vectorsSignature = signature;
+    return index;
+  }
+
+  /// How many close candidates the quantised pass hands to the exact one.
+  /// Quantisation moves scores by around a hundredth; a few hundred
+  /// candidates is far more than that can reorder past.
+  static const _vectorCandidates = 200;
+
+  @override
+  List<({String noteId, double score})> nearestEmbeddings(
+    List<double> query, {
+    int limit = 20,
+    double minScore = 0,
+    String? excludeNoteId,
+  }) {
+    final unit = VectorCodec.unit(query);
+    if (unit == null || limit <= 0) return const [];
+    final index = _freshVectors();
+    if (index == null || index.dims != unit.length) return const [];
+    final candidates = index.nearest(
+      unit,
+      limit > _vectorCandidates ? limit : _vectorCandidates,
+      exclude: excludeNoteId == null ? null : {excludeNoteId},
+    );
+    if (candidates.isEmpty) return const [];
+    final placeholders = List.filled(candidates.length, '?').join(',');
+    final rows = db.select(
+      '''
+SELECT e.note_id, e.vec FROM note_embeddings e
+JOIN notes n ON n.id = e.note_id
+WHERE n.deleted_at IS NULL AND e.note_id IN ($placeholders)
+''',
+      [for (final c in candidates) c.id],
+    );
+    final scored = <({String noteId, double score})>[];
+    for (final row in rows) {
+      final vec = VectorCodec.decode(row['vec']! as Uint8List);
+      if (vec.length != unit.length) continue;
+      var dot = 0.0;
+      for (var i = 0; i < vec.length; i++) {
+        dot += vec[i] * unit[i];
+      }
+      if (dot < minScore) continue;
+      scored.add((noteId: row['note_id']! as String, score: dot));
+    }
+    scored.sort((a, b) => b.score.compareTo(a.score));
+    return scored.length > limit ? scored.sublist(0, limit) : scored;
   }
 
   /// Which model's vector space the stored embeddings belong to.
@@ -1083,7 +1233,10 @@ ON CONFLICT(note_id) DO UPDATE SET
   bool setEmbeddingSpace(String fingerprint) {
     final current = embeddingSpace;
     if (current == fingerprint) return false;
-    if (current != null) db.execute('DELETE FROM note_embeddings');
+    if (current != null) {
+      db.execute('DELETE FROM note_embeddings');
+      _vectors = null;
+    }
     db.execute(
       "INSERT OR REPLACE INTO nex_meta (key, value) "
       "VALUES ('embedding_space', ?)",
@@ -1095,10 +1248,12 @@ ON CONFLICT(note_id) DO UPDATE SET
   @override
   List<double>? getEmbedding(String noteId) {
     final rows = db.select(
-      'SELECT values_json FROM note_embeddings WHERE note_id = ?',
+      'SELECT vec, values_json FROM note_embeddings WHERE note_id = ?',
       [noteId],
     );
     if (rows.isEmpty) return null;
+    final vec = rows.first['vec'];
+    if (vec is Uint8List) return VectorCodec.decode(vec);
     return _parseVector(rows.first['values_json']! as String);
   }
 
@@ -1176,14 +1331,20 @@ LIMIT ?
         .toList();
   }
 
+  /// Every stored vector, decoded. For export and tests only: a search goes
+  /// through [nearestEmbeddings] and never loads the library this way.
   @override
   List<NoteEmbedding> listEmbeddings() {
-    final rows = db.select('SELECT note_id, values_json FROM note_embeddings');
+    final rows = db.select(
+      'SELECT note_id, vec, values_json FROM note_embeddings',
+    );
     return [
       for (final r in rows)
         NoteEmbedding(
           noteId: r['note_id']! as String,
-          values: _parseVector(r['values_json']! as String),
+          values: r['vec'] is Uint8List
+              ? VectorCodec.decode(r['vec']! as Uint8List)
+              : _parseVector(r['values_json']! as String),
         ),
     ];
   }
@@ -1199,27 +1360,29 @@ LIMIT ?
   /// FR-4 search: FTS on text content + AI-derived transcript/OCR when present.
   @override
   List<Note> search(SearchFilters filters) {
+    // A typed query is ranked (W2.2): best match first, not newest first. A
+    // search that is only filters — a tag, a type, a date — has nothing to
+    // rank and stays in the timeline's order.
+    if (filters.query.trim().isNotEmpty) return rankedSearch(filters);
+
+    final (where, args) = _filterClause(filters);
+    final sql =
+        '''
+SELECT n.* FROM notes n
+WHERE ${where.join(' AND ')}
+ORDER BY n.created_at DESC, n.rowid DESC
+''';
+    final rows = db.select(sql, args);
+    return rows
+        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
+        .toList();
+  }
+
+  /// The WHERE terms for everything in [filters] except the query, on notes
+  /// aliased `n`: live notes, all of the tags, the date range, the types.
+  (List<String>, List<Object?>) _filterClause(SearchFilters filters) {
     final where = <String>['n.deleted_at IS NULL'];
     final args = <Object?>[];
-
-    final q = filters.query.trim();
-    if (q.isNotEmpty) {
-      // FTS gives fast word and prefix matches. A literal substring fallback
-      // also finds the middle of a word ("tor" in "Generator"), which FTS5's
-      // unicode tokenizer cannot express. Both paths use the same indexed
-      // content, including transcripts and OCR, without treating % or _ as
-      // wildcards typed by the reader.
-      where.add('''
-n.id IN (
-  SELECT note_id FROM notes_fts WHERE notes_fts MATCH ?
-  UNION
-  SELECT note_id FROM notes_fts WHERE instr(lower(content), lower(?)) > 0
-)
-''');
-      args.add(_ftsQuery(q));
-      args.add(q);
-    }
-
     if (filters.tagIds.isNotEmpty) {
       final placeholders = List.filled(filters.tagIds.length, '?').join(',');
       where.add('''
@@ -1232,7 +1395,6 @@ n.id IN (
       args.addAll(filters.tagIds);
       args.add(filters.tagIds.length);
     }
-
     if (filters.createdFrom != null) {
       where.add('n.created_at >= ?');
       args.add(filters.createdFrom!.toUtc().toIso8601String());
@@ -1241,23 +1403,119 @@ n.id IN (
       where.add('n.created_at <= ?');
       args.add(filters.createdTo!.toUtc().toIso8601String());
     }
-
     if (filters.types.isNotEmpty) {
       final placeholders = List.filled(filters.types.length, '?').join(',');
       where.add('n.type IN ($placeholders)');
       args.addAll(filters.types.map((t) => t.wireName));
     }
+    return (where, args);
+  }
 
-    final sql =
+  /// How many keyword matches are ranked. Past a few hundred, nobody scrolls
+  /// a result list — they type another word.
+  static const rankedLimit = 200;
+
+  /// Keyword matches for [filters], best first: FTS5 matches by BM25, then
+  /// the matches only a substring finds ("tor" in "Generator"), newest first.
+  List<String> keywordRanked(SearchFilters filters, {int limit = rankedLimit}) {
+    final q = filters.query.trim();
+    if (q.isEmpty) return const [];
+    final (where, args) = _filterClause(filters);
+    final filter = where.join(' AND ');
+    // Deleted notes are taken out of the index when they are deleted, so a
+    // search with no filters needs nothing from `notes` at all — and at
+    // 50,000 notes the join was a primary-key lookup per match.
+    final unfiltered =
+        filters.tagIds.isEmpty &&
+        filters.types.isEmpty &&
+        filters.createdFrom == null &&
+        filters.createdTo == null;
+    final ids = <String>[
+      for (final row in db.select(
+        unfiltered
+            ? '''
+SELECT note_id AS id FROM notes_fts
+WHERE notes_fts MATCH ?
+ORDER BY bm25(notes_fts), rowid DESC
+LIMIT ?
+'''
+            : '''
+SELECT f.note_id AS id FROM notes_fts f
+JOIN notes n ON n.id = f.note_id
+WHERE notes_fts MATCH ? AND $filter
+ORDER BY bm25(notes_fts), n.created_at DESC, n.rowid DESC
+LIMIT ?
+''',
+        [_ftsQuery(q), if (!unfiltered) ...args, limit],
+      ))
+        row['id']! as String,
+    ];
+    if (ids.length < limit) {
+      final seen = ids.toSet();
+      for (final row in db.select(
+        '''
+SELECT f.note_id AS id FROM notes_fts f
+JOIN notes n ON n.id = f.note_id
+WHERE instr(lower(f.content), lower(?)) > 0 AND $filter
+ORDER BY n.created_at DESC, n.rowid DESC
+LIMIT ?
+''',
+        [q, ...args, limit],
+      )) {
+        final id = row['id']! as String;
+        if (seen.add(id)) ids.add(id);
+        if (ids.length >= limit) break;
+      }
+    }
+    return ids;
+  }
+
+  /// One ranked list for [filters]: its keyword matches fused with
+  /// [semantic], the ids a meaning search found, best first (W2.2). Meaning
+  /// matches are held to the same filters as keyword ones.
+  List<Note> rankedSearch(
+    SearchFilters filters, {
+    List<String> semantic = const [],
+    int limit = rankedLimit,
+  }) {
+    final keyword = keywordRanked(filters, limit: limit);
+    final candidates = {...keyword, ...semantic}.toList();
+    if (candidates.isEmpty) return const [];
+    final (where, args) = _filterClause(filters);
+    final facts = <String, FusionFacts>{};
+    final rows = <String, Row>{};
+    for (var at = 0; at < candidates.length; at += 500) {
+      final chunk = candidates.sublist(
+        at,
+        at + 500 > candidates.length ? candidates.length : at + 500,
+      );
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      for (final row in db.select(
         '''
 SELECT n.* FROM notes n
-WHERE ${where.join(' AND ')}
-ORDER BY n.created_at DESC, n.rowid DESC
-''';
-    final rows = db.select(sql, args);
-    return rows
-        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
-        .toList();
+WHERE n.id IN ($placeholders) AND ${where.join(' AND ')}
+''',
+        [...chunk, ...args],
+      )) {
+        final id = row['id']! as String;
+        rows[id] = row;
+        facts[id] = FusionFacts(
+          createdAt: DateTime.parse(row['created_at']! as String),
+          type: NoteType.fromWire(row['type']! as String),
+          pinned: row['pinned_at'] != null,
+        );
+      }
+    }
+    final ordered = FusedRanking.fuse(
+      keyword: keyword,
+      semantic: semantic,
+      facts: facts,
+      now: DateTime.now().toUtc(),
+      query: filters.query,
+    );
+    final kept = ordered.take(limit).toList();
+    final tags = tagsForNotes(kept);
+    return [for (final id in kept) Note.fromRow(rows[id]!, tags: tags[id]!)];
   }
 
   @override

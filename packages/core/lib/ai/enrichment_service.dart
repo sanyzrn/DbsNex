@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../models/note.dart';
@@ -24,7 +23,31 @@ class EnrichmentService {
   AIAdapter _adapter;
   AiCapabilities _capabilities;
 
-  void updateAdapter(AIAdapter adapter) => _adapter = adapter;
+  void updateAdapter(AIAdapter adapter) {
+    _adapter = adapter;
+    // A different provider is a different vector space.
+    _queryVectors.clear();
+  }
+
+  /// The last few queries' embeddings. A search runs as the reader types and
+  /// again when they refine it; asking the provider for "boiler" three times
+  /// in a row would spend a request, and its latency, to learn nothing new.
+  final _queryVectors = <String, List<double>>{};
+  static const _queryVectorCache = 32;
+
+  Future<List<double>?> _queryVector(String query) async {
+    final cached = _queryVectors.remove(query);
+    if (cached != null) return _queryVectors[query] = cached;
+    final call = _adapter.embed(query);
+    if (call == null) return null;
+    final vector = (await call).values;
+    if (vector.isEmpty) return null;
+    _queryVectors[query] = vector;
+    while (_queryVectors.length > _queryVectorCache) {
+      _queryVectors.remove(_queryVectors.keys.first);
+    }
+    return vector;
+  }
 
   void updateCapabilities(AiCapabilities capabilities) =>
       _capabilities = capabilities;
@@ -180,19 +203,17 @@ class EnrichmentService {
     if (!_capabilities.semanticSearch) return const [];
     final q = query.trim();
     if (q.isEmpty) return const [];
-    final call = _adapter.embed(q);
-    if (call == null) return const [];
     try {
-      final queryVec = await call;
-      final rows = _repo.listEmbeddings();
-      final scored = <SemanticHit>[];
-      for (final row in rows) {
-        final sim = _cosine(queryVec.values, row.values);
-        if (sim.isNaN || sim < _minSemanticSimilarity) continue;
-        scored.add(SemanticHit(noteId: row.noteId, score: sim));
-      }
-      scored.sort((a, b) => b.score.compareTo(a.score));
-      return scored.take(limit).toList();
+      final queryVec = await _queryVector(q);
+      if (queryVec == null) return const [];
+      return [
+        for (final hit in _repo.nearestEmbeddings(
+          queryVec,
+          limit: limit,
+          minScore: _minSemanticSimilarity,
+        ))
+          SemanticHit(noteId: hit.noteId, score: hit.score),
+      ];
     } catch (_) {
       return const [];
     }
@@ -201,16 +222,16 @@ class EnrichmentService {
   Future<List<SemanticHit>> relatedNotes(String noteId, {int limit = 5}) async {
     if (!_capabilities.relatedNotes) return const [];
     final emb = _repo.getEmbedding(noteId);
-    if (emb == null) return const [];
-    final rows = _repo.listEmbeddings().where((e) => e.noteId != noteId);
-    final scored = <SemanticHit>[];
-    for (final row in rows) {
-      final sim = _cosine(emb, row.values);
-      if (sim.isNaN) continue;
-      scored.add(SemanticHit(noteId: row.noteId, score: sim));
-    }
-    scored.sort((a, b) => b.score.compareTo(a.score));
-    return scored.take(limit).toList();
+    if (emb == null || emb.isEmpty) return const [];
+    return [
+      for (final hit in _repo.nearestEmbeddings(
+        emb,
+        limit: limit,
+        minScore: -1,
+        excludeNoteId: noteId,
+      ))
+        SemanticHit(noteId: hit.noteId, score: hit.score),
+    ];
   }
 
   Future<void> _transcribe(Note note) async {
@@ -316,33 +337,6 @@ class EnrichmentService {
           note.summaryText,
         ].whereType<String>().where((s) => s.trim().isNotEmpty).join('\n');
     }
-  }
-
-  /// Similarity, or NaN when the two are not comparable.
-  ///
-  /// This used to truncate to the shorter of the two and score whatever was
-  /// left, which is a number rather than an answer: half of one model's
-  /// vector against half of another's says nothing about the notes. Callers
-  /// already drop NaN, so refusing is the behaviour they were written for.
-  ///
-  /// A length check is the backstop, not the fix. The dangerous case is two
-  /// different models with the *same* dimensions — 1536 is common — where
-  /// nothing about the shapes reveals the mismatch. That one is handled
-  /// where it can be: the stored vectors are thrown away when the provider
-  /// or endpoint changes, so the library only ever holds one space at a
-  /// time. See `setEmbeddingSpace`.
-  double _cosine(List<double> a, List<double> b) {
-    if (a.length != b.length) return double.nan;
-    final n = a.length;
-    if (n == 0) return double.nan;
-    var dot = 0.0, na = 0.0, nb = 0.0;
-    for (var i = 0; i < n; i++) {
-      dot += a[i] * b[i];
-      na += a[i] * a[i];
-      nb += b[i] * b[i];
-    }
-    if (na == 0 || nb == 0) return double.nan;
-    return dot / (math.sqrt(na) * math.sqrt(nb));
   }
 }
 

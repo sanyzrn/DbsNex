@@ -1,0 +1,6 @@
+# The 50,000-note retrieval budget (test/retrieval_budget_test.dart) seeds for
+# about a minute, so it runs in its own CI job — `dart test --tags budget` —
+# rather than in every ordinary run.
+tags:
+  budget:
+    skip: "Run with: dart test --tags budget"

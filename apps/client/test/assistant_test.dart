@@ -948,6 +948,43 @@ Sure, here you go:
       expect(find.byType(NoteDetailSheet), findsOneWidget);
     });
 
+    testWidgets('the notes matching a question reach the model (W2.4)', (
+      tester,
+    ) async {
+      // Nothing volunteered: the only way the model can know about this note
+      // is the search the question itself runs.
+      await preferences.setAiNotesContextCount(0);
+      final note = (await services.captureText('the boiler code is 4471'))!;
+      await services.captureText('buy milk');
+      final bodies = <String>[];
+      await openSheet(
+        tester,
+        client: MockClient((request) async {
+          bodies.add(request.body);
+          return http.Response.bytes(
+            utf8.encode(
+              jsonEncode({
+                'choices': [
+                  {
+                    'message': {'content': 'It is 4471.'},
+                  },
+                ],
+              }),
+            ),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        }),
+      );
+      await tester.enterText(find.byType(TextField).last, 'boiler code');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+
+      expect(bodies, isNotEmpty);
+      expect(bodies.last, contains(note.id));
+      expect(bodies.last, isNot(contains('buy milk')));
+    });
+
     testWidgets('an invented id makes no chip', (tester) async {
       await openSheet(
         tester,

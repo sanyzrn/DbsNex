@@ -743,6 +743,11 @@ class NexServices {
   Future<List<SemanticHit>> semanticSearch(String query, {int limit = 20}) =>
       worker.semanticSearch(query, limit: limit);
 
+  /// Keyword and meaning search as one ranked list (W2.2). Slower than
+  /// [search] by one embedding request, so callers show [search] first.
+  Future<List<Note>> fusedSearch(SearchFilters filters) =>
+      worker.fusedSearch(filters);
+
   /// How many notes [refreshTimeline] keeps in the stream.
   ///
   /// Every mutation elsewhere — capture, tag edit, delete, sync — calls
