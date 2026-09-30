@@ -54,6 +54,7 @@ import '../widgets/reminder_picker.dart';
 import '../widgets/swipe_actions.dart';
 import '../widgets/tag_picker.dart';
 import 'home_layout_sheet.dart';
+import 'camera_sheet.dart';
 import 'tools_screen.dart';
 import 'intelligence_screen.dart';
 import 'library_screen.dart';
@@ -1685,15 +1686,27 @@ class TimelineScreenState extends State<TimelineScreen>
     }
   }
 
+  /// A photo from Nex's own camera panel, or from the library. The phone's
+  /// camera app is the fallback when the panel cannot open a camera.
+  Future<XFile?> _pickPhoto(ImageSource source) async {
+    if (source == ImageSource.camera &&
+        (Platform.isAndroid || Platform.isIOS)) {
+      try {
+        return await showNexCamera(context);
+      } on NexCameraUnavailable {
+        if (!mounted) return null;
+      }
+    }
+    return ImagePicker().pickImage(source: source);
+  }
+
   Future<void> capturePhoto(ImageSource source) async {
     try {
       // Inside the try: this is the call that throws when the OS refuses the
       // camera or the photo library, which is the single most likely failure
       // and the one the old handler could not have caught.
       final recovered = widget.preferences.editorDrafts?.readImage('photo-new');
-      final picked = recovered == null
-          ? await ImagePicker().pickImage(source: source)
-          : null;
+      final picked = recovered == null ? await _pickPhoto(source) : null;
       if (recovered == null && picked == null) return;
       final original = recovered ?? await picked!.readAsBytes();
       widget.preferences.editorDrafts?.writeImage('photo-new', original);
@@ -3360,16 +3373,17 @@ class TimelineScreenState extends State<TimelineScreen>
 /// this is not, so the tile was claiming an affordance the mark does not have,
 /// and it read as a fourth button that does nothing.
 ///
-/// Drawn from the brand's own vectors ([NexMark]) rather than a picture, so
-/// the octopus stays crisp at this size; [_size] is its height, which puts
-/// it on the same optical line as the icons across from it.
+/// The "nex" wordmark, drawn from the brand's own vectors ([NexLogotype])
+/// rather than a picture, so it stays crisp and follows light and dark.
+/// [_height] puts its letters on the same optical line as the icons across
+/// from it.
 class _WordmarkTile extends StatelessWidget {
   const _WordmarkTile();
 
-  static const _size = 28.0;
+  static const _height = 20.0;
 
   @override
-  Widget build(BuildContext context) => const NexMark(size: _size);
+  Widget build(BuildContext context) => const NexLogotype(height: _height);
 }
 
 /// "Good evening, Saeed ☀️" — the text and its animated mark on one line.

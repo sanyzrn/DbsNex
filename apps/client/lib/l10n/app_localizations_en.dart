@@ -3384,4 +3384,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get splashTagline => 'One mind. A thousand connections.';
+
+  @override
+  String get cameraClose => 'Close camera';
+
+  @override
+  String get cameraShutter => 'Take photo';
+
+  @override
+  String get cameraOptions => 'Camera options';
+
+  @override
+  String get cameraSwitch => 'Switch camera';
+
+  @override
+  String get cameraFlashOff => 'Flash off';
+
+  @override
+  String get cameraFlashAuto => 'Flash auto';
+
+  @override
+  String get cameraFlashOn => 'Flash on';
+
+  @override
+  String get cameraUnavailable =>
+      'Nex can\'t open the camera. Allow camera access for Nex in Android settings, or use the phone\'s camera app.';
+
+  @override
+  String get cameraUseSystem => 'Use the camera app';
 }

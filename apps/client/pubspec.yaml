@@ -93,6 +93,7 @@ dependencies:
   # every wall-clock schedule (the daily nudge, and any repeat matched on the
   # time of day) fire at the wrong hour by the device's offset.
   flutter_timezone: ^5.1.0
+  camera: ^0.12.0+1
 
 dev_dependencies:
   flutter_test:

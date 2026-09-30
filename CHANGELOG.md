@@ -34,6 +34,9 @@ Working convention:
 
 ## Unreleased
 
+- **Nex's own camera.** Taking a photo opens a panel over the timeline with the live view, a large shutter and a back button; ⋮ switches between front and back camera and sets the flash. Pull it down to close it. If the camera cannot be opened, Nex offers the phone's camera app instead.
+- **The wordmark in the corner.** The home screen's top corner shows the "nex" wordmark, in light and dark.
+
 ## v1.83.0
 
 - **A new face for Nex.** The octopus — one mind, many arms — is the new app icon, and the notification, Quick Settings tile and home-screen widget use it too.

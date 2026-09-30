@@ -1319,5 +1319,14 @@
   "threadSuggestionsSubtitle": "فقط وقتی یادداشت تازه آشکارا ادامهٔ یادداشت قبلی باشد. بدون لمس شما چیزی اضافه نمی‌شود.",
   "searchByMeaning": "یافته بر اساس معنا",
   "splashTagline": "یک ذهن. هزار اتصال.",
-  "@splashTagline": {"description": "The line under the Nex wordmark on the opening screen: the octopus mark, one mind with many arms, joining the pieces of a life."}
+  "@splashTagline": {"description": "The line under the Nex wordmark on the opening screen: the octopus mark, one mind with many arms, joining the pieces of a life."},
+  "cameraClose": "بستن دوربین",
+  "cameraShutter": "گرفتن عکس",
+  "cameraOptions": "گزینه‌های دوربین",
+  "cameraSwitch": "چرخش دوربین",
+  "cameraFlashOff": "فلاش خاموش",
+  "cameraFlashAuto": "فلاش خودکار",
+  "cameraFlashOn": "فلاش روشن",
+  "cameraUnavailable": "نکس نمی‌تواند دوربین را باز کند. در تنظیمات اندروید دسترسی دوربین را به نکس بدهید، یا از برنامهٔ دوربین گوشی استفاده کنید.",
+  "cameraUseSystem": "استفاده از برنامهٔ دوربین"
 }
