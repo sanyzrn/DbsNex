@@ -9,23 +9,20 @@ that a copy of Nex asked; the answer is the same for everyone who asks.
 
 ## Publishing one
 
-Commit a file named `banner.json` to the root of the releases repository —
-the same host the updater already reads:
+Put a file named `banner.json` at the root of the maker's site:
 
 ```
-https://raw.githubusercontent.com/sanyzrn/DbsNex-releases/main/banner.json
+https://saeedzarrini.ir/banner.json
 ```
 
 Taking a card down is deleting that file. A 404 is not an error: it is how a
 campaign ends, and the app clears its cache when it sees one.
 
-`raw.githubusercontent.com` is filtered on many networks in Iran. When it
-cannot be reached at all, the app asks jsDelivr's copy of the same file
-(`https://cdn.jsdelivr.net/gh/sanyzrn/DbsNex-releases@main/banner.json`), and
-does the same for a picture hosted on `raw.githubusercontent.com`. jsDelivr
-caches for up to 12 hours, so a change can take that long to reach phones on
-the mirror; purge it at `https://purge.jsdelivr.net/gh/sanyzrn/DbsNex-releases@main/banner.json`
-to hurry it. A 404 from GitHub itself is final and the mirror is not asked.
+The card's picture may be hosted anywhere. A picture on
+`raw.githubusercontent.com`, which is filtered on many networks in Iran, is
+fetched from jsDelivr's copy of the same file when GitHub cannot be reached;
+jsDelivr caches for up to 12 hours. (Until 1.90 the card itself lived in the
+releases repository and used the same fallback.)
 
 ## The file
 

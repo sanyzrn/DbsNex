@@ -140,15 +140,11 @@ class NexSponsorService {
   }) : _client = client,
        _now = now ?? DateTime.now;
 
-  /// Beside the releases, on the host that already serves them.
-  ///
-  /// No new infrastructure and no new trust boundary: this is the same
-  /// repository the updater reads, so a build that can be updated can already
-  /// reach it. Publishing a card is committing a file; taking it down is
-  /// deleting one, and a 404 is the "nothing to show" case working exactly as
-  /// intended.
+  /// On the maker's own site. Publishing a card is putting a file there;
+  /// taking it down is deleting it, and a 404 is the "nothing to show" case
+  /// working exactly as intended.
   static const defaultEndpoint =
-      'https://raw.githubusercontent.com/sanyzrn/DbsNex-releases/main/banner.json';
+      'https://saeedzarrini.ir/banner.json';
 
   static const refreshInterval = Duration(hours: 24);
 
