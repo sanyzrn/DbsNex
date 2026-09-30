@@ -78,6 +78,14 @@ class _FakeNoteRepository implements NoteRepository {
   List<NoteEmbedding> listEmbeddings() => [];
 
   @override
+  List<({String noteId, double score})> nearestEmbeddings(
+    List<double> query, {
+    int limit = 20,
+    double minScore = 0,
+    String? excludeNoteId,
+  }) => const [];
+
+  @override
   List<Note> listNeedingEmbedding({int limit = 25}) => [];
 
   @override

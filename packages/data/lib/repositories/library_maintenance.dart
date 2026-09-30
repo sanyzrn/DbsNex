@@ -120,9 +120,10 @@ class LibraryMaintenance {
   ///
   /// Asked after the purge has deleted its own rows, so anything this finds
   /// belongs to a note that is still there.
-  bool _stillReferenced(String uri) => repo.db
-      .select('SELECT 1 FROM notes WHERE media_uri = ? LIMIT 1', [uri])
-      .isNotEmpty;
+  bool _stillReferenced(String uri) => repo.db.select(
+    'SELECT 1 FROM notes WHERE media_uri = ? LIMIT 1',
+    [uri],
+  ).isNotEmpty;
 
   /// A file is only ever deleted when it is inside [mediaRoot]. The path in
   /// a note row was written by this app, but purging is destructive enough
@@ -158,7 +159,10 @@ class LibraryMaintenance {
   /// person an answer about that.
   ///
   /// Returns how many files were removed.
-  int sweepOrphanMedia({String? mediaDir, Duration minAge = const Duration(hours: 1)}) {
+  int sweepOrphanMedia({
+    String? mediaDir,
+    Duration minAge = const Duration(hours: 1),
+  }) {
     final root = mediaDir ?? mediaRoot;
     if (root == null) return 0;
     final dir = Directory(root);
