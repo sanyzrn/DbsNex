@@ -96,7 +96,7 @@ The vault uses the phone's secure storage and never enters notes, widgets, searc
 
 **Settings → Appearance → Theme** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier or Forest retreat. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.
 
-At the end of the Theme page, **App icon** changes the icon on your home screen to one of six; a home-screen shortcut may need adding again afterwards.
+At the end of the Theme page, **App icon** changes the icon on your home screen to one of six — the octopus on dark, light or blue, the "nex" wordmark on dark or light, or the previous swirl; a home-screen shortcut may need adding again afterwards.
 
 Language, calendar and the home-screen widget are also under Appearance. The field at the top of Settings finds any setting by name, or by something on the page it opens — "accent" finds Theme. The Persian calendar changes how dates are shown and picked, independently of the interface language; what is stored never changes. Settings remembers which categories you opened; Security, Intelligence and Appearance start open.
 

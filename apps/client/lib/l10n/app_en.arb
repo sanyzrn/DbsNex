@@ -2549,5 +2549,7 @@
   "@threadAdded": {"placeholders": {"name": {"type": "String"}}},
   "threadSuggestions": "Suggest threads after a capture",
   "threadSuggestionsSubtitle": "Only when a new note clearly continues an earlier one. Nothing is added without a tap.",
-  "searchByMeaning": "Found by meaning"
+  "searchByMeaning": "Found by meaning",
+  "splashTagline": "One mind. A thousand connections.",
+  "@splashTagline": {"description": "The line under the Nex wordmark on the opening screen: the octopus mark, one mind with many arms, joining the pieces of a life."}
 }

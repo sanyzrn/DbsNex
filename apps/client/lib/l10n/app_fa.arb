@@ -1317,5 +1317,7 @@
   "@threadAdded": {"placeholders": {"name": {"type": "String"}}},
   "threadSuggestions": "پیشنهاد رشته پس از ثبت",
   "threadSuggestionsSubtitle": "فقط وقتی یادداشت تازه آشکارا ادامهٔ یادداشت قبلی باشد. بدون لمس شما چیزی اضافه نمی‌شود.",
-  "searchByMeaning": "یافته بر اساس معنا"
+  "searchByMeaning": "یافته بر اساس معنا",
+  "splashTagline": "یک ذهن. هزار اتصال.",
+  "@splashTagline": {"description": "The line under the Nex wordmark on the opening screen: the octopus mark, one mind with many arms, joining the pieces of a life."}
 }

@@ -3381,4 +3381,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchByMeaning => 'Found by meaning';
+
+  @override
+  String get splashTagline => 'One mind. A thousand connections.';
 }

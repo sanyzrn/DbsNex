@@ -18,6 +18,7 @@ import 'platform/os_capture_bridge.dart';
 import 'platform/share_window.dart';
 import 'restart_scope.dart';
 import 'widgets/nex_banner.dart';
+import 'widgets/nex_splash.dart';
 
 class NexBootstrapHost extends StatefulWidget {
   const NexBootstrapHost({super.key});
@@ -33,7 +34,10 @@ class NexBootstrapHost extends StatefulWidget {
 /// whatever [NexServices.bootstrap] happened to take. This never adds latency
 /// beyond that: it races the real work against a timer and waits for whichever
 /// finishes last, so a slow cold start is never held up by it.
-const _minimumSplashDuration = Duration(milliseconds: 900);
+///
+/// Long enough for the opening animation to finish, with a moment on its last
+/// frame: the timer starts a frame or two before the splash is first drawn.
+const _minimumSplashDuration = Duration(milliseconds: 2000);
 
 class _NexBootstrapHostState extends State<NexBootstrapHost> {
   late Future<_Ready> _future;
@@ -66,8 +70,8 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     final silent = await _silentFuture;
     // The floor exists so a warm start does not flash the brand mark for one
     // frame. A window that never draws has no mark to flash, and holding it
-    // open for another nine hundred milliseconds is nine hundred milliseconds
-    // before the person is told their note was saved.
+    // open for another two seconds is two seconds before the person is told
+    // their note was saved.
     final delay = silent
         ? Future<void>.value()
         : Future<void>.delayed(_minimumSplashDuration);
@@ -96,7 +100,11 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     try {
       await bridge.start();
     } catch (error) {
-      unawaited(NexServices.noteDiagnostic('shared capture failed: ${error.runtimeType}'));
+      unawaited(
+        NexServices.noteDiagnostic(
+          'shared capture failed: ${error.runtimeType}',
+        ),
+      );
     }
 
     // What the home-screen widgets read. Started after the share above, so
@@ -118,7 +126,11 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
     try {
       await widgets.start();
     } catch (error) {
-      unawaited(NexServices.noteDiagnostic('widget snapshot failed: ${error.runtimeType}'));
+      unawaited(
+        NexServices.noteDiagnostic(
+          'widget snapshot failed: ${error.runtimeType}',
+        ),
+      );
     }
 
     if (silent) {
@@ -251,7 +263,7 @@ class _NexBootstrapHostState extends State<NexBootstrapHost> {
           child: Builder(
             builder: (context) => Semantics(
               label: AppLocalizations.of(context).opening,
-              child: const _Wordmark(),
+              child: const NexSplash(),
             ),
           ),
         ),

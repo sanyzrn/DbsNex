@@ -4,8 +4,8 @@
          fill, so the adaptive-icon background layer never shows a seam
          against the foreground bitmap's baked-in corners. -->
     <color name="nex_icon_background">#1D1D1D</color>
-    <color name="nex_launch_light">#FFFFFF</color>
-    <color name="nex_launch_dark">#0A0A0A</color>
+    <color name="nex_launch_light">#F5F6F6</color>
+    <color name="nex_launch_dark">#131312</color>
 
     <!-- The home-screen widgets' palette, copied token for token from
          packages/ui/lib/tokens/nex_tokens.dart (NexColors). The widget cannot

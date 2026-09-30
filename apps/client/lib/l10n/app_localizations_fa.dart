@@ -3310,4 +3310,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get searchByMeaning => 'یافته بر اساس معنا';
+
+  @override
+  String get splashTagline => 'یک ذهن. هزار اتصال.';
 }
