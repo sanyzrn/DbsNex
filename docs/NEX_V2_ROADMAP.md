@@ -1,6 +1,6 @@
 # Nex 2.0 — Analysis and Roadmap
 
-> **Status:** Proposal · **Written at:** v1.21.0 · **Revised at:** v1.81.0 ·
+> **Status:** Proposal · **Written at:** v1.21.0 · **Revised at:** v1.82.0 ·
 > **Decides nothing on its own.** What has shipped from it is listed in §13
 > and taken out of the plan.
 > Anything here that survives review becomes an ADR in
@@ -53,7 +53,7 @@ Measured at `5deb554` (v1.80.2), not estimated.
 | Sync | engine implemented end to end; **no way to set it up in the app** |
 | Encryption at rest | none for the library; the private vault uses the platform keystore |
 | Telemetry | none, of any kind |
-| Search budget in CI | 2,000 notes, 200 ms |
+| Search budget in CI | 2,000 notes, 200 ms in every run; 50,000 notes at p95 in its own job (since 1.82) |
 
 **What is genuinely strong**, and should be protected rather than rewritten:
 
@@ -120,18 +120,11 @@ does not exist:
 The architecture's biggest investment returns nothing to a user today. That is
 the clearest gap in the product and, by itself, would justify a major version.
 
-### 2.3 Retrieval will not scale, and there are three of it
+### 2.3 Retrieval — resolved in 1.82
 
-`note_embeddings` stores each vector as `values_json TEXT`, and
-`listEmbeddings()` selects **every row** and parses each vector from a string.
-For 10,000 notes at 1,536 dimensions that is roughly 15 million `double.parse`
-calls per semantic search. On a mid-range phone that is not a sub-three-second
-search; at 50,000 notes it is not a search at all.
-
-There are also three retrieval paths that do not know about each other: FTS5
-over `content`/`transcript_text`/`ocr_text`; the embedding scan; and the
-assistant's own context building. They rank separately and improve separately.
-The CI budget (2,000 notes) is far below the size where this breaks.
+Vectors were JSON text parsed on every search (5.2 s at 10,000 notes), and
+keyword search, meaning search and the assistant ranked separately. All of W2
+shipped in 1.82; see §13 for what changed and the numbers.
 
 ### 2.4 The client's architecture cannot absorb many more features
 
@@ -221,21 +214,7 @@ infrastructure, reusing the existing complete-backup format and recovery code.
 
 ### W2 — Retrieval
 
-**W2.1 Get vectors out of JSON.** Packed `float32` in a `BLOB`, plus an
-`int8`-quantised copy for a first pass: scan the quantised buffer, take the top
-~200, re-rank exactly. No native vector extension, `packages/data` stays pure
-Dart. **Measure before committing.** Existing rows are re-encoded; embeddings
-are derivable, so the fallback is a re-embed.
-
-**W2.2 One ranked result.** Reciprocal-rank fusion of FTS rank and vector
-similarity, then recency and type boosts. The user types once and gets one list.
-
-**W2.3 A retrieval budget at real size.** Seed 50,000 synthetic notes and assert
-p95 latency for keyword, semantic and fused search in CI (a separate, slower job
-if needed; today's budget is 2,000 notes).
-
-**W2.4 The assistant retrieves through the same path.** One ranking to improve,
-and one place that can answer "what did Nex consider?". Mostly deletion.
+All of W2 shipped in 1.82 — see §13.
 
 ### W3 — Trust
 
@@ -318,26 +297,25 @@ separate authenticator app.
 **Must have for 2.0:**
 
 1. W4.1 text surface, W4.3 harness, W4.5 overlay rule
-2. W2.1 + W2.2 + W2.3 retrieval that scales and fuses
-3. W1.1 + W1.2 pairing and automatic sync
-4. W1.5 a second device actually shipping *(Windows)*
-5. W3.2 the disclosure screen and its ADR
+2. W1.1 + W1.2 pairing and automatic sync
+3. W1.5 a second device actually shipping *(Windows)*
+4. W3.2 the disclosure screen and its ADR
 
 **Should have:**
 
-6. W1.3 media sync
-7. W1.6 continuity without a server
-8. W3.1 encryption at rest — only when the migration is proved
-9. W4.2 screen decomposition — continuous
-10. W6.1 accessibility, W6.2 goldens, W6.3 performance budgets
-11. W3.4 local metrics, W1.4 conflict surface
+5. W1.3 media sync
+6. W1.6 continuity without a server
+7. W3.1 encryption at rest — only when the migration is proved
+8. W4.2 screen decomposition — continuous
+9. W6.1 accessibility, W6.2 goldens, W6.3 performance budgets
+10. W3.4 local metrics, W1.4 conflict surface
 
 **Could have / deferred to 2.1:**
 
-12. W3.3 end-to-end encrypted sync
-13. iOS
-14. W4.4 AI layer into its package
-15. W6.5 vault health — land opportunistically
+11. W3.3 end-to-end encrypted sync
+12. iOS
+13. W4.4 AI layer into its package
+14. W6.5 vault health — land opportunistically
 
 ---
 
@@ -348,15 +326,14 @@ Release numbers are indicative; the ordering is the argument.
 | Release | Theme | Contents |
 |---|---|---|
 | ~~1.81~~ | *Shipped* | W5.1–W5.4 and W6.6 — see §13 |
-| **1.82** | Foundation I | Phase names in `08-roadmap.md` fixed · W3.2 disclosure screen + privacy ADR · W4.3 harness · W6.4 nightly stress job |
-| **1.83** | Foundation II | W4.1 text surface · W4.5 overlay rule · W4.2 begins · W6.2 goldens |
-| **1.84** | Retrieval, invisible | W2.1 vectors out of JSON · W2.3 the 50k budget |
-| **1.85** | Retrieval, visible | W2.2 fused ranking · W2.4 assistant (and its citations) on the same retriever |
-| **1.86** | Safety net | W1.6 backup to a chosen folder · W6.1 accessibility |
-| **1.87** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
-| **1.88** | Continuity II | W1.3 media sync · W3.4 local metrics · W6.3 startup/scroll budgets |
-| **1.89** | The second device | W1.5 Windows un-paused, re-qualified, released |
-| **1.90** | Trust | W3.1 encryption at rest, behind a proved migration |
+| ~~1.82~~ | *Shipped* | W2.1–W2.4, retrieval — see §13 |
+| **1.83** | Foundation I | Phase names in `08-roadmap.md` fixed · W3.2 disclosure screen + privacy ADR · W4.3 harness · W6.4 nightly stress job |
+| **1.84** | Foundation II | W4.1 text surface · W4.5 overlay rule · W4.2 begins · W6.2 goldens |
+| **1.85** | Safety net | W1.6 backup to a chosen folder · W6.1 accessibility |
+| **1.86** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
+| **1.87** | Continuity II | W1.3 media sync · W3.4 local metrics · W6.3 startup/scroll budgets |
+| **1.88** | The second device | W1.5 Windows un-paused, re-qualified, released |
+| **1.89** | Trust | W3.1 encryption at rest, behind a proved migration |
 | **2.0** | The release | Docs and vision rewritten · threads and citations synced across devices |
 
 - **The invisible work is first on purpose.** Retrieval and the shared UI
@@ -404,7 +381,6 @@ Release numbers are indicative; the ordering is the argument.
 |---|---|---|
 | **The encryption migration loses someone's notes** | It rewrites the database in place on a device nobody can see | Ship last; verified backup first; restore test against a corrupted archive in CI |
 | **Two platforms, one tester** | Every bug so far was found by the owner on a real phone | Un-pause the Windows CI job before writing Windows features |
-| **The vector work becomes a rabbit hole** | No natural stopping point | Set the budget (W2.3) first; accept the quantised scan if it clears it |
 | **Threads drift into an organisation system** | One product meeting away from folders | The kill criteria in §13, held on every change to them |
 | **Background sync burns battery** | It always does, the first time | Explicit budget, measured on a device, conservative default |
 | **The foundation work is skipped because it is invisible** | It always is | Scheduled first; every feature after it is cheaper |
@@ -482,13 +458,43 @@ Release numbers are indicative; the ordering is the argument.
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
 
+### In 1.82.0 — retrieval
+
+Measured with `packages/data/test/retrieval_budget_test.dart` (50,000 notes,
+1,536-dimension embeddings, a desktop-class CI runner).
+
+- **W2.1 Vectors out of JSON.** Each vector is stored as unit-length float32
+  plus an int8 copy with its scale; old JSON rows are re-encoded on open. The
+  database isolate keeps the int8 copies in memory; past 4,000 notes a
+  sign-bit pass picks the candidates first. At 10,000 notes a meaning search
+  went from 5.2 s to 44 ms and the database from 295 MB to 80 MB. Results
+  match scoring every vector exactly in small libraries; with the sign pass,
+  recall of the true top 10 on clustered vectors stays at 95% or more.
+- **W2.2 One ranked list.** Keyword matches ranked by BM25, meaning matches
+  held to the same filters, fused by reciprocal rank with small recency,
+  named-type and pinned nudges. Keyword results show at once and the fused
+  list replaces them when the query's embedding arrives (cached per query);
+  meaning-only results are marked "Found by meaning".
+- **W2.3 A budget at real size.** Keyword p95 91 ms, meaning 66 ms, fused
+  164 ms at 50,000 notes (limits 150/150/250 ms), in its own CI job. Getting
+  there took an FTS5 prefix index for 1–3 characters (a short prefix while
+  typing: 150 ms → under 40), skipping the notes join when a search has no
+  filters, and loading result tags in one query.
+- **W2.4 The assistant retrieves the same way.** Its own searches use the
+  fused ranking, and every question brings the notes that best match it into
+  the context, so answers — and their cited notes — come from the notes about
+  the question, not only the most recent ones.
+- *Not yet:* the phone budget (exit criterion 3) is measured on a runner, not
+  a mid-range phone; the in-memory index costs about 1.6 KB per note at 1,536
+  dimensions (≈ 80 MB at 50,000).
+
 ### In 1.81.0
 
 - **W5.1 The assistant answers from your notes, and shows which.** An answer
   that used notes ends with them as chips that open them; an id that is not a
   real, undeleted note makes no chip. With "Stay in my notes" off, an answer
-  from general knowledge says so under it. *Not yet:* the citations come from
-  the assistant's own context, not the fused retriever (W2.4).
+  from general knowledge says so under it. The context it cites from comes
+  from the fused retriever since 1.82 (W2.4).
 - **W5.2 Capture from anywhere.** A Quick Settings tile ("Nex capture") opens
   the capture sheet, behind the unlock on a locked phone; an opt-in silent
   notification (Settings → Capture) has Note, Voice and Photo buttons and
@@ -535,6 +541,6 @@ find apps/client/lib -name '*.dart' -not -path '*/l10n/*' -exec wc -l {} + | awk
 grep -rc 'setState(' apps/client/lib --include='*.dart' | awk -F: '{s+=$2} END {print s}'
 for d in apps/client packages/ui packages/core packages/data packages/ai; do find $d/test -name '*_test.dart' | wc -l; done
 grep -n 'if: false' .github/workflows/ci.yml        # the Windows and iOS jobs
-grep -n 'values_json' packages/data/lib/repositories/note_repository.dart
+make budget                                          # the 50,000-note retrieval p95s (W2.3)
 grep -rc 'Semantics(\|semanticLabel\|tooltip:' apps/client/lib --include='*.dart' | awk -F: '{s+=$2} END {print s}'
 ```

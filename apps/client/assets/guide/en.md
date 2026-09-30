@@ -22,7 +22,7 @@ Hold a note for a quick menu: **Pin**, **Copy**, **Edit**, **Remind** and **Dele
 
 ## Find and organize
 
-Tap anywhere in the search field and type part of a word: **tor** also finds **Generator**. The chips beside the field narrow results by type, tag or date, and `tag:` and `type:` still work in the field itself. When nothing matches, Nex offers the closest thing you actually wrote.
+Tap anywhere in the search field and type part of a word: **tor** also finds **Generator**. Results come best match first. With semantic search on (**Settings → Intelligence**), notes about the same thing join the same list even when they share no word with the query, marked **Found by meaning**. The chips beside the field narrow results by type, tag or date, and `tag:` and `type:` still work in the field itself. When nothing matches, Nex offers the closest thing you actually wrote.
 
 **Threads** gather notes about the same thing — a renovation, a trip, a project — without moving them: a note in a thread is still on the timeline and under its tags, and can be in several threads or none. When a note you have just saved clearly continues one, a capsule offers to add it; nothing is added without a tap, and **Settings → Capture** turns the offer off. Find them in **Library → Threads**, where a thread reads oldest first, and from a note's details, where its threads sit beside its tags.
 
