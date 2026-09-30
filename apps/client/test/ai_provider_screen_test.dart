@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
-import 'package:nex_client/platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/screens/ai_provider_screen.dart';
 import 'package:nex_ui/nex_ui.dart';

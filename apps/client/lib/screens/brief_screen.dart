@@ -6,7 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import '../widgets/feature_label.dart';
-import '../platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/settings_group.dart';

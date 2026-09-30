@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
-import '../platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
 import 'choice_cards.dart';
 import 'settings_group.dart';

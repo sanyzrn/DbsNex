@@ -8,7 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'nex_preferences.dart';
-import 'ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import 'nex_services.dart';
 
 /// One row of the widget snapshot: what a home-screen glance may see of a

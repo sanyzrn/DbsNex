@@ -16,7 +16,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
 import '../l10n/app_localizations.dart';
-import '../platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import '../platform/capture_failure.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/link_reader.dart';

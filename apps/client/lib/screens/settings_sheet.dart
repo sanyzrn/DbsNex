@@ -14,7 +14,7 @@ import '../widgets/nex_banner.dart';
 import '../widgets/nex_time_picker.dart';
 import '../widgets/swipe_actions.dart';
 import '../widgets/tag_color_picker.dart';
-import '../platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/notification_settings.dart';

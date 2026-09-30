@@ -6,7 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 
 import 'package:nex_client/app.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
-import 'package:nex_client/platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/timeline_screen.dart';

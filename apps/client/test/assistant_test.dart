@@ -17,8 +17,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 
 import 'support/in_process_db.dart';
-import 'package:nex_client/platform/ai_provider.dart';
-import 'package:nex_client/platform/assistant_actions.dart';
+import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/platform/chat_history.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';

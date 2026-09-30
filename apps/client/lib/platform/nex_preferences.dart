@@ -9,7 +9,7 @@ import 'package:nex_ui/nex_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 
-import 'ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import 'chat_history.dart';
 import 'editor_drafts.dart';
 import 'hold_menu.dart';

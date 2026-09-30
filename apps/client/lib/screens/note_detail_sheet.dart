@@ -20,7 +20,7 @@ import '../l10n/app_localizations.dart';
 import '../widgets/card_strings.dart';
 import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/ai_chat_sheet.dart';
-import '../platform/ai_provider.dart';
+import 'package:nex_ai/cloud.dart';
 import '../platform/file_opener.dart';
 import '../platform/sharing.dart';
 import '../widgets/nex_dialog.dart';

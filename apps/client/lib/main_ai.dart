@@ -9,7 +9,7 @@ import 'platform/local_ai_support.dart';
 import 'platform/model_store.dart';
 
 /// Entry point for the "ai" Android flavor (09-ai.md — Phase 1, ADR-031).
-/// The only file outside packages/ai allowed to import package:nex_ai/ —
+/// The only file outside packages/ai allowed to import the on-device runtime —
 /// CI's ai-deletion-proof job enforces this. Otherwise identical to
 /// main.dart; see entry_bootstrap.dart for the shared setup.
 Future<void> main() async {
