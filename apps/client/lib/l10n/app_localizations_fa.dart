@@ -3307,4 +3307,7 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get threadSuggestionsSubtitle =>
       'فقط وقتی یادداشت تازه آشکارا ادامهٔ یادداشت قبلی باشد. بدون لمس شما چیزی اضافه نمی‌شود.';
+
+  @override
+  String get searchByMeaning => 'یافته بر اساس معنا';
 }

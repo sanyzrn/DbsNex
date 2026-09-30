@@ -23,7 +23,31 @@ class EnrichmentService {
   AIAdapter _adapter;
   AiCapabilities _capabilities;
 
-  void updateAdapter(AIAdapter adapter) => _adapter = adapter;
+  void updateAdapter(AIAdapter adapter) {
+    _adapter = adapter;
+    // A different provider is a different vector space.
+    _queryVectors.clear();
+  }
+
+  /// The last few queries' embeddings. A search runs as the reader types and
+  /// again when they refine it; asking the provider for "boiler" three times
+  /// in a row would spend a request, and its latency, to learn nothing new.
+  final _queryVectors = <String, List<double>>{};
+  static const _queryVectorCache = 32;
+
+  Future<List<double>?> _queryVector(String query) async {
+    final cached = _queryVectors.remove(query);
+    if (cached != null) return _queryVectors[query] = cached;
+    final call = _adapter.embed(query);
+    if (call == null) return null;
+    final vector = (await call).values;
+    if (vector.isEmpty) return null;
+    _queryVectors[query] = vector;
+    while (_queryVectors.length > _queryVectorCache) {
+      _queryVectors.remove(_queryVectors.keys.first);
+    }
+    return vector;
+  }
 
   void updateCapabilities(AiCapabilities capabilities) =>
       _capabilities = capabilities;
@@ -179,13 +203,12 @@ class EnrichmentService {
     if (!_capabilities.semanticSearch) return const [];
     final q = query.trim();
     if (q.isEmpty) return const [];
-    final call = _adapter.embed(q);
-    if (call == null) return const [];
     try {
-      final queryVec = await call;
+      final queryVec = await _queryVector(q);
+      if (queryVec == null) return const [];
       return [
         for (final hit in _repo.nearestEmbeddings(
-          queryVec.values,
+          queryVec,
           limit: limit,
           minScore: _minSemanticSimilarity,
         ))

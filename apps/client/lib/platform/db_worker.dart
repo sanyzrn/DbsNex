@@ -88,6 +88,7 @@ enum _DbCommand {
   summarize,
   relatedNotes,
   semanticSearch,
+  fusedSearch,
   setAiCapabilities,
   setAiProvider,
   sync,
@@ -750,6 +751,10 @@ class NexDbWorker implements NexDb {
       });
 
   @override
+  Future<List<Note>> fusedSearch(SearchFilters filters) =>
+      _send<List<Note>>(_DbCommand.fusedSearch, {'filters': filters});
+
+  @override
   Future<List<SemanticHit>> semanticSearch(String query, {int limit = 20}) =>
       _send<List<SemanticHit>>(_DbCommand.semanticSearch, {
         'query': query,
@@ -829,6 +834,21 @@ class NexDbWorker implements NexDb {
     return capture
         .importNotes(read.notes, mediaFor: NoteImportArchive.mediaPathFor)
         .length;
+  }
+
+  /// Keyword matches and meaning matches, fused (W2.2). The meaning half
+  /// waits on the provider, which is why this runs off the queue; the ranking
+  /// itself is a few hundred rows and happens after the wait.
+  static Future<List<Note>> _fusedSearch(
+    SqliteNoteRepository repo,
+    EnrichmentService enrichment,
+    SearchFilters filters,
+  ) async {
+    final hits = await enrichment.semanticSearch(filters.query, limit: 100);
+    return repo.rankedSearch(
+      filters,
+      semantic: [for (final hit in hits) hit.noteId],
+    );
   }
 
   static void _entryPoint(_WorkerBoot boot) {
@@ -1120,6 +1140,11 @@ class NexDbWorker implements NexDb {
           arg('query')! as String,
           limit: arg('limit')! as int,
         ),
+        _DbCommand.fusedSearch => await _fusedSearch(
+          repo,
+          enrichment,
+          arg('filters')! as SearchFilters,
+        ),
         _DbCommand.setAiCapabilities => _voided(
           () => enrichment.updateCapabilities(
             arg('capabilities')! as AiCapabilities,
@@ -1276,6 +1301,7 @@ class NexDbWorker implements NexDb {
     _DbCommand.summarize,
     _DbCommand.relatedNotes,
     _DbCommand.semanticSearch,
+    _DbCommand.fusedSearch,
   };
 
   /// How long a close waits for background work before disposing the handle.

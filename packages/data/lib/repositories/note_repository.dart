@@ -1339,27 +1339,29 @@ LIMIT ?
   /// FR-4 search: FTS on text content + AI-derived transcript/OCR when present.
   @override
   List<Note> search(SearchFilters filters) {
+    // A typed query is ranked (W2.2): best match first, not newest first. A
+    // search that is only filters — a tag, a type, a date — has nothing to
+    // rank and stays in the timeline's order.
+    if (filters.query.trim().isNotEmpty) return rankedSearch(filters);
+
+    final (where, args) = _filterClause(filters);
+    final sql =
+        '''
+SELECT n.* FROM notes n
+WHERE ${where.join(' AND ')}
+ORDER BY n.created_at DESC, n.rowid DESC
+''';
+    final rows = db.select(sql, args);
+    return rows
+        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
+        .toList();
+  }
+
+  /// The WHERE terms for everything in [filters] except the query, on notes
+  /// aliased `n`: live notes, all of the tags, the date range, the types.
+  (List<String>, List<Object?>) _filterClause(SearchFilters filters) {
     final where = <String>['n.deleted_at IS NULL'];
     final args = <Object?>[];
-
-    final q = filters.query.trim();
-    if (q.isNotEmpty) {
-      // FTS gives fast word and prefix matches. A literal substring fallback
-      // also finds the middle of a word ("tor" in "Generator"), which FTS5's
-      // unicode tokenizer cannot express. Both paths use the same indexed
-      // content, including transcripts and OCR, without treating % or _ as
-      // wildcards typed by the reader.
-      where.add('''
-n.id IN (
-  SELECT note_id FROM notes_fts WHERE notes_fts MATCH ?
-  UNION
-  SELECT note_id FROM notes_fts WHERE instr(lower(content), lower(?)) > 0
-)
-''');
-      args.add(_ftsQuery(q));
-      args.add(q);
-    }
-
     if (filters.tagIds.isNotEmpty) {
       final placeholders = List.filled(filters.tagIds.length, '?').join(',');
       where.add('''
@@ -1372,7 +1374,6 @@ n.id IN (
       args.addAll(filters.tagIds);
       args.add(filters.tagIds.length);
     }
-
     if (filters.createdFrom != null) {
       where.add('n.created_at >= ?');
       args.add(filters.createdFrom!.toUtc().toIso8601String());
@@ -1381,23 +1382,105 @@ n.id IN (
       where.add('n.created_at <= ?');
       args.add(filters.createdTo!.toUtc().toIso8601String());
     }
-
     if (filters.types.isNotEmpty) {
       final placeholders = List.filled(filters.types.length, '?').join(',');
       where.add('n.type IN ($placeholders)');
       args.addAll(filters.types.map((t) => t.wireName));
     }
+    return (where, args);
+  }
 
-    final sql =
+  /// How many keyword matches are ranked. Past a few hundred, nobody scrolls
+  /// a result list — they type another word.
+  static const rankedLimit = 200;
+
+  /// Keyword matches for [filters], best first: FTS5 matches by BM25, then
+  /// the matches only a substring finds ("tor" in "Generator"), newest first.
+  List<String> keywordRanked(SearchFilters filters, {int limit = rankedLimit}) {
+    final q = filters.query.trim();
+    if (q.isEmpty) return const [];
+    final (where, args) = _filterClause(filters);
+    final filter = where.join(' AND ');
+    final ids = <String>[
+      for (final row in db.select(
+        '''
+SELECT f.note_id AS id FROM notes_fts f
+JOIN notes n ON n.id = f.note_id
+WHERE notes_fts MATCH ? AND $filter
+ORDER BY bm25(notes_fts), n.created_at DESC, n.rowid DESC
+LIMIT ?
+''',
+        [_ftsQuery(q), ...args, limit],
+      ))
+        row['id']! as String,
+    ];
+    if (ids.length < limit) {
+      final seen = ids.toSet();
+      for (final row in db.select(
+        '''
+SELECT f.note_id AS id FROM notes_fts f
+JOIN notes n ON n.id = f.note_id
+WHERE instr(lower(f.content), lower(?)) > 0 AND $filter
+ORDER BY n.created_at DESC, n.rowid DESC
+LIMIT ?
+''',
+        [q, ...args, limit],
+      )) {
+        final id = row['id']! as String;
+        if (seen.add(id)) ids.add(id);
+        if (ids.length >= limit) break;
+      }
+    }
+    return ids;
+  }
+
+  /// One ranked list for [filters]: its keyword matches fused with
+  /// [semantic], the ids a meaning search found, best first (W2.2). Meaning
+  /// matches are held to the same filters as keyword ones.
+  List<Note> rankedSearch(
+    SearchFilters filters, {
+    List<String> semantic = const [],
+    int limit = rankedLimit,
+  }) {
+    final keyword = keywordRanked(filters, limit: limit);
+    final candidates = {...keyword, ...semantic}.toList();
+    if (candidates.isEmpty) return const [];
+    final (where, args) = _filterClause(filters);
+    final facts = <String, FusionFacts>{};
+    final rows = <String, Row>{};
+    for (var at = 0; at < candidates.length; at += 500) {
+      final chunk = candidates.sublist(
+        at,
+        at + 500 > candidates.length ? candidates.length : at + 500,
+      );
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      for (final row in db.select(
         '''
 SELECT n.* FROM notes n
-WHERE ${where.join(' AND ')}
-ORDER BY n.created_at DESC, n.rowid DESC
-''';
-    final rows = db.select(sql, args);
-    return rows
-        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
-        .toList();
+WHERE n.id IN ($placeholders) AND ${where.join(' AND ')}
+''',
+        [...chunk, ...args],
+      )) {
+        final id = row['id']! as String;
+        rows[id] = row;
+        facts[id] = FusionFacts(
+          createdAt: DateTime.parse(row['created_at']! as String),
+          type: NoteType.fromWire(row['type']! as String),
+          pinned: row['pinned_at'] != null,
+        );
+      }
+    }
+    final ordered = FusedRanking.fuse(
+      keyword: keyword,
+      semantic: semantic,
+      facts: facts,
+      now: DateTime.now().toUtc(),
+      query: filters.query,
+    );
+    return [
+      for (final id in ordered.take(limit))
+        Note.fromRow(rows[id]!, tags: tagsForNote(id)),
+    ];
   }
 
   @override

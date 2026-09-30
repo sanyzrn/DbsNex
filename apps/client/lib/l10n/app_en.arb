@@ -2548,5 +2548,6 @@
   "threadAdded": "Added to “{name}”",
   "@threadAdded": {"placeholders": {"name": {"type": "String"}}},
   "threadSuggestions": "Suggest threads after a capture",
-  "threadSuggestionsSubtitle": "Only when a new note clearly continues an earlier one. Nothing is added without a tap."
+  "threadSuggestionsSubtitle": "Only when a new note clearly continues an earlier one. Nothing is added without a tap.",
+  "searchByMeaning": "Found by meaning"
 }

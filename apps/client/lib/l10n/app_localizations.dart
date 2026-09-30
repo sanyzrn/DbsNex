@@ -5353,6 +5353,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only when a new note clearly continues an earlier one. Nothing is added without a tap.'**
   String get threadSuggestionsSubtitle;
+
+  /// No description provided for @searchByMeaning.
+  ///
+  /// In en, this message translates to:
+  /// **'Found by meaning'**
+  String get searchByMeaning;
 }
 
 class _AppLocalizationsDelegate

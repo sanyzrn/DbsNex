@@ -1316,5 +1316,6 @@
   "threadAdded": "به «{name}» اضافه شد",
   "@threadAdded": {"placeholders": {"name": {"type": "String"}}},
   "threadSuggestions": "پیشنهاد رشته پس از ثبت",
-  "threadSuggestionsSubtitle": "فقط وقتی یادداشت تازه آشکارا ادامهٔ یادداشت قبلی باشد. بدون لمس شما چیزی اضافه نمی‌شود."
+  "threadSuggestionsSubtitle": "فقط وقتی یادداشت تازه آشکارا ادامهٔ یادداشت قبلی باشد. بدون لمس شما چیزی اضافه نمی‌شود.",
+  "searchByMeaning": "یافته بر اساس معنا"
 }

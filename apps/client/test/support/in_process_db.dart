@@ -433,6 +433,15 @@ class InProcessDb implements NexDb {
       _enrichment.semanticSearch(query, limit: limit);
 
   @override
+  Future<List<Note>> fusedSearch(SearchFilters filters) async {
+    final hits = await _enrichment.semanticSearch(filters.query, limit: 100);
+    return _repo.rankedSearch(
+      filters,
+      semantic: [for (final hit in hits) hit.noteId],
+    );
+  }
+
+  @override
   Future<void> setAiCapabilities(AiCapabilities capabilities) async =>
       _enrichment.updateCapabilities(capabilities);
 
