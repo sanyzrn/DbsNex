@@ -42,7 +42,7 @@ Working convention:
 - **Card size.** Settings → Appearance → Card size: compact, standard, or easier to read.
 - **Recurring, taken seriously.** Recurring is now a full page: what is overdue, due today and due this week at a glance (tap one to see just those), payments in the next 30 days, a list or a calendar, and a clear button to add one. Adding or editing one opens a full page too.
 - **Five new looks.** Isfahan turquoise, Saffron, Midnight, Deep sea and Graphite, in light and dark. Changing the look now opens out as a circle from where you tapped.
-- **The Nex logotype is the app icon.** The wordmark on the home screen is a little smaller.
+- **The Nex logotype is the app's mark.** It is the app icon, the icon on notifications and the Quick Settings tile, and the mark on the Timeline widget; the opening animation is unchanged. The wordmark on the home screen is a little smaller.
 - **Threads are off by default.** Turn them on in Settings if you use them.
 - **Fixes.** Buttons in some colour themes showed their icon in the wrong shade (the capture arrow, the vault's add buttons, the private messages send button, voice play). A backup to a folder that could not be written now falls back to another way of writing, and says why if it still fails. Settings search results no longer hide under the keyboard. Changing or removing your profile picture shows at once. The assistant can set a reminder in one go — "remind me Saturday at 9 about the doctor". The colour ring around the assistant's opening is gone.
 

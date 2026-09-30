@@ -80,7 +80,7 @@ app's language and accent, and stay private while the app lock is on.
 **Persian calendar** — optional Solar Hijri dates for display and every date picker,
 independent of the interface language.
 
-**Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier, Forest, Isfahan turquoise, Saffron, Midnight, Deep sea and Graphite palettes, custom accents, text size and card size. A change of look opens out as a circle from the tap that asked for it. The app icon is the Nex logotype. In-app notices are one capsule that drips out of the top edge (a "gooey" metaball effect, `packages/ui/lib/widgets/nex_gooey.dart`). Liquid Glass is temporarily disabled by owner request; its implementation is retained. Reduce-motion support and 48px minimum action targets remain.
+**Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier, Forest, Isfahan turquoise, Saffron, Midnight, Deep sea and Graphite palettes, custom accents, text size and card size. A change of look opens out as a circle from the tap that asked for it. The Nex logotype is the app icon and the mark on notifications, the Quick Settings tile and the widget; the opening animation keeps the octopus. In-app notices are one capsule that drips out of the top edge (a "gooey" metaball effect, `packages/ui/lib/widgets/nex_gooey.dart`). Liquid Glass is temporarily disabled by owner request; its implementation is retained. Reduce-motion support and 48px minimum action targets remain.
 
 **Feedback** — a compose sheet with a category and an optional reply address, relayed to
 Telegram by a separate Cloudflare Worker (`apps/feedback-worker`). It stays unavailable
