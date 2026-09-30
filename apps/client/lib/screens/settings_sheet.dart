@@ -80,60 +80,136 @@ class SettingsSheet extends StatelessWidget {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.sizeOf(context).height * 0.9,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                NexSpacing.lg,
-                NexSpacing.sm,
-                NexSpacing.md,
-                NexSpacing.md,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.settings,
-                      style: theme.textTheme.titleLarge,
+        child: _SettingsSearch(
+          builder: (context, query, field) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  NexSpacing.lg,
+                  NexSpacing.sm,
+                  NexSpacing.md,
+                  NexSpacing.md,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.settings,
+                        style: theme.textTheme.titleLarge,
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: l10n.closeLabel,
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-            ),
-            Flexible(
-              child: NexDismissOnOverscroll(
-                // Every picker writes through `preferences`, which notifies —
-                // without this the row that opened one would still show the
-                // old value when the picker closed, since the sheet itself is
-                // stateless and nothing else rebuilds it.
-                child: ListenableBuilder(
-                  listenable: preferences,
-                  builder: (context, _) => SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(
-                      NexSpacing.md,
-                      0,
-                      NexSpacing.md,
-                      NexSpacing.lg,
+                    IconButton(
+                      tooltip: l10n.closeLabel,
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: _groups(context, l10n),
+                  ],
+                ),
+              ),
+              field,
+              Flexible(
+                child: NexDismissOnOverscroll(
+                  // Every picker writes through `preferences`, which notifies —
+                  // without this the row that opened one would still show the
+                  // old value when the picker closed, since the sheet itself is
+                  // stateless and nothing else rebuilds it.
+                  child: ListenableBuilder(
+                    listenable: preferences,
+                    builder: (context, _) => SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(
+                        NexSpacing.md,
+                        0,
+                        NexSpacing.md,
+                        NexSpacing.lg,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: query.isEmpty
+                            ? _groups(context, l10n)
+                            : _matching(context, l10n, query),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  /// Every row, from every section, that the query finds — each still the
+  /// real row, so a switch found here is switched here (W6.6). A section
+  /// whose own name matches brings all of its rows.
+  List<Widget> _matching(
+    BuildContext context,
+    AppLocalizations l10n,
+    String query,
+  ) {
+    final theme = Theme.of(context);
+    final words = _fold(query).split(' ').where((w) => w.isNotEmpty);
+    bool finds(String text) {
+      final folded = _fold(text);
+      return words.every(folded.contains);
+    }
+
+    final out = <Widget>[];
+    for (final group in _groups(context, l10n)) {
+      if (group is! _Section) continue;
+      final rows = finds(group.title)
+          ? group.children
+          : [
+              for (final row in group.children)
+                if (finds(_searchTextOf(row))) row,
+            ];
+      if (rows.isEmpty) continue;
+      out.add(
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(
+            NexSpacing.sm,
+            NexSpacing.sm,
+            NexSpacing.sm,
+            NexSpacing.xs,
+          ),
+          child: Text(
+            group.title,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+      out.add(
+        Material(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(NexRadius.lg),
+          clipBehavior: Clip.antiAlias,
+          child: Column(children: rows),
+        ),
+      );
+    }
+    if (out.isEmpty) {
+      out.add(
+        Padding(
+          padding: const EdgeInsets.all(NexSpacing.xl),
+          child: Text(
+            nexLabel(
+              context,
+              'No setting matches that.',
+              'تنظیمی با این عبارت پیدا نشد.',
+            ),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    }
+    return out;
   }
 
   /// Turns the daily notification on or off.
@@ -216,6 +292,8 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.shield_outlined,
           title: l10n.securityAppLock,
+          keywords:
+              'lock app lock fingerprint biometric screen lock قفل اثر انگشت',
           value: preferences.appLockEnabled
               ? preferences.appLockBiometricOnly
                     ? l10n.securityBiometric
@@ -238,6 +316,8 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.auto_awesome_outlined,
           title: l10n.intelligenceOpen,
+          keywords:
+              'AI provider API key model offline transcription OCR هوش مصنوعی ارائه‌دهنده کلید مدل آفلاین رونویسی',
           value: preferences.aiEnabled
               ? preferences.aiProvider.provider.label
               : l10n.intelligenceOff,
@@ -259,6 +339,7 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.chat_bubble_outline,
           title: l10n.assistant,
+          keywords: 'chat tone answer length stay in my notes دستیار گفتگو لحن',
           value: l10n.assistantSubtitle,
           onTap: () => Navigator.push(
             context,
@@ -271,6 +352,7 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.article_outlined,
           title: l10n.briefTitle,
+          keywords: 'smart summary brief tokens greeting خلاصه هوشمند توکن',
           value: switch (preferences.briefStyle) {
             NexBriefStyle.assistant => l10n.briefStyleAssistant,
             NexBriefStyle.blended => l10n.briefStyleBlended,
@@ -361,6 +443,8 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.palette_outlined,
           title: l10n.theme,
+          keywords:
+              'dark light mode accent colour color palette text size font app icon تم تیره روشن رنگ تأکیدی پالت اندازه متن آیکون',
           value: nexThemePresetLabel(context, preferences.themePreset),
           onTap: () => Navigator.push(
             context,
@@ -372,6 +456,7 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.widgets_outlined,
           title: l10n.widgetSettingsTitle,
+          keywords: 'home screen widget ویجت صفحه اصلی',
           value: _widgetFilterSummary(l10n, preferences),
           onTap: () => Navigator.push(
             context,
@@ -406,6 +491,7 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.swipe_outlined,
           title: l10n.swipeActions,
+          keywords: 'swipe gesture edge کشیدن لبه',
           value:
               '${nexSwipeActionLabel(l10n, preferences.leadingAction)} · '
               '${nexSwipeActionLabel(l10n, preferences.trailingAction)}',
@@ -426,6 +512,7 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.touch_app_outlined,
           title: nexLabel(context, 'Hold menu', 'منوی نگه‌داشتن'),
+          keywords: 'long press hold menu actions نگه داشتن منو',
           value: nexLabel(
             context,
             '${preferences.holdMenuActions.length} actions',
@@ -525,22 +612,32 @@ class SettingsSheet extends StatelessWidget {
       preferences: preferences,
       title: l10n.dataAndBackup,
       children: [
-        FutureBuilder<List<File>>(
-          future: services.listBackups(),
-          builder: (context, snapshot) => _Row(
-            icon: Icons.import_export,
-            title: l10n.exportTitle,
-            value: l10n.backupCount(snapshot.data?.length ?? 0),
-            onTap: () => Navigator.push(
-              context,
-              NexPageRoute<void>(
-                builder: (_) =>
-                    BackupScreen(services: services, preferences: preferences),
+        _Searchable(
+          text:
+              '${l10n.exportTitle} backup restore export complete recovery '
+              'پشتیبان بازیابی خروجی',
+          child: FutureBuilder<List<File>>(
+            future: services.listBackups(),
+            builder: (context, snapshot) => _Row(
+              icon: Icons.import_export,
+              title: l10n.exportTitle,
+              value: l10n.backupCount(snapshot.data?.length ?? 0),
+              onTap: () => Navigator.push(
+                context,
+                NexPageRoute<void>(
+                  builder: (_) => BackupScreen(
+                    services: services,
+                    preferences: preferences,
+                  ),
+                ),
               ),
             ),
           ),
         ),
-        _ImportRow(services: services, preferences: preferences),
+        _Searchable(
+          text: 'import Google Keep Takeout archive درون‌ریزی',
+          child: _ImportRow(services: services, preferences: preferences),
+        ),
         // Sync is not offered here. The server exists and the client talks
         // to it, but there is no pairing flow in the app — the row asked
         // people to paste a base URL and a bearer token they have no way to
@@ -553,7 +650,10 @@ class SettingsSheet extends StatelessWidget {
       preferences: preferences,
       title: l10n.about,
       children: [
-        _UpdateRow(updates: updates, preferences: preferences),
+        _Searchable(
+          text: '${l10n.checkForUpdate} update version به‌روزرسانی نسخه',
+          child: _UpdateRow(updates: updates, preferences: preferences),
+        ),
         _SwitchRow(
           icon: Icons.update_outlined,
           title: l10n.autoUpdateCheck,
@@ -566,6 +666,7 @@ class SettingsSheet extends StatelessWidget {
         _Row(
           icon: Icons.menu_book_outlined,
           title: l10n.guideTitle,
+          keywords: 'help guide how راهنما',
           value: l10n.guideSubtitle,
           onTap: () => unawaited(GuideScreen.show(context)),
         ),
@@ -697,6 +798,94 @@ const _rowPadding = EdgeInsetsDirectional.only(
 /// The label lost the icon it used to carry. With every row inside the card
 /// now leading with an icon tile of its own, a seventh icon floating above
 /// them was the one that meant least and drew the most.
+/// A row that is not a [_Row] or [_SwitchRow], with the words Settings
+/// search should find it by.
+class _Searchable extends StatelessWidget {
+  const _Searchable({required this.text, required this.child});
+
+  final String text;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => child;
+}
+
+/// The words a settings row can be found by (W6.6).
+String _searchTextOf(Widget row) => switch (row) {
+  _Row(:final title, :final value, :final keywords) =>
+    '$title ${value ?? ''} $keywords',
+  _SwitchRow(:final title, :final subtitle) => '$title ${subtitle ?? ''}',
+  _Searchable(:final text) => text,
+  _ => '',
+};
+
+/// Case- and space-insensitive, and the same for Persian's two forms of
+/// yeh and kaf, so a query typed on either keyboard finds the row.
+String _fold(String text) => text
+    .toLowerCase()
+    .replaceAll('ي', 'ی')
+    .replaceAll('ك', 'ک')
+    .replaceAll('\u200c', '')
+    .replaceAll(RegExp(r'\s+'), ' ');
+
+/// Holds the search field and what is typed in it, so the sheet around it can
+/// stay stateless.
+class _SettingsSearch extends StatefulWidget {
+  const _SettingsSearch({required this.builder});
+
+  final Widget Function(BuildContext context, String query, Widget field)
+  builder;
+
+  @override
+  State<_SettingsSearch> createState() => _SettingsSearchState();
+}
+
+class _SettingsSearchState extends State<_SettingsSearch> {
+  final _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final field = Padding(
+      padding: const EdgeInsets.fromLTRB(
+        NexSpacing.md,
+        0,
+        NexSpacing.md,
+        NexSpacing.sm,
+      ),
+      child: TextField(
+        controller: _controller,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          isDense: true,
+          prefixIcon: const Icon(Icons.search),
+          hintText: nexLabel(context, 'Search settings', 'جست‌وجو در تنظیمات'),
+          suffixIcon: _controller.text.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: l10n.closeLabel,
+                  icon: const Icon(Icons.close),
+                  onPressed: _controller.clear,
+                ),
+        ),
+      ),
+    );
+    return widget.builder(context, _controller.text.trim(), field);
+  }
+}
+
 class _Section extends StatelessWidget {
   const _Section({
     required this.id,
@@ -796,10 +985,15 @@ class _Row extends StatelessWidget {
     this.trailing,
     this.badge = false,
     this.onTap,
+    this.keywords = '',
   });
 
   final IconData icon;
   final String title;
+
+  /// Words Settings search should find this row by, beyond its own — what
+  /// the screen it opens contains, in both languages (W6.6).
+  final String keywords;
 
   /// What the setting is currently set to, under its name. Null for the rows
   /// that only open something and have no state to report.
