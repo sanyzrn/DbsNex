@@ -3,7 +3,6 @@ library;
 
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/screens/timeline/timeline_model.dart';
