@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:nex_core/nex_core.dart' hide MergedNote;
 
 import '../repositories/note_repository.dart';
+import '../schema/write_lock.dart';
 import 'sync_wire.dart';
 
 /// HTTP sync client — push outbox, pull deltas (04-architecture.md).
@@ -231,7 +232,7 @@ class SyncClient implements SyncPort {
     // with the cursor never moving past it. Now the whole page lands or the
     // error propagates with nothing on disk half-done.
     final db = repo.db;
-    db.execute('BEGIN IMMEDIATE');
+    db.beginImmediate();
     try {
       for (final t in page.tags) {
         repo.upsertTagFromSync(

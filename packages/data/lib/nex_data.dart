@@ -37,5 +37,6 @@ export 'schema/backup_archive.dart';
 export 'schema/import_archive.dart';
 export 'schema/database.dart';
 export 'schema/restore_transaction.dart';
+export 'schema/write_lock.dart';
 export 'sync_client/sync_client.dart';
 export 'sync_client/sync_wire.dart';

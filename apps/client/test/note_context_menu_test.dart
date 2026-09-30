@@ -62,4 +62,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(pressed, 1);
   });
+
+  testWidgets('a tap on the note that owns the open menu only closes it', (
+    tester,
+  ) async {
+    var opened = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NoteContextMenu(
+            entries: [
+              NoteMenuEntry(NexHoldAction.copy, () {}),
+              NoteMenuEntry(NexHoldAction.delete, () {}),
+            ],
+            child: InkWell(
+              onTap: () => opened++,
+              child: const SizedBox(
+                height: 80,
+                width: double.infinity,
+                child: Center(child: Text('A note')),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.longPress(find.text('A note'));
+    await tester.pumpAndSettle();
+    expect(find.text('Copy'), findsOneWidget);
+
+    // The card sits inside the menu's own tap region, so this tap used to
+    // leave the menu open and open the note's details underneath it. The
+    // card absorbs the tap on purpose, hence no hit-test warning.
+    await tester.tap(find.text('A note'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.text('Copy'), findsNothing);
+    expect(opened, 0);
+
+    await tester.tap(find.text('A note'));
+    await tester.pumpAndSettle();
+    expect(opened, 1);
+  });
 }

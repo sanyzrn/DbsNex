@@ -9,6 +9,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../schema/backup_archive.dart';
 import '../schema/database.dart';
+import '../schema/write_lock.dart';
 import '../schema/zip_file_writer.dart';
 
 /// Suggested starter tags (FR-3.3) — offered, never enforced.
@@ -82,7 +83,7 @@ class SqliteNoteRepository implements NoteRepository {
     if (requestId == null || requestId.isEmpty) {
       throw ArgumentError('A shared capture requires a request id');
     }
-    db.execute('BEGIN IMMEDIATE');
+    db.beginImmediate();
     try {
       final receipt = db.select(
         'SELECT note_id FROM capture_receipts WHERE request_id = ?',
@@ -194,7 +195,7 @@ WHERE id = ? AND deleted_at IS NULL
         (toFile ? note.type != NoteType.text : note.type != NoteType.file)) {
       throw StateError('Invalid Markdown conversion');
     }
-    db.execute('BEGIN IMMEDIATE');
+    db.beginImmediate();
     try {
       db.execute(
         """
@@ -237,7 +238,7 @@ WHERE id = ? AND deleted_at IS NULL
       throw StateError('Only an existing image note can be edited');
     }
     final now = DateTime.now().toUtc().toIso8601String();
-    db.execute('BEGIN IMMEDIATE');
+    db.beginImmediate();
     try {
       db.execute(
         '''
@@ -273,7 +274,7 @@ WHERE id = ? AND deleted_at IS NULL
   /// pushing to sync. Returns false when five other notes already hold pins.
   bool pinNote(String noteId) {
     final now = DateTime.now().toUtc().toIso8601String();
-    db.execute('BEGIN IMMEDIATE');
+    db.beginImmediate();
     try {
       final existing = db.select(
         'SELECT pinned_at FROM notes WHERE id = ? AND deleted_at IS NULL',
@@ -597,7 +598,7 @@ ORDER BY updated_at ASC
         if (pair.clientId != pair.canonicalId) pair,
     ];
     if (real.isEmpty) return;
-    db.execute('BEGIN');
+    db.beginImmediate();
     try {
       for (final pair in real) {
         final losing = db.select('SELECT * FROM tags WHERE id = ?', [
@@ -1383,7 +1384,7 @@ LIMIT ?
       // this line, so "all of it applies, or none" was not true of them: an
       // archive whose notes failed to parse still left its tags behind, and the
       // rollback below could not reach them.
-      db.execute('BEGIN IMMEDIATE');
+      db.beginImmediate();
       try {
         for (final raw in (payload['tags'] as List? ?? const [])) {
           final tag = raw as Map<String, dynamic>;
