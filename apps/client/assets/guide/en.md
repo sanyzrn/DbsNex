@@ -6,6 +6,8 @@ Nex is the fastest way to put something down and find it again: a thought, a pho
 
 Tap **+** at the centre of the bottom bar and choose text, checklist, voice, photo, file or link. There is no Save button for quick text: it is saved when you close its sheet. Checklists, links and other editors have a **Save** or **Confirm** button. A checklist uses one item per line; a link needs a complete address.
 
+Without opening Nex first: add the **Nex capture** tile to your Quick Settings (pull the shade down twice, then edit the tiles), or turn on **Settings → Capture → Capture from notifications** for a silent row with **Note**, **Voice** and **Photo** buttons.
+
 Photos first open in a full-size preview. Choose **Edit** only when you want to crop, rotate or annotate; swipe the aspect-ratio row to see every size. Files shared into Nex from another app arrive exactly like files you pick inside it.
 
 ![The capture menu](capture.webp)
@@ -21,6 +23,8 @@ Hold a note for a quick menu: **Pin**, **Copy**, **Edit**, **Remind** and **Dele
 ## Find and organize
 
 Tap anywhere in the search field and type part of a word: **tor** also finds **Generator**. The chips beside the field narrow results by type, tag or date, and `tag:` and `type:` still work in the field itself. When nothing matches, Nex offers the closest thing you actually wrote.
+
+**Threads** gather notes about the same thing — a renovation, a trip, a project — without moving them: a note in a thread is still on the timeline and under its tags, and can be in several threads or none. When a note you have just saved clearly continues one, a capsule offers to add it; nothing is added without a tap, and **Settings → Capture** turns the offer off. Find them in **Library → Threads**, where a thread reads oldest first, and from a note's details, where its threads sit beside its tags.
 
 Tags group related notes and can carry any colour. **Library → Tags** renames, merges and deletes them; **Library → Trash** keeps deleted notes for 30 days, so a mistake can be undone.
 
@@ -58,7 +62,7 @@ A reminder brings one note back at the time you choose, once or repeating. Use t
 
 Tap **+** on the Recurring page to add one: a title, how often, and when it is next due; optionally how far ahead to be told, a daily window for hourly items, several weekdays, a day of the month or its last day, and an amount with its currency. Persian monthly and yearly repeats follow the Persian calendar. Swipe the editor down from anywhere on it to close it; it asks first if you have typed something.
 
-Today, Overdue and Next 7 days narrow the list. Mark an item done to move it to its next turn; its menu can snooze one occurrence, skip it or open its history, where each entry can carry a short note. Undo restores an accidental change, and snoozing never moves the underlying schedule. Upcoming 30-day totals are shown per currency.
+Today, Overdue and Next 7 days narrow the list; **Calendar** shows a month or a week, each day shaded by how much falls on it, and what is due on the day you tap. The next occurrence can be moved from there without moving the schedule. In an item's editor, **Attachments** holds receipt photos, links to any note and, optionally, one bank card from the vault, which only opens after the vault is unlocked and is never shown to the assistant. Mark an item done to move it to its next turn; its menu can snooze one occurrence, skip it or open its history, where each entry can carry a short note. Undo restores an accidental change, and snoozing never moves the underlying schedule. Upcoming 30-day totals are shown per currency.
 
 ![The Recurring page](recurring.webp)
 
@@ -71,6 +75,8 @@ AI is optional and off until you turn it on. In **Settings → Intelligence**, c
 If your model thinks before it answers and the summary comes back empty, turn on **No token limit** in the Smart summary settings — it can use many more tokens, as the summary refreshes several times a day.
 
 Tap the smart summary to open or fold it and pull down to refresh it. Hold the greeting for another phrase.
+
+When an answer uses your notes, they appear under it as chips; tap one to open that note. With **Stay in my notes** off, an answer that comes from general knowledge instead says so.
 
 ![The assistant opening](assistant.webp)
 
@@ -92,7 +98,7 @@ The vault uses the phone's secure storage and never enters notes, widgets, searc
 
 At the end of the Theme page, **App icon** changes the icon on your home screen to one of six; a home-screen shortcut may need adding again afterwards.
 
-Language, calendar and the home-screen widget are also under Appearance. The Persian calendar changes how dates are shown and picked, independently of the interface language; what is stored never changes. Settings remembers which categories you opened; Security, Intelligence and Appearance start open.
+Language, calendar and the home-screen widget are also under Appearance. The field at the top of Settings finds any setting by name, or by something on the page it opens — "accent" finds Theme. The Persian calendar changes how dates are shown and picked, independently of the interface language; what is stored never changes. Settings remembers which categories you opened; Security, Intelligence and Appearance start open.
 
 ![The Theme page](theme.webp)
 

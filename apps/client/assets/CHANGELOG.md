@@ -34,6 +34,16 @@ Working convention:
 
 ## Unreleased
 
+## v1.81.0
+
+- **The assistant shows which notes it used.** An answer drawn from your notes lists them underneath; tap one to open it. With "Stay in my notes" off, an answer from general knowledge says so.
+- **Capture from anywhere.** Add the "Nex capture" tile to Quick Settings, or turn on Settings → Capture → "Capture from notifications" for a silent row with Note, Voice and Photo.
+- **Threads.** Gather notes about the same thing without moving them. When a note you just saved clearly continues a thread, Nex offers to add it — one tap, never automatic, and it can be turned off. Library → Threads, or from a note's details and hold menu.
+- **A calendar for Recurring.** See a month or a week, how busy each day is, and move the next occurrence without changing the schedule.
+- **Attachments on recurring items.** Add receipt photos, link any note, and link a bank card that only opens after unlocking the vault.
+- **Search in Settings.** Find any setting by name, or by something on the page it opens.
+- A notice that offered a follow-up notice could, rarely, crash while leaving; it no longer does.
+
 ## v1.80.2
 
 - **A tap on a note whose hold menu is open only closes the menu.** It no longer opens the note's details behind it.

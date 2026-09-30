@@ -1,7 +1,8 @@
 # Nex 2.0 — Analysis and Roadmap
 
-> **Status:** Proposal · **Written at:** v1.21.0 · **Revised at:** v1.80.2 ·
-> **Decides nothing on its own.**
+> **Status:** Proposal · **Written at:** v1.21.0 · **Revised at:** v1.81.0 ·
+> **Decides nothing on its own.** What has shipped from it is listed in §13
+> and taken out of the plan.
 > Anything here that survives review becomes an ADR in
 > [`10-decisions.md`](./10-decisions.md) and a row in
 > [`08-roadmap.md`](./08-roadmap.md).
@@ -98,8 +99,9 @@ answer, in one sentence, what Nex is now:
   document needs principles for the intelligence layer and the tools with the
   same teeth the capture ones have.
 
-**This document proposes the second, with a specific constraint** (W5.1). The
-decision is the owner's.
+**This document proposes the second, with a specific constraint** — the
+assistant's job is your own material, which 1.81 made visible with cited notes
+(§13). The decision about the vision document is still the owner's.
 
 ### 2.2 Sync is built, but continuity is not
 
@@ -176,7 +178,7 @@ would turn four beliefs into four numbers.
 | *(Foundation)* | The next feature costs what it should, not what four screens make it cost. |
 
 The version identity is deliberately **not** "more AI". The intelligence layer
-is the most developed part of the app; what it lacks is grounding (W5.1).
+is the most developed part of the app; its grounding shipped in 1.81 (§13).
 
 ---
 
@@ -282,25 +284,7 @@ covering the owner itself) ends that class of bug the way W4.1 ends the text one
 
 ### W5 — Product
 
-**W5.1 Ground the assistant in the notes.** Answers carry the notes they used as
-tappable chips; a toggle decides whether answering without any note is allowed.
-*The assistant's job is your own material* — the governance answer to §2.1.
-
-**W5.2 Capture surfaces that cost nothing.** A Quick Settings tile and a
-notification-shade capture action (the home-screen widgets and share target
-already exist).
-
-**W5.3 Threads.** After a capture is saved, if it clearly continues something,
-offer one tap: *add to "kitchen renovation"*. Never before the save, never
-required, a view rather than a container.
-*Risk:* this is the feature that could drift into folders. It needs a prototype,
-a written kill criterion and the owner's judgement before any of it is built.
-
-**W5.4 Recurring, the remaining two** *(carried from the former Recurring
-section)*. (a) A week/month calendar with density and moving a single
-occurrence without changing the schedule; (b) attaching a receipt or a related
-note, and an optional link to a vault card opened only after unlocking — never
-sent to AI.
+All of W5 shipped in 1.81 — see §13.
 
 ### W6 — Proposals from the v1.80.2 revision *(new)*
 
@@ -327,10 +311,6 @@ precedent).
 device only; and TOTP codes stored alongside a login, so the vault can replace a
 separate authenticator app.
 
-**W6.6 Settings search.** Settings now spans many pages; a search field that
-jumps to any row. It also becomes the natural target for the assistant's
-"change a setting" actions.
-
 ---
 
 ## 5. Priorities
@@ -342,24 +322,22 @@ jumps to any row. It also becomes the natural target for the assistant's
 3. W1.1 + W1.2 pairing and automatic sync
 4. W1.5 a second device actually shipping *(Windows)*
 5. W3.2 the disclosure screen and its ADR
-6. W5.1 the grounded assistant
 
 **Should have:**
 
-7. W1.3 media sync
-8. W1.6 continuity without a server
-9. W3.1 encryption at rest — only when the migration is proved
-10. W4.2 screen decomposition — continuous
-11. W6.1 accessibility, W6.2 goldens, W6.3 performance budgets
-12. W3.4 local metrics, W1.4 conflict surface
+6. W1.3 media sync
+7. W1.6 continuity without a server
+8. W3.1 encryption at rest — only when the migration is proved
+9. W4.2 screen decomposition — continuous
+10. W6.1 accessibility, W6.2 goldens, W6.3 performance budgets
+11. W3.4 local metrics, W1.4 conflict surface
 
 **Could have / deferred to 2.1:**
 
-13. W5.3 Threads — prototype only, ship on evidence
-14. W3.3 end-to-end encrypted sync
-15. iOS
-16. W4.4 AI layer into its package
-17. W5.2, W5.4, W6.5, W6.6 — land opportunistically
+12. W3.3 end-to-end encrypted sync
+13. iOS
+14. W4.4 AI layer into its package
+15. W6.5 vault health — land opportunistically
 
 ---
 
@@ -369,16 +347,17 @@ Release numbers are indicative; the ordering is the argument.
 
 | Release | Theme | Contents |
 |---|---|---|
-| **1.81** | Foundation I | Phase names in `08-roadmap.md` fixed · W3.2 disclosure screen + privacy ADR · W4.3 harness · W6.4 nightly stress job |
-| **1.82** | Foundation II | W4.1 text surface · W4.5 overlay rule · W4.2 begins · W6.2 goldens |
-| **1.83** | Retrieval, invisible | W2.1 vectors out of JSON · W2.3 the 50k budget |
-| **1.84** | Retrieval, visible | W2.2 fused ranking · W2.4 assistant on the same retriever |
-| **1.85** | Safety net | W1.6 backup to a chosen folder · W5.2 quick-capture surfaces · W6.1 accessibility |
-| **1.86** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
-| **1.87** | Continuity II | W1.3 media sync · W3.4 local metrics · W6.3 startup/scroll budgets |
-| **1.88** | The second device | W1.5 Windows un-paused, re-qualified, released |
-| **1.89** | Trust | W3.1 encryption at rest, behind a proved migration |
-| **2.0** | The release | W5.1 grounded assistant · docs and vision rewritten · Threads only if the prototype earned it |
+| ~~1.81~~ | *Shipped* | W5.1–W5.4 and W6.6 — see §13 |
+| **1.82** | Foundation I | Phase names in `08-roadmap.md` fixed · W3.2 disclosure screen + privacy ADR · W4.3 harness · W6.4 nightly stress job |
+| **1.83** | Foundation II | W4.1 text surface · W4.5 overlay rule · W4.2 begins · W6.2 goldens |
+| **1.84** | Retrieval, invisible | W2.1 vectors out of JSON · W2.3 the 50k budget |
+| **1.85** | Retrieval, visible | W2.2 fused ranking · W2.4 assistant (and its citations) on the same retriever |
+| **1.86** | Safety net | W1.6 backup to a chosen folder · W6.1 accessibility |
+| **1.87** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
+| **1.88** | Continuity II | W1.3 media sync · W3.4 local metrics · W6.3 startup/scroll budgets |
+| **1.89** | The second device | W1.5 Windows un-paused, re-qualified, released |
+| **1.90** | Trust | W3.1 encryption at rest, behind a proved migration |
+| **2.0** | The release | Docs and vision rewritten · threads and citations synced across devices |
 
 - **The invisible work is first on purpose.** Retrieval and the shared UI
   primitives are what the visible work is made of.
@@ -390,8 +369,8 @@ Release numbers are indicative; the ordering is the argument.
 ## 7. What 2.0 deliberately does not do
 
 - **Collaboration, sharing, multi-user.** It would change what the product is.
-- **Folders, nested tags, databases, templates.** Threads (W5.3) is the only
-  concession, and it is post-capture and non-containing by design.
+- **Folders, nested tags, databases, templates.** Threads (§13) are the only
+  concession, and they are post-capture and non-containing by design.
 - **A web client.** A third rendering of every surface and a different security
   model.
 - **A plugin API or scripting.** It would freeze internals that are still moving.
@@ -426,7 +405,7 @@ Release numbers are indicative; the ordering is the argument.
 | **The encryption migration loses someone's notes** | It rewrites the database in place on a device nobody can see | Ship last; verified backup first; restore test against a corrupted archive in CI |
 | **Two platforms, one tester** | Every bug so far was found by the owner on a real phone | Un-pause the Windows CI job before writing Windows features |
 | **The vector work becomes a rabbit hole** | No natural stopping point | Set the budget (W2.3) first; accept the quantised scan if it clears it |
-| **Threads drifts into an organisation system** | One product meeting away from folders | A written kill criterion before any code |
+| **Threads drift into an organisation system** | One product meeting away from folders | The kill criteria in §13, held on every change to them |
 | **Background sync burns battery** | It always does, the first time | Explicit budget, measured on a device, conservative default |
 | **The foundation work is skipped because it is invisible** | It always is | Scheduled first; every feature after it is cheaper |
 | **Feature breadth keeps outrunning the foundation** | 1.60–1.80 added a vault, Recurring, icons and effects in quick succession | Each 1.8x release carries at least one W4/W6 item |
@@ -450,8 +429,8 @@ Release numbers are indicative; the ordering is the argument.
 ## 11. ایده‌های بازمانده
 
 پیشنهادهای قابل بررسی، نه تصمیم یا تعهد انتشار. موارد انجام‌شده (جستجوهای
-ذخیره‌شده، موارد ۱ تا ۶ مرکز Recurring و جای «ابزارها» در نوار پایین) حذف شده‌اند؛
-دو مورد باقی‌ماندهٔ Recurring به W5.4 منتقل شده‌اند.
+ذخیره‌شده، همهٔ موارد مرکز Recurring و جای «ابزارها» در نوار پایین) حذف
+شده‌اند.
 
 ### امکانات
 
@@ -495,6 +474,55 @@ Release numbers are indicative; the ordering is the argument.
    با OCR روی دستگاه قابل جستجو می‌شود.
 10. **ثبت از ساعت هوشمند (Wear OS):** یک لمس برای یادداشت صوتی که روی گوشی
     ذخیره و رونویسی می‌شود.
+
+---
+
+## 13. Done
+
+Taken out of the plan above when they shipped. Each line is what a person can
+now do; the commit history has the rest.
+
+### In 1.81.0
+
+- **W5.1 The assistant answers from your notes, and shows which.** An answer
+  that used notes ends with them as chips that open them; an id that is not a
+  real, undeleted note makes no chip. With "Stay in my notes" off, an answer
+  from general knowledge says so under it. *Not yet:* the citations come from
+  the assistant's own context, not the fused retriever (W2.4).
+- **W5.2 Capture from anywhere.** A Quick Settings tile ("Nex capture") opens
+  the capture sheet, behind the unlock on a locked phone; an opt-in silent
+  notification (Settings → Capture) has Note, Voice and Photo buttons and
+  returns after a reboot.
+- **W5.3 Threads.** Named views over notes about the same thing (Library →
+  Threads, a note's details, the hold menu). After a capture closes, a note
+  that clearly continues a thread — shared significant words, or the same
+  link site — is offered to it in one capsule; two clearly related loose notes
+  can start one. No model is involved. *Not yet:* threads are local and not in
+  export archives or sync.
+- **W5.4 Recurring calendar and attachments.** A week or month calendar with
+  how busy each day is; the next occurrence can be moved from it without
+  moving the schedule. An item can carry receipt photos, linked notes and one
+  vault card, which opens only through the vault's unlock and is never part
+  of what the assistant or the brief reads.
+- **W6.6 Settings search.** One field finds any row, including by what the
+  page it opens contains; a switch found there works there.
+
+### Threads — kill criteria
+
+Threads stay only while all of these hold. Breaking any one means removing the
+feature, not adjusting it.
+
+1. **Never before the save.** No thread choice appears in any capture flow,
+   and nothing about a thread can delay a capture.
+2. **Never required.** No note has to be in a thread, and no screen asks for
+   one.
+3. **Never a container.** A note in a thread is still on the timeline, in
+   search and under its tags; deleting a thread changes no note.
+4. **Rarely offered, never twice.** At most one capsule per capture, only on a
+   clear match, and a setting turns it off. If people turn it off more than
+   they use it, the offer goes.
+5. **No hierarchy.** No thread inside a thread, no ordering of threads by
+   hand, no thread-only notes.
 
 ---
 
