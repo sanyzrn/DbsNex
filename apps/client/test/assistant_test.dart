@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
+import 'package:nex_client/screens/note_detail_sheet.dart';
 import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:path/path.dart' as p;
 
@@ -921,6 +922,60 @@ Sure, here you go:
       // on it. Without this line the same blank chat appeared whether it came
       // from the capture button or from one note's own action row.
       expect(find.textContaining('the whiteboard photo'), findsOneWidget);
+    });
+
+    testWidgets('an answer names the notes it used, as chips that open them', (
+      tester,
+    ) async {
+      final note = (await services.captureText('the boiler code is 4471'))!;
+      await openSheet(
+        tester,
+        client: replying('The code is 4471.\nSources: [${note.id}]'),
+      );
+      await tester.enterText(find.byType(TextField).last, 'boiler code?');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+
+      // The marker line is for the app: the reader sees the answer and the
+      // note, never the id.
+      expect(find.text('The code is 4471.'), findsOneWidget);
+      expect(find.textContaining(note.id), findsNothing);
+      final chip = find.widgetWithText(ActionChip, 'the boiler code is 4471');
+      expect(chip, findsOneWidget);
+
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      expect(find.byType(NoteDetailSheet), findsOneWidget);
+    });
+
+    testWidgets('an invented id makes no chip', (tester) async {
+      await openSheet(
+        tester,
+        client: replying(
+          'Nothing about that.\nSources: [01890000-0000-7000-8000-000000000000]',
+        ),
+      );
+      await tester.enterText(find.byType(TextField).last, 'anything?');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      expect(find.text('Nothing about that.'), findsOneWidget);
+      expect(find.byType(ActionChip), findsNothing);
+    });
+
+    testWidgets('an answer from general knowledge says so', (tester) async {
+      await preferences.setAiNotesOnly(false);
+      await openSheet(
+        tester,
+        client: replying('[general] Paris is the capital of France.'),
+      );
+      await tester.enterText(find.byType(TextField).last, 'capital?');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      expect(find.text('Paris is the capital of France.'), findsOneWidget);
+      expect(
+        find.text('From general knowledge, not your notes'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a chat about nothing says nothing', (tester) async {

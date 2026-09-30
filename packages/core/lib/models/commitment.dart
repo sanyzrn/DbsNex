@@ -350,6 +350,39 @@ DateTime nexAdvance(NexCommitment commitment, {required DateTime after}) {
   return _addMonths(after, months);
 }
 
+/// Every time [commitment] comes due between [from] and [to], in order — what
+/// the Recurring calendar draws (W5.4).
+///
+/// The next occurrence is its actual [NexCommitment.dueAt], which may have
+/// been moved by a snooze; the ones after it follow the schedule, because
+/// moving one occurrence never moves the schedule. A paused commitment has
+/// none. [max] bounds a two-hourly item over a long range.
+List<DateTime> nexOccurrences(
+  NexCommitment commitment, {
+  required DateTime from,
+  required DateTime to,
+  int max = 400,
+}) {
+  if (commitment.paused || to.isBefore(from)) return const [];
+  bool inRange(DateTime at) => !at.isBefore(from) && !at.isAfter(to);
+  final out = <DateTime>[if (inRange(commitment.dueAt)) commitment.dueAt];
+  final scheduled = commitment.details['scheduledDue'] == null
+      ? commitment
+      : commitment.copyWith(
+          dueAt: commitment.scheduledDue,
+          details: Map.of(commitment.details)..remove('scheduledDue'),
+        );
+  var cursor = scheduled.dueAt;
+  for (var step = 0; step < 20000 && out.length < max; step++) {
+    final next = nexAdvance(scheduled, after: cursor);
+    if (!next.isAfter(cursor) || next.isAfter(to)) break;
+    if (inRange(next) && next != commitment.dueAt) out.add(next);
+    cursor = next;
+  }
+  out.sort();
+  return out;
+}
+
 /// How many turns of the cycle to try before giving up and counting from the
 /// present. A hundred covers eight years of monthly and a fortnight of
 /// two-hourly; past that the old cycle has stopped meaning anything.

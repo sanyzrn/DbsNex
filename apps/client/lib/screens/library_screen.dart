@@ -7,6 +7,7 @@ import '../widgets/storage_panel.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import 'recently_deleted_screen.dart';
+import 'threads_screen.dart';
 import 'tag_manager_screen.dart';
 
 /// Where the notes live that are not on the timeline.
@@ -65,6 +66,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   services: services,
                   preferences: widget.preferences,
                 ),
+              ),
+            ),
+          ),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: NexSpacing.lg,
+            ),
+            leading: const Icon(Icons.timeline_outlined),
+            title: Text(l10n.threads),
+            subtitle: Text(l10n.threadsSubtitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              NexPageRoute<void>(
+                builder: (_) =>
+                    ThreadsScreen(services: services, preferences: preferences),
               ),
             ),
           ),

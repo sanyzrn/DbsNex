@@ -57,6 +57,7 @@ import 'tools_screen.dart';
 import 'intelligence_screen.dart';
 import 'library_screen.dart';
 import 'note_detail_sheet.dart';
+import 'threads_screen.dart';
 import 'photo_preview_screen.dart';
 import 'settings_sheet.dart';
 
@@ -335,6 +336,15 @@ class TimelineScreenState extends State<TimelineScreen>
     // arrives while this screen is still being built, so it waits in the
     // bridge until there is something here to answer it.
     widget.osCapture?.onCaptureRequested = _openCaptureFromOs;
+    widget.osCapture?.onCaptureModeRequested = _captureFromOs;
+    // The platform keeps its own copy of this switch so the notification
+    // survives a reboot; this makes the two agree after a restore or an
+    // update.
+    unawaited(
+      QuickCaptureNotification.setEnabled(
+        widget.preferences.quickCaptureNotification,
+      ),
+    );
     widget.osCapture?.onOpenNoteRequested = _openNoteFromOs;
     widget.osCapture?.onRecapRefreshRequested = _refreshRecapFromOs;
     widget.osCapture?.onOpenTimelineRequested = _openTimelineFromOs;
@@ -345,7 +355,11 @@ class TimelineScreenState extends State<TimelineScreen>
           case PendingOsRequestKind.refreshRecap:
             _refreshRecapFromOs();
           case PendingOsRequestKind.capture:
-            _openCaptureFromOs();
+            if (requested.captureMode case final mode?) {
+              _captureFromOs(mode);
+            } else {
+              _openCaptureFromOs();
+            }
           case PendingOsRequestKind.openTimeline:
             _openTimelineFromOs();
           case PendingOsRequestKind.openNote:
@@ -1487,12 +1501,14 @@ class TimelineScreenState extends State<TimelineScreen>
   }
 
   Future<void> openCapture() async {
+    String? committed;
     await nexShowSheet<void>(
       context: context,
       builder: (sheetContext) => CaptureSheet(
         services: widget.services,
         preferences: widget.preferences,
         onCommitted: (id) {
+          committed = id;
           landedId = id;
           if (widget.preferences.haptics) HapticFeedback.lightImpact();
         },
@@ -1523,6 +1539,54 @@ class TimelineScreenState extends State<TimelineScreen>
       ),
     );
     widget.services.refreshTimeline();
+    // Once the sheet is closed, not at the first keystroke that created the
+    // note: only then is there a whole note to compare.
+    if (committed case final id?) unawaited(_offerThread(id));
+  }
+
+  /// The post-capture offer on its own, for tests that cannot drive a
+  /// capture sheet to its close.
+  @visibleForTesting
+  Future<void> offerThreadFor(String noteId) => _offerThread(noteId);
+
+  /// Notes already asked about, so one capture is never offered twice.
+  final _threadOffered = <String>{};
+
+  /// Offers the thread a just-captured note clearly continues (W5.3).
+  ///
+  /// After the save, never before it; one quiet capsule that goes away on its
+  /// own; nothing happens without a tap on it. Most captures continue
+  /// nothing, and for them this says nothing at all.
+  Future<void> _offerThread(String noteId) async {
+    if (!widget.preferences.threadSuggestions) return;
+    if (!_threadOffered.add(noteId)) return;
+    final suggestion = await widget.services.suggestThread(noteId);
+    if (suggestion == null || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final banner = NexBannerHost.of(context);
+    if (banner == null) return;
+    final thread = suggestion.thread;
+    final name = thread?.name ?? suggestion.name!;
+    banner.show(
+      message: thread != null
+          ? l10n.threadSuggestJoin(name)
+          : l10n.threadSuggestStart(name),
+      actionLabel: thread != null
+          ? l10n.threadSuggestAdd
+          : l10n.threadSuggestStartAction,
+      haptics: false,
+      onAction: () => unawaited(() async {
+        if (thread != null) {
+          await widget.services.addToThread(thread.id, noteId);
+        } else {
+          await widget.services.createThread(
+            name,
+            noteIds: [suggestion.withNoteId!, noteId],
+          );
+        }
+        banner.show(message: l10n.threadAdded(name));
+      }()),
+    );
   }
 
   /// Opens the checklist sheet and commits whatever came back.
@@ -1568,6 +1632,7 @@ class TimelineScreenState extends State<TimelineScreen>
   void _landed(String id) {
     if (!mounted) return;
     setState(() => landedId = id);
+    unawaited(_offerThread(id));
     if (widget.preferences.haptics) HapticFeedback.lightImpact();
   }
 
@@ -2985,6 +3050,12 @@ class TimelineScreenState extends State<TimelineScreen>
                 action,
                 () => unawaited(_openNote(note, run: action)),
               ),
+      NexHoldAction.thread => NoteMenuEntry(
+        action,
+        () => unawaited(
+          showThreadPicker(context, services: widget.services, noteId: note.id),
+        ),
+      ),
       NexHoldAction.caption || NexHoldAction.details => NoteMenuEntry(
         action,
         () => unawaited(_openNote(note, run: action)),
@@ -3193,6 +3264,20 @@ class TimelineScreenState extends State<TimelineScreen>
     if (!mounted) return;
     _surfaceTimeline();
     unawaited(openCapture());
+  }
+
+  /// A quick-capture notification button: straight to the kind it names.
+  void _captureFromOs(OsCaptureMode mode) {
+    if (!mounted) return;
+    _surfaceTimeline();
+    switch (mode) {
+      case OsCaptureMode.text:
+        unawaited(openCapture());
+      case OsCaptureMode.voice:
+        unawaited(captureVoice());
+      case OsCaptureMode.photo:
+        unawaited(capturePhoto(ImageSource.camera));
+    }
   }
 
   void _openNoteFromOs(String noteId) {

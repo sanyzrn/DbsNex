@@ -30,6 +30,7 @@ class InProcessDb implements NexDb {
     _tags = TagService(_repo);
     _search = SearchService(_repo);
     _commitments = SqliteCommitmentRepository(_db, localDeviceId: deviceId);
+    _threads = SqliteThreadRepository(_db, _repo, localDeviceId: deviceId);
     // Same composition as the real worker: the purge paths only delete
     // attachment files they can prove live under the media directory.
     _maintenance = LibraryMaintenance(
@@ -76,6 +77,7 @@ class InProcessDb implements NexDb {
   late final CaptureService _capture;
   late final TagService _tags;
   late final SqliteCommitmentRepository _commitments;
+  late final SqliteThreadRepository _threads;
   late final SearchService _search;
   late final LibraryMaintenance _maintenance;
   late final EnrichmentService _enrichment;
@@ -268,6 +270,42 @@ class InProcessDb implements NexDb {
 
   @override
   Future<void> deleteCommitment(String id) async => _commitments.delete(id);
+
+  @override
+  Future<List<NoteThread>> listThreads() async => _threads.list();
+
+  @override
+  Future<List<NoteThread>> threadsForNote(String noteId) async =>
+      _threads.forNote(noteId);
+
+  @override
+  Future<List<Note>> threadNotes(String threadId) async =>
+      _threads.notes(threadId);
+
+  @override
+  Future<NoteThread> createThread(
+    String name, {
+    List<String> noteIds = const [],
+  }) async => _threads.create(name, noteIds: noteIds);
+
+  @override
+  Future<void> renameThread(String threadId, String name) async =>
+      _threads.rename(threadId, name);
+
+  @override
+  Future<void> deleteThread(String threadId) async => _threads.delete(threadId);
+
+  @override
+  Future<void> addToThread(String threadId, String noteId) async =>
+      _threads.add(threadId, noteId);
+
+  @override
+  Future<void> removeFromThread(String threadId, String noteId) async =>
+      _threads.remove(threadId, noteId);
+
+  @override
+  Future<ThreadSuggestion?> suggestThread(String noteId) async =>
+      _threads.suggest(noteId);
 
   @override
   Future<void> setTagColor({required String tagId, String? color}) async =>

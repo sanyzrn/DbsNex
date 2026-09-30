@@ -434,6 +434,34 @@ void main() {
     expect(opened, 'note-7');
   });
 
+  test('a notification button names its capture; the tile does not', () async {
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    var sheets = 0;
+    final modes = <OsCaptureMode>[];
+    bridge.onCaptureRequested = () => sheets++;
+    bridge.onCaptureModeRequested = modes.add;
+    await bridge.start();
+
+    await bridge.handle({'type': 'text_capture', 'mode': 'voice'});
+    await bridge.handle({'type': 'text_capture', 'mode': 'photo'});
+    await bridge.handle({'type': 'text_capture'});
+    await bridge.handle({'type': 'text_capture', 'mode': 'fax'});
+    expect(modes, [OsCaptureMode.voice, OsCaptureMode.photo]);
+    // The tile, the widget and anything unrecognised open the sheet.
+    expect(sheets, 2);
+  });
+
+  test('a notification tap that launched the app keeps its mode', () async {
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+    await bridge.handle({'type': 'text_capture', 'mode': 'photo'});
+    final queued = bridge.takeRequest();
+    expect(queued?.isCapture, isTrue);
+    expect(queued?.captureMode, OsCaptureMode.photo);
+  });
+
   test('the Recap widget asks the app for a new brief', () async {
     // The refresh button on a home screen cannot write a brief — nothing in
     // that process can ask a model anything — so what it actually does is

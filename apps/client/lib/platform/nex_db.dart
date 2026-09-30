@@ -120,6 +120,31 @@ abstract interface class NexDb {
 
   Future<void> deleteCommitment(String id);
 
+  /* ---------------------------------------------------------- threads */
+
+  /// Every live thread, the most recently active first (W5.3).
+  Future<List<NoteThread>> listThreads();
+
+  /// The live threads a note is in.
+  Future<List<NoteThread>> threadsForNote(String noteId);
+
+  /// A thread's live notes, oldest first.
+  Future<List<Note>> threadNotes(String threadId);
+
+  Future<NoteThread> createThread(String name, {List<String> noteIds});
+
+  Future<void> renameThread(String threadId, String name);
+
+  /// Deletes the thread; its notes are untouched.
+  Future<void> deleteThread(String threadId);
+
+  Future<void> addToThread(String threadId, String noteId);
+
+  Future<void> removeFromThread(String threadId, String noteId);
+
+  /// What to offer right after [noteId] was captured, or null.
+  Future<ThreadSuggestion?> suggestThread(String noteId);
+
   Future<void> setTagColor({required String tagId, String? color});
 
   Future<void> setDueAt(String noteId, DateTime? when, {NoteRepeat repeat});

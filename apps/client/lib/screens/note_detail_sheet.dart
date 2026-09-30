@@ -37,6 +37,7 @@ import '../widgets/reminder_picker.dart';
 import '../widgets/tag_picker.dart';
 import '../widgets/translate_sheet.dart';
 import 'photo_crop_screen.dart';
+import 'threads_screen.dart';
 
 /// What the sheet reports back when it closes.
 ///
@@ -84,6 +85,9 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
   List<SemanticHit> _related = const [];
 
   int _pinnedNoteCount = 0;
+
+  /// The threads this note is in, shown beside its tags.
+  List<NoteThread> _threads = const [];
 
   /// Whether the first read has come back, whatever it found.
   ///
@@ -137,6 +141,8 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
         final note = _note;
         if (!mounted || note == null) return;
         switch (action) {
+          case NexHoldAction.thread:
+            await _pickThreads(note.id);
           case NexHoldAction.caption:
             await _editCaption();
           case NexHoldAction.convert:
@@ -203,13 +209,34 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
     );
   }
 
+  Future<void> _pickThreads(String noteId) async {
+    await showThreadPicker(context, services: widget.services, noteId: noteId);
+    await _reload();
+  }
+
+  Future<void> _openThread(NoteThread thread) async {
+    await Navigator.push(
+      context,
+      NexPageRoute<void>(
+        builder: (_) => ThreadScreen(
+          services: widget.services,
+          preferences: widget.preferences,
+          thread: thread,
+        ),
+      ),
+    );
+    await _reload();
+  }
+
   Future<void> _reload() async {
     final loaded = await widget.services.getById(widget.noteId);
     final pinnedNoteCount = await widget.services.pinnedNoteCount();
+    final threads = await widget.services.threadsForNote(widget.noteId);
     if (!mounted) return;
     setState(() {
       _note = loaded;
       _pinnedNoteCount = pinnedNoteCount;
+      _threads = threads;
       _read = true;
     });
     final note = _note;
@@ -1150,6 +1177,17 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           label: Text(l10n.tag),
                           onPressed: _addTag,
                         ),
+                        // Threads sit with the tags: both say what a note
+                        // belongs with, and neither moves it anywhere.
+                        for (final thread in _threads)
+                          ActionChip(
+                            avatar: const Icon(
+                              Icons.timeline_outlined,
+                              size: 16,
+                            ),
+                            label: Text(thread.name),
+                            onPressed: () => unawaited(_openThread(thread)),
+                          ),
                       ],
                     ),
                     _aiPanel(note, l10n),
@@ -1293,6 +1331,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           label: l10n.remind,
                           onPressed: _pickReminder,
                         ),
+                      _DetailAction(
+                        icon: Icons.timeline_outlined,
+                        label: l10n.threads,
+                        onPressed: () => unawaited(_pickThreads(note.id)),
+                      ),
                     ],
                     // The assistant. Tinted as a group and set off by the
                     // divider, because "is this the AI one?" is a question no

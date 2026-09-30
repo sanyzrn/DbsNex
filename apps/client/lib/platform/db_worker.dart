@@ -65,6 +65,15 @@ enum _DbCommand {
   renameTag,
   // Recurring obligations — see NexCommitment in packages/core.
   listCommitments,
+  listThreads,
+  threadsForNote,
+  threadNotes,
+  createThread,
+  renameThread,
+  deleteThread,
+  addToThread,
+  removeFromThread,
+  suggestThread,
   saveCommitment,
   markCommitmentMet,
   deleteCommitment,
@@ -547,6 +556,53 @@ class NexDbWorker implements NexDb {
       _send<void>(_DbCommand.deleteCommitment, {'id': id});
 
   @override
+  Future<List<NoteThread>> listThreads() =>
+      _send<List<NoteThread>>(_DbCommand.listThreads);
+
+  @override
+  Future<List<NoteThread>> threadsForNote(String noteId) =>
+      _send<List<NoteThread>>(_DbCommand.threadsForNote, {'noteId': noteId});
+
+  @override
+  Future<List<Note>> threadNotes(String threadId) =>
+      _send<List<Note>>(_DbCommand.threadNotes, {'threadId': threadId});
+
+  @override
+  Future<NoteThread> createThread(
+    String name, {
+    List<String> noteIds = const [],
+  }) => _send<NoteThread>(_DbCommand.createThread, {
+    'name': name,
+    'noteIds': noteIds,
+  });
+
+  @override
+  Future<void> renameThread(String threadId, String name) => _send<void>(
+    _DbCommand.renameThread,
+    {'threadId': threadId, 'name': name},
+  );
+
+  @override
+  Future<void> deleteThread(String threadId) =>
+      _send<void>(_DbCommand.deleteThread, {'threadId': threadId});
+
+  @override
+  Future<void> addToThread(String threadId, String noteId) => _send<void>(
+    _DbCommand.addToThread,
+    {'threadId': threadId, 'noteId': noteId},
+  );
+
+  @override
+  Future<void> removeFromThread(String threadId, String noteId) => _send<void>(
+    _DbCommand.removeFromThread,
+    {'threadId': threadId, 'noteId': noteId},
+  );
+
+  @override
+  Future<ThreadSuggestion?> suggestThread(String noteId) =>
+      _send<ThreadSuggestion?>(_DbCommand.suggestThread, {'noteId': noteId});
+
+  @override
   Future<void> setTagColor({required String tagId, String? color}) =>
       _send<void>(_DbCommand.setTagColor, {'tagId': tagId, 'color': color});
 
@@ -800,6 +856,11 @@ class NexDbWorker implements NexDb {
       db,
       localDeviceId: boot.deviceId,
     );
+    final threads = SqliteThreadRepository(
+      db,
+      repo,
+      localDeviceId: boot.deviceId,
+    );
     final enrichment = EnrichmentService(
       repo: repo,
       adapter: boot.adapter,
@@ -948,6 +1009,33 @@ class NexDbWorker implements NexDb {
         _DbCommand.deleteCommitment => _voided(
           () => commitments.delete(arg('id')! as String),
         ),
+        _DbCommand.listThreads => threads.list(),
+        _DbCommand.threadsForNote => threads.forNote(arg('noteId')! as String),
+        _DbCommand.threadNotes => threads.notes(arg('threadId')! as String),
+        _DbCommand.createThread => threads.create(
+          arg('name')! as String,
+          noteIds: List<String>.from(arg('noteIds')! as List),
+        ),
+        _DbCommand.renameThread => _voided(
+          () => threads.rename(
+            arg('threadId')! as String,
+            arg('name')! as String,
+          ),
+        ),
+        _DbCommand.deleteThread => _voided(
+          () => threads.delete(arg('threadId')! as String),
+        ),
+        _DbCommand.addToThread => _voided(
+          () =>
+              threads.add(arg('threadId')! as String, arg('noteId')! as String),
+        ),
+        _DbCommand.removeFromThread => _voided(
+          () => threads.remove(
+            arg('threadId')! as String,
+            arg('noteId')! as String,
+          ),
+        ),
+        _DbCommand.suggestThread => threads.suggest(arg('noteId')! as String),
         _DbCommand.setTagColor => _voided(
           () => tags.setColor(
             tagId: arg('tagId')! as String,

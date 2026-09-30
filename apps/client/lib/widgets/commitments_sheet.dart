@@ -1,4 +1,6 @@
 import 'feature_label.dart';
+import 'recurring_attachments.dart';
+import 'recurring_calendar.dart';
 import 'recurring_options.dart';
 import 'dart:async';
 import 'dart:ui' show BoxWidthStyle;
@@ -427,6 +429,8 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
               !c.paused &&
                   !c.dueAt.isBefore(today) &&
                   c.dueAt.isBefore(today.add(const Duration(days: 7))),
+            // The calendar draws every item on its own days.
+            'calendar' => true,
             _ => true,
           },
         )
@@ -496,6 +500,7 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
                 ('today', 'Today', 'امروز'),
                 ('overdue', 'Overdue', 'عقب‌افتاده'),
                 ('week', 'Next 7 days', '۷ روز آینده'),
+                ('calendar', 'Calendar', 'تقویم'),
               ])
                 ChoiceChip(
                   label: Text(nexLabel(context, en, fa)),
@@ -513,6 +518,16 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
             )
           else if (all.isEmpty)
             _Empty(l10n: l10n)
+          else if (_view == 'calendar')
+            Flexible(
+              child: SingleChildScrollView(
+                child: RecurringCalendar(
+                  commitments: all,
+                  solar: widget.services.solarCalendar,
+                  onActions: (c) => unawaited(_actions(c)),
+                ),
+              ),
+            )
           else
             Flexible(child: _grouped(l10n, theme, all, now)),
         ],
@@ -684,11 +699,32 @@ class _CommitmentRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      commitment.title,
-                      style: theme.textTheme.bodyLarge,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            commitment.title,
+                            style: theme.textTheme.bodyLarge,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        // It carries a receipt, a note or a card.
+                        if (RecurringAttachments.noteIdsOf(
+                              commitment.details,
+                            ).isNotEmpty ||
+                            RecurringAttachments.vaultCardOf(
+                                  commitment.details,
+                                ) !=
+                                null) ...[
+                          const SizedBox(width: NexSpacing.xs),
+                          Icon(
+                            Icons.attach_file,
+                            size: 16,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -1184,6 +1220,15 @@ class _CommitmentEditorState extends State<CommitmentEditor>
                     ],
                   ),
               ],
+              const SizedBox(height: NexSpacing.md),
+              RecurringAttachments(
+                services: widget.services,
+                details: _details,
+                onChanged: (details) => setState(() {
+                  _details = details;
+                  _snapshot();
+                }),
+              ),
               const SizedBox(height: NexSpacing.md),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

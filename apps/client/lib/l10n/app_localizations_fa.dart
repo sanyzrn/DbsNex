@@ -3228,4 +3228,83 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get vaultRestoreAuth =>
       'پیش از بازیابی پشتیبان کامل، هویت خود را تأیید کنید';
+
+  @override
+  String get assistantGeneralKnowledge => 'از دانش عمومی، نه یادداشت‌های شما';
+
+  @override
+  String get assistantOpenSource => 'بازکردن این یادداشت';
+
+  @override
+  String get threads => 'رشته‌ها';
+
+  @override
+  String get threadsSubtitle =>
+      'یادداشت‌های یک موضوع، کنار هم و بدون جابه‌جایی';
+
+  @override
+  String get threadsEmpty =>
+      'هنوز رشته‌ای نیست. وقتی یادداشت تازه آشکارا ادامهٔ یادداشت قبلی باشد، Nex پیشنهاد می‌کند کنار هم بیایند؛ یا از جزئیات یادداشت آن را به رشته‌ای اضافه کنید.';
+
+  @override
+  String get threadNew => 'رشتهٔ تازه';
+
+  @override
+  String get threadName => 'نام رشته';
+
+  @override
+  String get threadRename => 'تغییر نام';
+
+  @override
+  String get threadDelete => 'حذف رشته';
+
+  @override
+  String get threadDeleteBody =>
+      'رشته حذف می‌شود؛ یادداشت‌هایش همان‌جا که هستند می‌مانند.';
+
+  @override
+  String get threadRemoveNote => 'برداشتن از رشته';
+
+  @override
+  String threadNoteCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString یادداشت';
+  }
+
+  @override
+  String get threadAddTo => 'رشته‌ها';
+
+  @override
+  String get threadEmpty => 'دیگر یادداشتی در این رشته نیست.';
+
+  @override
+  String threadSuggestJoin(String name) {
+    return 'ادامهٔ «$name»؟';
+  }
+
+  @override
+  String threadSuggestStart(String name) {
+    return 'رشتهٔ «$name» شروع شود؟';
+  }
+
+  @override
+  String get threadSuggestAdd => 'افزودن';
+
+  @override
+  String get threadSuggestStartAction => 'شروع';
+
+  @override
+  String threadAdded(String name) {
+    return 'به «$name» اضافه شد';
+  }
+
+  @override
+  String get threadSuggestions => 'پیشنهاد رشته پس از ثبت';
+
+  @override
+  String get threadSuggestionsSubtitle =>
+      'فقط وقتی یادداشت تازه آشکارا ادامهٔ یادداشت قبلی باشد. بدون لمس شما چیزی اضافه نمی‌شود.';
 }

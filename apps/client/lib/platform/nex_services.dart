@@ -571,6 +571,44 @@ class NexServices {
 
   Future<List<Tag>> listTags() => worker.listTags();
 
+  /* ---------------------------------------------------------- threads */
+
+  /// Named views over notes about the same thing (W5.3). None of these
+  /// change a note; the timeline is refreshed only so a card can show it.
+  Future<List<NoteThread>> threads() => worker.listThreads();
+
+  Future<List<NoteThread>> threadsForNote(String noteId) =>
+      worker.threadsForNote(noteId);
+
+  Future<List<Note>> threadNotes(String threadId) =>
+      worker.threadNotes(threadId);
+
+  Future<NoteThread> createThread(
+    String name, {
+    List<String> noteIds = const [],
+  }) => worker.createThread(name, noteIds: noteIds);
+
+  Future<void> renameThread(String threadId, String name) =>
+      worker.renameThread(threadId, name);
+
+  Future<void> deleteThread(String threadId) => worker.deleteThread(threadId);
+
+  Future<void> addToThread(String threadId, String noteId) =>
+      worker.addToThread(threadId, noteId);
+
+  Future<void> removeFromThread(String threadId, String noteId) =>
+      worker.removeFromThread(threadId, noteId);
+
+  /// Asked once, right after a capture lands. Never throws: a suggestion
+  /// that could not be worked out is simply not offered.
+  Future<ThreadSuggestion?> suggestThread(String noteId) async {
+    try {
+      return await worker.suggestThread(noteId);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /* ------------------------------------------- recurring obligations */
 
   /// The standing obligations — the insurance, the rent, the tablet every

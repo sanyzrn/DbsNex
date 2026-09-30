@@ -356,5 +356,30 @@
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
         <meta-data android:name="flutterEmbedding" android:value="2" />
+        <!-- W5.2: the Quick Settings tile. Exported, as every tile must be,
+             and guarded by the permission only the system holds. -->
+        <service
+            android:name=".NexCaptureTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_nex"
+            android:label="@string/tile_capture_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.ACTIVE_TILE"
+                android:value="false" />
+        </service>
+        <!-- Puts the optional quick-capture notification back after a reboot
+             or an update, when it was on. -->
+        <receiver
+            android:name=".NexQuickCaptureRestore"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

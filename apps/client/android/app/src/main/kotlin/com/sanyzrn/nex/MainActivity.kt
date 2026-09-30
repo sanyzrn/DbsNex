@@ -141,6 +141,11 @@ open class MainActivity : FlutterFragmentActivity() {
                 }
             }
             "peekPending" -> result.success(nextCapture())
+            // Settings → Capture → "Capture from notifications" (W5.2).
+            "setQuickCaptureNotification" -> {
+                NexQuickCapture.setEnabled(this, call.argument<Boolean>("enabled") == true)
+                result.success(null)
+            }
             "ackPending" -> {
                 val id = call.argument<String>("requestId")
                 if (id != null) {
@@ -425,7 +430,14 @@ open class MainActivity : FlutterFragmentActivity() {
     // share vanished with nothing captured and no error.
     private fun handleIncoming(intent: Intent?, live: Boolean) {
         if (intent?.action == ACTION_TEXT_CAPTURE) {
-            return enqueue(mapOf("type" to "text_capture"), live)
+            // The quick-capture notification's buttons say which kind; the
+            // widget and the tile carry no mode and open the capture sheet.
+            val mode = intent.getStringExtra(NexQuickCapture.EXTRA_CAPTURE_MODE)
+            return enqueue(
+                if (mode == null) mapOf("type" to "text_capture")
+                else mapOf("type" to "text_capture", "mode" to mode),
+                live,
+            )
         }
         // A Timeline widget row: open that one note. The id is the only
         // payload and it only ever reaches Dart — the sheet that opens is the
