@@ -3341,4 +3341,95 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cameraUseSystem => 'استفاده از برنامهٔ دوربین';
+
+  @override
+  String get disclosuresTitle => 'آنچه از این گوشی خارج شد';
+
+  @override
+  String get disclosuresRow =>
+      'همهٔ درخواست‌هایی که نکس به ارائه‌دهندهٔ هوش مصنوعی فرستاد';
+
+  @override
+  String get disclosuresIntro =>
+      'هر بار که نکس چیزی برای یک ارائه‌دهندهٔ هوش مصنوعی فرستاد: کدام ارائه‌دهنده، برای چه کاری، چه نوع محتوایی و از کدام یادداشت‌ها. این فهرست فقط روی همین گوشی می‌ماند، هیچ‌جا ارسال نمی‌شود و در هیچ پشتیبانی نیست. مدل آفلاین چیزی نمی‌فرستد و هرگز اینجا دیده نمی‌شود.';
+
+  @override
+  String get disclosuresEmpty => 'چیزی از این گوشی خارج نشده است.';
+
+  @override
+  String get disclosuresClear => 'پاک کردن فهرست';
+
+  @override
+  String get disclosuresClearBody =>
+      'این فهرست پاک شود؟ آنچه قبلاً فرستاده شده تغییری نمی‌کند.';
+
+  @override
+  String disclosuresFromNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'از $count یادداشت',
+      one: 'از ۱ یادداشت',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String disclosuresNotesGone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count یادداشت از آن زمان حذف شده‌اند.',
+      one: '۱ یادداشت از آن زمان حذف شده است.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get disclosureChat => 'پرسش از دستیار';
+
+  @override
+  String get disclosureTags => 'پیشنهاد برچسب';
+
+  @override
+  String get disclosureSummary => 'خلاصهٔ یادداشت';
+
+  @override
+  String get disclosureDailySummary => 'خلاصهٔ هوشمند';
+
+  @override
+  String get disclosureGreeting => 'خوشامدگویی';
+
+  @override
+  String get disclosureTranslation => 'ترجمه';
+
+  @override
+  String get disclosureRewrite => 'بازنویسی';
+
+  @override
+  String get disclosureTranscription => 'رونویسی صدا';
+
+  @override
+  String get disclosurePhotoText => 'متن داخل عکس';
+
+  @override
+  String get disclosureSearchIndex => 'جست‌وجوی معنایی';
+
+  @override
+  String get disclosureConnectionTest => 'آزمایش اتصال';
+
+  @override
+  String get disclosureOther => 'درخواست دیگر';
+
+  @override
+  String get disclosureText => 'متن';
+
+  @override
+  String get disclosureFileText => 'فایل';
+
+  @override
+  String get disclosureImage => 'تصویر';
+
+  @override
+  String get disclosureAudio => 'صدا';
 }

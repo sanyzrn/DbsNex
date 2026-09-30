@@ -155,6 +155,14 @@ Testing effort is weighted toward the parts of the system where a regression mos
 
 CI gates on: unit + integration test suites, the two measurable performance budgets (write durability and search latency — in `app_smoke_test.dart` and `packages/data/test/performance_budget_test.dart`), and lint/type-check passing. No feature merges if it regresses either. They are ordinary tests rather than a job of their own, so grepping the workflow files for them finds nothing; look in the suites. The two device-bound budgets — cold start and capture-sheet readiness — are validated by usability testing rather than gated, for the reason [`02-product-specification.md`](./02-product-specification.md#non-functional-requirements) gives.
 
+Widget tests build their library with the shared harness in `apps/client/test/support/nex_harness.dart` — `NexTestHarness.create()` in a `setUp`, or `pumpNexApp(tester)` inside one test — rather than assembling `NexServices.forTest` by hand.
+
+### Flaky tests
+
+A test that fails once and passes on a re-run has found a race. **A retry is never the fix**: no `retry:` on a test, no loop that tries again, no re-run that is taken as the answer. Find the ordering that fails and fix the code or the test's own synchronisation (1.80.2's `SQLITE_BUSY` was fixed with `beginImmediate()`, not a retry).
+
+`.github/workflows/stress.yml` runs every night: the race-sensitive tests fifty times each and both suites in a shuffled order. A red night is a bug report with the run number and the shuffle seed; reproduce it locally with `tools/stress_repeat.sh 50 <test command>` or `--test-randomize-ordering-seed=<seed>`. Run it by hand from the Actions tab with a larger count before a release when a change touched the database isolate, the share window or the draft journal.
+
 ---
 
 ## Git Workflow

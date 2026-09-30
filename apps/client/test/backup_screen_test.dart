@@ -3,48 +3,35 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nex_data/nex_data.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
-import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/backup_screen.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// A local backup with nothing offered but Restore used to be a one-way
 /// accumulation: nothing on this screen could ever remove one.
 void main() {
+  late NexTestHarness harness;
   late Directory tmp;
   late NexServices services;
   late NexPreferences preferences;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_backup_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    final mediaDir = p.join(tmp.path, 'media');
-    final backupDir = p.join(tmp.path, 'backups');
-    Directory(mediaDir).createSync(recursive: true);
-    Directory(backupDir).createSync(recursive: true);
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: await NexPreferences.load(),
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: mediaDir,
-      backupDir: backupDir,
+    harness = await NexTestHarness.create(
+      name: 'nex_backup_',
+      onboarded: false,
     );
+    services = harness.services;
+    preferences = harness.preferences;
+    tmp = harness.root;
     preferences = await NexPreferences.load();
   });
 
-  tearDown(() async {
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
-  });
+  tearDown(() => harness.dispose());
 
   test(
     'failed restore requests a restart and retains the original library plus a safety copy',

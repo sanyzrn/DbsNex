@@ -1,19 +1,12 @@
-import 'package:nex_client/widgets/nex_banner.dart';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
-import 'package:nex_client/platform/backup_policy.dart';
-import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/widgets/commitments_sheet.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// The recurring page, which used to be a title, a plus and a list.
 ///
@@ -22,33 +15,18 @@ import 'support/in_process_db.dart';
 /// their data, not a preference. It has a place in the bar along the bottom
 /// now, and this is the page that place opens.
 void main() {
-  late Directory tmp;
+  late NexTestHarness harness;
   late NexServices services;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_commitments_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    final mediaDir = p.join(tmp.path, 'media');
-    final backupDir = p.join(tmp.path, 'backups');
-    Directory(mediaDir).createSync(recursive: true);
-    Directory(backupDir).createSync(recursive: true);
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: await NexPreferences.load(),
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: mediaDir,
-      backupDir: backupDir,
+    harness = await NexTestHarness.create(
+      name: 'nex_commitments_',
+      onboarded: false,
     );
+    services = harness.services;
   });
 
-  tearDown(() async {
-    nexHideBanner();
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
-  });
+  tearDown(() => harness.dispose());
 
   // Straight to the worker, not through `services.saveCommitment`: that one
   // also schedules a real alarm, and this page never asks it to.

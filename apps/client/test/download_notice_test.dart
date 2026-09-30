@@ -34,10 +34,7 @@ void main() {
       isTrue,
     );
     expect(seen.single.method, 'downloadNotice');
-    expect(seen.single.arguments, {
-      'title': 'Downloading Nex',
-      'percent': 42,
-    });
+    expect(seen.single.arguments, {'title': 'Downloading Nex', 'percent': 42});
   });
 
   test('taking it down is its own call, so the service can stop', () async {

@@ -5419,6 +5419,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use the camera app'**
   String get cameraUseSystem;
+
+  /// No description provided for @disclosuresTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What left this device'**
+  String get disclosuresTitle;
+
+  /// No description provided for @disclosuresRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Every request Nex made to an AI provider'**
+  String get disclosuresRow;
+
+  /// No description provided for @disclosuresIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Each time Nex sent something to an AI provider: which one, what for, what kind of content and from which notes. This record stays on this phone, is never uploaded and is not part of any backup. An offline model sends nothing and never appears here.'**
+  String get disclosuresIntro;
+
+  /// No description provided for @disclosuresEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing has left this device.'**
+  String get disclosuresEmpty;
+
+  /// No description provided for @disclosuresClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear record'**
+  String get disclosuresClear;
+
+  /// No description provided for @disclosuresClearBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this record of what was sent? What was already sent is not affected.'**
+  String get disclosuresClearBody;
+
+  /// No description provided for @disclosuresFromNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{From 1 note} other{From {count} notes}}'**
+  String disclosuresFromNotes(int count);
+
+  /// No description provided for @disclosuresNotesGone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note has since been deleted.} other{{count} notes have since been deleted.}}'**
+  String disclosuresNotesGone(int count);
+
+  /// No description provided for @disclosureChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant question'**
+  String get disclosureChat;
+
+  /// No description provided for @disclosureTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag suggestions'**
+  String get disclosureTags;
+
+  /// No description provided for @disclosureSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Note summary'**
+  String get disclosureSummary;
+
+  /// No description provided for @disclosureDailySummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart summary'**
+  String get disclosureDailySummary;
+
+  /// No description provided for @disclosureGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Greeting'**
+  String get disclosureGreeting;
+
+  /// No description provided for @disclosureTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation'**
+  String get disclosureTranslation;
+
+  /// No description provided for @disclosureRewrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewrite'**
+  String get disclosureRewrite;
+
+  /// No description provided for @disclosureTranscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice transcription'**
+  String get disclosureTranscription;
+
+  /// No description provided for @disclosurePhotoText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text in a photo'**
+  String get disclosurePhotoText;
+
+  /// No description provided for @disclosureSearchIndex.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by meaning'**
+  String get disclosureSearchIndex;
+
+  /// No description provided for @disclosureConnectionTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection test'**
+  String get disclosureConnectionTest;
+
+  /// No description provided for @disclosureOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other request'**
+  String get disclosureOther;
+
+  /// No description provided for @disclosureText.
+  ///
+  /// In en, this message translates to:
+  /// **'text'**
+  String get disclosureText;
+
+  /// No description provided for @disclosureFileText.
+  ///
+  /// In en, this message translates to:
+  /// **'file'**
+  String get disclosureFileText;
+
+  /// No description provided for @disclosureImage.
+  ///
+  /// In en, this message translates to:
+  /// **'image'**
+  String get disclosureImage;
+
+  /// No description provided for @disclosureAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'audio'**
+  String get disclosureAudio;
 }
 
 class _AppLocalizationsDelegate

@@ -32,6 +32,7 @@ import 'backup_screen.dart';
 import 'guide_screen.dart';
 import 'assistant_screen.dart';
 import 'brief_screen.dart';
+import 'disclosures_screen.dart';
 import 'intelligence_screen.dart';
 import 'profile_screen.dart';
 import 'security_screen.dart';
@@ -303,6 +304,19 @@ class SettingsSheet extends StatelessWidget {
             context,
             NexPageRoute<void>(
               builder: (_) => SecurityScreen(preferences: preferences),
+            ),
+          ),
+        ),
+        _Row(
+          icon: Icons.cloud_upload_outlined,
+          title: l10n.disclosuresTitle,
+          keywords:
+              'privacy sent provider log disclosure data left device حریم خصوصی ارسال فرستاده خارج شد',
+          value: l10n.disclosuresRow,
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => DisclosuresScreen(services: services),
             ),
           ),
         ),

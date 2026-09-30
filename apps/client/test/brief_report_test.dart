@@ -52,26 +52,19 @@ void main() {
 
   test('what is waiting is said, in the order it matters', () {
     final report = nexBriefReport(
-      nexBriefFacts(
-        [
-          note(
-            id: '1',
-            text: 'call the plumber',
-            dueAt: now.subtract(const Duration(days: 2)),
-          ),
-          note(
-            id: '2',
-            text: 'dentist',
-            dueAt: now.add(const Duration(days: 1)),
-          ),
-          note(
-            id: '3',
-            text: '- [ ] milk\n- [x] bread',
-            type: NoteType.checklist,
-          ),
-        ],
-        now: now,
-      ),
+      nexBriefFacts([
+        note(
+          id: '1',
+          text: 'call the plumber',
+          dueAt: now.subtract(const Duration(days: 2)),
+        ),
+        note(id: '2', text: 'dentist', dueAt: now.add(const Duration(days: 1))),
+        note(
+          id: '3',
+          text: '- [ ] milk\n- [x] bread',
+          type: NoteType.checklist,
+        ),
+      ], now: now),
       en,
       now: now,
     );
@@ -85,22 +78,15 @@ void main() {
 
   test('the budget is spent from the top', () {
     final report = nexBriefReport(
-      nexBriefFacts(
-        [
-          for (var i = 0; i < 5; i++)
-            note(
-              id: 'overdue-$i',
-              text: 'bill $i',
-              dueAt: now.subtract(Duration(days: 5 - i)),
-            ),
+      nexBriefFacts([
+        for (var i = 0; i < 5; i++)
           note(
-            id: 'list',
-            text: '- [ ] milk',
-            type: NoteType.checklist,
+            id: 'overdue-$i',
+            text: 'bill $i',
+            dueAt: now.subtract(Duration(days: 5 - i)),
           ),
-        ],
-        now: now,
-      ),
+        note(id: 'list', text: '- [ ] milk', type: NoteType.checklist),
+      ], now: now),
       en,
       now: now,
       maxLines: 2,

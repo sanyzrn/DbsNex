@@ -39,10 +39,7 @@ void main() {
   Future<void> pump(WidgetTester tester, TextDirection direction) {
     tall(tester);
     return tester.pumpWidget(
-      host(
-        const TagColorPicker(initial: '#5B9BF0'),
-        direction: direction,
-      ),
+      host(const TagColorPicker(initial: '#5B9BF0'), direction: direction),
     );
   }
 
@@ -87,9 +84,7 @@ void main() {
       tester,
     ) async {
       tall(tester);
-      await tester.pumpWidget(
-        host(const TagColorPicker(initial: '#5B9BF0')),
-      );
+      await tester.pumpWidget(host(const TagColorPicker(initial: '#5B9BF0')));
       await tester.pumpAndSettle();
 
       final field = tester.widget<TextField>(find.byType(TextField));
@@ -111,9 +106,7 @@ void main() {
       // The reason the field is editable at all: a colour that has to match
       // something outside Nex is known by its digits, not by its angle.
       tall(tester);
-      await tester.pumpWidget(
-        host(const TagColorPicker(initial: '#5B9BF0')),
-      );
+      await tester.pumpWidget(host(const TagColorPicker(initial: '#5B9BF0')));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), '#FF0000');
@@ -124,9 +117,7 @@ void main() {
 
     testWidgets('a half-typed hex changes nothing', (tester) async {
       tall(tester);
-      await tester.pumpWidget(
-        host(const TagColorPicker(initial: '#5B9BF0')),
-      );
+      await tester.pumpWidget(host(const TagColorPicker(initial: '#5B9BF0')));
       await tester.pumpAndSettle();
       final before = tester
           .widget<NexColorWheel>(find.byType(NexColorWheel))
@@ -145,9 +136,7 @@ void main() {
   group('the escape-hatch swatch', () {
     testWidgets('a tag can have no colour at all', (tester) async {
       tall(tester);
-      await tester.pumpWidget(
-        host(const TagColorPicker(initial: '#5B9BF0')),
-      );
+      await tester.pumpWidget(host(const TagColorPicker(initial: '#5B9BF0')));
       await tester.pumpAndSettle();
 
       final swatches = find.byType(NexColorSwatch);
@@ -200,9 +189,7 @@ void main() {
       expect(find.text('Recently used'), findsNothing);
     });
 
-    testWidgets('saving remembers the colour for the next tag', (
-      tester,
-    ) async {
+    testWidgets('saving remembers the colour for the next tag', (tester) async {
       // Opened the way the app opens it, so Save actually has a route to
       // resolve and the returned record is the one the caller would get.
       tall(tester);
@@ -250,10 +237,7 @@ void main() {
           .toList();
       // The escape hatch, the five shipped ones, and exactly one recent.
       expect(swatches.length, tagAccentPalette.length + 2);
-      expect(
-        swatches.last.color,
-        nexParseTagColor('#123456'),
-      );
+      expect(swatches.last.color, nexParseTagColor('#123456'));
     });
   });
 }

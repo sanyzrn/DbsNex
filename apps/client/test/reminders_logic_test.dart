@@ -32,7 +32,11 @@ void main() {
         now,
       ).toLocal();
       expect(next.day, 11);
-      expect(next.hour, 9, reason: 'the clock face is kept, not 24 hours added');
+      expect(
+        next.hour,
+        9,
+        reason: 'the clock face is kept, not 24 hours added',
+      );
     });
 
     test('a daily series started 900 days ago still schedules', () {

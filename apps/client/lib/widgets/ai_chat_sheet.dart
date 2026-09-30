@@ -18,6 +18,7 @@ import '../screens/note_detail_sheet.dart';
 import 'dismiss_on_overscroll.dart';
 import 'assistant_settings.dart';
 import '../platform/ai_provider.dart';
+import '../platform/disclosure_log.dart';
 import '../platform/assistant_actions.dart';
 import '../platform/assistant_citations.dart';
 import '../platform/chat_history.dart';
@@ -665,7 +666,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     String? reply;
     String? requestError;
     try {
-      reply = await _adapter.chat(List.of(_turns), options: _options);
+      reply = await _ask();
     } on TimeoutException {
       requestError = l10n.chatTimeout;
     } on SocketException {
@@ -775,7 +776,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     });
     String? reply;
     try {
-      reply = await _adapter.chat(List.of(_turns), options: _options);
+      reply = await _ask();
     } catch (_) {
       reply = null;
     }
@@ -807,8 +808,18 @@ class _AiChatSheetState extends State<AiChatSheet> {
   void _remember(Iterable<Note> notes) {
     for (final note in notes) {
       _notes[note.id.toLowerCase()] = note;
+      _given.add(note.id);
     }
   }
+
+  /// Every note put in front of the model in this conversation, for the
+  /// record of what left the device (W3.2).
+  final Set<String> _given = {};
+
+  Future<String?> _ask() => NexDisclosureLog.about(
+    () => _adapter.chat(List.of(_turns), options: _options),
+    notes: _given,
+  );
 
   /// Looks up any note an answer cites that this sheet has not seen — a
   /// resumed conversation's, or one the library changed under.

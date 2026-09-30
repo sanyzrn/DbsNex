@@ -4,8 +4,10 @@ import 'dart:isolate';
 
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
+import 'package:path/path.dart' as p;
 
 import 'ai_provider.dart';
+import 'disclosure_log.dart';
 import 'nex_db.dart';
 
 /// Commands the worker isolate understands.
@@ -857,6 +859,9 @@ class NexDbWorker implements NexDb {
     final NexDatabase db;
     try {
       db = NexDatabase.open(boot.dbPath);
+      // Tags, summaries, transcripts and the search index are requested from
+      // this isolate; they go on the same record as the assistant's (W3.2).
+      NexDisclosureLog.configure(p.dirname(boot.dbPath));
     } catch (e, stack) {
       // The boot port must be answered even when the database will not
       // open: the awaiting side is parked on a Completer that only a
@@ -1119,10 +1124,10 @@ class NexDbWorker implements NexDb {
           arg('mediaDir')! as String,
           arg('backupDir')! as String,
         ),
-        _DbCommand.enrichNote =>
-          await enrichment
-              .enrichNote(arg('noteId')! as String)
-              .then<Object?>((_) => null),
+        _DbCommand.enrichNote => await NexDisclosureLog.about(
+          () => enrichment.enrichNote(arg('noteId')! as String),
+          notes: [arg('noteId')! as String],
+        ).then<Object?>((_) => null),
         _DbCommand.backfillEnrichment => await enrichment.backfill(
           limit: arg('limit')! as int,
         ),

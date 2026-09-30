@@ -2,16 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/file_opener.dart';
-import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/os_capture_bridge.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// The two things that stopped Nex working on the Windows target it already
 /// ships an installer for.
@@ -53,30 +49,15 @@ void main() {
   });
 
   group('the OS capture bridge', () {
-    late Directory tmp;
+    late NexTestHarness harness;
     late NexServices services;
 
     setUp(() async {
-      SharedPreferences.setMockInitialValues({});
-      tmp = Directory.systemTemp.createTempSync('nex_win_');
-      final dbPath = p.join(tmp.path, 'nex.sqlite');
-      Directory(p.join(tmp.path, 'media')).createSync(recursive: true);
-      Directory(p.join(tmp.path, 'backups')).createSync(recursive: true);
-      services = NexServices.forTest(
-        worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-        deviceId: 'test',
-        preferences: await NexPreferences.load(),
-        backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-        dbPath: dbPath,
-        mediaDir: p.join(tmp.path, 'media'),
-        backupDir: p.join(tmp.path, 'backups'),
-      );
+      harness = await NexTestHarness.create(name: 'nex_win_', onboarded: false);
+      services = harness.services;
     });
 
-    tearDown(() async {
-      await services.dispose();
-      if (tmp.existsSync()) tmp.deleteSync(recursive: true);
-    });
+    tearDown(() => harness.dispose());
 
     test('starting is a no-op where the channel does not exist', () async {
       // `start()` awaited `invokeMethod('takePending')` unguarded. On Windows

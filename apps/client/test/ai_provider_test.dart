@@ -230,11 +230,7 @@ void main() {
       }) async {
         late http.Request seen;
         final adapter = CloudAIAdapter(
-          config: AiProviderConfig(
-            provider: provider,
-            apiKey: 'k',
-            model: 'm',
-          ),
+          config: AiProviderConfig(provider: provider, apiKey: 'k', model: 'm'),
           unlimitedSummary: unlimited,
           client: MockClient((request) async {
             seen = request;
@@ -257,11 +253,15 @@ void main() {
         return jsonDecode(seen.body) as Map<String, dynamic>;
       }
 
-      expect((await bodyOf(AiProvider.openai, unlimited: false))['max_tokens'],
-          isA<int>());
       expect(
-        (await bodyOf(AiProvider.openai, unlimited: true))
-            .containsKey('max_tokens'),
+        (await bodyOf(AiProvider.openai, unlimited: false))['max_tokens'],
+        isA<int>(),
+      );
+      expect(
+        (await bodyOf(
+          AiProvider.openai,
+          unlimited: true,
+        )).containsKey('max_tokens'),
         isFalse,
       );
       // Anthropic requires the field, so it is set high rather than dropped.
@@ -825,14 +825,11 @@ void _attachmentGroup() {
 
     test('it rides the newest turn, not the first one', () async {
       late http.Request seen;
-      await adapter(AiProvider.openai, onSend: (r) => seen = r).chat(
-        const [
-          question,
-          ChatMessage(role: ChatRole.assistant, content: 'forty euros'),
-          ChatMessage(role: ChatRole.user, content: 'and the date?'),
-        ],
-        options: options,
-      );
+      await adapter(AiProvider.openai, onSend: (r) => seen = r).chat(const [
+        question,
+        ChatMessage(role: ChatRole.assistant, content: 'forty euros'),
+        ChatMessage(role: ChatRole.user, content: 'and the date?'),
+      ], options: options);
 
       final messages =
           (jsonDecode(seen.body) as Map<String, dynamic>)['messages']
@@ -856,10 +853,7 @@ void _attachmentGroup() {
       // A plain string, the shape every provider has always taken. Wrapping
       // every question in a content array "just in case" is a change to every
       // request ever made for the sake of the few that carry a photo.
-      expect(
-        (messages.last as Map<String, dynamic>)['content'],
-        isA<String>(),
-      );
+      expect((messages.last as Map<String, dynamic>)['content'], isA<String>());
     });
 
     test('the prompt says the picture is theirs to look at', () async {
@@ -907,41 +901,44 @@ void _recapGroup() {
       );
 
   group('the daily brief', () {
-    test('asks for the line count it was handed, and forbids invention', () async {
-      late http.Request seen;
-      await adapter('⏰ a line', onSend: (r) => seen = r).digest(
-        'DUE in 6h | text | pick up the prescription',
-        lines: 3,
-      );
+    test(
+      'asks for the line count it was handed, and forbids invention',
+      () async {
+        late http.Request seen;
+        await adapter(
+          '⏰ a line',
+          onSend: (r) => seen = r,
+        ).digest('DUE in 6h | text | pick up the prescription', lines: 3);
 
-      final prompt = jsonEncode(
-        (jsonDecode(seen.body) as Map<String, dynamic>)['messages'],
-      );
-      expect(prompt, contains('at most 3 lines'));
-      // The shape it is meant to come back in. A paragraph is what this
-      // stopped being: somebody opening the app is checking whether anything
-      // is waiting on them, not reading an essay about their week.
-      expect(prompt, contains('One thing per line'));
-      expect(prompt, contains('Overdue first'));
-      // The shape of the source is described rather than left to be
-      // inferred: those lines are abbreviated to save tokens, and an
-      // abbreviation a model has to guess at is one it will guess wrong.
-      expect(prompt, contains(r'`when | kind | text`'));
-      // Load-bearing. A wrong joke about your notes is a bad line; a wrong
-      // claim that something is due tomorrow is a missed appointment.
-      //
-      // The wording moved when the brief was allowed to notice things, and
-      // the sentence it replaces is why: "never state anything that is not
-      // in the lines" also forbade "these two are at the same time", which
-      // is two of the given facts read together rather than a third one
-      // invented. What is asserted now is the narrower, harder rule — every
-      // *fact* comes from the lines — and the boundary it draws.
-      expect(
-        prompt,
-        contains('Every fact must come from the lines you were given'),
-      );
-      expect(prompt, contains('asserting a third thing is'));
-    });
+        final prompt = jsonEncode(
+          (jsonDecode(seen.body) as Map<String, dynamic>)['messages'],
+        );
+        expect(prompt, contains('at most 3 lines'));
+        // The shape it is meant to come back in. A paragraph is what this
+        // stopped being: somebody opening the app is checking whether anything
+        // is waiting on them, not reading an essay about their week.
+        expect(prompt, contains('One thing per line'));
+        expect(prompt, contains('Overdue first'));
+        // The shape of the source is described rather than left to be
+        // inferred: those lines are abbreviated to save tokens, and an
+        // abbreviation a model has to guess at is one it will guess wrong.
+        expect(prompt, contains(r'`when | kind | text`'));
+        // Load-bearing. A wrong joke about your notes is a bad line; a wrong
+        // claim that something is due tomorrow is a missed appointment.
+        //
+        // The wording moved when the brief was allowed to notice things, and
+        // the sentence it replaces is why: "never state anything that is not
+        // in the lines" also forbade "these two are at the same time", which
+        // is two of the given facts read together rather than a third one
+        // invented. What is asserted now is the narrower, harder rule — every
+        // *fact* comes from the lines — and the boundary it draws.
+        expect(
+          prompt,
+          contains('Every fact must come from the lines you were given'),
+        );
+        expect(prompt, contains('asserting a third thing is'));
+      },
+    );
 
     test('it is allowed to notice what the reader cannot', () async {
       // The other half of the same change. The model sees the whole set at
@@ -978,7 +975,8 @@ void _recapGroup() {
       // The word clamp this replaced collapsed every run of whitespace in the
       // reply — newlines included — and turned the list back into the
       // paragraph the prompt had just asked it not to be.
-      const reply = '⏰ Call the plumber, overdue by two days.\n'
+      const reply =
+          '⏰ Call the plumber, overdue by two days.\n'
           '📋 Shopping: bread and milk still on the list.';
       expect(await adapter(reply).digest('today | text | x'), reply);
     });
