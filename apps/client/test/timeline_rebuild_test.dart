@@ -937,15 +937,15 @@ void main() {
     final timeline = tester.state<TimelineScreenState>(
       find.byType(TimelineScreen),
     );
-    expect(timeline.notes, hasLength(200));
+    expect(timeline.model.notes, hasLength(200));
 
     final list = find.byType(CustomScrollView);
-    for (var i = 0; i < 20 && timeline.notes.length < 210; i++) {
+    for (var i = 0; i < 20 && timeline.model.notes.length < 210; i++) {
       await tester.fling(list, const Offset(0, -3000), 3000);
       await tester.pumpAndSettle();
     }
 
-    expect(timeline.notes, hasLength(210));
+    expect(timeline.model.notes, hasLength(210));
   });
 
   testWidgets(

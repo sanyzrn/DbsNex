@@ -21,6 +21,7 @@ import '../platform/capture_failure.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
+import 'timeline/timeline_model.dart';
 import 'update_sheet.dart';
 import '../platform/brief_report.dart';
 import '../platform/nex_services.dart';
@@ -63,6 +64,10 @@ import 'threads_screen.dart';
 import 'photo_preview_screen.dart';
 import 'settings_sheet.dart';
 
+part 'timeline/timeline_header_widgets.dart';
+part 'timeline/timeline_filter_widgets.dart';
+part 'timeline/timeline_groups.dart';
+
 class TimelineScreen extends StatefulWidget {
   const TimelineScreen({
     super.key,
@@ -100,24 +105,15 @@ class TimelineScreen extends StatefulWidget {
 
 class TimelineScreenState extends State<TimelineScreen>
     with RouteAware, WidgetsBindingObserver {
-  /// Everything the timeline stream last delivered, before filters.
-  ///
-  /// **Null means "not known yet"**, which is a different thing from "empty".
-  /// This was `const []` at field initialisation while `build` ran immediately
-  /// and `_loadTimeline` resolved later, so the first frame of *every* cold
-  /// launch satisfied the empty condition and flashed the full-screen
-  /// onboarding copy — marketing text, in front of a user with a library.
-  ///
-  /// It also used to hold only the filtered list, so the next stream event —
-  /// which a capture triggers — replaced it with the unfiltered one while the
-  /// filter chips still claimed to be active.
-  List<Note>? _all;
+  /// What the timeline shows: the notes, the filters, paging and the folded
+  /// groups (W4.2). This State keeps only what is about showing it.
+  late final TimelineModel _model = TimelineModel(
+    services: widget.services,
+    preferences: widget.preferences,
+  );
 
-  /// The first timeline read threw and there is nothing to show instead.
-  /// Only ever true while `_all` is null: once data is on screen, a failed
-  /// reload keeps the data it failed to replace.
-  bool _loadFailed = false;
-  List<Note> notes = const [];
+  @visibleForTesting
+  TimelineModel get model => _model;
 
   /// Keeps one card open at a time and lets a scroll close it.
   final NexSwipeController _swipe = NexSwipeController();
@@ -135,13 +131,6 @@ class TimelineScreenState extends State<TimelineScreen>
     }
   }
 
-  /// Date groups the user has folded away, by their stable key.
-  ///
-  /// Persisted rather than kept for the session: someone who collapses "Last
-  /// month" has said something about how they want the list to look, and
-  /// having it spring open on the next launch means saying it again every day.
-  Set<String> _collapsedGroups = const {};
-
   /// The group whose rows are on their way out — see [_toggleGroup]. Null at
   /// rest, which is every frame except the ~200ms after a fold.
   String? _closingGroup;
@@ -156,38 +145,7 @@ class TimelineScreenState extends State<TimelineScreen>
   /// exists to answer. Only the group actually being opened animates in;
   /// everyone else appears at full height, because they never left it.
   String? _openingGroup;
-  List<Tag> filterTags = const [];
-
-  /// Every tag the timeline is being narrowed to. Empty is "All".
-  ///
-  /// A set, because one pill could only ever answer "notes tagged work", and
-  /// the question people actually have is "notes tagged work or home". They
-  /// are OR-ed, not AND-ed: a note usually carries one of the tags somebody
-  /// is thinking about, rarely all of them, and an AND across two tags is
-  /// almost always empty.
-  Set<String> selectedTagIds = const {};
-  NoteType? selectedType;
-
-  /// Show only notes with a reminder still ahead of them.
-  ///
-  /// A state, not a type, which is why it is its own field rather than a
-  /// seventh entry in [selectedType]: a note is a photo *and* has a reminder,
-  /// and a filter that made you choose between those two facts would be
-  /// answering a question nobody asked. It layers on top of both other
-  /// filters, the same way they layer on each other.
-  ///
-  /// "Still ahead" comes for free: a reminder that has rung and been seen is
-  /// retired by `_retireSpentReminders`, so a note that still carries a
-  /// `dueAt` is a note with something coming.
-  bool onlyReminders = false;
-  StreamSubscription<List<Note>>? subscription;
   String? landedId;
-
-  /// Notes whose spent reminder has already had its one last showing.
-  ///
-  /// Read once into the frame rather than off preferences on every card: the
-  /// set is rewritten when the timeline is covered, and a card that read it
-  /// directly would change under a route transition.
 
   /// The note a tapped reminder is about, until its border has finished
   /// pulsing.
@@ -202,13 +160,6 @@ class TimelineScreenState extends State<TimelineScreen>
   /// Only ever attached to one row — a key on every card would be a key per
   /// note in a list that is deliberately lazy.
   final GlobalKey _spotlightAnchor = GlobalKey();
-
-  /// Guards against firing a second [NexServices.loadMoreTimeline] while one
-  /// is still in flight, and against firing one at all once a fetch has come
-  /// back empty — a finger held past the bottom during the overscroll bounce
-  /// delivers a scroll notification per frame, not one per gesture.
-  bool _loadingMore = false;
-  bool _exhausted = false;
 
   /// Starts at the top, with the search field in view.
   ///
@@ -286,7 +237,7 @@ class TimelineScreenState extends State<TimelineScreen>
   void initState() {
     super.initState();
     _swipe.addListener(_onSwipeChanged);
-    _collapsedGroups = widget.preferences.collapsedTimelineGroups;
+    _model.addListener(_onModelChanged);
     // Fire and forget, and deliberately not awaited anywhere: the card that
     // is already cached draws on this frame, and a fetch that never comes
     // back changes nothing on screen.
@@ -303,29 +254,12 @@ class TimelineScreenState extends State<TimelineScreen>
             if (mounted) setState(() {});
           }),
     );
-    subscription = widget.services.timelineStream.listen((value) {
+    _model.listen((delivered) {
       if (!mounted) return;
-      setState(() {
-        _loadFailed = false;
-        _all = value;
-        notes = _visible(value);
-      });
       // The tour waits for a first note, and this is the path the note that
       // ends that wait arrives on.
       _tourWhenReady();
-      // A capture or a delete can change whether there is more to load —
-      // most obviously a capture, past a window an earlier scroll had
-      // already exhausted. Re-arming here costs one wasted fetch on the next
-      // scroll-to-bottom when it turns out nothing changed; leaving it stuck
-      // costs a note nobody can ever scroll to.
-      _exhausted = false;
-      // The filter row is fed by a separate query that only ran once, at
-      // startup. Creating or deleting a tag anywhere in the app left the row
-      // showing the old set until the next cold launch — which is exactly the
-      // "I had to restart it" report. Every mutation path already refreshes
-      // the timeline, so this is the one place that has to notice.
-      unawaited(_loadFilterTags());
-      _requestAiHeader(value);
+      _requestAiHeader(delivered);
     });
     WidgetsBinding.instance.addObserver(this);
     _search.addListener(_onSearchChanged);
@@ -391,8 +325,8 @@ class TimelineScreenState extends State<TimelineScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) => _openUpdate());
     }
     unawaited(_loadTimeline());
-    unawaited(_loadFilterTags());
-    unawaited(_loadCommitments());
+    unawaited(_model.loadFilterTags());
+    unawaited(_model.loadCommitments());
     // After the first frame, because every stop measures a real widget and
     // none of them has been laid out yet at this point.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -465,9 +399,9 @@ class TimelineScreenState extends State<TimelineScreen>
     // them, is one line.
     if (!nexFirstRunTourEnabled) return;
     if (!mounted || widget.preferences.tourComplete || _tour != null) return;
-    // Null is "not loaded yet" rather than "empty" — see [_all]. Either way
+    // Null is "not loaded yet" rather than "empty" — see [_model.all]. Either way
     // there is nothing to point at, and the next load comes back here.
-    if (_all?.isEmpty ?? true) return;
+    if (_model.all?.isEmpty ?? true) return;
     // And only while the timeline is the screen being looked at. Both things
     // that make the tour due — a first note arriving on the stream, a cold
     // launch finishing its read — can land seconds after launch, by which
@@ -589,7 +523,10 @@ class TimelineScreenState extends State<TimelineScreen>
     // style needs no provider, no key and no signal.
     final written = style.statesFacts
         ? nexBriefReport(
-            nexBriefFacts(_all ?? notes, commitments: _commitments),
+            nexBriefFacts(
+              _model.all ?? _model.notes,
+              commitments: _model.commitments,
+            ),
             AppLocalizations.of(context),
             // One line kept back for the model to answer with, under the two
             // styles that ask it for one.
@@ -970,7 +907,7 @@ class TimelineScreenState extends State<TimelineScreen>
   /// nothing else, and telling it what is due would turn a greeting into a
   /// second recap.
   String _aiHeadlineSource() {
-    final recent = (_all ?? notes).take(20);
+    final recent = (_model.all ?? _model.notes).take(20);
     final lines = <String>[
       for (final note in recent)
         (note.content ?? note.transcriptText ?? note.ocrText ?? '').trim(),
@@ -993,19 +930,10 @@ class TimelineScreenState extends State<TimelineScreen>
   /// put a query on a path that mostly concludes "nothing has changed". They
   /// are refreshed when the screen loads and whenever the commitments screen
   /// closes, which is every moment they can have changed.
-  List<NexCommitment> _commitments = const [];
-
-  Future<void> _loadCommitments() async {
-    try {
-      final all = await widget.services.commitments();
-      if (mounted) setState(() => _commitments = all);
-    } catch (_) {
-      // A brief without them is still a brief.
-    }
-  }
-
-  String _aiRecapSource() =>
-      nexRecapSource(_all ?? notes, commitments: _commitments);
+  String _aiRecapSource() => nexRecapSource(
+    _model.all ?? _model.notes,
+    commitments: _model.commitments,
+  );
 
   /// Collapses the card's body on the first real scroll, the way the Figma
   /// redesign asked for — reading a note is not the moment for a recap.
@@ -1027,51 +955,6 @@ class TimelineScreenState extends State<TimelineScreen>
   /// the recorder; the production callers set [landedId] directly.
   @visibleForTesting
   void markLanded(String id) => setState(() => landedId = id);
-
-  /// Clears one-off reminders that have already rung.
-  ///
-  /// A reminder is a thing to be reminded of, and once it has happened it is
-  /// finished. It used to be kept on the note for ever and merely hidden from
-  /// the card by a set of ids recorded here — so the note still carried a
-  /// reminder, the detail sheet still offered to remove it, and removing it
-  /// by hand was the only way to be rid of it. That was the report, three
-  /// times: the trace stays on the item.
-  ///
-  /// Retired on the way out rather than the moment it lapses, so it gets
-  /// exactly one more showing — a reminder that vanished while being read
-  /// would be a reminder you never saw.
-  ///
-  /// A repeating one is never spent: its stored time is in the past by design
-  /// after the first firing, and it is still going to ring again. Only a
-  /// one-off can be finished with.
-  Future<void> _retireSpentReminders() async {
-    final now = DateTime.now().toUtc();
-    final spent = [
-      for (final note in _all ?? const <Note>[])
-        if (note.dueRepeat == NoteRepeat.once)
-          if (note.dueAt case final due?)
-            if (!due.isAfter(now)) note.id,
-    ];
-    if (spent.isEmpty) return;
-    var cleared = false;
-    for (final id in spent) {
-      // Re-read before clearing. `_all` is a snapshot, and the most likely
-      // way to reach this code is by opening the note — which is also the
-      // most likely place to push the reminder forward. Deleting a time the
-      // reader has just chosen, because a list from a moment ago still said
-      // it had lapsed, is the one mistake this must not make.
-      final current = await widget.services.getById(id);
-      if (current == null) continue;
-      if (current.dueRepeat != NoteRepeat.once) continue;
-      final due = current.dueAt;
-      if (due == null || due.isAfter(DateTime.now().toUtc())) continue;
-      // Null clears the repeat alongside the time, and cancels the alarm the
-      // OS is still holding for it.
-      await widget.services.setDueAt(id, null);
-      cleared = true;
-    }
-    if (cleared) await widget.services.refreshTimeline();
-  }
 
   /// Points at the note a reminder was about.
   ///
@@ -1095,7 +978,7 @@ class TimelineScreenState extends State<TimelineScreen>
     // The group is expanded before the frame that would have to contain the
     // card is built, or the anchor below has nothing to find. Everything that
     // reads context happens here, ahead of the first await.
-    final note = _all?.where((n) => n.id == noteId).firstOrNull;
+    final note = _model.byId(noteId);
     final now = DateTime.now();
     final key = note == null
         ? null
@@ -1104,7 +987,7 @@ class TimelineScreenState extends State<TimelineScreen>
             DateTime(now.year, now.month, now.day),
             AppLocalizations.of(context),
           ).$1;
-    if (key != null && _collapsedGroups.contains(key)) {
+    if (key != null && _model.collapsedGroups.contains(key)) {
       await _toggleGroup(key);
     }
     await WidgetsBinding.instance.endOfFrame;
@@ -1194,28 +1077,17 @@ class TimelineScreenState extends State<TimelineScreen>
   }
 
   Future<void> _loadTimeline() async {
-    // Both sides of this matter and neither replaces the other: the failure
-    // state below is what a read that never returns needs, and the tour check
-    // is what a read that *does* return can make due.
-    try {
-      final loaded = await widget.services.timeline(limit: 200);
-      if (!mounted) return;
-      setState(() {
-        _loadFailed = false;
-        _all = loaded;
-        notes = _visible(loaded);
-      });
-      _requestAiHeader(loaded);
-      _tourWhenReady();
-    } on Object {
-      // A read that never comes back used to look identical to one still
-      // coming: skeletons for as long as the app was open, with nothing to
-      // tap. When there is nothing on screen yet the failure *is* the state;
-      // once data is showing, keep it — a reload that fails must not blank
-      // the screen it failed on.
-      if (!mounted) return;
-      setState(() => _loadFailed = _all == null);
-    }
+    // Both sides of this matter and neither replaces the other: the model's
+    // failure state is what a read that never returns needs, and the tour
+    // check is what a read that *does* return can make due.
+    final loaded = await _model.load();
+    if (!mounted || loaded == null) return;
+    _requestAiHeader(loaded);
+    _tourWhenReady();
+  }
+
+  void _onModelChanged() {
+    if (mounted) setState(() {});
   }
 
   /// Re-checks whether the walk-through is due, after the frame.
@@ -1255,17 +1127,6 @@ class TimelineScreenState extends State<TimelineScreen>
     );
   }
 
-  Future<void> _loadFilterTags() async {
-    final loaded = await widget.services.tagUsage();
-    if (!mounted) return;
-    setState(() {
-      filterTags = [
-        for (final usage in loaded)
-          if (usage.count > 0) usage.tag,
-      ];
-    });
-  }
-
   /// Everything this screen shows, read again.
   ///
   /// The pull-down was meant to reveal the search field. It never did — the
@@ -1280,7 +1141,10 @@ class TimelineScreenState extends State<TimelineScreen>
   Future<void> _refresh() async {
     final banner = NexBannerHost.of(context);
     final l10n = AppLocalizations.of(context);
-    await Future.wait([widget.services.refreshTimeline(), _loadFilterTags()]);
+    await Future.wait([
+      widget.services.refreshTimeline(),
+      _model.loadFilterTags(),
+    ]);
     if (widget.preferences.syncBaseUrl == null) return;
     try {
       await widget.services.syncNow();
@@ -1295,20 +1159,17 @@ class TimelineScreenState extends State<TimelineScreen>
 
   Future<void> _selectTags(Set<String> tagIds) async {
     _tick();
-    setState(() => selectedTagIds = tagIds);
-    await _applyFilters();
+    await _model.selectTags(tagIds);
   }
 
   Future<void> _selectType(NoteType? type) async {
     _tick();
-    setState(() => selectedType = type);
-    await _applyFilters();
+    await _model.selectType(type);
   }
 
   Future<void> _selectOnlyReminders(bool only) async {
     _tick();
-    setState(() => onlyReminders = only);
-    await _applyFilters();
+    await _model.selectOnlyReminders(only);
   }
 
   /// The content filter, behind the mockup's icon button.
@@ -1336,8 +1197,10 @@ class TimelineScreenState extends State<TimelineScreen>
                 title: Text(
                   type == null ? l10n.all : l10n.noteType(type.wireName),
                 ),
-                trailing: selectedType == type ? const Icon(Icons.check) : null,
-                selected: selectedType == type,
+                trailing: _model.selectedType == type
+                    ? const Icon(Icons.check)
+                    : null,
+                selected: _model.selectedType == type,
                 // Wrapped, because popping a bare null cannot be told apart
                 // from the user dismissing the sheet.
                 onTap: () => Navigator.pop(ctx, _TypeChoice(type)),
@@ -1350,13 +1213,15 @@ class TimelineScreenState extends State<TimelineScreen>
             ListTile(
               leading: const Icon(Icons.alarm),
               title: Text(l10n.filterHasReminder),
-              trailing: onlyReminders ? const Icon(Icons.check) : null,
-              selected: onlyReminders,
+              trailing: _model.onlyReminders ? const Icon(Icons.check) : null,
+              selected: _model.onlyReminders,
               // Tapping closes the sheet and applies, exactly like every row
               // above it — a switch that stayed put while the rest dismissed
               // would be two interaction models in one list.
-              onTap: () =>
-                  Navigator.pop(ctx, _ReminderChoice(only: !onlyReminders)),
+              onTap: () => Navigator.pop(
+                ctx,
+                _ReminderChoice(only: !_model.onlyReminders),
+              ),
             ),
           ],
         ),
@@ -1400,57 +1265,16 @@ class TimelineScreenState extends State<TimelineScreen>
 
   Future<void> _clearFilters() async {
     _tick();
-    setState(() {
-      selectedTagIds = const {};
-      selectedType = null;
-      onlyReminders = false;
-    });
-    await _applyFilters();
-  }
-
-  bool get _filtering =>
-      selectedTagIds.isNotEmpty || selectedType != null || onlyReminders;
-
-  /// FR-4.5: the content-type filter layers on top of the tag filter — it is
-  /// not a separate mode, so both selections resolve into one view.
-  List<Note> _visible(List<Note> source) {
-    final tagIds = selectedTagIds;
-    final type = selectedType;
-    return source.where((note) {
-      if (onlyReminders && note.dueAt == null) return false;
-      if (type != null && note.type != type) return false;
-      if (tagIds.isNotEmpty && !note.tags.any((t) => tagIds.contains(t.id))) {
-        return false;
-      }
-      return true;
-    }).toList();
+    await _model.clearFilters();
   }
 
   /// Grows the timeline window when the list is close to its end.
   ///
   /// Not while searching — search results are their own query, not
-  /// [NexServices.loadMoreTimeline]'s window. The result reaches [notes]
-  /// through the same stream subscription every other mutation already goes
-  /// through, so there is nothing to do here with what comes back beyond
-  /// remembering whether it was empty.
+  /// [NexServices.loadMoreTimeline]'s window.
   void _maybeLoadMore() {
-    if (_searching || _loadingMore || _exhausted) return;
-    _loadingMore = true;
-    unawaited(
-      widget.services
-          .loadMoreTimeline()
-          .then((more) => _exhausted = !more)
-          .whenComplete(() => _loadingMore = false),
-    );
-  }
-
-  Future<void> _applyFilters() async {
-    final loaded = await widget.services.timeline(limit: 200);
-    if (!mounted) return;
-    setState(() {
-      _all = loaded;
-      notes = _visible(loaded);
-    });
+    if (_searching) return;
+    _model.loadMore();
   }
 
   @override
@@ -1468,7 +1292,7 @@ class TimelineScreenState extends State<TimelineScreen>
   /// rather than on the way back, so that the return is the first frame
   /// without it.
   @override
-  void didPushNext() => unawaited(_retireSpentReminders());
+  void didPushNext() => unawaited(_model.retireSpentReminders());
 
   /// The timeline is back in front, so the walk-through may be due again.
   ///
@@ -1493,7 +1317,7 @@ class TimelineScreenState extends State<TimelineScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
-      unawaited(_retireSpentReminders());
+      unawaited(_model.retireSpentReminders());
     }
   }
 
@@ -1506,7 +1330,8 @@ class TimelineScreenState extends State<TimelineScreen>
     // whatever came next with nothing able to dismiss it.
     _tour?.remove();
     _tour = null;
-    subscription?.cancel();
+    _model.removeListener(_onModelChanged);
+    _model.dispose();
     _swipe.removeListener(_onSwipeChanged);
     _swipe.dispose();
     _guard.dispose();
@@ -1890,7 +1715,7 @@ class TimelineScreenState extends State<TimelineScreen>
   /// Offers the tags that exist rather than a bare text field, so tagging is
   /// picking from what you already use — the common case by a wide margin.
   ///
-  /// Every tag, not [filterTags]: that list only holds tags with at least one
+  /// Every tag, not [_model.filterTags]: that list only holds tags with at least one
   /// note left on them, so tagging the first note after clearing a library
   /// (or after every tagged note happened to be deleted) offered nothing.
   Future<void> _addTagTo(Note note) async {
@@ -1911,7 +1736,7 @@ class TimelineScreenState extends State<TimelineScreen>
     await widget.services.refreshTimeline();
     // A tag created here is new to the filter row too; without this it only
     // appeared after a restart.
-    await _loadFilterTags();
+    await _model.loadFilterTags();
   }
 
   Future<void> deleteWithUndo(Note note) async {
@@ -1999,7 +1824,7 @@ class TimelineScreenState extends State<TimelineScreen>
   /// is looking for one specific note, and a card in the way of the answer is
   /// the worst possible time to ask for attention.
   Widget? _sponsorCard() {
-    if (_searching || _filtering) return null;
+    if (_searching || _model.filtering) return null;
     final sponsor = _sponsor.visible(
       languageCode: Localizations.localeOf(context).languageCode,
     );
@@ -2483,26 +2308,29 @@ class TimelineScreenState extends State<TimelineScreen>
                                   child: NexTapGuarded(
                                     controller: _guard,
                                     child: TagFilterRow(
-                                      tags: filterTags,
+                                      tags: _model.filterTags,
                                       hasOtherFilters:
-                                          selectedType != null || onlyReminders,
+                                          _model.selectedType != null ||
+                                          _model.onlyReminders,
                                       activeFilterLabel: [
-                                        if (selectedType != null)
-                                          l10n.noteType(selectedType!.wireName),
-                                        if (onlyReminders)
+                                        if (_model.selectedType != null)
+                                          l10n.noteType(
+                                            _model.selectedType!.wireName,
+                                          ),
+                                        if (_model.onlyReminders)
                                           l10n.filterHasReminder,
                                       ].join(' · '),
                                       onOpenActiveFilter: () =>
                                           unawaited(_pickFilters()),
                                       onClearAll: () =>
                                           unawaited(_clearFilters()),
-                                      selectedTagIds: selectedTagIds,
+                                      selectedTagIds: _model.selectedTagIds,
                                       allLabel: l10n.all,
                                       tagLabel: (tag) => nexTagLabel(tag, l10n),
                                       leading: _FilterButton(
                                         active:
-                                            selectedType != null ||
-                                            onlyReminders,
+                                            _model.selectedType != null ||
+                                            _model.onlyReminders,
                                         onPressed: () =>
                                             unawaited(_pickFilters()),
                                       ),
@@ -2645,7 +2473,7 @@ class TimelineScreenState extends State<TimelineScreen>
                 if (_claimedByOverlay()) return;
                 _tick();
                 await CommitmentsSheet.show(context, services: widget.services);
-                await _loadCommitments();
+                await _model.loadCommitments();
               },
             ),
           ],
@@ -2709,7 +2537,7 @@ class TimelineScreenState extends State<TimelineScreen>
                     updates: widget.updates,
                   ),
                 );
-                await _loadCommitments();
+                await _model.loadCommitments();
               },
             ),
           ],
@@ -2746,11 +2574,12 @@ class TimelineScreenState extends State<TimelineScreen>
     setState(() {
       _openingGroup = null;
       _closingGroup = null;
-      _collapsedGroups = scale < 1
-          ? {'pinned', 'today', 'yesterday', 'week', 'month', 'older'}
-          : {};
     });
-    unawaited(widget.preferences.setCollapsedTimelineGroups(_collapsedGroups));
+    _model.setCollapsedGroups(
+      scale < 1
+          ? {'pinned', 'today', 'yesterday', 'week', 'month', 'older'}
+          : {},
+    );
   }
 
   Widget _wrapInRefresh({required bool enabled, required Widget child}) {
@@ -2824,11 +2653,11 @@ class TimelineScreenState extends State<TimelineScreen>
 
     // Three states, not two. "Not loaded yet" was indistinguishable from
     // "empty", which is why the onboarding screen flashed on every launch.
-    final all = _all;
+    final all = _model.all;
     if (all == null) {
       // A failed first read is a fourth state: skeletons that never resolve
       // are a hang the user can only interpret as "the app is broken".
-      if (_loadFailed) {
+      if (_model.loadFailed) {
         return [
           SliverFillRemaining(
             hasScrollBody: false,
@@ -2836,9 +2665,11 @@ class TimelineScreenState extends State<TimelineScreen>
               icon: Icons.error_outline,
               message: l10n.timelineLoadFailed,
               action: FilledButton(
-                onPressed: () {
-                  setState(() => _loadFailed = false);
-                  unawaited(_loadTimeline());
+                onPressed: () async {
+                  final loaded = await _model.retry();
+                  if (!mounted || loaded == null) return;
+                  _requestAiHeader(loaded);
+                  _tourWhenReady();
                 },
                 child: Text(l10n.tryAgain),
               ),
@@ -2858,12 +2689,12 @@ class TimelineScreenState extends State<TimelineScreen>
     // used to replace the whole body whenever a filter matched nothing, taking
     // the filter row with it — so the filter that caused it could not be
     // cleared without restarting the app.
-    if (all.isEmpty && !_filtering) {
+    if (all.isEmpty && !_model.filtering) {
       return const [
         SliverFillRemaining(hasScrollBody: false, child: EmptyTimeline()),
       ];
     }
-    if (notes.isEmpty) {
+    if (_model.notes.isEmpty) {
       return [
         SliverFillRemaining(
           hasScrollBody: false,
@@ -2876,14 +2707,15 @@ class TimelineScreenState extends State<TimelineScreen>
     // repository's ORDER BY says why): a heading that says "Yesterday" has to
     // be telling the truth about every row beneath it, and a hand-placed note
     // lands wherever it was dropped.
-    final groups = _groupNotes(notes, l10n);
+    final groups = _groupNotes(_model.notes, l10n);
     final rows = <_TimelineRow>[
       for (final group in groups) ...[
         _TimelineRow.header(group),
         // A closing group keeps its rows for one animation. Without that the
         // fold was a jump cut: the rows were simply gone on the next frame,
         // which is the report this fixes. See [_toggleGroup].
-        if (!_collapsedGroups.contains(group.key) || group.key == _closingGroup)
+        if (!_model.collapsedGroups.contains(group.key) ||
+            group.key == _closingGroup)
           for (final note in group.notes) _TimelineRow.note(note, group.key),
       ],
     ];
@@ -2902,7 +2734,7 @@ class TimelineScreenState extends State<TimelineScreen>
               child: _GroupHeader(
                 label: group.label,
                 count: group.notes.length,
-                collapsed: _collapsedGroups.contains(group.key),
+                collapsed: _model.collapsedGroups.contains(group.key),
                 onToggle: () => unawaited(_toggleGroup(group.key)),
                 onAsk: AiChatSheet.availableFor(widget.preferences)
                     ? () => unawaited(_askAboutGroup(group))
@@ -3170,13 +3002,14 @@ class TimelineScreenState extends State<TimelineScreen>
   /// hundred notes.
   Future<void> _toggleGroup(String key) async {
     nexBump();
-    final closing = !_collapsedGroups.contains(key);
+    final collapsed = _model.collapsedGroups;
+    final closing = !collapsed.contains(key);
     if (closing) {
       setState(() {
         _closingGroup = key;
         _openingGroup = null;
-        _collapsedGroups = {..._collapsedGroups, key};
       });
+      _model.setCollapsedGroups({...collapsed, key});
       await Future<void>.delayed(_foldDuration);
       if (!mounted) return;
       setState(() => _closingGroup = null);
@@ -3184,13 +3017,12 @@ class TimelineScreenState extends State<TimelineScreen>
       setState(() {
         _closingGroup = null;
         _openingGroup = key;
-        _collapsedGroups = {..._collapsedGroups}..remove(key);
       });
+      _model.setCollapsedGroups({...collapsed}..remove(key));
       await Future<void>.delayed(_foldDuration);
       if (!mounted) return;
       setState(() => _openingGroup = null);
     }
-    await widget.preferences.setCollapsedTimelineGroups(_collapsedGroups);
   }
 
   /// Splits an already-ordered list into date runs.
@@ -3344,7 +3176,7 @@ class TimelineScreenState extends State<TimelineScreen>
   /// which is honest, since there is nothing on this screen to undo it back
   /// into.
   Future<void> _openNoteById(String noteId) async {
-    final known = _all?.where((note) => note.id == noteId).firstOrNull;
+    final known = _model.byId(noteId);
     if (known != null) return _openNote(known);
     await nexShowSheet<DetailResult>(
       context: context,
@@ -3376,795 +3208,7 @@ class TimelineScreenState extends State<TimelineScreen>
     await widget.services.refreshTimeline();
     // The sheet can create a tag; the filter row has to learn about it without
     // an app restart.
-    await _loadFilterTags();
+    await _model.loadFilterTags();
     if (_searching) await _search.run();
   }
 }
-
-/// Keeps the filter row under the app bar while the cards scroll past it.
-/// The app's own mark, in the corner the app bar used to spend on a title.
-///
-/// Bare, on no ground of its own. It had a rounded tile behind it to match the
-/// footprint of the two icon buttons opposite — but those are tap targets and
-/// this is not, so the tile was claiming an affordance the mark does not have,
-/// and it read as a fourth button that does nothing.
-///
-/// The "nex" wordmark, drawn from the brand's own vectors ([NexLogotype])
-/// rather than a picture, so it stays crisp and follows light and dark.
-/// [_height] puts its letters on the same optical line as the icons across
-/// from it.
-class _WordmarkTile extends StatelessWidget {
-  const _WordmarkTile();
-
-  static const _height = 20.0;
-
-  @override
-  Widget build(BuildContext context) => const NexLogotype(height: _height);
-}
-
-/// "Good evening, Saeed ☀️" — the text and its animated mark on one line.
-class _GreetingLine extends StatelessWidget {
-  const _GreetingLine({
-    required this.text,
-    required this.style,
-    this.loading = false,
-  });
-
-  final String text;
-  final TextStyle? style;
-
-  /// The generated half is on its way. The greeting is already there, so the
-  /// line dims rather than disappearing — a refresh should read as the words
-  /// being replaced, not as them being taken away and given back.
-  final bool loading;
-
-  @override
-  Widget build(BuildContext context) {
-    if (text.isEmpty && !loading) return const SizedBox.shrink();
-    return AnimatedSwitcher(
-      duration: NexMotion.standard,
-      child: Opacity(
-        key: ValueKey(text),
-        opacity: loading ? 0.45 : 1,
-        // A Text, not a Row of one. The Row existed to place a mark at the
-        // trailing end of the words; with the mark gone it was a layout
-        // holding a single child and deciding nothing.
-        child: Text(
-          text,
-          style: style,
-          // The greeting is written in the language of the user's name, which
-          // is not necessarily the interface's, and a Persian sentence laid
-          // out left-to-right puts its full stop at the wrong end.
-          textDirection: nexDirectionOf(text),
-          // Two, because the generated half joined on the end of a greeting is
-          // regularly longer than one line and cutting it mid-phrase reads as
-          // a bug.
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-}
-
-/// The brief: the first card above the notes, in the slot the sponsor card
-/// used to have.
-///
-/// It went through being a grey card with three buttons on it, then a bare
-/// paragraph with a rule down its edge, and it is a card again — but not the
-/// same one. What the first version got wrong was the chrome, not the shape:
-/// a heading naming something already named, a sparkle, and three controls
-/// for things that belong elsewhere. Those are all gone and they are what is
-/// staying gone. What it has instead is a light travelling round its border,
-/// which says a model wrote this without spending a row of the screen saying
-/// it in words.
-///
-/// It does not take a card's fixed height. That rule exists so a sponsor
-/// card cannot become an interruption; this one is the app reading the day
-/// back, and how tall it is depends on how much there was to say.
-///
-/// Nothing here is a button any more, and none of the three that left was
-/// lost:
-///   * the recurring items are in the bottom bar, next to capture;
-///   * refresh is the pull, which now has something to do — see the comment
-///     on the timeline's `RefreshIndicator`;
-///   * folding it away is still a tap, on the text itself.
-class _AiDaySummaryPanel extends StatelessWidget {
-  const _AiDaySummaryPanel({
-    super.key,
-    required this.loading,
-    required this.text,
-    required this.emptyLabel,
-    required this.collapsed,
-    required this.semanticLabel,
-    required this.toggleTooltip,
-    required this.onToggle,
-  });
-
-  final bool loading;
-  final String? text;
-  final String emptyLabel;
-  final bool collapsed;
-  final String semanticLabel;
-  final String toggleTooltip;
-  final VoidCallback onToggle;
-
-  /// What the first line is set at, relative to the rest.
-  ///
-  /// A lede, not a heading: the same face and the same weight, one step up in
-  /// size. Anything more and it becomes the title this deliberately does not
-  /// have.
-  static const _ledeScale = 1.12;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Semantics(
-      container: true,
-      label: semanticLabel,
-      button: true,
-      // What the tap does, which used to be a tooltip on a chevron that no
-      // longer exists. A screen reader is the one place the affordance still
-      // has to be spelled out: sighted readers get a paragraph that folds,
-      // and there is nothing about a paragraph that needs explaining.
-      hint: toggleTooltip,
-      child: GestureDetector(
-        // Not a [NexTappable]: its pressed fill is drawn on the shape it is
-        // given, and the shape here belongs to the glass surface outside it,
-        // which would end up with a grey wash over its own material.
-        behavior: HitTestBehavior.opaque,
-        onTap: onToggle,
-        child: Padding(
-          // A card's inset now that this is a card. It used to be a
-          // paragraph loose on the page, where the only thing keeping it off
-          // the edge was the header's own margin.
-          padding: const EdgeInsets.all(NexSpacing.cardInset),
-          child: AnimatedSize(
-            duration: NexMotion.slow,
-            curve: NexMotion.curve,
-            alignment: Alignment.topCenter,
-            // No rule down the edge any more, and still no heading. The
-            // light going round the card says the same thing the rule did —
-            // a model wrote this — and two marks for one fact is one mark
-            // too many.
-            child: collapsed
-                ? _CollapsedRecap(label: _firstLine ?? emptyLabel)
-                : _body(theme),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// The recap's opening sentence, for the folded state.
-  String? get _firstLine {
-    final value = text?.trim();
-    if (value == null || value.isEmpty) return null;
-    final end = value.indexOf('\n');
-    return end == -1 ? value : value.substring(0, end);
-  }
-
-  Widget _body(ThemeData theme) {
-    final value = text;
-    // Defaulted rather than carried around as a nullable: the lede's size is
-    // this one's times a factor, and `base?.copyWith(base.fontSize ...)` does
-    // not compile — a `?.` does not promote its own receiver inside its
-    // arguments.
-    final base = theme.textTheme.bodyMedium ?? const TextStyle(fontSize: 14);
-    final body = base.copyWith(height: 1.45);
-    if (value == null) {
-      // No skeleton bars. They were the last thing in here shaped like a
-      // box, and two grey rectangles at the top of a first launch could be
-      // anything; the sentence that says there is nothing to summarise yet
-      // is the same sentence either way, so it is simply dimmed while the
-      // first one is being written.
-      return AnimatedOpacity(
-        opacity: loading ? 0.5 : 1,
-        duration: NexMotion.slow,
-        curve: NexMotion.curve,
-        child: Text(
-          emptyLabel,
-          style: body.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          textAlign: TextAlign.start,
-          textDirection: nexDirectionOf(emptyLabel),
-        ),
-      );
-    }
-    final lines = value.trim().split('\n');
-    final lede = lines.first;
-    final rest = lines.skip(1).join('\n').trim();
-    // Cross-faded rather than dimmed and left in place: a rewrite replaces
-    // the text, and a paragraph that goes translucent and comes back with
-    // different words in it is the honest picture of that.
-    return AnimatedOpacity(
-      opacity: loading ? 0.45 : 1,
-      duration: NexMotion.slow,
-      curve: NexMotion.curve,
-      child: Column(
-        // Min, because this sits in an [IntrinsicHeight] row: a column that
-        // asks for all the height there is has no intrinsic height to give.
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            lede,
-            style: body.copyWith(fontSize: (base.fontSize ?? 14) * _ledeScale),
-            textDirection: nexDirectionOf(lede),
-            textAlign: nexDirectionOf(lede) == TextDirection.rtl
-                ? TextAlign.right
-                : TextAlign.left,
-          ),
-          if (rest.isNotEmpty) ...[
-            const SizedBox(height: NexSpacing.sm),
-            // Per line, because the recap is written in the language of the
-            // notes and the notes are the one place in this app most likely
-            // to be in both at once — see [NexTextSurface].
-            //
-            // Not selectable, unlike the note body in the detail sheet. The
-            // whole card is one button — a tap anywhere on it folds the brief
-            // away — and a `SelectionArea` would claim that tap for clearing
-            // a selection. A paragraph you can select inside a card that
-            // stops responding is the worse of the two trades.
-            NexTextSurface(rest, style: body),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// The recap folded away: one line, truncated, with no rule beside it.
-///
-/// The rule stays behind on purpose. Open, it marks a block of generated
-/// prose; closed, there is no block, and a two-pixel accent stripe next to a
-/// single grey line reads as a status colour on a row — which is a different
-/// claim than the one it is there to make.
-class _CollapsedRecap extends StatelessWidget {
-  const _CollapsedRecap({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      label,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: theme.textTheme.bodyMedium?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-      textDirection: nexDirectionOf(label),
-    );
-  }
-}
-
-class _FilterRowHeader extends SliverPersistentHeaderDelegate {
-  const _FilterRowHeader({
-    required this.child,
-    required this.visible,
-    required this.extent,
-  });
-
-  final Widget child;
-
-  /// Searching hides it, by collapsing rather than by leaving the sliver list.
-  final bool visible;
-
-  // The row's own height: a 48px target plus the padding TagFilterRow carries.
-  final double extent;
-
-  @override
-  double get minExtent => visible ? extent : 0;
-
-  @override
-  double get maxExtent => visible ? extent : 0;
-
-  /// Let the page background continue beneath the resting row. Only the
-  /// pinned row needs a solid backing to keep scrolled notes from showing.
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
-      DecoratedBox(
-        key: const ValueKey('filter-header-background'),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: overlaps || shrinkOffset > 0
-                ? [
-                    Theme.of(context).colorScheme.surface,
-                    Theme.of(context).colorScheme.surface.withValues(alpha: 0),
-                  ]
-                : [Colors.transparent, Colors.transparent],
-            stops: const [0.6, 1],
-          ),
-        ),
-        // Filling the extent, not sized to the row. The extent is worked out
-        // from the text size, and at the largest sizes the row itself stops
-        // growing sooner; a header painted shorter than it lays out is an
-        // invalid sliver, which took the whole timeline down.
-        child: SizedBox.expand(
-          child: Align(alignment: Alignment.topCenter, child: child),
-        ),
-      );
-
-  /// Always, and for the same reason as [SearchFieldHeader].
-  ///
-  /// This one happened to rebuild anyway, because `child` is a fresh
-  /// `TagFilterRow` on every build and the comparison is by identity — so it
-  /// escaped the stale-theme bug by accident rather than by design. Relying on
-  /// that is relying on a widget never gaining an `operator ==`.
-  @override
-  bool shouldRebuild(_FilterRowHeader old) => true;
-}
-
-/// What the filter sheet came back with.
-///
-/// Wrapped rather than returned bare so that "All" survives the trip back
-/// through `Navigator.pop`, which cannot distinguish a null result from a
-/// dismissal — and sealed because the sheet now answers on two axes, and a
-/// switch over it is what keeps a third from being forgotten at the call
-/// site.
-sealed class _FilterChoice {
-  const _FilterChoice();
-}
-
-class _TypeChoice extends _FilterChoice {
-  const _TypeChoice(this.type);
-  final NoteType? type;
-}
-
-class _ReminderChoice extends _FilterChoice {
-  const _ReminderChoice({required this.only});
-  final bool only;
-}
-
-/// The mockup's leading icon button on the filter row.
-///
-/// Carries its selected state whenever anything in the sheet behind it is
-/// filtering, so an active filter is visible without opening it.
-class _FilterButton extends StatelessWidget {
-  const _FilterButton({required this.active, required this.onPressed});
-
-  /// Whether anything in the sheet is narrowing the timeline — a content
-  /// type, the reminder filter, or both. A bool rather than the selection
-  /// itself: what this button draws is "something is on", and it should not
-  /// have to grow a parameter every time the sheet gains an axis.
-  final bool active;
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return NexTappable(
-      onTap: onPressed,
-      selected: active,
-      semanticLabel: AppLocalizations.of(context).filters,
-      shape: const StadiumBorder(),
-      child: Material(
-        color: active
-            ? scheme.primary.withValues(alpha: 0.12)
-            : scheme.surfaceContainerLowest,
-        shape: StadiumBorder(
-          // Only the selected chip is outlined. The rest sat in rings that
-          // did no work the fill was not already doing.
-          side: active ? BorderSide(color: scheme.primary) : BorderSide.none,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: NexSpacing.contentGap - NexSpacing.xs,
-            vertical: NexSpacing.sm,
-          ),
-          child: Icon(
-            Icons.tune,
-            size: 18,
-            color: active ? scheme.primary : scheme.onSurface,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Shown when a filter matches nothing.
-///
-/// Distinct from [EmptyTimeline], which promises the library keeps whatever you
-/// put in it — a promise that would read as a lie next to notes the filter is
-/// merely hiding.
-class _FilteredEmpty extends StatelessWidget {
-  const _FilteredEmpty({required this.onClear});
-
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.filter_list_off,
-            size: 36,
-            color: theme.colorScheme.outline,
-          ),
-          const SizedBox(height: 12),
-          // "No notes" was a lie: the library has notes, the filters are
-          // what hides them. Search already had the honest sentence; the
-          // timeline's filter-empty now uses it too.
-          Text(l10n.filteredEmpty, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 4),
-          TextButton(onPressed: onClear, child: Text(l10n.clearFilters)),
-        ],
-      ),
-    );
-  }
-}
-
-/// The fade behind the bottom bar.
-///
-/// Three stops rather than two. A straight ramp from black to nothing puts
-/// its colour across the middle of the band, which is exactly where the last
-/// note card sits; weighting it to the bottom leaves the cards alone.
-class _BottomScrim extends StatelessWidget {
-  const _BottomScrim();
-
-  @override
-  Widget build(BuildContext context) {
-    final base = context.nexVisualStyle.baseColor;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    // A near-opaque page tone masks stray text under the dock but retains the
-    // chosen background's hue. In light mode a black scrim looked like dirt on
-    // the warm page, particularly with Comfort Mode enabled.
-    final ceiling = dark ? 0.90 : 0.84;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [
-            base.withValues(alpha: ceiling),
-            base.withValues(alpha: ceiling * 0.55),
-            base.withValues(alpha: ceiling * 0.18),
-            base.withValues(alpha: 0),
-          ],
-          // Four stops let the tail disappear without a visible line across
-          // a card still scrolling behind it.
-          stops: const [0, 0.3, 0.62, 1],
-        ),
-      ),
-    );
-  }
-}
-
-/// One date run: a heading and the notes under it.
-class _NoteGroup {
-  _NoteGroup({required this.key, required this.label, required this.notes});
-
-  /// Stable across days, unlike the label. "Last week" holds different notes
-  /// tomorrow; the key is what a collapsed state is remembered against.
-  final String key;
-  final String label;
-  final List<Note> notes;
-}
-
-/// A row in the flattened list: either a heading or a note, never both.
-class _TimelineRow {
-  const _TimelineRow.header(this.group) : note = null, groupKey = null;
-  const _TimelineRow.note(this.note, this.groupKey) : group = null;
-
-  final _NoteGroup? group;
-  final Note? note;
-
-  /// Which run this note sits under. Needed only while a group is closing —
-  /// see `_closingGroup`.
-  final String? groupKey;
-}
-
-/// How long a run takes to fold away or open up.
-const _foldDuration = Duration(milliseconds: 220);
-
-/// The total vertical room a group heading claims, split 60/40 above and
-/// below — see `_GroupHeader`.
-const _headerSpace = NexSpacing.lg + NexSpacing.sm;
-
-/// One note row, which grows in when its group opens and shrinks out when it
-/// closes.
-///
-/// A `SizeTransition` rather than an `AnimatedSize`, because the two ends are
-/// not symmetrical. A row that has just been inserted has to start closed and
-/// open itself — that is the expand. A row on its way out is still in the list
-/// only because [_TimelineScreenState._toggleGroup] is holding it there for
-/// exactly this animation, and it has to reach zero before the fold commits.
-///
-/// The fade is deliberately faster than the size: content that disappears
-/// before the space does reads as leaving, where the two together read as
-/// being squashed.
-class _FoldingRow extends StatefulWidget {
-  const _FoldingRow({
-    super.key,
-    required this.open,
-    required this.animateIn,
-    required this.child,
-  });
-
-  final bool open;
-
-  /// Whether this row is arriving now, or was already here.
-  ///
-  /// False means "start at full height and stay there". A row that was
-  /// already on screen must not animate itself in when its index shifts —
-  /// see [_TimelineScreenState._openingGroup].
-  final bool animateIn;
-
-  final Widget child;
-
-  @override
-  State<_FoldingRow> createState() => _FoldingRowState();
-}
-
-class _FoldingRowState extends State<_FoldingRow>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: _foldDuration,
-      // Closed only when this row is genuinely arriving. Otherwise it starts
-      // where it already was, which is the difference between one group
-      // opening and every group below it flickering.
-      value: widget.animateIn ? 0 : 1,
-    );
-    if (widget.open) _controller.forward();
-  }
-
-  @override
-  void didUpdateWidget(_FoldingRow old) {
-    super.didUpdateWidget(old);
-    if (widget.open == old.open) return;
-    widget.open ? _controller.forward() : _controller.reverse();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Someone who asked for less motion gets none of this: the row is simply
-    // there or not, which is what the setting means.
-    if (MediaQuery.disableAnimationsOf(context)) {
-      return widget.open ? widget.child : const SizedBox.shrink();
-    }
-    final curved = CurvedAnimation(
-      parent: _controller,
-      curve: NexMotion.curve,
-      reverseCurve: NexMotion.curve.flipped,
-    );
-    return SizeTransition(
-      sizeFactor: curved,
-      child: FadeTransition(
-        opacity: curved.drive(CurveTween(curve: const Interval(0.25, 1))),
-        child: widget.child,
-      ),
-    );
-  }
-}
-
-/// The heading over a date run: its fold control, and what can be done to the
-/// whole run at once.
-///
-/// The heading itself is the fold target rather than the chevron alone — a
-/// 16-pixel caret is a worse thing to aim at than a heading. The menu is
-/// deliberately *outside* that target: it is the one other thing on the row,
-/// and a three-dot button that also folded the group on the way to opening
-/// would be a button that does two things at once.
-class _GroupHeader extends StatelessWidget {
-  const _GroupHeader({
-    required this.label,
-    required this.count,
-    required this.collapsed,
-    required this.onToggle,
-    required this.onAsk,
-    required this.onDelete,
-  });
-
-  final String label;
-  final int count;
-  final bool collapsed;
-  final VoidCallback onToggle;
-
-  /// Null when there is no provider to answer — a menu entry that can only
-  /// say "unavailable" is worse than one that is not there.
-  final VoidCallback? onAsk;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Expanded(
-          child: Semantics(
-            button: true,
-            expanded: !collapsed,
-            label: label,
-            child: InkWell(
-              onTap: onToggle,
-              // A heading is not a button, and the stock ripple across a full-width
-              // row read as one — a slab of colour flashing under a label. Kept as
-              // a hint that the row is live, at a quarter of the weight.
-              splashFactory: NoSplash.splashFactory,
-              highlightColor: theme.colorScheme.onSurface.withValues(
-                alpha: 0.04,
-              ),
-              hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.03),
-              child: Padding(
-                // Level with the cards below it — the same horizontal gutter
-                // `nexCardInsets` gives them, so the heading and the run it names
-                // start on the same line instead of the heading sitting inside the
-                // margin.
-                //
-                // Vertically it is weighted 60/40 toward the top. A heading belongs
-                // to what follows it, and even spacing makes it read as floating
-                // between two runs rather than opening one.
-                padding: const EdgeInsetsDirectional.fromSTEB(
-                  NexSpacing.md,
-                  _headerSpace * 0.6,
-                  // Nothing on the trailing side: the menu button beside this
-                  // carries its own, and the chevron sits just inside it rather
-                  // than out at the screen edge on its own.
-                  0,
-                  _headerSpace * 0.4,
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      label,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(width: NexSpacing.sm),
-                    // Only when folded. Open, the count is the list itself, and a
-                    // number beside a heading you can already read is noise.
-                    if (collapsed)
-                      Text(
-                        l10n.timelineGroupCount(count),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.outline,
-                        ),
-                      ),
-                    const Spacer(),
-                    AnimatedRotation(
-                      turns: collapsed ? -0.25 : 0,
-                      duration: NexMotion.standard,
-                      curve: NexMotion.curve,
-                      child: Icon(
-                        Icons.expand_more,
-                        size: 20,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          // The same vertical padding the heading carries, so the two glyphs
-          // sit on one line. Without it the menu centred itself in the row's
-          // full height while the chevron sat inside the heading's 60/40
-          // weighting, and the pair read as very slightly crooked — which is
-          // the kind of thing you see before you can say what it is.
-          padding: const EdgeInsetsDirectional.fromSTEB(
-            NexSpacing.xs,
-            _headerSpace * 0.6,
-            NexSpacing.md,
-            _headerSpace * 0.4,
-          ),
-          child: PopupMenuButton<_GroupAction>(
-            tooltip: l10n.groupActions,
-            // Horizontal. A vertical ellipsis beside a chevron is two marks
-            // running in two directions; laid flat it reads as a row of
-            // controls rather than one control and a stray column of dots.
-            icon: Icon(
-              Icons.more_horiz,
-              size: 20,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            // Padding around the icon, not around the menu. The default is
-            // large enough to set the height of every date heading in the
-            // list; this keeps a tap target the thumb can find without the
-            // button deciding how tall the row is.
-            padding: const EdgeInsets.all(NexSpacing.sm),
-            // Rounded, on a raised surface, sitting under the button rather
-            // than over it.
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(NexRadius.lg),
-            ),
-            color: theme.colorScheme.surfaceContainerHigh,
-            elevation: 3,
-            popUpAnimationStyle: AnimationStyle(
-              duration: NexMotion.standard,
-              curve: NexMotion.curve,
-            ),
-            onSelected: (action) => switch (action) {
-              _GroupAction.ask => onAsk?.call(),
-              _GroupAction.delete => onDelete(),
-            },
-            itemBuilder: (context) => [
-              if (onAsk != null)
-                PopupMenuItem(
-                  value: _GroupAction.ask,
-                  child: _GroupMenuRow(
-                    icon: Icons.auto_awesome_outlined,
-                    label: l10n.groupAsk,
-                  ),
-                ),
-              PopupMenuItem(
-                value: _GroupAction.delete,
-                child: _GroupMenuRow(
-                  icon: Icons.delete_outline,
-                  label: l10n.groupDelete,
-                  color: theme.colorScheme.error,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// One line of the date heading's menu.
-///
-/// A plain row rather than a `ListTile`: a ListTile inside a PopupMenuItem is
-/// two sets of vertical padding and two minimum heights fighting each other,
-/// and the result was a menu whose rows were taller than they looked and
-/// whose text sat off-centre against its own icon.
-class _GroupMenuRow extends StatelessWidget {
-  const _GroupMenuRow({required this.icon, required this.label, this.color});
-
-  final IconData icon;
-  final String label;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tint = color ?? theme.colorScheme.onSurface;
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: tint),
-        const SizedBox(width: NexSpacing.md),
-        // Flexible, and so allowed to wrap. A popup menu is at most 280
-        // logical pixels wide, and "Delete this group" beside an icon and a
-        // gap does not fit that in every language — the ListTile this
-        // replaced was quietly handling it, and a bare Row is not. The item
-        // grows to a second line rather than clipping the label, because
-        // `PopupMenuItem`'s height is a minimum.
-        Flexible(
-          child: Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(color: tint),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// What a date heading's menu can do to the whole run under it.
-enum _GroupAction { ask, delete }
