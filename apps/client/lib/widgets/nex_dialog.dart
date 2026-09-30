@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 
 import 'package:nex_ui/nex_ui.dart';
 
+import 'nex_card_opening.dart';
+
+export 'nex_card_opening.dart' show NexSheetOrigin;
+
 /// Wraps dialog content at a stable width.
 ///
 /// `AlertDialog` sizes itself to its content's intrinsic width, so a dialog
@@ -59,14 +63,27 @@ Future<T?> nexShowSheet<T>({
   required WidgetBuilder builder,
   bool dismissible = true,
   bool swipeToClose = false,
+  NexSheetOrigin? from,
 }) => showModalBottomSheet<T>(
   context: context,
+  // Opening out of a card takes a little longer than sliding up: the eye
+  // has further to follow.
+  sheetAnimationStyle: from == null
+      ? null
+      : const AnimationStyle(
+          duration: Duration(milliseconds: 380),
+          reverseDuration: Duration(milliseconds: 220),
+        ),
   // This shared wrapper supplies the glass material itself. An opaque modal
   // sheet behind it would leave the backdrop filter nothing to sample.
   // The route keeps this colour for its lifetime. If it starts transparent
   // in glass mode and the preference changes while it is open, the content
   // must supply the newly opaque surface itself.
   backgroundColor: Colors.transparent,
+  // The sheet's own material clips to wherever its route has slid it, which
+  // would cut the opening off at that edge; the glass surface inside rounds
+  // the corners itself.
+  clipBehavior: from == null ? null : Clip.none,
   barrierColor: context.nexVisualStyle.liquidGlass
       ? Colors.black.withValues(alpha: 0.24)
       : null,
@@ -104,7 +121,8 @@ Future<T?> nexShowSheet<T>({
         ],
       ),
     );
-    return guarded ? _SwipeToClose(child: sheet) : sheet;
+    final framed = guarded ? _SwipeToClose(child: sheet) : sheet;
+    return from == null ? framed : NexCardOpening(origin: from, child: framed);
   },
 );
 
