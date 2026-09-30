@@ -30,9 +30,9 @@ class NexSummariseIcon extends StatelessWidget {
     final paint =
         color ??
         theme.color ??
-        Theme.of(context).colorScheme.onSurface.withValues(
-          alpha: theme.opacity ?? 1,
-        );
+        Theme.of(
+          context,
+        ).colorScheme.onSurface.withValues(alpha: theme.opacity ?? 1);
     return SizedBox.square(
       dimension: side,
       child: CustomPaint(painter: _SummarisePainter(paint)),

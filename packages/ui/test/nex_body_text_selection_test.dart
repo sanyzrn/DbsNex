@@ -6,7 +6,7 @@ import 'package:nex_ui/nex_ui.dart';
 ///
 /// A `Text` answers no gesture at all — not a long press, not a double tap,
 /// no handles — and Nex renders almost everything a person *reads* through
-/// [NexBodyText]. From the outside that is indistinguishable from selection
+/// [NexTextSurface]. From the outside that is indistinguishable from selection
 /// being broken, which is exactly how it was reported.
 void main() {
   Future<void> show(
@@ -16,7 +16,7 @@ void main() {
   }) => tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
-        body: NexBodyText(text, selectable: selectable),
+        body: NexTextSurface(text, selectable: selectable),
       ),
     ),
   );

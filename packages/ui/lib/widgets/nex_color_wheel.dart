@@ -155,7 +155,11 @@ class _Thumb extends StatelessWidget {
         // of them. The shadow is what keeps it visible over the white centre.
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: const [
-          BoxShadow(color: Color(0x33000000), blurRadius: 6, offset: Offset(0, 2)),
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
         ],
       ),
     ),

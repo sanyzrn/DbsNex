@@ -461,7 +461,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // Persian is set in Vazirmatn, everything else in Inter. Following the
     // chosen locale rather than the note's own script is deliberate: this is
     // the interface's face, and a Persian note inside an English UI keeps its
-    // direction (see NexBodyText) without dragging the whole chrome with it.
+    // direction (see NexTextSurface) without dragging the whole chrome with it.
     final font = nexFontFor(prefs.locale ?? _systemLocale(context));
     final accentSeed =
         nexParseTagColor(prefs.accentSeed) ??

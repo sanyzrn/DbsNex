@@ -113,7 +113,7 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: SizedBox(width: 400, child: NexBodyText('$english\n$persian')),
+          body: SizedBox(width: 400, child: NexTextSurface('$english\n$persian')),
         ),
       ),
     );
@@ -144,7 +144,7 @@ void main() {
         home: Scaffold(
           body: SizedBox(
             width: 400,
-            child: NexBodyText('$english\n$persian', maxLines: 2),
+            child: NexTextSurface('$english\n$persian', maxLines: 2),
           ),
         ),
       ),
@@ -170,7 +170,7 @@ void main() {
         home: Scaffold(
           body: SizedBox(
             width: 400,
-            child: NexBodyText('one\ntwo\nthree\nfour', maxLines: 2),
+            child: NexTextSurface('one\ntwo\nthree\nfour', maxLines: 2),
           ),
         ),
       ),
@@ -193,7 +193,7 @@ void main() {
         home: Scaffold(
           body: SizedBox(
             width: 300,
-            child: NexBodyText(
+            child: NexTextSurface(
               '$first\n\nsecond paragraph\nthird',
               maxLines: 2,
             ),
@@ -223,7 +223,7 @@ void main() {
         home: Scaffold(
           body: SizedBox(
             width: 300,
-            child: NexBodyText('$english\nیک خط فارسی', maxLines: 2),
+            child: NexTextSurface('$english\nیک خط فارسی', maxLines: 2),
           ),
         ),
       ),

@@ -426,7 +426,7 @@ class _Preview extends StatelessWidget {
     final text = NexMarkdownText.preview(
       note.displayText ?? strings.noteOfType(note.type.name),
     );
-    // Through [NexBodyText] rather than a `Text` of its own, for the one
+    // Through [NexTextSurface] rather than a `Text` of its own, for the one
     // thing that widget does which a `Text` cannot: give each line of a
     // multi-line note its own direction. One direction over the whole
     // preview is the first line's direction imposed on the rest, so a note
@@ -437,7 +437,7 @@ class _Preview extends StatelessWidget {
     // A note on one long line is unaffected: it still wraps into the whole
     // budget. Only a note that already has line breaks now spends that
     // budget in its own lines.
-    final preview = NexBodyText(
+    final preview = NexTextSurface(
       text,
       // Two lines — see [nexCardPreviewLines], which the card's fixed height
       // is derived from. One line was enough to tell cards apart and not
@@ -551,7 +551,6 @@ class _ChecklistLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final direction = nexDirectionOf(item.text);
     return SizedBox(
       // Scaled, not 24: the row has to grow with the text inside it, or the
       // card gets taller (see [nexCardHeightFor]) around a line still being
@@ -568,14 +567,8 @@ class _ChecklistLine extends StatelessWidget {
           ),
           const SizedBox(width: NexSpacing.sm),
           Expanded(
-            child: Text(
+            child: NexTextSurface.line(
               item.text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textDirection: direction,
-              textAlign: direction == TextDirection.rtl
-                  ? TextAlign.right
-                  : TextAlign.start,
               style: theme.textTheme.bodyMedium?.copyWith(
                 // Struck through and dimmed rather than hidden: what you have
                 // already done is part of what the list says.
@@ -617,7 +610,6 @@ class _LinkPreview extends StatelessWidget {
     final headline = NexMarkdownText.preview(
       note.displayText ?? note.linkUrl ?? '',
     );
-    final direction = nexDirectionOf(headline);
     return SizedBox(
       width: double.infinity,
       child: Column(
@@ -628,14 +620,8 @@ class _LinkPreview extends StatelessWidget {
             // Same reason as [_ChecklistLine]: the reserved row follows the
             // text size rather than pinning it at the default.
             height: nexCardPreviewLineHeightFor(context),
-            child: Text(
+            child: NexTextSurface.line(
               headline,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textDirection: direction,
-              textAlign: direction == TextDirection.rtl
-                  ? TextAlign.right
-                  : TextAlign.start,
               style: theme.textTheme.bodyLarge,
             ),
           ),

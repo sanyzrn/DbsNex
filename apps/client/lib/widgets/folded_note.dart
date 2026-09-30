@@ -42,7 +42,7 @@ class _FoldedNoteState extends State<FoldedNote> {
                     context,
                   ).textTheme.bodyLarge?.copyWith(height: 1.62),
                 )
-              : NexBodyText(
+              : NexTextSurface(
                   text,
                   selectable: false,
                   style: Theme.of(

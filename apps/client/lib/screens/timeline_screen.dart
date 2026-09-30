@@ -3596,14 +3596,14 @@ class _AiDaySummaryPanel extends StatelessWidget {
             const SizedBox(height: NexSpacing.sm),
             // Per line, because the recap is written in the language of the
             // notes and the notes are the one place in this app most likely
-            // to be in both at once — see [NexBodyText].
+            // to be in both at once — see [NexTextSurface].
             //
             // Not selectable, unlike the note body in the detail sheet. The
             // whole card is one button — a tap anywhere on it folds the brief
             // away — and a `SelectionArea` would claim that tap for clearing
             // a selection. A paragraph you can select inside a card that
             // stops responding is the worse of the two trades.
-            NexBodyText(rest, style: body),
+            NexTextSurface(rest, style: body),
           ],
         ],
       ),
