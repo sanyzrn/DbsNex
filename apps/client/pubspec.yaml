@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 1.83.0
+version: 1.84.0
 
 environment:
   sdk: ^3.9.0
@@ -93,6 +93,7 @@ dependencies:
   # every wall-clock schedule (the daily nudge, and any repeat matched on the
   # time of day) fire at the wrong hour by the device's offset.
   flutter_timezone: ^5.1.0
+  camera: ^0.12.0+1
 
 dev_dependencies:
   flutter_test:

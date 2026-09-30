@@ -177,7 +177,10 @@ void main() {
     // The app bar carries the mark rather than a text title now — the
     // greeting it used to share the bar with is a header in the list below.
     expect(
-      find.descendant(of: find.byType(AppBar), matching: find.byType(NexMark)),
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byType(NexLogotype),
+      ),
       findsOneWidget,
     );
     expect(find.byIcon(Icons.add), findsOneWidget);

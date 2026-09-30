@@ -149,6 +149,67 @@ void main() {
     expect(find.byType(CommitmentEditor), findsNothing);
   });
 
+  testWidgets('back asks before discarding only when something changed', (
+    tester,
+  ) async {
+    // It asked every time: any rebuild of the editor counted as an edit, so
+    // opening it and going straight back still offered to discard changes.
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () =>
+                  CommitmentEditor.show(context, services: services),
+              child: const Text('open editor'),
+            ),
+          ),
+        ),
+      ),
+    );
+    Future<void> back() async {
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+    }
+
+    // Untouched: back simply closes it.
+    await tester.tap(find.text('open editor'));
+    await tester.pumpAndSettle();
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(CommitmentEditor)),
+    );
+    await back();
+    expect(find.text(l10n.unsavedChanges), findsNothing);
+    expect(find.byType(CommitmentEditor), findsNothing);
+
+    // Typed and then erased again: nothing to lose, nothing to ask.
+    await tester.tap(find.text('open editor'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Gym');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '');
+    await tester.pumpAndSettle();
+    await back();
+    expect(find.text(l10n.unsavedChanges), findsNothing);
+    expect(find.byType(CommitmentEditor), findsNothing);
+
+    // Typed and left: back asks first, and Keep editing keeps it open.
+    await tester.tap(find.text('open editor'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Gym');
+    await tester.pumpAndSettle();
+    await back();
+    expect(find.text(l10n.unsavedChanges), findsOneWidget);
+    await tester.tap(find.text(l10n.keepEditing));
+    await tester.pumpAndSettle();
+    expect(find.byType(CommitmentEditor), findsOneWidget);
+  });
+
   testWidgets('the add sheet closes when dragged down from its body', (
     tester,
   ) async {

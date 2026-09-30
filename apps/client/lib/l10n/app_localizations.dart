@@ -5365,6 +5365,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'One mind. A thousand connections.'**
   String get splashTagline;
+
+  /// No description provided for @cameraClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close camera'**
+  String get cameraClose;
+
+  /// No description provided for @cameraShutter.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get cameraShutter;
+
+  /// No description provided for @cameraOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera options'**
+  String get cameraOptions;
+
+  /// No description provided for @cameraSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch camera'**
+  String get cameraSwitch;
+
+  /// No description provided for @cameraFlashOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash off'**
+  String get cameraFlashOff;
+
+  /// No description provided for @cameraFlashAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash auto'**
+  String get cameraFlashAuto;
+
+  /// No description provided for @cameraFlashOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash on'**
+  String get cameraFlashOn;
+
+  /// No description provided for @cameraUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex can\'t open the camera. Allow camera access for Nex in Android settings, or use the phone\'s camera app.'**
+  String get cameraUnavailable;
+
+  /// No description provided for @cameraUseSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the camera app'**
+  String get cameraUseSystem;
 }
 
 class _AppLocalizationsDelegate

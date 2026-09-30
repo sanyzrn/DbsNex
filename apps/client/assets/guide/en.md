@@ -8,7 +8,7 @@ Tap **+** at the centre of the bottom bar and choose text, checklist, voice, pho
 
 Without opening Nex first: add the **Nex capture** tile to your Quick Settings (pull the shade down twice, then edit the tiles), or turn on **Settings → Capture → Capture from notifications** for a silent row with **Note**, **Voice** and **Photo** buttons.
 
-Photos first open in a full-size preview. Choose **Edit** only when you want to crop, rotate or annotate; swipe the aspect-ratio row to see every size. Files shared into Nex from another app arrive exactly like files you pick inside it.
+**Photo** opens Nex's camera over the timeline: the large button takes the picture, **⋮** switches between front and back camera and sets the flash, and pulling the panel down closes it. If the camera cannot be opened, Nex offers the phone's camera app instead. Photos then open in a full-size preview. Choose **Edit** only when you want to crop, rotate or annotate; swipe the aspect-ratio row to see every size. Files shared into Nex from another app arrive exactly like files you pick inside it.
 
 ![The capture menu](capture.webp)
 

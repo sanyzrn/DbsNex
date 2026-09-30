@@ -3313,4 +3313,32 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get splashTagline => 'یک ذهن. هزار اتصال.';
+
+  @override
+  String get cameraClose => 'بستن دوربین';
+
+  @override
+  String get cameraShutter => 'گرفتن عکس';
+
+  @override
+  String get cameraOptions => 'گزینه‌های دوربین';
+
+  @override
+  String get cameraSwitch => 'چرخش دوربین';
+
+  @override
+  String get cameraFlashOff => 'فلاش خاموش';
+
+  @override
+  String get cameraFlashAuto => 'فلاش خودکار';
+
+  @override
+  String get cameraFlashOn => 'فلاش روشن';
+
+  @override
+  String get cameraUnavailable =>
+      'نکس نمی‌تواند دوربین را باز کند. در تنظیمات اندروید دسترسی دوربین را به نکس بدهید، یا از برنامهٔ دوربین گوشی استفاده کنید.';
+
+  @override
+  String get cameraUseSystem => 'استفاده از برنامهٔ دوربین';
 }

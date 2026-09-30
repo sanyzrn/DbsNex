@@ -59,6 +59,7 @@ abstract final class NexBrand {
   static final Rect wordBounds = wordN
       .getBounds()
       .expandToInclude(wordE.getBounds())
+      .expandToInclude(wordX.getBounds())
       .expandToInclude(swoosh.getBounds())
       .expandToInclude(Rect.fromCircle(center: dot, radius: dotRadius));
 
@@ -235,4 +236,54 @@ void nexPaintMark(
     ..drawPath(NexBrand.blueArm, bluePaint)
     ..drawCircle(NexBrand.blueEye, NexBrand.eyeRadius, bluePaint)
     ..drawCircle(NexBrand.inkEye, NexBrand.eyeRadius, inkPaint);
+}
+
+/// The "nex" wordmark, [height] tall, in the theme's ink and the brand blue.
+class NexLogotype extends StatelessWidget {
+  const NexLogotype({
+    super.key,
+    required this.height,
+    this.semanticLabel = 'Nex',
+  });
+
+  final double height;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final bounds = NexBrand.wordBounds;
+    final logotype = CustomPaint(
+      size: Size(height * bounds.width / bounds.height, height),
+      painter: _LogotypePainter(NexBrand.ink(Theme.of(context).brightness)),
+    );
+    return semanticLabel == null
+        ? logotype
+        : Semantics(label: semanticLabel, image: true, child: logotype);
+  }
+}
+
+class _LogotypePainter extends CustomPainter {
+  _LogotypePainter(this.ink);
+
+  final Color ink;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bounds = NexBrand.wordBounds;
+    final scale = size.height / bounds.height;
+    canvas
+      ..scale(scale)
+      ..translate(-bounds.left, -bounds.top);
+    final inkPaint = Paint()..color = ink;
+    final bluePaint = Paint()..color = NexBrand.blue;
+    canvas
+      ..drawPath(NexBrand.wordN, inkPaint)
+      ..drawPath(NexBrand.wordE, inkPaint)
+      ..drawPath(NexBrand.wordX, inkPaint)
+      ..drawPath(NexBrand.swoosh, bluePaint)
+      ..drawCircle(NexBrand.dot, NexBrand.dotRadius, bluePaint);
+  }
+
+  @override
+  bool shouldRepaint(_LogotypePainter old) => old.ink != ink;
 }

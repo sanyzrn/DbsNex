@@ -328,13 +328,14 @@ Release numbers are indicative; the ordering is the argument.
 | ~~1.81~~ | *Shipped* | W5.1–W5.4 and W6.6 — see §13 |
 | ~~1.82~~ | *Shipped* | W2.1–W2.4, retrieval — see §13 |
 | ~~1.83~~ | *Shipped* | The octopus: new icon set and opening animation — see §13 |
-| **1.84** | Foundation I | Phase names in `08-roadmap.md` fixed · W3.2 disclosure screen + privacy ADR · W4.3 harness · W6.4 nightly stress job |
-| **1.85** | Foundation II | W4.1 text surface · W4.5 overlay rule · W4.2 begins · W6.2 goldens |
-| **1.86** | Safety net | W1.6 backup to a chosen folder · W6.1 accessibility |
-| **1.87** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
-| **1.88** | Continuity II | W1.3 media sync · W3.4 local metrics · W6.3 startup/scroll budgets |
-| **1.89** | The second device | W1.5 Windows un-paused, re-qualified, released |
-| **1.90** | Trust | W3.1 encryption at rest, behind a proved migration |
+| ~~1.84~~ | *Shipped* | Nex's own camera, the wordmark in the header — see §13 |
+| **1.85** | Foundation I | Phase names in `08-roadmap.md` fixed · W3.2 disclosure screen + privacy ADR · W4.3 harness · W6.4 nightly stress job |
+| **1.86** | Foundation II | W4.1 text surface · W4.5 overlay rule · W4.2 begins · W6.2 goldens |
+| **1.87** | Safety net | W1.6 backup to a chosen folder · W6.1 accessibility |
+| **1.88** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
+| **1.89** | Continuity II | W1.3 media sync · W3.4 local metrics · W6.3 startup/scroll budgets |
+| **1.90** | The second device | W1.5 Windows un-paused, re-qualified, released |
+| **1.91** | Trust | W3.1 encryption at rest, behind a proved migration |
 | **2.0** | The release | Docs and vision rewritten · threads and citations synced across devices |
 
 - **The invisible work is first on purpose.** Retrieval and the shared UI
@@ -458,6 +459,13 @@ Release numbers are indicative; the ordering is the argument.
 
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
+
+### In 1.84.0 — the camera
+
+- **Nex's own camera.** Photo opens a panel over the timeline with the live
+  view, a shutter, back and a ⋮ menu for switching camera and flash; it falls
+  back to the phone's camera app when no camera opens.
+- **The wordmark in the header,** painted from `docs/nex_logo_type.svg`.
 
 ### In 1.83.0 — the octopus
 
