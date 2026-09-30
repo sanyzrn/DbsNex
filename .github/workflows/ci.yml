@@ -208,6 +208,30 @@ jobs:
       - run: dart pub get
       - run: dart test --tags budget --run-skipped test/retrieval_budget_test.dart
 
+  # W6.3: the timeline at 5,000 notes — opening, scrolling, a capture reaching
+  # it. Counts that must hold exactly (one window read, only visible cards
+  # built, nothing rebuilt while scrolling) and CPU-time limits with headroom
+  # for a shared runner. Its own job, like the retrieval budget, so the
+  # ordinary suite does not pay for seeding.
+  timeline-budget:
+    name: apps/client timeline budget (5,000 notes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: changes
+    if: needs.changes.outputs.dart == 'true'
+    defaults:
+      run:
+        working-directory: apps/client
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test --tags budget --run-skipped test/performance/
+
   core-boundary:
     name: packages/core must not re-export the storage layer
     runs-on: ubuntu-latest
@@ -804,6 +828,7 @@ jobs:
       - changes
       - dart-packages
       - retrieval-budget
+      - timeline-budget
       - core-boundary
       - widget-layouts
       - flutter-ai-package
