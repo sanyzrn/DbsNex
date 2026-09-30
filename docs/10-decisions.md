@@ -345,6 +345,21 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 
 ---
 
+## ADR-033 — What the assistant may send away, and the record of what it did
+
+- **Context:** Nex is local-first, but with a cloud AI provider configured some of a person's content leaves the phone: note text for tags, summaries, the smart summary, translation and rewriting; audio for transcription; photos for reading the text in them; and, since 1.17, a focused note's file text and images when the assistant is asked about it. [`09-ai.md`](./09-ai.md) states general principles, but no decision recorded what may be sent, and nothing showed the person what had been.
+- **Decision:**
+  1. **Nothing is sent unless the person chose a cloud provider** in Settings → Intelligence and left the feature on. AI is off by default; an offline model sends nothing.
+  2. **Only what the request needs is sent**: the note or notes a feature works on, the notes put in front of the assistant for a question, and the attachment asked about. Never the whole library, never the private vault, never settings, keys other than the provider's own, or the recurring items' vault card.
+  3. **Every request is written down, on the phone.** Each `CloudAIAdapter` talks through a `DisclosureClient` (`apps/client/lib/platform/disclosure_log.dart`), so no request can reach a provider without an entry: when, which provider, the host only (never the path, query or key), what it was for, what kind of content (text, file text, image, audio), its size, and the notes or media file it came from when known. The app's isolate and the database worker's both append to `disclosures.jsonl` beside the library. The content itself is never copied into the record.
+  4. **The record is the person's**: Settings → Security → *What left this device* reads it and clears it. It is never uploaded, never attached to feedback, and not part of any backup. It keeps the newest 1,000 entries.
+- **Rationale:** A privacy promise nobody can check is a claim. The record costs one file append per request and turns "the app sends only what it needs" into something a person can read for themselves. Recording at the HTTP client, rather than at each feature, means a feature added later cannot forget to record: purpose labels come from the adapter methods, and callers add what they know (which notes) through the zone the request runs in.
+- **Consequences:** The record is local, so it describes this phone only. A request made by an adapter with no configured record (tests, or a future isolate that forgets `NexDisclosureLog.configure`) is not recorded; both production isolates configure it at startup. Encryption at rest (W3.1) is a separate decision.
+- **Alternatives Considered:** Logging at each call site — rejected, because the next feature would be the one that forgot. Keeping the record in the database — rejected so that restoring a backup can never replace or forge the record of what this phone sent.
+- **Status:** Accepted at v1.85.0.
+
+---
+
 ## Decision-Making Heuristic
 
 When facing a new choice, run it through the product's filter:

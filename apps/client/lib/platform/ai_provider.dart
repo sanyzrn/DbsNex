@@ -9,6 +9,7 @@ import 'package:meta/meta.dart';
 import 'package:nex_core/nex_core.dart';
 
 import 'assistant_actions.dart';
+import 'disclosure_log.dart';
 
 /// The cloud services Nex can talk to.
 ///
@@ -564,7 +565,10 @@ class CloudAIAdapter implements AIAdapter {
     this.unlimitedSummary = false,
     http.Client? client,
     @visibleForTesting ChatAdapter? localModel,
-  }) : _client = client ?? _defaultClient(),
+  }) : _client = DisclosureClient(
+         client ?? _defaultClient(),
+         provider: config.provider.label,
+       ),
        _ownsClient = client == null,
        _localOverride = localModel;
 
@@ -659,6 +663,17 @@ class CloudAIAdapter implements AIAdapter {
   void close() {
     if (_ownsClient) _client.close();
   }
+
+  static String _fileName(String path) => path.split(RegExp(r'[/\\]')).last;
+
+  /// What a question carries besides its own words: the notes put in front
+  /// of the model, and anything attached to it.
+  static Set<DisclosureContent> _chatContent(AiChatOptions options) => {
+    for (final attachment in options.attachments)
+      attachment.mimeType.startsWith('image/')
+          ? DisclosureContent.image
+          : DisclosureContent.fileText,
+  };
 
   Map<String, String> get _headers => switch (config.provider.format) {
     AiWireFormat.anthropic => {
@@ -939,7 +954,7 @@ class CloudAIAdapter implements AIAdapter {
   }
 
   /// Reachability, credentials and model name, in one round trip.
-  Future<AiTestResult> test() async {
+  Future<AiTestResult> test() => NexDisclosureLog.about(() async {
     if (config.provider == AiProvider.none) {
       return const AiTestResult.failed('No provider selected');
     }
@@ -977,7 +992,7 @@ class CloudAIAdapter implements AIAdapter {
     } catch (error) {
       return AiTestResult.failed('$error');
     }
-  }
+  }, purpose: DisclosurePurpose.connectionTest);
 
   /// An HTTP status, said in the terms of the thing the person has to fix.
   static String _describe(int status, String? message) {
@@ -998,7 +1013,11 @@ class CloudAIAdapter implements AIAdapter {
   Future<List<TagSuggestion>>? suggestTags(Note note) {
     final text = _textOf(note);
     if (!canAnswerText || text == null) return null;
-    return _suggestTags(text);
+    return NexDisclosureLog.about(
+      () => _suggestTags(text),
+      purpose: DisclosurePurpose.tags,
+      notes: [note.id],
+    );
   }
 
   Future<List<TagSuggestion>> _suggestTags(String text) async {
@@ -1020,7 +1039,11 @@ class CloudAIAdapter implements AIAdapter {
   Future<Summary>? summarize(Note note) {
     final text = _textOf(note);
     if (!canAnswerText || text == null) return null;
-    return _summarize(text);
+    return NexDisclosureLog.about(
+      () => _summarize(text),
+      purpose: DisclosurePurpose.summary,
+      notes: [note.id],
+    );
   }
 
   /// One sentence about a piece of text that is not (yet) a note.
@@ -1033,11 +1056,12 @@ class CloudAIAdapter implements AIAdapter {
   ///
   /// Null rather than an empty [Summary], because the one caller's question
   /// is "is there a sentence to store".
-  Future<String?> summarizeText(String text) async {
-    if (!canAnswerText || text.trim().isEmpty) return null;
-    final summary = await _summarize(text);
-    return summary.text.isEmpty ? null : summary.text;
-  }
+  Future<String?> summarizeText(String text) =>
+      NexDisclosureLog.about(() async {
+        if (!canAnswerText || text.trim().isEmpty) return null;
+        final summary = await _summarize(text);
+        return summary.text.isEmpty ? null : summary.text;
+      }, purpose: DisclosurePurpose.summary);
 
   Future<Summary> _summarize(String text) async {
     final reply = await _complete(
@@ -1095,7 +1119,7 @@ class CloudAIAdapter implements AIAdapter {
     AiResponseStyle tone = AiResponseStyle.natural,
     String instruction = '',
     String written = '',
-  }) async {
+  }) => NexDisclosureLog.about(() async {
     if (!canAnswerText || recentNotesText.trim().isEmpty) return null;
     if (style != NexBriefStyle.assistant) {
       return _sideBrief(
@@ -1181,7 +1205,7 @@ class CloudAIAdapter implements AIAdapter {
       nexTidyBrief(cleanDecorativeReply(reply), maxLines: lines),
       shortLine: false,
     );
-  }
+  }, purpose: DisclosurePurpose.dailySummary);
 
   /// The model's share of a brief whose facts the app has already written.
   ///
@@ -1290,7 +1314,7 @@ class CloudAIAdapter implements AIAdapter {
     String recentNotesText, {
     AiOutputLanguage? language,
     Duration? timeout,
-  }) async {
+  }) => NexDisclosureLog.about(() async {
     if (!canAnswerText) return null;
     final reply = await _complete(
       'You write the greeting a notes app opens with. Not a sentence — a '
@@ -1321,7 +1345,7 @@ class CloudAIAdapter implements AIAdapter {
       timeout: timeout,
     );
     return _plausible(_clamped(cleanDecorativeReply(reply), 6));
-  }
+  }, purpose: DisclosurePurpose.greeting);
 
   /// A note in another language, and nothing else.
   ///
@@ -1343,7 +1367,7 @@ class CloudAIAdapter implements AIAdapter {
   Future<String?> translate(
     String text, {
     required AiOutputLanguage target,
-  }) async {
+  }) => NexDisclosureLog.about(() async {
     final source = text.trim();
     if (!canAnswerText || source.isEmpty) return null;
     if (target == AiOutputLanguage.auto) return null;
@@ -1364,7 +1388,7 @@ class CloudAIAdapter implements AIAdapter {
     final translated = reply?.trim();
     if (translated == null || translated.isEmpty) return null;
     return _notGarbled(translated);
-  }
+  }, purpose: DisclosurePurpose.translation);
 
   /// One note, edited — the whole of it in, the whole of it back.
   ///
@@ -1377,7 +1401,10 @@ class CloudAIAdapter implements AIAdapter {
   /// the length of its source, and a ceiling that clips one ends mid-sentence
   /// in somebody's note — which is worse than no answer, because it looks like
   /// an answer.
-  Future<String?> rewrite(String text, {required NexRewriteStyle style}) async {
+  Future<String?> rewrite(
+    String text, {
+    required NexRewriteStyle style,
+  }) => NexDisclosureLog.about(() async {
     final source = text.trim();
     if (!canAnswerText || source.isEmpty) return null;
     final reply = await _complete(
@@ -1390,7 +1417,7 @@ class CloudAIAdapter implements AIAdapter {
     final edited = reply?.trim();
     if (edited == null || edited.isEmpty) return null;
     return _notGarbled(edited);
-  }
+  }, purpose: DisclosurePurpose.rewrite);
 
   /// A real multi-turn exchange, normalised across all three wire shapes.
   ///
@@ -1556,6 +1583,15 @@ class CloudAIAdapter implements AIAdapter {
   Future<String?> chat(
     List<ChatMessage> history, {
     AiChatOptions options = const AiChatOptions(),
+  }) => NexDisclosureLog.about(
+    () => _chat(history, options: options),
+    purpose: DisclosurePurpose.chat,
+    content: _chatContent(options),
+  );
+
+  Future<String?> _chat(
+    List<ChatMessage> history, {
+    required AiChatOptions options,
   }) async {
     _lastFailure = null;
     if (history.isEmpty) return null;
@@ -1844,7 +1880,12 @@ class CloudAIAdapter implements AIAdapter {
     if (!config.isUsable || !config.provider.readsImages) return null;
     final bytes = image.bytes ?? _read(image.mediaUri);
     if (bytes == null) return null;
-    return _ocr(bytes, image.mediaUri);
+    return NexDisclosureLog.about(
+      () => _ocr(bytes, image.mediaUri),
+      purpose: DisclosurePurpose.photoText,
+      content: {DisclosureContent.image},
+      media: _fileName(image.mediaUri),
+    );
   }
 
   Future<OCRText> _ocr(Uint8List bytes, String uri) async {
@@ -1869,7 +1910,11 @@ class CloudAIAdapter implements AIAdapter {
     if (!config.isUsable || !config.provider.hearsAudio) return null;
     final bytes = audio.bytes ?? _read(audio.mediaUri);
     if (bytes == null) return null;
-    return _transcribe(bytes, audio.mediaUri);
+    return NexDisclosureLog.about(
+      () => _transcribe(bytes, audio.mediaUri),
+      purpose: DisclosurePurpose.transcription,
+      media: _fileName(audio.mediaUri),
+    );
   }
 
   Future<Transcript> _transcribe(Uint8List bytes, String uri) async {
@@ -1916,7 +1961,10 @@ class CloudAIAdapter implements AIAdapter {
   @override
   Future<Vector>? embed(String text) {
     if (!config.isUsable || !config.provider.embeds) return null;
-    return _embed(text);
+    return NexDisclosureLog.about(
+      () => _embed(text),
+      purpose: DisclosurePurpose.searchIndex,
+    );
   }
 
   Future<Vector> _embed(String text) async {

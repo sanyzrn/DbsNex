@@ -128,7 +128,7 @@ Restoring replaces the library and restarts Nex. If a restore is interrupted, th
 
 ## Security and privacy
 
-Under **Settings → Security**, Nex can ask for your fingerprint or screen lock whenever it returns to the foreground, after a delay you choose. The lock is local and hides the screen in the task switcher. Nothing leaves the phone unless you turn on a cloud AI provider, send feedback or share something yourself.
+Under **Settings → Security**, Nex can ask for your fingerprint or screen lock whenever it returns to the foreground, after a delay you choose. The lock is local and hides the screen in the task switcher. Nothing leaves the phone unless you turn on a cloud AI provider, send feedback or share something yourself. **Settings → Security → What left this device** lists every request Nex made to an AI provider — which one, what for, what kind of content and from which notes — kept on the phone only; clear it whenever you like.
 
 ## Updates, feedback and help
 

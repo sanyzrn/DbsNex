@@ -3412,4 +3412,94 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cameraUseSystem => 'Use the camera app';
+
+  @override
+  String get disclosuresTitle => 'What left this device';
+
+  @override
+  String get disclosuresRow => 'Every request Nex made to an AI provider';
+
+  @override
+  String get disclosuresIntro =>
+      'Each time Nex sent something to an AI provider: which one, what for, what kind of content and from which notes. This record stays on this phone, is never uploaded and is not part of any backup. An offline model sends nothing and never appears here.';
+
+  @override
+  String get disclosuresEmpty => 'Nothing has left this device.';
+
+  @override
+  String get disclosuresClear => 'Clear record';
+
+  @override
+  String get disclosuresClearBody =>
+      'Delete this record of what was sent? What was already sent is not affected.';
+
+  @override
+  String disclosuresFromNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'From $count notes',
+      one: 'From 1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String disclosuresNotesGone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes have since been deleted.',
+      one: '1 note has since been deleted.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get disclosureChat => 'Assistant question';
+
+  @override
+  String get disclosureTags => 'Tag suggestions';
+
+  @override
+  String get disclosureSummary => 'Note summary';
+
+  @override
+  String get disclosureDailySummary => 'Smart summary';
+
+  @override
+  String get disclosureGreeting => 'Greeting';
+
+  @override
+  String get disclosureTranslation => 'Translation';
+
+  @override
+  String get disclosureRewrite => 'Rewrite';
+
+  @override
+  String get disclosureTranscription => 'Voice transcription';
+
+  @override
+  String get disclosurePhotoText => 'Text in a photo';
+
+  @override
+  String get disclosureSearchIndex => 'Search by meaning';
+
+  @override
+  String get disclosureConnectionTest => 'Connection test';
+
+  @override
+  String get disclosureOther => 'Other request';
+
+  @override
+  String get disclosureText => 'text';
+
+  @override
+  String get disclosureFileText => 'file';
+
+  @override
+  String get disclosureImage => 'image';
+
+  @override
+  String get disclosureAudio => 'audio';
 }

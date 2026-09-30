@@ -24,6 +24,7 @@ import 'capture_journal.dart';
 import 'export_cache.dart';
 import 'db_worker.dart';
 import 'ai_provider.dart';
+import 'disclosure_log.dart';
 import 'nex_db.dart';
 import 'media_picker_impl.dart';
 import 'crash_reporter.dart';
@@ -118,6 +119,9 @@ class NexServices {
 
     final support = await getApplicationSupportDirectory();
     final dbPath = p.join(support.path, 'nex.sqlite');
+    // The record of what leaves the device, beside the library it describes.
+    // The database worker configures the same file for its own requests.
+    NexDisclosureLog.configure(support.path);
     final mediaDir = p.join(support.path, 'media');
     final backupDir = p.join(support.path, 'backups');
 
