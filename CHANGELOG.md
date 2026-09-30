@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.86.0
+
+- **A tap that only closes.** On the home screen, while a card's menu is open or a card is swiped aside, the next tap anywhere — the card itself, a date heading, the filters — closes it and does nothing else. Opening a menu also puts away a swiped card.
+- **Translations keep each line's direction.** A translation that mixes Persian and English lays out each line in its own direction, the way notes already do.
+
 ## v1.85.0
 
 - **See what left your phone.** Settings → Security → What left this device lists every request Nex made to an AI provider: which provider, what it was for, what kind of content went (text, file, image or audio) and from which notes. The list stays on the phone, is never uploaded or backed up, and can be cleared at any time. An offline model sends nothing and never appears in it.
