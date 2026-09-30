@@ -16,7 +16,7 @@ import '../tokens/nex_tokens.dart';
 ///
 /// ## Direction
 ///
-/// The same rule as [NexBodyText], and the reason this is a widget rather than
+/// The same rule as [NexTextSurface], and the reason this is a widget rather than
 /// a call to `MarkdownBody` at each site. `flutter_markdown_plus` takes its
 /// direction from the ambient [Directionality] — which is the interface
 /// language, and in this app the interface language is not what decides. A
@@ -52,7 +52,7 @@ class NexMarkdown extends StatefulWidget {
   final String text;
 
   /// Base style for paragraph text. Defaults to `bodyLarge`, matching
-  /// [NexBodyText] so a rendered note and a plain one read as the same app.
+  /// [NexTextSurface] so a rendered note and a plain one read as the same app.
   final TextStyle? style;
 
   /// Called with a link's destination. Null leaves links inert — which is the

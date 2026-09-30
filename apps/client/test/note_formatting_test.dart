@@ -64,7 +64,7 @@ void main() {
     await openText(tester, '2 * 3 * 4');
 
     expect(find.byType(NexMarkdown), findsNothing);
-    expect(find.byType(NexBodyText), findsWidgets);
+    expect(find.byType(NexTextSurface), findsWidgets);
     expect(find.textContaining('2 * 3 * 4'), findsOneWidget);
   });
 

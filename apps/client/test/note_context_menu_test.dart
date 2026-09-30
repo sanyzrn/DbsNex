@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/hold_menu.dart';
 import 'package:nex_client/widgets/note_context_menu.dart';
+import 'package:nex_ui/nex_ui.dart';
 
 /// The note's hold menu, which a tap outside must only close.
 ///
@@ -105,5 +106,58 @@ void main() {
     await tester.tap(find.text('A note'));
     await tester.pumpAndSettle();
     expect(opened, 1);
+  });
+
+  testWidgets('inside a screen guard the menu takes the screen\'s rule', (
+    tester,
+  ) async {
+    // W4.5: one guard for the screen. Opening the menu puts away whatever
+    // else was open (a swiped card), and a guarded control beside it only
+    // closes the menu.
+    final guard = NexTapGuardController();
+    var swipeClosed = 0;
+    var folded = 0;
+    guard.open('swiped card', close: () => swipeClosed++);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NexTapGuard(
+            controller: guard,
+            child: Column(
+              children: [
+                NoteContextMenu(
+                  entries: [NoteMenuEntry(NexHoldAction.copy, () {})],
+                  child: const SizedBox(
+                    height: 80,
+                    width: double.infinity,
+                    child: Center(child: Text('A note')),
+                  ),
+                ),
+                NexTapGuarded(
+                  child: TextButton(
+                    onPressed: () => folded++,
+                    child: const Text('Yesterday'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.longPress(find.text('A note'));
+    await tester.pumpAndSettle();
+    expect(swipeClosed, 1);
+    expect(find.text('Copy'), findsOneWidget);
+    expect(guard.isOpen, isTrue);
+
+    await tester.tap(find.text('Yesterday'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.text('Copy'), findsNothing);
+    expect(folded, 0);
+    expect(guard.isOpen, isFalse);
   });
 }

@@ -784,7 +784,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
           ),
           // Copy-all is the button above; this is the half of a sentence
           // somebody actually wanted.
-          NexBodyText(body, selectable: true),
+          NexTextSurface(body, selectable: true),
           const SizedBox(height: NexSpacing.sm),
         ],
         if (_loadingAi)
@@ -1124,7 +1124,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       const SizedBox(height: NexSpacing.xs),
                       if (note.caption != null &&
                           note.caption!.trim().isNotEmpty)
-                        NexBodyText(
+                        NexTextSurface(
                           note.caption!,
                           style: Theme.of(context).textTheme.bodyLarge,
                           selectable: true,
@@ -1950,7 +1950,7 @@ class _ChecklistBody extends StatelessWidget {
                   ),
                   const SizedBox(width: NexSpacing.sm),
                   Expanded(
-                    child: NexBodyText(
+                    child: NexTextSurface(
                       items[i].text,
                       // Not selectable, unlike the note body above. The whole
                       // row is the tick target, and a `SelectionArea` sits
@@ -1995,7 +1995,7 @@ class _LinkBody extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (note.linkExcerpt != null) ...[
-          NexBodyText(
+          NexTextSurface(
             note.linkExcerpt!,
             style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
             selectable: true,
@@ -2315,7 +2315,7 @@ class _FileTextBodyState extends State<_FileTextBody> {
         // The same leading as a text note's body in this same sheet: a plain
         // file someone shared and a note someone typed are both prose, and
         // there is no reason to read them at two different densities.
-        NexFileKind.plainText => NexBodyText(
+        NexFileKind.plainText => NexTextSurface(
           text,
           style: theme.textTheme.bodyLarge?.copyWith(height: 1.62),
           // As selectable as the markdown branch beside it. A shared file is

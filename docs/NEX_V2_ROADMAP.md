@@ -238,10 +238,7 @@ sent silently.
 
 ### W4 — Foundation (invisible, and first)
 
-**W4.1 One text surface.** A `NexTextSurface` in `packages/ui` that owns
-direction, selection, the selection menu and per-line vs single-paragraph
-layout for every piece of the user's own text. Today only a direction helper
-(`nex_text_direction.dart`) is shared. *The highest value per hour spent.*
+*W4.1 shipped in 1.86 — see §13.*
 
 **W4.2 Split the mega-screens.** A `ChangeNotifier` view-model per screen, no
 framework migration. Target: no file in `apps/client/lib` over ~800 lines (11
@@ -253,10 +250,7 @@ today). Split `nex_preferences.dart` by domain at the same time.
 but the AI code that matters lives in `apps/client/lib/platform/ai_provider.dart`
 (1,994 lines). **Move the provider layer into `packages/ai`.**
 
-**W4.5 One "overlay owns the tap" rule** *(new)*. Menus, swiped cards and sheets
-each re-implemented "while I am open, a tap only closes me" during 1.80.x. One
-shared primitive in `packages/ui` (a modal barrier scoped to the owning widget,
-covering the owner itself) ends that class of bug the way W4.1 ends the text one.
+*W4.5 shipped in 1.86 — see §13.*
 
 ### W5 — Product
 
@@ -269,10 +263,7 @@ client. A TalkBack audit of capture, timeline, detail sheet and vault; minimum
 touch targets; a test that every icon-only button has a label; checking the
 largest text size in both directions.
 
-**W6.2 Visual regression for RTL and themes.** Golden tests for the timeline
-card, detail sheet, capsule notice and hold menu, in LTR/RTL × light/dark ×
-five palettes. Most bugs of the last twenty releases were visual and were found
-by hand.
+*W6.2 shipped in 1.86 — see §13.*
 
 **W6.3 Startup and scroll budgets.** Cold start to first timeline frame and
 timeline scroll jank measured in CI (integration test on an emulator), next to
@@ -290,9 +281,8 @@ separate authenticator app.
 
 **Must have for 2.0:**
 
-1. W4.1 text surface, W4.5 overlay rule
-2. W1.1 + W1.2 pairing and automatic sync
-3. W1.5 a second device actually shipping *(Windows)*
+1. W1.1 + W1.2 pairing and automatic sync
+2. W1.5 a second device actually shipping *(Windows)*
 
 **Should have:**
 
@@ -300,7 +290,7 @@ separate authenticator app.
 6. W1.6 continuity without a server
 7. W3.1 encryption at rest — only when the migration is proved
 8. W4.2 screen decomposition — continuous
-9. W6.1 accessibility, W6.2 goldens, W6.3 performance budgets
+9. W6.1 accessibility, W6.3 performance budgets
 10. W3.4 local metrics, W1.4 conflict surface
 
 **Could have / deferred to 2.1:**
@@ -323,7 +313,7 @@ Release numbers are indicative; the ordering is the argument.
 | ~~1.83~~ | *Shipped* | The octopus: new icon set and opening animation — see §13 |
 | ~~1.84~~ | *Shipped* | Nex's own camera, the wordmark in the header — see §13 |
 | ~~1.85~~ | *Shipped* | Foundation I: phase names fixed · W3.2 disclosure screen + ADR-033 · W4.3 harness · W6.4 nightly stress — see §13 |
-| **1.86** | Foundation II | W4.1 text surface · W4.5 overlay rule · W4.2 begins · W6.2 goldens |
+| ~~1.86~~ | *Shipped* | Foundation II: W4.1 text surface · W4.5 tap rule · W6.2 goldens — see §13. W4.2 continues as files are touched |
 | **1.87** | Safety net | W1.6 backup to a chosen folder · W6.1 accessibility |
 | **1.88** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
 | **1.89** | Continuity II | W1.3 media sync · W3.4 local metrics · W6.3 startup/scroll budgets |
@@ -452,6 +442,23 @@ Release numbers are indicative; the ordering is the argument.
 
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
+
+### In 1.86.0 — foundation II
+
+- **W4.5 One tap rule.** `NexTapGuard` / `NexTapGuarded` in `packages/ui`: a
+  screen holds what is open and how to close it; a guarded control is inert
+  while anything is open, so the first tap closes it and presses nothing.
+  Opening a second thing closes the first. The timeline's swiped card and a
+  card's hold menu both register with it; the swipe-only helper and the menu's
+  own absorber are gone.
+- **W4.1 One text surface.** `NexTextSurface` (formerly `NexBodyText`) decides
+  direction, alignment, selection and the selection menu for the user's words,
+  as a full-width block (a direction per line where lines disagree) or hugged
+  (`.line` for single ellipsised lines). Checklist lines, link headlines, chat
+  turns and the translation result moved onto it.
+- **W6.2 Golden pictures.** 26 pictures in `apps/client/test/goldens/`: card,
+  hold menu, capsule notice and detail sheet in LTR/RTL × light/dark, and the
+  card in all five palettes, drawn with the app's own fonts.
 
 ### In 1.85.0 — foundation I
 

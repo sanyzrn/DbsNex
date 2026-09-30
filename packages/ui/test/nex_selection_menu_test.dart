@@ -43,7 +43,7 @@ void main() {
   testWidgets('a selectable paragraph carries the app menu', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(body: NexBodyText('a note', selectable: true)),
+        home: Scaffold(body: NexTextSurface('a note', selectable: true)),
       ),
     );
     final area = tester.widget<SelectionArea>(find.byType(SelectionArea));

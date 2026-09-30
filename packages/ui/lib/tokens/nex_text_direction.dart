@@ -218,25 +218,56 @@ class _DirectionalLine extends StatelessWidget {
   }
 }
 
-/// A block of the user's own writing, laid out in the direction it is written.
+/// How a [NexTextSurface] takes up room.
+enum NexTextFit {
+  /// The full width available, each line in its own direction when they
+  /// disagree: note bodies, previews, anything read as a block.
+  block,
+
+  /// As wide as the words, in one direction for the whole text: a checklist
+  /// line, a headline, a chat bubble. A bubble drawn full width would make
+  /// every short reply as wide as the screen.
+  hug,
+}
+
+/// The one way Nex draws the user's own words (W4.1).
+///
+/// Direction, alignment, selection and the selection menu for every piece of
+/// text a person wrote or will read as theirs — note bodies, previews,
+/// checklist lines, headlines, translations, chat turns. The bug waves of
+/// 1.17–1.21 (text direction, per-line direction, handles on the wrong ends,
+/// the selection menu) were each one surface doing this its own way; a
+/// surface that uses this cannot get them wrong.
 ///
 /// Only the paragraph turns. Wrapping a whole card or sheet in a
 /// [Directionality] also moves its icons, dates and buttons, so a Persian note
 /// came out mirrored against everything around it — the text was right and the
 /// layout was wrong. Direction belongs to the text; the surface keeps the
 /// direction the interface language gives it.
-class NexBodyText extends StatelessWidget {
-  const NexBodyText(
+class NexTextSurface extends StatelessWidget {
+  const NexTextSurface(
     this.text, {
     super.key,
     this.style,
     this.maxLines,
     this.selectable = false,
+    this.fit = NexTextFit.block,
   });
+
+  /// One line of the user's text, as wide as it is and ellipsised past
+  /// [maxLines]: a checklist item, a link's headline.
+  const NexTextSurface.line(
+    this.text, {
+    super.key,
+    this.style,
+    this.maxLines = 1,
+  }) : selectable = false,
+       fit = NexTextFit.hug;
 
   final String text;
   final TextStyle? style;
   final int? maxLines;
+  final NexTextFit fit;
 
   /// Whether a finger can take hold of these words.
   ///
@@ -274,6 +305,7 @@ class NexBodyText extends StatelessWidget {
   }
 
   Widget _body() {
+    if (fit == NexTextFit.hug) return _hugged();
     if (text.contains('\n')) {
       // Per line when the lines disagree, clamped or not. It used to be per
       // line only when nothing was clamping, and that exception was a bug:
@@ -334,6 +366,24 @@ class NexBodyText extends StatelessWidget {
       );
     }
     return _paragraph(nexDirectionOf(text));
+  }
+
+  /// The whole of [text] in one direction, as wide as its words.
+  Widget _hugged() {
+    final direction = nexDirectionOf(text);
+    return NexTextDirection(
+      text: text,
+      child: Text(
+        text,
+        style: style,
+        maxLines: maxLines,
+        overflow: maxLines == null ? null : TextOverflow.ellipsis,
+        textDirection: direction,
+        textAlign: direction == TextDirection.rtl
+            ? TextAlign.right
+            : TextAlign.start,
+      ),
+    );
   }
 
   /// The whole of [text] as one paragraph, laid out in [direction].

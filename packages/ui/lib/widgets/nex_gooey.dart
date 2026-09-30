@@ -415,9 +415,7 @@ class _NexEmergeFromState extends State<NexEmergeFrom> {
                           Theme.of(context).colorScheme.surface,
                         ),
                         _EmergeClipper.span(v, .12, .42, Curves.easeIn),
-                      )!.withValues(
-                        alpha: 1 - _EmergeClipper.span(v, .42, .7),
-                      ),
+                      )!.withValues(alpha: 1 - _EmergeClipper.span(v, .42, .7)),
                     ),
                   ),
                 ),
