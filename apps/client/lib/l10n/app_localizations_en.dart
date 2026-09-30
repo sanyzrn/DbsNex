@@ -3299,4 +3299,83 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantOpenSource => 'Open this note';
+
+  @override
+  String get threads => 'Threads';
+
+  @override
+  String get threadsSubtitle =>
+      'Notes about the same thing, gathered without moving them';
+
+  @override
+  String get threadsEmpty =>
+      'No threads yet. When a new note clearly continues an earlier one, Nex offers to gather them — or add a note to a thread from its details.';
+
+  @override
+  String get threadNew => 'New thread';
+
+  @override
+  String get threadName => 'Thread name';
+
+  @override
+  String get threadRename => 'Rename';
+
+  @override
+  String get threadDelete => 'Delete thread';
+
+  @override
+  String get threadDeleteBody =>
+      'The thread goes; its notes stay exactly where they are.';
+
+  @override
+  String get threadRemoveNote => 'Remove from thread';
+
+  @override
+  String threadNoteCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString notes',
+      one: '1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get threadAddTo => 'Threads';
+
+  @override
+  String get threadEmpty => 'No notes in this thread any more.';
+
+  @override
+  String threadSuggestJoin(String name) {
+    return 'Continues “$name”?';
+  }
+
+  @override
+  String threadSuggestStart(String name) {
+    return 'Start a thread “$name”?';
+  }
+
+  @override
+  String get threadSuggestAdd => 'Add';
+
+  @override
+  String get threadSuggestStartAction => 'Start';
+
+  @override
+  String threadAdded(String name) {
+    return 'Added to “$name”';
+  }
+
+  @override
+  String get threadSuggestions => 'Suggest threads after a capture';
+
+  @override
+  String get threadSuggestionsSubtitle =>
+      'Only when a new note clearly continues an earlier one. Nothing is added without a tap.';
 }

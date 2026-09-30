@@ -57,6 +57,7 @@ import 'tools_screen.dart';
 import 'intelligence_screen.dart';
 import 'library_screen.dart';
 import 'note_detail_sheet.dart';
+import 'threads_screen.dart';
 import 'photo_preview_screen.dart';
 import 'settings_sheet.dart';
 
@@ -1500,12 +1501,14 @@ class TimelineScreenState extends State<TimelineScreen>
   }
 
   Future<void> openCapture() async {
+    String? committed;
     await nexShowSheet<void>(
       context: context,
       builder: (sheetContext) => CaptureSheet(
         services: widget.services,
         preferences: widget.preferences,
         onCommitted: (id) {
+          committed = id;
           landedId = id;
           if (widget.preferences.haptics) HapticFeedback.lightImpact();
         },
@@ -1536,6 +1539,54 @@ class TimelineScreenState extends State<TimelineScreen>
       ),
     );
     widget.services.refreshTimeline();
+    // Once the sheet is closed, not at the first keystroke that created the
+    // note: only then is there a whole note to compare.
+    if (committed case final id?) unawaited(_offerThread(id));
+  }
+
+  /// The post-capture offer on its own, for tests that cannot drive a
+  /// capture sheet to its close.
+  @visibleForTesting
+  Future<void> offerThreadFor(String noteId) => _offerThread(noteId);
+
+  /// Notes already asked about, so one capture is never offered twice.
+  final _threadOffered = <String>{};
+
+  /// Offers the thread a just-captured note clearly continues (W5.3).
+  ///
+  /// After the save, never before it; one quiet capsule that goes away on its
+  /// own; nothing happens without a tap on it. Most captures continue
+  /// nothing, and for them this says nothing at all.
+  Future<void> _offerThread(String noteId) async {
+    if (!widget.preferences.threadSuggestions) return;
+    if (!_threadOffered.add(noteId)) return;
+    final suggestion = await widget.services.suggestThread(noteId);
+    if (suggestion == null || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final banner = NexBannerHost.of(context);
+    if (banner == null) return;
+    final thread = suggestion.thread;
+    final name = thread?.name ?? suggestion.name!;
+    banner.show(
+      message: thread != null
+          ? l10n.threadSuggestJoin(name)
+          : l10n.threadSuggestStart(name),
+      actionLabel: thread != null
+          ? l10n.threadSuggestAdd
+          : l10n.threadSuggestStartAction,
+      haptics: false,
+      onAction: () => unawaited(() async {
+        if (thread != null) {
+          await widget.services.addToThread(thread.id, noteId);
+        } else {
+          await widget.services.createThread(
+            name,
+            noteIds: [suggestion.withNoteId!, noteId],
+          );
+        }
+        banner.show(message: l10n.threadAdded(name));
+      }()),
+    );
   }
 
   /// Opens the checklist sheet and commits whatever came back.
@@ -1581,6 +1632,7 @@ class TimelineScreenState extends State<TimelineScreen>
   void _landed(String id) {
     if (!mounted) return;
     setState(() => landedId = id);
+    unawaited(_offerThread(id));
     if (widget.preferences.haptics) HapticFeedback.lightImpact();
   }
 
@@ -2998,6 +3050,12 @@ class TimelineScreenState extends State<TimelineScreen>
                 action,
                 () => unawaited(_openNote(note, run: action)),
               ),
+      NexHoldAction.thread => NoteMenuEntry(
+        action,
+        () => unawaited(
+          showThreadPicker(context, services: widget.services, noteId: note.id),
+        ),
+      ),
       NexHoldAction.caption || NexHoldAction.details => NoteMenuEntry(
         action,
         () => unawaited(_openNote(note, run: action)),

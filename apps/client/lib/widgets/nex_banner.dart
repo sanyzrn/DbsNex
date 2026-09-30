@@ -113,7 +113,13 @@ void _show(
       onAction: onAction,
       haptics: haptics,
       onDismissed: () {
-        if (_current == entry) _current = null;
+        // Only while it is still the one showing. A newer banner (or
+        // [nexHideBanner]) has already removed it otherwise, and its exit
+        // animation can still finish in the frame before it is unmounted —
+        // removing it a second time is an assertion, which is what an action
+        // that shows a follow-up banner ran into.
+        if (_current != entry) return;
+        _current = null;
         entry.remove();
       },
     ),

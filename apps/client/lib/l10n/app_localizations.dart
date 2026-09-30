@@ -5239,6 +5239,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open this note'**
   String get assistantOpenSource;
+
+  /// No description provided for @threads.
+  ///
+  /// In en, this message translates to:
+  /// **'Threads'**
+  String get threads;
+
+  /// No description provided for @threadsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes about the same thing, gathered without moving them'**
+  String get threadsSubtitle;
+
+  /// No description provided for @threadsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No threads yet. When a new note clearly continues an earlier one, Nex offers to gather them — or add a note to a thread from its details.'**
+  String get threadsEmpty;
+
+  /// No description provided for @threadNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New thread'**
+  String get threadNew;
+
+  /// No description provided for @threadName.
+  ///
+  /// In en, this message translates to:
+  /// **'Thread name'**
+  String get threadName;
+
+  /// No description provided for @threadRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get threadRename;
+
+  /// No description provided for @threadDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete thread'**
+  String get threadDelete;
+
+  /// No description provided for @threadDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The thread goes; its notes stay exactly where they are.'**
+  String get threadDeleteBody;
+
+  /// No description provided for @threadRemoveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from thread'**
+  String get threadRemoveNote;
+
+  /// No description provided for @threadNoteCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note} other{{count} notes}}'**
+  String threadNoteCount(int count);
+
+  /// No description provided for @threadAddTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Threads'**
+  String get threadAddTo;
+
+  /// No description provided for @threadEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes in this thread any more.'**
+  String get threadEmpty;
+
+  /// No description provided for @threadSuggestJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Continues “{name}”?'**
+  String threadSuggestJoin(String name);
+
+  /// No description provided for @threadSuggestStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a thread “{name}”?'**
+  String threadSuggestStart(String name);
+
+  /// No description provided for @threadSuggestAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get threadSuggestAdd;
+
+  /// No description provided for @threadSuggestStartAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get threadSuggestStartAction;
+
+  /// No description provided for @threadAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to “{name}”'**
+  String threadAdded(String name);
+
+  /// No description provided for @threadSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest threads after a capture'**
+  String get threadSuggestions;
+
+  /// No description provided for @threadSuggestionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Only when a new note clearly continues an earlier one. Nothing is added without a tap.'**
+  String get threadSuggestionsSubtitle;
 }
 
 class _AppLocalizationsDelegate

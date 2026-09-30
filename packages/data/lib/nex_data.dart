@@ -33,6 +33,7 @@ export 'repositories/commitment_repository.dart';
 export 'repositories/library_maintenance.dart';
 export 'repositories/memory_repository.dart';
 export 'repositories/note_repository.dart';
+export 'repositories/thread_repository.dart';
 export 'schema/backup_archive.dart';
 export 'schema/import_archive.dart';
 export 'schema/database.dart';

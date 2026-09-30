@@ -438,6 +438,13 @@ class SettingsSheet extends StatelessWidget {
             ),
           ),
         ),
+        _SwitchRow(
+          icon: Icons.timeline_outlined,
+          title: l10n.threadSuggestions,
+          subtitle: l10n.threadSuggestionsSubtitle,
+          value: preferences.threadSuggestions,
+          onChanged: preferences.setThreadSuggestions,
+        ),
         // The Quick Settings tile needs no switch — it is added from the
         // shade's own edit screen — but a notification that stays in the
         // shade is something to opt into.

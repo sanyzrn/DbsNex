@@ -253,6 +253,35 @@ CREATE TABLE IF NOT EXISTS commitments (
       "TEXT NOT NULL DEFAULT '{}'",
     );
 
+    // Threads (W5.3): named views over notes about the same thing. The
+    // membership table points at notes, and a note that is purged takes its
+    // memberships with it; a thread that is deleted is only marked, like a
+    // commitment, so the rows keep the shape the sync machinery expects.
+    // Nothing about a note changes when it joins or leaves a thread.
+    db.execute('''
+CREATE TABLE IF NOT EXISTS threads (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  device_id TEXT NOT NULL DEFAULT '',
+  rev INTEGER NOT NULL DEFAULT 1
+);
+''');
+    db.execute('''
+CREATE TABLE IF NOT EXISTS note_threads (
+  note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  thread_id TEXT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+  added_at TEXT NOT NULL,
+  PRIMARY KEY (note_id, thread_id)
+);
+''');
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_note_threads_thread '
+      'ON note_threads(thread_id);',
+    );
+
     // Records one-off data migrations, so a seed that the user has since
     // edited or deleted is never quietly put back.
     db.execute('''

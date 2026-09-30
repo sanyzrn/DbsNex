@@ -1066,6 +1066,14 @@ class NexPreferences extends ChangeNotifier {
   Future<void> setQuickCaptureNotification(bool value) =>
       _setBool('capture.quick_notification', value);
 
+  /// Whether a capture that clearly continues something offers a thread
+  /// (W5.3). On by default: the offer is one capsule, and only when clear.
+  bool get threadSuggestions =>
+      _prefs.getBool('capture.thread_suggestions') ?? true;
+
+  Future<void> setThreadSuggestions(bool value) =>
+      _setBool('capture.thread_suggestions', value);
+
   Future<void> setCloudAiOptIn(bool value) =>
       _setBool('ai.cloud_opt_in', value);
 
