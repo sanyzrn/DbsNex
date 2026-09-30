@@ -71,41 +71,43 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('a rung one-off reminder clears itself when the app is put away', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(900, 2400);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+  testWidgets(
+    'a rung one-off reminder clears itself when the app is put away',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
 
-    final note = (await services.captureText('call the plumber'))!;
-    await services.setDueAt(
-      note.id,
-      DateTime.now().toUtc().subtract(const Duration(hours: 2)),
-    );
-    await services.refreshTimeline();
+      final note = (await services.captureText('call the plumber'))!;
+      await services.setDueAt(
+        note.id,
+        DateTime.now().toUtc().subtract(const Duration(hours: 2)),
+      );
+      await services.refreshTimeline();
 
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        NexApp(services: services, preferences: preferences),
+      );
+      await tester.pumpAndSettle();
 
-    // It rang two hours ago and this is the first sight of it since, so it is
-    // still on the note: one more showing is the point.
-    expect((await services.getById(note.id))!.dueAt, isNotNull);
+      // It rang two hours ago and this is the first sight of it since, so it is
+      // still on the note: one more showing is the point.
+      expect((await services.getById(note.id))!.dueAt, isNotNull);
 
-    await background(tester);
+      await background(tester);
 
-    // Leaving is what retires it — no route was pushed.
-    final after = (await services.getById(note.id))!;
-    expect(
-      after.dueAt,
-      isNull,
-      reason: 'a rung one-off reminder was not cleared when the app was put away',
-    );
-    // The note itself is untouched; only the reminder was.
-    expect(after.content, 'call the plumber');
-  });
+      // Leaving is what retires it — no route was pushed.
+      final after = (await services.getById(note.id))!;
+      expect(
+        after.dueAt,
+        isNull,
+        reason:
+            'a rung one-off reminder was not cleared when the app was put away',
+      );
+      // The note itself is untouched; only the reminder was.
+      expect(after.content, 'call the plumber');
+    },
+  );
 
   testWidgets('and is gone from the note, not merely hidden', (tester) async {
     tester.view.physicalSize = const Size(900, 2400);

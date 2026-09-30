@@ -68,7 +68,8 @@ void main() {
       const AiProviderConfig(provider: AiProvider.openai, apiKey: 'k'),
     );
     // Yesterday evening's work: a recap was made and filed under today.
-    const recap = 'The plumber has not called back and the bread is still on '
+    const recap =
+        'The plumber has not called back and the bread is still on '
         'the list.';
     await preferences.setAiDaySummary(
       text: recap,

@@ -1,55 +1,32 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/app.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
-import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/threads_screen.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
-import 'package:nex_client/widgets/nex_banner.dart';
 import 'package:nex_ui/nex_ui.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// Threads (W5.3): offered after a capture only when clear, added only with a
 /// tap, and a view over notes that never moves one.
 void main() {
-  late Directory tmp;
+  late NexTestHarness harness;
   late NexServices services;
   late NexPreferences preferences;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_threads_ui_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    final mediaDir = p.join(tmp.path, 'media');
-    final backupDir = p.join(tmp.path, 'backups');
-    Directory(mediaDir).createSync(recursive: true);
-    Directory(backupDir).createSync(recursive: true);
-    preferences = await NexPreferences.load();
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: preferences,
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: mediaDir,
-      backupDir: backupDir,
+    harness = await NexTestHarness.create(
+      name: 'nex_threads_ui_',
+      onboarded: true,
     );
-    await preferences.completeOnboarding();
-    await preferences.completeTour();
+    services = harness.services;
+    preferences = harness.preferences;
   });
 
-  tearDown(() async {
-    nexHideBanner();
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
-  });
+  tearDown(() => harness.dispose());
 
   Future<void> offer(WidgetTester tester, String noteId) async {
     await tester.pumpWidget(

@@ -1,50 +1,31 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
-import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/assistant_screen.dart';
 import 'package:nex_client/screens/settings_sheet.dart';
 import 'package:nex_ui/nex_ui.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// The once-a-day notification (its settings, and the recap it carries), and
 /// the assistant's context size — the two halves of "read more of my notes,
 /// and tell me about them in the morning".
 void main() {
-  late Directory tmp;
+  late NexTestHarness harness;
   late NexServices services;
   late NexPreferences preferences;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_nudge_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    Directory(p.join(tmp.path, 'media')).createSync(recursive: true);
-    Directory(p.join(tmp.path, 'backups')).createSync(recursive: true);
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: await NexPreferences.load(),
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: p.join(tmp.path, 'media'),
-      backupDir: p.join(tmp.path, 'backups'),
-    );
+    harness = await NexTestHarness.create(name: 'nex_nudge_', onboarded: false);
+    services = harness.services;
+    preferences = harness.preferences;
     preferences = await NexPreferences.load();
   });
 
-  tearDown(() async {
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
-  });
+  tearDown(() => harness.dispose());
 
   Future<void> openSettings(WidgetTester tester) async {
     await tester.pumpWidget(

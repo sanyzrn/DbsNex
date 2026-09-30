@@ -1,17 +1,12 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
-import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/settings_sheet.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// Reported symptom: a fast fling starting from the bottom of Settings could
 /// cross the whole scroll range and bounce past the top in one motion — the
@@ -20,25 +15,17 @@ import 'support/in_process_db.dart';
 /// there instead of merely scrolling it. A real drag once it has actually
 /// arrived at the top must still close it.
 void main() {
-  late Directory tmp;
+  late NexTestHarness harness;
   late NexServices services;
   late NexPreferences preferences;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_settings_dismiss_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    Directory(p.join(tmp.path, 'media')).createSync(recursive: true);
-    Directory(p.join(tmp.path, 'backups')).createSync(recursive: true);
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: await NexPreferences.load(),
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: p.join(tmp.path, 'media'),
-      backupDir: p.join(tmp.path, 'backups'),
+    harness = await NexTestHarness.create(
+      name: 'nex_settings_dismiss_',
+      onboarded: false,
     );
+    services = harness.services;
+    preferences = harness.preferences;
     preferences = await NexPreferences.load();
     // Every one of these tests starts from an empty preference store, which
     // is exactly what a first-ever launch looks like — so without this they
@@ -48,10 +35,7 @@ void main() {
     await preferences.completeTour();
   });
 
-  tearDown(() async {
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
-  });
+  tearDown(() => harness.dispose());
 
   /// Dispatches a synthetic [OverscrollNotification] through the settings
   /// sheet's real scroll view, the same one the widget's own

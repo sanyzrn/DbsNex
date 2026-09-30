@@ -10,9 +10,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   const channel = MethodChannel('nex/os_capture');
-  final messenger = TestDefaultBinaryMessengerBinding
-      .instance
-      .defaultBinaryMessenger;
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
   MethodCall? seen;
 

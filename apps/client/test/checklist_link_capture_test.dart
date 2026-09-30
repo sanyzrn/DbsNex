@@ -1,52 +1,34 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
-import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/link_reader.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// The two capture types added alongside text, voice, photo and file — from
 /// the button in the capture sheet through to what the card shows.
 void main() {
-  late Directory tmp;
+  late NexTestHarness harness;
   late NexServices services;
   late NexPreferences preferences;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_capture_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    final mediaDir = p.join(tmp.path, 'media');
-    final backupDir = p.join(tmp.path, 'backups');
-    Directory(mediaDir).createSync(recursive: true);
-    Directory(backupDir).createSync(recursive: true);
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: await NexPreferences.load(),
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: mediaDir,
-      backupDir: backupDir,
+    harness = await NexTestHarness.create(
+      name: 'nex_capture_',
+      onboarded: false,
     );
+    services = harness.services;
+    preferences = harness.preferences;
     preferences = await NexPreferences.load();
     await preferences.completeOnboarding();
     await preferences.completeTour();
   });
 
-  tearDown(() async {
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
-  });
+  tearDown(() => harness.dispose());
 
   testWidgets('a checklist is captured as lines and shown as rows', (
     tester,

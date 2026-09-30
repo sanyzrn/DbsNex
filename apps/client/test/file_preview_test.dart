@@ -7,41 +7,33 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
-import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_client/documents/docx_markdown.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// A file note used to be a filename and a byte count, with one exception:
 /// Markdown, which was read off disk and rendered. Everything else that could
 /// have been shown the same way was invisible for want of a predicate.
 void main() {
+  late NexTestHarness harness;
   late Directory tmp;
   late NexServices services;
   late NexPreferences preferences;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_file_preview_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    Directory(p.join(tmp.path, 'media')).createSync(recursive: true);
-    Directory(p.join(tmp.path, 'backups')).createSync(recursive: true);
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: await NexPreferences.load(),
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: p.join(tmp.path, 'media'),
-      backupDir: p.join(tmp.path, 'backups'),
+    harness = await NexTestHarness.create(
+      name: 'nex_file_preview_',
+      onboarded: false,
     );
+    services = harness.services;
+    preferences = harness.preferences;
+    tmp = harness.root;
     preferences = await NexPreferences.load();
   });
 
@@ -49,8 +41,7 @@ void main() {
 
   tearDown(() async {
     nexDocxReader = realDocxReader;
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
+    await harness.dispose();
   });
 
   Future<void> openNote(WidgetTester tester, Note note) async {
@@ -161,9 +152,7 @@ void main() {
     });
 
     testWidgets('a long table is drawn short and says so', (tester) async {
-      final rows = [
-        for (var i = 0; i < 260; i++) 'row$i,$i',
-      ].join('\n');
+      final rows = [for (var i = 0; i < 260; i++) 'row$i,$i'].join('\n');
       await openFile(tester, 'big.csv', text: 'name,n\n$rows\n');
 
       expect(find.byType(Table), findsOneWidget);
@@ -259,8 +248,7 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
             const MethodChannel('nex/os_capture'),
-            (call) async =>
-                call.method == 'pdfPreview' ? pngBytes : null,
+            (call) async => call.method == 'pdfPreview' ? pngBytes : null,
           );
       addTearDown(
         () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

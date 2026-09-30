@@ -51,9 +51,7 @@ void main() {
   File orphan(String name) {
     final file = File(p.join(mediaDir, name))
       ..writeAsBytesSync(const [1, 2, 3]);
-    file.setLastModifiedSync(
-      DateTime.now().subtract(const Duration(hours: 3)),
-    );
+    file.setLastModifiedSync(DateTime.now().subtract(const Duration(hours: 3)));
     return file;
   }
 
@@ -78,13 +76,16 @@ void main() {
     expect(another.existsSync(), isFalse);
   });
 
-  test('a freshly captured file is not swept out from under its note', () async {
-    // Written now, not three hours ago: this is the shape of a capture whose
-    // file lands before its row does, and the sweep must not race it.
-    final justWritten = File(p.join(mediaDir, 'still-arriving.m4a'))
-      ..writeAsBytesSync(const [1, 2, 3]);
+  test(
+    'a freshly captured file is not swept out from under its note',
+    () async {
+      // Written now, not three hours ago: this is the shape of a capture whose
+      // file lands before its row does, and the sweep must not race it.
+      final justWritten = File(p.join(mediaDir, 'still-arriving.m4a'))
+        ..writeAsBytesSync(const [1, 2, 3]);
 
-    expect(await services.sweepOrphanMediaIfDue(), 0);
-    expect(justWritten.existsSync(), isTrue);
-  });
+      expect(await services.sweepOrphanMediaIfDue(), 0);
+      expect(justWritten.existsSync(), isTrue);
+    },
+  );
 }

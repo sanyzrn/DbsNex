@@ -1,12 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
-import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/library_screen.dart';
@@ -14,30 +9,22 @@ import 'package:nex_client/screens/recently_deleted_screen.dart';
 import 'package:nex_client/screens/settings_sheet.dart';
 import 'package:nex_client/screens/tag_manager_screen.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// Settings holds preferences. Content lives somewhere a person would look for
 /// content.
 void main() {
-  late Directory tmp;
+  late NexTestHarness harness;
   late NexServices services;
   late NexPreferences preferences;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_library_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    Directory(p.join(tmp.path, 'media')).createSync(recursive: true);
-    Directory(p.join(tmp.path, 'backups')).createSync(recursive: true);
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: await NexPreferences.load(),
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: p.join(tmp.path, 'media'),
-      backupDir: p.join(tmp.path, 'backups'),
+    harness = await NexTestHarness.create(
+      name: 'nex_library_',
+      onboarded: false,
     );
+    services = harness.services;
+    preferences = harness.preferences;
     preferences = await NexPreferences.load();
     // Every one of these tests starts from an empty preference store, which
     // is exactly what a first-ever launch looks like — so without this they
@@ -61,8 +48,7 @@ void main() {
   tearDown(() async {
     TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher
         .clearAccessibilityFeaturesTestValue();
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
+    await harness.dispose();
   });
 
   testWidgets('Trash and Tags are one tap from the timeline', (tester) async {

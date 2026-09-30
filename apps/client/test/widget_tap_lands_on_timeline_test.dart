@@ -1,19 +1,15 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
-import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/platform/os_capture_bridge.dart';
 import 'package:nex_client/screens/timeline_screen.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// Where a tap from outside the app lands.
 ///
@@ -29,38 +25,24 @@ import 'support/in_process_db.dart';
 /// in every one: the sheet a widget asks for opens *behind* whatever was on
 /// screen, or nothing visible happens at all.
 void main() {
-  late Directory tmp;
+  late NexTestHarness harness;
   late NexServices services;
   late NexPreferences preferences;
   late OsCaptureBridge bridge;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_widget_tap_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    final mediaDir = p.join(tmp.path, 'media');
-    final backupDir = p.join(tmp.path, 'backups');
-    Directory(mediaDir).createSync(recursive: true);
-    Directory(backupDir).createSync(recursive: true);
-    preferences = await NexPreferences.load();
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: preferences,
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: mediaDir,
-      backupDir: backupDir,
+    harness = await NexTestHarness.create(
+      name: 'nex_widget_tap_',
+      onboarded: true,
     );
-    await preferences.completeOnboarding();
-    await preferences.completeTour();
+    services = harness.services;
+    preferences = harness.preferences;
     bridge = OsCaptureBridge(services);
   });
 
   tearDown(() async {
     bridge.dispose();
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
+    await harness.dispose();
   });
 
   /// Brings the app up with something else stacked over the timeline.
@@ -70,11 +52,7 @@ void main() {
   /// says that without dragging a screen's worth of setup in behind it.
   Future<void> pumpWithARouteOnTop(WidgetTester tester) async {
     await tester.pumpWidget(
-      NexApp(
-        services: services,
-        preferences: preferences,
-        osCapture: bridge,
-      ),
+      NexApp(services: services, preferences: preferences, osCapture: bridge),
     );
     await tester.pumpAndSettle();
     expect(find.byType(TimelineScreen), findsOneWidget);
@@ -139,11 +117,7 @@ void main() {
     // over the timeline there is nothing to pop, and the guard is what says
     // so.
     await tester.pumpWidget(
-      NexApp(
-        services: services,
-        preferences: preferences,
-        osCapture: bridge,
-      ),
+      NexApp(services: services, preferences: preferences, osCapture: bridge),
     );
     await tester.pumpAndSettle();
 

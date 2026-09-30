@@ -86,12 +86,15 @@ void main() {
   group('visibleAt', () {
     NexSponsor parsed(String source) => NexSponsor.parse(source)!;
 
-    bool visible(NexSponsor sponsor, {String locale = 'en', Set<String>? hidden}) =>
-        sponsor.visibleAt(
-          now: now,
-          languageCode: locale,
-          dismissed: hidden ?? const {},
-        );
+    bool visible(
+      NexSponsor sponsor, {
+      String locale = 'en',
+      Set<String>? hidden,
+    }) => sponsor.visibleAt(
+      now: now,
+      languageCode: locale,
+      dismissed: hidden ?? const {},
+    );
 
     test('a card with no dates is always in season', () {
       expect(visible(parsed(card())), isTrue);
@@ -137,30 +140,33 @@ void main() {
   });
 
   group('the dismissals that were already stored', () {
-    test('a permanent dismissal becomes a dated one, and is not lost', () async {
-      // Under the old rules this list meant "never again". Dropping it on
-      // upgrade would put a card somebody hid yesterday straight back in
-      // front of them; keeping it as-is would mean the old rule outliving
-      // itself. It is stamped with now, so each one gets a last cool-off.
-      SharedPreferences.setMockInitialValues({
-        'sponsor.dismissed': ['c1', 'c2'],
-      });
-      final preferences = await NexPreferences.load();
+    test(
+      'a permanent dismissal becomes a dated one, and is not lost',
+      () async {
+        // Under the old rules this list meant "never again". Dropping it on
+        // upgrade would put a card somebody hid yesterday straight back in
+        // front of them; keeping it as-is would mean the old rule outliving
+        // itself. It is stamped with now, so each one gets a last cool-off.
+        SharedPreferences.setMockInitialValues({
+          'sponsor.dismissed': ['c1', 'c2'],
+        });
+        final preferences = await NexPreferences.load();
 
-      final dismissals = preferences.sponsorDismissals;
-      expect(dismissals.keys, unorderedEquals(['c1', 'c2']));
-      expect(
-        DateTime.now().difference(dismissals['c1']!).inMinutes,
-        lessThan(1),
-      );
+        final dismissals = preferences.sponsorDismissals;
+        expect(dismissals.keys, unorderedEquals(['c1', 'c2']));
+        expect(
+          DateTime.now().difference(dismissals['c1']!).inMinutes,
+          lessThan(1),
+        );
 
-      final prefs = await SharedPreferences.getInstance();
-      expect(
-        prefs.getStringList('sponsor.dismissed'),
-        isNull,
-        reason: 'the old key is gone, so the migration runs once',
-      );
-    });
+        final prefs = await SharedPreferences.getInstance();
+        expect(
+          prefs.getStringList('sponsor.dismissed'),
+          isNull,
+          reason: 'the old key is gone, so the migration runs once',
+        );
+      },
+    );
 
     test('nothing stored stays nothing', () async {
       SharedPreferences.setMockInitialValues({});
@@ -207,30 +213,33 @@ void main() {
       expect(service.visible(languageCode: 'en'), isNull);
     });
 
-    test('a failed request leaves the cache and does not start the clock', () async {
-      await preferences.setSponsorPayload(card());
-      final service = NexSponsorService(
-        preferences: preferences,
-        client: MockClient((_) async => throw const SocketFailure()),
-        now: () => now,
-      );
-      await service.refresh();
+    test(
+      'a failed request leaves the cache and does not start the clock',
+      () async {
+        await preferences.setSponsorPayload(card());
+        final service = NexSponsorService(
+          preferences: preferences,
+          client: MockClient((_) async => throw const SocketFailure()),
+          now: () => now,
+        );
+        await service.refresh();
 
-      expect(
-        preferences.sponsorPayload,
-        isNotNull,
-        reason: 'the card that was there is not thrown away by a bad network',
-      );
-      expect(
-        preferences.sponsorFetchedAt,
-        isNull,
-        reason: 'so the next launch tries again instead of waiting a day',
-      );
-      // It is kept, and it is not shown: nothing has ever been fetched, so
-      // there is no successful check to be recent. See the "going quiet"
-      // group for the rule.
-      expect(service.visible(languageCode: 'en'), isNull);
-    });
+        expect(
+          preferences.sponsorPayload,
+          isNotNull,
+          reason: 'the card that was there is not thrown away by a bad network',
+        );
+        expect(
+          preferences.sponsorFetchedAt,
+          isNull,
+          reason: 'so the next launch tries again instead of waiting a day',
+        );
+        // It is kept, and it is not shown: nothing has ever been fetched, so
+        // there is no successful check to be recent. See the "going quiet"
+        // group for the rule.
+        expect(service.visible(languageCode: 'en'), isNull);
+      },
+    );
 
     test('a body far too large is not a card', () async {
       final service = serviceReturning(
@@ -323,30 +332,31 @@ void main() {
       await service.refresh();
       await service.dismiss('c1');
 
-      final next = serviceReturning(
-        (_) => http.Response(card(id: 'c2'), 200),
-      );
+      final next = serviceReturning((_) => http.Response(card(id: 'c2'), 200));
       await next.refresh(force: true);
 
       expect(next.visible(languageCode: 'en')?.id, 'c2');
     });
 
-    test('a dismissal that has run out is forgotten, not kept forever', () async {
-      // The map answers one question — is this card inside its cool-off — so
-      // an entry that can no longer change the answer is a row that grows the
-      // file for every campaign this phone will ever see.
-      final service = serviceReturning((_) => http.Response(card(), 200));
-      await service.dismiss('c1');
-      expect(preferences.sponsorDismissals.keys, ['c1']);
+    test(
+      'a dismissal that has run out is forgotten, not kept forever',
+      () async {
+        // The map answers one question — is this card inside its cool-off — so
+        // an entry that can no longer change the answer is a row that grows the
+        // file for every campaign this phone will ever see.
+        final service = serviceReturning((_) => http.Response(card(), 200));
+        await service.dismiss('c1');
+        expect(preferences.sponsorDismissals.keys, ['c1']);
 
-      final later = serviceReturning(
-        (_) => http.Response(card(), 200),
-        at: now.add(const Duration(hours: 25)),
-      );
-      await later.dismiss('c2');
+        final later = serviceReturning(
+          (_) => http.Response(card(), 200),
+          at: now.add(const Duration(hours: 25)),
+        );
+        await later.dismiss('c2');
 
-      expect(preferences.sponsorDismissals.keys, ['c2']);
-    });
+        expect(preferences.sponsorDismissals.keys, ['c2']);
+      },
+    );
   });
 
   group('pictures', () {
@@ -434,17 +444,20 @@ void main() {
       expect(NexSponsorService.mirrorOf('https://example.com/a.png'), isNull);
     });
 
-    test('a 404 from GitHub is final, not a reason to ask the mirror', () async {
-      final asked = <String>[];
-      await preferences.setSponsorPayload(card());
-      final s = service((request) {
-        asked.add(request.url.host);
-        return http.Response('', 404);
-      });
-      await s.refresh();
-      expect(asked, ['raw.githubusercontent.com']);
-      expect(preferences.sponsorPayload, isNull);
-    });
+    test(
+      'a 404 from GitHub is final, not a reason to ask the mirror',
+      () async {
+        final asked = <String>[];
+        await preferences.setSponsorPayload(card());
+        final s = service((request) {
+          asked.add(request.url.host);
+          return http.Response('', 404);
+        });
+        await s.refresh();
+        expect(asked, ['raw.githubusercontent.com']);
+        expect(preferences.sponsorPayload, isNull);
+      },
+    );
 
     test('an HTML error page is not a picture', () async {
       // What a captive portal answers with, and what caching would leave: a
@@ -456,7 +469,11 @@ void main() {
       );
       await s.refresh();
 
-      expect(s.image, isNull, reason: 'shown in words, never as a broken image');
+      expect(
+        s.image,
+        isNull,
+        reason: 'shown in words, never as a broken image',
+      );
     });
 
     test('a picture over the ceiling is refused', () async {

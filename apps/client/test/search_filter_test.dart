@@ -62,7 +62,8 @@ void main() {
   });
 
   // Longer than the 150ms debounce, so a scheduled search has run.
-  Future<void> pump() => Future<void>.delayed(const Duration(milliseconds: 220));
+  Future<void> pump() =>
+      Future<void>.delayed(const Duration(milliseconds: 220));
 
   test('toggling a tag narrows and re-widens the results', () async {
     await search.run();
@@ -110,23 +111,34 @@ void main() {
     expect(search.range, isNull);
   });
 
-  test('clearFilters drops every chip at once and keeps the typed query', () async {
-    search.query.text = 'quarterly';
-    await search.run();
-    final food = search.allTags.singleWhere((t) => t.name == 'food');
-    search.toggleTag(food.id);
-    search.toggleType(NoteType.photo);
-    search.setDatePreset(NoteDatePreset.today);
-    await pump();
-    expect(search.results, isEmpty, reason: 'a photo named food does not exist');
-    expect(search.activeFilterCount, 3);
+  test(
+    'clearFilters drops every chip at once and keeps the typed query',
+    () async {
+      search.query.text = 'quarterly';
+      await search.run();
+      final food = search.allTags.singleWhere((t) => t.name == 'food');
+      search.toggleTag(food.id);
+      search.toggleType(NoteType.photo);
+      search.setDatePreset(NoteDatePreset.today);
+      await pump();
+      expect(
+        search.results,
+        isEmpty,
+        reason: 'a photo named food does not exist',
+      );
+      expect(search.activeFilterCount, 3);
 
-    search.clearFilters();
-    await pump();
+      search.clearFilters();
+      await pump();
 
-    expect(search.activeFilterCount, 0);
-    expect(search.results, hasLength(1));
-    expect(search.results.single.content, contains('quarterly'));
-    expect(search.query.text, 'quarterly', reason: 'typed text is not touched');
-  });
+      expect(search.activeFilterCount, 0);
+      expect(search.results, hasLength(1));
+      expect(search.results.single.content, contains('quarterly'));
+      expect(
+        search.query.text,
+        'quarterly',
+        reason: 'typed text is not touched',
+      );
+    },
+  );
 }

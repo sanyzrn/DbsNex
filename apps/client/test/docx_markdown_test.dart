@@ -50,10 +50,7 @@ $relationships
   });
 
   test('a heading style becomes a heading', () {
-    expect(
-      read(docx(para('Chapter', style: 'Heading1'))),
-      '# Chapter',
-    );
+    expect(read(docx(para('Chapter', style: 'Heading1'))), '# Chapter');
     expect(read(docx(para('Part', style: 'Heading3'))), '### Part');
     // Word's own "Title" is the top of the ramp under another name.
     expect(read(docx(para('Name', style: 'Title'))), '# Name');
@@ -82,7 +79,9 @@ $relationships
   test('a property switched off in a style is off', () {
     // Word writes `<w:b w:val="0"/>` to cancel bold inherited from a style.
     expect(
-      read(docx(para('plain', runProperties: '<w:rPr><w:b w:val="0"/></w:rPr>'))),
+      read(
+        docx(para('plain', runProperties: '<w:rPr><w:b w:val="0"/></w:rPr>')),
+      ),
       'plain',
     );
   });
@@ -119,10 +118,7 @@ $relationships
         '<Relationship Id="rId7" Target="https://x.dev" TargetMode="External" '
         'Type="http://schemas.openxmlformats.org/officeDocument/2006/'
         'relationships/hyperlink"/>';
-    expect(
-      read(docx(body, relationships: rels)),
-      '[the docs](https://x.dev)',
-    );
+    expect(read(docx(body, relationships: rels)), '[the docs](https://x.dev)');
   });
 
   test('an internal cross-reference keeps its words and loses its link', () {
@@ -141,10 +137,7 @@ $relationships
         '<w:tr>${cell('City')}${cell('Total')}</w:tr>'
         '<w:tr>${cell('Shiraz')}${cell('3')}</w:tr>'
         '</w:tbl>';
-    expect(
-      read(docx(body)),
-      '| City | Total |\n| --- | --- |\n| Shiraz | 3 |',
-    );
+    expect(read(docx(body)), '| City | Total |\n| --- | --- |\n| Shiraz | 3 |');
   });
 
   test("the document's own punctuation is not read as markup", () {

@@ -4,43 +4,26 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:nex_client/platform/backup_policy.dart';
-import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// A shared text file becomes a note in place: same item, same tags, now
 /// editable words. Only Markdown was allowed through here before.
 void main() {
-  late Directory tmp;
+  late NexTestHarness harness;
   late NexServices services;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_file_note_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    final mediaDir = p.join(tmp.path, 'media');
-    final backupDir = p.join(tmp.path, 'backups');
-    Directory(mediaDir).createSync(recursive: true);
-    Directory(backupDir).createSync(recursive: true);
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: await NexPreferences.load(),
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: mediaDir,
-      backupDir: backupDir,
+    harness = await NexTestHarness.create(
+      name: 'nex_file_note_',
+      onboarded: false,
     );
+    services = harness.services;
   });
 
-  tearDown(() async {
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
-  });
+  tearDown(() => harness.dispose());
 
   test('a text file note becomes a text note with its words', () async {
     final file = File(p.join(services.mediaDir, 'x.txt'))

@@ -1,17 +1,12 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/app.dart';
-import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// Reported symptom: on a phone set to three-button navigation, the bottom of
 /// a sheet ran under the navigation bar; on the same phone using gesture
@@ -24,7 +19,7 @@ import 'support/in_process_db.dart';
 /// little that the overlap passes for padding; three buttons reserve about
 /// 48dp, and the sheet's last control lands underneath them.
 void main() {
-  late Directory tmp;
+  late NexTestHarness harness;
   late NexServices services;
   late NexPreferences preferences;
 
@@ -32,20 +27,12 @@ void main() {
   const navBar = 48.0;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_sheet_inset_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    Directory(p.join(tmp.path, 'media')).createSync(recursive: true);
-    Directory(p.join(tmp.path, 'backups')).createSync(recursive: true);
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: await NexPreferences.load(),
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: p.join(tmp.path, 'media'),
-      backupDir: p.join(tmp.path, 'backups'),
+    harness = await NexTestHarness.create(
+      name: 'nex_sheet_inset_',
+      onboarded: false,
     );
+    services = harness.services;
+    preferences = harness.preferences;
     preferences = await NexPreferences.load();
     // Every one of these tests starts from an empty preference store, which
     // is exactly what a first-ever launch looks like — so without this they
@@ -55,10 +42,7 @@ void main() {
     await preferences.completeTour();
   });
 
-  tearDown(() async {
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
-  });
+  tearDown(() => harness.dispose());
 
   testWidgets('a sheet ends above a three-button navigation bar', (
     tester,

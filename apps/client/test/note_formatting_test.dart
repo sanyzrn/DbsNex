@@ -1,50 +1,34 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
-import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// A note's body is rendered where its writer formatted it and left exactly as
 /// typed where they did not — the same predicate the card strips by, so the
 /// two never disagree about what a note says.
 void main() {
-  late Directory tmp;
+  late NexTestHarness harness;
   late NexServices services;
   late NexPreferences preferences;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    tmp = Directory.systemTemp.createTempSync('nex_formatting_');
-    final dbPath = p.join(tmp.path, 'nex.sqlite');
-    Directory(p.join(tmp.path, 'media')).createSync(recursive: true);
-    Directory(p.join(tmp.path, 'backups')).createSync(recursive: true);
-    services = NexServices.forTest(
-      worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-      deviceId: 'test',
-      preferences: await NexPreferences.load(),
-      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-      dbPath: dbPath,
-      mediaDir: p.join(tmp.path, 'media'),
-      backupDir: p.join(tmp.path, 'backups'),
+    harness = await NexTestHarness.create(
+      name: 'nex_formatting_',
+      onboarded: false,
     );
+    services = harness.services;
+    preferences = harness.preferences;
     preferences = await NexPreferences.load();
   });
 
-  tearDown(() async {
-    await services.dispose();
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
-  });
+  tearDown(() => harness.dispose());
 
   Future<void> openText(WidgetTester tester, String body) async {
     final note = (await services.captureText(body))!;
@@ -99,9 +83,7 @@ void main() {
         SystemChannels.platform,
         (call) async {
           if (call.method == 'Clipboard.setData') {
-            copied.add(
-              (call.arguments as Map)['text'] as String,
-            );
+            copied.add((call.arguments as Map)['text'] as String);
           }
           return null;
         },

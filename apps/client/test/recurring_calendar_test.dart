@@ -1,21 +1,14 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_core/nex_core.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nex_client/l10n/app_localizations.dart';
-import 'package:nex_client/platform/backup_policy.dart';
-import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/widgets/commitments_sheet.dart';
-import 'package:nex_client/widgets/nex_banner.dart';
 import 'package:nex_client/widgets/recurring_attachments.dart';
 import 'package:nex_client/widgets/recurring_calendar.dart';
 
-import 'support/in_process_db.dart';
+import 'support/nex_harness.dart';
 
 /// W5.4: the Recurring calendar, and what an item can carry with it.
 void main() {
@@ -101,33 +94,18 @@ void main() {
   });
 
   group('attachments', () {
-    late Directory tmp;
+    late NexTestHarness harness;
     late NexServices services;
 
     setUp(() async {
-      SharedPreferences.setMockInitialValues({});
-      tmp = Directory.systemTemp.createTempSync('nex_recurring_');
-      final dbPath = p.join(tmp.path, 'nex.sqlite');
-      final mediaDir = p.join(tmp.path, 'media');
-      final backupDir = p.join(tmp.path, 'backups');
-      Directory(mediaDir).createSync(recursive: true);
-      Directory(backupDir).createSync(recursive: true);
-      services = NexServices.forTest(
-        worker: InProcessDb(dbPath: dbPath, deviceId: 'test'),
-        deviceId: 'test',
-        preferences: await NexPreferences.load(),
-        backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
-        dbPath: dbPath,
-        mediaDir: mediaDir,
-        backupDir: backupDir,
+      harness = await NexTestHarness.create(
+        name: 'nex_recurring_',
+        onboarded: false,
       );
+      services = harness.services;
     });
 
-    tearDown(() async {
-      nexHideBanner();
-      await services.dispose();
-      if (tmp.existsSync()) tmp.deleteSync(recursive: true);
-    });
+    tearDown(() => harness.dispose());
 
     testWidgets('a linked note is kept on the item and can be removed', (
       tester,
