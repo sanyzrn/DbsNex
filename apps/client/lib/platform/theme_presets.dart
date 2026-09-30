@@ -118,6 +118,10 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
       bodyColor: colors.onSurface,
       displayColor: colors.onSurface,
     ),
-    iconTheme: base.iconTheme.copyWith(color: colors.onSurfaceVariant),
+    // No colour for icons across the board. One set here won over the
+    // foreground every filled button gives its own icon, so on every palette
+    // but the classic one the capture arrow, the vault's add buttons, the
+    // saved-messages send and the voice note's play button drew a grey icon
+    // on a coloured button — about 1:1 in dark.
   );
 }
