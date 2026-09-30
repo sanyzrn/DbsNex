@@ -1,0 +1,84 @@
+name: Nightly stress
+
+# W6.4. The races that reached release tags — SQLITE_BUSY between the share
+# window and the app, a widget snapshot racing a restore, a capture waiting
+# on an isolate — each passed CI many times before failing once. Run once per
+# pull request, a one-in-fifty race is found by a user. Run fifty times every
+# night, it is found here, on a schedule, with the seed that shows it.
+#
+# The rule that goes with it (docs/06-development.md § Flaky tests): a failure
+# here is a bug with a reproduction, never a reason to add a retry.
+
+on:
+  schedule:
+    # 01:17 UTC, off the hour so it does not queue behind every other nightly.
+    - cron: "17 1 * * *"
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: "How many times to repeat each race-sensitive test"
+        required: false
+        default: "50"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stress
+  cancel-in-progress: true
+
+env:
+  RUNS: ${{ github.event.inputs.runs || '50' }}
+
+jobs:
+  data:
+    name: packages/data races (repeated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: packages/data
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.9.0"
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+      - run: dart pub get
+      # Two connections and an isolate contending for the write lock.
+      - name: Write contention, ${{ env.RUNS }} times
+        run: ../../tools/stress_repeat.sh "$RUNS" dart test test/write_contention_test.dart
+      # The whole suite in a shuffled order: a test that only passes after
+      # another one has run is a race with the test runner.
+      - name: Whole suite, shuffled, 5 times
+        run: ../../tools/stress_repeat.sh 5 dart test --test-randomize-ordering-seed=random
+
+  client:
+    name: apps/client races (repeated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: apps/client
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      # Each of these guards a race that shipped once: the database isolate
+      # starting, a capture never waiting on it, the widget snapshot against a
+      # restore, the timeline's tri-state, and a draft journal written while a
+      # capture is still in flight.
+      - name: Isolate and ordering tests, ${{ env.RUNS }} times
+        run: >
+          ../../tools/stress_repeat.sh "$RUNS" flutter test
+          test/db_worker_spawn_test.dart
+          test/capture_never_waits_test.dart
+          test/widget_snapshot_race_test.dart
+          test/timeline_rebuild_test.dart
+          test/capture_sheet_draft_test.dart
+      - name: Whole suite, shuffled, 3 times
+        run: ../../tools/stress_repeat.sh 3 flutter test --test-randomize-ordering-seed=random
