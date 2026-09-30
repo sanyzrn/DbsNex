@@ -927,13 +927,17 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                     // carried the half nobody needed at a glance and hid the
                     // half you go looking for. It is the other way round now:
                     // the card is clean, and this is where you find out when.
-                    Row(
+                    //
+                    // A wrap, so at the largest text sizes the time moves under
+                    // the type instead of running off the edge.
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      spacing: NexSpacing.md,
                       children: [
                         Text(
                           l10n.noteType(note.type.wireName),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
-                        const Spacer(),
                         Text(
                           _formatTimestamp(note.createdAt),
                           style: Theme.of(context).textTheme.bodySmall,

@@ -2339,7 +2339,10 @@ class TimelineScreenState extends State<TimelineScreen>
           children: [
             GestureDetector(
               behavior: HitTestBehavior.translucent,
-              // A tap anywhere that is not a card closes what is open.
+              // A tap anywhere that is not a card closes what is open. Not
+              // an action a screen reader should offer: it covered the whole
+              // screen as one tappable thing with no name.
+              excludeFromSemantics: true,
               onTap: _guard.claim,
               child: NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
@@ -3677,7 +3680,13 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
             stops: const [0.6, 1],
           ),
         ),
-        child: child,
+        // Filling the extent, not sized to the row. The extent is worked out
+        // from the text size, and at the largest sizes the row itself stops
+        // growing sooner; a header painted shorter than it lays out is an
+        // invalid sliver, which took the whole timeline down.
+        child: SizedBox.expand(
+          child: Align(alignment: Alignment.topCenter, child: child),
+        ),
       );
 
   /// Always, and for the same reason as [SearchFieldHeader].
