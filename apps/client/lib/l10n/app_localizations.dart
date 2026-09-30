@@ -5359,6 +5359,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Found by meaning'**
   String get searchByMeaning;
+
+  /// The line under the Nex wordmark on the opening screen: the octopus mark, one mind with many arms, joining the pieces of a life.
+  ///
+  /// In en, this message translates to:
+  /// **'One mind. A thousand connections.'**
+  String get splashTagline;
 }
 
 class _AppLocalizationsDelegate

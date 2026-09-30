@@ -22,6 +22,7 @@ import 'package:nex_client/screens/timeline_screen.dart';
 import 'package:nex_client/widgets/ai_chat_sheet.dart';
 import 'package:nex_client/widgets/capture_sheet.dart';
 import 'package:nex_client/widgets/choice_cards.dart';
+import 'package:nex_client/widgets/nex_brand.dart';
 import 'package:nex_client/widgets/tag_color_picker.dart';
 
 import 'support/in_process_db.dart';
@@ -176,7 +177,7 @@ void main() {
     // The app bar carries the mark rather than a text title now — the
     // greeting it used to share the bar with is a header in the list below.
     expect(
-      find.descendant(of: find.byType(AppBar), matching: find.byType(Image)),
+      find.descendant(of: find.byType(AppBar), matching: find.byType(NexMark)),
       findsOneWidget,
     );
     expect(find.byIcon(Icons.add), findsOneWidget);

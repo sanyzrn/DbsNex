@@ -44,6 +44,7 @@ import '../widgets/empty_timeline.dart';
 import '../widgets/first_run_tour.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/nex_brand.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/search_field_header.dart';
 import '../widgets/sponsor_card.dart';
@@ -3359,27 +3360,16 @@ class TimelineScreenState extends State<TimelineScreen>
 /// this is not, so the tile was claiming an affordance the mark does not have,
 /// and it read as a fourth button that does nothing.
 ///
-/// [_size] is larger than the icons across from it, and has to be. The asset
-/// is a square canvas with the glyph inset inside it — the swirl is 54.7% of
-/// the file's height, the rest transparent — so a box the same size as an
-/// icon draws a mark visibly smaller than one. At 28 the glyph came out 15
-/// logical pixels against the icons' 20 and read as undersized. 36 is what
-/// puts the two on the same optical line; it does not make the mark bigger so
-/// much as stop the padding from shrinking it.
+/// Drawn from the brand's own vectors ([NexMark]) rather than a picture, so
+/// the octopus stays crisp at this size; [_size] is its height, which puts
+/// it on the same optical line as the icons across from it.
 class _WordmarkTile extends StatelessWidget {
   const _WordmarkTile();
 
-  static const _size = 36.0;
+  static const _size = 28.0;
 
   @override
-  Widget build(BuildContext context) => Image.asset(
-    Theme.of(context).brightness == Brightness.dark
-        ? 'assets/branding/logo_dark.png'
-        : 'assets/branding/logo_white.png',
-    width: _size,
-    height: _size,
-    semanticLabel: 'Nex',
-  );
+  Widget build(BuildContext context) => const NexMark(size: _size);
 }
 
 /// "Good evening, Saeed ☀️" — the text and its animated mark on one line.

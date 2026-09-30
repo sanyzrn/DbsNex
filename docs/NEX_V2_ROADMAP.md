@@ -327,13 +327,14 @@ Release numbers are indicative; the ordering is the argument.
 |---|---|---|
 | ~~1.81~~ | *Shipped* | W5.1–W5.4 and W6.6 — see §13 |
 | ~~1.82~~ | *Shipped* | W2.1–W2.4, retrieval — see §13 |
-| **1.83** | Foundation I | Phase names in `08-roadmap.md` fixed · W3.2 disclosure screen + privacy ADR · W4.3 harness · W6.4 nightly stress job |
-| **1.84** | Foundation II | W4.1 text surface · W4.5 overlay rule · W4.2 begins · W6.2 goldens |
-| **1.85** | Safety net | W1.6 backup to a chosen folder · W6.1 accessibility |
-| **1.86** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
-| **1.87** | Continuity II | W1.3 media sync · W3.4 local metrics · W6.3 startup/scroll budgets |
-| **1.88** | The second device | W1.5 Windows un-paused, re-qualified, released |
-| **1.89** | Trust | W3.1 encryption at rest, behind a proved migration |
+| ~~1.83~~ | *Shipped* | The octopus: new icon set and opening animation — see §13 |
+| **1.84** | Foundation I | Phase names in `08-roadmap.md` fixed · W3.2 disclosure screen + privacy ADR · W4.3 harness · W6.4 nightly stress job |
+| **1.85** | Foundation II | W4.1 text surface · W4.5 overlay rule · W4.2 begins · W6.2 goldens |
+| **1.86** | Safety net | W1.6 backup to a chosen folder · W6.1 accessibility |
+| **1.87** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
+| **1.88** | Continuity II | W1.3 media sync · W3.4 local metrics · W6.3 startup/scroll budgets |
+| **1.89** | The second device | W1.5 Windows un-paused, re-qualified, released |
+| **1.90** | Trust | W3.1 encryption at rest, behind a proved migration |
 | **2.0** | The release | Docs and vision rewritten · threads and citations synced across devices |
 
 - **The invisible work is first on purpose.** Retrieval and the shared UI
@@ -457,6 +458,20 @@ Release numbers are indicative; the ordering is the argument.
 
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
+
+### In 1.83.0 — the octopus
+
+- **New identity.** The octopus mark is the app icon on Android (adaptive,
+  themed and legacy), iOS and Windows, and the notification, Quick Settings
+  tile and widget glyph are drawn from its own vector. The header mark is
+  painted from the same paths, so it stays sharp at any size.
+- **Opening animation.** Android's splash shows only the eyes; Flutter picks
+  up on the same pixels and grows the octopus around them, pulls six scattered
+  fragments into its arms, then brings in the wordmark and "One mind. A
+  thousand connections." Reduced motion shows the final frame.
+- **Icon switcher.** The five alternatives are the designer's set plus the
+  previous mark, so nobody who chose an alternative loses their icon.
+  `tools/generate_brand_assets.py` rebuilds all of it from `docs/`.
 
 ### In 1.82.0 — retrieval
 

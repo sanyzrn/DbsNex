@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v1.83.0
+
+- **A new face for Nex.** The octopus — one mind, many arms — is the new app icon, and the notification, Quick Settings tile and home-screen widget use it too.
+- **An opening worth watching.** Nex now opens with a short animation: the octopus gathers the scattered pieces of a day — a thought, a photo, a person, a task — into one picture. With animations turned off in Android, it shows the finished picture at once.
+- **Six icons to choose from.** Settings → Appearance → Theme → App icon offers the octopus on dark, light or blue, the "nex" wordmark on dark or light, and the previous icon.
+
 ## v1.82.0
 
 - **Search puts the best match first.** Results are ranked by how well they match rather than by date.
