@@ -121,6 +121,7 @@ Add the **Capture**, **Timeline** or **Recap** widget from your launcher. Under 
 - **Export / Import** moves library content in and out. Importing adds to the current library, including exports from Google Keep and Takeout.
 - **Library backup / Restore** keeps or replaces the whole library with its attachments. Automatic local copies stay on this phone; share a copy somewhere else to survive losing the phone.
 - **Complete backup** adds settings and service keys, the private vault if you choose it, and optionally the downloaded offline model (about 2.6 GB). Settings, keys and vault are encrypted with a generated recovery code — keep it separately, because it cannot be recovered from the backup.
+- **Automatic copy to a folder** puts a complete backup — without the private vault — into a folder you choose once a day while Nex is open, and keeps the newest three. The folder can be on the phone or one Google Drive, Nextcloud or Syncthing offers in the picker, so your notes survive losing the phone without a server. The settings and keys in it are locked with a recovery code shown when you choose the folder (and again under **Recovery code**); the notes are not encrypted, so pick a folder you trust. Restore it like any complete backup.
 
 Restoring replaces the library and restarts Nex. If a restore is interrupted, the next launch puts everything back as it was.
 

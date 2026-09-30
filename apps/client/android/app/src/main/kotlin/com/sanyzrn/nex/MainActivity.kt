@@ -71,6 +71,9 @@ open class MainActivity : FlutterFragmentActivity() {
     }
     private var picker: MethodChannel.Result? = null
 
+    /** Waiting on the folder picker for automatic backups (W1.6). */
+    private var folderPicker: MethodChannel.Result? = null
+
     /**
      * Where the two preview renderers run.
      *
@@ -343,6 +346,32 @@ open class MainActivity : FlutterFragmentActivity() {
                     }
                 }
             }
+            "pickBackupFolder" -> {
+                folderPicker = result
+                startActivityForResult(NexBackupFolder.pickIntent(), NexBackupFolder.REQUEST)
+            }
+            "backupFolderReachable" -> {
+                val uri = call.argument<String>("uri")
+                result.success(uri != null && NexBackupFolder.reachable(this, Uri.parse(uri)))
+            }
+            "releaseBackupFolder" -> {
+                call.argument<String>("uri")?.let { NexBackupFolder.release(this, Uri.parse(it)) }
+                result.success(null)
+            }
+            "copyToBackupFolder" -> {
+                val uri = call.argument<String>("uri")
+                val path = call.argument<String>("path")
+                val name = call.argument<String>("name")
+                val keep = call.argument<Int>("keep") ?: 3
+                if (uri == null || path == null || name == null) {
+                    result.success(false)
+                } else {
+                    // A whole library through a provider can take a while.
+                    replyAsync(result, ioExecutor) {
+                        NexBackupFolder.copyInto(this, Uri.parse(uri), File(path), name, keep)
+                    }
+                }
+            }
             "pickFile" -> {
                 picker = result
                 startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -377,6 +406,14 @@ open class MainActivity : FlutterFragmentActivity() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == NexBackupFolder.REQUEST) {
+            val result = folderPicker.also { folderPicker = null } ?: return
+            val uri = data?.data
+            result.success(
+                if (resultCode == RESULT_OK && uri != null) NexBackupFolder.keep(this, uri) else null
+            )
+            return
+        }
         if (requestCode != 9911) return
         val result = picker.also { picker = null } ?: return
         val uri = data?.data

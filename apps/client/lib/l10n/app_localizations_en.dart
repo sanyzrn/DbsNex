@@ -3502,4 +3502,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get disclosureAudio => 'audio';
+
+  @override
+  String get backupFolderTitle => 'Automatic copy to a folder';
+
+  @override
+  String get backupFolderExplained =>
+      'Once a day while Nex is open, a complete backup — notes, media, settings and service keys, never the private vault — goes into a folder you choose: on this phone, or one that Google Drive, Nextcloud or Syncthing offers in the picker. The newest three are kept. Settings and keys in it are encrypted with a recovery code; the notes are not, so choose a folder you trust.';
+
+  @override
+  String get backupFolderChoose => 'Choose folder';
+
+  @override
+  String get backupFolderKeyHint =>
+      'Every automatic copy is locked with this recovery code. Keep it somewhere other than this phone: without it the settings and keys in a copy cannot be restored.';
+
+  @override
+  String backupFolderStatus(String folder, String when) {
+    return '$folder · last copy $when';
+  }
+
+  @override
+  String backupFolderNever(String folder) {
+    return '$folder · no copy yet';
+  }
+
+  @override
+  String get backupFolderFailed =>
+      'The last copy did not reach the folder. Check that it is still available, or choose it again.';
+
+  @override
+  String get backupFolderCopyNow => 'Copy now';
+
+  @override
+  String get backupFolderShowKey => 'Recovery code';
+
+  @override
+  String get backupFolderStop => 'Stop copying';
+
+  @override
+  String get backupFolderStopBody =>
+      'Stop the automatic copies? The copies already in the folder stay there.';
+
+  @override
+  String get backupFolderCopied => 'Copied to the folder';
+
+  @override
+  String get backupFolderCopyFailed => 'Could not copy to the folder';
 }

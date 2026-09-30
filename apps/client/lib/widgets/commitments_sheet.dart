@@ -518,7 +518,11 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (all.isEmpty)
-            _Empty(l10n: l10n)
+            // Scrollable, like the list it stands in for: at the largest text
+            // sizes the explanation is taller than what is left of the sheet.
+            Flexible(
+              child: SingleChildScrollView(child: _Empty(l10n: l10n)),
+            )
           else if (_view == 'calendar')
             Flexible(
               child: SingleChildScrollView(

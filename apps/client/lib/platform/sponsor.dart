@@ -326,8 +326,8 @@ class NexSponsorService {
         endpoint,
         const Duration(seconds: 10),
       );
-      final sponsor = response.statusCode == 200 &&
-              response.bodyBytes.length <= maxBytes
+      final sponsor =
+          response.statusCode == 200 && response.bodyBytes.length <= maxBytes
           ? NexSponsor.parse(response.body)
           : null;
       if (sponsor != null) {
@@ -404,11 +404,7 @@ class NexSponsorService {
       return false;
     }
     try {
-      final response = await _get(
-        client,
-        url,
-        const Duration(seconds: 15),
-      );
+      final response = await _get(client, url, const Duration(seconds: 15));
       final bytes = response.bodyBytes;
       if (response.statusCode != 200 ||
           bytes.length > maxImageBytes ||
@@ -446,9 +442,6 @@ class NexSponsorService {
     return false;
   }
 
-  Future<void> dismiss(String id) => preferences.dismissSponsor(
-    id,
-    at: _now(),
-    keepFor: dismissalCoolOff,
-  );
+  Future<void> dismiss(String id) =>
+      preferences.dismissSponsor(id, at: _now(), keepFor: dismissalCoolOff);
 }

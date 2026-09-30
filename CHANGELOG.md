@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.87.0
+
+- **Your notes survive losing the phone — no server needed.** Settings → Data & backup → Automatic copy to a folder puts a complete backup into a folder you choose once a day: on the phone, or one Google Drive, Nextcloud or Syncthing offers. The newest three are kept. Settings and keys in it are locked with a recovery code; the private vault is never included.
+- **Better with a screen reader and large text.** The home screen no longer announces an unnamed button covering the whole screen, and the search box reads as one control. At the largest text sizes the home screen, a note's details and the Recurring page no longer break or run off the edge.
+
 ## v1.86.0
 
 - **A tap that only closes.** On the home screen, while a card's menu is open or a card is swiped aside, the next tap anywhere — the card itself, a date heading, the filters — closes it and does nothing else. Opening a menu also puts away a swiped card.
