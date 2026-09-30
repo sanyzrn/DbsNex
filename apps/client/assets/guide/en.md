@@ -131,8 +131,10 @@ Restoring replaces the library and restarts Nex. If a restore is interrupted, th
 
 Under **Settings → Security**, Nex can ask for your fingerprint or screen lock whenever it returns to the foreground, after a delay you choose. The lock is local and hides the screen in the task switcher. Nothing leaves the phone unless you turn on a cloud AI provider, send feedback or share something yourself. **Settings → Security → What left this device** lists every request Nex made to an AI provider — which one, what for, what kind of content and from which notes — kept on the phone only; clear it whenever you like.
 
+**Settings → About → Speed and reliability** lets Nex time itself on your phone: how long it takes to open, how long a capture takes from opening to saved, how long a search takes to find the note you open, and how many sessions with a capture ran without an error. It is off until you switch it on. The numbers are timings and counts only — never your notes or what you searched for — stay on the phone, are never backed up, and are deleted when you switch it off.
+
 ## Updates, feedback and help
 
 **Settings → About Nex** shows the installed version and checks for updates; releases download inside the app and install over the existing one, keeping all your data. The same page links to the maker, **DbsStudio.ir**, and to Nex's own page with news, downloads and help.
 
-**Send feedback** goes straight to the people who make Nex. Choose whether it is a problem, an idea or something else, and add a Telegram ID or email if you would like a reply; nothing from your notes is attached. If sending is not available, copy your message and send it another way. If something fails, **Share diagnostics** creates a report with personal details removed.
+**Send feedback** goes straight to the people who make Nex. Choose whether it is a problem, an idea or something else, and add a Telegram ID or email if you would like a reply; nothing from your notes is attached. If speed measurements are on, you can tick **Attach my speed measurements**; the exact text that will be added is shown before you send. If sending is not available, copy your message and send it another way. If something fails, **Share diagnostics** creates a report with personal details removed.
