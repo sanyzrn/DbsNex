@@ -2,6 +2,7 @@ import 'feature_label.dart';
 import 'recurring_attachments.dart';
 import 'recurring_calendar.dart';
 import 'recurring_options.dart';
+import 'dart:convert';
 import 'dart:async';
 import 'dart:ui' show BoxWidthStyle;
 
@@ -824,30 +825,68 @@ class _CommitmentEditorState extends State<CommitmentEditor>
     ...?widget.existing?.details,
     if (widget.existing == null) 'solar': widget.services.solarCalendar,
   };
+
+  /// Whether the editor differs from how it opened. Compared, not flagged:
+  /// any rebuild used to count as an edit, so closing an untouched editor
+  /// still asked to discard changes nobody had made.
   bool _dirty = false;
+  late final String _baseline;
   @override
   bool get hasUnsavedChanges => _dirty;
   @override
   void discardDraft() => widget.services.editorDrafts?.clear(_draftKey);
+
+  Map<String, dynamic> get _form => {
+    'details': _details,
+    'title': _title.text,
+    'cadence': _cadence.index,
+    'every': _every,
+    'due': _dueAt.toIso8601String(),
+    'lead': _lead?.inSeconds,
+    'notify': _notify,
+    'window': _window,
+    'start': _windowStart,
+    'end': _windowEnd,
+  };
+
+  /// The form as a comparable string: keys in order, empty values and the
+  /// defaults a field fills in by itself left out, so touching a field and
+  /// putting it back is no change.
+  String _fingerprint() {
+    Object? canonical(Object? value) => switch (value) {
+      Map() => {
+        for (final key in value.keys.map((k) => '$k').toList()..sort())
+          if (value[key] != null) key: canonical(value[key]),
+      },
+      List() => [for (final item in value) canonical(item)],
+      _ => value,
+    };
+    final details = {..._details};
+    if (details['invalidAmount'] == false) details.remove('invalidAmount');
+    details['currency'] ??= 'IRT';
+    return jsonEncode(
+      canonical({..._form, 'details': details, 'title': _title.text.trim()}),
+    );
+  }
+
   void _snapshot() {
-    _dirty = true;
-    widget.services.editorDrafts?.write(_draftKey, {
-      'details': _details,
-      'title': _title.text,
-      'cadence': _cadence.index,
-      'every': _every,
-      'due': _dueAt.toIso8601String(),
-      'lead': _lead?.inSeconds,
-      'notify': _notify,
-      'window': _window,
-      'start': _windowStart,
-      'end': _windowEnd,
-    });
+    final dirty = _fingerprint() != _baseline;
+    if (dirty) {
+      widget.services.editorDrafts?.write(_draftKey, _form);
+    } else {
+      discardDraft();
+    }
+    if (dirty != _dirty) {
+      // The back gesture reads this at build time; typing in the title does
+      // not rebuild the editor by itself.
+      super.setState(() => _dirty = dirty);
+    }
   }
 
   @override
   void initState() {
     super.initState();
+    _baseline = _fingerprint();
     final d = widget.services.editorDrafts?.read(_draftKey);
     if (d != null) {
       _details = Map<String, dynamic>.from(d['details'] as Map? ?? _details);
@@ -860,7 +899,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
       _window = d['window'] as bool;
       _windowStart = d['start'] as int;
       _windowEnd = d['end'] as int;
-      _dirty = true;
+      _dirty = _fingerprint() != _baseline;
     }
     _title.addListener(_snapshot);
   }
