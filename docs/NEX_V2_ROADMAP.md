@@ -32,8 +32,8 @@ widgets, complete backups, the Persian calendar), while phase v2's headline,
 *continuity across devices*, is still missing.
 
 So: **"2.0" in this document means the next major release of the app**, not
-phase v2. The collision is still unfixed; renaming the phases in
-`08-roadmap.md` is the first item in §6.
+phase v2. *Fixed in 1.85:* `08-roadmap.md` now names them Phase 1–3
+(ADR-034), so "v2" below always means this document's release 2.0.
 
 ---
 
@@ -146,8 +146,9 @@ rest for the library**: `nex.sqlite` and the media directory are plaintext.
 
 Since 1.17 the assistant can read a focused note's file text and images, so
 that content leaves the device whenever a cloud provider is configured. `09-ai.md`
-states general AI privacy principles, but **no ADR records that decision**
-(the last ADR is 032), and nothing shows the user what was sent.
+states general AI privacy principles, but no ADR recorded that decision and
+nothing showed the user what was sent. *The second half is fixed in 1.85* (W3.2,
+ADR-033); encryption at rest (W3.1) is still open.
 
 ### 2.6 The product's own success metrics are unmeasurable
 
@@ -224,10 +225,7 @@ document**: an in-place migration of existing libraries, and a new backup
 format. Ship only behind a proved, reversible migration tested against a
 corrupted run; consider new installs first.
 
-**W3.2 A "what left this device" screen.** A local log: which provider, which
-note, what kind of content (text / file text / image / audio), when. Readable
-and clearable, never uploaded. Written together with the missing privacy ADR.
-*Cost:* small. The highest trust-per-hour item here.
+*W3.2 shipped in 1.85 — see §13.*
 
 **W3.3 End-to-end encryption for sync — partial and honestly labelled.** Encrypt
 content and media with a pairing-derived key; leave ids, `rev` and timestamps in
@@ -249,8 +247,7 @@ layout for every piece of the user's own text. Today only a direction helper
 framework migration. Target: no file in `apps/client/lib` over ~800 lines (11
 today). Split `nex_preferences.dart` by domain at the same time.
 
-**W4.3 A real test harness.** `pumpNexApp()` that assembles the service graph
-once, so tests stop hand-rolling it.
+*W4.3 shipped in 1.85 — see §13.*
 
 **W4.4 Resolve the `packages/ai` fiction.** CI proves the package is deletable,
 but the AI code that matters lives in `apps/client/lib/platform/ai_provider.dart`
@@ -281,10 +278,7 @@ by hand.
 timeline scroll jank measured in CI (integration test on an emulator), next to
 the existing search budget. Capture speed is principle #1 and has no budget.
 
-**W6.4 Release hardening.** A nightly job that repeats the concurrency and
-isolate tests many times, so a race shows up on a schedule rather than on a
-release tag; and a rule that a test retry is never the fix (1.80.2 set the
-precedent).
+*W6.4 shipped in 1.85 — see §13.*
 
 **W6.5 Vault health.** Weak, reused and old password warnings, computed on the
 device only; and TOTP codes stored alongside a login, so the vault can replace a
@@ -296,10 +290,9 @@ separate authenticator app.
 
 **Must have for 2.0:**
 
-1. W4.1 text surface, W4.3 harness, W4.5 overlay rule
+1. W4.1 text surface, W4.5 overlay rule
 2. W1.1 + W1.2 pairing and automatic sync
 3. W1.5 a second device actually shipping *(Windows)*
-4. W3.2 the disclosure screen and its ADR
 
 **Should have:**
 
@@ -329,7 +322,7 @@ Release numbers are indicative; the ordering is the argument.
 | ~~1.82~~ | *Shipped* | W2.1–W2.4, retrieval — see §13 |
 | ~~1.83~~ | *Shipped* | The octopus: new icon set and opening animation — see §13 |
 | ~~1.84~~ | *Shipped* | Nex's own camera, the wordmark in the header — see §13 |
-| **1.85** | Foundation I | Phase names in `08-roadmap.md` fixed · W3.2 disclosure screen + privacy ADR · W4.3 harness · W6.4 nightly stress job |
+| ~~1.85~~ | *Shipped* | Foundation I: phase names fixed · W3.2 disclosure screen + ADR-033 · W4.3 harness · W6.4 nightly stress — see §13 |
 | **1.86** | Foundation II | W4.1 text surface · W4.5 overlay rule · W4.2 begins · W6.2 goldens |
 | **1.87** | Safety net | W1.6 backup to a chosen folder · W6.1 accessibility |
 | **1.88** | Continuity I | W1.1 pairing · W1.2 background sync · W1.4 conflict surface |
@@ -459,6 +452,23 @@ Release numbers are indicative; the ordering is the argument.
 
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
+
+### In 1.85.0 — foundation I
+
+- **W3.2 What left this device.** Every request to an AI provider is recorded
+  at the HTTP client every `CloudAIAdapter` uses, in both isolates: when, which
+  provider, host only, purpose, content kind, size, and the notes or media it
+  came from — never the content, path or key. Settings → Security reads and
+  clears it; it is never uploaded and not in backups. ADR-033 records what may
+  be sent.
+- **W4.3 Test harness.** `NexTestHarness.create()` / `pumpNexApp()` in
+  `apps/client/test/support/nex_harness.dart`; seventeen widget-test files moved
+  onto it. The rest keep setups it does not model and move as they are touched.
+- **W6.4 Nightly stress.** `.github/workflows/stress.yml`: the race-sensitive
+  tests fifty times each and both suites shuffled, every night;
+  `tools/stress_repeat.sh` names the failing run. The rule "a retry is never the
+  fix" is in `06-development.md`.
+- **Phase names.** `08-roadmap.md` says Phase 1–3 with a status each (ADR-034).
 
 ### In 1.84.0 — the camera
 

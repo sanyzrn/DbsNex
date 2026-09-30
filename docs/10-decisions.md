@@ -360,6 +360,14 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 
 ---
 
+## ADR-034 — Roadmap phases are named Phase 1–3, not v1–v3
+
+- **Context:** [`08-roadmap.md`](./08-roadmap.md) named its thematic phases *v1, v2, v3* while releases were numbered 1.x. By release 1.84 the app had shipped all of phase "v3" (intelligence) and not finished phase "v2" (sync), so "v2" meant two different things in the same conversation — and "2.0" was about to mean a third.
+- **Decision:** The phases are **Phase 1** (fastest capture, MVP), **Phase 2** (sync and continuity) and **Phase 3** (the intelligence layer), each with a status line. Release numbers are plain semantic versions and name no phase; release 2.0 is planned in [`NEX_V2_ROADMAP.md`](./NEX_V2_ROADMAP.md) and is mostly Phase 2. Older documents and ADR titles keep *v1/v2/v3* where rewriting them would break links; `08-roadmap.md` says how to read them.
+- **Status:** Accepted at v1.85.0.
+
+---
+
 ## Decision-Making Heuristic
 
 When facing a new choice, run it through the product's filter:

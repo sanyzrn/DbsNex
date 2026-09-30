@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v1.85.0
+
+- **See what left your phone.** Settings → Security → What left this device lists every request Nex made to an AI provider: which provider, what it was for, what kind of content went (text, file, image or audio) and from which notes. The list stays on the phone, is never uploaded or backed up, and can be cleared at any time. An offline model sends nothing and never appears in it.
+
 ## v1.84.0
 
 - **Nex's own camera.** Taking a photo opens a panel over the timeline with the live view, a large shutter and a back button; ⋮ switches between front and back camera and sets the flash. Pull it down to close it. If the camera cannot be opened, Nex offers the phone's camera app instead.

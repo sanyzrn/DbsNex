@@ -7,10 +7,12 @@
 ```mermaid
 timeline
     title Nex Roadmap
-    v1 - MVP : Timeline : Text/Voice/Photo Capture : Tags : Search (text/tag/date/type)
-    v2 - Sync & Continuity : Android <-> Windows Sync : Generic File Attachments : iOS Client
-    v3 - Intelligence Layer : Speech-to-Text : OCR : Tag Suggestions : Semantic Search : Summarization : Related Notes
+    Phase 1 - MVP (shipped) : Timeline : Text/Voice/Photo Capture : Tags : Search (text/tag/date/type)
+    Phase 3 - Intelligence Layer (shipped in 1.x) : Speech-to-Text : OCR : Tag Suggestions : Semantic Search : Summarization : Related Notes
+    Phase 2 - Sync & Continuity (in progress for 2.0) : Android <-> Windows Sync : Generic File Attachments : iOS Client
 ```
+
+> **Phases, not versions.** Until 1.85 the phases below were called *v1, v2, v3*, which collided with the release numbers: the app is at release 1.8x, has shipped all of Phase 3, and has not yet finished Phase 2. They are **Phase 1, 2 and 3** now. Documents written earlier (the product vision and specification, and some ADR titles) still say *v1/v2/v3* — read those as Phase 1/2/3, never as release numbers. What release 2.0 contains is planned in [`NEX_V2_ROADMAP.md`](./NEX_V2_ROADMAP.md).
 
 ---
 
@@ -19,12 +21,14 @@ timeline
 1. **The capture budget is fixed.** Every version must keep capture feeling instant and offline-capable.
 2. **Organize later, always.** New organization never moves into the capture flow.
 3. **AI is additive.** Intelligence assists after capture; it never gates or interrupts it.
-4. **Sync is the v2 headline.** Cross-device sync is the first item of v2, not the last — scattered ideas are the core problem.
-5. **Scope is defended.** Features are version-gated to keep v1 light.
+4. **Sync is the Phase 2 headline.** Cross-device sync is the first item of Phase 2, not the last — scattered ideas are the core problem.
+5. **Scope is defended.** Features are phase-gated to keep Phase 1 light.
 
 ---
 
-## v1 — Fastest Capture Experience (MVP)
+## Phase 1 — Fastest Capture Experience (MVP)
+
+**Status:** Shipped (release 1.0 and the 1.x polish below).
 
 **Theme:** Prove the two core promises — capture and find both feel instant — with the smallest possible feature set.
 
@@ -44,7 +48,7 @@ timeline
 
 **Exit criteria:** Usability testing shows capture and find both feel instant (< 3 s) across all three content types; engineering performance budgets met in CI; crash-free session rate > 99.9%; export round-trip and backup-restore-after-corruption both verified.
 
-### v1.x — Stability & Polish
+### Phase 1 follow-up — Stability & Polish
 
 Ranked by leverage against the core "capture in under 3 seconds" promise — OS-level capture surfaces ship first, ahead of in-app polish that touches fewer moments of actual friction:
 
@@ -58,15 +62,17 @@ Ranked by leverage against the core "capture in under 3 seconds" promise — OS-
 
 ---
 
-## v2 — Sync & Continuity
+## Phase 2 — Sync & Continuity
 
-**Theme:** Solve the original motivating problem in full — a user's captures should never be stranded on a single device. Sync ships as the **first** item of v2, not the last.
+**Status:** In progress. The sync engine and backend exist; pairing, automatic sync, media sync and a second device are what release 2.0 is for — see W1 in [`NEX_V2_ROADMAP.md`](./NEX_V2_ROADMAP.md#w1--continuity). File attachments shipped early.
+
+**Theme:** Solve the original motivating problem in full — a user's captures should never be stranded on a single device. Sync ships as the **first** item of Phase 2, not the last.
 
 | Feature | Notes |
 |---|---|
-| **Real Android ⇄ Windows sync** | First item shipped in v2. Field-aware conflict resolution: LWW by `updated_at`/`rev` for scalar fields, **union-merge for tags** — see [`04-architecture.md`](./04-architecture.md#sync) |
+| **Real Android ⇄ Windows sync** | First item of Phase 2. Field-aware conflict resolution: LWW by `updated_at`/`rev` for scalar fields, **union-merge for tags** — see [`04-architecture.md`](./04-architecture.md#sync) |
 | Media sync | Content-addressed uploads keyed by `media_hash`, deduplicated across devices |
-| Generic file attachments (4th capture type) | Deferred from v1 specifically because of the UX decisions it requires (preview, size limits, file types) |
+| Generic file attachments (4th capture type) | *Shipped in 1.x.* Deferred from Phase 1 specifically because of the UX decisions it requires (preview, size limits, file types) |
 | iOS client | Joins the same sync backend and shared Core/Data packages |
 | Backend hardening | Multi-device conflict test suite, delta-sync efficiency, deletion propagation and tombstone garbage collection |
 
@@ -74,20 +80,22 @@ Ranked by leverage against the core "capture in under 3 seconds" promise — OS-
 
 ---
 
-## v3 — The Intelligence Layer
+## Phase 3 — The Intelligence Layer
+
+**Status:** Shipped during 1.x, ahead of Phase 2, with an assistant, a daily summary and an on-device model beyond what is listed here.
 
 **Theme:** Make everything captured — regardless of original format — as findable as typed text, using AI that never interrupts capture. Full detail in [`09-ai.md`](./09-ai.md).
 
 | Feature | Notes |
 |---|---|
-| **Speech-to-text transcription** | Resolves the voice-search limitation noted since v1; voice notes join full-text search |
+| **Speech-to-text transcription** | Resolves the voice-search limitation noted since Phase 1; voice notes join full-text search |
 | **OCR** | Photo notes become text-searchable |
 | **Tag suggestions** | AI proposes tags post-capture; always optional, always dismissible, never auto-applied silently |
 | **Semantic search** | Search by meaning, not just keyword match |
 | **Summarization** | On-demand summaries for long text notes or clusters of related notes |
 | **Related notes** | Surfaces connections between notes without requiring manual organization |
 
-**Exit criteria:** Voice and photo notes are fully part of unified search without any regression to capture speed; every AI feature is independently toggleable off with zero loss of core (v1) functionality.
+**Exit criteria:** Voice and photo notes are fully part of unified search without any regression to capture speed; every AI feature is independently toggleable off with zero loss of core (Phase 1) functionality.
 
 ---
 
@@ -100,8 +108,8 @@ Ranked by leverage against the core "capture in under 3 seconds" promise — OS-
 
 ## Versioning Policy
 
-- **Major versions (v1, v2, v3)** correspond to the thematic phases above and may include platform-level or architectural shifts.
-- **Minor versions** ship incremental features within an already-active theme.
+- **Release numbers are ordinary semantic versions** and do not name phases. A major release (2.0) marks a change people will notice across the whole app — for 2.0, continuity across devices — not the start of a phase.
+- **Minor versions** ship features, from any phase that is active.
 - **Patch versions** are reserved for fixes and do not introduce new user-facing behavior.
 
 Any roadmap change (addition, removal, re-sequencing) must be recorded in [`10-decisions.md`](./10-decisions.md) with rationale.
