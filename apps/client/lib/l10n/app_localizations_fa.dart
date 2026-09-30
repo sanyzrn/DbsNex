@@ -3228,4 +3228,10 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get vaultRestoreAuth =>
       'پیش از بازیابی پشتیبان کامل، هویت خود را تأیید کنید';
+
+  @override
+  String get assistantGeneralKnowledge => 'از دانش عمومی، نه یادداشت‌های شما';
+
+  @override
+  String get assistantOpenSource => 'بازکردن این یادداشت';
 }

@@ -48,14 +48,33 @@ enum PendingOsRequestKind {
   openTimeline,
 }
 
+/// Which capture a quick-capture notification button asked for (W5.2).
+///
+/// The widget and the Quick Settings tile carry none and open the capture
+/// sheet; the notification's buttons skip the sheet and go straight to the
+/// kind they name.
+enum OsCaptureMode {
+  text,
+  voice,
+  photo;
+
+  static OsCaptureMode? fromWire(Object? value) => switch (value) {
+    'text' => text,
+    'voice' => voice,
+    'photo' => photo,
+    _ => null,
+  };
+}
+
 /// One of those requests, with whatever it carries.
 class PendingOsRequest {
-  const PendingOsRequest.capture()
+  const PendingOsRequest.capture([this.captureMode])
     : kind = PendingOsRequestKind.capture,
       noteId = null;
 
   const PendingOsRequest.openNote(String this.noteId)
-    : kind = PendingOsRequestKind.openNote;
+    : kind = PendingOsRequestKind.openNote,
+      captureMode = null;
 
   /// The Recap widget's refresh button, which is a request to open the app.
   ///
@@ -68,17 +87,23 @@ class PendingOsRequest {
   /// the home screen through the snapshot a moment later.
   const PendingOsRequest.refreshRecap()
     : kind = PendingOsRequestKind.refreshRecap,
-      noteId = null;
+      noteId = null,
+      captureMode = null;
 
   const PendingOsRequest.openTimeline()
     : kind = PendingOsRequestKind.openTimeline,
-      noteId = null;
+      noteId = null,
+      captureMode = null;
 
   final PendingOsRequestKind kind;
 
   /// The note to open. Non-null exactly when [kind] is
   /// [PendingOsRequestKind.openNote].
   final String? noteId;
+
+  /// For a capture: the kind a notification button named, or null for the
+  /// capture sheet.
+  final OsCaptureMode? captureMode;
 
   bool get isCapture => kind == PendingOsRequestKind.capture;
 
@@ -157,6 +182,10 @@ class OsCaptureBridge {
   /// in that window queue for [takeRequest].
   void Function()? onCaptureRequested;
 
+  /// Called when a quick-capture notification button names the kind of
+  /// capture. Without it, such a request opens the capture sheet instead.
+  void Function(OsCaptureMode mode)? onCaptureModeRequested;
+
   /// Called when a Timeline widget row asks to open the note it shows.
   void Function(String noteId)? onOpenNoteRequested;
 
@@ -183,7 +212,13 @@ class OsCaptureBridge {
   /// somebody would eventually have to work out from the source.
   void _dispatch(PendingOsRequest request) {
     final handled = switch (request.kind) {
-      PendingOsRequestKind.capture => _call(onCaptureRequested),
+      PendingOsRequestKind.capture => switch ((
+        request.captureMode,
+        onCaptureModeRequested,
+      )) {
+        (final mode?, final open?) => _run(() => open(mode)),
+        _ => _call(onCaptureRequested),
+      },
       PendingOsRequestKind.refreshRecap => _call(onRecapRefreshRequested),
       PendingOsRequestKind.openTimeline => _call(onOpenTimelineRequested),
       PendingOsRequestKind.openNote => switch (onOpenNoteRequested) {
@@ -291,7 +326,9 @@ class OsCaptureBridge {
           // Keep the request for the next launch, but do not retry forever
           // on a full disk or an expired provider permission.
           await _channel.invokeMethod<void>('deferPending', {'requestId': id});
-          await NexServices.noteDiagnostic('shared capture failed: ${error.runtimeType}');
+          await NexServices.noteDiagnostic(
+            'shared capture failed: ${error.runtimeType}',
+          );
         }
       }
     } on MissingPluginException {
@@ -329,7 +366,9 @@ class OsCaptureBridge {
     final type = payload['type'] as String?;
     switch (type) {
       case 'text_capture':
-        _dispatch(const PendingOsRequest.capture());
+        _dispatch(
+          PendingOsRequest.capture(OsCaptureMode.fromWire(payload['mode'])),
+        );
         return false;
       case 'open_note':
         final id = (payload['id'] as String?)?.trim() ?? '';
@@ -640,4 +679,25 @@ class PickedOsFile {
   final String path;
   final String filename;
   final String? mimeType;
+}
+
+/// The optional quick-capture notification, on or off (W5.2).
+///
+/// Kept natively too, so it survives a reboot with no engine running; this
+/// only tells the platform what the setting now is.
+class QuickCaptureNotification {
+  static const _channel = MethodChannel('nex/os_capture');
+
+  static Future<void> setEnabled(bool enabled) async {
+    if (!Platform.isAndroid) return;
+    try {
+      await _channel.invokeMethod<void>('setQuickCaptureNotification', {
+        'enabled': enabled,
+      });
+    } on MissingPluginException {
+      // Tests, and any host without the Android side.
+    } on PlatformException {
+      // A notification that could not be posted is not worth a crash.
+    }
+  }
 }

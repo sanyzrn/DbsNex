@@ -1058,6 +1058,14 @@ class NexPreferences extends ChangeNotifier {
   Future<void> setHaptics(bool value) =>
       _setBool('accessibility.haptics', value);
 
+  /// The silent quick-capture row in the notification shade (W5.2). Off by
+  /// default: something that stays in the shade is opted into.
+  bool get quickCaptureNotification =>
+      _prefs.getBool('capture.quick_notification') ?? false;
+
+  Future<void> setQuickCaptureNotification(bool value) =>
+      _setBool('capture.quick_notification', value);
+
   Future<void> setCloudAiOptIn(bool value) =>
       _setBool('ai.cloud_opt_in', value);
 

@@ -3292,4 +3292,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get vaultRestoreAuth =>
       'Verify your identity before restoring this complete backup';
+
+  @override
+  String get assistantGeneralKnowledge =>
+      'From general knowledge, not your notes';
+
+  @override
+  String get assistantOpenSource => 'Open this note';
 }

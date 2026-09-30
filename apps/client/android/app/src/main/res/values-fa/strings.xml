@@ -43,4 +43,14 @@
     <string name="widget_time_weeks">%1$d هفته قبل</string>
     <string name="widget_time_months">%1$d ماه قبل</string>
     <string name="widget_time_years">%1$d سال قبل</string>
+
+    <string name="tile_capture_label">ثبت در Nex</string>
+    <string name="tile_capture_subtitle">یادداشت تازه</string>
+    <string name="quick_capture_channel">ثبت سریع</string>
+    <string name="quick_capture_channel_description">یک ردیف بی‌صدا در کشوی اعلان‌ها برای ثبت بدون بازکردن Nex.</string>
+    <string name="quick_capture_title">ثبت در Nex</string>
+    <string name="quick_capture_text">یادداشت، صدا یا عکس، از هر جا</string>
+    <string name="quick_capture_note">یادداشت</string>
+    <string name="quick_capture_voice">صدا</string>
+    <string name="quick_capture_photo">عکس</string>
 </resources>

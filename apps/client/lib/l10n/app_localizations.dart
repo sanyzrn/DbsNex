@@ -5227,6 +5227,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Verify your identity before restoring this complete backup'**
   String get vaultRestoreAuth;
+
+  /// No description provided for @assistantGeneralKnowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'From general knowledge, not your notes'**
+  String get assistantGeneralKnowledge;
+
+  /// No description provided for @assistantOpenSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Open this note'**
+  String get assistantOpenSource;
 }
 
 class _AppLocalizationsDelegate

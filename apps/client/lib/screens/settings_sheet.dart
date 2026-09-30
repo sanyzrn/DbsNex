@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' show BoxWidthStyle;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
@@ -437,6 +438,31 @@ class SettingsSheet extends StatelessWidget {
             ),
           ),
         ),
+        // The Quick Settings tile needs no switch — it is added from the
+        // shade's own edit screen — but a notification that stays in the
+        // shade is something to opt into.
+        if (defaultTargetPlatform == TargetPlatform.android)
+          _SwitchRow(
+            icon: Icons.notifications_none_outlined,
+            title: nexLabel(
+              context,
+              'Capture from notifications',
+              'ثبت از کشوی اعلان‌ها',
+            ),
+            subtitle: nexLabel(
+              context,
+              'A silent row with Note, Voice and Photo. The Quick Settings '
+                  'tile "Nex capture" can be added from the shade.',
+              'یک ردیف بی‌صدا با یادداشت، صدا و عکس. کاشی «ثبت در Nex» را '
+                  'هم می‌توانید در تنظیمات سریع اضافه کنید.',
+            ),
+            value: preferences.quickCaptureNotification,
+            onChanged: (value) => unawaited(() async {
+              if (value) await services.reminders.requestPermission();
+              await preferences.setQuickCaptureNotification(value);
+              await QuickCaptureNotification.setEnabled(value);
+            }()),
+          ),
       ],
     ),
     _Section(

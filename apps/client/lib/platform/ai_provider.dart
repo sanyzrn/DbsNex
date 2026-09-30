@@ -1502,6 +1502,25 @@ class CloudAIAdapter implements AIAdapter {
     }
     parts.add(outputLanguage.promptRule);
     if (options.notesContext.trim().isNotEmpty) {
+      // Grounding the reader can check. The ids are the ones in front of
+      // every line below; the app turns them into the notes themselves,
+      // under the answer, and takes the line out of what is shown — so it is
+      // a note to the app, not something to phrase nicely.
+      parts.add(
+        'When an answer uses any of the notes below, end it with one line: '
+        '"Sources: [id] [id]" naming exactly the notes you used, with their '
+        'ids copied as given. Never write a note id anywhere else in a reply, '
+        'and leave the line out when you used no note.',
+      );
+    }
+    if (!options.notesOnly) {
+      parts.add(
+        'When an answer comes from general knowledge rather than from the '
+        "user's notes, begin it with [general] so the app can say so. Never "
+        'use it for an answer based on their notes.',
+      );
+    }
+    if (options.notesContext.trim().isNotEmpty) {
       parts.add(
         "The user's recent notes, most recent first:\n"
         '${options.notesContext.trim()}',

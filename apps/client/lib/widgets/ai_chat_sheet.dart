@@ -14,10 +14,12 @@ import 'package:record/record.dart';
 
 import '../documents/docx_markdown.dart';
 import '../l10n/app_localizations.dart';
+import '../screens/note_detail_sheet.dart';
 import 'dismiss_on_overscroll.dart';
 import 'assistant_settings.dart';
 import '../platform/ai_provider.dart';
 import '../platform/assistant_actions.dart';
+import '../platform/assistant_citations.dart';
 import '../platform/chat_history.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -205,6 +207,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// question — see [NexChatAttachment].
   List<NexChatAttachment> _attachments = const [];
 
+  /// Every note this conversation has shown the assistant or that an answer
+  /// cited, by id — what turns a cited id back into a chip with a name.
+  final Map<String, Note> _notes = {};
+
   /// The actions the assistant last asked for, waiting on the user.
   List<AssistantAction> _pending = const [];
 
@@ -235,6 +241,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
       client: widget.client,
     );
     unawaited(_loadNotesContext());
+    if (resumed != null) unawaited(_resolveCitations());
     _input.text =
         widget.preferences.editorDrafts?.read(_composerDraftKey)?['text']
             as String? ??
@@ -286,6 +293,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
         fileText: await _fileText(focused),
       );
       final images = _imagesFor(focused);
+      _remember([focused]);
       if (mounted) {
         setState(() {
           if (line != null) _notesContext = line;
@@ -299,6 +307,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     // number is about how much of the *library* to volunteer when nobody has
     // said what the question is about.
     if (widget.scope case final scoped?) {
+      _remember(scoped);
       final lines = <String>[
         for (final note in scoped)
           if (_contextLine(note) case final line?) line,
@@ -314,6 +323,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     } catch (_) {
       return;
     }
+    _remember(notes);
     final lines = <String>[
       for (final note in notes)
         if (_contextLine(note) case final line?) line,
@@ -666,6 +676,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
       ];
     });
     _persist();
+    unawaited(_resolveCitations());
     _toBottom();
     if (_lookups.isNotEmpty) await _runLookups();
   }
@@ -702,6 +713,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
       if (found.isEmpty) {
         findings.writeln('(nothing found)');
       } else {
+        _remember(found.take(10));
         for (final note in found.take(10)) {
           final line = _contextLine(note);
           if (line != null) findings.writeln(line);
@@ -743,7 +755,50 @@ class _AiChatSheetState extends State<AiChatSheet> {
       }
     });
     _persist();
+    unawaited(_resolveCitations());
     _toBottom();
+  }
+
+  void _remember(Iterable<Note> notes) {
+    for (final note in notes) {
+      _notes[note.id.toLowerCase()] = note;
+    }
+  }
+
+  /// Looks up any note an answer cites that this sheet has not seen — a
+  /// resumed conversation's, or one the library changed under.
+  ///
+  /// A note that is gone, or in Recently Deleted, stays unresolved and its
+  /// chip is simply not drawn: a chip that opens nothing is worse than none.
+  Future<void> _resolveCitations() async {
+    final missing = <String>{
+      for (final turn in _turns)
+        if (turn.role == ChatRole.assistant)
+          ...NexCitedReply.parse(turn.content).noteIds,
+    }.where((id) => !_notes.containsKey(id));
+    var changed = false;
+    for (final id in missing) {
+      try {
+        final note = await widget.services.getById(id);
+        if (note != null && note.deletedAt == null) {
+          _notes[id] = note;
+          changed = true;
+        }
+      } catch (_) {}
+    }
+    if (changed && mounted) setState(() {});
+  }
+
+  Future<void> _openCited(Note note) async {
+    await nexShowSheet<DetailResult>(
+      context: context,
+      builder: (_) => NoteDetailSheet(
+        services: widget.services,
+        preferences: widget.preferences,
+        noteId: note.id,
+      ),
+    );
+    await widget.services.refreshTimeline();
   }
 
   /// Writes the conversation after every exchange. Fire-and-forget: a thread
@@ -1403,6 +1458,8 @@ class _AiChatSheetState extends State<AiChatSheet> {
                           turns: _turns,
                           sending: _sending,
                           failure: _failure,
+                          notes: _notes,
+                          onOpenNote: _openCited,
                         ),
                 ),
                 if (_failure != null && _retryText != null && !_sending)
@@ -1535,10 +1592,16 @@ class _Thread extends StatelessWidget {
     required this.turns,
     required this.sending,
     required this.failure,
+    required this.notes,
+    required this.onOpenNote,
   });
 
   final ScrollController controller;
   final List<ChatMessage> turns;
+
+  /// The notes an answer can cite, by lower-case id.
+  final Map<String, Note> notes;
+  final ValueChanged<Note> onOpenNote;
   final bool sending;
   final String? failure;
 
@@ -1568,7 +1631,16 @@ class _Thread extends StatelessWidget {
         }
         final turn = turns[index];
         final mine = turn.role == ChatRole.user;
-        return Align(
+        // The assistant's markers come out of what is read: the ids it
+        // cited become chips under the bubble, and "[general]" becomes a
+        // line saying the answer is not from the notes.
+        final cited = mine ? null : NexCitedReply.parse(turn.content);
+        final content = cited?.text ?? turn.content;
+        final sources = [
+          for (final id in cited?.noteIds ?? const <String>[])
+            if (notes[id] case final note?) note,
+        ];
+        final bubble = Align(
           alignment: mine
               ? AlignmentDirectional.centerEnd
               : AlignmentDirectional.centerStart,
@@ -1619,9 +1691,9 @@ class _Thread extends StatelessWidget {
                   // reading its asterisks. The user's turns stay literal: they
                   // typed what they typed, and quietly eating a character of
                   // it would be the app editing their words.
-                  if (!mine && nexLooksLikeMarkdown(turn.content)) {
+                  if (!mine && nexLooksLikeMarkdown(content)) {
                     return NexMarkdown(
-                      turn.content,
+                      content,
                       style: style,
                       // Selection belongs to the area around the bubble, not
                       // to the text inside it — which is what lets a link in a
@@ -1636,9 +1708,9 @@ class _Thread extends StatelessWidget {
                   // came up with its two handles the wrong way round, and
                   // dragging one widened the selection from the wrong end.
                   return NexTextDirection(
-                    text: turn.content,
+                    text: content,
                     child: Text(
-                      turn.content,
+                      content,
                       style: style,
                       // Either side may be in either language — the assistant
                       // answers in whatever the output-language setting asks
@@ -1649,7 +1721,7 @@ class _Thread extends StatelessWidget {
                       // a stretched column, and a bubble is sized to its
                       // content — every reply, "yes" included, would be drawn
                       // 78% of the screen wide.
-                      textDirection: nexDirectionOf(turn.content),
+                      textDirection: nexDirectionOf(content),
                     ),
                   );
                 },
@@ -1657,7 +1729,107 @@ class _Thread extends StatelessWidget {
             ),
           ),
         );
+        if (cited == null || (!cited.general && sources.isEmpty)) return bubble;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            bubble,
+            _Grounding(
+              general: cited.general,
+              sources: sources,
+              onOpenNote: onOpenNote,
+            ),
+          ],
+        );
       },
+    );
+  }
+}
+
+/// What an answer rests on, under its bubble: the notes it used as chips,
+/// or one quiet line when it came from general knowledge instead.
+class _Grounding extends StatelessWidget {
+  const _Grounding({
+    required this.general,
+    required this.sources,
+    required this.onOpenNote,
+  });
+
+  final bool general;
+  final List<Note> sources;
+  final ValueChanged<Note> onOpenNote;
+
+  /// A note in a few words: the first line it has in words, or its kind.
+  static String _label(Note note, AppLocalizations l10n) {
+    for (final source in [
+      note.title,
+      note.content,
+      note.transcriptText,
+      note.ocrText,
+      note.linkExcerpt,
+    ]) {
+      final line = (source ?? '')
+          .split('\n')
+          .map((line) => line.trim())
+          .firstWhere((line) => line.isNotEmpty, orElse: () => '');
+      if (line.isNotEmpty) return line;
+    }
+    return switch (note.type) {
+      NoteType.text => l10n.text,
+      NoteType.voice => l10n.voice,
+      NoteType.photo => l10n.photo,
+      NoteType.file => l10n.file,
+      NoteType.checklist => l10n.checklist,
+      NoteType.link => l10n.link,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: NexSpacing.md),
+      child: Wrap(
+        spacing: NexSpacing.xs,
+        runSpacing: NexSpacing.xs,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          if (general && sources.isEmpty)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.public,
+                  size: 14,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: NexSpacing.xs),
+                Text(
+                  l10n.assistantGeneralKnowledge,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          for (final note in sources)
+            ActionChip(
+              avatar: Icon(nexNoteTypeIcon(note.type.wireName), size: 16),
+              label: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 180),
+                child: Text(
+                  _label(note, l10n),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              visualDensity: VisualDensity.compact,
+              onPressed: () => onOpenNote(note),
+              tooltip: l10n.assistantOpenSource,
+            ),
+        ],
+      ),
     );
   }
 }

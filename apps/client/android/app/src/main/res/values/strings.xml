@@ -58,4 +58,15 @@
     <string name="widget_time_weeks">%1$dw</string>
     <string name="widget_time_months">%1$dmo</string>
     <string name="widget_time_years">%1$dy</string>
+
+    <!-- Quick Settings tile and the optional quick-capture notification (W5.2). -->
+    <string name="tile_capture_label">Nex capture</string>
+    <string name="tile_capture_subtitle">New note</string>
+    <string name="quick_capture_channel">Quick capture</string>
+    <string name="quick_capture_channel_description">A silent row in the notification shade for capturing without opening Nex first.</string>
+    <string name="quick_capture_title">Capture in Nex</string>
+    <string name="quick_capture_text">Note, voice or photo, from anywhere</string>
+    <string name="quick_capture_note">Note</string>
+    <string name="quick_capture_voice">Voice</string>
+    <string name="quick_capture_photo">Photo</string>
 </resources>

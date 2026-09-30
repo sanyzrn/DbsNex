@@ -335,6 +335,15 @@ class TimelineScreenState extends State<TimelineScreen>
     // arrives while this screen is still being built, so it waits in the
     // bridge until there is something here to answer it.
     widget.osCapture?.onCaptureRequested = _openCaptureFromOs;
+    widget.osCapture?.onCaptureModeRequested = _captureFromOs;
+    // The platform keeps its own copy of this switch so the notification
+    // survives a reboot; this makes the two agree after a restore or an
+    // update.
+    unawaited(
+      QuickCaptureNotification.setEnabled(
+        widget.preferences.quickCaptureNotification,
+      ),
+    );
     widget.osCapture?.onOpenNoteRequested = _openNoteFromOs;
     widget.osCapture?.onRecapRefreshRequested = _refreshRecapFromOs;
     widget.osCapture?.onOpenTimelineRequested = _openTimelineFromOs;
@@ -345,7 +354,11 @@ class TimelineScreenState extends State<TimelineScreen>
           case PendingOsRequestKind.refreshRecap:
             _refreshRecapFromOs();
           case PendingOsRequestKind.capture:
-            _openCaptureFromOs();
+            if (requested.captureMode case final mode?) {
+              _captureFromOs(mode);
+            } else {
+              _openCaptureFromOs();
+            }
           case PendingOsRequestKind.openTimeline:
             _openTimelineFromOs();
           case PendingOsRequestKind.openNote:
@@ -3193,6 +3206,20 @@ class TimelineScreenState extends State<TimelineScreen>
     if (!mounted) return;
     _surfaceTimeline();
     unawaited(openCapture());
+  }
+
+  /// A quick-capture notification button: straight to the kind it names.
+  void _captureFromOs(OsCaptureMode mode) {
+    if (!mounted) return;
+    _surfaceTimeline();
+    switch (mode) {
+      case OsCaptureMode.text:
+        unawaited(openCapture());
+      case OsCaptureMode.voice:
+        unawaited(captureVoice());
+      case OsCaptureMode.photo:
+        unawaited(capturePhoto(ImageSource.camera));
+    }
   }
 
   void _openNoteFromOs(String noteId) {
