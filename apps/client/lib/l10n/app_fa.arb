@@ -1401,5 +1401,9 @@
   "backupFolderFailedBackup": "پشتیبان ساخته نشد ({detail}).",
   "@backupFolderFailedBackup": {"placeholders": {"detail": {"type": "String"}}},
   "backupFolderFailedWrite": "برنامهٔ این پوشه فایل را نپذیرفت ({detail}). دوباره امتحان کنید یا پوشه‌ای روی همین گوشی انتخاب کنید.",
-  "@backupFolderFailedWrite": {"placeholders": {"detail": {"type": "String"}}}
+  "@backupFolderFailedWrite": {"placeholders": {"detail": {"type": "String"}}},
+  "cardDensity": "اندازهٔ کارت‌ها",
+  "cardDensityCompact": "فشرده",
+  "cardDensityStandard": "معمولی",
+  "cardDensityReadable": "خواناتر"
 }

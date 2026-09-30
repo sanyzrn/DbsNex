@@ -2633,5 +2633,9 @@
   "backupFolderFailedBackup": "The backup could not be made ({detail}).",
   "@backupFolderFailedBackup": {"placeholders": {"detail": {"type": "String"}}},
   "backupFolderFailedWrite": "The folder's app did not accept the file ({detail}). Try again, or choose a folder on this phone.",
-  "@backupFolderFailedWrite": {"placeholders": {"detail": {"type": "String"}}}
+  "@backupFolderFailedWrite": {"placeholders": {"detail": {"type": "String"}}},
+  "cardDensity": "Card size",
+  "cardDensityCompact": "Compact",
+  "cardDensityStandard": "Standard",
+  "cardDensityReadable": "Easier to read"
 }

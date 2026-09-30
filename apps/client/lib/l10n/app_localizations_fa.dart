@@ -3580,4 +3580,16 @@ class AppLocalizationsFa extends AppLocalizations {
   String backupFolderFailedWrite(String detail) {
     return 'برنامهٔ این پوشه فایل را نپذیرفت ($detail). دوباره امتحان کنید یا پوشه‌ای روی همین گوشی انتخاب کنید.';
   }
+
+  @override
+  String get cardDensity => 'اندازهٔ کارت‌ها';
+
+  @override
+  String get cardDensityCompact => 'فشرده';
+
+  @override
+  String get cardDensityStandard => 'معمولی';
+
+  @override
+  String get cardDensityReadable => 'خواناتر';
 }

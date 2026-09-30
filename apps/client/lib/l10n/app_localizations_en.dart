@@ -3650,4 +3650,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String backupFolderFailedWrite(String detail) {
     return 'The folder\'s app did not accept the file ($detail). Try again, or choose a folder on this phone.';
   }
+
+  @override
+  String get cardDensity => 'Card size';
+
+  @override
+  String get cardDensityCompact => 'Compact';
+
+  @override
+  String get cardDensityStandard => 'Standard';
+
+  @override
+  String get cardDensityReadable => 'Easier to read';
 }

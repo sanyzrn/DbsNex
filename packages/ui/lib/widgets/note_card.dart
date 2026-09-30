@@ -203,7 +203,7 @@ class _CardBody extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(NexSpacing.cardInset),
+          padding: EdgeInsets.all(NexCardDensity.of(context).inset),
           child: Row(
             // Keep the icon aligned with the top of an expanded preview.
             crossAxisAlignment: expanded
@@ -346,8 +346,8 @@ class _CornerTagDots extends StatelessWidget {
       ),
       excludeSemantics: true,
       child: SizedBox(
-        width: nexCardLeadingSize,
-        height: nexCardLeadingSize,
+        width: NexCardDensity.of(context).leading,
+        height: NexCardDensity.of(context).leading,
         child: Stack(
           children: [
             for (var i = 0; i < shown.length; i++)
@@ -454,8 +454,8 @@ class _Preview extends StatelessWidget {
           ? nexCardExpandedMaxLines
           : note.type == NoteType.voice && (note.durationMs ?? 0) > 0
           ? 1
-          : nexCardPreviewLines,
-      style: Theme.of(context).textTheme.bodyLarge,
+          : NexCardDensity.of(context).lines,
+      style: NexCardDensity.of(context).previewStyle(Theme.of(context)),
     );
     // The card already announces its type. Keep real note content reachable,
     // but do not announce the translated empty-media fallback a second time.
@@ -507,8 +507,9 @@ class _ChecklistPreview extends StatelessWidget {
       ...items.where((item) => !item.done),
       ...items.where((item) => item.done),
     ];
+    final lines = NexCardDensity.of(context).lines;
     final shown = ordered
-        .take(expanded ? nexCardExpandedMaxLines : nexCardPreviewLines)
+        .take(expanded ? nexCardExpandedMaxLines : lines)
         .toList();
     final remaining = ordered.length - shown.length;
 
@@ -527,13 +528,12 @@ class _ChecklistPreview extends StatelessWidget {
                   ? '+$remaining'
                   : null,
             ),
-          if (shown.length < nexCardPreviewLines)
+          if (shown.length < lines)
             // Holds the card's height steady when a list has one item, the
             // same way a one-line text note reserves its second line.
             SizedBox(
               height:
-                  nexCardPreviewLineHeightFor(context) *
-                  (nexCardPreviewLines - shown.length),
+                  nexCardPreviewLineHeightFor(context) * (lines - shown.length),
             ),
         ],
       ),
@@ -622,7 +622,7 @@ class _LinkPreview extends StatelessWidget {
             height: nexCardPreviewLineHeightFor(context),
             child: NexTextSurface.line(
               headline,
-              style: theme.textTheme.bodyLarge,
+              style: NexCardDensity.of(context).previewStyle(theme),
             ),
           ),
           SizedBox(
@@ -669,9 +669,9 @@ class _Leading extends StatelessWidget {
         borderRadius: BorderRadius.circular(NexRadius.cardLeading),
         child: Image.file(
           File(uri),
-          width: nexCardLeadingSize,
-          height: nexCardLeadingSize,
-          cacheWidth: (nexCardLeadingSize * ratio).round(),
+          width: NexCardDensity.of(context).leading,
+          height: NexCardDensity.of(context).leading,
+          cacheWidth: (NexCardDensity.of(context).leading * ratio).round(),
           // Decode at this width and keep the source aspect ratio. BoxFit
           // crops the resulting image into the square without stretching it.
           fit: BoxFit.cover,
@@ -746,9 +746,10 @@ class _IconBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final side = NexCardDensity.of(context).leading;
     return Container(
-      width: nexCardLeadingSize,
-      height: nexCardLeadingSize,
+      width: side,
+      height: side,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(NexRadius.cardLeading),

@@ -5791,6 +5791,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The folder\'s app did not accept the file ({detail}). Try again, or choose a folder on this phone.'**
   String backupFolderFailedWrite(String detail);
+
+  /// No description provided for @cardDensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Card size'**
+  String get cardDensity;
+
+  /// No description provided for @cardDensityCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact'**
+  String get cardDensityCompact;
+
+  /// No description provided for @cardDensityStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get cardDensityStandard;
+
+  /// No description provided for @cardDensityReadable.
+  ///
+  /// In en, this message translates to:
+  /// **'Easier to read'**
+  String get cardDensityReadable;
 }
 
 class _AppLocalizationsDelegate
