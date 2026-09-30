@@ -147,7 +147,7 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(find.text('Save'));
+      await tester.tap(find.text('Save').first);
       await tester.pumpAndSettle();
       final saved = (await services.commitments()).single;
       expect(RecurringAttachments.noteIdsOf(saved.details), [receipt!.id]);

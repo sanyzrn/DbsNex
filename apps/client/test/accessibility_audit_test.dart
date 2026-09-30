@@ -83,7 +83,7 @@ void main() {
     'library': (h) =>
         LibraryScreen(services: h.services, preferences: h.preferences),
     'tools': (_) => const ToolsScreen(),
-    'recurring': (h) => Scaffold(body: CommitmentsSheet(services: h.services)),
+    'recurring': (h) => Scaffold(body: RecurringScreen(services: h.services)),
     'capture': (h) => Scaffold(
       body: CaptureSheet(
         services: h.services,

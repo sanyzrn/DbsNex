@@ -425,7 +425,7 @@ extension _TimelineLayout on TimelineScreenState {
               onPressed: () async {
                 if (_claimedByOverlay()) return;
                 _tick();
-                await CommitmentsSheet.show(context, services: widget.services);
+                await RecurringScreen.show(context, services: widget.services);
                 await _model.loadCommitments();
               },
             ),

@@ -55,11 +55,11 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: CommitmentsSheet(services: services)),
+        home: Scaffold(body: RecurringScreen(services: services)),
       ),
     );
     await tester.pumpAndSettle();
-    return AppLocalizations.of(tester.element(find.byType(CommitmentsSheet)));
+    return AppLocalizations.of(tester.element(find.byType(RecurringScreen)));
   }
 
   testWidgets(
@@ -80,51 +80,98 @@ void main() {
       expect((await services.commitments()).single.dueAt, due);
     },
   );
-  testWidgets('the add sheet closes with a swipe on its handle', (
-    tester,
-  ) async {
-    // It could only be closed with Cancel: drag dismissal is off on guarded
-    // editors, because Flutter's own drag skips the unsaved-changes check.
-    tester.view.physicalSize = const Size(800, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: TextButton(
-              onPressed: () =>
-                  CommitmentEditor.show(context, services: services),
-              child: const Text('open editor'),
+  Future<void> launcher(WidgetTester tester, void Function(BuildContext) go) =>
+      tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => go(context),
+                child: const Text('open'),
+              ),
             ),
           ),
         ),
-      ),
+      );
+
+  testWidgets('Recurring is a page of its own, not a sheet', (tester) async {
+    // It was a sheet over the timeline — the size of a question, for a list
+    // of bills and medication.
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await launcher(
+      tester,
+      (context) => RecurringScreen.show(context, services: services),
     );
-    await tester.tap(find.text('open editor'));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.byType(RecurringScreen), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.text('open'), findsNothing, reason: 'it covers the screen');
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(RecurringScreen)),
+    );
+    // The empty page says what to do, with a button to do it.
+    await tester.tap(find.text(l10n.commitmentAdd));
     await tester.pumpAndSettle();
     expect(find.byType(CommitmentEditor), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
+  });
 
-    final handle = find.byKey(const ValueKey('nex-sheet-swipe-handle'));
-    // A short tug springs back.
-    await tester.drag(handle, const Offset(0, 40));
-    await tester.pumpAndSettle();
-    expect(find.byType(CommitmentEditor), findsOneWidget);
-
-    // Something typed: the swipe asks before throwing it away.
-    await tester.enterText(find.byType(TextField).first, 'Gym');
-    await tester.pumpAndSettle();
-    await tester.fling(handle, const Offset(0, 500), 2000);
+  testWidgets('the editor is a page: close asks only when something changed', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await launcher(
+      tester,
+      (context) => CommitmentEditor.show(context, services: services),
+    );
+    await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     final l10n = AppLocalizations.of(
       tester.element(find.byType(CommitmentEditor)),
     );
+    expect(find.byType(BottomSheet), findsNothing);
+    // Save waits for a name.
+    final save = find.widgetWithText(FilledButton, l10n.save).first;
+    expect(tester.widget<FilledButton>(save).onPressed, isNull);
+
+    await tester.tap(find.byTooltip(l10n.cancel));
+    await tester.pumpAndSettle();
+    expect(find.byType(CommitmentEditor), findsNothing);
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Gym');
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+    await tester.tap(find.byTooltip(l10n.cancel));
+    await tester.pumpAndSettle();
     expect(find.text(l10n.unsavedChanges), findsOneWidget);
     await tester.tap(find.text(l10n.discard));
     await tester.pumpAndSettle();
     expect(find.byType(CommitmentEditor), findsNothing);
+  });
+
+  testWidgets('a new item saved from the page is on the page', (tester) async {
+    await open(tester);
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(RecurringScreen)),
+    );
+    await tester.tap(find.text(l10n.commitmentAdd));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Water bill');
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, l10n.save).first);
+    await tester.pumpAndSettle();
+    expect(find.byType(CommitmentEditor), findsNothing);
+    expect(find.text('Water bill'), findsOneWidget);
+    expect(find.text(l10n.commitmentsCount(1)), findsOneWidget);
   });
 
   testWidgets('back asks before discarding only when something changed', (
@@ -188,39 +235,26 @@ void main() {
     expect(find.byType(CommitmentEditor), findsOneWidget);
   });
 
-  testWidgets('the add sheet closes when dragged down from its body', (
+  testWidgets('the numbers at the top show just those when tapped', (
     tester,
   ) async {
-    // Only the handle did; everywhere else on the sheet a downward swipe did
-    // nothing, unlike every other sheet in the app.
-    tester.view.physicalSize = const Size(800, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: TextButton(
-              onPressed: () =>
-                  CommitmentEditor.show(context, services: services),
-              child: const Text('open editor'),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.tap(find.text('open editor'));
+    final now = DateTime.now();
+    await add('rent', now.subtract(const Duration(days: 9)));
+    await add('insurance', now.add(const Duration(days: 2)));
+    await add('passport', now.add(const Duration(days: 40)));
+    await open(tester);
+    await tester.tap(find.byKey(const ValueKey('recurring-stat-overdue')));
     await tester.pumpAndSettle();
-    final sheet = tester.getRect(find.byType(CommitmentEditor));
-    await tester.flingFrom(
-      Offset(sheet.center.dx, sheet.top + sheet.height * 0.4),
-      const Offset(0, 500),
-      2000,
-    );
+    expect(find.text('rent'), findsOneWidget);
+    expect(find.text('insurance'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('recurring-stat-week')));
     await tester.pumpAndSettle();
-    expect(find.byType(CommitmentEditor), findsNothing);
+    expect(find.text('insurance'), findsOneWidget);
+    expect(find.text('rent'), findsNothing);
+    // Tapped again, back to everything.
+    await tester.tap(find.byKey(const ValueKey('recurring-stat-week')));
+    await tester.pumpAndSettle();
+    expect(find.text('passport'), findsOneWidget);
   });
 
   testWidgets('the page says what a recurring item is for', (tester) async {
@@ -264,10 +298,8 @@ void main() {
     await add('insurance', DateTime.now().add(const Duration(days: 2)));
     final l10n = await open(tester);
     expect(find.text(l10n.commitmentsComingUp), findsOneWidget);
-    expect(
-      find.text(l10n.commitmentsOverdue),
-      findsOneWidget,
-    ); // dashboard filter
+    // The number at the top and the filter chip, but no heading.
+    expect(find.text(l10n.commitmentsOverdue), findsNWidgets(2));
     expect(find.text(l10n.commitmentsRested), findsNothing);
   });
 }

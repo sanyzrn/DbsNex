@@ -17,11 +17,13 @@ class CommitmentEditor extends StatefulWidget {
     BuildContext context, {
     required NexServices services,
     NexCommitment? existing,
-  }) => nexShowSheet<bool>(
-    context: context,
-    dismissible: false,
-    swipeToClose: true,
-    builder: (_) => CommitmentEditor(services: services, existing: existing),
+  }) => Navigator.of(context).push<bool>(
+    // A page, not a sheet: this is where money and medicine get their
+    // schedule, and it has the room to say so. Swiping back from the edge
+    // is the ordinary back, and asks first when something has changed.
+    NexPageRoute<bool>(
+      builder: (_) => CommitmentEditor(services: services, existing: existing),
+    ),
   );
 
   @override
@@ -251,252 +253,253 @@ class _CommitmentEditorState extends State<CommitmentEditor>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     // Only the hourly cadence gets a waking window, because it is the only
     // one fine enough to fire while somebody is asleep. Offering it on a
     // yearly renewal would be offering to move a date nobody asked to move.
     final hourly = _cadence == NexCadence.hours;
+    final canSave = _title.text.trim().isNotEmpty && !_saving;
     return guardDraft(
-      Padding(
-        padding: EdgeInsets.fromLTRB(
-          NexSpacing.md,
-          NexSpacing.sm,
-          NexSpacing.md,
-          MediaQuery.viewInsetsOf(context).bottom + NexSpacing.md,
+      Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            tooltip: l10n.cancel,
+            onPressed: requestDiscard,
+            icon: const Icon(Icons.close),
+          ),
+          title: Text(
+            widget.existing == null ? l10n.commitmentAdd : l10n.commitmentEdit,
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
+              child: FilledButton(
+                onPressed: canSave ? () => unawaited(_save()) : null,
+                child: Text(l10n.save),
+              ),
+            ),
+          ],
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (widget.existing == null)
-                Wrap(
-                  spacing: 6,
-                  children: [
-                    for (final (id, en, fa, cadence) in [
-                      (
-                        'subscription',
-                        'Subscription',
-                        'اشتراک',
-                        NexCadence.months,
-                      ),
-                      ('installment', 'Installment', 'قسط', NexCadence.months),
-                      (
-                        'routine',
-                        'Recurring task',
-                        'کار دوره‌ای',
-                        NexCadence.weeks,
-                      ),
-                      ('habit', 'Habit', 'عادت', NexCadence.days),
-                    ])
-                      ActionChip(
-                        label: Text(nexLabel(context, en, fa)),
-                        onPressed: () => setState(() {
-                          _title.text = nexLabel(context, en, fa);
-                          _cadence = cadence;
-                          _every = 1;
-                          _lead = id == 'subscription' || id == 'installment'
-                              ? const Duration(days: 2)
-                              : Duration.zero;
-                          _details = {..._details, 'template': id};
-                        }),
-                      ),
-                  ],
-                ),
-
-              Text(
-                widget.existing == null
-                    ? l10n.commitmentAdd
-                    : l10n.commitmentEdit,
-                style: theme.textTheme.titleMedium,
-              ),
-              const SizedBox(height: NexSpacing.sm),
-              NexAutoDirection(
-                controller: _title,
-                builder: (context, direction) => TextField(
-                  controller: _title,
-                  selectionWidthStyle: BoxWidthStyle.tight,
-                  contextMenuBuilder: nexReadingMenu,
-                  textDirection: direction,
-                  textAlign: TextAlign.start,
-                  autofocus: widget.existing == null,
-                  textInputAction: TextInputAction.done,
-                  decoration: InputDecoration(
-                    labelText: l10n.commitmentTitleLabel,
-                    hintText: l10n.commitmentTitleHint,
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              const SizedBox(height: NexSpacing.md),
-              // Plain `DropdownButton`s in list rows rather than
-              // `DropdownButtonFormField`s, to match the lead-time row below
-              // and because the form field's `value` is deprecated in favour of
-              // `initialValue` on some versions of this SDK and absent on
-              // others — a compile risk for no gain on a two-field form.
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.commitmentEvery),
-                trailing: DropdownButton<NexCadence>(
-                  value: _cadence,
-                  underline: const SizedBox.shrink(),
-                  items: [
-                    for (final cadence in NexCadence.values)
-                      DropdownMenuItem(
-                        value: cadence,
-                        child: Text(nexCadenceLabel(l10n, cadence, _every)),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) setState(() => _cadence = value);
-                  },
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.commitmentCount),
-                trailing: DropdownButton<int>(
-                  value: _every,
-                  underline: const SizedBox.shrink(),
-                  items: [
-                    for (final n in const [1, 2, 3, 4, 6, 8, 12])
-                      DropdownMenuItem(value: n, child: Text('$n')),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) setState(() => _every = value);
-                  },
-                ),
-              ),
-              const SizedBox(height: NexSpacing.sm),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.commitmentNextDue),
-                subtitle: Text(_dateLabel(_dueAt)),
-                trailing: const Icon(Icons.event_outlined),
-                onTap: () => unawaited(_pickDate()),
-              ),
-              RecurringOptions(
-                cadence: _cadence,
-                value: _details,
-                onChanged: (v) => setState(() => _details = v),
-              ),
-              // The field the whole feature turns on, and the one that is
-              // usually left alone.
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.commitmentLead),
-                subtitle: Text(
-                  _lead == null
-                      ? l10n.commitmentLeadAuto(
-                          nexRelativeSpan(
-                            l10n,
-                            nexDefaultLead(_cadence, _every),
-                          ),
-                        )
-                      : nexRelativeSpan(l10n, _lead!),
-                ),
-                trailing: DropdownButton<int>(
-                  value: _lead?.inHours ?? -1,
-                  underline: const SizedBox.shrink(),
-                  items: [
-                    DropdownMenuItem(
-                      value: -1,
-                      child: Text(l10n.commitmentAuto),
-                    ),
-                    for (final hours in const [0, 6, 24, 48, 24 * 7, 24 * 30])
-                      DropdownMenuItem(
-                        value: hours,
-                        child: Text(
-                          hours == 0
-                              ? l10n.commitmentLeadNone
-                              : nexRelativeSpan(l10n, Duration(hours: hours)),
-                        ),
-                      ),
-                  ],
-                  onChanged: (value) => setState(
-                    () => _lead = value == null || value < 0
-                        ? null
-                        : Duration(hours: value),
-                  ),
-                ),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.commitmentNotify),
-                subtitle: Text(
-                  _notify ? l10n.commitmentNotifyOn : l10n.commitmentNotifyOff,
-                ),
-                value: _notify,
-                onChanged: (value) => setState(() => _notify = value),
-              ),
-              if (hourly) ...[
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l10n.commitmentWindow),
-                  subtitle: Text(
-                    _window
-                        ? nexDigits(
-                            '${_clock(_windowStart)} – ${_clock(_windowEnd)}',
-                            persian:
-                                Localizations.localeOf(context).languageCode ==
-                                'fa',
-                          )
-                        : l10n.commitmentWindowOff,
-                  ),
-                  value: _window,
-                  onChanged: (value) => setState(() => _window = value),
-                ),
-                if (_window)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _TimeField(
-                          label: l10n.commitmentWindowFrom,
-                          minutes: _windowStart,
-                          onChanged: (value) =>
-                              setState(() => _windowStart = value),
-                        ),
-                      ),
-                      const SizedBox(width: NexSpacing.sm),
-                      Expanded(
-                        child: _TimeField(
-                          label: l10n.commitmentWindowTo,
-                          minutes: _windowEnd,
-                          onChanged: (value) =>
-                              setState(() => _windowEnd = value),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-              const SizedBox(height: NexSpacing.md),
-              RecurringAttachments(
-                services: widget.services,
-                details: _details,
-                onChanged: (details) => setState(() {
-                  _details = details;
-                  _snapshot();
-                }),
-              ),
-              const SizedBox(height: NexSpacing.md),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+        body: ListView(
+          padding: EdgeInsets.fromLTRB(
+            NexSpacing.md,
+            NexSpacing.sm,
+            NexSpacing.md,
+            NexSpacing.xl + nexBottomInset(context),
+          ),
+          children: [
+            _SectionLabel(nexLabel(context, 'What', 'چه چیزی')),
+            if (widget.existing == null)
+              Wrap(
+                spacing: 6,
                 children: [
-                  TextButton(
-                    onPressed: requestDiscard,
-                    child: Text(l10n.cancel),
-                  ),
-                  const SizedBox(width: NexSpacing.sm),
-                  FilledButton(
-                    onPressed: _title.text.trim().isEmpty || _saving
-                        ? null
-                        : () => unawaited(_save()),
-                    child: Text(l10n.save),
-                  ),
+                  for (final (id, en, fa, cadence) in [
+                    (
+                      'subscription',
+                      'Subscription',
+                      'اشتراک',
+                      NexCadence.months,
+                    ),
+                    ('installment', 'Installment', 'قسط', NexCadence.months),
+                    (
+                      'routine',
+                      'Recurring task',
+                      'کار دوره‌ای',
+                      NexCadence.weeks,
+                    ),
+                    ('habit', 'Habit', 'عادت', NexCadence.days),
+                  ])
+                    ActionChip(
+                      label: Text(nexLabel(context, en, fa)),
+                      onPressed: () => setState(() {
+                        _title.text = nexLabel(context, en, fa);
+                        _cadence = cadence;
+                        _every = 1;
+                        _lead = id == 'subscription' || id == 'installment'
+                            ? const Duration(days: 2)
+                            : Duration.zero;
+                        _details = {..._details, 'template': id};
+                      }),
+                    ),
                 ],
               ),
+
+            const SizedBox(height: NexSpacing.sm),
+            NexAutoDirection(
+              controller: _title,
+              builder: (context, direction) => TextField(
+                controller: _title,
+                selectionWidthStyle: BoxWidthStyle.tight,
+                contextMenuBuilder: nexReadingMenu,
+                textDirection: direction,
+                textAlign: TextAlign.start,
+                autofocus: widget.existing == null,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  labelText: l10n.commitmentTitleLabel,
+                  hintText: l10n.commitmentTitleHint,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const SizedBox(height: NexSpacing.lg),
+            _SectionLabel(nexLabel(context, 'When', 'چه وقت')),
+            // Plain `DropdownButton`s in list rows rather than
+            // `DropdownButtonFormField`s, to match the lead-time row below
+            // and because the form field's `value` is deprecated in favour of
+            // `initialValue` on some versions of this SDK and absent on
+            // others — a compile risk for no gain on a two-field form.
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.commitmentEvery),
+              trailing: DropdownButton<NexCadence>(
+                value: _cadence,
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (final cadence in NexCadence.values)
+                    DropdownMenuItem(
+                      value: cadence,
+                      child: Text(nexCadenceLabel(l10n, cadence, _every)),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) setState(() => _cadence = value);
+                },
+              ),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.commitmentCount),
+              trailing: DropdownButton<int>(
+                value: _every,
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (final n in const [1, 2, 3, 4, 6, 8, 12])
+                    DropdownMenuItem(value: n, child: Text('$n')),
+                ],
+                onChanged: (value) {
+                  if (value != null) setState(() => _every = value);
+                },
+              ),
+            ),
+            const SizedBox(height: NexSpacing.sm),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.commitmentNextDue),
+              subtitle: Text(_dateLabel(_dueAt)),
+              trailing: const Icon(Icons.event_outlined),
+              onTap: () => unawaited(_pickDate()),
+            ),
+            RecurringOptions(
+              cadence: _cadence,
+              value: _details,
+              onChanged: (v) => setState(() => _details = v),
+            ),
+            const SizedBox(height: NexSpacing.lg),
+            _SectionLabel(nexLabel(context, 'Reminders', 'یادآوری')),
+            // The field the whole feature turns on, and the one that is
+            // usually left alone.
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.commitmentLead),
+              subtitle: Text(
+                _lead == null
+                    ? l10n.commitmentLeadAuto(
+                        nexRelativeSpan(l10n, nexDefaultLead(_cadence, _every)),
+                      )
+                    : nexRelativeSpan(l10n, _lead!),
+              ),
+              trailing: DropdownButton<int>(
+                value: _lead?.inHours ?? -1,
+                underline: const SizedBox.shrink(),
+                items: [
+                  DropdownMenuItem(value: -1, child: Text(l10n.commitmentAuto)),
+                  for (final hours in const [0, 6, 24, 48, 24 * 7, 24 * 30])
+                    DropdownMenuItem(
+                      value: hours,
+                      child: Text(
+                        hours == 0
+                            ? l10n.commitmentLeadNone
+                            : nexRelativeSpan(l10n, Duration(hours: hours)),
+                      ),
+                    ),
+                ],
+                onChanged: (value) => setState(
+                  () => _lead = value == null || value < 0
+                      ? null
+                      : Duration(hours: value),
+                ),
+              ),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.commitmentNotify),
+              subtitle: Text(
+                _notify ? l10n.commitmentNotifyOn : l10n.commitmentNotifyOff,
+              ),
+              value: _notify,
+              onChanged: (value) => setState(() => _notify = value),
+            ),
+            if (hourly) ...[
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.commitmentWindow),
+                subtitle: Text(
+                  _window
+                      ? nexDigits(
+                          '${_clock(_windowStart)} – ${_clock(_windowEnd)}',
+                          persian:
+                              Localizations.localeOf(context).languageCode ==
+                              'fa',
+                        )
+                      : l10n.commitmentWindowOff,
+                ),
+                value: _window,
+                onChanged: (value) => setState(() => _window = value),
+              ),
+              if (_window)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _TimeField(
+                        label: l10n.commitmentWindowFrom,
+                        minutes: _windowStart,
+                        onChanged: (value) =>
+                            setState(() => _windowStart = value),
+                      ),
+                    ),
+                    const SizedBox(width: NexSpacing.sm),
+                    Expanded(
+                      child: _TimeField(
+                        label: l10n.commitmentWindowTo,
+                        minutes: _windowEnd,
+                        onChanged: (value) =>
+                            setState(() => _windowEnd = value),
+                      ),
+                    ),
+                  ],
+                ),
             ],
-          ),
+            const SizedBox(height: NexSpacing.lg),
+            _SectionLabel(nexLabel(context, 'Attached', 'پیوست‌ها')),
+            RecurringAttachments(
+              services: widget.services,
+              details: _details,
+              onChanged: (details) => setState(() {
+                _details = details;
+                _snapshot();
+              }),
+            ),
+            const SizedBox(height: NexSpacing.xl),
+            // Save again at the end of the form, where the thumb is.
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+              ),
+              onPressed: canSave ? () => unawaited(_save()) : null,
+              icon: const Icon(Icons.check),
+              label: Text(l10n.save),
+            ),
+          ],
         ),
       ),
     );
@@ -512,6 +515,28 @@ class _CommitmentEditorState extends State<CommitmentEditor>
     persian: AppLocalizations.of(context).localeName == 'fa',
     time: true,
   );
+}
+
+/// The heading over one part of the form.
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: NexSpacing.xs),
+      child: Text(
+        label,
+        style: theme.textTheme.titleSmall?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
 }
 
 class _TimeField extends StatelessWidget {
