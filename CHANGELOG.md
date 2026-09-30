@@ -34,6 +34,18 @@ Working convention:
 
 ## Unreleased
 
+## v1.90.0
+
+- **Pick several notes at once.** Hold a card and choose **Select** — it is at the top of every card's menu. Then tap cards to add them or take them back out. The bar along the bottom shows how many are picked and lets you tag, add to a thread, pin, share, copy or delete them all together; a delete of many has one Undo. Close it with ✕, with Back, or by taking the last one out.
+- **A card opens into its note.** Tapping a note grows its details out of the card itself, with the card's icon and words staying where they were until the note takes their place.
+- **The day stays on screen.** Scrolling through older notes, the day of the one you are passing is shown under the filters.
+- **Card size.** Settings → Appearance → Card size: compact, standard, or easier to read.
+- **Recurring, taken seriously.** Recurring is now a full page: what is overdue, due today and due this week at a glance (tap one to see just those), payments in the next 30 days, a list or a calendar, and a clear button to add one. Adding or editing one opens a full page too.
+- **Five new looks.** Isfahan turquoise, Saffron, Midnight, Deep sea and Graphite, in light and dark. Changing the look now opens out as a circle from where you tapped.
+- **The Nex logotype is the app icon.** The wordmark on the home screen is a little smaller.
+- **Threads are off by default.** Turn them on in Settings if you use them.
+- **Fixes.** Buttons in some colour themes showed their icon in the wrong shade (the capture arrow, the vault's add buttons, the private messages send button, voice play). A backup to a folder that could not be written now falls back to another way of writing, and says why if it still fails. Settings search results no longer hide under the keyboard. Changing or removing your profile picture shows at once. The assistant can set a reminder in one go — "remind me Saturday at 9 about the doctor". The colour ring around the assistant's opening is gone.
+
 ## v1.89.0
 
 - **See how fast Nex is on your phone.** Settings → About → Speed and reliability can time how long Nex takes to open, how long a capture takes from opening to saved, and how long a search takes to find the note you open. It is off until you switch it on. The numbers stay on your phone, never include your notes or searches, and are deleted when you switch it off.

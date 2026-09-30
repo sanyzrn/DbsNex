@@ -249,23 +249,11 @@ reason to touch them.
 
 ### W7 — The home screen *(from §11, planned at 1.88)*
 
-**W7.1 Sticky day headers.** The date of the run being scrolled stays under
-the filter row, so an old note says when it is from.
-
-**W7.2 List density.** Two card modes in Settings → Appearance: compact and
-more readable.
-
-**W7.3 Continuous transition to details.** A card opens into its detail sheet
-with its picture and title keeping their place.
+*W7.1, W7.2, W7.3 and W7.5 shipped in 1.90 — see §13.*
 
 **W7.4 Empty states that act.** An empty page offers a shortcut to capture its
-first item instead of only explaining itself.
-
-**W7.5 Bulk selection.** The owner's design: a **Select** entry in every card's
-hold menu selects that card; while anything is selected, tapping a card adds it
-and tapping a selected card removes it, and selection ends when none is left.
-The bottom bar is replaced meanwhile by a selection bar with the count and the
-actions — tag, thread, pin, share, copy, delete with Undo — and a close button.
+first item instead of only explaining itself. (Recurring's empty page does
+this since 1.90; the rest are still to do.)
 
 ### W5 — Product
 
@@ -303,8 +291,7 @@ separate authenticator app.
 
 3. W1.3 media sync
 4. W3.1 encryption at rest — only when the migration is proved
-5. W7 the home screen: sticky day headers, density, continuous transition,
-   empty states that act, bulk selection
+5. W7.4 empty states that act — the rest of W7 shipped in 1.90
 6. W6.1 on-device TalkBack pass, W1.4 conflict surface
 
 **Could have / deferred to 2.1:**
@@ -330,8 +317,8 @@ Release numbers are indicative; the ordering is the argument.
 | ~~1.87~~ | *Shipped* | Safety net: W1.6 backup to a chosen folder · W6.1 accessibility audit — see §13 |
 | ~~1.88~~ | *Shipped* | Foundation III: W4.4 AI layer into its package · W4.2 screens and preferences split — see §13 |
 | ~~1.89~~ | *Shipped* | Measured: W6.3 timeline budget · W3.4 local, opt-in measurements — see §13 |
-| **1.90** | The home screen | W7.1 sticky day headers · W7.2 density · W7.3 continuous transition · W7.4 empty states that act |
-| **1.91** | Many at once | W7.5 bulk selection |
+| ~~1.90~~ | *Shipped* | The home screen: W7.1 sticky day · W7.2 density · W7.3 card opens into its note · W7.5 bulk selection · Recurring as a page · five palettes — see §13 |
+| **1.91** | Empty states | W7.4 empty states that act |
 | *later* | Continuity | W1.1 pairing · W1.2 background sync · W1.3 media sync · W1.4 conflict surface — the owner has put sync aside for now |
 | *later* | The second device | W1.5 Windows un-paused, re-qualified, released |
 | *later* | Trust | W3.1 encryption at rest, behind a proved migration |
@@ -457,6 +444,37 @@ Release numbers are indicative; the ordering is the argument.
 
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
+
+### In 1.90.0 — the home screen
+
+- **W7.1 The day stays on screen.** Scrolled past the top, the day of the card
+  passing under the filter row is named there (weekday and date), and follows
+  the list. It hangs from the pinned filter row in a fixed-height slot, so
+  changing it relays out nothing else — the W6.3 budget holds.
+- **W7.2 Card size.** Settings → Appearance → Card size: compact, standard or
+  easier to read. `NexCardDensity` in `packages/ui` sets the padding, the icon
+  box and the preview lines; the timeline's fixed card height follows it.
+- **W7.3 A card opens into its note.** Tapping a card grows the note's sheet out
+  of the card's own outline while the card — icon, title, tag dots — holds still
+  over it and fades as the note's content fades in. Closing, dragging and
+  animations off in the system are the ordinary sheet.
+- **W7.5 Several notes at once.** The owner's design, as written: Select heads
+  every card's hold menu; taps pick and put back; none left ends it; the dock
+  gives way to a bar with the count, tag, thread, pin, share, copy, delete (one
+  Undo for all) and close. Back ends it too. Swipes rest while picking.
+- **Recurring is a page.** It was a sheet. Now a page with what it is for, the
+  overdue / today / next-7-days numbers (each one a filter), payments in the
+  next 30 days, a list/calendar switch and grouped cards; the editor is a full
+  page in sections.
+- **Look.** Five new palettes (Isfahan turquoise, Saffron, Midnight, Deep sea,
+  Graphite), each with its own surfaces and checked for contrast; a change of
+  look opens out as a circle from the tap that asked for it; filled buttons in
+  palettes draw their icon in their own colour again. The logotype is the app
+  icon and the header wordmark is a little smaller.
+- **Fixes.** Folder backup falls back to writing without a rename and says why
+  it failed; settings search results stay above the keyboard; a new or removed
+  profile photo shows at once; the assistant can set "remind me Saturday at 9"
+  in one step; threads are off by default.
 
 ### In 1.89.0 — measured
 

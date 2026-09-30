@@ -234,3 +234,29 @@ touch target with a quieter 20px icon. Its position remains fixed while typing.
 The owner temporarily disabled Liquid Glass and retired background-only patterns. The implementation remains for a future redesign. Current appearance is whole-app Classic, Paper, Autumn, Rose atelier or Forest with light/dark/system modes. Appearance → Theme contains palette, mode, accent and text size; widgets remain in Appearance. Earlier glass/comfort specifications describe retained historical code, not available controls.
 
 The dock is fixed left-to-right: Tools, Recurring, Capture, Library, Settings. Holding Capture opens the assistant. Private tools are authenticated vaults for passwords, cards and text-only saved messages; the password generator is a separate tool. Authenticated vault fields are unmasked by owner request. Capsule notices retain readable, accessible actions.
+
+## 1.90.0 the home screen
+
+- **Palettes.** Ten: the five above plus Isfahan turquoise, Saffron, Midnight,
+  Deep sea and Graphite. Each new one carries its own light and dark surfaces
+  (Graphite is monochrome) and is held to 3:1 for its accent against its
+  surfaces by `theme_contrast_test`. A palette no longer overrides the global
+  icon colour: that override drew filled buttons' icons in the wrong shade.
+  A change of theme is revealed as a circle from the last touch
+  (`NexThemeReveal`); with animations off it changes at once.
+- **Card size.** `NexCardDensity` — compact, standard, easier to read — sets
+  card padding, icon box and preview lines; the timeline's fixed card height
+  follows it.
+- **The day under the filters.** Past the first screen the day of the card
+  under the filter row is shown there, in a fixed-height slot hung from the
+  pinned header so it relays out nothing else.
+- **A card opens into its note.** The sheet grows from the card's outline
+  while the card itself stays put above it and fades; it is the ordinary sheet
+  once open.
+- **Selecting.** Select heads every card's hold menu and is not configurable.
+  While picking, the dock is replaced by the count and a capsule of actions
+  in the dock's place and shape; picked cards take a tick and an accent edge,
+  the rest an empty ring.
+- **Recurring is a page**, with its editor a page too: a large title, three
+  tappable counts, payments ahead, a list/calendar switch and cards. Delete
+  moved into each item's menu.
