@@ -2586,5 +2586,20 @@
   "disclosureText": "text",
   "disclosureFileText": "file",
   "disclosureImage": "image",
-  "disclosureAudio": "audio"
+  "disclosureAudio": "audio",
+  "backupFolderTitle": "Automatic copy to a folder",
+  "backupFolderExplained": "Once a day while Nex is open, a complete backup — notes, media, settings and service keys, never the private vault — goes into a folder you choose: on this phone, or one that Google Drive, Nextcloud or Syncthing offers in the picker. The newest three are kept. Settings and keys in it are encrypted with a recovery code; the notes are not, so choose a folder you trust.",
+  "backupFolderChoose": "Choose folder",
+  "backupFolderKeyHint": "Every automatic copy is locked with this recovery code. Keep it somewhere other than this phone: without it the settings and keys in a copy cannot be restored.",
+  "backupFolderStatus": "{folder} · last copy {when}",
+  "@backupFolderStatus": {"placeholders": {"folder": {"type": "String"}, "when": {"type": "String"}}},
+  "backupFolderNever": "{folder} · no copy yet",
+  "@backupFolderNever": {"placeholders": {"folder": {"type": "String"}}},
+  "backupFolderFailed": "The last copy did not reach the folder. Check that it is still available, or choose it again.",
+  "backupFolderCopyNow": "Copy now",
+  "backupFolderShowKey": "Recovery code",
+  "backupFolderStop": "Stop copying",
+  "backupFolderStopBody": "Stop the automatic copies? The copies already in the folder stay there.",
+  "backupFolderCopied": "Copied to the folder",
+  "backupFolderCopyFailed": "Could not copy to the folder"
 }

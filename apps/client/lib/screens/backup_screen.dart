@@ -156,6 +156,214 @@ class _BackupScreenState extends State<BackupScreen> {
     }
   });
 
+  /// Picks the folder, shows the recovery code once, and makes the first
+  /// copy straight away so the person sees it land.
+  Future<void> _chooseFolder() => _guard(() async {
+    final l10n = AppLocalizations.of(context);
+    final picked = await widget.services.backupFolder.pick();
+    if (picked == null || !mounted) return;
+    final key =
+        await widget.preferences.backupFolderKey() ?? FullBackup.newKey();
+    if (!mounted) return;
+    if (!await _confirmFolderKey(key)) {
+      await widget.services.backupFolder.release(picked.uri);
+      return;
+    }
+    final previous = widget.preferences.backupFolderUri;
+    if (previous != null && previous != picked.uri) {
+      await widget.services.backupFolder.release(previous);
+    }
+    await widget.preferences.setBackupFolder(
+      uri: picked.uri,
+      name: picked.name,
+      key: key,
+    );
+    final copied = await widget.services.backupToFolderIfDue(force: true);
+    _say(copied ? l10n.backupFolderCopied : l10n.backupFolderCopyFailed);
+  });
+
+  Future<bool> _confirmFolderKey(String key) async {
+    final l10n = AppLocalizations.of(context);
+    var saved = false;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, update) => AlertDialog(
+          title: Text(l10n.backupFolderTitle),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.backupFolderKeyHint),
+                const SizedBox(height: 12),
+                SelectableText(key, textDirection: TextDirection.ltr),
+                CheckboxListTile(
+                  value: saved,
+                  title: Text(l10n.backupKeySaved),
+                  onChanged: (v) => update(() => saved = v ?? false),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: saved ? () => Navigator.pop(ctx, true) : null,
+              child: Text(l10n.backupFolderChoose),
+            ),
+          ],
+        ),
+      ),
+    );
+    return ok == true;
+  }
+
+  Future<void> _copyToFolderNow() => _guard(() async {
+    final l10n = AppLocalizations.of(context);
+    final copied = await widget.services.backupToFolderIfDue(force: true);
+    _say(copied ? l10n.backupFolderCopied : l10n.backupFolderCopyFailed);
+  });
+
+  /// The code again, behind the same unlock as the vault: it opens every
+  /// copy in the folder.
+  Future<void> _showFolderKey() async {
+    final l10n = AppLocalizations.of(context);
+    if (!await AppLockService().authenticate(
+      reason: l10n.backupFolderShowKey,
+      biometricOnly: false,
+    )) {
+      return;
+    }
+    final key = await widget.preferences.backupFolderKey();
+    if (key == null || !mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.backupFolderShowKey),
+        content: SelectableText(key, textDirection: TextDirection.ltr),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.closeLabel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _stopFolder() async {
+    final l10n = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.backupFolderStop),
+        content: NexDialogBody(child: Text(l10n.backupFolderStopBody)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.backupFolderStop),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final uri = widget.preferences.backupFolderUri;
+    if (uri != null) await widget.services.backupFolder.release(uri);
+    await widget.preferences.clearBackupFolder();
+    if (mounted) setState(() {});
+  }
+
+  Widget _folderSection(AppLocalizations l10n, ThemeData theme) {
+    final uri = widget.preferences.backupFolderUri;
+    final name = widget.preferences.backupFolderName;
+    final last = widget.preferences.backupFolderLastAt;
+    final failed = widget.preferences.backupFolderFailedAt;
+    final folder = name.isEmpty ? l10n.backupFolderTitle : name;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Explained(
+          icon: Icons.drive_folder_upload_outlined,
+          title: l10n.backupFolderTitle,
+          body: l10n.backupFolderExplained,
+          action: l10n.backupFolderChoose,
+          onPressed: _busy ? null : () => unawaited(_chooseFolder()),
+        ),
+        if (uri != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              NexSpacing.lg,
+              0,
+              NexSpacing.lg,
+              NexSpacing.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  last == null
+                      ? l10n.backupFolderNever(folder)
+                      : l10n.backupFolderStatus(
+                          folder,
+                          nexDisplayDate(
+                            last,
+                            solar: widget.services.solarCalendar,
+                            persian:
+                                Localizations.localeOf(context).languageCode ==
+                                'fa',
+                            time: true,
+                          ),
+                        ),
+                  style: theme.textTheme.bodyMedium,
+                ),
+                if (failed != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: NexSpacing.xs),
+                    child: Text(
+                      l10n.backupFolderFailed,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: NexSpacing.sm),
+                Wrap(
+                  spacing: NexSpacing.sm,
+                  runSpacing: NexSpacing.xs,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _busy
+                          ? null
+                          : () => unawaited(_copyToFolderNow()),
+                      icon: const Icon(Icons.sync),
+                      label: Text(l10n.backupFolderCopyNow),
+                    ),
+                    TextButton(
+                      onPressed: _busy
+                          ? null
+                          : () => unawaited(_showFolderKey()),
+                      child: Text(l10n.backupFolderShowKey),
+                    ),
+                    TextButton(
+                      onPressed: _busy ? null : () => unawaited(_stopFolder()),
+                      child: Text(l10n.backupFolderStop),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
   Future<String?> _askRecoveryKey() async {
     final controller = TextEditingController();
     final l10n = AppLocalizations.of(context);
@@ -405,6 +613,11 @@ class _BackupScreenState extends State<BackupScreen> {
               action: l10n.exportAndShare,
               onPressed: _busy ? null : () => unawaited(_exportFull()),
             ),
+            if (widget.services.backupFolder.supported)
+              ListenableBuilder(
+                listenable: widget.preferences,
+                builder: (context, _) => _folderSection(l10n, theme),
+              ),
             _Heading(l10n.exportTitle),
             _Explained(
               icon: Icons.ios_share_outlined,

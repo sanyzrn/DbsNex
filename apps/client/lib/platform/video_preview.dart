@@ -45,11 +45,10 @@ abstract final class NexVideoPreview {
   static Future<Uint8List?> poster(String path, {int width = 1080}) async {
     if (path.isEmpty) return null;
     try {
-      return await _channel
-          .invokeMethod<Uint8List>('videoPreview', <String, Object>{
-            'path': path,
-            'width': width,
-          });
+      return await _channel.invokeMethod<Uint8List>(
+        'videoPreview',
+        <String, Object>{'path': path, 'width': width},
+      );
     } on MissingPluginException {
       // No native half on this platform. Not a failure — an absence.
       return null;

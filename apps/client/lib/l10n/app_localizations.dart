@@ -5563,6 +5563,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'audio'**
   String get disclosureAudio;
+
+  /// No description provided for @backupFolderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic copy to a folder'**
+  String get backupFolderTitle;
+
+  /// No description provided for @backupFolderExplained.
+  ///
+  /// In en, this message translates to:
+  /// **'Once a day while Nex is open, a complete backup — notes, media, settings and service keys, never the private vault — goes into a folder you choose: on this phone, or one that Google Drive, Nextcloud or Syncthing offers in the picker. The newest three are kept. Settings and keys in it are encrypted with a recovery code; the notes are not, so choose a folder you trust.'**
+  String get backupFolderExplained;
+
+  /// No description provided for @backupFolderChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose folder'**
+  String get backupFolderChoose;
+
+  /// No description provided for @backupFolderKeyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Every automatic copy is locked with this recovery code. Keep it somewhere other than this phone: without it the settings and keys in a copy cannot be restored.'**
+  String get backupFolderKeyHint;
+
+  /// No description provided for @backupFolderStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'{folder} · last copy {when}'**
+  String backupFolderStatus(String folder, String when);
+
+  /// No description provided for @backupFolderNever.
+  ///
+  /// In en, this message translates to:
+  /// **'{folder} · no copy yet'**
+  String backupFolderNever(String folder);
+
+  /// No description provided for @backupFolderFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The last copy did not reach the folder. Check that it is still available, or choose it again.'**
+  String get backupFolderFailed;
+
+  /// No description provided for @backupFolderCopyNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy now'**
+  String get backupFolderCopyNow;
+
+  /// No description provided for @backupFolderShowKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery code'**
+  String get backupFolderShowKey;
+
+  /// No description provided for @backupFolderStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop copying'**
+  String get backupFolderStop;
+
+  /// No description provided for @backupFolderStopBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the automatic copies? The copies already in the folder stay there.'**
+  String get backupFolderStopBody;
+
+  /// No description provided for @backupFolderCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to the folder'**
+  String get backupFolderCopied;
+
+  /// No description provided for @backupFolderCopyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not copy to the folder'**
+  String get backupFolderCopyFailed;
 }
 
 class _AppLocalizationsDelegate

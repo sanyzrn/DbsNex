@@ -97,7 +97,9 @@ class NexPreferences extends ChangeNotifier {
       key != 'sponsor.image_path' &&
       key != _kSyncBearerToken &&
       !key.startsWith('ai.key.') &&
-      !key.startsWith('restore.');
+      !key.startsWith('restore.') &&
+      // A folder grant belongs to the phone that was given it.
+      !key.startsWith('backup_folder.');
 
   Map<String, dynamic> backupSettings() {
     if (secureStorageUnavailable) {
@@ -164,6 +166,79 @@ class NexPreferences extends ChangeNotifier {
     if (_prefs.getBool('restore.in_progress') != true) return null;
     final value = await _secureStorage.read(key: _restoreRecoveryKey);
     return value == null ? null : jsonDecode(value) as Map<String, dynamic>;
+  }
+
+  // The folder automatic backups are copied into (W1.6). The grant is this
+  // phone's, so none of it travels in a backup.
+  static const _kBackupFolderUri = 'backup_folder.uri';
+  static const _kBackupFolderName = 'backup_folder.name';
+  static const _kBackupFolderLastAt = 'backup_folder.last_at_ms';
+  static const _kBackupFolderFailedAt = 'backup_folder.failed_at_ms';
+  static const _kBackupFolderKey = 'nex.backup_folder.key';
+
+  String? get backupFolderUri => _prefs.getString(_kBackupFolderUri);
+  String get backupFolderName => _prefs.getString(_kBackupFolderName) ?? '';
+
+  /// When the last copy landed, or null if none has.
+  DateTime? get backupFolderLastAt => _millis(_kBackupFolderLastAt);
+
+  /// When the last attempt failed, if it failed after the last success.
+  DateTime? get backupFolderFailedAt => _millis(_kBackupFolderFailedAt);
+
+  DateTime? _millis(String key) {
+    final ms = _prefs.getInt(key);
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  /// The recovery code every automatic backup is encrypted with, kept where
+  /// the API keys are.
+  Future<String?> backupFolderKey() =>
+      _secureStorage.read(key: _kBackupFolderKey);
+
+  Future<void> setBackupFolder({
+    required String uri,
+    required String name,
+    required String key,
+  }) async {
+    await _secureStorage.write(key: _kBackupFolderKey, value: key);
+    if (await _secureStorage.read(key: _kBackupFolderKey) != key) {
+      throw StateError('Cannot keep the recovery code');
+    }
+    await _prefs.setString(_kBackupFolderUri, uri);
+    await _prefs.setString(_kBackupFolderName, name);
+    await _prefs.remove(_kBackupFolderLastAt);
+    await _prefs.remove(_kBackupFolderFailedAt);
+    notifyListeners();
+  }
+
+  Future<void> clearBackupFolder() async {
+    await _secureStorage.delete(key: _kBackupFolderKey);
+    for (final key in [
+      _kBackupFolderUri,
+      _kBackupFolderName,
+      _kBackupFolderLastAt,
+      _kBackupFolderFailedAt,
+    ]) {
+      await _prefs.remove(key);
+    }
+    notifyListeners();
+  }
+
+  Future<void> markBackupFolderCopied() async {
+    await _prefs.setInt(
+      _kBackupFolderLastAt,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+    await _prefs.remove(_kBackupFolderFailedAt);
+    notifyListeners();
+  }
+
+  Future<void> markBackupFolderFailed() async {
+    await _prefs.setInt(
+      _kBackupFolderFailedAt,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+    notifyListeners();
   }
 
   Future<void> finishRestoreRecovery() async {

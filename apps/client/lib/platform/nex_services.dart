@@ -24,6 +24,7 @@ import 'capture_journal.dart';
 import 'export_cache.dart';
 import 'db_worker.dart';
 import 'ai_provider.dart';
+import 'backup_folder.dart';
 import 'disclosure_log.dart';
 import 'nex_db.dart';
 import 'media_picker_impl.dart';
@@ -793,6 +794,64 @@ class NexServices {
     await Future<void>.delayed(const Duration(seconds: 5));
     if (_closed) return;
     await backupIfDue();
+    if (_closed) return;
+    await backupToFolderIfDue();
+  }
+
+  /// How often the chosen folder gets a fresh copy (W1.6).
+  static const backupFolderInterval = Duration(hours: 24);
+
+  /// The Android side of the chosen folder. Replaced by tests.
+  NexBackupFolderChannel backupFolder = const NexBackupFolderChannel();
+
+  /// Copies an encrypted complete backup into the folder the person chose,
+  /// at most once a day unless [force]d. Returns whether a copy landed.
+  ///
+  /// The complete-backup format, with the recovery code chosen when the
+  /// folder was: the library with its media, settings and service keys —
+  /// never the private vault, which only ever leaves in a backup made by
+  /// hand. A failure is recorded for Settings to show, and never thrown.
+  Future<bool> backupToFolderIfDue({bool force = false}) async {
+    final uri = _preferences.backupFolderUri;
+    if (uri == null) return false;
+    final last = _preferences.backupFolderLastAt;
+    if (!force &&
+        last != null &&
+        DateTime.now().difference(last) < backupFolderInterval) {
+      return false;
+    }
+    String? output;
+    try {
+      // Nothing to keep yet: the first copy belongs to the first note.
+      if (!force && (await worker.timeline(limit: 1)).isEmpty) return false;
+      final key = await _preferences.backupFolderKey();
+      if (key == null || !await backupFolder.reachable(uri)) {
+        await _preferences.markBackupFolderFailed();
+        return false;
+      }
+      output = await exportFullBackup(key, includeModel: false);
+      final copied = await backupFolder.copy(
+        uri,
+        output,
+        nexAutoBackupName(DateTime.now()),
+      );
+      if (copied) {
+        await _preferences.markBackupFolderCopied();
+      } else {
+        await _preferences.markBackupFolderFailed();
+      }
+      return copied;
+    } catch (error) {
+      unawaited(noteDiagnostic('folder backup failed: ${error.runtimeType}'));
+      await _preferences.markBackupFolderFailed();
+      return false;
+    } finally {
+      if (output != null) {
+        try {
+          await File(output).delete();
+        } catch (_) {}
+      }
+    }
   }
 
   /// The decision itself, without the launch delay in front of it. Returns

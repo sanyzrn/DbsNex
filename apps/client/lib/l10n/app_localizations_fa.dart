@@ -3432,4 +3432,51 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get disclosureAudio => 'صدا';
+
+  @override
+  String get backupFolderTitle => 'کپی خودکار در یک پوشه';
+
+  @override
+  String get backupFolderExplained =>
+      'روزی یک بار، وقتی نکس باز است، یک پشتیبان کامل — یادداشت‌ها، رسانه‌ها، تنظیمات و کلیدهای سرویس، ولی هرگز خزانهٔ خصوصی — در پوشه‌ای که انتخاب می‌کنید قرار می‌گیرد: روی همین گوشی، یا پوشه‌ای که Google Drive، Nextcloud یا Syncthing در انتخابگر نشان می‌دهد. سه نسخهٔ آخر نگه داشته می‌شود. تنظیمات و کلیدها با یک کد بازیابی رمزگذاری می‌شوند؛ یادداشت‌ها نه، پس پوشه‌ای را انتخاب کنید که به آن اعتماد دارید.';
+
+  @override
+  String get backupFolderChoose => 'انتخاب پوشه';
+
+  @override
+  String get backupFolderKeyHint =>
+      'همهٔ کپی‌های خودکار با این کد بازیابی قفل می‌شوند. آن را جایی غیر از همین گوشی نگه دارید: بدون آن، تنظیمات و کلیدهای داخل کپی قابل بازیابی نیستند.';
+
+  @override
+  String backupFolderStatus(String folder, String when) {
+    return '$folder · آخرین کپی $when';
+  }
+
+  @override
+  String backupFolderNever(String folder) {
+    return '$folder · هنوز کپی‌ای نشده';
+  }
+
+  @override
+  String get backupFolderFailed =>
+      'آخرین کپی به پوشه نرسید. بررسی کنید پوشه هنوز در دسترس است، یا دوباره انتخابش کنید.';
+
+  @override
+  String get backupFolderCopyNow => 'کپی الان';
+
+  @override
+  String get backupFolderShowKey => 'کد بازیابی';
+
+  @override
+  String get backupFolderStop => 'توقف کپی';
+
+  @override
+  String get backupFolderStopBody =>
+      'کپی خودکار متوقف شود؟ کپی‌هایی که الان در پوشه هستند می‌مانند.';
+
+  @override
+  String get backupFolderCopied => 'در پوشه کپی شد';
+
+  @override
+  String get backupFolderCopyFailed => 'کپی در پوشه انجام نشد';
 }

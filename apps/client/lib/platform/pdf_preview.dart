@@ -43,12 +43,10 @@ abstract final class NexPdfPreview {
   }) async {
     if (path.isEmpty) return null;
     try {
-      return await _channel
-          .invokeMethod<Uint8List>('pdfPreview', <String, Object>{
-            'path': path,
-            'width': width,
-            'maxHeight': maxHeight,
-          });
+      return await _channel.invokeMethod<Uint8List>(
+        'pdfPreview',
+        <String, Object>{'path': path, 'width': width, 'maxHeight': maxHeight},
+      );
     } on MissingPluginException {
       // No native half on this platform. Not a failure — an absence.
       return null;
