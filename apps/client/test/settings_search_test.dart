@@ -7,6 +7,7 @@ import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
 import 'package:nex_client/screens/settings_sheet.dart';
+import 'package:nex_client/widgets/nex_dialog.dart';
 
 import 'support/nex_harness.dart';
 
@@ -55,6 +56,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Theme'), findsOneWidget);
     expect(find.text('Capture haptics'), findsNothing);
+  });
+
+  testWidgets('found rows stay above the keyboard', (tester) async {
+    // The report: with a few results the sheet shrank to the bottom of the
+    // screen and the keyboard covered them. Opened the way the app opens it,
+    // as a modal sheet, because a page body resizes for the keyboard itself.
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => nexShowSheet<void>(
+                context: context,
+                builder: (_) =>
+                    SettingsSheet(services: services, preferences: preferences),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    tester.view.viewInsets = const FakeViewPadding(bottom: 800);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.enterText(searchField(), 'backup');
+    await tester.pumpAndSettle();
+    final row = find.text('Taking it with you');
+    expect(row, findsWidgets);
+    await tester.ensureVisible(row.first);
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(row.first).bottom,
+      lessThan(2000 - 800),
+      reason: 'the row is above the keyboard',
+    );
   });
 
   testWidgets('a switch found by search works where it is found', (
