@@ -157,6 +157,10 @@ CI gates on: unit + integration test suites, the two measurable performance budg
 
 Widget tests build their library with the shared harness in `apps/client/test/support/nex_harness.dart` — `NexTestHarness.create()` in a `setUp`, or `pumpNexApp(tester)` inside one test — rather than assembling `NexServices.forTest` by hand.
 
+### Golden pictures
+
+`apps/client/test/goldens/` holds pictures of the surfaces most visual bugs were found on — the timeline card, the hold menu, the capsule notice and the note detail sheet — in left-to-right and right-to-left, light and dark, plus the card in every palette. They are drawn with the app's own fonts, so a Persian line laid out wrong shows as wrong. After an intended visual change, regenerate them with `flutter test --update-goldens test/goldens/` from `apps/client`, look at every changed picture, and commit them with the change. A picture that changed when nothing visual was meant to is the bug report.
+
 ### Flaky tests
 
 A test that fails once and passes on a re-run has found a race. **A retry is never the fix**: no `retry:` on a test, no loop that tries again, no re-run that is taken as the answer. Find the ordering that fails and fix the code or the test's own synchronisation (1.80.2's `SQLITE_BUSY` was fixed with `beginImmediate()`, not a retry).
