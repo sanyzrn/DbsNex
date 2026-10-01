@@ -3782,6 +3782,12 @@ abstract class AppLocalizations {
   /// **'Combine these notes into one?'**
   String get assistantConfirmMerge;
 
+  /// Confirmation for the assistant adding notes to a thread, which it starts when there is none of that name
+  ///
+  /// In en, this message translates to:
+  /// **'Add these notes to a thread?'**
+  String get assistantConfirmThread;
+
   /// Confirmation for converting a note to a checklist
   ///
   /// In en, this message translates to:

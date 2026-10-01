@@ -9,17 +9,16 @@
   does not necessarily want the other, and a home screen is where that
   choice belongs.
 
-  Header — the brief's glyph, its title, and the refresh button at the far
-  end. Below it one of three bodies the provider swaps between: the brief,
-  the locked notice, or the prompt to go and make one. The header stays in
-  all three, because the refresh button is exactly what somebody with no
-  brief yet needs to reach.
+  Header — the Nex logotype, as on the Timeline widget, and nothing else:
+  the "Smart summary" title and its glyph named what the widget plainly
+  is, and the refresh button sent you into the app anyway. A tap on the
+  empty prompt asks for a new brief; a tap anywhere else opens the app,
+  which brings the brief up to date as it opens.
 
   The brief's own TextView carries no maxLines. The widget is resizable and
   the launcher decides how tall it is; letting the text run and be clipped
   by the box is the behaviour that makes a taller widget show more, which is
-  what resizing one is for. `ellipsize` is deliberately absent for the same
-  reason — an ellipsis would need a line count to sit at the end of.
+  what resizing one is for.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/nex_recap_root"
@@ -33,47 +32,19 @@
         android:id="@+id/nex_recap_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="56dp"
+        android:minHeight="40dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="14dp"
-        android:paddingEnd="8dp">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="6dp">
 
         <ImageView
             android:id="@+id/nex_recap_glyph"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="52dp"
+            android:layout_height="12dp"
             android:importantForAccessibility="no"
-            android:src="@drawable/nex_widget_ic_recap" />
-
-        <!--
-          Weighted, not pushed by a spacer: android.widget.Space is not
-          @RemoteView and a layout using one never inflates at all. See the
-          long note in widget_timeline.xml, and the CI guard that now fails
-          the build instead of letting it reach a home screen.
-        -->
-        <TextView
-            android:id="@+id/nex_recap_title"
-            style="@style/NexWidget.Title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:ellipsize="end" />
-
-        <FrameLayout
-            android:id="@+id/nex_recap_refresh"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/nex_widget_bg_badge">
-
-            <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:layout_gravity="center"
-                android:importantForAccessibility="no"
-                android:src="@drawable/nex_widget_ic_refresh" />
-        </FrameLayout>
+            android:src="@drawable/nex_widget_ic_mark" />
     </LinearLayout>
 
     <TextView
@@ -81,9 +52,10 @@
         style="@style/NexWidget.Recap"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:paddingBottom="12dp" />
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="14dp" />
 
     <LinearLayout
         android:id="@+id/nex_recap_locked"

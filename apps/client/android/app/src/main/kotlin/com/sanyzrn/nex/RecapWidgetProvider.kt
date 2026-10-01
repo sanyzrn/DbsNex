@@ -82,24 +82,11 @@ class RecapWidgetProvider : AppWidgetProvider() {
             views.setInt(R.id.nex_recap_glyph, "setColorFilter", it)
         }
 
-        // The header is common to every state. Both of its controls survive
-        // the lock: the title opens the app, which gates itself, and refresh
-        // does the same thing plus an errand.
-        views.setTextViewText(
-            R.id.nex_recap_title,
-            displayContext.getString(R.string.widget_recap_title),
-        )
+        // The header is the logotype alone, common to every state; it opens
+        // the app, which gates itself.
         views.setOnClickPendingIntent(
             R.id.nex_recap_header,
             NexWidgetActions.openApp(context),
-        )
-        views.setOnClickPendingIntent(
-            R.id.nex_recap_refresh,
-            NexWidgetActions.refreshRecap(context),
-        )
-        views.setContentDescription(
-            R.id.nex_recap_refresh,
-            displayContext.getString(R.string.widget_a11y_recap_refresh),
         )
         views.setOnClickPendingIntent(
             R.id.nex_recap_root,
@@ -128,6 +115,16 @@ class RecapWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(
                     R.id.nex_recap_empty_hint,
                     displayContext.getString(R.string.widget_recap_empty_hint),
+                )
+                // With no brief yet, the prompt itself is the way to ask for
+                // one: the refresh button it used to point at is gone.
+                views.setOnClickPendingIntent(
+                    R.id.nex_recap_empty,
+                    NexWidgetActions.refreshRecap(context),
+                )
+                views.setContentDescription(
+                    R.id.nex_recap_empty,
+                    displayContext.getString(R.string.widget_a11y_recap_refresh),
                 )
             }
             else -> {

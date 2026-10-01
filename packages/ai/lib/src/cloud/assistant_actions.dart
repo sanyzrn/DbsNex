@@ -65,6 +65,13 @@ enum AssistantActionKind {
 
   /// One of those removed.
   commitmentDelete,
+
+  /// Notes added to a thread, which is made when no thread has that name.
+  thread,
+
+  /// Reads: the library's threads, by name, with how many notes each holds.
+  /// Like [search], carried out on arrival.
+  threads,
 }
 
 /// One thing the assistant has asked to do, already parsed and validated.
@@ -95,6 +102,7 @@ class AssistantAction {
     this.cadence,
     this.every,
     this.commitmentName,
+    this.threadName,
   });
 
   final AssistantActionKind kind;
@@ -159,9 +167,15 @@ class AssistantAction {
   /// is ever shown, and an id it had to invent is an id it would invent.
   final String? commitmentName;
 
-  /// Whether this changes anything. A search does not, so it is carried out
-  /// as soon as it arrives; everything else waits for the user.
-  bool get isRead => kind == AssistantActionKind.search;
+  /// Which thread an action is about, by name — for a search that reads one
+  /// thread's notes, and for [AssistantActionKind.thread].
+  final String? threadName;
+
+  /// Whether this changes anything. A search or a look at the threads does
+  /// not, so it is carried out as soon as it arrives; everything else waits
+  /// for the user.
+  bool get isRead =>
+      kind == AssistantActionKind.search || kind == AssistantActionKind.threads;
 }
 
 /// The settings the assistant is allowed to change.
@@ -271,6 +285,21 @@ a fenced block tagged `nex` containing one JSON object:
 ```nex
 {"action": "commitment_delete", "name": "gym membership"}
 ```
+```nex
+{"action": "thread", "ids": ["<id>", "<id>"], "name": "Kitchen renovation"}
+```
+
+Every action that names one note with `id` can name several with `ids`
+instead — `delete`, `tag`, `pin`, `remind`, `restore`, `to_checklist` and
+`title` — so "tag all of these as work" or "pin the three about the trip" is
+one block:
+
+```nex
+{"action": "tag", "ids": ["<id>", "<id>", "<id>"], "add": ["work"]}
+```
+
+`thread` adds notes to the thread of that name, and starts the thread when
+there is none.
 
 A `create` makes a checklist instead of a text note when you send items:
 
@@ -316,6 +345,26 @@ wait for the result before doing anything else:
 ```nex
 {"action": "search", "query": "cooler"}
 ```
+
+Or read every note with a tag, or every note in a thread — for "summarise my
+notes tagged work" or "what is in the Trip thread", look them up first and
+answer from what comes back:
+
+```nex
+{"action": "search", "tag": "work"}
+```
+```nex
+{"action": "search", "thread": "Trip"}
+```
+
+To see which threads exist:
+
+```nex
+{"action": "threads"}
+```
+
+Searches and the thread list are carried out at once and need no
+confirmation; everything else waits for the user.
 
 Rules: nothing outside the block — no words, no emoji, no leading bullet,
 not even "Sure:". The app shows the user what you asked for and waits for
@@ -382,8 +431,10 @@ List<AssistantAction> parseAssistantActions(String reply) {
     }
     for (final entry in decoded is List ? decoded : [decoded]) {
       if (entry is! Map) continue;
-      final action = _action(entry);
-      if (action != null) actions.add(action);
+      for (final one in _perNote(entry)) {
+        final action = _action(one);
+        if (action != null) actions.add(action);
+      }
     }
   }
   return actions;
@@ -432,6 +483,38 @@ List<String> _objectsIn(String reply) {
   return found;
 }
 
+/// The actions that act on one note and may name several with `ids`.
+const _groupable = {
+  'delete',
+  'tag',
+  'pin',
+  'unpin',
+  'remind',
+  'reminder',
+  'restore',
+  'undelete',
+  'to_checklist',
+  'checklist',
+  'title',
+};
+
+/// One action per note, for an action that names several with `ids`.
+///
+/// "Tag these five as work" is one intention and one confirmation, and it
+/// is five changes underneath; spelling it out here means each one is shown
+/// on the card and checked for a note that exists, exactly as if the model
+/// had sent five blocks. An action with its own `id` is left alone.
+List<Map<Object?, Object?>> _perNote(Map<Object?, Object?> decoded) {
+  final kind = _string(decoded['action'])?.toLowerCase();
+  final ids = _strings(decoded['ids']);
+  if (!_groupable.contains(kind) || ids.isEmpty || decoded['id'] != null) {
+    return [decoded];
+  }
+  return [
+    for (final id in ids) {...decoded, 'id': id}..remove('ids'),
+  ];
+}
+
 AssistantAction? _action(Map<Object?, Object?> decoded) {
   final id = _string(decoded['id']);
   final text = _string(decoded['text']);
@@ -457,10 +540,25 @@ AssistantAction? _action(Map<Object?, Object?> decoded) {
       noteId: id,
     ),
     'tag' when id != null => _tagAction(decoded, id),
-    'search' when _string(decoded['query']) != null => AssistantAction(
-      kind: AssistantActionKind.search,
-      text: _string(decoded['query']),
-    ),
+    'search'
+        when _string(decoded['query']) != null ||
+            _string(decoded['tag']) != null ||
+            _string(decoded['thread']) != null =>
+      AssistantAction(
+        kind: AssistantActionKind.search,
+        text: _string(decoded['query']),
+        tagName: _string(decoded['tag']),
+        threadName: _string(decoded['thread']),
+      ),
+    'threads' => const AssistantAction(kind: AssistantActionKind.threads),
+    'thread'
+        when _strings(decoded['ids']).isNotEmpty &&
+            _string(decoded['name']) != null =>
+      AssistantAction(
+        kind: AssistantActionKind.thread,
+        noteIds: _strings(decoded['ids']),
+        threadName: _string(decoded['name']),
+      ),
     // Two is the smallest number of notes a merge can be about. One would be
     // a rename with extra steps, and zero is a model filling in a shape.
     'merge' when _strings(decoded['ids']).length > 1 => AssistantAction(

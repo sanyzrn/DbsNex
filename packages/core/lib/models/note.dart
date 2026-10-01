@@ -241,6 +241,21 @@ class Note {
     }
   }
 
+  /// What Copy puts on the clipboard — from the hold menu, the selection bar
+  /// and the note itself alike.
+  ///
+  /// The note's own words first: a text note's content, and on a photo,
+  /// voice or file note the caption the person wrote, ahead of what a model
+  /// read out of it. The OCR or transcript is copied only when there is no
+  /// caption; it keeps its own copy button in the note's details.
+  String? get copyText => switch (type) {
+    NoteType.text || NoteType.checklist => _firstNonEmpty([content]),
+    NoteType.voice => _firstNonEmpty([caption, transcriptText]),
+    NoteType.photo => _firstNonEmpty([caption, ocrText]),
+    NoteType.file => _firstNonEmpty([caption, content]),
+    NoteType.link => _firstNonEmpty([content, caption]),
+  };
+
   static String? _firstNonEmpty(List<String?> parts) {
     for (final part in parts) {
       final text = part?.trim();

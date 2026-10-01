@@ -77,25 +77,23 @@ class TimelineWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_timeline)
         views.setInt(R.id.nex_widget_timeline_root, "setLayoutDirection", displayContext.resources.configuration.layoutDirection)
         val snapshot = NexWidgetSnapshot.read(context)
-        NexWidgetAppearance.accent(context)?.let {
-            views.setInt(R.id.nex_widget_brand, "setColorFilter", it)
-        }
+        val accent = NexWidgetAppearance.accent(context)
+        accent?.let { views.setInt(R.id.nex_widget_brand, "setColorFilter", it) }
 
-        // The header is common to every state: brand on one side, capture on
-        // the other. Both survive the lock — the brand opens the app (which
-        // gates itself), and capture never touches note content.
+        // The header and the capture row are common to every state, and both
+        // survive the lock — the logotype opens the app (which gates itself),
+        // and capture never touches note content.
         views.setOnClickPendingIntent(
             R.id.nex_widget_header,
             NexWidgetActions.openApp(context),
         )
-        views.setOnClickPendingIntent(
-            R.id.nex_widget_capture_badge,
-            NexWidgetActions.textCapture(context),
-        )
-        views.setContentDescription(
-            R.id.nex_widget_capture_badge,
-            displayContext.getString(R.string.widget_a11y_capture),
-        )
+        for ((button, mode, label) in CAPTURE_ROW) {
+            views.setOnClickPendingIntent(button, NexWidgetActions.capture(context, mode))
+            views.setContentDescription(button, displayContext.getString(label))
+        }
+        accent?.let {
+            for (icon in CAPTURE_ICONS) views.setInt(icon, "setColorFilter", it)
+        }
         // The body is one tap away from the timeline from any state.
         views.setOnClickPendingIntent(
             R.id.nex_widget_timeline_root,
@@ -144,5 +142,24 @@ class TimelineWidgetProvider : AppWidgetProvider() {
             }
         }
         return views
+    }
+
+    private companion object {
+        /** The capture row's buttons: the view, the kind it starts, its name. */
+        val CAPTURE_ROW = listOf(
+            Triple(R.id.nex_widget_capture_note, NexQuickCapture.MODE_TEXT, R.string.widget_a11y_capture_note),
+            Triple(R.id.nex_widget_capture_voice, NexQuickCapture.MODE_VOICE, R.string.widget_a11y_capture_voice),
+            Triple(R.id.nex_widget_capture_camera, NexQuickCapture.MODE_PHOTO, R.string.widget_a11y_capture_camera),
+            Triple(R.id.nex_widget_capture_gallery, NexQuickCapture.MODE_GALLERY, R.string.widget_a11y_capture_gallery),
+            Triple(R.id.nex_widget_capture_checklist, NexQuickCapture.MODE_CHECKLIST, R.string.widget_a11y_capture_checklist),
+        )
+
+        val CAPTURE_ICONS = listOf(
+            R.id.nex_widget_capture_note_icon,
+            R.id.nex_widget_capture_voice_icon,
+            R.id.nex_widget_capture_camera_icon,
+            R.id.nex_widget_capture_gallery_icon,
+            R.id.nex_widget_capture_checklist_icon,
+        )
     }
 }

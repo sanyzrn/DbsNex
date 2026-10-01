@@ -23,11 +23,15 @@
     <string name="widget_empty_hint">اولین ثبت شما همین‌جا می‌نشیند.</string>
     <string name="widget_empty_a11y">هنوز چیزی ثبت نشده است. اولین ثبت شما همین‌جا می‌نشیند.</string>
 
-    <string name="widget_recap_title">خلاصه هوشمند</string>
     <string name="widget_recap_locked_title">Nex قفل است</string>
     <string name="widget_recap_locked_a11y">Nex قفل است. برای دیدن خلاصه، Nex را باز کنید.</string>
     <string name="widget_recap_empty_title">هنوز خلاصه‌ای نیست.</string>
-    <string name="widget_recap_empty_hint">روی تازه‌سازی بزنید تا Nex یکی بنویسد.</string>
+    <string name="widget_recap_empty_hint">اینجا بزنید تا Nex یکی بنویسد.</string>
+    <string name="widget_a11y_capture_note">یادداشت تازه</string>
+    <string name="widget_a11y_capture_voice">ضبط یادداشت صوتی</string>
+    <string name="widget_a11y_capture_camera">گرفتن عکس</string>
+    <string name="widget_a11y_capture_gallery">افزودن عکس از گالری</string>
+    <string name="widget_a11y_capture_checklist">چک‌لیست تازه</string>
 
     <string name="widget_type_text">متن</string>
     <string name="widget_type_voice">صدا</string>

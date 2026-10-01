@@ -2278,6 +2278,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantConfirmMerge => 'Combine these notes into one?';
 
   @override
+  String get assistantConfirmThread => 'Add these notes to a thread?';
+
+  @override
   String get assistantConfirmChecklist => 'Turn this into a checklist?';
 
   @override

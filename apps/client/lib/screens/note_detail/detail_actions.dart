@@ -22,12 +22,11 @@ extension _DetailActions on _NoteDetailSheetState {
     await _reload();
   }
 
-  /// The text the main copy action hands to the clipboard: whatever
-  /// [Note.displayText] shows on screen, so the button copies what the user
-  /// is actually looking at — a caption once there is one, not the
-  /// transcript/OCR text underneath it. That text keeps its own small copy
-  /// icon in the AI panel (see [_copyDerivedText]).
-  String? _copyableText(Note note) => note.displayText;
+  /// The text the main copy action hands to the clipboard: [Note.copyText],
+  /// the same as Copy in the hold menu — a caption once there is one, not
+  /// the transcript/OCR text underneath it. That text keeps its own small
+  /// copy icon in the AI panel (see [_copyDerivedText]).
+  String? _copyableText(Note note) => note.copyText;
 
   /// The note's own words, wherever they live.
   ///

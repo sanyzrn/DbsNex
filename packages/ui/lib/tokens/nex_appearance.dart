@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../widgets/nex_theme_texture.dart';
 import 'nex_tokens.dart';
 
 /// The backdrop the whole app sits on.
@@ -243,17 +244,25 @@ class NexAppBackground extends StatelessWidget {
     super.key,
     required this.pattern,
     required this.child,
+    this.texture = NexThemeTexture.none,
   });
 
   final NexBackgroundPattern pattern;
   final Widget child;
+
+  /// The theme's own faint motif along the bottom of the screen, if it has
+  /// one. Under a plain background only.
+  final NexThemeTexture texture;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final base = context.nexVisualStyle.baseColor;
     if (pattern == NexBackgroundPattern.plain) {
-      return ColoredBox(color: base, child: child);
+      return ColoredBox(
+        color: base,
+        child: NexTextureBackdrop(texture: texture, child: child),
+      );
     }
     return ColoredBox(
       color: base,

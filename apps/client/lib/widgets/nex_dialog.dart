@@ -4,10 +4,6 @@ import 'package:flutter/material.dart';
 
 import 'package:nex_ui/nex_ui.dart';
 
-import 'nex_card_opening.dart';
-
-export 'nex_card_opening.dart' show NexSheetOrigin;
-
 /// Wraps dialog content at a stable width.
 ///
 /// `AlertDialog` sizes itself to its content's intrinsic width, so a dialog
@@ -30,6 +26,16 @@ class NexDialogBody extends StatelessWidget {
     );
   }
 }
+
+/// How a note and the assistant rise into view: the ordinary sheet, a touch
+/// slower and softer than Flutter's default, so it reads as one smooth
+/// movement rather than a snap. In 1.90 a note grew out of its card instead;
+/// the owner preferred this.
+const nexSheetRise = AnimationStyle(
+  duration: Duration(milliseconds: 460),
+  reverseDuration: Duration(milliseconds: 260),
+  curve: Curves.easeOutCubic,
+);
 
 /// Opens a bottom sheet the way every bottom sheet in Nex opens.
 ///
@@ -63,27 +69,18 @@ Future<T?> nexShowSheet<T>({
   required WidgetBuilder builder,
   bool dismissible = true,
   bool swipeToClose = false,
-  NexSheetOrigin? from,
+  bool rise = false,
 }) => showModalBottomSheet<T>(
   context: context,
-  // Opening out of a card takes a little longer than sliding up: the eye
-  // has further to follow.
-  sheetAnimationStyle: from == null
-      ? null
-      : const AnimationStyle(
-          duration: Duration(milliseconds: 380),
-          reverseDuration: Duration(milliseconds: 220),
-        ),
+  // A note opens the way the assistant does: the plain sheet, a touch
+  // slower and softer than the default slide.
+  sheetAnimationStyle: rise ? nexSheetRise : null,
   // This shared wrapper supplies the glass material itself. An opaque modal
   // sheet behind it would leave the backdrop filter nothing to sample.
   // The route keeps this colour for its lifetime. If it starts transparent
   // in glass mode and the preference changes while it is open, the content
   // must supply the newly opaque surface itself.
   backgroundColor: Colors.transparent,
-  // The sheet's own material clips to wherever its route has slid it, which
-  // would cut the opening off at that edge; the glass surface inside rounds
-  // the corners itself.
-  clipBehavior: from == null ? null : Clip.none,
   barrierColor: context.nexVisualStyle.liquidGlass
       ? Colors.black.withValues(alpha: 0.24)
       : null,
@@ -122,7 +119,7 @@ Future<T?> nexShowSheet<T>({
       ),
     );
     final framed = guarded ? _SwipeToClose(child: sheet) : sheet;
-    return from == null ? framed : NexCardOpening(origin: from, child: framed);
+    return framed;
   },
 );
 

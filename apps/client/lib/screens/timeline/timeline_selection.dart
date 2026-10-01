@@ -129,9 +129,7 @@ extension _TimelineSelection on TimelineScreenState {
     final notes = _selectedNotes;
     final words = [
       for (final note in notes)
-        if ((note.content ?? note.transcriptText ?? note.ocrText ?? '').trim()
-            case final text when text.isNotEmpty)
-          text,
+        if (note.copyText case final text?) text,
     ];
     if (words.isEmpty) {
       nexShowBanner(context, message: l10n.nothingToCopy);

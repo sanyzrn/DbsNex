@@ -117,7 +117,9 @@ extension _ChatActions on _AiChatSheetState {
             if (gone != null) {
               await widget.services.deleteCommitment(gone.id);
             }
-          case AssistantActionKind.search:
+          case AssistantActionKind.thread:
+            await _addToThread(action);
+          case AssistantActionKind.search || AssistantActionKind.threads:
             break;
         }
       }
@@ -208,6 +210,21 @@ extension _ChatActions on _AiChatSheetState {
       for (final note in await widget.services.deletedNotes()) note.id,
     };
     return restoring.every(deleted.contains);
+  }
+
+  /// Adds notes to the thread the model named, starting it when no thread
+  /// has that name — the same two steps as the thread picker's "New thread"
+  /// followed by picking it.
+  Future<void> _addToThread(AssistantAction action) async {
+    final name = action.threadName!.trim();
+    final threads = await widget.services.threads();
+    final existing = threads
+        .where((t) => t.name.trim().toLowerCase() == name.toLowerCase())
+        .firstOrNull;
+    final thread = existing ?? await widget.services.createThread(name);
+    for (final id in action.noteIds) {
+      await widget.services.addToThread(thread.id, id);
+    }
   }
 
   /// Renames a tag everywhere it is worn, found by the name the model used.

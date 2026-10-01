@@ -191,6 +191,50 @@ extension _ChatSending on _AiChatSheetState {
 
     final findings = StringBuffer();
     for (final lookup in queries) {
+      // The library's threads, by name — what "summarise the Trip thread"
+      // needs first when the model was not told which threads there are.
+      if (lookup.kind == AssistantActionKind.threads) {
+        findings.writeln('Threads:');
+        try {
+          final threads = await widget.services.threads();
+          if (threads.isEmpty) findings.writeln('(none)');
+          for (final thread in threads) {
+            final count = (await widget.services.threadNotes(thread.id)).length;
+            findings.writeln('- ${thread.name} ($count notes)');
+          }
+        } catch (_) {
+          findings.writeln('(could not be read)');
+        }
+        continue;
+      }
+      // Every note with a tag, or in a thread: the set a summary of "my
+      // work notes" or "the Trip thread" is about. Up to thirty, newest
+      // first, each with more of its text than a search hit gets, because
+      // the model is about to summarise them rather than pick one.
+      if (lookup.tagName != null || lookup.threadName != null) {
+        final label = lookup.tagName != null
+            ? 'tag "${lookup.tagName}"'
+            : 'thread "${lookup.threadName}"';
+        List<Note> found;
+        try {
+          found = await _notesIn(lookup);
+        } catch (_) {
+          found = const [];
+        }
+        findings.writeln('Notes with $label:');
+        if (found.isEmpty) {
+          findings.writeln(
+            '(none — no such ${lookup.tagName != null ? 'tag' : 'thread'}, or it is empty)',
+          );
+        } else {
+          _remember(found.take(30));
+          for (final note in found.take(30)) {
+            final line = _contextLine(note, limit: 1200);
+            if (line != null) findings.writeln(line);
+          }
+        }
+        continue;
+      }
       final query = lookup.text ?? '';
       List<Note> found;
       try {
@@ -249,10 +293,36 @@ extension _ChatSending on _AiChatSheetState {
       if (prose.isNotEmpty) {
         _turns.add(ChatMessage(role: ChatRole.assistant, content: prose));
       }
+      // A second look, when the first answered the wrong question — the
+      // thread list, then the one thread asked about. Capped by
+      // [_searchRounds] above, so a model that only ever looks stops.
+      _lookups = [
+        for (final action in actions)
+          if (action.isRead) action,
+      ];
     });
     _persist();
     unawaited(_resolveCitations());
     _toBottom();
+    if (_lookups.isNotEmpty) await _runLookups();
+  }
+
+  /// The notes a tag or a thread holds, found by the name the model used.
+  /// Empty when there is no tag or thread of that name.
+  Future<List<Note>> _notesIn(AssistantAction lookup) async {
+    if (lookup.tagName case final name?) {
+      final tag = (await widget.services.listTags())
+          .where((t) => t.name.toLowerCase() == name.toLowerCase())
+          .firstOrNull;
+      if (tag == null) return const [];
+      return widget.services.search(SearchFilters(tagIds: [tag.id]));
+    }
+    final name = lookup.threadName!.trim().toLowerCase();
+    final thread = (await widget.services.threads())
+        .where((t) => t.name.trim().toLowerCase() == name)
+        .firstOrNull;
+    if (thread == null) return const [];
+    return widget.services.threadNotes(thread.id);
   }
 
   void _remember(Iterable<Note> notes) {

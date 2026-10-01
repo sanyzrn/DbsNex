@@ -1968,6 +1968,10 @@
   "@assistantConfirmMerge": {
     "description": "Confirmation for merging notes"
   },
+  "assistantConfirmThread": "Add these notes to a thread?",
+  "@assistantConfirmThread": {
+    "description": "Confirmation for the assistant adding notes to a thread, which it starts when there is none of that name"
+  },
   "assistantConfirmChecklist": "Turn this into a checklist?",
   "@assistantConfirmChecklist": {
     "description": "Confirmation for converting a note to a checklist"

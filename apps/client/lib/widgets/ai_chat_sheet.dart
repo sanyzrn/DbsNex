@@ -123,11 +123,7 @@ class AiChatSheet extends StatefulWidget {
     backgroundColor: Colors.transparent,
     // A touch slower and softer than a plain sheet, so it rises together
     // with the light along the screen's edge the hold left behind.
-    sheetAnimationStyle: const AnimationStyle(
-      duration: Duration(milliseconds: 460),
-      reverseDuration: Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-    ),
+    sheetAnimationStyle: nexSheetRise,
     // No liquid drop out of the capture button any more: its colour, which
     // was the button's rather than the sheet's, was taken out at the owner's
     // request. The coloured light along the edge stays.

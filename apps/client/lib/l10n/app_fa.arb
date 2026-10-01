@@ -1051,6 +1051,7 @@
   "saveSearch": "ذخیره این جست‌وجو",
   "savedSearches": "ذخیره‌شده",
   "assistantConfirmMerge": "این یادداشت‌ها را یکی کنم؟",
+  "assistantConfirmThread": "این یادداشت‌ها را به یک رشته اضافه کنم؟",
   "assistantConfirmChecklist": "این را به چک‌لیست تبدیل کنم؟",
   "assistantConfirmCheck": "این آیتم را تیک بزنم؟",
   "assistantConfirmCommitment": "این مورد تکرارشونده را بگذارم؟",

@@ -56,12 +56,20 @@ enum PendingOsRequestKind {
 enum OsCaptureMode {
   text,
   voice,
-  photo;
+  photo,
+
+  /// A photo already taken — the Timeline widget's gallery button.
+  gallery,
+
+  /// The Timeline widget's checklist button.
+  checklist;
 
   static OsCaptureMode? fromWire(Object? value) => switch (value) {
     'text' => text,
     'voice' => voice,
     'photo' => photo,
+    'gallery' => gallery,
+    'checklist' => checklist,
     _ => null,
   };
 }

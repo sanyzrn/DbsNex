@@ -56,6 +56,17 @@ object NexWidgetActions {
     private const val RC_OPEN_NOTE = 0x4E650003
     private const val RC_REFRESH_RECAP = 0x4E650004
 
+    // One per capture-row button. The mode rides in an extra, and extras do
+    // not take part in PendingIntent matching — five buttons sharing one
+    // request code would all start whichever kind was registered last.
+    private val RC_CAPTURE = mapOf(
+        NexQuickCapture.MODE_TEXT to 0x4E650011,
+        NexQuickCapture.MODE_VOICE to 0x4E650012,
+        NexQuickCapture.MODE_PHOTO to 0x4E650013,
+        NexQuickCapture.MODE_GALLERY to 0x4E650014,
+        NexQuickCapture.MODE_CHECKLIST to 0x4E650015,
+    )
+
     private val launchFlags =
         Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
 
@@ -100,6 +111,16 @@ object NexWidgetActions {
     fun textCapture(context: Context): PendingIntent = activity(context, RC_TEXT_CAPTURE) {
         textCaptureIntent(context)
     }
+
+    /**
+     * Straight into one kind of capture — the Timeline widget's capture row.
+     * The same action and extra as the quick-capture notification's buttons,
+     * so Dart has one path for both.
+     */
+    fun capture(context: Context, mode: String): PendingIntent =
+        activity(context, RC_CAPTURE.getValue(mode)) {
+            textCaptureIntent(context).putExtra(NexQuickCapture.EXTRA_CAPTURE_MODE, mode)
+        }
 
     /** Opens the timeline and asks it for a new brief (FR-8 / ADR-027). */
     fun refreshRecapIntent(context: Context): Intent =

@@ -149,7 +149,7 @@ extension _TimelineNoteActions on TimelineScreenState {
   List<NoteMenuEntry> _holdEntries(Note note) {
     final prefs = widget.preferences;
     final l10n = AppLocalizations.of(context);
-    final words = note.content ?? note.transcriptText ?? note.ocrText ?? '';
+    final words = note.copyText ?? '';
     final expanded = prefs.isNoteExpanded(note.id);
     NoteMenuEntry? entry(NexHoldAction action) => switch (action) {
       NexHoldAction.select => NoteMenuEntry(
@@ -340,24 +340,10 @@ extension _TimelineNoteActions on TimelineScreenState {
   /// since the outer tap-to-close and the card's own tap handler both fired
   /// off the same touch. The first tap while something is open now only
   /// closes it; opening a note takes its own, second tap.
-  void _tapNote(Note note, {BuildContext? from}) {
+  void _tapNote(Note note) {
     if (_claimedByOverlay()) return;
     if (_selecting) return _toggleSelected(note);
-    unawaited(
-      _openNote(
-        note,
-        from: from == null
-            ? null
-            : NexSheetOrigin.of(
-                from,
-                ghost: NoteCard(
-                  note: note,
-                  strings: nexCardStrings(context),
-                  expanded: widget.preferences.isNoteExpanded(note.id),
-                ),
-              ),
-      ),
-    );
+    unawaited(_openNote(note));
   }
 
   /// One note by id, the way a card tap opens it.
@@ -388,11 +374,10 @@ extension _TimelineNoteActions on TimelineScreenState {
     Note note, {
     bool edit = false,
     NexHoldAction? run,
-    NexSheetOrigin? from,
   }) async {
     final result = await nexShowSheet<DetailResult>(
       context: context,
-      from: from,
+      rise: true,
       builder: (_) => NoteDetailSheet(
         editOnOpen: edit,
         runOnOpen: run,

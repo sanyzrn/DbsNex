@@ -91,6 +91,8 @@ extension _ChatContext on _AiChatSheetState {
     final text =
         [
               note.title,
+              // The person's own line on a photo, voice or file note.
+              note.caption,
               note.content,
               note.transcriptText,
               note.ocrText,
@@ -113,7 +115,10 @@ extension _ChatContext on _AiChatSheetState {
             .replaceAll(RegExp(r'\s+'), ' ');
     if (text.isEmpty) return null;
     final clipped = text.length > limit ? '${text.substring(0, limit)}…' : text;
-    return '[${note.id}] ${note.type.wireName}: $clipped';
+    // Its tags, so "the ones tagged work" can be answered from what is
+    // already in front of the model, and acted on without a search.
+    final tags = [for (final tag in note.tags) '#${tag.name}'].join(' ');
+    return '[${note.id}] ${note.type.wireName}${tags.isEmpty ? '' : ' $tags'}: $clipped';
   }
 
   /// The text of the file attached to [note], for the kinds Nex can read.

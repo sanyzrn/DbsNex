@@ -473,9 +473,13 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     final accentSeed =
         nexParseTagColor(prefs.accentSeed) ??
         nexThemePresetSeed(prefs.themePreset);
+    final texture = nexThemeTexture(prefs.themePreset);
+    // Scaffolds see through to the app's background whenever it shows
+    // anything: glass, a pattern, or a theme's motif along the bottom.
     final transparentScaffold =
         prefs.liquidGlass ||
-        prefs.backgroundPattern != NexBackgroundPattern.plain;
+        prefs.backgroundPattern != NexBackgroundPattern.plain ||
+        texture != NexThemeTexture.none;
     _applyOverlayStyle(context, prefs.themeMode);
     return MaterialApp(
       scaffoldMessengerKey: _messengerKey,
@@ -544,6 +548,7 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
             density: prefs.cardDensity,
             child: NexAppBackground(
               pattern: prefs.backgroundPattern,
+              texture: texture,
               child: MediaQuery(
                 data: media.copyWith(
                   disableAnimations: media.disableAnimations,

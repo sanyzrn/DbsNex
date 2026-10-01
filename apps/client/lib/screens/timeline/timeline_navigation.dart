@@ -219,7 +219,8 @@ extension _TimelineNavigation on TimelineScreenState {
     unawaited(openCapture());
   }
 
-  /// A quick-capture notification button: straight to the kind it names.
+  /// A quick-capture notification button, or one of the Timeline widget's
+  /// capture row: straight to the kind it names.
   void _captureFromOs(OsCaptureMode mode) {
     if (!mounted) return;
     _surfaceTimeline();
@@ -230,6 +231,10 @@ extension _TimelineNavigation on TimelineScreenState {
         unawaited(captureVoice());
       case OsCaptureMode.photo:
         unawaited(capturePhoto(ImageSource.camera));
+      case OsCaptureMode.gallery:
+        unawaited(capturePhoto(ImageSource.gallery));
+      case OsCaptureMode.checklist:
+        unawaited(captureChecklist());
     }
   }
 

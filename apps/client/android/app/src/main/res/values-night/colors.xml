@@ -8,4 +8,5 @@
     <color name="nex_widget_text">#F2F2F3</color>
     <color name="nex_widget_text_dim">#ABABAB</color>
     <color name="nex_widget_stroke">#323232</color>
+    <color name="nex_widget_action">#18F2F2F3</color>
 </resources>

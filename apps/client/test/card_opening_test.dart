@@ -1,14 +1,13 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/screens/note_detail_sheet.dart';
-import 'package:nex_client/widgets/nex_card_opening.dart';
+import 'package:nex_client/widgets/nex_dialog.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'support/nex_harness.dart';
 
-/// W7.3: a tapped card opens into its note — the sheet grows out of the
-/// card, and the card holds still over it until the note has taken its
-/// place.
+/// A tapped card opens its note the way the assistant opens: the ordinary
+/// sheet rising from the bottom, at the assistant's own softer pace
+/// ([nexSheetRise]). Until 1.92 the sheet grew out of the card instead.
 void main() {
   late NexTestHarness harness;
 
@@ -20,63 +19,28 @@ void main() {
 
   tearDown(() => harness.dispose());
 
-  Finder ghostCard() =>
-      find.byWidgetPredicate((w) => w is NoteCard && w.onTap == null);
-
-  testWidgets('the card stays where it was while the sheet grows from it', (
+  testWidgets("the note rises from the bottom at the assistant's pace", (
     tester,
   ) async {
     await tester.pumpWidget(harness.app());
     await tester.pumpAndSettle();
-    final card = find.byType(NoteCard).first;
-    final before = tester.getRect(card);
 
-    await tester.tap(card);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
-    expect(find.byType(NexCardOpening), findsOneWidget);
-    expect(ghostCard(), findsOneWidget);
-    expect(
-      tester.getRect(ghostCard()),
-      before,
-      reason: 'icon and title stay exactly where they were',
-    );
-
-    // The details being built now are the ones that stay: nothing is
-    // rebuilt from scratch when the opening ends, which is what flashed.
-    await tester.pump(const Duration(milliseconds: 100));
-    final during = tester.state(find.byType(NoteDetailSheet));
-
-    await tester.pumpAndSettle();
-    expect(
-      identical(tester.state(find.byType(NoteDetailSheet)), during),
-      isTrue,
-      reason: 'the sheet keeps its state through the end of the opening',
-    );
-    expect(ghostCard(), findsNothing, reason: 'gone once the note is open');
-    expect(find.byType(NoteDetailSheet), findsOneWidget);
-    expect(find.text('the card that opens'), findsWidgets);
-
-    // Closing is the ordinary sheet closing.
-    await tester.tapAt(const Offset(10, 10));
-    await tester.pumpAndSettle();
-    expect(find.byType(NoteDetailSheet), findsNothing);
-    expect(ghostCard(), findsNothing);
-  });
-
-  testWidgets('with animations off the sheet simply opens', (tester) async {
-    await tester.pumpWidget(
-      MediaQuery(
-        data: const MediaQueryData(disableAnimations: true),
-        child: harness.app(),
-      ),
-    );
-    await tester.pumpAndSettle();
     await tester.tap(find.byType(NoteCard).first);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
-    expect(ghostCard(), findsNothing);
+    // Halfway through the rise the sheet is still on its way up: the
+    // default slide would long since have arrived.
+    await tester.pump(nexSheetRise.duration! * 0.4);
+    final sheet = find.byType(NoteDetailSheet);
+    expect(sheet, findsOneWidget);
+    final rising = tester.getTopLeft(sheet).dy;
+
     await tester.pumpAndSettle();
-    expect(find.byType(NoteDetailSheet), findsOneWidget);
+    final settled = tester.getTopLeft(sheet).dy;
+    expect(rising, greaterThan(settled + 1));
+    // Only the note itself: no copy of the card held over it.
+    expect(
+      find.byWidgetPredicate((w) => w is NoteCard && w.onTap == null),
+      findsNothing,
+    );
   });
 }
