@@ -172,15 +172,41 @@ extension _TimelineBody on TimelineScreenState {
     if (scale > .80 && scale < 1.25) return;
     _pinchApplied = true;
     nexBump();
-    _rebuild(() {
-      _openingGroup = null;
-      _closingGroup = null;
-    });
-    _model.setCollapsedGroups(
-      scale < 1
-          ? {'pinned', 'today', 'yesterday', 'week', 'month', 'older'}
-          : {},
+    unawaited(
+      _foldAll(
+        scale < 1
+            ? const {'pinned', 'today', 'yesterday', 'week', 'month', 'older'}
+            : const {},
+      ),
     );
+  }
+
+  /// Every day folded, or every day open, from a pinch — with the same
+  /// animation a single heading's tap plays, on every group that moves.
+  ///
+  /// It used to set the folds in one go: the rows were there on one frame
+  /// and gone on the next, which is the jump cut [_toggleGroup] exists to
+  /// avoid for one group.
+  Future<void> _foldAll(Set<String> folded) async {
+    final before = _model.collapsedGroups;
+    final closing = folded.difference(before);
+    final opening = before.difference(folded);
+    if (closing.isEmpty && opening.isEmpty) return;
+    _rebuild(() {
+      _closingGroups
+        ..clear()
+        ..addAll(closing);
+      _openingGroups
+        ..clear()
+        ..addAll(opening);
+    });
+    _model.setCollapsedGroups(folded);
+    await Future<void>.delayed(_foldDuration);
+    if (!mounted) return;
+    _rebuild(() {
+      _closingGroups.removeAll(closing);
+      _openingGroups.removeAll(opening);
+    });
   }
 
   Widget _wrapInRefresh({required bool enabled, required Widget child}) {
@@ -322,7 +348,7 @@ extension _TimelineBody on TimelineScreenState {
         // fold was a jump cut: the rows were simply gone on the next frame,
         // which is the report this fixes. See [_toggleGroup].
         if (!_model.collapsedGroups.contains(group.key) ||
-            group.key == _closingGroup)
+            _closingGroups.contains(group.key))
           for (final note in group.notes) _TimelineRow.note(note, group.key),
       ],
     ];
@@ -358,8 +384,8 @@ extension _TimelineBody on TimelineScreenState {
               // Keyed on the note so the controller survives a rebuild of the
               // list and an entrance is never restarted mid-flight.
               key: ValueKey('fold-${note.id}'),
-              open: row.groupKey != _closingGroup,
-              animateIn: row.groupKey == _openingGroup,
+              open: !_closingGroups.contains(row.groupKey),
+              animateIn: _openingGroups.contains(row.groupKey),
               child: NoteSpotlight(
                 key: _spotlightId == note.id ? _spotlightAnchor : null,
                 active: _spotlightId == note.id,
@@ -436,22 +462,22 @@ extension _TimelineBody on TimelineScreenState {
     final closing = !collapsed.contains(key);
     if (closing) {
       _rebuild(() {
-        _closingGroup = key;
-        _openingGroup = null;
+        _closingGroups.add(key);
+        _openingGroups.remove(key);
       });
       _model.setCollapsedGroups({...collapsed, key});
       await Future<void>.delayed(_foldDuration);
       if (!mounted) return;
-      _rebuild(() => _closingGroup = null);
+      _rebuild(() => _closingGroups.remove(key));
     } else {
       _rebuild(() {
-        _closingGroup = null;
-        _openingGroup = key;
+        _closingGroups.remove(key);
+        _openingGroups.add(key);
       });
       _model.setCollapsedGroups({...collapsed}..remove(key));
       await Future<void>.delayed(_foldDuration);
       if (!mounted) return;
-      _rebuild(() => _openingGroup = null);
+      _rebuild(() => _openingGroups.remove(key));
     }
   }
 
