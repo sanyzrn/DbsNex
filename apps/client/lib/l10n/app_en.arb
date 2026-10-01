@@ -2649,5 +2649,6 @@
   "selectionPinned": "{count, plural, =1{Pinned 1 note} other{Pinned {count} notes}}",
   "@selectionPinned": {"placeholders": {"count": {"type": "int"}}},
   "selectionUnpinned": "{count, plural, =1{Unpinned 1 note} other{Unpinned {count} notes}}",
-  "@selectionUnpinned": {"placeholders": {"count": {"type": "int"}}}
+  "@selectionUnpinned": {"placeholders": {"count": {"type": "int"}}},
+  "recoveryCodeCopy": "Copy the recovery code"
 }

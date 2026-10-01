@@ -16,6 +16,7 @@ import '../platform/nex_services.dart';
 import '../restart_scope.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/recovery_code.dart';
 
 /// Everything about getting the library out of this device, and back in.
 ///
@@ -103,7 +104,7 @@ class _BackupScreenState extends State<BackupScreen> {
               children: [
                 Text(l10n.fullBackupPrivateHint),
                 const SizedBox(height: 12),
-                SelectableText(key, textDirection: TextDirection.ltr),
+                NexRecoveryCode(key),
                 CheckboxListTile(
                   value: retainedKey,
                   title: Text(l10n.backupKeySaved),
@@ -196,7 +197,7 @@ class _BackupScreenState extends State<BackupScreen> {
               children: [
                 Text(l10n.backupFolderKeyHint),
                 const SizedBox(height: 12),
-                SelectableText(key, textDirection: TextDirection.ltr),
+                NexRecoveryCode(key),
                 CheckboxListTile(
                   value: saved,
                   title: Text(l10n.backupKeySaved),
@@ -243,7 +244,7 @@ class _BackupScreenState extends State<BackupScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.backupFolderShowKey),
-        content: SelectableText(key, textDirection: TextDirection.ltr),
+        content: NexRecoveryCode(key),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

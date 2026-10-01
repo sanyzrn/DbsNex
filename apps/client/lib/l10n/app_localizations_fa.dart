@@ -3623,4 +3623,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String selectionUnpinned(int count) {
     return 'پین $count یادداشت برداشته شد';
   }
+
+  @override
+  String get recoveryCodeCopy => 'کپی کد بازیابی';
 }
