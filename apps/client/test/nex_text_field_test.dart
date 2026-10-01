@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
+import 'package:nex_client/widgets/keyboard_dismisser.dart';
 import 'package:nex_client/widgets/nex_text_field.dart';
 
 /// The Dart half of the native editor (ADR-037), driven the way Android
@@ -98,7 +99,8 @@ void main() {
     expect(created!['maxLines'], 0, reason: 'null maxLines grows unbounded');
     expect(created!['imeAction'], 'send');
     expect(created!['rtl'], isTrue);
-    final formats = (created!['formats']! as List).cast<Map<Object?, Object?>>();
+    final formats = (created!['formats']! as List)
+        .cast<Map<Object?, Object?>>();
     expect(
       formats.map((f) => f['id']),
       containsAll(['bold', 'italic', 'quote', 'link', 'clear']),
@@ -265,5 +267,47 @@ void main() {
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.textDirection, TextDirection.rtl);
     expect(field.maxLines, 4);
+  });
+
+  testWidgets('a tap inside the editor with the keyboard up keeps it focused, '
+      'in the app as it runs, under the keyboard dismisser', (tester) async {
+    // 1.91.0's keyboard rule dropped focus on every touch in the app, and a
+    // tap in the capture box or the note editor closed the keyboard. Any
+    // field built on NexTextField goes through this path.
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.reset);
+    final controller = TextEditingController(text: 'یادداشت');
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => NexKeyboardDismisser(child: child!),
+        home: Scaffold(
+          body: Center(
+            child: NexTextField(
+              controller: controller,
+              focusNode: focus,
+              minLines: 3,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    focus.requestFocus();
+    await tester.pump();
+    await fromNative(tester, 'focus', {'focused': true});
+    toNative.clear();
+
+    final press = await tester.startGesture(
+      tester.getCenter(find.byType(PlatformViewLink)),
+    );
+    await tester.pump();
+    expect(focus.hasFocus, isTrue);
+    await press.up();
+    await tester.pumpAndSettle();
+
+    expect(focus.hasFocus, isTrue);
+    expect(toNative.map((c) => c.method), isNot(contains('unfocus')));
   });
 }
