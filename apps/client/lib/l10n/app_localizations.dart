@@ -5857,6 +5857,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Unpinned 1 note} other{Unpinned {count} notes}}'**
   String selectionUnpinned(int count);
+
+  /// No description provided for @recoveryCodeCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy the recovery code'**
+  String get recoveryCodeCopy;
 }
 
 class _AppLocalizationsDelegate

@@ -20,7 +20,7 @@ class _TimelineRow {
   final Note? note;
 
   /// Which run this note sits under. Needed only while a group is closing —
-  /// see `_closingGroup`.
+  /// see `_closingGroups`.
   final String? groupKey;
 }
 
@@ -57,7 +57,7 @@ class _FoldingRow extends StatefulWidget {
   ///
   /// False means "start at full height and stay there". A row that was
   /// already on screen must not animate itself in when its index shifts —
-  /// see [_TimelineScreenState._openingGroup].
+  /// see `_openingGroups`.
   final bool animateIn;
 
   final Widget child;

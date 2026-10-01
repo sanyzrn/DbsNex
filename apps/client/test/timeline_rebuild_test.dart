@@ -114,7 +114,13 @@ void main() {
       await second.moveTo(point + const Offset(35, 0));
       await first.up();
       await second.up();
+      // Folded with the same animation a heading's tap plays: the card is
+      // still on its way out a moment later, not cut away on one frame.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(find.text('Pinch example'), findsOneWidget);
       await tester.pumpAndSettle();
+      expect(find.text('Pinch example'), findsNothing);
       expect(
         preferences.collapsedTimelineGroups,
         containsAll(['today', 'older', 'pinned']),

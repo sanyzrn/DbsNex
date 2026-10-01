@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nex_ui/nex_ui.dart';
 import '../widgets/feature_label.dart';
 
 typedef NexThemePreset = ({
@@ -181,6 +182,43 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
     textTheme: base.textTheme.apply(
       bodyColor: colors.onSurface,
       displayColor: colors.onSurface,
+    ),
+    // Text fields, switches and outlined buttons were still drawn in the
+    // classic palette's greys — a search box, the switch beside every
+    // setting, a plain button — so on Saffron or Midnight they read as
+    // pieces of another app. They take this palette's own tones.
+    inputDecorationTheme: base.inputDecorationTheme.copyWith(
+      fillColor: colors.surfaceContainerHigh,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(NexRadius.md),
+        borderSide: BorderSide(color: colors.outlineVariant),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(NexRadius.md),
+        borderSide: BorderSide(color: colors.primary, width: nexFocusRingWidth),
+      ),
+    ),
+    switchTheme: base.switchTheme.copyWith(
+      trackOutlineColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? Colors.transparent
+            : colors.outline,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? colors.primary
+            : colors.surfaceContainerHighest,
+      ),
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? colors.onPrimary
+            : colors.outline,
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: base.outlinedButtonTheme.style?.copyWith(
+        side: WidgetStatePropertyAll(BorderSide(color: colors.outline)),
+      ),
     ),
     // No colour for icons across the board. One set here won over the
     // foreground every filled button gives its own icon, so on every palette

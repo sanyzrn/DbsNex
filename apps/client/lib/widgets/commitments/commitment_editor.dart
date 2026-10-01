@@ -332,7 +332,9 @@ class _CommitmentEditorState extends State<CommitmentEditor>
                 contextMenuBuilder: nexReadingMenu,
                 textDirection: direction,
                 textAlign: TextAlign.start,
-                autofocus: widget.existing == null,
+                // Not focused on open. The page leads with the templates,
+                // and a keyboard that comes up by itself covers half of the
+                // form before anyone has decided what to fill in.
                 textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
                   labelText: l10n.commitmentTitleLabel,
@@ -354,6 +356,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
               trailing: DropdownButton<NexCadence>(
                 value: _cadence,
                 underline: const SizedBox.shrink(),
+                style: Theme.of(context).textTheme.bodyLarge,
                 items: [
                   for (final cadence in NexCadence.values)
                     DropdownMenuItem(
@@ -372,6 +375,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
               trailing: DropdownButton<int>(
                 value: _every,
                 underline: const SizedBox.shrink(),
+                style: Theme.of(context).textTheme.bodyLarge,
                 items: [
                   for (final n in const [1, 2, 3, 4, 6, 8, 12])
                     DropdownMenuItem(value: n, child: Text('$n')),
@@ -411,6 +415,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
               trailing: DropdownButton<int>(
                 value: _lead?.inHours ?? -1,
                 underline: const SizedBox.shrink(),
+                style: Theme.of(context).textTheme.bodyLarge,
                 items: [
                   DropdownMenuItem(value: -1, child: Text(l10n.commitmentAuto)),
                   for (final hours in const [0, 6, 24, 48, 24 * 7, 24 * 30])

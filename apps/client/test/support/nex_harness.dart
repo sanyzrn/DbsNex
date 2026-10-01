@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/app.dart';
+import 'package:nex_client/platform/update_service.dart';
 import 'package:nex_client/platform/backup_policy.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/nex_services.dart';
@@ -96,7 +97,8 @@ class NexTestHarness {
   String get backupDir => p.join(root.path, 'backups');
 
   /// The app itself, over this library.
-  Widget app() => NexApp(services: services, preferences: preferences);
+  Widget app({UpdateService? updates}) =>
+      NexApp(services: services, preferences: preferences, updates: updates);
 
   bool _disposed = false;
 

@@ -341,184 +341,174 @@ class _AiChatSheetState extends State<AiChatSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return NexAmbientEdgeGlow(
-      // The hold that opens this sheet lights the whole edge of the screen
-      // and then lets it go. A thread of the same spectrum stays for as long
-      // as the assistant is up, so the mode is visible from anywhere on the
-      // display rather than only from the sheet you happen to be looking at.
-      colors: nexAssistantSpectrum,
-      child: DraggableScrollableSheet(
-        controller: _sheet,
-        // Starts as a question, not a room you moved into.
-        initialChildSize: AiChatSheet.initialSize,
-        minChildSize: 0.35,
-        maxChildSize: 1,
-        // Snaps to the two ends so a half-dragged sheet settles somewhere
-        // deliberate instead of wherever the finger let go.
-        snap: true,
-        snapSizes: const [AiChatSheet.initialSize],
-        expand: false,
-        builder: (context, sheetScroll) {
-          _scroll = sheetScroll;
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(NexRadius.xl),
-              ),
+    // No coloured thread along the screen's edge while the assistant is up:
+    // taken out at the owner's request, with nothing else about the sheet
+    // changed.
+    return DraggableScrollableSheet(
+      controller: _sheet,
+      // Starts as a question, not a room you moved into.
+      initialChildSize: AiChatSheet.initialSize,
+      minChildSize: 0.35,
+      maxChildSize: 1,
+      // Snaps to the two ends so a half-dragged sheet settles somewhere
+      // deliberate instead of wherever the finger let go.
+      snap: true,
+      snapSizes: const [AiChatSheet.initialSize],
+      expand: false,
+      builder: (context, sheetScroll) {
+        _scroll = sheetScroll;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(NexRadius.xl),
             ),
-            child: Column(
-              children: [
-                // The drag handle doubles as the affordance for "this gets
-                // bigger" — it is the only thing suggesting the sheet moves.
-                Padding(
-                  padding: const EdgeInsets.only(top: NexSpacing.sm),
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(NexRadius.xs),
-                    ),
+          ),
+          child: Column(
+            children: [
+              // The drag handle doubles as the affordance for "this gets
+              // bigger" — it is the only thing suggesting the sheet moves.
+              Padding(
+                padding: const EdgeInsets.only(top: NexSpacing.sm),
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(NexRadius.xs),
                   ),
                 ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  NexSpacing.md,
+                  NexSpacing.sm,
+                  NexSpacing.sm,
+                  0,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
+                    // Which note this is about, when it is about one. The
+                    // sheet already answers only from that note and can act
+                    // on it, and none of that was visible: the same blank
+                    // chat opened whether it had been reached from the
+                    // capture button or from one note's own action row.
+                    if (widget.scopeLabel case final group?) ...[
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.chatAboutGroup(group, widget.scope?.length ?? 0),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          textDirection: nexDirectionOf(group),
+                        ),
+                      ),
+                    ] else if (widget.focus case final note?) ...[
+                      const SizedBox(width: NexSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.chatAboutNote(_focusLabel(note)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          textDirection: nexDirectionOf(_focusLabel(note)),
+                        ),
+                      ),
+                    ] else
+                      const Spacer(),
+                    IconButton(
+                      tooltip: l10n.chatHistory,
+                      onPressed: _openHistory,
+                      icon: const Icon(Icons.history),
+                    ),
+                    // The same settings the Settings row opens, on the
+                    // surface where they are actually being judged: the
+                    // answer that was too long is on screen while the length
+                    // control is being changed.
+                    IconButton(
+                      tooltip: l10n.assistant,
+                      onPressed: _openSettings,
+                      icon: const Icon(Icons.tune),
+                    ),
+                    IconButton(
+                      tooltip: l10n.cancel,
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _turns.isEmpty && _failure == null
+                    ? _Suggestions(
+                        // The sheet's own scrollable has to be the one
+                        // DraggableScrollableSheet handed down, or dragging the
+                        // body does not resize the sheet.
+                        controller: sheetScroll,
+                        onPick: (text) => unawaited(_send(text)),
+                      )
+                    : _Thread(
+                        // Same controller as the suggestions above: the thread
+                        // has to be the sheet's own scrollable too, or dragging
+                        // it up stops resizing the sheet the moment the first
+                        // message lands.
+                        controller: sheetScroll,
+                        turns: _turns,
+                        sending: _sending,
+                        failure: _failure,
+                        notes: _notes,
+                        onOpenNote: _openCited,
+                      ),
+              ),
+              if (_failure != null && _retryText != null && !_sending)
+                TextButton.icon(
+                  onPressed: () => unawaited(_send(_retryText!, retry: true)),
+                  icon: const Icon(Icons.refresh),
+                  label: Text(l10n.retry),
+                ),
+              if (_pending.isNotEmpty)
+                _ActionCard(
+                  solar: widget.preferences.solarCalendar,
+                  persian: l10n.localeName == 'fa',
+                  actions: _pending,
+                  onApply: () => unawaited(_runPending()),
+                  onDismiss: () => setState(() => _pending = const []),
+                ),
+              if (_actionResult case final result?)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    NexSpacing.md,
-                    NexSpacing.sm,
-                    NexSpacing.sm,
-                    0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.md,
                   ),
                   child: Row(
                     children: [
                       Icon(
-                        Icons.auto_awesome,
-                        color: theme.colorScheme.primary,
+                        Icons.check_circle_outline,
+                        size: 18,
+                        color: theme.colorScheme.secondary,
                       ),
-                      // Which note this is about, when it is about one. The
-                      // sheet already answers only from that note and can act
-                      // on it, and none of that was visible: the same blank
-                      // chat opened whether it had been reached from the
-                      // capture button or from one note's own action row.
-                      if (widget.scopeLabel case final group?) ...[
-                        const SizedBox(width: NexSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            l10n.chatAboutGroup(
-                              group,
-                              widget.scope?.length ?? 0,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            textDirection: nexDirectionOf(group),
-                          ),
-                        ),
-                      ] else if (widget.focus case final note?) ...[
-                        const SizedBox(width: NexSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            l10n.chatAboutNote(_focusLabel(note)),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            textDirection: nexDirectionOf(_focusLabel(note)),
-                          ),
-                        ),
-                      ] else
-                        const Spacer(),
-                      IconButton(
-                        tooltip: l10n.chatHistory,
-                        onPressed: _openHistory,
-                        icon: const Icon(Icons.history),
-                      ),
-                      // The same settings the Settings row opens, on the
-                      // surface where they are actually being judged: the
-                      // answer that was too long is on screen while the length
-                      // control is being changed.
-                      IconButton(
-                        tooltip: l10n.assistant,
-                        onPressed: _openSettings,
-                        icon: const Icon(Icons.tune),
-                      ),
-                      IconButton(
-                        tooltip: l10n.cancel,
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
+                      const SizedBox(width: NexSpacing.sm),
+                      Text(result, style: theme.textTheme.bodySmall),
                     ],
                   ),
                 ),
-                Expanded(
-                  child: _turns.isEmpty && _failure == null
-                      ? _Suggestions(
-                          // The sheet's own scrollable has to be the one
-                          // DraggableScrollableSheet handed down, or dragging the
-                          // body does not resize the sheet.
-                          controller: sheetScroll,
-                          onPick: (text) => unawaited(_send(text)),
-                        )
-                      : _Thread(
-                          // Same controller as the suggestions above: the thread
-                          // has to be the sheet's own scrollable too, or dragging
-                          // it up stops resizing the sheet the moment the first
-                          // message lands.
-                          controller: sheetScroll,
-                          turns: _turns,
-                          sending: _sending,
-                          failure: _failure,
-                          notes: _notes,
-                          onOpenNote: _openCited,
-                        ),
-                ),
-                if (_failure != null && _retryText != null && !_sending)
-                  TextButton.icon(
-                    onPressed: () => unawaited(_send(_retryText!, retry: true)),
-                    icon: const Icon(Icons.refresh),
-                    label: Text(l10n.retry),
-                  ),
-                if (_pending.isNotEmpty)
-                  _ActionCard(
-                    solar: widget.preferences.solarCalendar,
-                    persian: l10n.localeName == 'fa',
-                    actions: _pending,
-                    onApply: () => unawaited(_runPending()),
-                    onDismiss: () => setState(() => _pending = const []),
-                  ),
-                if (_actionResult case final result?)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: NexSpacing.md,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 18,
-                          color: theme.colorScheme.secondary,
-                        ),
-                        const SizedBox(width: NexSpacing.sm),
-                        Text(result, style: theme.textTheme.bodySmall),
-                      ],
-                    ),
-                  ),
-                _Composer(
-                  controller: _input,
-                  focusNode: _composerFocus,
-                  sending: _sending,
-                  transcribing: _transcribing,
-                  onSend: () => unawaited(_send(_input.text)),
-                  onSpeak: _canSpeak ? () => unawaited(_speak()) : null,
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+              _Composer(
+                controller: _input,
+                focusNode: _composerFocus,
+                sending: _sending,
+                transcribing: _transcribing,
+                onSend: () => unawaited(_send(_input.text)),
+                onSpeak: _canSpeak ? () => unawaited(_speak()) : null,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

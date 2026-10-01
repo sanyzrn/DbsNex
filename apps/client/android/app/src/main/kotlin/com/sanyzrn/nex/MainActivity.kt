@@ -302,6 +302,15 @@ open class MainActivity : FlutterFragmentActivity() {
                     result.success(started)
                 }
             }
+            // Back on the home screen while an update is downloading. The
+            // transfer runs in Dart, and Dart runs in this Activity's engine:
+            // finishing the Activity took the engine — and the download —
+            // with it, whatever the foreground service kept alive. Going to
+            // the background instead is what Home does, and Home already
+            // kept the download running.
+            "moveTaskToBack" -> {
+                result.success(moveTaskToBack(true))
+            }
             "stopDownloadNotice" -> {
                 runCatching { stopService(Intent(this, DownloadService::class.java)) }
                 result.success(true)

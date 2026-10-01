@@ -71,12 +71,16 @@ extension _TimelineLayout on TimelineScreenState {
       ),
       // Android's back gesture leaves search before it leaves the screen.
       body: PopScope(
-        canPop: !_searching && !_selecting,
+        // Never popped by the framework: what Back means here depends on
+        // things that change without this screen rebuilding — above all an
+        // update downloading in the background.
+        canPop: false,
         onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
           // Picking several notes is left before anything else.
           if (_selecting) return _endSelection();
-          _exitSearch();
+          if (_searching) return _exitSearch();
+          unawaited(_leave());
         },
         // The list keeps drawing all the way down, and stops *listening*
         // where the system's own navigation gestures begin. Without this the
@@ -366,6 +370,22 @@ extension _TimelineLayout on TimelineScreenState {
     );
   }
 
+  /// Back with nothing open on the home screen: leave the app — except
+  /// that while an update downloads, Nex goes to the background the way
+  /// Home sends it, because closing it stopped the download.
+  Future<void> _leave() async {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    if ((widget.updates?.isDownloading ?? false) &&
+        await NexDownloadNotice.sendAppToBack()) {
+      return;
+    }
+    await SystemNavigator.pop();
+  }
+
   /// One dock along the bottom, with capture lifted above its quieter actions.
   ///
   /// Tools and recurring items stay to one side, library and settings
@@ -431,8 +451,10 @@ extension _TimelineLayout on TimelineScreenState {
             ),
           ],
           // Hold capture for the assistant; the leftmost destination is Tools.
+          // No light while held: the multicoloured edge the hold used to
+          // draw was taken out at the owner's request; the hold, its timing
+          // and its haptics are unchanged.
           capture: NexLongPressGlow(
-            colors: nexAssistantSpectrum,
             onHoldStart: _tick,
             onTriggered: () {
               if (_claimedByOverlay()) return;

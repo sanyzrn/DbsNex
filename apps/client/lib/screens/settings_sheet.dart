@@ -404,41 +404,6 @@ class SettingsSheet extends StatelessWidget {
       title: l10n.appearance,
       children: [
         _Row(
-          icon: Icons.view_agenda_outlined,
-          title: l10n.cardDensity,
-          keywords: 'density compact card size readable تراکم فشرده خوانا کارت',
-          value: switch (preferences.cardDensity) {
-            NexCardDensity.compact => l10n.cardDensityCompact,
-            NexCardDensity.standard => l10n.cardDensityStandard,
-            NexCardDensity.readable => l10n.cardDensityReadable,
-          },
-          onTap: () => unawaited(
-            _pick<NexCardDensity>(
-              context: context,
-              title: l10n.cardDensity,
-              selected: preferences.cardDensity,
-              onSelected: preferences.setCardDensity,
-              choices: [
-                NexChoice(
-                  value: NexCardDensity.compact,
-                  label: l10n.cardDensityCompact,
-                  preview: const Icon(Icons.density_small),
-                ),
-                NexChoice(
-                  value: NexCardDensity.standard,
-                  label: l10n.cardDensityStandard,
-                  preview: const Icon(Icons.density_medium),
-                ),
-                NexChoice(
-                  value: NexCardDensity.readable,
-                  label: l10n.cardDensityReadable,
-                  preview: const Icon(Icons.density_large),
-                ),
-              ],
-            ),
-          ),
-        ),
-        _Row(
           icon: Icons.calendar_month_outlined,
           title: l10n.calendar,
           value: preferences.solarCalendar
@@ -508,7 +473,7 @@ class SettingsSheet extends StatelessWidget {
           icon: Icons.palette_outlined,
           title: l10n.theme,
           keywords:
-              'dark light mode accent colour color palette text size font app icon تم تیره روشن رنگ تأکیدی پالت اندازه متن آیکون',
+              'dark light mode accent colour color palette text size font card size density compact app icon تم تیره روشن رنگ تأکیدی پالت اندازه متن اندازه کارت فشرده آیکون',
           value: nexThemePresetLabel(context, preferences.themePreset),
           onTap: () => Navigator.push(
             context,

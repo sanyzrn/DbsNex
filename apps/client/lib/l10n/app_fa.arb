@@ -1417,5 +1417,6 @@
   "selectionPinned": "{count} یادداشت پین شد",
   "@selectionPinned": {"placeholders": {"count": {"type": "int"}}},
   "selectionUnpinned": "پین {count} یادداشت برداشته شد",
-  "@selectionUnpinned": {"placeholders": {"count": {"type": "int"}}}
+  "@selectionUnpinned": {"placeholders": {"count": {"type": "int"}}},
+  "recoveryCodeCopy": "کپی کد بازیابی"
 }

@@ -837,10 +837,10 @@ class NexServices {
       try {
         output = await exportFullBackup(key, includeModel: false);
       } catch (error) {
-        unawaited(noteDiagnostic('folder backup: ${error.runtimeType}'));
+        unawaited(noteDiagnostic('folder backup: ${_why(error)}'));
         await _preferences.markBackupFolderFailed(
           NexBackupFolderFailure.backup,
-          detail: '${error.runtimeType}',
+          detail: _why(error),
         );
         return false;
       }
@@ -860,10 +860,10 @@ class NexServices {
       );
       return false;
     } catch (error) {
-      unawaited(noteDiagnostic('folder backup failed: ${error.runtimeType}'));
+      unawaited(noteDiagnostic('folder backup failed: ${_why(error)}'));
       await _preferences.markBackupFolderFailed(
         NexBackupFolderFailure.backup,
-        detail: '${error.runtimeType}',
+        detail: _why(error),
       );
       return false;
     } finally {
@@ -873,6 +873,21 @@ class NexServices {
         } catch (_) {}
       }
     }
+  }
+
+  /// What went wrong, short enough to show: the kind of error and, for the
+  /// ones Nex throws itself, its own fixed wording ("Unsafe media blob") —
+  /// never a path or anything read from a note.
+  static String _why(Object error) {
+    final message = switch (error) {
+      FormatException(:final message) => message,
+      StateError(:final message) => message,
+      _ => '',
+    };
+    final short = message.length > 60 ? message.substring(0, 60) : message;
+    return short.isEmpty
+        ? '${error.runtimeType}'
+        : '${error.runtimeType}: $short';
   }
 
   /// The decision itself, without the launch delay in front of it. Returns

@@ -19,6 +19,7 @@ import '../l10n/app_localizations.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/capture_failure.dart';
 import '../platform/daily_nudge.dart';
+import '../platform/download_notice.dart';
 import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/metrics.dart';
@@ -140,9 +141,10 @@ class TimelineScreenState extends State<TimelineScreen>
     }
   }
 
-  /// The group whose rows are on their way out — see [_toggleGroup]. Null at
-  /// rest, which is every frame except the ~200ms after a fold.
-  String? _closingGroup;
+  /// The groups whose rows are on their way out — see [_toggleGroup]. Empty
+  /// at rest, which is every frame except the ~200ms after a fold. Several
+  /// at once when a pinch folds every day.
+  final Set<String> _closingGroups = {};
 
   /// The group whose rows are on their way in, for the same window.
   ///
@@ -153,7 +155,7 @@ class TimelineScreenState extends State<TimelineScreen>
   /// below the one being folded flickering open, which is the report this
   /// exists to answer. Only the group actually being opened animates in;
   /// everyone else appears at full height, because they never left it.
-  String? _openingGroup;
+  final Set<String> _openingGroups = {};
   String? landedId;
 
   /// The note a tapped reminder is about, until its border has finished

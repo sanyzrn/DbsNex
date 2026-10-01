@@ -34,6 +34,16 @@ Working convention:
 
 ## Unreleased
 
+- **Backups work again on the phone.** Automatic backups, and the copy into a chosen folder, failed once any photo or file had been backed up before ("FormatException"). They no longer do, and a failed folder copy now says exactly why.
+- **The update keeps downloading when you leave Nex.** Going back out of the home screen during a download used to stop it; now Nex steps into the background instead, as Home does.
+- **A card opens into its note without a flash** at the end of the opening.
+- **Recovery codes copy with one tap** — on the code itself or its copy icon.
+- **Pinching the timeline folds and opens every day with the same animation** a single day's heading has.
+- **Card size** is now on the Theme page, right under Text & UI size.
+- **Adding a recurring item no longer opens the keyboard by itself**, and its form is evenly spaced and sized.
+- **Colour themes reach the search boxes, switches and outlined buttons too.**
+- **No more multicoloured light** when holding + or while the assistant is open.
+
 ## v1.90.0
 
 - **Pick several notes at once.** Hold a card and choose **Select** — it is at the top of every card's menu. Then tap cards to add them or take them back out. The bar along the bottom shows how many are picked and lets you tag, add to a thread, pin, share, copy or delete them all together; a delete of many has one Undo. Close it with ✕, with Back, or by taking the last one out.

@@ -81,8 +81,12 @@ class RecurringOptions extends StatelessWidget {
             value: value['solar'] == true,
             onChanged: (v) => set('solar', v),
           ),
+          // Room for the field's floating label, which otherwise sat on the
+          // row above it.
+          const SizedBox(height: 12),
           DropdownButtonFormField<int>(
             initialValue: value['monthDay'] as int? ?? -1,
+            style: Theme.of(context).textTheme.bodyLarge,
             decoration: InputDecoration(
               labelText: nexLabel(context, 'Day of month', 'روز ماه'),
             ),
@@ -143,8 +147,10 @@ class RecurringOptions extends StatelessWidget {
             });
           },
         ),
+        const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           initialValue: value['currency'] as String? ?? 'IRT',
+          style: Theme.of(context).textTheme.bodyLarge,
           decoration: InputDecoration(
             labelText: nexLabel(
               context,

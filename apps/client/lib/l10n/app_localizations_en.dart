@@ -3723,4 +3723,7 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get recoveryCodeCopy => 'Copy the recovery code';
 }

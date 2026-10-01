@@ -29,6 +29,7 @@ class NexApp extends StatefulWidget {
     this.osCapture,
     this.appLock,
     this.widgets,
+    this.updates,
   });
   final NexServices services;
   final NexPreferences preferences;
@@ -54,6 +55,10 @@ class NexApp extends StatefulWidget {
   /// state — so the one listener that does care is told directly. Null in a
   /// test, and on any platform with no widgets to feed.
   final NexWidgetBridge? widgets;
+
+  /// The update service, for a test that needs one in a given state. The
+  /// app makes its own otherwise.
+  final UpdateService? updates;
   @override
   State<NexApp> createState() => _NexAppState();
 }
@@ -64,10 +69,12 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   /// So a toast can be raised from a listener, above any screen's own context.
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
-  late final UpdateService _updates = UpdateService(
-    preferences: widget.preferences,
-    onDownloadStatus: _showDownloadNotification,
-  );
+  late final UpdateService _updates =
+      widget.updates ??
+      UpdateService(
+        preferences: widget.preferences,
+        onDownloadStatus: _showDownloadNotification,
+      );
   late final _feedback = FeedbackService(preferences: widget.preferences);
   late final AppLockService _appLock = widget.appLock ?? AppLockService();
   bool _locked = false;

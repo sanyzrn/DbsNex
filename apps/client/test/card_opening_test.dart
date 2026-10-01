@@ -42,7 +42,17 @@ void main() {
       reason: 'icon and title stay exactly where they were',
     );
 
+    // The details being built now are the ones that stay: nothing is
+    // rebuilt from scratch when the opening ends, which is what flashed.
+    await tester.pump(const Duration(milliseconds: 100));
+    final during = tester.state(find.byType(NoteDetailSheet));
+
     await tester.pumpAndSettle();
+    expect(
+      identical(tester.state(find.byType(NoteDetailSheet)), during),
+      isTrue,
+      reason: 'the sheet keeps its state through the end of the opening',
+    );
     expect(ghostCard(), findsNothing, reason: 'gone once the note is open');
     expect(find.byType(NoteDetailSheet), findsOneWidget);
     expect(find.text('the card that opens'), findsWidgets);
