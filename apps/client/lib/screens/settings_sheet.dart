@@ -25,6 +25,7 @@ import '../platform/update_service.dart';
 import '../platform/os_capture_bridge.dart';
 import 'about_screen.dart';
 import '../widgets/feature_label.dart';
+import '../widgets/keyboard_dismisser.dart';
 import '../platform/app_icon.dart';
 import '../platform/hold_menu.dart';
 import '../platform/theme_presets.dart';

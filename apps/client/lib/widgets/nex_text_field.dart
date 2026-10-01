@@ -20,8 +20,8 @@ import 'text_format_menu.dart';
 /// note, a caption, a message, a bio — is a [NexTextField], never a bare
 /// `TextField`. `test/text_field_rule_test.dart` fails the build otherwise.
 ///
-/// On Android it is the platform's own editor, an `EditText`, embedded with
-/// hybrid composition. Flutter's editor lays a whole field out in one
+/// On Android it is the platform's own editor, an `EditText`, embedded as a
+/// texture layer. Flutter's editor lays a whole field out in one
 /// direction: a Persian note with an English line in it put that line's
 /// full stop on the wrong end, an `!` after a Persian sentence in an English
 /// note sat before it, and the caret and selection handles followed the
@@ -531,7 +531,14 @@ class _NativeFieldState extends State<_NativeField> {
             ? value.selection
             : TextSelection.collapsed(offset: value.text.length);
         _native = value;
-        return PlatformViewsService.initExpensiveAndroidView(
+        // Texture-layer composition, not hybrid: hybrid composition puts
+        // the editor in the window itself and makes every frame of the whole
+        // app wait on Android's own, which is what made the editor slow to
+        // open and its text slow to scroll. The editor is drawn into a
+        // texture instead, as Flutter draws everything else, and stays a
+        // real view for the keyboard, the handles and the menu. Android
+        // falls back to hybrid only for a view that cannot be drawn so.
+        return PlatformViewsService.initSurfaceAndroidView(
             id: params.id,
             viewType: NexTextField.viewType,
             layoutDirection: Directionality.of(context),
@@ -563,8 +570,7 @@ class _NativeFieldState extends State<_NativeField> {
                   : '${_controller.text.characters.length}/${field.maxLength}'),
         );
     // In Flutter's text-field tap group, as every TextField is: a touch on
-    // it while the keyboard is up is a touch on the field, not one that
-    // only puts the keyboard away (NexKeyboardDismisser).
+    // it is a touch on a field (see NexKeyboardGuard).
     return TextFieldTapRegion(
       child: Focus(
         focusNode: _focus,

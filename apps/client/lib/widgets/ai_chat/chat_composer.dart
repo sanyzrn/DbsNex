@@ -52,18 +52,16 @@ class _Composer extends StatelessWidget {
       child: Row(
         children: [
           if (onSpeak != null)
-            NexTypingAction(
-              child: IconButton(
-                onPressed: sending || transcribing ? null : onSpeak,
-                tooltip: l10n.chatSpeak,
-                icon: transcribing
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.mic_none),
-              ),
+            IconButton(
+              onPressed: sending || transcribing ? null : onSpeak,
+              tooltip: l10n.chatSpeak,
+              icon: transcribing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.mic_none),
             ),
           Expanded(
             // A Persian sentence with an English word in it used to scramble
@@ -95,12 +93,10 @@ class _Composer extends StatelessWidget {
             ),
           ),
           const SizedBox(width: NexSpacing.sm),
-          NexTypingAction(
-            child: IconButton.filled(
-              onPressed: sending || transcribing ? null : onSend,
-              tooltip: l10n.chatSend,
-              icon: const Icon(Icons.arrow_upward),
-            ),
+          IconButton.filled(
+            onPressed: sending || transcribing ? null : onSend,
+            tooltip: l10n.chatSend,
+            icon: const Icon(Icons.arrow_upward),
           ),
         ],
       ),
