@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -10,6 +9,7 @@ import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/choice_cards.dart';
 import '../widgets/settings_group.dart';
+import '../widgets/nex_text_field.dart';
 
 /// What the card at the top of the timeline is for — asked rather than
 /// assumed.
@@ -133,25 +133,19 @@ class _BriefScreenState extends State<BriefScreen> {
               NexSettingsField(
                 icon: Icons.format_quote_outlined,
                 label: l10n.briefInstructionLabel,
-                child: NexAutoDirection(
+                child: NexTextField(
                   controller: _instruction,
-                  builder: (context, direction) => TextField(
-                    controller: _instruction,
-                    selectionWidthStyle: BoxWidthStyle.tight,
-                    contextMenuBuilder: nexReadingMenu,
-                    onChanged: _saveInstruction,
-                    maxLength: NexPreferences.briefInstructionMaxLength,
-                    maxLines: 3,
-                    minLines: 1,
-                    textDirection: direction,
-                    textInputAction: TextInputAction.newline,
-                    decoration: InputDecoration(
-                      hintText: l10n.briefInstructionHint,
-                      filled: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(NexRadius.md),
-                        borderSide: BorderSide.none,
-                      ),
+                  onChanged: _saveInstruction,
+                  maxLength: NexPreferences.briefInstructionMaxLength,
+                  maxLines: 3,
+                  minLines: 1,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: l10n.briefInstructionHint,
+                    filled: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(NexRadius.md),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),

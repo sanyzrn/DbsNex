@@ -399,6 +399,21 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 
 ---
 
+## ADR-037 — Text a person writes is edited in the platform's own editor on Android
+
+- **Context:** Flutter's text field lays out its whole text in one direction. A Persian note with an English line in it — or an English one with a Persian sentence — had its neutral characters resolved against that one direction: a `!` or `.` at the end of an opposite-direction line moved to the wrong end, and the caret and selection handles followed the same scrambled order, so the end of a sentence could not be reached and the handles looked reversed. The card preview never had the problem, because `NexTextSurface` lays out each line on its own. Marks (LRM/RLM) and isolates (LRI/RLI…PDI) fix the order of a line but not its alignment, and would be written into the note. Telegram and every other app built on Android's `EditText` show none of this, because Android decides direction and alignment per paragraph.
+- **Decision:**
+  1. **`NexTextField`** (`apps/client/lib/widgets/nex_text_field.dart`) is the field for more than one line of a person's own words. On Android it embeds a native `EditText` (`NexEditText.kt`, hybrid composition) with `TEXT_DIRECTION_FIRST_STRONG` and gravity-start alignment, so every paragraph takes its direction from its own first strong letter and sits against its own side — with the system's caret, handles, magnifier and selection menu. The note's formatting commands are added to that menu; other apps' text actions are left off it, as `nexOwnMenuItems` does for Flutter's menus. Elsewhere (Windows, and widget tests) it is Flutter's `TextField` under `NexAutoDirection`, as before.
+  2. **The controller stays the source of truth.** Typing in the native editor is written back into the field's `TextEditingController` over a channel of its own; anything the app writes into the controller — an AI rewrite, a format, a cleared composer — is sent to the editor. Focus, height, Enter-to-send, the keyboard type and the private clipboard (`onCopy`, for the vault) travel the same channel.
+  3. **A single-line field states its direction:** it is built inside `NexAutoDirection` or sets `textDirection` itself (a link, a key and an amount are left to right in any language).
+  4. **`test/text_field_rule_test.dart` enforces both** over everything under `lib/`: a multi-line `TextField`/`TextFormField` anywhere but `nex_text_field.dart` fails the build, as does a single-line one that does not state its direction.
+- **Rationale:** The bug is in the layout model, not in any one field, so no amount of per-field care fixes it; the platform's editor already implements the behaviour people expect from every other app on the phone. Making it a rule checked by a test is what keeps the next field from reintroducing it.
+- **Consequences and limits:** A platform view costs more to draw than a Flutter field, which is why single-line fields — where one direction is the correct answer — stay Flutter's. The native editor's look follows the theme (font, size, colours, accent on caret and handles from Android 10), but it is Android's selection UI, not Flutter's. A field's decoration (border, label, counter) is still Flutter's, drawn around the editor.
+- **Alternatives Considered:** Bidi marks or isolates inserted into the text — rejected: they fix order but not alignment, and they end up in the note, its exports and its search. A custom per-paragraph Flutter editor — rejected: it means re-implementing selection, IME composition and handles, the parts most likely to be subtly wrong. Leaving it — rejected by the owner: it is the oldest open bug in editing.
+- **Status:** Accepted after v1.90.1.
+
+---
+
 ## Decision-Making Heuristic
 
 When facing a new choice, run it through the product's filter:

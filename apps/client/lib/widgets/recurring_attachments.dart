@@ -307,20 +307,25 @@ class _NoteSearchState extends State<_NoteSearch> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
+          NexAutoDirection(
             controller: _query,
-            autofocus: true,
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              hintText: nexLabel(context, 'Find a note', 'جست‌وجوی یادداشت'),
+            builder: (context, direction) => TextField(
+              controller: _query,
+              textDirection: direction,
+              textAlign: TextAlign.start,
+              autofocus: true,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: nexLabel(context, 'Find a note', 'جست‌وجوی یادداشت'),
+              ),
+              onChanged: (_) {
+                _debounce?.cancel();
+                _debounce = Timer(
+                  const Duration(milliseconds: 250),
+                  () => unawaited(_run()),
+                );
+              },
             ),
-            onChanged: (_) {
-              _debounce?.cancel();
-              _debounce = Timer(
-                const Duration(milliseconds: 250),
-                () => unawaited(_run()),
-              );
-            },
           ),
           const SizedBox(height: NexSpacing.sm),
           Flexible(

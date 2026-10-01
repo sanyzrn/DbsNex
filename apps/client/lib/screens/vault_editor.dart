@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../platform/vault_store.dart';
 import '../platform/private_clipboard.dart';
 import '../widgets/feature_label.dart';
+import '../widgets/nex_text_field.dart';
 import '../widgets/tag_color_picker.dart';
 
 class VaultEditor extends StatefulWidget {
@@ -266,13 +267,36 @@ class _VaultEditorState extends State<VaultEditor> {
     String? Function(String)? validator,
   }) {
     final l = AppLocalizations.of(context);
+    if (lines > 1) {
+      // Several lines of the person's own words: the platform's editor, for
+      // the same reason every note is (ADR-037), with the private clipboard.
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: NexTextField(
+          key: ValueKey('vault-field-$key'),
+          controller: fields[key]!,
+          enabled: !widget.busy,
+          minLines: 1,
+          maxLines: lines,
+          maxLength: key == 'notes' ? 2000 : 256,
+          autocorrect: false,
+          enableSuggestions: false,
+          enableIMEPersonalizedLearning: false,
+          onCopy: PrivateClipboard.copy,
+          onChanged: (_) => _changed(),
+          decoration: InputDecoration(
+            labelText: label,
+            counterText: '',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+      );
+    }
     final field = TextFormField(
       key: ValueKey('vault-field-$key'),
       controller: fields[key],
       enabled: !widget.busy,
       obscureText: false,
-      maxLines: lines,
-      minLines: 1,
       maxLength: key == 'notes' ? 2000 : 256,
       autocorrect: false,
       enableSuggestions: false,

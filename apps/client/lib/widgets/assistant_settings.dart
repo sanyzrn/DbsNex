@@ -9,6 +9,7 @@ import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
 import 'choice_cards.dart';
 import 'settings_group.dart';
+import 'nex_text_field.dart';
 
 /// How the assistant behaves, wherever it is being tuned from.
 ///
@@ -126,22 +127,16 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
               NexSettingsField(
                 icon: Icons.person_search_outlined,
                 label: l10n.assistantAboutMe,
-                child: NexAutoDirection(
+                child: NexTextField(
                   controller: _introduction,
-                  builder: (context, direction) => TextField(
-                    controller: _introduction,
-                    selectionWidthStyle: BoxWidthStyle.tight,
-                    contextMenuBuilder: nexReadingMenu,
-                    onChanged: _saveIntroduction,
-                    maxLength: NexPreferences.aiUserIntroductionMaxLength,
-                    maxLines: 4,
-                    minLines: 2,
-                    textDirection: direction,
-                    textInputAction: TextInputAction.newline,
-                    decoration: _inputDecoration(
-                      theme,
-                      l10n.assistantAboutMeHint,
-                    ),
+                  onChanged: _saveIntroduction,
+                  maxLength: NexPreferences.aiUserIntroductionMaxLength,
+                  maxLines: 4,
+                  minLines: 2,
+                  textInputAction: TextInputAction.newline,
+                  decoration: _inputDecoration(
+                    theme,
+                    l10n.assistantAboutMeHint,
                   ),
                 ),
               ),
@@ -227,25 +222,16 @@ class _AssistantSettingsBodyState extends State<AssistantSettingsBody> {
                 NexSettingsField(
                   icon: Icons.format_quote_outlined,
                   label: l10n.assistantInstructionSubtitle,
-                  child: NexAutoDirection(
+                  child: NexTextField(
                     controller: _instruction,
-                    builder: (context, direction) => TextField(
-                      controller: _instruction,
-                      selectionWidthStyle: BoxWidthStyle.tight,
-                      contextMenuBuilder: nexReadingMenu,
-                      onChanged: _saveInstruction,
-                      maxLength: NexPreferences.aiInstructionMaxLength,
-                      maxLines: 3,
-                      minLines: 1,
-                      textInputAction: TextInputAction.newline,
-                      // Written in whichever language the user thinks in,
-                      // which is not necessarily the interface's — so the
-                      // field follows the text rather than the app.
-                      textDirection: direction,
-                      decoration: _inputDecoration(
-                        theme,
-                        l10n.assistantInstructionHint,
-                      ),
+                    onChanged: _saveInstruction,
+                    maxLength: NexPreferences.aiInstructionMaxLength,
+                    maxLines: 3,
+                    minLines: 1,
+                    textInputAction: TextInputAction.newline,
+                    decoration: _inputDecoration(
+                      theme,
+                      l10n.assistantInstructionHint,
                     ),
                   ),
                 ),

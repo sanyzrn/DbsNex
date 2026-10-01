@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
-import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +25,7 @@ import '../platform/theme_presets.dart';
 import 'card_strings.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
+import 'nex_text_field.dart';
 import 'recording_sheet.dart';
 
 part 'ai_chat/chat_thread.dart';

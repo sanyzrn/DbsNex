@@ -133,6 +133,7 @@ class RecurringOptions extends StatelessWidget {
             ),
           ),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          textDirection: TextDirection.ltr,
           onChanged: (v) {
             final normalized = vaultLatinDigits(v.trim()).replaceAll('٫', '.');
             final valid =

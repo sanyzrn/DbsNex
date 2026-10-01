@@ -72,20 +72,29 @@ class _SettingsSearchState extends State<_SettingsSearch> {
         NexSpacing.md,
         NexSpacing.sm,
       ),
-      child: TextField(
+      child: NexAutoDirection(
         controller: _controller,
-        textInputAction: TextInputAction.search,
-        decoration: InputDecoration(
-          isDense: true,
-          prefixIcon: const Icon(Icons.search),
-          hintText: nexLabel(context, 'Search settings', 'جست‌وجو در تنظیمات'),
-          suffixIcon: _controller.text.isEmpty
-              ? null
-              : IconButton(
-                  tooltip: l10n.closeLabel,
-                  icon: const Icon(Icons.close),
-                  onPressed: _controller.clear,
-                ),
+        builder: (context, direction) => TextField(
+          controller: _controller,
+          textDirection: direction,
+          textAlign: TextAlign.start,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            isDense: true,
+            prefixIcon: const Icon(Icons.search),
+            hintText: nexLabel(
+              context,
+              'Search settings',
+              'جست‌وجو در تنظیمات',
+            ),
+            suffixIcon: _controller.text.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: l10n.closeLabel,
+                    icon: const Icon(Icons.close),
+                    onPressed: _controller.clear,
+                  ),
+          ),
         ),
       ),
     );

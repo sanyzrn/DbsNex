@@ -169,6 +169,10 @@ class _SyncRowState extends State<_SyncRow> {
                 autofocus: true,
                 keyboardType: TextInputType.url,
                 autocorrect: false,
+                // An address reads left to right in any language: in a
+                // right-to-left field its slashes and dots went to the
+                // wrong ends.
+                textDirection: TextDirection.ltr,
                 decoration: InputDecoration(
                   labelText: l10n.syncServer,
                   hintText: l10n.syncServerHint,
@@ -180,6 +184,7 @@ class _SyncRowState extends State<_SyncRow> {
                 selectionWidthStyle: BoxWidthStyle.tight,
                 contextMenuBuilder: nexReadingMenu,
                 autocorrect: false,
+                textDirection: TextDirection.ltr,
                 decoration: InputDecoration(labelText: l10n.syncToken),
               ),
             ],

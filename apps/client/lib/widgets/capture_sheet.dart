@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show BoxWidthStyle;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -9,7 +8,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import 'nex_banner.dart';
 import 'reminder_picker.dart';
-import 'text_format_menu.dart';
+import 'nex_text_field.dart';
 
 class CaptureSheet extends StatefulWidget {
   const CaptureSheet({
@@ -40,24 +39,6 @@ class CaptureSheet extends StatefulWidget {
 class _CaptureSheetState extends State<CaptureSheet> {
   final controller = TextEditingController();
 
-  /// The formatting menu, made once and kept.
-  ///
-  /// Not `nexFormatContextMenuBuilder(context)` in `build`, which is where it
-  /// used to be and is the whole of a bug worth stating: `EditableText`
-  /// compares this builder against the previous one **by identity**, and a
-  /// fresh closure every rebuild reads as a changed menu. Its answer to that
-  /// is to dispose the selection overlay and make a new one after the next
-  /// frame — and the selection handles, the magnifier and the toolbar live in
-  /// that overlay, with their gesture recognizers. Disposing a recognizer
-  /// while a finger is on it cancels the drag, and the handle that replaces it
-  /// a frame later never saw the pointer, so nothing resumes.
-  ///
-  /// This sheet rebuilds on every keystroke and on every frame of the
-  /// keyboard's open/close animation, so the overlay was being torn down
-  /// exactly while somebody was dragging a handle or a caret. One closure,
-  /// held for the life of the sheet, and the overlay survives every rebuild.
-  late final EditableTextContextMenuBuilder formatMenu =
-      nexFormatContextMenuBuilder(context);
   Timer? debounce;
   String? noteId;
   String persisted = '';
@@ -357,48 +338,27 @@ class _CaptureSheetState extends State<CaptureSheet> {
                   close();
                   return KeyEventResult.handled;
                 },
-                // Direction comes from the script being typed, and it is
-                // supplied as a `Directionality` around the field rather than
-                // only as an argument to it — see [NexAutoDirection]. The
-                // argument alone turned the text and left the selection
-                // handles resolving against the interface language, so a
-                // Persian note in an English app got its handles on the wrong
-                // ends and dragging one ran the wrong way.
-                child: NexAutoDirection(
+                // Android's own editor: each paragraph in its own direction,
+                // aligned to its own side, with the system's handles — see
+                // [NexTextField] for why a note is never a bare `TextField`.
+                child: NexTextField(
                   controller: controller,
-                  builder: (context, direction) => TextField(
-                    controller: controller,
-                    autofocus: true,
-                    minLines: 3,
-                    maxLines: null,
-                    // Null while the field is empty, which leaves the ambient
-                    // direction in place — that is what puts the placeholder at
-                    // the right edge in Persian instead of the left. Once there
-                    // is text it follows the script being typed, so `start` is
-                    // the correct end in either language.
-                    textDirection: direction,
-                    textAlign: TextAlign.start,
-                    // Default is BoxWidthStyle.max, which pads a selection's highlight
-                    // out to the far edge of its line on Persian text — double-tapping
-                    // a word painted a bar running to the end of the line, empty space
-                    // included, even though the selection itself (and copy) was always
-                    // just the word.
-                    selectionWidthStyle: BoxWidthStyle.tight,
-                    // Bold, italic and the rest, appended to the platform's own
-                    // Cut/Copy/Paste rather than replacing them.
-                    contextMenuBuilder: formatMenu,
-                    decoration: InputDecoration(
-                      hintText: l10n.captureHint,
-                      border: InputBorder.none,
-                    ),
-                    textInputAction: widget.preferences.enterSubmitsCapture
-                        ? TextInputAction.send
-                        : TextInputAction.newline,
-                    onChanged: changed,
-                    onSubmitted: widget.preferences.enterSubmitsCapture
-                        ? (_) => close()
-                        : null,
+                  autofocus: true,
+                  minLines: 3,
+                  // Bold, italic and the rest, appended to the platform's own
+                  // Cut/Copy/Paste rather than replacing them.
+                  formatting: true,
+                  decoration: InputDecoration(
+                    hintText: l10n.captureHint,
+                    border: InputBorder.none,
                   ),
+                  textInputAction: widget.preferences.enterSubmitsCapture
+                      ? TextInputAction.send
+                      : TextInputAction.newline,
+                  onChanged: changed,
+                  onSubmitted: widget.preferences.enterSubmitsCapture
+                      ? (_) => close()
+                      : null,
                 ),
               ),
             ),

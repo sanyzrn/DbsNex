@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../platform/nex_preferences.dart';
 import 'nex_dialog.dart';
 import 'draft_guard.dart';
+import 'nex_text_field.dart';
 
 /// Capturing a checklist: one text field, one item per line.
 ///
@@ -158,28 +159,17 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
             const SizedBox(height: NexSpacing.sm),
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 240),
-              child: NexAutoDirection(
+              child: NexTextField(
                 controller: _text,
-                builder: (context, direction) => TextField(
-                  controller: _text,
-                  autofocus: true,
-                  maxLines: null,
-                  // The list is written in whichever language the person
-                  // thinks in, which is not necessarily the interface's. Without
-                  // this a Persian checklist typed in an English app is laid out
-                  // left-to-right and reorders itself as it is written.
-                  textDirection: direction,
-                  textAlign: TextAlign.start,
-                  selectionWidthStyle: BoxWidthStyle.tight,
-                  contextMenuBuilder: nexReadingMenu,
-                  // Never TextInputAction.send, whatever the capture preference
-                  // says — see the class comment.
-                  textInputAction: TextInputAction.newline,
-                  keyboardType: TextInputType.multiline,
-                  decoration: InputDecoration(
-                    hintText: l10n.checklistHint,
-                    border: InputBorder.none,
-                  ),
+                autofocus: true,
+                maxLines: null,
+                // Never TextInputAction.send, whatever the capture preference
+                // says — see the class comment.
+                textInputAction: TextInputAction.newline,
+                keyboardType: TextInputType.multiline,
+                decoration: InputDecoration(
+                  hintText: l10n.checklistHint,
+                  border: InputBorder.none,
                 ),
               ),
             ),
@@ -317,6 +307,8 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet>
               autofocus: true,
               autocorrect: false,
               keyboardType: TextInputType.url,
+              // A link reads left to right in any language.
+              textDirection: TextDirection.ltr,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) {
                 if (url != null) Navigator.pop(context, url);

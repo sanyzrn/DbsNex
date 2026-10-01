@@ -156,8 +156,9 @@ extension _VaultPages on _VaultScreenState {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
-                child: TextField(
+                child: NexTextField(
                   controller: messageInput,
+                  onCopy: PrivateClipboard.copy,
                   minLines: 1,
                   maxLines: 5,
                   maxLength: 10000,
