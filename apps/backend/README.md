@@ -1,11 +1,12 @@
-# apps/backend — Nex sync API (dormant in v1)
+# apps/backend — Nex sync API
 
-Minimal Node.js + PostgreSQL REST/JSON API. Present from v1 as infrastructure
-so the contract is proven early; **not exercised by the client until v2 sync**
-(04-architecture.md → Sequencing).
-
-Phase 0 status: every product route (`/notes`, `/tags`, `/sync`) is a stub that
-returns `501 Not Implemented`. Only `/health` does real work.
+Node.js + PostgreSQL REST/JSON API for cross-device sync. It is built and
+tested — device auth (`/auth`), the sync exchange (`/sync`), read routes
+(`/notes`, `/tags`), feedback (`/feedback`) and health checks
+(`/health`, `/health/live`, `/health/ready`) — and CI runs the live
+SyncClient against it with PostgreSQL. It is **not deployed and has no
+pairing flow in the app yet**; that is release 2.0's work (Phase 2,
+04-architecture.md → Sequencing, and W1 in `docs/11-roadmap-2.0.md`).
 
 ## Run locally
 

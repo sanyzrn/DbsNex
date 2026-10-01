@@ -56,7 +56,7 @@ void main() {
   });
 
   test('the brand paths parse into the shapes of the source files', () {
-    // Measured from docs/nex_logo.svg and docs/nex_logo_type.svg.
+    // Measured from docs/brand/nex_logo.svg and docs/brand/nex_logo_type.svg.
     final mark = NexBrand.markBounds;
     expect(mark.left, closeTo(21.8, .5));
     expect(mark.top, closeTo(22.7, .5));
