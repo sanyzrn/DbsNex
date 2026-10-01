@@ -272,9 +272,11 @@ class _CommitmentEditorState extends State<CommitmentEditor>
           actions: [
             Padding(
               padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
-              child: FilledButton(
-                onPressed: canSave ? () => unawaited(_save()) : null,
-                child: Text(l10n.save),
+              child: NexTypingAction(
+                child: FilledButton(
+                  onPressed: canSave ? () => unawaited(_save()) : null,
+                  child: Text(l10n.save),
+                ),
               ),
             ),
           ],
@@ -496,13 +498,15 @@ class _CommitmentEditorState extends State<CommitmentEditor>
             ),
             const SizedBox(height: NexSpacing.xl),
             // Save again at the end of the form, where the thumb is.
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
+            NexTypingAction(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
+                onPressed: canSave ? () => unawaited(_save()) : null,
+                icon: const Icon(Icons.check),
+                label: Text(l10n.save),
               ),
-              onPressed: canSave ? () => unawaited(_save()) : null,
-              icon: const Icon(Icons.check),
-              label: Text(l10n.save),
             ),
           ],
         ),

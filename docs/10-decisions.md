@@ -410,7 +410,21 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 - **Rationale:** The bug is in the layout model, not in any one field, so no amount of per-field care fixes it; the platform's editor already implements the behaviour people expect from every other app on the phone. Making it a rule checked by a test is what keeps the next field from reintroducing it.
 - **Consequences and limits:** A platform view costs more to draw than a Flutter field, which is why single-line fields — where one direction is the correct answer — stay Flutter's. The native editor's look follows the theme (font, size, colours, accent on caret and handles from Android 10), but it is Android's selection UI, not Flutter's. A field's decoration (border, label, counter) is still Flutter's, drawn around the editor.
 - **Alternatives Considered:** Bidi marks or isolates inserted into the text — rejected: they fix order but not alignment, and they end up in the note, its exports and its search. A custom per-paragraph Flutter editor — rejected: it means re-implementing selection, IME composition and handles, the parts most likely to be subtly wrong. Leaving it — rejected by the owner: it is the oldest open bug in editing.
-- **Status:** Accepted after v1.90.1.
+- **Status:** Accepted at v1.91.0.
+
+---
+
+## ADR-038 — While typing, a touch outside what is being typed only closes the keyboard
+
+- **Context:** The keyboard covers half the screen, and the person typing is looking at their words. The way to close it was to tap somewhere else, and Nex's dismisser only caught taps that landed on nothing: a tap that landed on a control did what the control does. So reaching for the empty-looking part of the screen pressed whatever was there — the clear button on a birthday while a name was being typed, a row of the Recurring form, a setting under its search box.
+- **Decision:**
+  1. While the on-screen keyboard is up and a text field holds focus, the first touch outside what is being typed closes the keyboard and does nothing else. `NexKeyboardDismisser` (`apps/client/lib/widgets/keyboard_dismisser.dart`), under the whole app, stops that touch in hit testing, so no tap, drag, long press or raw pointer listener below it receives it. The next touch is an ordinary one.
+  2. **Inside**, and working with one touch as before: the field being typed in with its decoration (a clear button, a visibility toggle), its selection handles and menu, any other text field, and controls that act on what is being typed — Send, Save, Continue, the formatting and rewrite bars — marked with `NexTypingAction`. All of these are Flutter's own text-field tap group (`TextFieldTapRegion`). A field inside a dialog makes the whole dialog inside; the dimmed screen around it is outside.
+  3. With no on-screen keyboard (a hardware keyboard, a desktop), every touch and click behaves as it always did.
+- **Rationale:** A touch made to put the keyboard away is not aimed at what happens to be under the finger, so acting on it is acting on a guess; and the guess can be destructive. Closing the keyboard on a tap outside is the common mobile convention; consuming that tap is the stricter, safer form of it, used where an accidental press costs something. The exceptions are what the platform already treats as part of the field (its own handles and toolbar) and what a person aims at deliberately while typing (Send, Save): making those take two touches would trade one annoyance for another.
+- **Consequences and limits:** Tapping a search result or a list row while the keyboard is open now takes two touches, one to close the keyboard and one to open it. A new screen with a text field needs its Send or Save marked `NexTypingAction`, or that button will also take two touches while typing — visible at once, never destructive.
+- **Alternatives Considered:** Flutter's `TapRegion.consumeOutsideTaps` — rejected: it only wins the gesture arena, so raw pointer listeners (the timeline's pinch and swipe) still received the touch. Letting the tap through and also closing the keyboard (the usual default) — rejected by the owner, for the accidents above.
+- **Status:** Accepted at v1.91.0.
 
 ---
 

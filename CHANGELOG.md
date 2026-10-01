@@ -34,8 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v1.91.0
+
+- **While the keyboard is open, a touch outside the box you are typing in only closes the keyboard.** Nothing under your finger is pressed or scrolled — no more clearing a birthday while typing a name, or opening a setting while dismissing a search. The box itself, its clear button, Send and Save, and moving to another box still work with one touch.
 - **Writing in two languages edits the way it reads.** In a note, the capture box, the assistant and every other place you write several lines, each line now keeps its own direction while you edit it — the `!` at the end of a Persian sentence stays at its end, the caret reaches it, and the selection handles no longer flip. On Android this is the phone's own editor, the one Telegram uses, with its own handles, magnifier and menu; Bold, Italic and the rest are on that menu too.
 - **Links, server addresses and amounts are typed left to right** in a Persian interface, and the search boxes follow the language you type in.
+
 ## v1.90.1
 
 - **Backups work again on the phone.** Automatic backups, and the copy into a chosen folder, failed once any photo or file had been backed up before ("FormatException"). They no longer do, and a failed folder copy now says exactly why.

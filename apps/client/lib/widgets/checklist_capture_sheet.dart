@@ -10,6 +10,7 @@ import '../platform/nex_preferences.dart';
 import 'nex_dialog.dart';
 import 'draft_guard.dart';
 import 'nex_text_field.dart';
+import 'keyboard_dismisser.dart';
 
 /// Capturing a checklist: one text field, one item per line.
 ///
@@ -176,19 +177,21 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
             const SizedBox(height: NexSpacing.sm),
             Align(
               alignment: AlignmentDirectional.centerEnd,
-              child: FilledButton.icon(
-                // Disabled rather than hidden while empty: the button is where
-                // the eye already is, and a control that vanishes is worse to
-                // find again than one that is visibly not ready yet.
-                // An edit may legitimately empty the list — that is how the
-                // last line gets deleted — so only a fresh capture needs
-                // something in it before the button means anything.
-                onPressed: count == 0 && !_editing ? null : _submit,
-                icon: Icon(
-                  _editing ? Icons.check : Icons.arrow_upward,
-                  size: 18,
+              child: NexTypingAction(
+                child: FilledButton.icon(
+                  // Disabled rather than hidden while empty: the button is where
+                  // the eye already is, and a control that vanishes is worse to
+                  // find again than one that is visibly not ready yet.
+                  // An edit may legitimately empty the list — that is how the
+                  // last line gets deleted — so only a fresh capture needs
+                  // something in it before the button means anything.
+                  onPressed: count == 0 && !_editing ? null : _submit,
+                  icon: Icon(
+                    _editing ? Icons.check : Icons.arrow_upward,
+                    size: 18,
+                  ),
+                  label: Text(_editing ? l10n.save : l10n.capture),
                 ),
-                label: Text(_editing ? l10n.save : l10n.capture),
               ),
             ),
           ],
@@ -341,17 +344,19 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet>
             const SizedBox(height: NexSpacing.sm),
             Align(
               alignment: AlignmentDirectional.centerEnd,
-              child: FilledButton.icon(
-                onPressed: url == null
-                    ? null
-                    : () {
-                        if (widget.preferences.haptics) {
-                          HapticFeedback.selectionClick();
-                        }
-                        Navigator.pop(context, url);
-                      },
-                icon: const Icon(Icons.arrow_upward, size: 18),
-                label: Text(l10n.capture),
+              child: NexTypingAction(
+                child: FilledButton.icon(
+                  onPressed: url == null
+                      ? null
+                      : () {
+                          if (widget.preferences.haptics) {
+                            HapticFeedback.selectionClick();
+                          }
+                          Navigator.pop(context, url);
+                        },
+                  icon: const Icon(Icons.arrow_upward, size: 18),
+                  label: Text(l10n.capture),
+                ),
               ),
             ),
           ],

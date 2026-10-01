@@ -38,6 +38,8 @@ Open an item for its exact date and time, tags, description and every action. Th
 
 Voice notes show playback, a position slider and a waveform drawn from the recording itself on Android. Formats without a waveform still play.
 
+When you write in two languages, each line keeps its own direction and side while you edit it, just as it does when you read it. While the keyboard is open, touching anywhere outside the box you are typing in only closes the keyboard — nothing under your finger is pressed. The box itself, its clear button, Send or Save, and another box to type in all work with one touch.
+
 ![A note's details](note-details.webp)
 
 ## Long notes, Markdown and files

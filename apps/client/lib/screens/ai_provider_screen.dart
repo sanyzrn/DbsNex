@@ -12,6 +12,7 @@ import 'local_model_screen.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/local_ai_support.dart';
 import '../platform/nex_preferences.dart';
+import '../widgets/keyboard_dismisser.dart';
 
 /// Where the intelligence features get their answers from.
 ///
@@ -380,12 +381,14 @@ class _ActionBar extends StatelessWidget {
         children: [
           if (showTest) ...[
             Expanded(
-              child: FilledButton.icon(
-                onPressed: testing ? null : onTest,
-                icon: testing
-                    ? const NexInlineSpinner()
-                    : const Icon(Icons.wifi_tethering),
-                label: Text(l10n.testConnection),
+              child: NexTypingAction(
+                child: FilledButton.icon(
+                  onPressed: testing ? null : onTest,
+                  icon: testing
+                      ? const NexInlineSpinner()
+                      : const Icon(Icons.wifi_tethering),
+                  label: Text(l10n.testConnection),
+                ),
               ),
             ),
             const SizedBox(width: NexSpacing.md),
@@ -393,9 +396,11 @@ class _ActionBar extends StatelessWidget {
           // Save is always here, including for "no provider": that is a choice
           // like any other, and it used to be unstorable because the only
           // button that could store it was hidden along with the key fields.
-          OutlinedButton(
-            onPressed: canSave ? onSave : null,
-            child: Text(l10n.save),
+          NexTypingAction(
+            child: OutlinedButton(
+              onPressed: canSave ? onSave : null,
+              child: Text(l10n.save),
+            ),
           ),
         ],
       ),
