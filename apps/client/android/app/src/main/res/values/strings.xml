@@ -33,11 +33,15 @@
 
     <!-- The Recap widget. The title is the same words the recap card at the
          top of the timeline uses, because it is the same text. -->
-    <string name="widget_recap_title">Smart summary</string>
     <string name="widget_recap_locked_title">Nex is locked</string>
     <string name="widget_recap_locked_a11y">Nex is locked. Unlock Nex to see your recap here.</string>
     <string name="widget_recap_empty_title">No recap yet.</string>
-    <string name="widget_recap_empty_hint">Tap refresh and Nex will write one.</string>
+    <string name="widget_recap_empty_hint">Tap here and Nex will write one.</string>
+    <string name="widget_a11y_capture_note">New note</string>
+    <string name="widget_a11y_capture_voice">Record a voice note</string>
+    <string name="widget_a11y_capture_camera">Take a photo</string>
+    <string name="widget_a11y_capture_gallery">Add a photo from the gallery</string>
+    <string name="widget_a11y_capture_checklist">New checklist</string>
 
     <!-- A row whose note has no text to preview (an uncaptioned photo, a
          recording with no transcript): the type's own name, the way the

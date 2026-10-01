@@ -40,9 +40,12 @@
         <item name="android:textColor">@color/nex_widget_text</item>
     </style>
 
+    <!-- Under the preview, a step smaller than it used to be beside it:
+         beside it, the time took a column of the row's width away from the
+         note's own words on every line. -->
     <style name="NexWidget.RowTime" parent="">
         <item name="android:fontFamily">sans-serif</item>
-        <item name="android:textSize">12sp</item>
+        <item name="android:textSize">11sp</item>
         <item name="android:textColor">@color/nex_widget_text_dim</item>
     </style>
 

@@ -31,4 +31,6 @@
     <color name="nex_widget_text">#262626</color>
     <color name="nex_widget_text_dim">#5C5C5C</color>
     <color name="nex_widget_stroke">#E0E0E0</color>
+    <!-- The capture buttons' pill: the text colour at a few percent. -->
+    <color name="nex_widget_action">#10262626</color>
 </resources>

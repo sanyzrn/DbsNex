@@ -452,6 +452,20 @@ void main() {
     expect(sheets, 2);
   });
 
+  test('the Timeline widget\'s capture row reaches the gallery and a '
+      'checklist too', () async {
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    final modes = <OsCaptureMode>[];
+    bridge.onCaptureModeRequested = modes.add;
+    await bridge.start();
+
+    for (final mode in ['text', 'voice', 'photo', 'gallery', 'checklist']) {
+      await bridge.handle({'type': 'text_capture', 'mode': mode});
+    }
+    expect(modes, OsCaptureMode.values);
+  });
+
   test('a notification tap that launched the app keeps its mode', () async {
     final bridge = OsCaptureBridge(services);
     addTearDown(bridge.dispose);

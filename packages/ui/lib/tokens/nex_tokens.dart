@@ -1107,8 +1107,9 @@ double nexBottomInset(BuildContext context) =>
 const nexAssistantSpectrum = <Color>[
   Color(0xFF4C8DFF),
   Color(0xFF9B6DFF),
-  Color(0xFFE0559B),
-  Color(0xFFFF9F45),
+  Color(0xFFFF4D6D),
+  Color(0xFFFFB020),
+  Color(0xFF2FD07A),
   Color(0xFF4C8DFF),
 ];
 

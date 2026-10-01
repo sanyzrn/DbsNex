@@ -28,6 +28,11 @@ object NexQuickCapture {
     const val MODE_VOICE = "voice"
     const val MODE_PHOTO = "photo"
 
+    // The Timeline widget's capture row reaches two more kinds than the
+    // notification's three buttons have room for.
+    const val MODE_GALLERY = "gallery"
+    const val MODE_CHECKLIST = "checklist"
+
     private const val CHANNEL_ID = "nex_quick_capture"
     private const val NOTIFICATION_ID = 0x4E65_0C01
     private const val PREFS = "nex_quick_capture"

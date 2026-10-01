@@ -420,18 +420,14 @@ extension _TimelineBody on TimelineScreenState {
                     onAction: (action) => unawaited(_runSwipe(action, note)),
                     child: NoteContextMenu(
                       entries: _holdEntries(note),
-                      // A builder for the card's own context: the sheet
-                      // opens out of where this card is on screen.
-                      child: Builder(
-                        builder: (card) => NoteCard(
-                          note: note,
-                          strings: nexCardStrings(context),
-                          onTap: () => _tapNote(note, from: card),
-                          selected: _selecting
-                              ? _selected.contains(note.id)
-                              : null,
-                          expanded: widget.preferences.isNoteExpanded(note.id),
-                        ),
+                      child: NoteCard(
+                        note: note,
+                        strings: nexCardStrings(context),
+                        onTap: () => _tapNote(note),
+                        selected: _selecting
+                            ? _selected.contains(note.id)
+                            : null,
+                        expanded: widget.preferences.isNoteExpanded(note.id),
                       ),
                     ),
                   ),

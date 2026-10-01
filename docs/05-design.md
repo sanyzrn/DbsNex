@@ -260,9 +260,9 @@ The dock is fixed left-to-right: Tools, Recurring, Capture, Library, Settings. H
 - **The day under the filters.** Past the first screen the day of the card
   under the filter row is shown there, in a fixed-height slot hung from the
   pinned header so it relays out nothing else.
-- **A card opens into its note.** The sheet grows from the card's outline
-  while the card itself stays put above it and fades; it is the ordinary sheet
-  once open.
+- **A card opens into its note** the way the assistant opens: the ordinary
+  sheet rising at the assistant's softer pace (`nexSheetRise`). The 1.90
+  version grew the sheet out of the card's outline; the owner preferred this.
 - **Selecting.** Select heads every card's hold menu and is not configurable.
   While picking, the dock is replaced by the count and a capsule of actions
   in the dock's place and shape; picked cards take a tick and an accent edge,

@@ -14,6 +14,18 @@ typedef NexThemePreset = ({
   Color? light,
   Color? dark,
 });
+
+/// The faint motif a theme draws along the bottom of the screen, for the
+/// five whose name suggests one; the rest stay plain.
+NexThemeTexture nexThemeTexture(String presetId) => switch (presetId) {
+  'paper' => NexThemeTexture.fibre,
+  'turquoise' => NexThemeTexture.girih,
+  'forest' => NexThemeTexture.contours,
+  'ocean' => NexThemeTexture.waves,
+  'midnight' => NexThemeTexture.stars,
+  _ => NexThemeTexture.none,
+};
+
 const nexThemePresets = <NexThemePreset>[
   (
     id: 'classic',

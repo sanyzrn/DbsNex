@@ -2221,6 +2221,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantConfirmMerge => 'این یادداشت‌ها را یکی کنم؟';
 
   @override
+  String get assistantConfirmThread =>
+      'این یادداشت‌ها را به یک رشته اضافه کنم؟';
+
+  @override
   String get assistantConfirmChecklist => 'این را به چک‌لیست تبدیل کنم؟';
 
   @override

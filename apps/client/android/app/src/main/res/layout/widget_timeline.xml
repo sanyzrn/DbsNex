@@ -2,11 +2,19 @@
 <!--
   The Timeline widget: a card holding the top of the timeline.
 
-  Header — the Nex mark and wordmark (tapping it opens the app) with the
-  capture button at the far end. Below it, one of three bodies the provider
-  swaps between: the list of recent captures, the locked notice, or the
-  empty prompt. All three keep the header, because capture never depends on
-  the library being readable.
+  Header — the Nex logotype alone (tapping it opens the app); the app name
+  beside it said the same word twice. Under it, the capture row: a note, a
+  voice note, a photo from the camera or the gallery, and a checklist, each
+  one tap from the home screen — the + it replaces could only start a text
+  note. Below that, one of three bodies the provider swaps between: the
+  list of recent captures, the locked notice, or the empty prompt. All
+  three keep the header and the capture row, because capture never depends
+  on the library being readable.
+
+  Two rows rather than one because the widget can be as narrow as three
+  cells: five buttons beside the logotype would not leave a finger room to
+  pick one. Equal weights give each button the same share of whatever width
+  the launcher grants.
 
   Padding is small and deliberate: the widget is a card on the launcher's
   desk, so it keeps Nex's card geometry — its own fill, a 1px hairline, a
@@ -25,58 +33,118 @@
         android:id="@+id/nex_widget_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="56dp"
+        android:minHeight="40dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="14dp"
-        android:paddingEnd="8dp">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="6dp">
 
         <ImageView
             android:id="@+id/nex_widget_brand"
-            android:layout_width="46dp"
-            android:layout_height="10dp"
+            android:layout_width="52dp"
+            android:layout_height="12dp"
             android:importantForAccessibility="no"
             android:src="@drawable/nex_widget_ic_mark" />
+    </LinearLayout>
 
-        <!--
-          The title takes the free space instead of a spacer taking it.
-
-          There used to be a <Space> here doing the pushing, and it is why
-          this widget never rendered at all: RemoteViews inflates through a
-          filter that admits only classes carrying the framework's
-          @RemoteView annotation, and android.widget.Space does not have it
-          (nor does a plain <View>). Every other class in these layouts does.
-          The launcher threw InflateException and showed "Problem loading
-          widget" — a runtime failure, in a file that compiles, that no build
-          or test in this repo could see. See the widget-layout guard in CI,
-          which now fails the build instead.
-
-          A weighted TextView is the fix and the better layout anyway: one
-          view fewer, and a long app name ellipsises against the capture
-          button rather than shoving it off the edge.
-        -->
-        <TextView
-            android:id="@+id/nex_widget_title"
-            style="@style/NexWidget.Title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:ellipsize="end"
-            android:text="@string/app_name" />
+    <LinearLayout
+        android:id="@+id/nex_widget_capture_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="11dp"
+        android:paddingEnd="11dp"
+        android:paddingBottom="6dp">
 
         <FrameLayout
-            android:id="@+id/nex_widget_capture_badge"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/nex_widget_bg_badge">
+            android:id="@+id/nex_widget_capture_note"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:background="@drawable/nex_widget_bg_action">
 
             <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
+                android:id="@+id/nex_widget_capture_note_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:layout_gravity="center"
                 android:importantForAccessibility="no"
-                android:src="@drawable/nex_widget_ic_plus" />
+                android:src="@drawable/nex_widget_ic_type_text" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/nex_widget_capture_voice"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:background="@drawable/nex_widget_bg_action">
+
+            <ImageView
+                android:id="@+id/nex_widget_capture_voice_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/nex_widget_ic_type_voice" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/nex_widget_capture_camera"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:background="@drawable/nex_widget_bg_action">
+
+            <ImageView
+                android:id="@+id/nex_widget_capture_camera_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/nex_widget_ic_camera" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/nex_widget_capture_gallery"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:background="@drawable/nex_widget_bg_action">
+
+            <ImageView
+                android:id="@+id/nex_widget_capture_gallery_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/nex_widget_ic_gallery" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/nex_widget_capture_checklist"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
+            android:background="@drawable/nex_widget_bg_action">
+
+            <ImageView
+                android:id="@+id/nex_widget_capture_checklist_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/nex_widget_ic_type_checklist" />
         </FrameLayout>
     </LinearLayout>
 

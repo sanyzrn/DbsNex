@@ -98,9 +98,9 @@ class _EdgeGlowPainter extends CustomPainter {
       Paint()
         ..shader = sweep
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5 + 1.5 * spread
+        ..strokeWidth = 3 + 2 * spread
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 + spread)
-        ..color = Colors.white.withValues(alpha: 0.85 * t),
+        ..color = Colors.white.withValues(alpha: t),
     );
   }
 
@@ -139,8 +139,12 @@ class _Bloom {
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, blur)
         ..color = Colors.white.withValues(alpha: alpha),
     );
-    ring(54, 34, 0.22);
-    ring(22, 16, 0.42);
+    // Bright enough to read as light flooding in from the edge, the way the
+    // system assistant does it; until 1.92 these were 0.22 and 0.42 and the
+    // bloom was a haze most people never noticed.
+    ring(72, 42, 0.5);
+    ring(30, 20, 0.78);
+    ring(10, 6, 0.9);
     final picture = recorder.endRecording();
     final image = picture.toImageSync(
       math.max(size.width.ceil(), 1),
@@ -155,44 +159,57 @@ class _Bloom {
   }
 }
 
-/// The same light, left at a whisper for as long as its child is on screen.
+/// A thin line of the same light running round the screen for as long as its
+/// child is on screen.
 ///
-/// The hold that opens the assistant ends in a glow that fades out, and what
-/// comes up afterwards looks like any other sheet. Keeping a thread of the
-/// same spectrum around the display is how the app says it is still in that
-/// mode — the way a call in progress keeps a bar at the top rather than
-/// trusting you to remember.
+/// The hold that opens the assistant ends in a bloom that fades out, and what
+/// comes up afterwards looks like any other sheet. A moving border of the
+/// same colours is how the app says it is still in that mode — the way a
+/// call in progress keeps a bar at the top rather than trusting you to
+/// remember. It turns slowly, once every [period], so it reads as light
+/// rather than as a frame; and it is a few pixels wide, a fraction of the
+/// opening bloom, so it never crowds the content.
 ///
-/// [intensity] is a [NexEdgeGlow] progress, and the default is deliberately
-/// near the bottom of its range: at 0.16 the bloom has not opened at all and
-/// what is left is a hairline at about a fifth of full brightness. Anything
-/// higher stops being a border and starts being a frame around the content.
-///
-/// Reduce-motion keeps the line and drops the fade. The line is not motion —
-/// it is a static edge, closer to a status bar than to an animation — and
-/// removing it would take away the only thing saying which mode the app is
-/// in.
+/// Reduce-motion keeps the line and stops it turning. The line is not motion
+/// — it is the only thing saying which mode the app is in.
 class NexAmbientEdgeGlow extends StatefulWidget {
   const NexAmbientEdgeGlow({
     super.key,
     required this.child,
     required this.colors,
-    this.intensity = 0.16,
+    this.width = 3,
+    this.period = const Duration(seconds: 6),
   });
 
   final Widget child;
   final List<Color> colors;
-  final double intensity;
+
+  /// The line's width in logical pixels; a soft halo twice as wide sits
+  /// under it.
+  final double width;
+
+  /// One full turn of the colours round the screen.
+  final Duration period;
+
+  /// Whether the border turns. A border that turns for as long as the
+  /// assistant is open is an animation that never ends, and widget tests
+  /// that wait for the screen to settle would wait forever; the client's
+  /// test config sets this false, and must be the only thing that does.
+  static bool turns = true;
 
   @override
   State<NexAmbientEdgeGlow> createState() => _NexAmbientEdgeGlowState();
 }
 
 class _NexAmbientEdgeGlowState extends State<NexAmbientEdgeGlow>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _fade = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 360),
+  );
+  late final AnimationController _turn = AnimationController(
+    vsync: this,
+    duration: widget.period,
   );
 
   OverlayEntry? _glow;
@@ -212,11 +229,20 @@ class _NexAmbientEdgeGlowState extends State<NexAmbientEdgeGlow>
       if (!mounted) return;
       final entry = OverlayEntry(
         builder: (context) => Positioned.fill(
-          child: AnimatedBuilder(
-            animation: _fade,
-            builder: (context, _) => NexEdgeGlow(
-              progress: _fade.value * widget.intensity,
-              colors: widget.colors,
+          child: IgnorePointer(
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_fade, _turn]),
+                builder: (context, _) => CustomPaint(
+                  size: Size.infinite,
+                  painter: _AmbientBorderPainter(
+                    opacity: _fade.value,
+                    turn: _turn.value,
+                    width: widget.width,
+                    colors: widget.colors,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -227,22 +253,78 @@ class _NexAmbientEdgeGlowState extends State<NexAmbientEdgeGlow>
         _fade.value = 1;
       } else {
         _fade.forward();
+        if (NexAmbientEdgeGlow.turns) _turn.repeat();
       }
     });
   }
 
   @override
   void dispose() {
-    // Before the controller, for the reason [NexLongPressGlowState] documents:
-    // the overlay's builder reads it every frame.
+    // Before the controllers, for the reason [NexLongPressGlowState]
+    // documents: the overlay's builder reads them every frame.
     _glow?.remove();
     _glow = null;
     _fade.dispose();
+    _turn.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+class _AmbientBorderPainter extends CustomPainter {
+  _AmbientBorderPainter({
+    required this.opacity,
+    required this.turn,
+    required this.width,
+    required this.colors,
+  });
+
+  final double opacity;
+  final double turn;
+  final double width;
+  final List<Color> colors;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (opacity <= 0) return;
+    final rect = Offset.zero & size;
+    // The same generous corner as the bloom, for the same reason.
+    final rrect = RRect.fromRectAndRadius(
+      rect.deflate(width / 2),
+      const Radius.circular(44),
+    );
+    final sweep = SweepGradient(
+      transform: GradientRotation(math.pi / 2 + turn * 2 * math.pi),
+      colors: [...colors, colors.first],
+    ).createShader(rect);
+    canvas
+      ..drawRRect(
+        rrect,
+        Paint()
+          ..shader = sweep
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width * 3
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 2)
+          ..color = Colors.white.withValues(alpha: 0.45 * opacity),
+      )
+      ..drawRRect(
+        rrect,
+        Paint()
+          ..shader = sweep
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..color = Colors.white.withValues(alpha: opacity),
+      );
+  }
+
+  @override
+  bool shouldRepaint(_AmbientBorderPainter old) =>
+      old.opacity != opacity ||
+      old.turn != turn ||
+      old.width != width ||
+      old.colors != colors;
 }
 
 /// Drives a [NexEdgeGlow] from a long press, and reports when it completes.

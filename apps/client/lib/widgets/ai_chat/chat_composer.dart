@@ -157,8 +157,9 @@ class _ActionCard extends StatelessWidget {
         AssistantActionKind.commitmentMet => l10n.assistantConfirmCommitmentMet,
         AssistantActionKind.commitmentDelete =>
           l10n.assistantConfirmCommitmentDelete,
+        AssistantActionKind.thread => l10n.assistantConfirmThread,
         // Never shown: a search is carried out on arrival, not confirmed.
-        AssistantActionKind.search => '',
+        AssistantActionKind.search || AssistantActionKind.threads => '',
       };
 
   /// What the action would actually do, in the user's own words where there
@@ -207,12 +208,35 @@ class _ActionCard extends StatelessWidget {
     ].join(' '),
     AssistantActionKind.commitmentMet ||
     AssistantActionKind.commitmentDelete => action.commitmentName ?? '',
+    // The thread's name and how many notes go into it.
+    AssistantActionKind.thread =>
+      '${action.threadName} · ${action.noteIds.length}',
     AssistantActionKind.pin ||
     AssistantActionKind.restore ||
     AssistantActionKind.delete ||
     AssistantActionKind.check ||
-    AssistantActionKind.search => '',
+    AssistantActionKind.search ||
+    AssistantActionKind.threads => '',
   };
+
+  /// The card's lines: each action's question and detail, with a run of the
+  /// same change to several notes folded into one line and its count.
+  List<(String, String, int)> _lines(AppLocalizations l10n) {
+    final lines = <(String, String, int)>[];
+    for (final action in actions) {
+      final question = _question(l10n, action);
+      final detail = _detail(action);
+      if (lines.isNotEmpty &&
+          lines.last.$1 == question &&
+          lines.last.$2 == detail) {
+        final (q, d, count) = lines.removeLast();
+        lines.add((q, d, count + 1));
+      } else {
+        lines.add((question, detail, 1));
+      }
+    }
+    return lines;
+  }
 
   /// "every 8 hours", for the confirmation card.
   ///
@@ -260,30 +284,47 @@ class _ActionCard extends StatelessWidget {
           color: accent.withValues(alpha: 0.06),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Every action in the set, listed. A single button applying
             // three changes the user was only shown one of is not consent.
-            for (final action in actions) ...[
-              Text(
-                _question(l10n, action),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+            // The same change to several notes is one line with its count —
+            // "tag these twelve as work" would otherwise be twelve identical
+            // lines pushing the button off the sheet — and a set still too
+            // long for the sheet scrolls rather than overflowing it.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.3,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (question, detail, count) in _lines(l10n)) ...[
+                      Text(
+                        count > 1 ? '$question  ×$count' : question,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (detail.isNotEmpty) ...[
+                        const SizedBox(height: NexSpacing.xs),
+                        Text(
+                          detail,
+                          style: theme.textTheme.bodySmall,
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                          textDirection: nexDirectionOf(detail),
+                          textAlign: TextAlign.start,
+                        ),
+                      ],
+                      const SizedBox(height: NexSpacing.sm),
+                    ],
+                  ],
                 ),
               ),
-              if (_detail(action) case final detail when detail.isNotEmpty) ...[
-                const SizedBox(height: NexSpacing.xs),
-                Text(
-                  detail,
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                  textDirection: nexDirectionOf(detail),
-                  textAlign: TextAlign.start,
-                ),
-              ],
-              const SizedBox(height: NexSpacing.sm),
-            ],
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [

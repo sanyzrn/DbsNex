@@ -24,6 +24,43 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('assistant actions', () {
+    test('one action can name several notes, and becomes one per note', () {
+      final actions = parseAssistantActions(
+        '```nex\n{"action": "tag", "ids": ["a", "b", "c"], "add": ["work"]}\n```',
+      );
+      expect(actions.map((a) => a.kind), everyElement(AssistantActionKind.tag));
+      expect(actions.map((a) => a.noteId), ['a', 'b', 'c']);
+      expect(actions.first.addTags, ['work']);
+    });
+
+    test('notes go into a thread by name; a merge keeps its ids together', () {
+      final thread = parseAssistantAction(
+        '{"action": "thread", "ids": ["a", "b"], "name": "Trip"}',
+      );
+      expect(thread?.kind, AssistantActionKind.thread);
+      expect(thread?.noteIds, ['a', 'b']);
+      expect(thread?.threadName, 'Trip');
+      expect(thread?.isRead, isFalse);
+      final merge = parseAssistantActions(
+        '{"action": "merge", "ids": ["a", "b"], "text": "both"}',
+      );
+      expect(merge.single.noteIds, ['a', 'b']);
+    });
+
+    test('a tag, a thread or the thread list can be read without asking', () {
+      final tag = parseAssistantAction('{"action": "search", "tag": "work"}');
+      expect(tag?.kind, AssistantActionKind.search);
+      expect(tag?.tagName, 'work');
+      expect(tag?.isRead, isTrue);
+      final thread = parseAssistantAction(
+        '{"action": "search", "thread": "Trip"}',
+      );
+      expect(thread?.threadName, 'Trip');
+      final threads = parseAssistantAction('{"action": "threads"}');
+      expect(threads?.kind, AssistantActionKind.threads);
+      expect(threads?.isRead, isTrue);
+    });
+
     test('reads a fenced action block', () {
       final action = parseAssistantAction('''
 ```nex
@@ -1328,6 +1365,129 @@ Sure, here you go:
       // A model that only ever searches would otherwise spend the user's
       // quota in a loop nobody asked for.
       expect(call, lessThanOrEqualTo(3));
+    });
+
+    /// Opens the assistant with [replies] as the model's answers, in turn,
+    /// sends [question], and returns every request body sent.
+    Future<List<String>> converse(
+      WidgetTester tester,
+      List<String> replies,
+      String question,
+    ) async {
+      final sent = <String>[];
+      var call = 0;
+      final client = MockClient((request) async {
+        sent.add(request.body);
+        final content = replies[call.clamp(0, replies.length - 1)];
+        call++;
+        return http.Response.bytes(
+          utf8.encode(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': content},
+                },
+              ],
+            }),
+          ),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => AiChatSheet.show(
+                    context,
+                    preferences: preferences,
+                    services: services,
+                    history: preferences.chatHistory,
+                    client: client,
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, question);
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      return sent;
+    }
+
+    testWidgets('"summarise my work notes": every note with the tag comes '
+        'back to the model', (tester) async {
+      final work = await services.captureText('quarterly report due friday');
+      await services.captureText('buy oat milk');
+      await services.addTag(noteId: work!.id, name: 'work');
+      await tester.pumpAndSettle();
+
+      final sent = await converse(tester, [
+        '```nex\n{"action":"search","tag":"work"}\n```',
+        'One work note: the quarterly report is due Friday.',
+      ], 'summarise my work notes');
+
+      expect(sent, hasLength(2));
+      final findings = sent.last.substring(sent.last.indexOf('Notes with tag'));
+      expect(findings, contains('quarterly report'));
+      expect(findings, isNot(contains('oat milk')));
+      expect(find.widgetWithText(FilledButton, 'Do it'), findsNothing);
+    });
+
+    testWidgets('"what is in the Trip thread": the thread list, then its '
+        'notes', (tester) async {
+      final ticket = await services.captureText('train to Tabriz at 7');
+      await services.createThread('Trip', noteIds: [ticket!.id]);
+      await tester.pumpAndSettle();
+
+      final sent = await converse(tester, [
+        '```nex\n{"action":"threads"}\n```',
+        '```nex\n{"action":"search","thread":"Trip"}\n```',
+        "The Trip thread has your 7 o'clock train to Tabriz.",
+      ], 'what is in my trip thread?');
+
+      expect(sent, hasLength(3));
+      expect(sent[1], contains('Trip (1 notes)'));
+      expect(sent[2], contains('train to Tabriz'));
+    });
+
+    testWidgets('several notes tagged, and gathered into a new thread, from '
+        'one confirmation', (tester) async {
+      final a = await services.captureText('tiles for the kitchen');
+      final b = await services.captureText('kitchen tap quote');
+      await tester.pumpAndSettle();
+
+      await converse(tester, [
+        '```nex\n{"action":"tag","ids":["${a!.id}","${b!.id}"],'
+            '"add":["home"]}\n```\n'
+            '```nex\n{"action":"thread","ids":["${a.id}","${b.id}"],'
+            '"name":"Kitchen"}\n```',
+      ], 'tag the kitchen notes as home and put them in a thread');
+
+      // Nothing has happened until the button is pressed.
+      expect(await services.threads(), isEmpty);
+      await tester.tap(find.widgetWithText(FilledButton, 'Do it'));
+      await tester.pumpAndSettle();
+
+      for (final id in [a.id, b.id]) {
+        final note = await services.getById(id);
+        expect(note!.tags.map((t) => t.name), contains('home'));
+      }
+      final threads = await services.threads();
+      expect(threads.single.name, 'Kitchen');
+      expect(
+        (await services.threadNotes(threads.single.id)).map((n) => n.id),
+        unorderedEquals([a.id, b.id]),
+      );
     });
   });
 }
