@@ -14,7 +14,7 @@ Without opening Nex first: add the **Nex capture** tile to your Quick Settings (
 
 ## The home timeline
 
-Everything lives in one reverse-chronological stream, grouped under date headings. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again. Once you scroll down, the day of the notes you are passing stays named under the filters. Tap a card and it opens into the note; **Settings → Appearance → Card size** makes cards compact, standard or easier to read.
+Everything lives in one reverse-chronological stream, grouped under date headings. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again. Once you scroll down, the day of the notes you are passing stays named under the filters. Tap a card and it opens into the note; **Settings → Appearance → Theme → Card size** makes cards compact, standard or easier to read.
 
 Hold a note for a quick menu: **Pin**, **Copy**, **Edit**, **Remind** and **Delete** by default. **Settings → Capture → Hold menu** can add any action from a note's details — Share, Add tag, Translate and the rest — or take some away. Up to five notes can be pinned to the top. Swipe a card from either edge for the actions you chose under **Settings → Capture → Swipe actions**. The bottom bar holds, from left to right: **Tools**, **Recurring**, **+**, **Library** and **Settings**.
 

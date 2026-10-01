@@ -332,7 +332,9 @@ class _CommitmentEditorState extends State<CommitmentEditor>
                 contextMenuBuilder: nexReadingMenu,
                 textDirection: direction,
                 textAlign: TextAlign.start,
-                autofocus: widget.existing == null,
+                // Not focused on open. The page leads with the templates,
+                // and a keyboard that comes up by itself covers half of the
+                // form before anyone has decided what to fill in.
                 textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
                   labelText: l10n.commitmentTitleLabel,
