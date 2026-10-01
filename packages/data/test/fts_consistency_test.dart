@@ -111,6 +111,25 @@ void main() {
     expect(searchIds('[x]'), isEmpty);
   });
 
+  // DATA-02 / DATA-09: a note and its search row are one write. Before,
+  // the note row committed first, and a failure (or the process dying)
+  // before the index statement left the two disagreeing until the note was
+  // next edited.
+  test('an edit or a delete whose index write fails changes nothing', () {
+    final note = insert(makeText('first words'));
+    // The index is out of reach, so every index write fails.
+    repo.db.execute('ALTER TABLE notes_fts RENAME TO notes_fts_away');
+    expect(
+      () => repo.updateContent(note.id, 'second words'),
+      throwsA(anything),
+    );
+    expect(repo.getById(note.id)!.content, 'first words');
+    expect(() => repo.softDelete(note.id), throwsA(anything));
+    expect(repo.getById(note.id), isNotNull);
+    repo.db.execute('ALTER TABLE notes_fts_away RENAME TO notes_fts');
+    expect(searchIds('first'), contains(note.id));
+  });
+
   test('repairSearchIndex restores rows lost to a simulated crash', () {
     final a = insert(makeText('alpha has words'));
     final b = insert(makeText('beta has words'));

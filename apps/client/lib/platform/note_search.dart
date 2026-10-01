@@ -95,6 +95,11 @@ class NoteSearchController extends ChangeNotifier {
   int get activeFilterCount =>
       tags.length + types.length + (range == null ? 0 : 1);
 
+  /// Whether anything typed or chosen narrows the list. Without it the list
+  /// is only the newest notes, a page of them, and a count of that page
+  /// would read as the size of the library.
+  bool get narrowed => query.text.trim().isNotEmpty || activeFilterCount > 0;
+
   /// The preset the current [range] came from, if it still matches one.
   /// A null range is "any time".
   NoteDatePreset get datePreset {

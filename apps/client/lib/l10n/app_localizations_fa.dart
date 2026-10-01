@@ -2231,6 +2231,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get assistantConfirmCheck => 'این آیتم را تیک بزنم؟';
 
   @override
+  String get assistantConfirmUncheck => 'تیک این آیتم را بردارم؟';
+
+  @override
   String get assistantConfirmCommitment => 'این مورد تکرارشونده را بگذارم؟';
 
   @override
@@ -3630,4 +3633,36 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get recoveryCodeCopy => 'کپی کد بازیابی';
+
+  @override
+  String get assistantSettingPalette => 'پالت رنگ';
+
+  @override
+  String get assistantValueOn => 'روشن';
+
+  @override
+  String get assistantValueOff => 'خاموش';
+
+  @override
+  String get assistantReminderPast =>
+      'این زمان گذشته است و یادآوری به صدا درنمی‌آید';
+
+  @override
+  String get assistantReminderPastFailed =>
+      'آن زمان گذشته بود، پس یادآوری تنظیم نشد. با زمانی در پیش رو دوباره بخواهید.';
+
+  @override
+  String assistantMoreNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'و $count مورد دیگر',
+      one: 'و ۱ مورد دیگر',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get assistantConfirmSearch =>
+      'یادداشت‌هایتان را برای این جست‌وجو کنم؟';
 }

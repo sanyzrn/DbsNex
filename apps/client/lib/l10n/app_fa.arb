@@ -1054,6 +1054,7 @@
   "assistantConfirmThread": "این یادداشت‌ها را به یک رشته اضافه کنم؟",
   "assistantConfirmChecklist": "این را به چک‌لیست تبدیل کنم؟",
   "assistantConfirmCheck": "این آیتم را تیک بزنم؟",
+  "assistantConfirmUncheck": "تیک این آیتم را بردارم؟",
   "assistantConfirmCommitment": "این مورد تکرارشونده را بگذارم؟",
   "assistantConfirmCommitmentMet": "این را انجام‌شده بزنم و ببرم به دفعهٔ بعد؟",
   "assistantConfirmCommitmentDelete": "این مورد تکرارشونده را بردارم؟",
@@ -1419,5 +1420,12 @@
   "@selectionPinned": {"placeholders": {"count": {"type": "int"}}},
   "selectionUnpinned": "پین {count} یادداشت برداشته شد",
   "@selectionUnpinned": {"placeholders": {"count": {"type": "int"}}},
-  "recoveryCodeCopy": "کپی کد بازیابی"
+  "recoveryCodeCopy": "کپی کد بازیابی",
+  "assistantSettingPalette": "پالت رنگ",
+  "assistantValueOn": "روشن",
+  "assistantValueOff": "خاموش",
+  "assistantReminderPast": "این زمان گذشته است و یادآوری به صدا درنمی‌آید",
+  "assistantReminderPastFailed": "آن زمان گذشته بود، پس یادآوری تنظیم نشد. با زمانی در پیش رو دوباره بخواهید.",
+  "assistantMoreNotes": "{count, plural, =1{و ۱ مورد دیگر} other{و {count} مورد دیگر}}",
+  "assistantConfirmSearch": "یادداشت‌هایتان را برای این جست‌وجو کنم؟"
 }

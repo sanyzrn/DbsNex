@@ -1980,6 +1980,10 @@
   "@assistantConfirmCheck": {
     "description": "Confirmation for ticking a checklist item"
   },
+  "assistantConfirmUncheck": "Untick this item?",
+  "@assistantConfirmUncheck": {
+    "description": "The confirmation for the assistant removing the tick from a checklist item."
+  },
   "assistantConfirmCommitment": "Set up this recurring item?",
   "@assistantConfirmCommitment": {
     "description": "Confirmation for an assistant-proposed recurring item"
@@ -2654,5 +2658,38 @@
   "@selectionPinned": {"placeholders": {"count": {"type": "int"}}},
   "selectionUnpinned": "{count, plural, =1{Unpinned 1 note} other{Unpinned {count} notes}}",
   "@selectionUnpinned": {"placeholders": {"count": {"type": "int"}}},
-  "recoveryCodeCopy": "Copy the recovery code"
+  "recoveryCodeCopy": "Copy the recovery code",
+  "assistantSettingPalette": "Colour palette",
+  "@assistantSettingPalette": {
+    "description": "The name of the whole-app palette setting, on the assistant's confirmation card."
+  },
+  "assistantValueOn": "On",
+  "@assistantValueOn": {
+    "description": "A switch turned on, on the assistant's confirmation card."
+  },
+  "assistantValueOff": "Off",
+  "@assistantValueOff": {
+    "description": "A switch turned off, on the assistant's confirmation card."
+  },
+  "assistantReminderPast": "this time has passed, so it will not ring",
+  "@assistantReminderPast": {
+    "description": "Warning on the assistant's confirmation card when a one-off reminder's time is already in the past."
+  },
+  "assistantReminderPastFailed": "That time has already passed, so no reminder was set. Ask again with a time still ahead.",
+  "@assistantReminderPastFailed": {
+    "description": "Shown after the user confirmed a one-off reminder whose time had already passed."
+  },
+  "assistantMoreNotes": "{count, plural, =1{and 1 more} other{and {count} more}}",
+  "@assistantMoreNotes": {
+    "description": "After the first few note names on the assistant's confirmation card.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantConfirmSearch": "Search your notes for this?",
+  "@assistantConfirmSearch": {
+    "description": "Confirmation for a search the assistant wants to run that the user did not ask for in words."
+  }
 }

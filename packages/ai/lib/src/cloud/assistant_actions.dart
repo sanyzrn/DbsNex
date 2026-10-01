@@ -136,7 +136,8 @@ class AssistantAction {
 
   final NoteRepeat repeat;
 
-  /// True to pin, false to unpin. Null for every other kind.
+  /// True to pin, false to unpin; for [AssistantActionKind.check], true to
+  /// tick and false to untick, null to toggle. Null for every other kind.
   ///
   /// A field rather than two kinds, because the confirmation card, the
   /// executor and the parser would all have to carry the pair around and
@@ -382,11 +383,20 @@ something, answer normally and use no block at all.''';
 /// Models put fences after a preamble, in the wrong case, or with a trailing
 /// space, whatever they are told. Being liberal here costs one regex and
 /// saves the feature from looking broken half the time.
+///
+/// The tag is required (AI-06). An untagged fence is what a model writes
+/// when it quotes something — a note asked to be shown, a snippet — and a
+/// quoted note that happened to hold protocol JSON used to run as if the
+/// model had proposed it.
 final _blockPattern = RegExp(
-  r'```[ \t]*(?:nex|json)?[ \t]*\r?\n(.*?)```',
+  r'```[ \t]*(?:nex|json)[ \t]*\r?\n(.*?)```',
   dotAll: true,
   caseSensitive: false,
 );
+
+/// Any fenced block, tagged or not: quoted material, never read for bare
+/// action objects.
+final _anyFence = RegExp(r'```.*?```', dotAll: true);
 
 /// Reads the action out of a reply, or null when there is not one.
 ///
@@ -418,7 +428,12 @@ List<AssistantAction> parseAssistantActions(String reply) {
   // degrade to "no action", it degrades to the raw protocol JSON appearing in
   // the chat as the assistant's answer. That is what a user sees when they
   // ask for a note and get `{"action": "create", ...}` back.
-  if (bodies.isEmpty) bodies.addAll(_objectsIn(reply));
+  //
+  // Outside fences only: an object inside an untagged fence is something
+  // quoted, the same reason the fence itself no longer counts.
+  if (bodies.isEmpty) {
+    bodies.addAll(_objectsIn(reply.replaceAll(_anyFence, '')));
+  }
 
   final actions = <AssistantAction>[];
   for (final body in bodies) {
@@ -574,6 +589,10 @@ AssistantAction? _action(Map<Object?, Object?> decoded) {
       kind: AssistantActionKind.check,
       noteId: id,
       index: index,
+      // The direction the prompt documents. Ignoring it toggled whatever
+      // the item was: "untick the milk" ticked it, under a card that said
+      // "Tick this item off?" (AI-02). Absent, it stays a toggle.
+      flag: decoded['done'] is bool ? decoded['done'] as bool : null,
     ),
     'setting' => _settingAction(decoded),
     'remind' || 'reminder' when id != null => _remindAction(decoded, id),

@@ -46,4 +46,25 @@ extension NexWriteLock on Database {
       if (pause < const Duration(milliseconds: 200)) pause *= 2;
     }
   }
+
+  /// Runs [body] as one transaction, so a note and its search row are
+  /// written together or not at all.
+  ///
+  /// A write that updated a note and then its FTS row as two autocommit
+  /// statements could be cut between them by the process dying: the note
+  /// showed its new text while search kept answering with the old, until
+  /// the note was next edited (DATA-02). Inside a transaction already —
+  /// an import, a sync page — [body] simply joins it.
+  T together<T>(T Function() body) {
+    if (!autocommit) return body();
+    beginImmediate();
+    try {
+      final result = body();
+      execute('COMMIT');
+      return result;
+    } catch (_) {
+      execute('ROLLBACK');
+      rethrow;
+    }
+  }
 }

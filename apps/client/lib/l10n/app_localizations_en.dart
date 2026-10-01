@@ -2287,6 +2287,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantConfirmCheck => 'Tick this item off?';
 
   @override
+  String get assistantConfirmUncheck => 'Untick this item?';
+
+  @override
   String get assistantConfirmCommitment => 'Set up this recurring item?';
 
   @override
@@ -3729,4 +3732,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recoveryCodeCopy => 'Copy the recovery code';
+
+  @override
+  String get assistantSettingPalette => 'Colour palette';
+
+  @override
+  String get assistantValueOn => 'On';
+
+  @override
+  String get assistantValueOff => 'Off';
+
+  @override
+  String get assistantReminderPast =>
+      'this time has passed, so it will not ring';
+
+  @override
+  String get assistantReminderPastFailed =>
+      'That time has already passed, so no reminder was set. Ask again with a time still ahead.';
+
+  @override
+  String assistantMoreNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'and $count more',
+      one: 'and 1 more',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get assistantConfirmSearch => 'Search your notes for this?';
 }

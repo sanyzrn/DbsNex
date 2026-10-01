@@ -1076,6 +1076,9 @@ class NexServices {
       mediaRoot: mediaDir,
     );
     await refreshTimeline();
+    // An archive carries reminders and recurring items; their alarms are
+    // this device's to set.
+    await restoreReminders();
     return result;
   }
 

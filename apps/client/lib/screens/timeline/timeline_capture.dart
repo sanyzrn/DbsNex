@@ -310,20 +310,51 @@ extension _TimelineCapture on TimelineScreenState {
       if (file.existsSync()) file.deleteSync();
       return;
     }
-    // A recording this app made itself, so its length is bounded by how long
-    // someone held the button — reading it back to hash is safe here in a way
-    // it is not for a file that arrived from somewhere else.
-    final bytes = await File(recorded).readAsBytes();
-    final note = await widget.services.captureVoice(
-      mediaUri: recorded,
-      mediaHash: sha256OfBytes(bytes),
-      durationMs: elapsed.elapsedMilliseconds,
-    );
-    landedId = note.id;
-    NexMetrics.shared.markCapture();
-    widget.services.scheduleEnrichment(note.id);
-    if (widget.preferences.haptics) HapticFeedback.lightImpact();
-    widget.services.refreshTimeline();
+    await _keepVoice(recorded, elapsed.elapsedMilliseconds);
+  }
+
+  /// Saves a finished recording as a note.
+  ///
+  /// The person has already tapped Keep and the sheet is gone, so a failure
+  /// here has to be said out loud (DATA-05): it used to escape as an
+  /// unhandled error, nothing appeared on the timeline, and the recording was
+  /// swept away an hour later as an orphan. The file stays where it is, and
+  /// Retry saves the same recording again.
+  Future<void> _keepVoice(String recorded, int durationMs) async {
+    try {
+      // A recording this app made itself, so its length is bounded by how
+      // long someone held the button — reading it back to hash is safe here
+      // in a way it is not for a file that arrived from somewhere else.
+      final bytes = await File(recorded).readAsBytes();
+      final note = await widget.services.captureVoice(
+        mediaUri: recorded,
+        mediaHash: sha256OfBytes(bytes),
+        durationMs: durationMs,
+      );
+      landedId = note.id;
+      NexMetrics.shared.markCapture();
+      widget.services.scheduleEnrichment(note.id);
+      if (widget.preferences.haptics) HapticFeedback.lightImpact();
+      unawaited(widget.services.refreshTimeline());
+    } catch (error) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      nexShowBanner(
+        context,
+        kind: NexBannerKind.failed,
+        haptics: widget.preferences.haptics,
+        // The permission message is about the camera and photos; the
+        // microphone was already granted by the time a recording exists.
+        message: switch (CaptureFailure.of(error)) {
+          CaptureFailure.storage => l10n.captureFailedStorage,
+          CaptureFailure.unreadable => l10n.captureFailedUnreadable,
+          CaptureFailure.permission ||
+          CaptureFailure.unknown => l10n.captureFailed,
+        },
+        actionLabel: l10n.retry,
+        onAction: () => unawaited(_keepVoice(recorded, durationMs)),
+      );
+    }
   }
 
   Future<void> captureFile() async {
