@@ -1,16 +1,19 @@
 # Task: Turn the Flutter edge panel into Nex for Windows
 
-You already converted **Right Panel** (`github.com/raminturne/right-panel`: a Rust + WebView edge panel for Windows, MIT licence) into a Flutter app. You are now given a snapshot of the **Nex** source. Nex is a local-first, Persian-first capture and notes app; Android is its shipping platform. Your job is to make the panel the **Windows home of Nex**:
+You already converted **Right Panel** (`github.com/raminturne/right-panel`: a Rust + WebView edge panel for Windows, MIT licence) into a Flutter app. You now also have **read-only access to the Nex repository** (`github.com/sanyzrn/DbsNex`). Nex is a local-first, Persian-first capture and notes app; Android is its shipping platform. Your job is to make the panel the **Windows home of Nex**:
 - the panel's shell stays: edge reveal, liquid motion, tray, hotkeys, multi-monitor;
 - Nex's features and data live inside it.
 
 The goal is a solid, working base, not a finished product. The Nex maintainers will do the final polish on top of your work. That means **structure, correctness and clear hand-off notes matter more than feature count**.
 
 ## How you work
-You work **in isolation**: you have no access to Nex's GitHub repository, its CI or its maintainers during the task. You are given a **snapshot of the Nex source** (a zip or a folder) as read-only reference. You deliver **one zip file**. The maintainers unpack it into their repository, review it and finish the work. If the Nex snapshot is missing or incomplete (no `packages/` folder), stop and say so instead of guessing at its APIs.
+You can **read** the Nex repository: clone it, or browse it. You **cannot change it**: no push, no branch, no pull request, no issue or comment, no CI runs. You do not have access to its maintainers during the task.
+- Clone `main` and record the commit SHA you started from. Everything you deliver is based on that commit.
+- Work in your local clone. You deliver **one zip file**. The maintainers unpack it into their repository, review it and finish the work.
+- If you cannot read the repository, stop and say so instead of guessing at its APIs.
 
 ## 0. Before you write any code
-1. In the Nex snapshot, read:
+1. In the Nex repository, read:
    - `README.md`
    - `docs/04-architecture.md`
    - `docs/05-design.md`
@@ -18,7 +21,7 @@ You work **in isolation**: you have no access to Nex's GitHub repository, its CI
    - `docs/10-decisions.md` (the ADRs; they are binding)
    - the package entry points `packages/core/lib/nex_core.dart`, `packages/data/lib/nex_data.dart`, `packages/ui/lib/nex_ui.dart`, `packages/ai/lib/nex_ai.dart`
    - `apps/client/lib/app.dart`, `apps/client/lib/platform/nex_services.dart`, `apps/client/lib/platform/nex_db.dart`
-2. Use **Flutter 3.35.x** (Dart 3.9), the version Nex pins. If you can run commands, run `make check` in the snapshot first to confirm your toolchain matches.
+2. Use **Flutter 3.35.x** (Dart 3.9), the version Nex pins. If you can run commands, run `make check` in your clone first to confirm your toolchain matches.
 3. Write a short plan in `apps/desktop/README.md` (section "Plan") before implementing. It contains:
    - the architecture decision;
    - the feature mapping table (see section 3);
@@ -27,7 +30,7 @@ You work **in isolation**: you have no access to Nex's GitHub repository, its CI
    Then start.
 
 ## 1. Where the code goes and how it depends on Nex
-- Build the panel as its own Flutter app at **`apps/desktop/`**, laid out **inside your copy of the Nex snapshot**. When the maintainers drop it into their repository root, it must work with no edits.
+- Build the panel as its own Flutter app at **`apps/desktop/`**, laid out **inside your local clone of Nex**. When the maintainers drop it into their repository root, it must work with no edits.
 - Bring your converted panel code into it.
 - Depend on Nex's packages **by relative path**: `../../packages/core`, `../../packages/data`, `../../packages/ui`, and `../../packages/ai` only behind one integration point (see the rules). Do not vendor or copy the packages into `apps/desktop`.
 - **Do not copy** Nex domain logic, schema, search, merge or theme tokens into the panel. One source of truth.
@@ -120,7 +123,7 @@ nex-desktop-<date>.zip
 │   ├── THIRD_PARTY_NOTICES.md
 │   ├── pubspec.yaml       # path dependencies to ../../packages/*
 │   ├── lib/  test/  windows/  assets/ …
-├── patches/               # optional; unified diffs against the Nex snapshot
+├── patches/               # optional; unified diffs against your base commit
 │   ├── 01-<concern>.patch # e.g. move a helper from apps/client into packages/ui
 │   ├── 02-makefile.patch  # add apps/desktop analyze + test to `make check`
 │   └── 03-ci.patch        # a Windows build job for apps/desktop, modelled on
@@ -130,7 +133,7 @@ nex-desktop-<date>.zip
 ```
 
 - Leave out build outputs and caches: `build/`, `.dart_tool/`, `.idea/`, `*.iml`, `windows/flutter/ephemeral/`, `pubspec_overrides.yaml`, any `.exe`. Keep `pubspec.lock`.
-- Each patch must apply cleanly with `git apply` from the Nex repo root against the snapshot you were given. State the snapshot's version (from `apps/client/pubspec.yaml`) in `HANDOFF.md`.
+- Each patch must apply cleanly with `git apply` from the Nex repo root at your base commit. Make them with `git diff`. State the base commit SHA and the app version (from `apps/client/pubspec.yaml`) at the top of `HANDOFF.md`.
 - **`apps/desktop/README.md`** contains:
   - the architecture;
   - how to run, test and build;
@@ -146,4 +149,4 @@ nex-desktop-<date>.zip
   - the order to apply the patches;
   - the three things a reviewer should try first.
 
-If anything in these instructions conflicts with what you find in the Nex snapshot (an ADR, a package API, the schema), **the snapshot wins**. Note the conflict in the README instead of working around it.
+If anything in these instructions conflicts with what you find in the Nex repository (an ADR, a package API, the schema), **the repository wins**. Note the conflict in the README instead of working around it.
