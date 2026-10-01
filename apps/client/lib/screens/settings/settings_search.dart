@@ -49,6 +49,7 @@ class _SettingsSearch extends StatefulWidget {
 
 class _SettingsSearchState extends State<_SettingsSearch> {
   final _controller = TextEditingController();
+  final _focus = FocusNode();
 
   @override
   void initState() {
@@ -59,6 +60,7 @@ class _SettingsSearchState extends State<_SettingsSearch> {
   @override
   void dispose() {
     _controller.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -76,6 +78,7 @@ class _SettingsSearchState extends State<_SettingsSearch> {
         controller: _controller,
         builder: (context, direction) => TextField(
           controller: _controller,
+          focusNode: _focus,
           textDirection: direction,
           textAlign: TextAlign.start,
           textInputAction: TextInputAction.search,
@@ -98,6 +101,11 @@ class _SettingsSearchState extends State<_SettingsSearch> {
         ),
       ),
     );
-    return widget.builder(context, _controller.text.trim(), field);
+    // The one field where a touch outside it, while typing, only closes the
+    // keyboard (ADR-038): under it is a sheet of switches.
+    return NexGuardedField(
+      focusNode: _focus,
+      child: widget.builder(context, _controller.text.trim(), field),
+    );
   }
 }

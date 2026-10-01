@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v1.91.1
+
+- **Touches work as before while typing, except in the settings search.** In 1.91.0 a touch outside the box you were typing in only closed the keyboard, everywhere — which stopped tags from being picked with the keyboard up, sometimes closed the keyboard on a tap inside the box, and made selection handles hard to catch in a note being read. That rule now applies only to the settings search, where it keeps a setting from being changed by accident.
+- **Editing opens and scrolls smoothly again.** The editor is drawn the way the rest of the app is, and its fonts are read when the app starts rather than when you tap Edit.
 - **The coloured wave is back** when you hold + and while the assistant is open. What goes instead is the light-blue drop that poured out of the + button as the assistant opened; the assistant now simply rises.
 
 ## v1.91.0

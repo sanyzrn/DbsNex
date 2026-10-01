@@ -9,7 +9,6 @@ import '../platform/nex_services.dart';
 import 'nex_banner.dart';
 import 'reminder_picker.dart';
 import 'nex_text_field.dart';
-import 'keyboard_dismisser.dart';
 
 class CaptureSheet extends StatefulWidget {
   const CaptureSheet({
@@ -394,44 +393,40 @@ class _CaptureSheetState extends State<CaptureSheet> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                NexTypingAction(
-                  child: IconButton(
-                    constraints: const BoxConstraints.tightFor(
-                      width: nexMinTapTarget,
-                      height: nexMinTapTarget,
-                    ),
-                    onPressed: controller.text.isEmpty
-                        ? null
-                        : () => unawaited(_remind()),
-                    tooltip: l10n.remind,
-                    icon: Icon(
-                      hasReminder ? Icons.alarm_on : Icons.alarm_add_outlined,
-                      size: 20,
-                      color: hasReminder
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                    ),
+                IconButton(
+                  constraints: const BoxConstraints.tightFor(
+                    width: nexMinTapTarget,
+                    height: nexMinTapTarget,
+                  ),
+                  onPressed: controller.text.isEmpty
+                      ? null
+                      : () => unawaited(_remind()),
+                  tooltip: l10n.remind,
+                  icon: Icon(
+                    hasReminder ? Icons.alarm_on : Icons.alarm_add_outlined,
+                    size: 20,
+                    color: hasReminder
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 4),
-                NexTypingAction(
-                  child: IconButton.filled(
-                    // Keep the primary action anchored while attachment tools scroll.
-                    // The quieter reminder retains a full 48px touch target.
-                    constraints: const BoxConstraints.tightFor(
-                      width: 60,
-                      height: 60,
-                    ),
-                    onPressed: _closing ? null : close,
-                    tooltip: l10n.capture,
-                    icon: _closing
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.arrow_upward, size: 32),
+                IconButton.filled(
+                  // Keep the primary action anchored while attachment tools scroll.
+                  // The quieter reminder retains a full 48px touch target.
+                  constraints: const BoxConstraints.tightFor(
+                    width: 60,
+                    height: 60,
                   ),
+                  onPressed: _closing ? null : close,
+                  tooltip: l10n.capture,
+                  icon: _closing
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.arrow_upward, size: 32),
                 ),
               ],
             ),
