@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+- **The coloured wave is back** when you hold + and while the assistant is open. What goes instead is the light-blue drop that poured out of the + button as the assistant opened; the assistant now simply rises.
+
 ## v1.91.0
 
 - **While the keyboard is open, a touch outside the box you are typing in only closes the keyboard.** Nothing under your finger is pressed or scrolled — no more clearing a birthday while typing a name, or opening a setting while dismissing a search. The box itself, its clear button, Send and Save, and moving to another box still work with one touch.
