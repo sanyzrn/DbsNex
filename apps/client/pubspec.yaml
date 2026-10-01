@@ -19,7 +19,7 @@ dependencies:
   # reading one needs an unzip and a parser, and this is the package that has
   # them in its closure already — see the note in that file about why the
   # reader is not in packages/core with the other readers.
-  archive: ^4.0.9
+  archive: ^4.3.0
   xml: ^6.6.1
   file_selector: ^1.0.3
   # The in-app updater: one GET to the GitHub releases API when the user
@@ -29,17 +29,17 @@ dependencies:
   # Already resolved transitively (http depends on it); declared directly
   # because app_update.dart now imports it.
   crypto: ^3.0.6
-  image_picker: ^1.1.2
+  image_picker: ^1.2.3
   local_auth: ^2.3.0
   # Crop UI right after a capture. Pure Dart — no native platform code — so
   # it works uniformly on every target this app builds for, unlike
   # image_cropper, which has no Windows implementation at all.
-  crop_your_image: ^2.0.0
+  crop_your_image: ^2.0.1
   # Rotates a photo's raw bytes before crop_your_image ever sees them — it has
   # no rotation API of its own. Already resolved transitively (crop_your_image
   # depends on it); declared directly because photo_crop_screen.dart now
   # imports it too.
-  image: ^4.3.0
+  image: ^4.10.1
   # Pinned to the version flutter_localizations resolves against on 3.35.x.
   # "any" delegated the constraint entirely to whatever Flutter stable was
   # installed at build time.
@@ -74,7 +74,7 @@ dependencies:
   # implementation is ShellExecute, which is also the right way to launch the
   # update installer: it is what raises the UAC prompt.
   url_launcher: ^6.3.0
-  path_provider: ^2.1.5
+  path_provider: ^2.1.6
   record: ^6.1.1
   # The platform share sheet for file, photo and voice notes.
   share_plus: ^12.0.2
@@ -85,16 +85,16 @@ dependencies:
   # anyone with ADB or filesystem access to the device can read.
   flutter_secure_storage: ^10.3.1
   sqlite3: ^2.7.5
-  sqlite3_flutter_libs: ^0.5.28
+  sqlite3_flutter_libs: ^0.6.0+eol
   uuid: ^4.5.1
-  flutter_local_notifications: ^20.1.0
-  timezone: ^0.10.1
+  flutter_local_notifications: ^22.3.1
+  timezone: ^0.11.1
   # Answers what `tz.local` should be. Without it the timezone database is
   # loaded and never pointed at a zone, so `tz.local` stays UTC — which makes
   # every wall-clock schedule (the daily nudge, and any repeat matched on the
   # time of day) fire at the wrong hour by the device's offset.
   flutter_timezone: ^5.1.0
-  camera: ^0.12.0+1
+  camera: ^0.12.1
 
 dev_dependencies:
   flutter_test:
@@ -104,10 +104,10 @@ dev_dependencies:
   # flutter_secure_storage ships for exactly this: no plugin is registered
   # under flutter_test, so every test touching NexPreferences would otherwise
   # hit a real platform channel that does not exist there.
-  flutter_secure_storage_platform_interface: ^2.0.1
+  flutter_secure_storage_platform_interface: ^2.1.1
   # Only for about_screen_test.dart's fake, for the same reason: no plugin is
   # registered under flutter_test for getApplicationSupportDirectory either.
-  path_provider_platform_interface: ^2.1.2
+  path_provider_platform_interface: ^2.1.3
   plugin_platform_interface: ^2.1.8
 
 flutter:
