@@ -34,6 +34,8 @@ Working convention:
 
 ## Unreleased
 
+## v1.90.1
+
 - **Backups work again on the phone.** Automatic backups, and the copy into a chosen folder, failed once any photo or file had been backed up before ("FormatException"). They no longer do, and a failed folder copy now says exactly why.
 - **The update keeps downloading when you leave Nex.** Going back out of the home screen during a download used to stop it; now Nex steps into the background instead, as Home does.
 - **A card opens into its note without a flash** at the end of the opening.
