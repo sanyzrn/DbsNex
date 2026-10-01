@@ -22,6 +22,9 @@ what ships. iOS is not in progress.
 **Capture** — text, voice, photo and arbitrary files. No Save button anywhere: every
 capture is committed the moment it exists. Photos go through a crop step on the way in.
 Files shared to Nex from another app land the same way as ones picked inside it.
+On Android, notes are written in the phone's own text editor, so a note in two languages
+keeps each line's direction while it is edited, with the system's selection handles and
+menu ([ADR-037](./docs/10-decisions.md#adr-037--text-a-person-writes-is-edited-in-the-platforms-own-editor-on-android)).
 
 **Timeline** — one reverse-chronological stream, no folders, grouped under date headings
 that fold (pinch the timeline to fold or open them all), and once you scroll past the top
@@ -70,7 +73,7 @@ killed.
 **Intelligence, optional and off by default** — transcription, OCR, summarization, tag
 suggestions, semantic search and related notes, each behind its own switch, against a
 provider you configure and can test, plus an assistant you can actually talk to about what
-you have written — held open from the capture button, it grows out of the button. Its tone is yours to set, including one you write yourself. It is the only
+you have written, opened by holding the capture button. Its tone is yours to set, including one you write yourself. It is the only
 part of Nex that can send a note off the device, it says so before it is switched on, and
 cloud requests may include your preferred name and selected note context. With only the offline model enabled, generation stays on the device. See [`docs/09-ai.md`](./docs/09-ai.md).
 
@@ -104,21 +107,24 @@ it is by pasting a base URL and a token into Settings. Treat it as unreleased.
 
 ```
 apps/
-  client/     Flutter app — the product. Android ships; Windows builds, unreleased.
-  backend/    Node + PostgreSQL sync API. Dormant until v2.
+  client/           Flutter app — the product. Android ships; Windows builds, unreleased.
+  backend/          Node + PostgreSQL sync API. Built and tested, not deployed until 2.0.
+  feedback-worker/  Cloudflare Worker that relays in-app feedback to Telegram.
 packages/
-  core/       Domain models, ports, services. Pure Dart, no Flutter.
-  data/       SQLite repository, schema, sync client. Pure Dart.
-  ui/         Design tokens and shared widgets. Flutter.
-  ai/         The intelligence adapters. Deletable by design — CI proves it.
-spec/         Language-neutral fixtures both Dart and TypeScript read.
-docs/         Product, architecture, design and decision records.
+  core/             Domain models, ports, services. Pure Dart, no Flutter.
+  data/             SQLite repository, schema, sync client. Pure Dart.
+  ui/               Design tokens and shared widgets. Flutter.
+  ai/               Cloud AI providers, and the removable on-device runtime.
+spec/               Language-neutral fixtures both Dart and TypeScript read.
+docs/               Product, architecture, design and decision records.
+  brand/            The designer's logo and icon artwork the app's pictures are made from.
+tools/              Icon and brand generators, CI helper scripts.
 ```
 
 Two boundaries are load-bearing and are asserted in CI rather than agreed by convention:
 `core` and `data` carry **zero Flutter dependency** (the `dart-packages` job never installs
-Flutter — that is the assertion), and `packages/ai` can be **deleted outright** without
-breaking anything else.
+Flutter — that is the assertion), and the on-device AI runtime in `packages/ai` can be
+**deleted outright** without breaking anything else ([ADR-035](./docs/10-decisions.md#adr-035--the-ai-provider-layer-lives-in-packagesai-the-on-device-runtime-is-the-removable-half)).
 
 `packages/ui/lib/tokens/nex_tokens.dart` is the single source of truth for colour, type,
 spacing, radius and motion. Nothing downstream should be spelling a hex code or a pixel gap
@@ -198,14 +204,18 @@ two are worth knowing where to find.
 | [`05-design.md`](./docs/05-design.md) | Design language, UI principles, accessibility floors |
 | [`06-development.md`](./docs/06-development.md) | Conventions, folder structure, testing strategy |
 | [`07-contributing.md`](./docs/07-contributing.md) | How to contribute |
-| [`08-roadmap.md`](./docs/08-roadmap.md) | v1 → v2 → v3 sequencing |
+| [`08-roadmap.md`](./docs/08-roadmap.md) | Phase 1 → 2 → 3 sequencing |
 | [`09-ai.md`](./docs/09-ai.md) | What the intelligence layer may and may not do |
 | [`10-decisions.md`](./docs/10-decisions.md) | Decision log (`ADR-0nn`) — why things are the way they are |
+| [`11-roadmap-2.0.md`](./docs/11-roadmap-2.0.md) | What release 2.0 should be, open items, and what has shipped release by release |
+| [`13-sponsor-card.md`](./docs/13-sponsor-card.md) | Publishing the timeline's one sponsor card (`banner.example.json`) |
+| [`brand/`](./docs/brand) | Logo, logotype, icon and splash artwork; `tools/generate_brand_assets.py` builds the app's pictures from it |
 
 The numbering has gaps because several documents were build-time scaffolding — a phased
-build prompt, agent handoff prompts, an outstanding-work tracker, a static HTML mockup and a
-duplicate of this file — and were removed once the work they described was finished. The
-remaining numbers are stable because roughly ninety code comments point at them.
+build prompt, agent handoff prompts, an outstanding-work tracker, audit reports, a static
+HTML mockup and a duplicate of this file — and were removed once the work they described
+was finished; what is still open is in `11-roadmap-2.0.md`. The remaining numbers are stable
+because roughly ninety code comments point at them.
 
 **Before writing code here, read [`10-decisions.md`](./docs/10-decisions.md).** Most of the
 judgment calls you would otherwise have to make are already made and justified there.

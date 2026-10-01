@@ -12,7 +12,7 @@ timeline
     Phase 2 - Sync & Continuity (in progress for 2.0) : Android <-> Windows Sync : Generic File Attachments : iOS Client
 ```
 
-> **Phases, not versions.** Until 1.85 the phases below were called *v1, v2, v3*, which collided with the release numbers: the app is at release 1.8x, has shipped all of Phase 3, and has not yet finished Phase 2. They are **Phase 1, 2 and 3** now. Documents written earlier (the product vision and specification, and some ADR titles) still say *v1/v2/v3* — read those as Phase 1/2/3, never as release numbers. What release 2.0 contains is planned in [`NEX_V2_ROADMAP.md`](./NEX_V2_ROADMAP.md).
+> **Phases, not versions.** Until 1.85 the phases below were called *v1, v2, v3*, which collided with the release numbers: the app is at release 1.8x, has shipped all of Phase 3, and has not yet finished Phase 2. They are **Phase 1, 2 and 3** now. Documents written earlier (the product vision and specification, and some ADR titles) still say *v1/v2/v3* — read those as Phase 1/2/3, never as release numbers. What release 2.0 contains is planned in [`11-roadmap-2.0.md`](./11-roadmap-2.0.md).
 
 ---
 
@@ -64,7 +64,7 @@ Ranked by leverage against the core "capture in under 3 seconds" promise — OS-
 
 ## Phase 2 — Sync & Continuity
 
-**Status:** In progress. The sync engine and backend exist; pairing, automatic sync, media sync and a second device are what release 2.0 is for — see W1 in [`NEX_V2_ROADMAP.md`](./NEX_V2_ROADMAP.md#w1--continuity). File attachments shipped early.
+**Status:** In progress. The sync engine and backend exist; pairing, automatic sync, media sync and a second device are what release 2.0 is for — see W1 in [`11-roadmap-2.0.md`](./11-roadmap-2.0.md#w1--continuity). File attachments shipped early.
 
 **Theme:** Solve the original motivating problem in full — a user's captures should never be stranded on a single device. Sync ships as the **first** item of Phase 2, not the last.
 

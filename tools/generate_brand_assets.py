@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Builds Nex's own icon and brand pictures from the artwork in docs/.
+"""Builds Nex's own icon and brand pictures from the artwork in docs/brand/.
 
-Sources (kept in docs/ as delivered by the designer):
+Sources (kept in docs/brand/ as delivered by the designer):
 
 - nex_logo.svg — the octopus mark; its ink parts are #1d1d1d, the blue #08f;
 - nex_logo_type.svg — the "nex" logotype; ink #231f20, blue #0084f7;
@@ -19,7 +19,7 @@ This writes the Android launcher icon (adaptive foreground and monochrome
 layers drawn from the SVG, so they stay sharp, plus the Android 7 bitmap),
 the Android 12 splash icon, the iOS and Windows icons, the in-app branding
 pictures and the sources for the icon switcher: app_icons/alt1-4 are
-docs/alt2, alt3, alt1 (the octopus, in the slot the logotype held) and alt5;
+docs/brand/alt2, alt3, alt1 (the octopus, in the slot the logotype held) and alt5;
 app_icons/alt5 is the older mark, kept as the "classic" icon and not touched
 here. The Android 12 splash icon stays the octopus's eyes: the opening
 animation (NexSplash) starts from them.
@@ -36,7 +36,7 @@ import cairosvg
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent
-DOCS = ROOT / "docs"
+DOCS = ROOT / "docs" / "brand"
 CLIENT = ROOT / "apps" / "client"
 RES = CLIENT / "android" / "app" / "src" / "main" / "res"
 BRANDING = CLIENT / "assets" / "branding"
