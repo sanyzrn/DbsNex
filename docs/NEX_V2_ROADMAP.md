@@ -445,6 +445,22 @@ Release numbers are indicative; the ordering is the argument.
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
 
+### In 1.90.1 — fixes from the owner's testing
+
+- **Backups on the phone.** The media store compared a resolved blob path
+  with an unresolved root; Android reaches the app folder through a symlink,
+  so every backup after the first and every folder copy failed with "Unsafe
+  media blob". Both sides are resolved now; a failed folder copy shows the
+  error's own wording.
+- **Update download survives Back.** While an update downloads, Back on the
+  home screen sends Nex to the background instead of finishing the Activity
+  (and the engine the download runs in).
+- **Polish.** No flash at the end of a card opening; recovery codes copy with
+  a tap; pinch folds animate; Card size sits under Text & UI size; the
+  Recurring editor no longer opens the keyboard and reads as one form;
+  palettes reach text fields, switches and outlined buttons; the last of the
+  assistant's multicoloured light is gone.
+
 ### In 1.90.0 — the home screen
 
 - **W7.1 The day stays on screen.** Scrolled past the top, the day of the card
