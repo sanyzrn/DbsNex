@@ -451,8 +451,10 @@ extension _TimelineLayout on TimelineScreenState {
             ),
           ],
           // Hold capture for the assistant; the leftmost destination is Tools.
+          // No light while held: the multicoloured edge the hold used to
+          // draw was taken out at the owner's request; the hold, its timing
+          // and its haptics are unchanged.
           capture: NexLongPressGlow(
-            colors: nexAssistantSpectrum,
             onHoldStart: _tick,
             onTriggered: () {
               if (_claimedByOverlay()) return;

@@ -260,7 +260,7 @@ class NexLongPressGlow extends StatefulWidget {
     super.key,
     required this.child,
     required this.onTriggered,
-    required this.colors,
+    this.colors = const [],
     this.holdDuration = const Duration(milliseconds: 420),
     this.onHoldStart,
   });
@@ -272,6 +272,8 @@ class NexLongPressGlow extends StatefulWidget {
   /// haptic that tells someone the hold is being counted.
   final VoidCallback? onHoldStart;
 
+  /// The light along the screen's edge while the hold is counted. Empty
+  /// draws none: the hold is still a hold, timed and confirmed by haptics.
   final List<Color> colors;
   final Duration holdDuration;
 
@@ -329,7 +331,7 @@ class NexLongPressGlowState extends State<NexLongPressGlow>
   void _start() {
     _handedOff = false;
     widget.onHoldStart?.call();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (widget.colors.isEmpty || MediaQuery.disableAnimationsOf(context)) {
       // No paint, but the hold still has to be a hold — firing instantly
       // would turn every tap-and-linger into an accidental trigger.
       _hold.value = 0;
