@@ -213,6 +213,13 @@ Accessibility is core functionality, not a compliance checkbox — a slow or con
 - Two-finger pinch on the home list collapses/expands all date groups; ordinary
   scrolling, card expansion and search remain separate controls.
 - Summaries follow their content direction even when the interface is English.
+- Every paragraph a person writes keeps its own direction and alignment while
+  it is edited, as it does when it is read: multi-line fields are
+  `NexTextField`, the platform's own editor on Android, with the system's
+  handles, magnifier and menu (formatting added, other apps' actions left
+  off). Single-line fields follow the typed script, or are left to right for
+  links, keys and amounts. `test/text_field_rule_test.dart` holds every field
+  to this ([ADR-037](./10-decisions.md#adr-037--text-a-person-writes-is-edited-in-the-platforms-own-editor-on-android)).
 - Reopening supported editors restores their last local draft checkpoint;
   explicit discard or successful save removes that editor's checkpoint.
 - Text/Markdown conversion replaces the representation of the same item while

@@ -34,21 +34,26 @@ extension _VaultItems on _VaultScreenState {
         Row(
           children: [
             Expanded(
-              child: TextField(
+              child: NexAutoDirection(
                 controller: search,
-                autocorrect: false,
-                enableSuggestions: false,
-                enableIMEPersonalizedLearning: false,
-                onChanged: (_) {
-                  _touch();
-                  _rebuild(() {});
-                },
-                decoration: InputDecoration(
-                  isDense: true,
-                  hintText: l.vaultSearch,
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
+                builder: (context, direction) => TextField(
+                  controller: search,
+                  textDirection: direction,
+                  textAlign: TextAlign.start,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  enableIMEPersonalizedLearning: false,
+                  onChanged: (_) {
+                    _touch();
+                    _rebuild(() {});
+                  },
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: l.vaultSearch,
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                   ),
                 ),
               ),

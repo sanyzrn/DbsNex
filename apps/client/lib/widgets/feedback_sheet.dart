@@ -1,5 +1,4 @@
 import 'dart:io' show Platform;
-import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +11,7 @@ import 'nex_dialog.dart';
 import 'nex_banner.dart';
 
 import 'feature_label.dart';
+import 'nex_text_field.dart';
 
 /// A compose-and-send sheet, replacing what used to be a single row that only
 /// copied a GitHub issues link — the actual complaint this answers is that
@@ -157,21 +157,14 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
                   : (value) => setState(() => _kind = value.first),
             ),
             const SizedBox(height: NexSpacing.md),
-            NexAutoDirection(
+            NexTextField(
               controller: _controller,
-              builder: (context, direction) => TextField(
-                controller: _controller,
-                selectionWidthStyle: BoxWidthStyle.tight,
-                contextMenuBuilder: nexReadingMenu,
-                autofocus: true,
-                minLines: 4,
-                maxLines: 8,
-                textDirection: direction,
-                textAlign: TextAlign.start,
-                decoration: InputDecoration(
-                  hintText: l10n.feedbackHint,
-                  border: const OutlineInputBorder(),
-                ),
+              autofocus: true,
+              minLines: 4,
+              maxLines: 8,
+              decoration: InputDecoration(
+                hintText: l10n.feedbackHint,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: NexSpacing.sm),

@@ -131,6 +131,10 @@ open class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(engine: FlutterEngine) {
         super.configureFlutterEngine(engine)
+        engine.platformViewsController.registry.registerViewFactory(
+            NexEditTextFactory.VIEW_TYPE,
+            NexEditTextFactory(engine.dartExecutor.binaryMessenger),
+        )
         channel = MethodChannel(engine.dartExecutor.binaryMessenger, "nex/os_capture")
         channel?.setMethodCallHandler { call, result -> when (call.method) {
             "audioWaveform" -> {

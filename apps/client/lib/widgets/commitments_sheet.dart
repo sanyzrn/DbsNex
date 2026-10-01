@@ -14,6 +14,7 @@ import '../l10n/app_localizations.dart';
 import '../l10n/relative_span.dart';
 import '../platform/nex_services.dart';
 import 'nex_dialog.dart';
+import 'nex_text_field.dart';
 import 'nex_banner.dart';
 import 'draft_guard.dart';
 import 'nex_time_picker.dart';
@@ -333,9 +334,10 @@ class _RecurringScreenState extends State<RecurringScreen> {
                             'یادداشت این نوبت',
                           ),
                         ),
-                        content: TextField(
+                        content: NexTextField(
                           controller: controller,
                           maxLength: 300,
+                          minLines: 1,
                           maxLines: 3,
                         ),
                         actions: [

@@ -102,6 +102,64 @@ EditableTextContextMenuBuilder nexFormatContextMenuBuilder(BuildContext host) {
   };
 }
 
+/// The formatting commands as plain ids and labels, for a menu Flutter does
+/// not draw — the native editor's selection menu on Android, see
+/// `NexTextField`. Same commands, same order, as the menu above.
+List<({String id, String label})> nexFormatCommands(AppLocalizations l10n) => [
+  for (final format in NexInlineFormat.values)
+    (id: format.name, label: _labelFor(l10n, format)),
+  (id: 'quote', label: l10n.formatQuote),
+  (id: 'link', label: l10n.formatLink),
+  (id: 'clear', label: l10n.formatClear),
+];
+
+/// Applies the formatting command [id] to [value]'s selection, the way the
+/// menu above does. Null when there is nothing to do: no selection, an
+/// unknown id, or a link whose address was not given.
+///
+/// [host] is where the link question is asked from.
+Future<TextEditingValue?> nexApplyFormat(
+  BuildContext host,
+  String id,
+  TextEditingValue value,
+) async {
+  final where = value.selection;
+  if (!where.isValid || where.isCollapsed) return null;
+  NexFormattedText? result;
+  for (final format in NexInlineFormat.values) {
+    if (format.name == id) {
+      result = NexTextFormatting.toggleInline(
+        value.text,
+        where.start,
+        where.end,
+        format,
+      );
+    }
+  }
+  switch (id) {
+    case 'quote':
+      result = NexTextFormatting.toggleQuote(
+        value.text,
+        where.start,
+        where.end,
+      );
+    case 'clear':
+      result = NexTextFormatting.clear(value.text, where.start, where.end);
+    case 'link':
+      final url = await _askForUrl(host);
+      if (url == null || url.isEmpty) return null;
+      result = NexTextFormatting.link(value.text, where.start, where.end, url);
+  }
+  if (result == null) return null;
+  return TextEditingValue(
+    text: result.text,
+    selection: TextSelection(
+      baseOffset: result.start,
+      extentOffset: result.end,
+    ),
+  );
+}
+
 String _labelFor(AppLocalizations l10n, NexInlineFormat format) =>
     switch (format) {
       NexInlineFormat.bold => l10n.formatBold,

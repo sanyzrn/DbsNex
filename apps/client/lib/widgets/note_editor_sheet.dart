@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/material.dart';
 import 'package:nex_core/nex_core.dart';
@@ -11,7 +10,7 @@ import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
-import 'text_format_menu.dart';
+import 'nex_text_field.dart';
 
 /// Editing a note's words.
 ///
@@ -94,26 +93,6 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
 
   bool _expanded = false;
   NexRewriteStyle? _running;
-
-  /// The formatting menu, made once and kept.
-  ///
-  /// Not `nexFormatContextMenuBuilder(context)` in `build`, which is where it
-  /// used to be and is the whole of a bug worth stating: `EditableText`
-  /// compares this builder against the previous one **by identity**, and a
-  /// fresh closure every rebuild reads as a changed menu. Its answer to that
-  /// is to dispose the selection overlay and make a new one after the next
-  /// frame — and the selection handles, the magnifier and the toolbar live in
-  /// that overlay, with their gesture recognizers. Disposing a recognizer
-  /// while a finger is on it cancels the drag, and the handle that replaces it
-  /// a frame later never saw the pointer, so nothing resumes.
-  ///
-  /// This sheet rebuilds on every keystroke — see [_onChanged], which is
-  /// already careful not to rebuild on anything less — so the overlay was
-  /// being torn down by the last characters typed before a hand reached for
-  /// a handle. One closure, held for the life of the sheet, and the overlay
-  /// survives every rebuild.
-  late final EditableTextContextMenuBuilder _formatMenu =
-      nexFormatContextMenuBuilder(context);
 
   @override
   void initState() {
@@ -238,38 +217,22 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final field = NexAutoDirection(
+    // Android's own editor, each paragraph in its own direction — see
+    // [NexTextField].
+    final field = NexTextField(
       controller: _text,
-      // Persian content in an English-locale app used to render left-aligned:
-      // the field followed the ambient (LTR) Directionality rather than the
-      // script actually typed into it. [NexAutoDirection] supplies a
-      // `Directionality` rather than only the argument below, so the
-      // selection handles and the context menu agree with the paragraph they
-      // are attached to — see its own doc for why that was the painful half.
-      builder: (context, direction) => TextField(
-        controller: _text,
-        autofocus: true,
-        textDirection: direction,
-        textAlign: TextAlign.start,
-        textAlignVertical: TextAlignVertical.top,
-        keyboardType: TextInputType.multiline,
-        // Expanded, the field fills what it is given and scrolls inside it;
-        // collapsed, it grows with the text up to the box below.
-        expands: _expanded,
-        maxLines: null,
-        minLines: _expanded ? null : 3,
-        // See the same field in capture_sheet.dart: BoxWidthStyle.max (the
-        // default) paints a double-tap word selection out to the end of the
-        // line on Persian text.
-        selectionWidthStyle: BoxWidthStyle.tight,
-        // The same selection menu the capture sheet has: a note is formatted
-        // where it is written, and it is written in both.
-        contextMenuBuilder: _formatMenu,
-        // Read-only while a model is holding it. Not disabled — the text stays
-        // selectable and the same colour, because it is still the note.
-        readOnly: _running != null,
-        decoration: const InputDecoration(border: InputBorder.none),
-      ),
+      autofocus: true,
+      // Expanded, the field fills what it is given and scrolls inside it;
+      // collapsed, it grows with the text up to the box below.
+      expands: _expanded,
+      minLines: _expanded ? null : 3,
+      // The same selection menu the capture sheet has: a note is formatted
+      // where it is written, and it is written in both.
+      formatting: true,
+      // Read-only while a model is holding it. Not disabled — the text stays
+      // selectable and the same colour, because it is still the note.
+      readOnly: _running != null,
+      decoration: const InputDecoration(border: InputBorder.none),
     );
 
     // The height comes from the constraints rather than from the screen's:

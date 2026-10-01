@@ -15,6 +15,7 @@ import '../widgets/nex_banner.dart';
 import '../widgets/draft_guard.dart';
 import '../widgets/nex_time_picker.dart';
 import '../platform/display_date.dart';
+import '../widgets/nex_text_field.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -266,25 +267,19 @@ class _ProfileScreenState extends State<ProfileScreen>
               onTap: _pickBirthday,
             ),
             const SizedBox(height: NexSpacing.md),
-            NexAutoDirection(
+            NexTextField(
               controller: _bio,
-              builder: (context, direction) => TextField(
-                controller: _bio,
-                selectionWidthStyle: BoxWidthStyle.tight,
-                contextMenuBuilder: nexReadingMenu,
-                maxLength: 300,
-                minLines: 3,
-                maxLines: 6,
-                textDirection: direction,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  labelText: l10n.profileBio,
-                  hintText: l10n.profileBioHint,
-                  alignLabelWithHint: true,
-                  prefixIcon: const Padding(
-                    padding: EdgeInsets.only(bottom: 72),
-                    child: Icon(Icons.notes_outlined),
-                  ),
+              maxLength: 300,
+              minLines: 3,
+              maxLines: 6,
+              textInputAction: TextInputAction.newline,
+              decoration: InputDecoration(
+                labelText: l10n.profileBio,
+                hintText: l10n.profileBioHint,
+                alignLabelWithHint: true,
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.only(bottom: 72),
+                  child: Icon(Icons.notes_outlined),
                 ),
               ),
             ),
