@@ -80,69 +80,77 @@ class SettingsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // Leaves the sheet short of the top edge so the handle and title are
+    // never pinned under the status bar.
+    final tallest = MediaQuery.sizeOf(context).height * 0.9;
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
     return SafeArea(
       top: false,
       child: ConstrainedBox(
-        // Leaves the sheet short of the top edge so the handle and title are
-        // never pinned under the status bar.
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.9,
-        ),
+        constraints: BoxConstraints(maxHeight: tallest),
         child: _SettingsSearch(
-          builder: (context, query, field) => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  NexSpacing.lg,
-                  NexSpacing.sm,
-                  NexSpacing.md,
-                  NexSpacing.md,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.settings,
-                        style: theme.textTheme.titleLarge,
+          // While searching, the sheet stays at its full height: a handful
+          // of results used to shrink it to the bottom of the screen, where
+          // the keyboard covered every one of them.
+          builder: (context, query, field) => SizedBox(
+            height: query.isEmpty ? null : tallest,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    NexSpacing.lg,
+                    NexSpacing.sm,
+                    NexSpacing.md,
+                    NexSpacing.md,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.settings,
+                          style: theme.textTheme.titleLarge,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: l10n.closeLabel,
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-              ),
-              field,
-              Flexible(
-                child: NexDismissOnOverscroll(
-                  // Every picker writes through `preferences`, which notifies —
-                  // without this the row that opened one would still show the
-                  // old value when the picker closed, since the sheet itself is
-                  // stateless and nothing else rebuilds it.
-                  child: ListenableBuilder(
-                    listenable: preferences,
-                    builder: (context, _) => SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(
-                        NexSpacing.md,
-                        0,
-                        NexSpacing.md,
-                        NexSpacing.lg,
+                      IconButton(
+                        tooltip: l10n.closeLabel,
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: query.isEmpty
-                            ? _groups(context, l10n)
-                            : _matching(context, l10n, query),
+                    ],
+                  ),
+                ),
+                field,
+                Flexible(
+                  child: NexDismissOnOverscroll(
+                    // Every picker writes through `preferences`, which notifies —
+                    // without this the row that opened one would still show the
+                    // old value when the picker closed, since the sheet itself is
+                    // stateless and nothing else rebuilds it.
+                    child: ListenableBuilder(
+                      listenable: preferences,
+                      builder: (context, _) => SingleChildScrollView(
+                        // The keyboard sits over the sheet's bottom edge, so
+                        // the last rows scroll up clear of it.
+                        padding: EdgeInsets.fromLTRB(
+                          NexSpacing.md,
+                          0,
+                          NexSpacing.md,
+                          NexSpacing.lg + keyboard,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: query.isEmpty
+                              ? _groups(context, l10n)
+                              : _matching(context, l10n, query),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -395,6 +403,41 @@ class SettingsSheet extends StatelessWidget {
       preferences: preferences,
       title: l10n.appearance,
       children: [
+        _Row(
+          icon: Icons.view_agenda_outlined,
+          title: l10n.cardDensity,
+          keywords: 'density compact card size readable تراکم فشرده خوانا کارت',
+          value: switch (preferences.cardDensity) {
+            NexCardDensity.compact => l10n.cardDensityCompact,
+            NexCardDensity.standard => l10n.cardDensityStandard,
+            NexCardDensity.readable => l10n.cardDensityReadable,
+          },
+          onTap: () => unawaited(
+            _pick<NexCardDensity>(
+              context: context,
+              title: l10n.cardDensity,
+              selected: preferences.cardDensity,
+              onSelected: preferences.setCardDensity,
+              choices: [
+                NexChoice(
+                  value: NexCardDensity.compact,
+                  label: l10n.cardDensityCompact,
+                  preview: const Icon(Icons.density_small),
+                ),
+                NexChoice(
+                  value: NexCardDensity.standard,
+                  label: l10n.cardDensityStandard,
+                  preview: const Icon(Icons.density_medium),
+                ),
+                NexChoice(
+                  value: NexCardDensity.readable,
+                  label: l10n.cardDensityReadable,
+                  preview: const Icon(Icons.density_large),
+                ),
+              ],
+            ),
+          ),
+        ),
         _Row(
           icon: Icons.calendar_month_outlined,
           title: l10n.calendar,

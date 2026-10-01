@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' show BoxWidthStyle;
 
@@ -88,21 +89,15 @@ class _ProfileScreenState extends State<ProfileScreen>
     try {
       final directory = Directory(p.join(widget.services.mediaDir, 'profile'));
       await directory.create(recursive: true);
-      final extension = p.extension(picked.path).toLowerCase();
-      final target = p.join(
-        directory.path,
-        'avatar${extension.isEmpty ? '.jpg' : extension}',
-      );
-      final old = resolveProfilePhoto(
+      final target = nextProfilePhotoPath(
         widget.services.mediaDir,
-        widget.preferences.profilePhotoPath,
+        p.extension(picked.path).toLowerCase(),
       );
       await File(picked.path).copy(target);
-      if (old != null && old.path != target) {
-        if (await old.exists()) await old.delete();
-      }
       await widget.preferences.setProfilePhotoPath(target);
       if (mounted) setState(() {});
+      // The old picture goes after the new one is showing.
+      _forgetPhotos(except: target);
     } catch (_) {
       if (!mounted) return;
       nexShowBanner(
@@ -114,25 +109,27 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _removePhoto() async {
-    final photo = resolveProfilePhoto(
-      widget.services.mediaDir,
-      widget.preferences.profilePhotoPath,
-    );
-    if (photo != null) {
-      if (await photo.exists()) await photo.delete();
-    }
-    // Recovery can find an older avatar if a format change left two files.
-    // Removing the picture must clear those too, or it appears to come back.
-    final directory = Directory(p.join(widget.services.mediaDir, 'profile'));
-    if (await directory.exists()) {
-      await for (final entity in directory.list(followLinks: false)) {
-        if (entity is File && p.basename(entity.path).startsWith('avatar.')) {
-          await entity.delete();
-        }
-      }
-    }
+    // Every picture, not only the current one: recovery finds any avatar
+    // left in the folder, so one left behind would appear to come back.
+    // Synchronously, before the next frame, so the removed picture is gone
+    // the moment the button is pressed.
+    _forgetPhotos();
     await widget.preferences.setProfilePhotoPath(null);
     if (mounted) setState(() {});
+  }
+
+  /// Deletes the kept pictures, but [except], and drops them from the image
+  /// cache so nothing on screen can keep drawing one.
+  void _forgetPhotos({String? except}) {
+    for (final file in profilePhotoFiles(widget.services.mediaDir)) {
+      if (file.path == except) continue;
+      unawaited(FileImage(file).evict());
+      try {
+        file.deleteSync();
+      } catch (_) {
+        // A file already gone is the outcome wanted.
+      }
+    }
   }
 
   Future<void> _pickBirthday() async {

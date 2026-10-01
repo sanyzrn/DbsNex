@@ -386,12 +386,19 @@ void main() {
     });
 
     NexSponsorService service(
-      http.Response Function(http.Request request) respond,
-    ) => NexSponsorService(
+      http.Response Function(http.Request request) respond, {
+      String endpoint = NexSponsorService.defaultEndpoint,
+    }) => NexSponsorService(
       preferences: preferences,
       client: MockClient((request) async => respond(request)),
       now: () => now,
+      endpoint: endpoint,
     );
+
+    // The card lives on the maker's site since 1.90; the GitHub fallback
+    // still serves a card or a picture published on GitHub.
+    const onGitHub =
+        'https://raw.githubusercontent.com/sanyzrn/DbsNex-releases/main/banner.json';
 
     test('the picture is fetched and kept beside the card', () async {
       final s = service(
@@ -430,7 +437,7 @@ void main() {
           throw const SocketFailure();
         }
         return http.Response(card(), 200);
-      });
+      }, endpoint: onGitHub);
       await s.refresh();
 
       expect(asked, ['raw.githubusercontent.com', 'cdn.jsdelivr.net']);
@@ -452,7 +459,7 @@ void main() {
         final s = service((request) {
           asked.add(request.url.host);
           return http.Response('', 404);
-        });
+        }, endpoint: onGitHub);
         await s.refresh();
         expect(asked, ['raw.githubusercontent.com']);
         expect(preferences.sponsorPayload, isNull);

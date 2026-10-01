@@ -309,19 +309,11 @@ extension _TimelineAiHeader on TimelineScreenState {
       return;
     }
     HapticFeedback.mediumImpact();
-    // The button that was held: the panel grows out of it, and a ring of the
-    // assistant's light washes out across the screen from the same point.
+    // The button that was held: the panel grows out of it.
     final box = _captureAnchor.currentContext?.findRenderObject();
     final origin = box is RenderBox && box.attached
         ? box.localToGlobal(Offset.zero) & box.size
         : null;
-    if (origin != null) {
-      NexAssistantLaunch.play(
-        context,
-        origin: origin,
-        spectrum: nexAssistantSpectrum,
-      );
-    }
     unawaited(
       AiChatSheet.show(
         context,

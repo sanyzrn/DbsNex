@@ -24,6 +24,8 @@ void main() {
     );
     services = harness.services;
     preferences = harness.preferences;
+    // Off by default since 1.90; these tests are about the offer itself.
+    await preferences.setThreadSuggestions(true);
   });
 
   tearDown(() => harness.dispose());

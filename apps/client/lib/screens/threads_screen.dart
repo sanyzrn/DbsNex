@@ -311,19 +311,28 @@ Future<bool> showThreadPicker(
   BuildContext context, {
   required NexServices services,
   required String noteId,
+}) => showThreadPickerFor(context, services: services, noteIds: [noteId]);
+
+/// The same picker for several notes at once, from the selection bar: a
+/// thread is ticked when every one of them is in it, half-ticked when some
+/// are, and a tick puts them all in or takes them all out.
+Future<bool> showThreadPickerFor(
+  BuildContext context, {
+  required NexServices services,
+  required List<String> noteIds,
 }) async {
   final changed = await nexShowSheet<bool>(
     context: context,
-    builder: (_) => _ThreadPicker(services: services, noteId: noteId),
+    builder: (_) => _ThreadPicker(services: services, noteIds: noteIds),
   );
   return changed ?? false;
 }
 
 class _ThreadPicker extends StatefulWidget {
-  const _ThreadPicker({required this.services, required this.noteId});
+  const _ThreadPicker({required this.services, required this.noteIds});
 
   final NexServices services;
-  final String noteId;
+  final List<String> noteIds;
 
   @override
   State<_ThreadPicker> createState() => _ThreadPickerState();
@@ -331,7 +340,9 @@ class _ThreadPicker extends StatefulWidget {
 
 class _ThreadPickerState extends State<_ThreadPicker> {
   List<NoteThread>? _all;
-  Set<String> _in = const {};
+
+  /// How many of the notes each thread holds.
+  Map<String, int> _in = const {};
   var _changed = false;
 
   @override
@@ -342,19 +353,32 @@ class _ThreadPickerState extends State<_ThreadPicker> {
 
   Future<void> _reload() async {
     final all = await widget.services.threads();
-    final mine = await widget.services.threadsForNote(widget.noteId);
+    final counts = <String, int>{};
+    for (final id in widget.noteIds) {
+      for (final thread in await widget.services.threadsForNote(id)) {
+        counts[thread.id] = (counts[thread.id] ?? 0) + 1;
+      }
+    }
     if (!mounted) return;
     setState(() {
       _all = all;
-      _in = {for (final thread in mine) thread.id};
+      _in = counts;
     });
   }
 
+  bool? _ticked(NoteThread thread) {
+    final count = _in[thread.id] ?? 0;
+    if (count == 0) return false;
+    return count == widget.noteIds.length ? true : null;
+  }
+
   Future<void> _toggle(NoteThread thread, bool on) async {
-    if (on) {
-      await widget.services.addToThread(thread.id, widget.noteId);
-    } else {
-      await widget.services.removeFromThread(thread.id, widget.noteId);
+    for (final id in widget.noteIds) {
+      if (on) {
+        await widget.services.addToThread(thread.id, id);
+      } else {
+        await widget.services.removeFromThread(thread.id, id);
+      }
     }
     _changed = true;
     await _reload();
@@ -363,7 +387,7 @@ class _ThreadPickerState extends State<_ThreadPicker> {
   Future<void> _create() async {
     final name = await nexAskThreadName(context);
     if (name == null) return;
-    await widget.services.createThread(name, noteIds: [widget.noteId]);
+    await widget.services.createThread(name, noteIds: widget.noteIds);
     _changed = true;
     await _reload();
   }
@@ -396,14 +420,17 @@ class _ThreadPickerState extends State<_ThreadPicker> {
           if (all != null)
             for (final thread in all)
               CheckboxListTile(
-                value: _in.contains(thread.id),
+                value: _ticked(thread),
+                tristate: widget.noteIds.length > 1,
                 title: Text(
                   thread.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: Text(l10n.threadNoteCount(thread.noteCount)),
-                onChanged: (on) => unawaited(_toggle(thread, on ?? false)),
+                // Half-ticked goes to all in: the notes were picked together.
+                onChanged: (_) =>
+                    unawaited(_toggle(thread, _ticked(thread) != true)),
               ),
           ListTile(
             leading: const Icon(Icons.add),

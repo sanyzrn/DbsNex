@@ -3632,4 +3632,95 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get feedbackAttachMetricsHint =>
       'Timings and counts only — nothing from your notes. Shown below before sending.';
+
+  @override
+  String get backupFolderFailedCode =>
+      'The recovery code for this folder is missing. Choose the folder again to make a new one.';
+
+  @override
+  String get backupFolderFailedAccess =>
+      'Nex no longer has access to this folder. Choose it again.';
+
+  @override
+  String backupFolderFailedBackup(String detail) {
+    return 'The backup could not be made ($detail).';
+  }
+
+  @override
+  String backupFolderFailedWrite(String detail) {
+    return 'The folder\'s app did not accept the file ($detail). Try again, or choose a folder on this phone.';
+  }
+
+  @override
+  String get cardDensity => 'Card size';
+
+  @override
+  String get cardDensityCompact => 'Compact';
+
+  @override
+  String get cardDensityStandard => 'Standard';
+
+  @override
+  String get cardDensityReadable => 'Easier to read';
+
+  @override
+  String get selectNotes => 'Select';
+
+  @override
+  String selectionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count selected',
+      one: '1 selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get selectionClose => 'Stop selecting';
+
+  @override
+  String selectionCopied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Copied $count notes',
+      one: 'Copied 1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String selectionTagged(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tagged $count notes',
+      one: 'Tagged 1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String selectionPinned(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Pinned $count notes',
+      one: 'Pinned 1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String selectionUnpinned(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Unpinned $count notes',
+      one: 'Unpinned 1 note',
+    );
+    return '$_temp0';
+  }
 }

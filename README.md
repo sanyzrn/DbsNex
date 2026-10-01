@@ -24,9 +24,13 @@ capture is committed the moment it exists. Photos go through a crop step on the 
 Files shared to Nex from another app land the same way as ones picked inside it.
 
 **Timeline** — one reverse-chronological stream, no folders, grouped under date headings
-that fold (pinch the timeline to fold or open them all). Cards are a fixed height, so the
-list stays even. Swipe an edge for delete or add-tag; hold a card for pin, copy, edit,
-remind and delete. Up to five notes can be pinned to the top. Long notes open folded,
+that fold (pinch the timeline to fold or open them all), and once you scroll past the top
+the day of the note under your thumb stays named under the filters. Cards are a fixed
+height in one of three sizes (compact, standard, easier to read), so the list stays even,
+and a tapped card opens into its note rather than a sheet sliding up. Swipe an edge for
+delete or add-tag; hold a card for pin, copy, edit, remind and delete — or **Select**, which
+picks several notes at once and swaps the dock for a bar that tags, threads, pins, shares,
+copies or deletes them together, with one Undo. Up to five notes can be pinned to the top. Long notes open folded,
 with **More** to read the rest. A note converts only one way — to a Markdown file — while
 any file that is mostly words (text, Word `.docx`/`.doc`, `.odt`, `.rtf`, HTML, EPUB, CSV,
 code, older Windows-1256 Persian text) converts into an editable note.
@@ -40,8 +44,9 @@ rather than an empty box.
 deletes, and a trash that holds deleted notes for 30 days.
 
 **Recurring** — things that come back round (rent, insurance, a tablet every eight hours)
-live in their own hub on the home dock, not on the timeline. Today, overdue and next-week
-views; several weekdays, a day of the month or its last day, with real Persian-calendar
+live on a page of their own from the home dock, not on the timeline. It opens on how many
+are overdue, due today and due this week (each one a filter), payments in the next 30 days,
+and a list or a calendar, and each one is set up on a full page; several weekdays, a day of the month or its last day, with real Persian-calendar
 monthly and yearly repeats; snooze or skip one occurrence, completion history with notes
 and Undo, templates, and optional amounts totalled per currency for the next 30 days.
 
@@ -53,7 +58,8 @@ splits "Nex never sent it" from "my phone swallowed it", and deleting, restoring
 a note keeps its alarms exactly as honest as the notes themselves.
 
 **Your data stays yours** — export and import a full archive, automatic throttled local
-backups you can prune by hand, and a storage breakdown that tells you what is using space.
+backups you can prune by hand, an automatic daily copy into a folder you choose (on the
+phone, or one a cloud app provides) that says why when it cannot write there, and a storage breakdown that tells you what is using space.
 A **complete backup** adds settings and service keys (encrypted with a generated recovery
 code), optionally the offline model and the private vault. An interrupted restore rolls
 back on the next launch, and unfinished edits in most editors survive the app being
@@ -64,8 +70,7 @@ killed.
 **Intelligence, optional and off by default** — transcription, OCR, summarization, tag
 suggestions, semantic search and related notes, each behind its own switch, against a
 provider you configure and can test, plus an assistant you can actually talk to about what
-you have written — held open from the capture button, it pours out of the button with a
-wave of light across the screen. Its tone is yours to set, including one you write yourself. It is the only
+you have written — held open from the capture button, it grows out of the button. Its tone is yours to set, including one you write yourself. It is the only
 part of Nex that can send a note off the device, it says so before it is switched on, and
 cloud requests may include your preferred name and selected note context. With only the offline model enabled, generation stays on the device. See [`docs/09-ai.md`](./docs/09-ai.md).
 
@@ -75,7 +80,7 @@ app's language and accent, and stay private while the app lock is on.
 **Persian calendar** — optional Solar Hijri dates for display and every date picker,
 independent of the interface language.
 
-**Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier and Forest palettes, custom accents and text size. In-app notices are one capsule that drips out of the top edge (a "gooey" metaball effect, `packages/ui/lib/widgets/nex_gooey.dart`). Liquid Glass is temporarily disabled by owner request; its implementation is retained. Reduce-motion support and 48px minimum action targets remain.
+**Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier, Forest, Isfahan turquoise, Saffron, Midnight, Deep sea and Graphite palettes, custom accents, text size and card size. A change of look opens out as a circle from the tap that asked for it. The Nex logotype is the app icon and the mark on notifications, the Quick Settings tile and the widget; the opening animation keeps the octopus. In-app notices are one capsule that drips out of the top edge (a "gooey" metaball effect, `packages/ui/lib/widgets/nex_gooey.dart`). Liquid Glass is temporarily disabled by owner request; its implementation is retained. Reduce-motion support and 48px minimum action targets remain.
 
 **Feedback** — a compose sheet with a category and an optional reply address, relayed to
 Telegram by a separate Cloudflare Worker (`apps/feedback-worker`). It stays unavailable

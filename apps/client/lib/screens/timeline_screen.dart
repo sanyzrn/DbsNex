@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show compute;
+import 'package:flutter/foundation.dart' show ValueListenable, compute;
 import '../documents/text_import.dart';
 import '../platform/file_opener.dart';
 import '../platform/hold_menu.dart';
@@ -73,7 +73,9 @@ part 'timeline/timeline_capture.dart';
 part 'timeline/timeline_note_actions.dart';
 part 'timeline/timeline_navigation.dart';
 part 'timeline/timeline_layout.dart';
+part 'timeline/timeline_sticky_day.dart';
 part 'timeline/timeline_body.dart';
+part 'timeline/timeline_selection.dart';
 
 class TimelineScreen extends StatefulWidget {
   const TimelineScreen({
@@ -186,6 +188,16 @@ class TimelineScreenState extends State<TimelineScreen>
   /// no AI provider that re-roll *is* the refresh.
   int _greetingVariant = math.Random().nextInt(3);
   bool _searching = false;
+
+  /// The note rows on screen, and the day of the one passing under the
+  /// filter row — see [TimelineStickyDay].
+  final Set<_DayMarkState> _dayMarks = {};
+
+  /// The notes picked while picking several — see [_TimelineSelection].
+  /// Empty is not picking.
+  final Set<String> _selected = {};
+  final ValueNotifier<String?> _stickyDay = ValueNotifier(null);
+  final GlobalKey _stickyLine = GlobalKey();
 
   /// When the current search began, for [NexMetric.searchToOpen]. Null
   /// outside a search, and after its first note has been opened: the
@@ -448,7 +460,10 @@ class TimelineScreenState extends State<TimelineScreen>
       );
     }
     if (!mounted) return;
-    setState(() => _searching = true);
+    setState(() {
+      _searching = true;
+      _selected.clear();
+    });
     _searchStarted = Stopwatch()..start();
     // After the frame: with the field switched off it is not in the list
     // until this setState puts it there, and a focus request aimed at a node
@@ -550,6 +565,7 @@ class TimelineScreenState extends State<TimelineScreen>
 
   bool _onScroll(ScrollNotification notification) {
     if (notification is! ScrollUpdateNotification) return false;
+    _updateStickyDay();
     final offset = notification.metrics.pixels;
     final travelled = (offset - _lastTickOffset).abs();
     if (travelled < _scrollTickDistance) return false;
@@ -639,6 +655,7 @@ class TimelineScreenState extends State<TimelineScreen>
     _searchFocus.dispose();
     _scroll.removeListener(_onAiSummaryScroll);
     _scroll.dispose();
+    _stickyDay.dispose();
     super.dispose();
   }
 

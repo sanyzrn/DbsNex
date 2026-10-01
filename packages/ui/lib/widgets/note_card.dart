@@ -85,6 +85,7 @@ class NoteCard extends StatelessWidget {
     this.strings = NexCardStrings.fallback,
     this.showDue = true,
     this.expanded = false,
+    this.selected,
   });
   final Note note;
   final VoidCallback? onTap;
@@ -109,6 +110,14 @@ class NoteCard extends StatelessWidget {
   /// the only thing that knows whether it has been seen, can turn it off.
   final bool showDue;
 
+  /// Whether this card is picked, while several are being picked at once.
+  ///
+  /// Null when nothing is being picked — the ordinary card. False draws an
+  /// empty ring on the card's icon, so every card on screen says it can be
+  /// picked; true fills the icon with a tick and edges the card in the
+  /// accent.
+  final bool? selected;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -126,6 +135,7 @@ class NoteCard extends StatelessWidget {
             : BoxConstraints.tightFor(height: nexCardHeightFor(context)),
         child: Semantics(
           button: onTap != null,
+          selected: selected,
           label: _label(),
           // Not `excludeSemantics`. That collapsed the whole card into one
           // string, so a screen-reader user could not reach the date, an
@@ -139,6 +149,7 @@ class NoteCard extends StatelessWidget {
             strings: strings,
             showDue: showDue,
             expanded: expanded,
+            selected: selected,
           ),
         ),
       ),
@@ -168,6 +179,7 @@ class _CardBody extends StatelessWidget {
     required this.strings,
     required this.showDue,
     required this.expanded,
+    required this.selected,
   });
 
   final Note note;
@@ -176,21 +188,30 @@ class _CardBody extends StatelessWidget {
   final NexCardStrings strings;
   final bool showDue;
   final bool expanded;
+  final bool? selected;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final picked = selected ?? false;
     return Material(
       // The card's own fill, not the page's. They used to be the same
       // colour, which left a 1.2:1 hairline as the only thing marking the
       // boundary of the app's main tap target.
-      color: theme.colorScheme.surfaceContainerLowest,
+      color: picked
+          ? Color.alphaBlend(
+              theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+              theme.colorScheme.surfaceContainerLowest,
+            )
+          : theme.colorScheme.surfaceContainerLowest,
       // A quiet hairline separates the target from low-contrast backgrounds.
       // High-contrast mode uses the full outline and a thicker edge.
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(NexRadius.lg),
-        side: MediaQuery.highContrastOf(context)
+        side: picked
+            ? BorderSide(color: theme.colorScheme.primary, width: 2)
+            : MediaQuery.highContrastOf(context)
             ? BorderSide(color: theme.colorScheme.outline, width: 1.5)
             : context.nexVisualStyle.liquidGlass
             ? BorderSide(color: context.nexVisualStyle.glassBorder)
@@ -203,14 +224,17 @@ class _CardBody extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(NexSpacing.cardInset),
+          padding: EdgeInsets.all(NexCardDensity.of(context).inset),
           child: Row(
             // Keep the icon aligned with the top of an expanded preview.
             crossAxisAlignment: expanded
                 ? CrossAxisAlignment.start
                 : CrossAxisAlignment.center,
             children: [
-              _LeadingWithPin(note: note, strings: strings),
+              if (selected case final picked?)
+                _PickMark(picked: picked, note: note, strings: strings)
+              else
+                _LeadingWithPin(note: note, strings: strings),
               const SizedBox(width: NexSpacing.contentGap),
               // A due reminder remains visible because it is an action for
               // the future. The edit time belongs in note details, leaving
@@ -346,8 +370,8 @@ class _CornerTagDots extends StatelessWidget {
       ),
       excludeSemantics: true,
       child: SizedBox(
-        width: nexCardLeadingSize,
-        height: nexCardLeadingSize,
+        width: NexCardDensity.of(context).leading,
+        height: NexCardDensity.of(context).leading,
         child: Stack(
           children: [
             for (var i = 0; i < shown.length; i++)
@@ -454,8 +478,8 @@ class _Preview extends StatelessWidget {
           ? nexCardExpandedMaxLines
           : note.type == NoteType.voice && (note.durationMs ?? 0) > 0
           ? 1
-          : nexCardPreviewLines,
-      style: Theme.of(context).textTheme.bodyLarge,
+          : NexCardDensity.of(context).lines,
+      style: NexCardDensity.of(context).previewStyle(Theme.of(context)),
     );
     // The card already announces its type. Keep real note content reachable,
     // but do not announce the translated empty-media fallback a second time.
@@ -507,8 +531,9 @@ class _ChecklistPreview extends StatelessWidget {
       ...items.where((item) => !item.done),
       ...items.where((item) => item.done),
     ];
+    final lines = NexCardDensity.of(context).lines;
     final shown = ordered
-        .take(expanded ? nexCardExpandedMaxLines : nexCardPreviewLines)
+        .take(expanded ? nexCardExpandedMaxLines : lines)
         .toList();
     final remaining = ordered.length - shown.length;
 
@@ -527,13 +552,12 @@ class _ChecklistPreview extends StatelessWidget {
                   ? '+$remaining'
                   : null,
             ),
-          if (shown.length < nexCardPreviewLines)
+          if (shown.length < lines)
             // Holds the card's height steady when a list has one item, the
             // same way a one-line text note reserves its second line.
             SizedBox(
               height:
-                  nexCardPreviewLineHeightFor(context) *
-                  (nexCardPreviewLines - shown.length),
+                  nexCardPreviewLineHeightFor(context) * (lines - shown.length),
             ),
         ],
       ),
@@ -622,7 +646,7 @@ class _LinkPreview extends StatelessWidget {
             height: nexCardPreviewLineHeightFor(context),
             child: NexTextSurface.line(
               headline,
-              style: theme.textTheme.bodyLarge,
+              style: NexCardDensity.of(context).previewStyle(theme),
             ),
           ),
           SizedBox(
@@ -669,9 +693,9 @@ class _Leading extends StatelessWidget {
         borderRadius: BorderRadius.circular(NexRadius.cardLeading),
         child: Image.file(
           File(uri),
-          width: nexCardLeadingSize,
-          height: nexCardLeadingSize,
-          cacheWidth: (nexCardLeadingSize * ratio).round(),
+          width: NexCardDensity.of(context).leading,
+          height: NexCardDensity.of(context).leading,
+          cacheWidth: (NexCardDensity.of(context).leading * ratio).round(),
           // Decode at this width and keep the source aspect ratio. BoxFit
           // crops the resulting image into the square without stretching it.
           fit: BoxFit.cover,
@@ -740,15 +764,66 @@ class _LeadingWithPin extends StatelessWidget {
   }
 }
 
+/// The card's icon while cards are being picked: a tick in the accent when
+/// this one is picked, the icon with an empty ring when it is not.
+class _PickMark extends StatelessWidget {
+  const _PickMark({
+    required this.picked,
+    required this.note,
+    required this.strings,
+  });
+
+  final bool picked;
+  final Note note;
+  final NexCardStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final side = NexCardDensity.of(context).leading;
+    if (picked) {
+      return Container(
+        width: side,
+        height: side,
+        decoration: BoxDecoration(
+          color: scheme.primary,
+          borderRadius: BorderRadius.circular(NexRadius.cardLeading),
+        ),
+        child: Icon(Icons.check_rounded, color: scheme.onPrimary),
+      );
+    }
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _LeadingWithPin(note: note, strings: strings),
+        PositionedDirectional(
+          top: -NexSpacing.xs,
+          start: -NexSpacing.xs,
+          child: Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: scheme.surfaceContainerLowest,
+              border: Border.all(color: scheme.outline, width: 1.5),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _IconBox extends StatelessWidget {
   const _IconBox(this.icon);
   final IconData icon;
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final side = NexCardDensity.of(context).leading;
     return Container(
-      width: nexCardLeadingSize,
-      height: nexCardLeadingSize,
+      width: side,
+      height: side,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(NexRadius.cardLeading),

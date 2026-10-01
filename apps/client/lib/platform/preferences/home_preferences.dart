@@ -137,9 +137,10 @@ mixin _HomePreferences on _PreferencesStore {
       _setBool('capture.quick_notification', value);
 
   /// Whether a capture that clearly continues something offers a thread
-  /// (W5.3). On by default: the offer is one capsule, and only when clear.
+  /// (W5.3). Off until switched on in Settings → Capture: an offer after a
+  /// capture is a question at the moment Nex promises to ask none.
   bool get threadSuggestions =>
-      _prefs.getBool('capture.thread_suggestions') ?? true;
+      _prefs.getBool('capture.thread_suggestions') ?? false;
 
   Future<void> setThreadSuggestions(bool value) =>
       _setBool('capture.thread_suggestions', value);
@@ -179,7 +180,7 @@ mixin _HomePreferences on _PreferencesStore {
         if (NexHoldAction.fromWire(name) case final action?) action,
     };
     return [
-      for (final action in NexHoldAction.values)
+      for (final action in NexHoldAction.choices)
         if (chosen.contains(action)) action,
     ];
   }

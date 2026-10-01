@@ -41,13 +41,19 @@ extension _ChatActions on _AiChatSheetState {
       for (final action in actions) {
         switch (action.kind) {
           case AssistantActionKind.create:
-            if (action.items.isNotEmpty) {
-              await widget.services.captureChecklist([
-                for (final line in action.items)
-                  ChecklistItem(text: line, done: false),
-              ]);
-            } else {
-              await widget.services.captureText(action.text!);
+            final created = action.items.isNotEmpty
+                ? await widget.services.captureChecklist([
+                    for (final line in action.items)
+                      ChecklistItem(text: line, done: false),
+                  ])
+                : await widget.services.captureText(action.text!);
+            // The reminder that came with it, set the way `remind` sets one.
+            if (action.at case final at? when created != null) {
+              await widget.services.setDueAt(
+                created.id,
+                at,
+                repeat: action.repeat,
+              );
             }
           case AssistantActionKind.edit:
             await widget.services.updateNote(action.noteId!, action.text!);

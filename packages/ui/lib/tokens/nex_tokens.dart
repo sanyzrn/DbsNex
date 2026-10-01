@@ -350,8 +350,71 @@ const nexCardHeight = nexCardLeadingSize + NexSpacing.cardInset * 2;
 /// with the system's and clamps at 1.9, so this can be asked for nearly twice
 /// the default.
 double nexCardHeightFor(BuildContext context) {
-  final lines = nexCardPreviewLineHeightFor(context) * nexCardPreviewLines;
-  return math.max(nexCardLeadingSize, lines) + NexSpacing.cardInset * 2;
+  final density = NexCardDensity.of(context);
+  final lines = nexCardPreviewLineHeightFor(context) * density.lines;
+  return math.max(density.leading, lines) + density.inset * 2;
+}
+
+/// How much a timeline card holds, chosen in Settings → Appearance (W7.2).
+///
+/// Every value keeps the one-height-for-every-card rule; each is a different
+/// height. Compact keeps two lines — a link's title and site, a voice note's
+/// words and length, are two rows whatever the density — in smaller type.
+enum NexCardDensity {
+  compact(inset: 10, leading: 40, lines: 2, lineHeight: 20),
+  standard(
+    inset: NexSpacing.cardInset,
+    leading: nexCardLeadingSize,
+    lines: nexCardPreviewLines,
+    lineHeight: _nexCardPreviewLineHeight,
+  ),
+  readable(inset: 18, leading: 52, lines: 3, lineHeight: 24);
+
+  const NexCardDensity({
+    required this.inset,
+    required this.leading,
+    required this.lines,
+    required this.lineHeight,
+  });
+
+  /// The padding inside a card, all round.
+  final double inset;
+
+  /// The type glyph's box, and a photo's thumbnail.
+  final double leading;
+
+  /// Lines of the note's own words.
+  final int lines;
+
+  /// One of those lines, at the default text size.
+  final double lineHeight;
+
+  /// The type the preview is set in: a size down when compact.
+  TextStyle? previewStyle(ThemeData theme) =>
+      this == compact ? theme.textTheme.bodyMedium : theme.textTheme.bodyLarge;
+
+  static NexCardDensity fromWire(String? value) => NexCardDensity.values
+      .firstWhere((d) => d.name == value, orElse: () => standard);
+
+  static NexCardDensity of(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<NexCardDensityScope>()
+          ?.density ??
+      standard;
+}
+
+/// Hands [NexCardDensity] down to every card below it.
+class NexCardDensityScope extends InheritedWidget {
+  const NexCardDensityScope({
+    super.key,
+    required this.density,
+    required super.child,
+  });
+
+  final NexCardDensity density;
+
+  @override
+  bool updateShouldNotify(NexCardDensityScope old) => old.density != density;
 }
 
 /// One preview line, at the text size actually in force.
@@ -363,7 +426,9 @@ double nexCardHeightFor(BuildContext context) {
 /// at scale 1.0: the app's own UI-size setting composes with the system's and
 /// clamps at 1.9, so bodyLarge can ask for 45 in a box built for 24.
 double nexCardPreviewLineHeightFor(BuildContext context) =>
-    MediaQuery.textScalerOf(context).scale(_nexCardPreviewLineHeight);
+    MediaQuery.textScalerOf(
+      context,
+    ).scale(NexCardDensity.of(context).lineHeight);
 
 /// The typeface used everywhere except in Persian.
 ///

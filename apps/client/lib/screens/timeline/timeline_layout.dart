@@ -71,9 +71,12 @@ extension _TimelineLayout on TimelineScreenState {
       ),
       // Android's back gesture leaves search before it leaves the screen.
       body: PopScope(
-        canPop: !_searching,
+        canPop: !_searching && !_selecting,
         onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) _exitSearch();
+          if (didPop) return;
+          // Picking several notes is left before anything else.
+          if (_selecting) return _endSelection();
+          _exitSearch();
         },
         // The list keeps drawing all the way down, and stops *listening*
         // where the system's own navigation gestures begin. Without this the
@@ -210,12 +213,27 @@ extension _TimelineLayout on TimelineScreenState {
                                   ),
                                 ),
                               ),
+                            // Without the tag row, a pinned hairline still
+                            // carries the sticky day.
+                            if (!widget.preferences.showTagRow)
+                              SliverPersistentHeader(
+                                pinned: true,
+                                delegate: _FilterRowHeader(
+                                  visible: !_searching,
+                                  extent: 1,
+                                  lineKey: _stickyLine,
+                                  below: TimelineStickyDay(day: _stickyDay),
+                                  child: const SizedBox.shrink(),
+                                ),
+                              ),
                             if (widget.preferences.showTagRow)
                               SliverPersistentHeader(
                                 key: const ValueKey('filter-header'),
                                 pinned: true,
                                 delegate: _FilterRowHeader(
                                   visible: !_searching,
+                                  lineKey: _stickyLine,
+                                  below: TimelineStickyDay(day: _stickyDay),
                                   extent:
                                       math.max(
                                         nexMinTapTarget,
@@ -331,7 +349,20 @@ extension _TimelineLayout on TimelineScreenState {
       // Capture is a timeline action. Left up while searching, the bar read
       // as part of the search flow itself rather than what it actually still
       // did — open a fresh note, unrelated to whatever was just searched.
-      floatingActionButton: _searching ? null : _bottomBar(l10n),
+      floatingActionButton: _searching
+          ? null
+          : AnimatedSwitcher(
+              duration: NexMotion.standard,
+              child: _selecting
+                  ? KeyedSubtree(
+                      key: const ValueKey('selection'),
+                      child: _selectionBar(l10n),
+                    )
+                  : KeyedSubtree(
+                      key: const ValueKey('dock'),
+                      child: _bottomBar(l10n),
+                    ),
+            ),
     );
   }
 
@@ -394,7 +425,7 @@ extension _TimelineLayout on TimelineScreenState {
               onPressed: () async {
                 if (_claimedByOverlay()) return;
                 _tick();
-                await CommitmentsSheet.show(context, services: widget.services);
+                await RecurringScreen.show(context, services: widget.services);
                 await _model.loadCommitments();
               },
             ),

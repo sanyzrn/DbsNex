@@ -192,7 +192,13 @@ class _ActionCard extends StatelessWidget {
   /// are any — a confirmation that does not show the text being written is
   /// asking someone to approve something they cannot see.
   String _detail(AssistantAction action) => switch (action.kind) {
-    AssistantActionKind.create ||
+    // A new note shows its reminder too: approving one without seeing when
+    // it rings is approving an alarm blind.
+    AssistantActionKind.create => [
+      action.text ?? '',
+      if (action.at case final at?)
+        '⏰ ${_whenLabel(at)}${action.repeat != NoteRepeat.once ? ' · ${action.repeat.wireName}' : ''}',
+    ].join('\n'),
     AssistantActionKind.edit ||
     AssistantActionKind.merge ||
     AssistantActionKind.toChecklist => action.text ?? '',

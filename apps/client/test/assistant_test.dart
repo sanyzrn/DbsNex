@@ -204,6 +204,30 @@ Sure, here you go:
       expect(action?.repeat, NoteRepeat.weekly);
     });
 
+    test('a new note can carry its reminder', () {
+      // "Remind me on Saturday at nine to see the doctor" had no way
+      // through: remind needs an id, and the note did not exist yet.
+      final action = parseAssistantAction(
+        '{"action":"create","text":"See the doctor",'
+        '"at":"2026-03-14T09:00","repeat":"weekly"}',
+      );
+      expect(action?.kind, AssistantActionKind.create);
+      expect(action?.text, 'See the doctor');
+      expect(action?.at, DateTime(2026, 3, 14, 9));
+      expect(action?.repeat, NoteRepeat.weekly);
+      expect(
+        parseAssistantAction(
+          '{"action":"create","text":"See the doctor","at":"saturday"}',
+        ),
+        isNull,
+        reason: 'saved without the reminder asked for would look done',
+      );
+      expect(
+        parseAssistantAction('{"action":"create","text":"plain"}')?.at,
+        isNull,
+      );
+    });
+
     test('a reminder with no date is the one that cancels it', () {
       final action = parseAssistantAction('{"action":"remind","id":"n-1"}');
       expect(action?.kind, AssistantActionKind.remind);
@@ -1048,6 +1072,34 @@ Sure, here you go:
       await tester.pumpAndSettle();
 
       expect(await services.getById(note.id), isNull);
+    });
+
+    testWidgets('a note and its reminder, in one request', (tester) async {
+      final when = DateTime.now().add(const Duration(days: 2));
+      final at =
+          '${when.year}-${when.month.toString().padLeft(2, '0')}-'
+          '${when.day.toString().padLeft(2, '0')}T09:00';
+      await openSheet(
+        tester,
+        client: replying(
+          '```nex\n{"action":"create","text":"See the doctor","at":"$at"}\n```',
+        ),
+      );
+      await tester.enterText(
+        find.byType(TextField).last,
+        'remind me to see the doctor at nine',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Do it'));
+      await tester.pumpAndSettle();
+
+      final notes = await services.timeline(limit: 10);
+      final made = notes.singleWhere((n) => n.content == 'See the doctor');
+      expect(
+        made.dueAt?.toLocal(),
+        DateTime(when.year, when.month, when.day, 9),
+      );
     });
 
     testWidgets('a note that is not there is not reported as deleted', (

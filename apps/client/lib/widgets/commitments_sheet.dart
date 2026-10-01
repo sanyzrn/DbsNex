@@ -32,24 +32,27 @@ part 'commitments/commitment_rows.dart';
 /// to see the whole list.
 ///
 /// Reached from Recurring beside Capture in the home dock.
-class CommitmentsSheet extends StatefulWidget {
-  const CommitmentsSheet({super.key, required this.services});
+class RecurringScreen extends StatefulWidget {
+  const RecurringScreen({super.key, required this.services});
 
   final NexServices services;
 
+  /// A page of its own. It used to be a sheet over the timeline, and a
+  /// sheet is the size of a question — which is how it was treated: things
+  /// that come round every month, with money and medicine among them, in
+  /// something that looked like it could be flicked away.
   static Future<void> show(
     BuildContext context, {
     required NexServices services,
-  }) => nexShowSheet<void>(
-    context: context,
-    builder: (_) => CommitmentsSheet(services: services),
+  }) => Navigator.of(context).push<void>(
+    NexPageRoute<void>(builder: (_) => RecurringScreen(services: services)),
   );
 
   @override
-  State<CommitmentsSheet> createState() => _CommitmentsSheetState();
+  State<RecurringScreen> createState() => _RecurringScreenState();
 }
 
-class _CommitmentsSheetState extends State<CommitmentsSheet> {
+class _RecurringScreenState extends State<RecurringScreen> {
   List<NexCommitment>? _all;
   String _view = 'all';
   bool _working = false;
@@ -197,6 +200,17 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
                 title: Text(nexLabel(ctx, en, fa)),
                 onTap: () => Navigator.pop(ctx, id),
               ),
+            ListTile(
+              leading: Icon(
+                Icons.delete_outline,
+                color: Theme.of(ctx).colorScheme.error,
+              ),
+              title: Text(
+                AppLocalizations.of(ctx).delete,
+                style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+              ),
+              onTap: () => Navigator.pop(ctx, 'delete'),
+            ),
           ],
         ),
       ),
@@ -204,6 +218,10 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
     if (!mounted || choice == null) return;
     if (choice == 'history') {
       await _history(c);
+      return;
+    }
+    if (choice == 'delete') {
+      await _delete(c);
       return;
     }
     final now = DateTime.now();
@@ -370,7 +388,9 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
     );
   }
 
-  Widget _costSummary(List<NexCommitment> all, DateTime now) {
+  /// What the paying ones add up to over the next thirty days, per
+  /// currency.
+  Map<String, int> _paymentsAhead(List<NexCommitment> all, DateTime now) {
     final end = DateTime(now.year, now.month, now.day + 30);
     final totals = <String, int>{};
     for (final c in all.where((c) => !c.paused && c.amountMinor != null)) {
@@ -387,35 +407,20 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
         );
       }
     }
-    return totals.isEmpty
-        ? const SizedBox.shrink()
-        : Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    nexLabel(
-                      context,
-                      'Payments in the next 30 days',
-                      'پرداخت‌های ۳۰ روز آینده',
-                    ),
-                  ),
-                  for (final e in totals.entries)
-                    Text(
-                      nexDigits(
-                        '${(e.value / 100).toStringAsFixed(2)} ${e.key}',
-                        persian:
-                            Localizations.localeOf(context).languageCode ==
-                            'fa',
-                      ),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                ],
-              ),
-            ),
-          );
+    return totals;
+  }
+
+  bool _inView(NexCommitment c, String view, DateTime now) {
+    final today = DateUtils.dateOnly(now);
+    return switch (view) {
+      'today' => !c.paused && DateUtils.isSameDay(c.dueAt, today),
+      'overdue' => c.isOverdue(now),
+      'week' =>
+        !c.paused &&
+            !c.dueAt.isBefore(today) &&
+            c.dueAt.isBefore(today.add(const Duration(days: 7))),
+      _ => true,
+    };
   }
 
   @override
@@ -423,121 +428,144 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final source = _all;
-    final today = DateUtils.dateOnly(DateTime.now());
-    final all = source
-        ?.where(
-          (c) => switch (_view) {
-            'today' => !c.paused && DateUtils.isSameDay(c.dueAt, today),
-            'overdue' => c.isOverdue(DateTime.now()),
-            'week' =>
-              !c.paused &&
-                  !c.dueAt.isBefore(today) &&
-                  c.dueAt.isBefore(today.add(const Duration(days: 7))),
-            // The calendar draws every item on its own days.
-            'calendar' => true,
-            _ => true,
-          },
-        )
-        .toList();
     final now = DateTime.now();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        NexSpacing.md,
-        NexSpacing.sm,
-        NexSpacing.md,
-        NexSpacing.md,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.commitmentsTitle,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    // How many there are, under the title. A count is the
-                    // one thing somebody opening a list already wants to
-                    // know and would otherwise have to work out by looking.
-                    if (all != null && all.isNotEmpty)
-                      Text(
-                        l10n.commitmentsCount(all.length),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: l10n.commitmentAdd,
-                onPressed: () => unawaited(_edit()),
-                icon: const Icon(Icons.add),
-              ),
-            ],
-          ),
-          // What a recurring item actually is, and what the app does with
-          // one. This page had a title, a plus and a list, and nothing at
-          // all that said why anybody would put something in it — which is
-          // the whole of what was wrong with it.
-          const SizedBox(height: NexSpacing.xs),
-          Text(
-            l10n.commitmentsAbout,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              height: 1.4,
+    final calendar = _view == 'calendar';
+    final shown = source
+        ?.where((c) => calendar || _inView(c, _view, now))
+        .toList();
+    final persian = Localizations.localeOf(context).languageCode == 'fa';
+    return Scaffold(
+      floatingActionButton: source == null || source.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              heroTag: null,
+              onPressed: () => unawaited(_edit()),
+              icon: const Icon(Icons.add),
+              label: Text(l10n.commitmentAdd),
             ),
-            textDirection: nexDirectionOf(l10n.commitmentsAbout),
-          ),
-          const SizedBox(height: NexSpacing.md),
-          Wrap(
-            spacing: 6,
-            children: [
-              for (final (id, en, fa) in [
-                ('all', 'All', 'همه'),
-                ('today', 'Today', 'امروز'),
-                ('overdue', 'Overdue', 'عقب‌افتاده'),
-                ('week', 'Next 7 days', '۷ روز آینده'),
-                ('calendar', 'Calendar', 'تقویم'),
-              ])
-                ChoiceChip(
-                  label: Text(nexLabel(context, en, fa)),
-                  selected: _view == id,
-                  onSelected: (_) => setState(() => _view = id),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar.large(title: Text(l10n.commitmentsTitle)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
+            sliver: SliverList.list(
+              children: [
+                // What a recurring item actually is, and what the app does
+                // with one. This page had a title, a plus and a list, and
+                // nothing at all that said why anybody would put something
+                // in it — which is the whole of what was wrong with it.
+                Text(
+                  l10n.commitmentsAbout,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.45,
+                  ),
+                  textDirection: nexDirectionOf(l10n.commitmentsAbout),
                 ),
-            ],
+                if (source != null && source.isNotEmpty) ...[
+                  const SizedBox(height: NexSpacing.md),
+                  // How many there are. A count is the one thing somebody
+                  // opening a list already wants to know.
+                  Text(
+                    l10n.commitmentsCount(source.length),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: NexSpacing.sm),
+                  _Summary(
+                    view: _view,
+                    counts: {
+                      for (final view in const ['overdue', 'today', 'week'])
+                        view: source.where((c) => _inView(c, view, now)).length,
+                    },
+                    persian: persian,
+                    onView: (view) =>
+                        setState(() => _view = _view == view ? 'all' : view),
+                  ),
+                  if (_paymentsAhead(source, now) case final totals
+                      when totals.isNotEmpty) ...[
+                    const SizedBox(height: NexSpacing.sm),
+                    _Payments(totals: totals, persian: persian),
+                  ],
+                  const SizedBox(height: NexSpacing.md),
+                  SegmentedButton<bool>(
+                    showSelectedIcon: false,
+                    segments: [
+                      ButtonSegment(
+                        value: false,
+                        icon: const Icon(Icons.view_agenda_outlined),
+                        label: Text(nexLabel(context, 'List', 'فهرست')),
+                      ),
+                      ButtonSegment(
+                        value: true,
+                        icon: const Icon(Icons.calendar_month_outlined),
+                        label: Text(nexLabel(context, 'Calendar', 'تقویم')),
+                      ),
+                    ],
+                    selected: {calendar},
+                    onSelectionChanged: (value) => setState(
+                      () => _view = value.first ? 'calendar' : 'all',
+                    ),
+                  ),
+                  if (!calendar) ...[
+                    const SizedBox(height: NexSpacing.sm),
+                    Wrap(
+                      spacing: 6,
+                      children: [
+                        for (final (id, en, fa) in [
+                          ('all', 'All', 'همه'),
+                          ('today', 'Today', 'امروز'),
+                          ('overdue', 'Overdue', 'عقب‌افتاده'),
+                          ('week', 'Next 7 days', '۷ روز آینده'),
+                        ])
+                          ChoiceChip(
+                            label: Text(nexLabel(context, en, fa)),
+                            selected: _view == id,
+                            onSelected: (_) => setState(() => _view = id),
+                          ),
+                      ],
+                    ),
+                  ],
+                ],
+                const SizedBox(height: NexSpacing.md),
+                if (shown == null)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: NexSpacing.xl),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (source!.isEmpty)
+                  _Empty(l10n: l10n, onAdd: () => unawaited(_edit()))
+                else if (calendar)
+                  RecurringCalendar(
+                    commitments: shown,
+                    solar: widget.services.solarCalendar,
+                    onActions: (c) => unawaited(_actions(c)),
+                  )
+                else if (shown.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: NexSpacing.xl,
+                    ),
+                    child: Text(
+                      nexLabel(
+                        context,
+                        'Nothing in this view.',
+                        'در این نما چیزی نیست.',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
+                else
+                  ..._grouped(l10n, shown, now),
+                // Room for the button floating over the end of the list.
+                SizedBox(height: 96 + nexBottomInset(context)),
+              ],
+            ),
           ),
-          if (source != null) _costSummary(source, now),
-          const SizedBox(height: 8),
-          if (all == null)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: NexSpacing.xl),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (all.isEmpty)
-            // Scrollable, like the list it stands in for: at the largest text
-            // sizes the explanation is taller than what is left of the sheet.
-            Flexible(
-              child: SingleChildScrollView(child: _Empty(l10n: l10n)),
-            )
-          else if (_view == 'calendar')
-            Flexible(
-              child: SingleChildScrollView(
-                child: RecurringCalendar(
-                  commitments: all,
-                  solar: widget.services.solarCalendar,
-                  onActions: (c) => unawaited(_actions(c)),
-                ),
-              ),
-            )
-          else
-            Flexible(child: _grouped(l10n, theme, all, now)),
         ],
       ),
     );
@@ -549,9 +577,8 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
   /// wherever the arithmetic put it, between two items that are fine. Three
   /// groups say the only thing this list is for: what has slipped, what is
   /// coming, and what is not running at all.
-  Widget _grouped(
+  List<Widget> _grouped(
     AppLocalizations l10n,
-    ThemeData theme,
     List<NexCommitment> all,
     DateTime now,
   ) {
@@ -576,27 +603,23 @@ class _CommitmentsSheetState extends State<CommitmentsSheet> {
       commitment: c,
       onMet: () => unawaited(_markMet(c)),
       onEdit: () => unawaited(_edit(c)),
-      onDelete: () => unawaited(_delete(c)),
       onActions: () => unawaited(_actions(c)),
     );
 
-    return ListView(
-      shrinkWrap: true,
-      children: [
-        for (final (label, group, urgent) in [
-          (l10n.commitmentsOverdue, overdue, true),
-          (l10n.commitmentsComingUp, upcoming, false),
-          (l10n.commitmentsRested, paused, false),
-        ])
-          if (group.isNotEmpty) ...[
-            _GroupLabel(label: label, urgent: urgent),
-            for (final c in group) ...[
-              row(c),
-              const SizedBox(height: NexSpacing.xs),
-            ],
+    return [
+      for (final (label, group, urgent) in [
+        (l10n.commitmentsOverdue, overdue, true),
+        (l10n.commitmentsComingUp, upcoming, false),
+        (l10n.commitmentsRested, paused, false),
+      ])
+        if (group.isNotEmpty) ...[
+          _GroupLabel(label: label, urgent: urgent, count: group.length),
+          for (final c in group) ...[
+            row(c),
             const SizedBox(height: NexSpacing.sm),
           ],
-      ],
-    );
+          const SizedBox(height: NexSpacing.md),
+        ],
+    ];
   }
 }

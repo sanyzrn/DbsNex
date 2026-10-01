@@ -152,6 +152,10 @@ extension _TimelineNoteActions on TimelineScreenState {
     final words = note.content ?? note.transcriptText ?? note.ocrText ?? '';
     final expanded = prefs.isNoteExpanded(note.id);
     NoteMenuEntry? entry(NexHoldAction action) => switch (action) {
+      NexHoldAction.select => NoteMenuEntry(
+        action,
+        () => _toggleSelected(note),
+      ),
       NexHoldAction.pin => NoteMenuEntry(
         action,
         () => unawaited(_runSwipe(NexSwipeAction.pin, note)),
@@ -273,6 +277,7 @@ extension _TimelineNoteActions on TimelineScreenState {
       ),
     };
     return [
+      entry(NexHoldAction.select)!,
       for (final action in prefs.holdMenuActions)
         if (entry(action) case final value?) value,
     ];
@@ -335,9 +340,24 @@ extension _TimelineNoteActions on TimelineScreenState {
   /// since the outer tap-to-close and the card's own tap handler both fired
   /// off the same touch. The first tap while something is open now only
   /// closes it; opening a note takes its own, second tap.
-  void _tapNote(Note note) {
+  void _tapNote(Note note, {BuildContext? from}) {
     if (_claimedByOverlay()) return;
-    unawaited(_openNote(note));
+    if (_selecting) return _toggleSelected(note);
+    unawaited(
+      _openNote(
+        note,
+        from: from == null
+            ? null
+            : NexSheetOrigin.of(
+                from,
+                ghost: NoteCard(
+                  note: note,
+                  strings: nexCardStrings(context),
+                  expanded: widget.preferences.isNoteExpanded(note.id),
+                ),
+              ),
+      ),
+    );
   }
 
   /// One note by id, the way a card tap opens it.
@@ -368,9 +388,11 @@ extension _TimelineNoteActions on TimelineScreenState {
     Note note, {
     bool edit = false,
     NexHoldAction? run,
+    NexSheetOrigin? from,
   }) async {
     final result = await nexShowSheet<DetailResult>(
       context: context,
+      from: from,
       builder: (_) => NoteDetailSheet(
         editOnOpen: edit,
         runOnOpen: run,

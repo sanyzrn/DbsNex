@@ -59,20 +59,21 @@ class NexBackupFolderChannel {
     }
   }
 
-  /// Copies [path] into the folder as [name]. False if it did not land.
-  Future<bool> copy(String uri, String path, String name) async {
+  /// Copies [path] into the folder as [name]. Null when it landed, otherwise
+  /// what went wrong, as the Android side put it.
+  Future<String?> copy(String uri, String path, String name) async {
     try {
-      return await _channel.invokeMethod<bool>('copyToBackupFolder', {
-            'uri': uri,
-            'path': path,
-            'name': name,
-            'keep': keep,
-          }) ??
-          false;
-    } on PlatformException {
-      return false;
+      final answer = await _channel.invokeMethod<String>('copyToBackupFolder', {
+        'uri': uri,
+        'path': path,
+        'name': name,
+        'keep': keep,
+      });
+      return answer == 'ok' ? null : (answer ?? 'no answer');
+    } on PlatformException catch (error) {
+      return 'platform: ${error.code}';
     } on MissingPluginException {
-      return false;
+      return 'not available on this device';
     }
   }
 }

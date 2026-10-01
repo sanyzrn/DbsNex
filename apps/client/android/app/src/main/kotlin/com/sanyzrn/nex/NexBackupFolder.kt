@@ -54,35 +54,65 @@ object NexBackupFolder {
 
     /**
      * Copies [source] into [tree] as [name], then keeps only the newest [keep]
-     * of Nex's own backups there.
+     * of Nex's own backups there. Returns null when the copy landed, or what
+     * went wrong, in words Settings and the diagnostics log can show.
      *
      * Written under a temporary name and renamed when complete, so a copy cut
      * short — the phone dies, the provider fails — never leaves a file that
-     * looks like a whole backup.
+     * looks like a whole backup. Not every provider can rename a document
+     * (cloud providers often cannot), so when the rename is refused the copy
+     * is written again straight under its final name: a folder that cannot
+     * rename still gets its backup.
      */
-    fun copyInto(context: Context, tree: Uri, source: File, name: String, keep: Int): Boolean {
+    fun copyInto(context: Context, tree: Uri, source: File, name: String, keep: Int): String? {
         val resolver = context.contentResolver
-        val parent = DocumentsContract.buildDocumentUriUsingTree(
-            tree,
-            DocumentsContract.getTreeDocumentId(tree),
-        )
-        val partial = DocumentsContract.createDocument(
-            resolver,
-            parent,
-            "application/octet-stream",
-            "$name.partial",
-        ) ?: return false
-        try {
-            val out = resolver.openOutputStream(partial) ?: throw IllegalStateException("no stream")
-            out.use { stream -> source.inputStream().use { it.copyTo(stream) } }
-            DocumentsContract.renameDocument(resolver, partial, name)
-                ?: throw IllegalStateException("rename refused")
-        } catch (error: Exception) {
-            runCatching { DocumentsContract.deleteDocument(resolver, partial) }
-            return false
+        val parent = runCatching {
+            DocumentsContract.buildDocumentUriUsingTree(
+                tree,
+                DocumentsContract.getTreeDocumentId(tree),
+            )
+        }.getOrElse { return "folder: ${it.javaClass.simpleName}" }
+        if (!source.exists()) return "no backup file"
+
+        val staged = write(context, parent, "$name.partial", source)
+        if (staged.error == null) {
+            val renamed = runCatching {
+                DocumentsContract.renameDocument(resolver, staged.uri!!, name)
+            }.getOrNull()
+            if (renamed != null) {
+                prune(context, tree, keep)
+                return null
+            }
+            runCatching { DocumentsContract.deleteDocument(resolver, staged.uri!!) }
+        }
+        // No rename, or the staged write itself failed: write the final name.
+        val direct = write(context, parent, name, source)
+        if (direct.error != null) {
+            return staged.error?.let { "$it; then ${direct.error}" } ?: direct.error
         }
         prune(context, tree, keep)
-        return true
+        return null
+    }
+
+    private class Written(val uri: Uri?, val error: String?)
+
+    private fun write(context: Context, parent: Uri, display: String, source: File): Written {
+        val resolver = context.contentResolver
+        val doc = runCatching {
+            DocumentsContract.createDocument(resolver, parent, "application/octet-stream", display)
+        }.getOrElse { return Written(null, "create: ${it.javaClass.simpleName}") }
+            ?: return Written(null, "create refused")
+        return try {
+            // "wt" truncates; not every provider accepts the mode.
+            val out = runCatching { resolver.openOutputStream(doc, "wt") }.getOrNull()
+                ?: resolver.openOutputStream(doc)
+                ?: throw IllegalStateException("no stream")
+            out.use { stream -> source.inputStream().use { it.copyTo(stream) } }
+            Written(doc, null)
+        } catch (error: Exception) {
+            runCatching { DocumentsContract.deleteDocument(resolver, doc) }
+            Written(null, "write: ${error.javaClass.simpleName}")
+        }
     }
 
     private fun prune(context: Context, tree: Uri, keep: Int) {

@@ -74,17 +74,22 @@ void main() {
       );
     });
 
-    test('both guides show the same pictures, and every one exists', () {
+    test('each guide has its own pictures, the same ones, and every one '
+        'exists', () {
       // The same screenshots in both languages, so neither reader is shown
-      // less; and a name with no file is a hole in the page.
+      // less — but the Persian guide's are its own files (name_fa.webp), so
+      // each language can show its own screens; and a name with no file is a
+      // hole in the page.
       List<String> images(String source) => [
         for (final m in RegExp(r'!\[[^\]]*\]\(([^)]+)\)').allMatches(source))
           m[1]!,
       ];
       final english = images(read('en.md'));
       expect(english, isNotEmpty);
-      expect(images(read('fa.md')), english);
-      for (final name in english) {
+      expect(images(read('fa.md')), [
+        for (final name in english) name.replaceFirst('.webp', '_fa.webp'),
+      ]);
+      for (final name in [...english, ...images(read('fa.md'))]) {
         expect(
           File(
             p.join(Directory.current.path, 'assets', 'guide', 'images', name),
@@ -93,6 +98,19 @@ void main() {
           reason: name,
         );
       }
+    });
+
+    testWidgets('a stand-in picture is not shown', (tester) async {
+      // Every picture shipped today is a stand-in; a real screenshot under
+      // the same name has other bytes and is shown.
+      final bytes = await tester.runAsync(
+        () => nexGuidePicture('capture_fa.webp'),
+      );
+      expect(bytes, isNull);
+      expect(
+        await tester.runAsync(() => nexGuidePicture('missing.webp')),
+        isNull,
+      );
     });
 
     test('the Persian guide is actually in Persian', () {

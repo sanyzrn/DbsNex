@@ -136,13 +136,13 @@ class NexCardSkeleton extends StatelessWidget {
             border: Border.all(color: scheme.outlineVariant),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(NexSpacing.cardInset),
+            padding: EdgeInsets.all(NexCardDensity.of(context).inset),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 NexSkeleton(
-                  width: nexCardLeadingSize,
-                  height: nexCardLeadingSize,
+                  width: NexCardDensity.of(context).leading,
+                  height: NexCardDensity.of(context).leading,
                   // Matches the leading icon box it stands in for — see
                   // NexRadius.cardLeading.
                   radius: NexRadius.cardLeading,

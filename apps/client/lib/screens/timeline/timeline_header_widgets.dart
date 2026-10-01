@@ -14,7 +14,7 @@ part of '../timeline_screen.dart';
 class _WordmarkTile extends StatelessWidget {
   const _WordmarkTile();
 
-  static const _height = 20.0;
+  static const _height = 16.0;
 
   @override
   Widget build(BuildContext context) => const NexLogotype(height: _height);

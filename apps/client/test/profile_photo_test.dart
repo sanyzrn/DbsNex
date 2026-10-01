@@ -30,4 +30,21 @@ void main() {
   test('does not claim a missing image has been recovered', () {
     expect(resolveProfilePhoto(root.path, '/old/avatar.jpg'), isNull);
   });
+
+  test('each new picture gets its own path, and both kinds are found', () {
+    // One fixed name meant the image cache kept drawing the old picture.
+    final media = Directory(p.join(root.path, 'media'));
+    final profile = Directory(p.join(media.path, 'profile'))
+      ..createSync(recursive: true);
+    final first = nextProfilePhotoPath(media.path, '.png');
+    final second = nextProfilePhotoPath(media.path, '');
+    expect(first, isNot(second));
+    expect(first, endsWith('.png'));
+    expect(second, endsWith('.jpg'));
+    File(first).writeAsBytesSync([1]);
+    File(p.join(profile.path, 'avatar.jpg')).writeAsBytesSync([2]);
+    File(p.join(profile.path, 'notes.txt')).writeAsBytesSync([3]);
+    expect(profilePhotoFiles(media.path), hasLength(2));
+    expect(resolveProfilePhoto(media.path, first)?.path, first);
+  });
 }

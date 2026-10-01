@@ -14,9 +14,11 @@ Without opening Nex first: add the **Nex capture** tile to your Quick Settings (
 
 ## The home timeline
 
-Everything lives in one reverse-chronological stream, grouped under date headings. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again.
+Everything lives in one reverse-chronological stream, grouped under date headings. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again. Once you scroll down, the day of the notes you are passing stays named under the filters. Tap a card and it opens into the note; **Settings → Appearance → Card size** makes cards compact, standard or easier to read.
 
 Hold a note for a quick menu: **Pin**, **Copy**, **Edit**, **Remind** and **Delete** by default. **Settings → Capture → Hold menu** can add any action from a note's details — Share, Add tag, Translate and the rest — or take some away. Up to five notes can be pinned to the top. Swipe a card from either edge for the actions you chose under **Settings → Capture → Swipe actions**. The bottom bar holds, from left to right: **Tools**, **Recurring**, **+**, **Library** and **Settings**.
+
+To work on several notes at once, hold one and choose **Select** — it is always first in the menu. Now each tap on a card picks it or takes it back out, and the bottom bar shows how many are picked with **Tag**, **Threads**, **Pin**, **Share**, **Copy** and **Delete** for all of them together; one **Undo** brings back everything a delete took. **✕**, Back, or taking out the last one ends it. Swiping cards does nothing while picking.
 
 ![The home timeline](home.webp)
 
@@ -24,7 +26,7 @@ Hold a note for a quick menu: **Pin**, **Copy**, **Edit**, **Remind** and **Dele
 
 Tap anywhere in the search field and type part of a word: **tor** also finds **Generator**. Results come best match first. With semantic search on (**Settings → Intelligence**), notes about the same thing join the same list even when they share no word with the query, marked **Found by meaning**. The chips beside the field narrow results by type, tag or date, and `tag:` and `type:` still work in the field itself. When nothing matches, Nex offers the closest thing you actually wrote.
 
-**Threads** gather notes about the same thing — a renovation, a trip, a project — without moving them: a note in a thread is still on the timeline and under its tags, and can be in several threads or none. When a note you have just saved clearly continues one, a capsule offers to add it; nothing is added without a tap, and **Settings → Capture** turns the offer off. Find them in **Library → Threads**, where a thread reads oldest first, and from a note's details, where its threads sit beside its tags.
+**Threads** gather notes about the same thing — a renovation, a trip, a project — without moving them: a note in a thread is still on the timeline and under its tags, and can be in several threads or none. When a note you have just saved clearly continues one, a capsule can offer to add it; the offer is off until you turn it on in **Settings → Capture**, and even then nothing is added without a tap. Find them in **Library → Threads**, where a thread reads oldest first, and from a note's details, where its threads sit beside its tags.
 
 Tags group related notes and can carry any colour. **Library → Tags** renames, merges and deletes them; **Library → Trash** keeps deleted notes for 30 days, so a mistake can be undone.
 
@@ -58,11 +60,11 @@ A reminder brings one note back at the time you choose, once or repeating. Use t
 
 ## Recurring
 
-**Recurring**, on the bottom bar, is for the things that come back round: rent, insurance, a tablet every eight hours, a glass of water every two. They are not notes and never crowd the timeline.
+**Recurring**, on the bottom bar, is for the things that come back round: rent, insurance, a tablet every eight hours, a glass of water every two. They are not notes and never crowd the timeline. It opens as a page of its own: at the top, how many are **Overdue**, due **Today** and due in the **Next 7 days** — tap one to see just those, tap it again for everything — and what the ones with an amount add up to over the next 30 days.
 
-Tap **+** on the Recurring page to add one: a title, how often, and when it is next due; optionally how far ahead to be told, a daily window for hourly items, several weekdays, a day of the month or its last day, and an amount with its currency. Persian monthly and yearly repeats follow the Persian calendar. Swipe the editor down from anywhere on it to close it; it asks first if you have typed something.
+Tap **Add a recurring item** to add one; it opens a full page: a title, how often, and when it is next due; optionally how far ahead to be told, a daily window for hourly items, several weekdays, a day of the month or its last day, and an amount with its currency. Persian monthly and yearly repeats follow the Persian calendar. **Save** is at the top and at the end of the page; **✕** or Back closes it, and asks first if you have typed something.
 
-Today, Overdue and Next 7 days narrow the list; **Calendar** shows a month or a week, each day shaded by how much falls on it, and what is due on the day you tap. The next occurrence can be moved from there without moving the schedule. In an item's editor, **Attachments** holds receipt photos, links to any note and, optionally, one bank card from the vault, which only opens after the vault is unlocked and is never shown to the assistant. Mark an item done to move it to its next turn; its menu can snooze one occurrence, skip it or open its history, where each entry can carry a short note. Undo restores an accidental change, and snoozing never moves the underlying schedule. Upcoming 30-day totals are shown per currency.
+The **List** shows what has slipped first, then what is coming up, then what is paused; the chips above it narrow it the same way the numbers do. **Calendar** shows a month or a week, each day shaded by how much falls on it, and what is due on the day you tap. The next occurrence can be moved from there without moving the schedule. In an item's editor, **Attachments** holds receipt photos, links to any note and, optionally, one bank card from the vault, which only opens after the vault is unlocked and is never shown to the assistant. Mark an item done (the tick on its card) to move it to its next turn; its **⋯** menu can snooze one occurrence, skip it, open its history or delete it. In its history, each entry can carry a short note. Undo restores an accidental change, and snoozing never moves the underlying schedule. Upcoming 30-day totals are shown per currency.
 
 ![The Recurring page](recurring.webp)
 
@@ -70,7 +72,7 @@ Today, Overdue and Next 7 days narrow the list; **Calendar** shows a month or a 
 
 AI is optional and off until you turn it on. In **Settings → Intelligence**, choose a provider (or a downloaded offline model) — for **Custom**, enter the full chat address, which is used exactly as written — test it, and pick which features to use: transcription, text in photos, summaries, tag suggestions, related notes and the daily smart summary.
 
-**Hold +** to open the assistant: a light washes across the screen and the panel grows out of the button. Ask about your notes, or ask it to act — create, edit, tag, remind, pin, merge, add a recurring item, or change a setting such as the theme palette, accent, text size or language. Nothing is applied until you confirm it. A cloud provider receives only what the request needs; an offline model keeps everything on the phone.
+**Hold +** to open the assistant: the panel grows out of the button. Ask about your notes, or ask it to act — create, edit, tag, remind, pin, merge, add a recurring item, or change a setting. A new note can come with its reminder in one request: "remind me Saturday at 9 about the doctor". It can change a setting such as the theme palette, accent, text size or language. Nothing is applied until you confirm it. A cloud provider receives only what the request needs; an offline model keeps everything on the phone.
 
 If your model thinks before it answers and the summary comes back empty, turn on **No token limit** in the Smart summary settings — it can use many more tokens, as the summary refreshes several times a day.
 
@@ -94,9 +96,9 @@ The vault uses the phone's secure storage and never enters notes, widgets, searc
 
 ## Appearance, language and calendar
 
-**Settings → Appearance → Theme** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier or Forest retreat. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.
+**Settings → Appearance → Theme** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier, Forest retreat, Isfahan turquoise, Saffron, Midnight, Deep sea or Graphite. A new look opens out as a circle from where you tapped. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.
 
-At the end of the Theme page, **App icon** changes the icon on your home screen to one of six — the octopus on dark, light or blue, the "nex" wordmark on dark or light, or the previous swirl; a home-screen shortcut may need adding again afterwards.
+At the end of the Theme page, **App icon** changes the icon on your home screen to one of six — the Nex logotype on dark (the default), the octopus on dark, light or blue, the logotype on light, or the previous swirl; a home-screen shortcut may need adding again afterwards.
 
 Language, calendar and the home-screen widget are also under Appearance. The field at the top of Settings finds any setting by name, or by something on the page it opens — "accent" finds Theme. The Persian calendar changes how dates are shown and picked, independently of the interface language; what is stored never changes. Settings remembers which categories you opened; Security, Intelligence and Appearance start open.
 
@@ -121,7 +123,7 @@ Add the **Capture**, **Timeline** or **Recap** widget from your launcher. Under 
 - **Export / Import** moves library content in and out. Importing adds to the current library, including exports from Google Keep and Takeout.
 - **Library backup / Restore** keeps or replaces the whole library with its attachments. Automatic local copies stay on this phone; share a copy somewhere else to survive losing the phone.
 - **Complete backup** adds settings and service keys, the private vault if you choose it, and optionally the downloaded offline model (about 2.6 GB). Settings, keys and vault are encrypted with a generated recovery code — keep it separately, because it cannot be recovered from the backup.
-- **Automatic copy to a folder** puts a complete backup — without the private vault — into a folder you choose once a day while Nex is open, and keeps the newest three. The folder can be on the phone or one Google Drive, Nextcloud or Syncthing offers in the picker, so your notes survive losing the phone without a server. The settings and keys in it are locked with a recovery code shown when you choose the folder (and again under **Recovery code**); the notes are not encrypted, so pick a folder you trust. Restore it like any complete backup.
+- **Automatic copy to a folder** puts a complete backup — without the private vault — into a folder you choose once a day while Nex is open, and keeps the newest three. The folder can be on the phone or one Google Drive, Nextcloud or Syncthing offers in the picker, so your notes survive losing the phone without a server. The settings and keys in it are locked with a recovery code shown when you choose the folder (and again under **Recovery code**); the notes are not encrypted, so pick a folder you trust. If a copy cannot be written, the page says why — the folder was removed, access was withdrawn, or the provider refused the file — so you know whether to choose the folder again. Restore it like any complete backup.
 
 Restoring replaces the library and restarts Nex. If a restore is interrupted, the next launch puts everything back as it was.
 

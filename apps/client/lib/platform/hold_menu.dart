@@ -12,7 +12,12 @@ import '../widgets/feature_label.dart';
 /// anyway — tap the card, swipe the card.
 ///
 /// Declared in the order the menu lists them. Delete is always last.
+///
+/// [select] is not a choice: every card's menu starts with it, whatever is
+/// picked in Settings, because it is how picking several notes at once
+/// begins and there is no other way in.
 enum NexHoldAction {
+  select,
   pin,
   copy,
   edit,
@@ -34,10 +39,18 @@ enum NexHoldAction {
 
   static const defaults = [pin, copy, edit, remind, delete];
 
-  static NexHoldAction? fromWire(String value) =>
-      values.where((action) => action.name == value).firstOrNull;
+  static NexHoldAction? fromWire(String value) => values
+      .where((action) => action.name == value && action.choosable)
+      .firstOrNull;
+
+  /// Whether Settings lists it; everything but [select].
+  bool get choosable => this != select;
+
+  static Iterable<NexHoldAction> get choices =>
+      values.where((action) => action.choosable);
 
   IconData get icon => switch (this) {
+    select => Icons.check_circle_outline,
     pin => Icons.push_pin_outlined,
     copy => Icons.copy_outlined,
     edit => Icons.edit_outlined,
@@ -61,6 +74,7 @@ enum NexHoldAction {
   String label(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return switch (this) {
+      select => l10n.selectNotes,
       pin => l10n.pin,
       copy => l10n.copy,
       edit => l10n.edit,

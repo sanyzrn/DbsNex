@@ -824,25 +824,47 @@ class NexServices {
       // Nothing to keep yet: the first copy belongs to the first note.
       if (!force && (await worker.timeline(limit: 1)).isEmpty) return false;
       final key = await _preferences.backupFolderKey();
-      if (key == null || !await backupFolder.reachable(uri)) {
-        await _preferences.markBackupFolderFailed();
+      if (key == null) {
+        await _preferences.markBackupFolderFailed(NexBackupFolderFailure.code);
         return false;
       }
-      output = await exportFullBackup(key, includeModel: false);
-      final copied = await backupFolder.copy(
+      if (!await backupFolder.reachable(uri)) {
+        await _preferences.markBackupFolderFailed(
+          NexBackupFolderFailure.access,
+        );
+        return false;
+      }
+      try {
+        output = await exportFullBackup(key, includeModel: false);
+      } catch (error) {
+        unawaited(noteDiagnostic('folder backup: ${error.runtimeType}'));
+        await _preferences.markBackupFolderFailed(
+          NexBackupFolderFailure.backup,
+          detail: '${error.runtimeType}',
+        );
+        return false;
+      }
+      final problem = await backupFolder.copy(
         uri,
         output,
         nexAutoBackupName(DateTime.now()),
       );
-      if (copied) {
+      if (problem == null) {
         await _preferences.markBackupFolderCopied();
-      } else {
-        await _preferences.markBackupFolderFailed();
+        return true;
       }
-      return copied;
+      unawaited(noteDiagnostic('folder backup copy: $problem'));
+      await _preferences.markBackupFolderFailed(
+        NexBackupFolderFailure.write,
+        detail: problem,
+      );
+      return false;
     } catch (error) {
       unawaited(noteDiagnostic('folder backup failed: ${error.runtimeType}'));
-      await _preferences.markBackupFolderFailed();
+      await _preferences.markBackupFolderFailed(
+        NexBackupFolderFailure.backup,
+        detail: '${error.runtimeType}',
+      );
       return false;
     } finally {
       if (output != null) {

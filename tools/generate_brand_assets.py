@@ -4,8 +4,10 @@
 Sources (kept in docs/ as delivered by the designer):
 
 - nex_logo.svg — the octopus mark; its ink parts are #1d1d1d, the blue #08f;
-- alt1.png — the app icon: the mark on #1D1D1D, 1024×1024;
-- alt2.png … alt5.png — the four other icons offered in Settings;
+- nex_logo_type.svg — the "nex" logotype; ink #231f20, blue #0084f7;
+- alt4.png — the app icon since 1.90: the logotype on #1D1D1D, 1024×1024;
+- alt1.png, alt2.png, alt3.png, alt5.png — the icons offered in Settings
+  (alt1, the octopus, was the app icon in 1.83–1.89);
 - dark_splash.png, light_splash.png, text_logo_dark.png, text_logo_light.png.
 
 Run from the repo root, then tools/generate_app_icons.py for the switcher:
@@ -17,8 +19,10 @@ This writes the Android launcher icon (adaptive foreground and monochrome
 layers drawn from the SVG, so they stay sharp, plus the Android 7 bitmap),
 the Android 12 splash icon, the iOS and Windows icons, the in-app branding
 pictures and the sources for the icon switcher: app_icons/alt1-4 are
-docs/alt2-5; alt5 is the previous mark, kept as the "classic" icon and not
-touched here.
+docs/alt2, alt3, alt1 (the octopus, in the slot the logotype held) and alt5;
+app_icons/alt5 is the older mark, kept as the "classic" icon and not touched
+here. The Android 12 splash icon stays the octopus's eyes: the opening
+animation (NexSplash) starts from them.
 
 Requires Pillow and CairoSVG (pip install pillow cairosvg).
 """
@@ -49,6 +53,13 @@ PAPER = "#F4F5F5"
 ICON_BLUE = "#417CBE"
 INK = "#1D1D1D"
 
+LOGOTYPE = (DOCS / "nex_logo_type.svg").read_text()
+TYPE_VIEW = (900.0822, 217.1348)
+# Where the logotype's ink sits inside its viewBox, and where alt4 puts it.
+TYPE_BOX = (34.5, 13.75, 890.5, 198.75)
+TYPE_ICON_BOX = (221, 450, 802, 575)
+TYPE_BLUE = "#0084F7"
+
 
 def mark(canvas, box, ink, blue, eyes_only=False):
     """The mark on a transparent canvas, its ink fitted to box=(x0, y0, x1, y1)."""
@@ -73,6 +84,27 @@ def mark(canvas, box, ink, blue, eyes_only=False):
     return out
 
 
+def logotype(canvas, box, ink, blue):
+    """The logotype on a transparent canvas, its ink fitted to box."""
+    svg = LOGOTYPE.replace('fill="#231f20"', f'fill="{ink}"').replace(
+        'fill="#0084f7"', f'fill="{blue}"'
+    )
+    s = (box[2] - box[0]) / (TYPE_BOX[2] - TYPE_BOX[0])
+    w, h = TYPE_VIEW[0] * s, TYPE_VIEW[1] * s
+    png = cairosvg.svg2png(
+        bytestring=svg.encode(),
+        output_width=round(w * 4),
+        output_height=round(h * 4),
+    )
+    art = Image.open(io.BytesIO(png)).convert("RGBA")
+    art = art.resize((round(w), round(h)), Image.LANCZOS)
+    out = Image.new("RGBA", canvas, (0, 0, 0, 0))
+    out.alpha_composite(
+        art, (round(box[0] - TYPE_BOX[0] * s), round(box[1] - TYPE_BOX[1] * s))
+    )
+    return out
+
+
 def visible(art):
     """The part a launcher shows of a 108 dp layer: the central 72 dp."""
     inset = round(art.width * 18 / 108)
@@ -92,8 +124,8 @@ def rounded(image, radius):
 
 
 def android_launcher(icon):
-    foreground = mark((1024, 1024), ICON_BOX, PAPER, ICON_BLUE)
-    monochrome = mark((1024, 1024), ICON_BOX, "#FFFFFF", "#FFFFFF")
+    foreground = logotype((1024, 1024), TYPE_ICON_BOX, PAPER, TYPE_BLUE)
+    monochrome = logotype((1024, 1024), TYPE_ICON_BOX, "#FFFFFF", "#FFFFFF")
     for density, scale in DENSITIES.items():
         folder = RES / f"mipmap-{density}"
         layer = round(108 * scale)
@@ -162,12 +194,14 @@ def branding():
 
 
 def switcher_sources():
-    for n in range(2, 6):
-        shutil.copyfile(DOCS / f"alt{n}.png", CLIENT / "app_icons" / f"alt{n - 1}.png")
+    for slot, source in ((1, 2), (2, 3), (3, 1), (4, 5)):
+        shutil.copyfile(
+            DOCS / f"alt{source}.png", CLIENT / "app_icons" / f"alt{slot}.png"
+        )
 
 
 def main():
-    icon = Image.open(DOCS / "alt1.png").convert("RGBA")
+    icon = Image.open(DOCS / "alt4.png").convert("RGBA")
     switcher_sources()
     android_launcher(icon)
     android_splash()

@@ -5767,6 +5767,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Timings and counts only — nothing from your notes. Shown below before sending.'**
   String get feedbackAttachMetricsHint;
+
+  /// No description provided for @backupFolderFailedCode.
+  ///
+  /// In en, this message translates to:
+  /// **'The recovery code for this folder is missing. Choose the folder again to make a new one.'**
+  String get backupFolderFailedCode;
+
+  /// No description provided for @backupFolderFailedAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex no longer has access to this folder. Choose it again.'**
+  String get backupFolderFailedAccess;
+
+  /// No description provided for @backupFolderFailedBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup could not be made ({detail}).'**
+  String backupFolderFailedBackup(String detail);
+
+  /// No description provided for @backupFolderFailedWrite.
+  ///
+  /// In en, this message translates to:
+  /// **'The folder\'s app did not accept the file ({detail}). Try again, or choose a folder on this phone.'**
+  String backupFolderFailedWrite(String detail);
+
+  /// No description provided for @cardDensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Card size'**
+  String get cardDensity;
+
+  /// No description provided for @cardDensityCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact'**
+  String get cardDensityCompact;
+
+  /// No description provided for @cardDensityStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get cardDensityStandard;
+
+  /// No description provided for @cardDensityReadable.
+  ///
+  /// In en, this message translates to:
+  /// **'Easier to read'**
+  String get cardDensityReadable;
+
+  /// No description provided for @selectNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get selectNotes;
+
+  /// No description provided for @selectionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 selected} other{{count} selected}}'**
+  String selectionCount(int count);
+
+  /// No description provided for @selectionClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop selecting'**
+  String get selectionClose;
+
+  /// No description provided for @selectionCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Copied 1 note} other{Copied {count} notes}}'**
+  String selectionCopied(int count);
+
+  /// No description provided for @selectionTagged.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Tagged 1 note} other{Tagged {count} notes}}'**
+  String selectionTagged(int count);
+
+  /// No description provided for @selectionPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Pinned 1 note} other{Pinned {count} notes}}'**
+  String selectionPinned(int count);
+
+  /// No description provided for @selectionUnpinned.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Unpinned 1 note} other{Unpinned {count} notes}}'**
+  String selectionUnpinned(int count);
 }
 
 class _AppLocalizationsDelegate

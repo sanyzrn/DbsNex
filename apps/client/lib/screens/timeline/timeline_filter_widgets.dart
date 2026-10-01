@@ -6,9 +6,21 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
     required this.child,
     required this.visible,
     required this.extent,
+    this.below,
+    this.lineKey,
   });
 
   final Widget child;
+
+  /// Hung under the row, over the cards: the sticky day. Painted by this
+  /// pinned header, which the viewport paints after the list, so it sits on
+  /// top of whatever is scrolling past.
+  final Widget? below;
+
+  /// On the row's own box, so the sticky day can find where the row ends.
+  final Key? lineKey;
+
+  static const _belowHeight = 44.0;
 
   /// Searching hides it, by collapsing rather than by leaving the sliver list.
   final bool visible;
@@ -26,6 +38,26 @@ class _FilterRowHeader extends SliverPersistentHeaderDelegate {
   /// pinned row needs a solid backing to keep scrolled notes from showing.
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
+      Stack(
+        key: lineKey,
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(child: _row(context, shrinkOffset, overlaps)),
+          // A fixed box, so the chip's own relayout — a longer date, a
+          // shorter one — stops at it. Otherwise it reached this header,
+          // and a pinned header rebuilds its content whenever it relays out.
+          if (below case final below?)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: extent,
+              height: _belowHeight,
+              child: below,
+            ),
+        ],
+      );
+
+  Widget _row(BuildContext context, double shrinkOffset, bool overlaps) =>
       DecoratedBox(
         key: const ValueKey('filter-header-background'),
         decoration: BoxDecoration(

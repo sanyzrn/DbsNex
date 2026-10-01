@@ -364,11 +364,16 @@ open class MainActivity : FlutterFragmentActivity() {
                 val name = call.argument<String>("name")
                 val keep = call.argument<Int>("keep") ?: 3
                 if (uri == null || path == null || name == null) {
-                    result.success(false)
+                    result.success("missing arguments")
                 } else {
                     // A whole library through a provider can take a while.
+                    // "ok" when the copy landed, otherwise what went wrong —
+                    // never null, which is what a thrown error would become.
                     replyAsync(result, ioExecutor) {
-                        NexBackupFolder.copyInto(this, Uri.parse(uri), File(path), name, keep)
+                        runCatching {
+                            NexBackupFolder.copyInto(this, Uri.parse(uri), File(path), name, keep)
+                                ?: "ok"
+                        }.getOrElse { "error: ${it.javaClass.simpleName}" }
                     }
                 }
             }

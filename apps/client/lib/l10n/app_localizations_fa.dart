@@ -3562,4 +3562,65 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get feedbackAttachMetricsHint =>
       'فقط زمان‌ها و شمارش‌ها، بدون هیچ چیزی از یادداشت‌ها. پیش از ارسال در زیر نمایش داده می‌شود.';
+
+  @override
+  String get backupFolderFailedCode =>
+      'کد بازیابی این پوشه پیدا نشد. برای ساخت کد تازه، پوشه را دوباره انتخاب کنید.';
+
+  @override
+  String get backupFolderFailedAccess =>
+      'نکس دیگر به این پوشه دسترسی ندارد. آن را دوباره انتخاب کنید.';
+
+  @override
+  String backupFolderFailedBackup(String detail) {
+    return 'پشتیبان ساخته نشد ($detail).';
+  }
+
+  @override
+  String backupFolderFailedWrite(String detail) {
+    return 'برنامهٔ این پوشه فایل را نپذیرفت ($detail). دوباره امتحان کنید یا پوشه‌ای روی همین گوشی انتخاب کنید.';
+  }
+
+  @override
+  String get cardDensity => 'اندازهٔ کارت‌ها';
+
+  @override
+  String get cardDensityCompact => 'فشرده';
+
+  @override
+  String get cardDensityStandard => 'معمولی';
+
+  @override
+  String get cardDensityReadable => 'خواناتر';
+
+  @override
+  String get selectNotes => 'انتخاب';
+
+  @override
+  String selectionCount(int count) {
+    return '$count انتخاب‌شده';
+  }
+
+  @override
+  String get selectionClose => 'بستن انتخاب';
+
+  @override
+  String selectionCopied(int count) {
+    return '$count یادداشت کپی شد';
+  }
+
+  @override
+  String selectionTagged(int count) {
+    return 'برچسب به $count یادداشت اضافه شد';
+  }
+
+  @override
+  String selectionPinned(int count) {
+    return '$count یادداشت پین شد';
+  }
+
+  @override
+  String selectionUnpinned(int count) {
+    return 'پین $count یادداشت برداشته شد';
+  }
 }

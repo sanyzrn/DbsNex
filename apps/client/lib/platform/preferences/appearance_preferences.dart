@@ -43,6 +43,15 @@ mixin _AppearancePreferences on _PreferencesStore {
   /// device already asks for."
   double get uiScale => _prefs.getDouble('appearance.ui_scale') ?? 1.0;
 
+  /// How much a timeline card holds (W7.2).
+  NexCardDensity get cardDensity =>
+      NexCardDensity.fromWire(_prefs.getString('appearance.card_density'));
+
+  Future<void> setCardDensity(NexCardDensity value) async {
+    await _prefs.setString('appearance.card_density', value.name);
+    notifyListeners();
+  }
+
   /// Whether Enter submits the note being typed on first capture, rather
   /// than starting a new line. Scoped to that one field on purpose — editing
   /// an existing note is a different moment, where a stray Enter should

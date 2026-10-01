@@ -117,7 +117,8 @@ class AssistantAction {
   final String? settingKey;
   final String? settingValue;
 
-  /// When [AssistantActionKind.remind] should fire.
+  /// When [AssistantActionKind.remind] should fire, or when a note
+  /// [AssistantActionKind.create] makes should first come back up.
   ///
   /// Null is not "unset" here, it is the instruction: a remind action with
   /// no time on it is the one that clears the reminder. There is nothing
@@ -277,6 +278,13 @@ A `create` makes a checklist instead of a text note when you send items:
 {"action": "create", "items": ["bread", "milk", "eggs"]}
 ```
 
+A `create` can carry its reminder, for a new note that should come back up —
+"remind me on Saturday at nine to see the doctor" is one action, not two:
+
+```nex
+{"action": "create", "text": "See the doctor", "at": "2026-03-14T09:00", "repeat": "once"}
+```
+
 `remind` sets when a note comes back up. `at` is local time,
 `YYYY-MM-DDTHH:MM`, and must be in the future — work it out from the current
 time given below, and never send a date you were not able to work out. `repeat`
@@ -297,7 +305,7 @@ Settings you may change, and nothing else:
 `theme` (light/dark/system), `language` (en/fa/system),
 `ai_language` (auto/en/fa),
 `text_size` (small/default/large/larger),
-`palette` (classic/paper/autumn/blossom/forest),
+`palette` (classic/paper/autumn/blossom/forest/turquoise/saffron/midnight/ocean/graphite),
 `accent` (a `#RRGGBB` colour, or `default`), `haptics` (on/off),
 `show_greeting`, `show_digest`, `show_search`, `show_tags` (on/off),
 `daily_nudge` (on/off), `daily_nudge_time` (`HH:MM`).
@@ -433,15 +441,12 @@ AssistantAction? _action(Map<Object?, Object?> decoded) {
     // Items first: a create that carries both is a checklist whose lines the
     // model also wrote out as prose, and the checklist is the thing that was
     // asked for.
-    'create' when items.isNotEmpty => AssistantAction(
-      kind: AssistantActionKind.create,
+    'create' when items.isNotEmpty => _createAction(
+      decoded,
       items: items,
       text: items.join('\n'),
     ),
-    'create' when text != null => AssistantAction(
-      kind: AssistantActionKind.create,
-      text: text,
-    ),
+    'create' when text != null => _createAction(decoded, text: text),
     'edit' when id != null && text != null => AssistantAction(
       kind: AssistantActionKind.edit,
       noteId: id,
@@ -568,6 +573,36 @@ const _cadences = <String, NexCadence>{
   'years': NexCadence.years,
   'year': NexCadence.years,
 };
+
+/// A new note, with the reminder that came in the same request when there
+/// was one.
+///
+/// "Remind me on Saturday at nine to see the doctor" used to have no way
+/// through: `remind` needs a note's id, and the note did not exist yet, so
+/// the model could only say it could not — while the same thing asked in two
+/// turns worked. A time that cannot be read refuses the action, as it does
+/// for `remind`: a note saved without the reminder that was asked for would
+/// look done and not be.
+AssistantAction? _createAction(
+  Map<Object?, Object?> decoded, {
+  required String text,
+  List<String> items = const [],
+}) {
+  final raw = decoded['at'];
+  DateTime? at;
+  if (raw != null) {
+    final parsed = DateTime.tryParse(_string(raw) ?? '');
+    if (parsed == null) return null;
+    at = parsed.isUtc ? parsed.toLocal() : parsed;
+  }
+  return AssistantAction(
+    kind: AssistantActionKind.create,
+    items: items,
+    text: text,
+    at: at,
+    repeat: NoteRepeat.fromWire(_string(decoded['repeat'])?.toLowerCase()),
+  );
+}
 
 /// A reminder, or the removal of one.
 ///
