@@ -252,7 +252,7 @@ class _AiChatSheetState extends State<AiChatSheet> {
     if (_input.text.isEmpty) {
       widget.preferences.editorDrafts?.clear(_composerDraftKey);
     } else {
-      widget.preferences.editorDrafts?.write(_composerDraftKey, {
+      widget.preferences.editorDrafts?.writeSoon(_composerDraftKey, {
         'text': _input.text,
       });
     }

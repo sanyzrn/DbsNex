@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -98,7 +99,30 @@ class LiteRtChatAdapter implements ChatAdapter {
   @override
   Future<void>? warmUp() {
     if (!available || _engine != null) return null;
-    return _ensureEngine();
+    return _ensureEngine().whenComplete(_settle);
+  }
+
+  /// How long a loaded model may sit unused before it is released.
+  static const idleRelease = Duration(minutes: 5);
+
+  Timer? _idle;
+  int _inFlight = 0;
+
+  /// Starts the idle clock again: used just now, released in [idleRelease]
+  /// unless used again first.
+  void _settle() {
+    _idle?.cancel();
+    _idle = Timer(idleRelease, () => unawaited(release()));
+  }
+
+  /// Unloads the model, unless a message is being answered — that one
+  /// finishes, and the idle clock it restarts releases it later (PERF-02).
+  @override
+  Future<void>? release() {
+    if (_engine == null || _inFlight > 0) return null;
+    _idle?.cancel();
+    _idle = null;
+    return close();
   }
 
   @override
@@ -107,7 +131,11 @@ class LiteRtChatAdapter implements ChatAdapter {
     // "unavailable" is a state the caller checks for, not an exception it
     // catches. With no model downloaded yet this is the whole answer.
     if (!available || history.isEmpty) return null;
-    return _send(withScopeCeiling(history));
+    _inFlight++;
+    return _send(withScopeCeiling(history)).whenComplete(() {
+      _inFlight--;
+      _settle();
+    });
   }
 
   Future<ChatResponse> _send(List<ChatMessage> conversation) async {
@@ -171,7 +199,11 @@ class LiteRtChatAdapter implements ChatAdapter {
         system != _systemInstruction ||
         turns.length < _sentThroughIndex ||
         _sentSignature !=
-            _signatureOf(system, turns, _sentThroughIndex.clamp(0, turns.length));
+            _signatureOf(
+              system,
+              turns,
+              _sentThroughIndex.clamp(0, turns.length),
+            );
     if (!diverged) return;
 
     await _conversation?.dispose();

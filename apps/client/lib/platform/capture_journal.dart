@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as p;
@@ -12,6 +13,44 @@ class CaptureJournal {
       throw ArgumentError('Invalid draft id');
     }
     return File(p.join(directory.path, '$id.json'));
+  }
+
+  /// How long a keystroke's snapshot waits for the next one.
+  static const settle = Duration(milliseconds: 300);
+
+  final _soon = <String, String>{};
+  Timer? _timer;
+
+  /// [write], at most once per [settle] (PERF-03).
+  ///
+  /// Every keystroke used to write and fsync this file on the UI isolate —
+  /// three syscalls and a flush per character, which on the eMMC storage of
+  /// a 3–4 GB phone is a dropped frame while typing. The database write
+  /// behind the same keystrokes already waits 300 ms; the journal now waits
+  /// as long, and [flushPending] writes at once when the sheet closes or the
+  /// app goes to the background. What a process death can lose is the same
+  /// last 300 ms the database write could.
+  void writeSoon(String id, String text) {
+    _file(id);
+    _soon[id] = text;
+    _timer ??= Timer(settle, flushPending);
+  }
+
+  /// Writes every snapshot [writeSoon] is still holding.
+  void flushPending() {
+    _timer?.cancel();
+    _timer = null;
+    final soon = Map.of(_soon);
+    _soon.clear();
+    for (final MapEntry(key: id, value: text) in soon.entries) {
+      try {
+        write(id, text);
+      } catch (_) {
+        // The database write behind the same text reports a failure the
+        // person can see; a journal that cannot be written is the backstop
+        // missing, not the note.
+      }
+    }
   }
 
   void write(String id, String text) {
@@ -42,6 +81,7 @@ class CaptureJournal {
   }
 
   void complete(String id) {
+    _soon.remove(id);
     final file = _file(id);
     if (file.existsSync()) file.deleteSync();
   }

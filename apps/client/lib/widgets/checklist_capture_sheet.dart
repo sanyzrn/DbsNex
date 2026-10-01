@@ -104,7 +104,7 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
 
   void _onChanged() {
     if (_text.text == _lastText) return;
-    widget.preferences.editorDrafts?.write(_draftKey, {'text': _text.text});
+    widget.preferences.editorDrafts?.writeSoon(_draftKey, {'text': _text.text});
     setState(() => _lastText = _text.text);
   }
 
@@ -250,7 +250,7 @@ class _LinkCaptureSheetState extends State<LinkCaptureSheet>
 
   void _onChanged() {
     if (_text.text == _lastText) return;
-    widget.preferences.editorDrafts?.write(_draftKey, {'text': _text.text});
+    widget.preferences.editorDrafts?.writeSoon(_draftKey, {'text': _text.text});
     setState(() => _lastText = _text.text);
   }
 

@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v1.92.3
+
+- **Smoother typing on slower phones.** Drafts are still kept as you type, but saved in a pause rather than after every letter, so the keyboard no longer stutters on slow storage. Leaving the app saves them at once.
+- **Smoother photo capture.** Taking or cropping a photo no longer freezes the screen for a moment while it is kept and fingerprinted.
+- **The on-device assistant gives back its memory** after five minutes unused or when you leave the app, instead of holding about 2.6 GB until the app closes. It loads again the next time you ask.
+
 ## v1.92.2
 
 - **Persian search finds a word however it was spelled.** Arabic ي and ك (common in old Windows text files and pasted text), vowel marks, the stretching ـ, a missing or extra half-space (کتابها / کتاب‌ها) and Persian, Arabic or Latin digits no longer hide a note from search. Your library's search index is updated once, on the first launch.

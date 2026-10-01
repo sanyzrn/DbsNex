@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:nex_core/nex_core.dart' show ChatAdapterBinding;
 import 'package:nex_ui/nex_ui.dart';
 import 'l10n/app_localizations.dart';
 import 'platform/route_observer.dart';
@@ -173,6 +174,17 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     // blanks it has to be set before then, not while it is being taken.
     _foreground = state == AppLifecycleState.resumed;
     _applyWindowSecrecy();
+    // Drafts typed in the last moment are written now, not when their timer
+    // would have fired: a backgrounded process can be gone before then.
+    if (state != AppLifecycleState.resumed) {
+      widget.services.captureJournal.flushPending();
+      widget.preferences.editorDrafts?.flushPending();
+    }
+    // An on-device model holds gigabytes; in the background that is what
+    // gets the process killed (PERF-02). The next question loads it again.
+    if (state == AppLifecycleState.paused) {
+      unawaited(ChatAdapterBinding.instance.release() ?? Future<void>.value());
+    }
     if ((state == AppLifecycleState.paused ||
             state == AppLifecycleState.hidden) &&
         widget.preferences.appLockEnabled &&

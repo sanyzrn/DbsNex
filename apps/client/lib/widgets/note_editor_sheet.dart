@@ -131,7 +131,7 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
   void _onChanged() {
     if (_text.text == _lastText) return;
     if (widget.draftKey case final key?) {
-      widget.preferences.editorDrafts?.write(key, {'text': _text.text});
+      widget.preferences.editorDrafts?.writeSoon(key, {'text': _text.text});
     }
     setState(() => _lastText = _text.text);
   }

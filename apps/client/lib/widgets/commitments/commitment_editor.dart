@@ -84,7 +84,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
   void _snapshot() {
     final dirty = _fingerprint() != _baseline;
     if (dirty) {
-      widget.services.editorDrafts?.write(_draftKey, _form);
+      widget.services.editorDrafts?.writeSoon(_draftKey, _form);
     } else {
       discardDraft();
     }

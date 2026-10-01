@@ -69,4 +69,10 @@ void main() {
       expect(reply.content, contains('Phase 1'));
     },
   );
+
+  test('release is a no-op while no model is loaded', () {
+    // Called from the app's lifecycle on every pause; with nothing loaded
+    // there is nothing to wait for and nothing to close (PERF-02).
+    expect(LiteRtChatAdapter(modelPath: '').release(), isNull);
+  });
 }
