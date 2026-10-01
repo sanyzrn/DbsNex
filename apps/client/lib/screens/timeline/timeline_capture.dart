@@ -176,7 +176,9 @@ extension _TimelineCapture on TimelineScreenState {
       final picked = recovered == null ? await _pickPhoto(source) : null;
       if (recovered == null && picked == null) return;
       final original = recovered ?? await picked!.readAsBytes();
-      widget.preferences.editorDrafts?.writeImage('photo-new', original);
+      if (widget.preferences.editorDrafts case final drafts?) {
+        unawaited(drafts.writeImage('photo-new', original));
+      }
       if (!mounted) return;
       // The preview first, not the cropper. Most photos need no edit at all,
       // and putting one in the path of every capture was the report.
@@ -223,7 +225,8 @@ extension _TimelineCapture on TimelineScreenState {
         // The bytes are already in hand and a photo fits in memory, so hash
         // them here rather than re-reading the file. The share path cannot:
         // what arrives there is whatever was shared, up to a video.
-        mediaHash: sha256OfBytes(encoded),
+        // Off the UI isolate: megabytes of pure-Dart SHA-256 (PERF-07).
+        mediaHash: await compute(sha256OfBytes, encoded),
       );
       for (final key in [
         'photo-new',
@@ -328,7 +331,7 @@ extension _TimelineCapture on TimelineScreenState {
       final bytes = await File(recorded).readAsBytes();
       final note = await widget.services.captureVoice(
         mediaUri: recorded,
-        mediaHash: sha256OfBytes(bytes),
+        mediaHash: await compute(sha256OfBytes, bytes),
         durationMs: durationMs,
       );
       landedId = note.id;

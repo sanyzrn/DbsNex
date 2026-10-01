@@ -41,7 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void discardDraft() => widget.preferences.editorDrafts?.clear('profile');
   void _snapshot() {
-    widget.preferences.editorDrafts?.write('profile', {
+    widget.preferences.editorDrafts?.writeSoon('profile', {
       'name': _name.text,
       'bio': _bio.text,
       'birthday': _birthday?.toIso8601String(),

@@ -14,6 +14,9 @@ class _FakeLocalModel implements ChatAdapter {
   @override
   Future<void>? warmUp() => null;
 
+  @override
+  Future<void>? release() => null;
+
   static const reply = 'a local answer';
   final calls = <List<ChatMessage>>[];
 
@@ -37,6 +40,9 @@ class _ExplodingLocalModel implements ChatAdapter {
 
   @override
   Future<void>? warmUp() => Future.error(StateError(message));
+
+  @override
+  Future<void>? release() => null;
 
   @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) =>

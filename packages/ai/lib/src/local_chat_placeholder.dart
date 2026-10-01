@@ -20,6 +20,9 @@ class PlaceholderLocalChatAdapter implements ChatAdapter {
   Future<void>? warmUp() => null;
 
   @override
+  Future<void>? release() => null;
+
+  @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) {
     return Future.value(
       const ChatResponse(

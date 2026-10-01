@@ -38,6 +38,15 @@ abstract class ChatAdapter {
   /// the first message will surface it, where there is already a place to say
   /// so.
   Future<void>? warmUp() => null;
+
+  /// Lets go of whatever [warmUp] or a message loaded, or null when nothing
+  /// is held. The next message loads it again.
+  ///
+  /// For a local model this is gigabytes of native memory (PERF-02), held
+  /// otherwise for the life of the process on phones with three or four in
+  /// all. Called when the app leaves the foreground; an adapter may also
+  /// call it on itself once it has sat unused for a while.
+  Future<void>? release() => null;
 }
 
 enum ChatRole { system, user, assistant }
@@ -69,6 +78,9 @@ class NullChatAdapter implements ChatAdapter {
 
   @override
   Future<void>? warmUp() => null;
+
+  @override
+  Future<void>? release() => null;
 
   @override
   Future<ChatResponse>? sendMessage(List<ChatMessage> history) => null;

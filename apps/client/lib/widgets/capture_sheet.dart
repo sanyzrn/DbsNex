@@ -65,7 +65,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
   void changed(String value) {
     _latestText = value;
     try {
-      widget.services.captureJournal.write(_draftId, value);
+      widget.services.captureJournal.writeSoon(_draftId, value);
     } catch (_) {
       NexBannerHost.of(context)?.show(
         message: AppLocalizations.of(context).captureFailed,
@@ -283,6 +283,9 @@ class _CaptureSheetState extends State<CaptureSheet> {
 
   @override
   void dispose() {
+    // The journal first: the database write below may still fail, and the
+    // snapshot is what a relaunch recovers from.
+    widget.services.captureJournal.flushPending();
     flush();
     debounce?.cancel();
     controller.dispose();

@@ -168,7 +168,9 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
       // `CropStatus.loading` on its own, so without this the stale `true`
       // from the widget it is replacing would let a crop through before the
       // new instance has parsed anything at all.
-      widget.drafts?.writeImage(_key, rotated);
+      if (widget.drafts case final drafts?) {
+        unawaited(drafts.writeImage(_key, rotated));
+      }
       _restoredArea = null;
       _area = null;
       _current = rotated;
