@@ -409,7 +409,26 @@ Release numbers are indicative; the ordering is the argument.
    برای کسانی که از مصرف زیاد توکن ناراضی‌اند.
 7. **ثبت دورهٔ قاعدگی:** امکان ثبت و پیگیری قاعدگی بانوان.
 8. **Nex شریکی:** اتصال دو Nex و همگام‌بودن بخش مشخصی از یادداشت‌ها با شریک.
-9. **دستگیره‌های انتخاب متن:** حل مشکل برعکس‌بودن دستگیره‌های انتخاب متن.
+
+### کارهای باز
+
+از فهرست کارهای باقی‌ماندهٔ قدیمی (`REMAINING_WORK.md`، که با یادداشت‌های
+ممیزی و تحویل جلسه‌ها در 1.91 از ریشهٔ مخزن حذف شد) آنچه هنوز باز است:
+
+1. **بازخورد به تلگرام:** اپ و Worker آماده‌اند؛ Worker باید مستقر شود (ترجیحاً
+   روی دامنهٔ خود، نه workers.dev)، توکن بات و شناسهٔ چت در Worker و
+   `NEX_FEEDBACK_API_URL` در متغیرهای Actions تنظیم شوند
+   (`apps/feedback-worker/README.md`).
+2. **تصاویر راهنما:** تصاویر جایگزین `apps/client/assets/guide/images/` باید با
+   اسکرین‌شات واقعی عوض شوند.
+3. **خزانهٔ حرفه‌ای‌تر:** Autofill، همگام‌سازی خزانه، ورود از مدیران رمز دیگر و
+   ممیزی امنیتی مستقل.
+4. **Liquid Glass:** به تصمیم مالک غیرفعال است؛ کد حفظ شده و بازطراحی آن کار
+   جداگانه‌ای است.
+5. **پلتفرم‌ها و وابستگی‌ها:** اعتبارسنجی عملی Windows/iOS، و ارتقای Flutter که
+   به‌روزرسانی‌های Dart در Dependabot به آن وابسته‌اند.
+6. **تأیید روی گوشی:** هر نسخه پیش از انتشار با مالک روی گوشی واقعی تأیید می‌شود؛
+   آزمون خودکار جای آن را نمی‌گیرد.
 
 ---
 
@@ -611,7 +630,7 @@ now do; the commit history has the rest.
 - **Nex's own camera.** Photo opens a panel over the timeline with the live
   view, a shutter, back and a ⋮ menu for switching camera and flash; it falls
   back to the phone's camera app when no camera opens.
-- **The wordmark in the header,** painted from `docs/nex_logo_type.svg`.
+- **The wordmark in the header,** painted from `docs/brand/nex_logo_type.svg`.
 
 ### In 1.83.0 — the octopus
 

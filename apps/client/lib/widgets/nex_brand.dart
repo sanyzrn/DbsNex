@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 /// Nex's mark and wordmark, drawn from the designer's own vectors.
 ///
 /// The octopus — one mind, many arms — and the "nex" wordmark are kept here as
-/// the path data of `docs/nex_logo.svg` and `docs/nex_logo_type.svg`, so they
+/// the path data of `docs/brand/nex_logo.svg` and `docs/brand/nex_logo_type.svg`, so they
 /// stay sharp at any size and can be taken apart for the splash animation.
 /// Pictures of them (launcher icons, the Android splash, the notification
 /// icon) are built from the same files by `tools/generate_brand_assets.py`.
