@@ -445,6 +445,18 @@ Release numbers are indicative; the ordering is the argument.
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
 
+### In 1.91.0 — typing in two languages, and the keyboard
+
+- **Each paragraph edits in its own direction (ADR-037).** Multi-line fields
+  are `NexTextField`: Android's own `EditText` (first-strong direction per
+  paragraph, system handles and menu, formatting added), Flutter's field
+  elsewhere. Single-line fields state their direction; a rule test enforces
+  both.
+- **A touch outside the field only closes the keyboard (ADR-038).** The
+  app-wide dismisser stops that touch in hit testing; the field, other
+  fields, a field's dialog and controls marked `NexTypingAction` (Send,
+  Save) still work with one touch.
+
 ### In 1.90.1 — fixes from the owner's testing
 
 - **Backups on the phone.** The media store compared a resolved blob path
