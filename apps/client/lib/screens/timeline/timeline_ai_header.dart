@@ -309,18 +309,12 @@ extension _TimelineAiHeader on TimelineScreenState {
       return;
     }
     HapticFeedback.mediumImpact();
-    // The button that was held: the panel grows out of it.
-    final box = _captureAnchor.currentContext?.findRenderObject();
-    final origin = box is RenderBox && box.attached
-        ? box.localToGlobal(Offset.zero) & box.size
-        : null;
     unawaited(
       AiChatSheet.show(
         context,
         preferences: widget.preferences,
         services: widget.services,
         history: widget.preferences.chatHistory,
-        emergeFrom: origin,
       ),
     );
   }

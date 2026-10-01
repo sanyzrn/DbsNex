@@ -220,10 +220,9 @@ Accessibility is core functionality, not a compliance checkbox — a slow or con
   off). Single-line fields follow the typed script, or are left to right for
   links, keys and amounts. `test/text_field_rule_test.dart` holds every field
   to this ([ADR-037](./10-decisions.md#adr-037--text-a-person-writes-is-edited-in-the-platforms-own-editor-on-android)).
-- While the keyboard is up, the first touch outside what is being typed only
-  closes the keyboard; the field, its decoration, other fields, a field's
-  dialog, and the Send/Save controls marked `NexTypingAction` work with one
-  touch ([ADR-038](./10-decisions.md#adr-038--while-typing-a-touch-outside-what-is-being-typed-only-closes-the-keyboard)).
+- While typing in the settings search, the first touch outside it only
+  closes the keyboard; elsewhere a touch outside a field does what it touches
+  ([ADR-038](./10-decisions.md#adr-038--while-typing-in-the-settings-search-a-touch-outside-it-only-closes-the-keyboard)).
 - Reopening supported editors restores their last local draft checkpoint;
   explicit discard or successful save removes that editor's checkpoint.
 - Text/Markdown conversion replaces the representation of the same item while
