@@ -6,7 +6,6 @@ import '../platform/private_clipboard.dart';
 import '../widgets/feature_label.dart';
 import '../widgets/nex_text_field.dart';
 import '../widgets/tag_color_picker.dart';
-import '../widgets/keyboard_dismisser.dart';
 
 class VaultEditor extends StatefulWidget {
   const VaultEditor({
@@ -168,18 +167,16 @@ class _VaultEditorState extends State<VaultEditor> {
                   },
           ),
           const SizedBox(height: 16),
-          NexTypingAction(
-            child: FilledButton.icon(
-              onPressed: widget.busy
-                  ? null
-                  : () async {
-                      if (!form.currentState!.validate()) return;
-                      FocusManager.instance.primaryFocus?.unfocus();
-                      await widget.onSave(_value(normalize: true));
-                    },
-              icon: const Icon(Icons.lock_outline),
-              label: Text(l.vaultSave),
-            ),
+          FilledButton.icon(
+            onPressed: widget.busy
+                ? null
+                : () async {
+                    if (!form.currentState!.validate()) return;
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    await widget.onSave(_value(normalize: true));
+                  },
+            icon: const Icon(Icons.lock_outline),
+            label: Text(l.vaultSave),
           ),
           const SizedBox(height: 12),
           if (discard)

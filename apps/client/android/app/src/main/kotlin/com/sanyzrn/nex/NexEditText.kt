@@ -58,6 +58,16 @@ class NexEditTextFactory(private val messenger: BinaryMessenger) :
 
     companion object {
         const val VIEW_TYPE = "nex/edit_text"
+
+        /**
+         * Reads the editor's fonts off the main thread, ahead of the first
+         * editor: Vazirmatn is the largest file the app ships, and reading it
+         * the moment Edit was tapped held the sheet's opening up behind it.
+         */
+        fun warmUp(context: Context) {
+            val app = context.applicationContext
+            Thread({ runCatching { NexEditTextView.typeface(app) } }, "nex-edit-text-fonts").start()
+        }
     }
 }
 

@@ -9,7 +9,6 @@ import 'guide_screen.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/choice_cards.dart';
-import '../widgets/keyboard_dismisser.dart';
 
 /// What someone sees the very first time they open Nex.
 ///
@@ -225,32 +224,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       SizedBox(
                         width: double.infinity,
                         height: 52,
-                        child: NexTypingAction(
-                          child: FilledButton.icon(
-                            onPressed: () => unawaited(_advance()),
-                            icon: Icon(
-                              _onSetup ? Icons.check : Icons.arrow_forward,
-                              size: 20,
-                            ),
-                            iconAlignment: IconAlignment.end,
-                            label: Text(
-                              _onSetup
-                                  ? l10n.onboardingStart
-                                  : l10n.onboardingNext,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              // Size and weight from the type scale, colour
-                              // from the button. `titleSmall` carries the
-                              // page's ink, and handing the whole style over
-                              // put that ink on the accent: near-white on a
-                              // pale blue, 1.82:1, which is what the button
-                              // looked like in the dark theme. The arrow beside
-                              // it was right all along — an `Icon` with no
-                              // colour takes the button's, which is the thing
-                              // this label was overriding.
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: theme.colorScheme.onPrimary,
-                              ),
+                        child: FilledButton.icon(
+                          onPressed: () => unawaited(_advance()),
+                          icon: Icon(
+                            _onSetup ? Icons.check : Icons.arrow_forward,
+                            size: 20,
+                          ),
+                          iconAlignment: IconAlignment.end,
+                          label: Text(
+                            _onSetup
+                                ? l10n.onboardingStart
+                                : l10n.onboardingNext,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            // Size and weight from the type scale, colour
+                            // from the button. `titleSmall` carries the
+                            // page's ink, and handing the whole style over
+                            // put that ink on the accent: near-white on a
+                            // pale blue, 1.82:1, which is what the button
+                            // looked like in the dark theme. The arrow beside
+                            // it was right all along — an `Icon` with no
+                            // colour takes the button's, which is the thing
+                            // this label was overriding.
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onPrimary,
                             ),
                           ),
                         ),

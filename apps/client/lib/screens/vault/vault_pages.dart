@@ -177,33 +177,31 @@ extension _VaultPages on _VaultScreenState {
                   ),
                 ),
               ),
-              NexTypingAction(
-                child: IconButton.filled(
-                  tooltip: l.vaultSave,
-                  onPressed: busy
-                      ? null
-                      : () async {
-                          final text = messageInput.text.trim();
-                          if (text.isEmpty) return;
-                          final empty = VaultStore.empty(VaultKind.message);
-                          await _operate(
-                            () => store.save(
-                              VaultEntry(
-                                id: empty.id,
-                                kind: empty.kind,
-                                fields: {'text': text},
-                                updatedAt: empty.updatedAt,
-                              ),
+              IconButton.filled(
+                tooltip: l.vaultSave,
+                onPressed: busy
+                    ? null
+                    : () async {
+                        final text = messageInput.text.trim();
+                        if (text.isEmpty) return;
+                        final empty = VaultStore.empty(VaultKind.message);
+                        await _operate(
+                          () => store.save(
+                            VaultEntry(
+                              id: empty.id,
+                              kind: empty.kind,
+                              fields: {'text': text},
+                              updatedAt: empty.updatedAt,
                             ),
-                          );
-                          if (mounted &&
-                              error == null &&
-                              messageInput.text.trim() == text) {
-                            messageInput.clear();
-                          }
-                        },
-                  icon: const Icon(Icons.send_rounded),
-                ),
+                          ),
+                        );
+                        if (mounted &&
+                            error == null &&
+                            messageInput.text.trim() == text) {
+                          messageInput.clear();
+                        }
+                      },
+                icon: const Icon(Icons.send_rounded),
               ),
             ],
           ),

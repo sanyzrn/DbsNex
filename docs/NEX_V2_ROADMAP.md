@@ -445,6 +445,17 @@ Release numbers are indicative; the ordering is the argument.
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
 
+### In 1.91.1 — fixes from the owner's testing
+
+- **The keyboard rule is narrowed (ADR-038).** Only the settings search
+  swallows the touch that closes the keyboard; everywhere else touches work
+  as before 1.91.0. Its bug — every touch unfocused — is gone with it.
+- **The native editor is a texture layer.** Hybrid composition made every
+  frame wait on Android's: the editor opened and scrolled with lag. Its
+  fonts are read at startup.
+- **The coloured wave is back**; the light-blue drop out of the + button
+  is gone.
+
 ### In 1.91.0 — typing in two languages, and the keyboard
 
 - **Each paragraph edits in its own direction (ADR-037).** Multi-line fields
