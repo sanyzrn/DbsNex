@@ -7,7 +7,7 @@ local, without the others.
 
 ## Pre-release review (Android)
 
-One role per file. Reports come back in Persian, with findings labelled
+One role per file. Reports come back in English, with findings labelled
 Blocker / High / Medium / Low and each tied to a file and line.
 
 | File | Role | Finding prefix |
@@ -24,7 +24,7 @@ Blocker / High / Medium / Low and each tied to a file and line.
 
 | File | Task |
 |---|---|
-| [08-windows-panel-nex.md](08-windows-panel-nex.md) | Bring Nex into the Flutter port of Right Panel, as `apps/desktop` |
+| [08-windows-panel-nex.md](08-windows-panel-nex.md) | Bring Nex into the Flutter port of Right Panel, as `apps/desktop`. Done by an agent with read-only access to this repository: it cannot push, and returns one zip with the app, optional patches and hand-off notes |
 
 Keep these files in step with the code. When a path, a feature or a rule
 they name changes, update the prompt in the same pull request.

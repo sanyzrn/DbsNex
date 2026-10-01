@@ -1,21 +1,27 @@
 # Task: Turn the Flutter edge panel into Nex for Windows
 
-You already converted **Right Panel** (`github.com/raminturne/right-panel`: a Rust + WebView edge panel for Windows, MIT licence) into a Flutter app. You now also have the **Nex** repository. Nex is a local-first, Persian-first capture and notes app; Android is its shipping platform. Your job is to make the panel the **Windows home of Nex**:
+You already converted **Right Panel** (`github.com/raminturne/right-panel`: a Rust + WebView edge panel for Windows, MIT licence) into a Flutter app. You now also have **read-only access to the Nex repository** (`github.com/sanyzrn/DbsNex`). Nex is a local-first, Persian-first capture and notes app; Android is its shipping platform. Your job is to make the panel the **Windows home of Nex**:
 - the panel's shell stays: edge reveal, liquid motion, tray, hotkeys, multi-monitor;
 - Nex's features and data live inside it.
 
 The goal is a solid, working base, not a finished product. The Nex maintainers will do the final polish on top of your work. That means **structure, correctness and clear hand-off notes matter more than feature count**.
 
+## How you work
+You can **read** the Nex repository: clone it, or browse it. You **cannot change it**: no push, no branch, no pull request, no issue or comment, no CI runs. You do not have access to its maintainers during the task.
+- Clone `main` and record the commit SHA you started from. Everything you deliver is based on that commit.
+- Work in your local clone. You deliver **one zip file**. The maintainers unpack it into their repository, review it and finish the work.
+- If you cannot read the repository, stop and say so instead of guessing at its APIs.
+
 ## 0. Before you write any code
-1. In the Nex repo, read:
+1. In the Nex repository, read:
    - `README.md`
    - `docs/04-architecture.md`
    - `docs/05-design.md`
    - `docs/09-ai.md`
    - `docs/10-decisions.md` (the ADRs; they are binding)
-   - `packages/core/lib/nex_core.dart`, `packages/data/lib/nex_data.dart`, `packages/ui/lib/nex_ui.dart`, `packages/ai/lib/nex_ai.dart`
+   - the package entry points `packages/core/lib/nex_core.dart`, `packages/data/lib/nex_data.dart`, `packages/ui/lib/nex_ui.dart`, `packages/ai/lib/nex_ai.dart`
    - `apps/client/lib/app.dart`, `apps/client/lib/platform/nex_services.dart`, `apps/client/lib/platform/nex_db.dart`
-2. Run `make check` in the Nex repo and confirm it passes before you change anything. It needs Flutter 3.35.x. Use the same Flutter version for your app.
+2. Use **Flutter 3.35.x** (Dart 3.9), the version Nex pins. If you can run commands, run `make check` in your clone first to confirm your toolchain matches.
 3. Write a short plan in `apps/desktop/README.md` (section "Plan") before implementing. It contains:
    - the architecture decision;
    - the feature mapping table (see section 3);
@@ -24,17 +30,15 @@ The goal is a solid, working base, not a finished product. The Nex maintainers w
    Then start.
 
 ## 1. Where the code goes and how it depends on Nex
-- Work on a new branch of the Nex repo, `feature/windows-panel`. Never push to `main` or to any `release/*` branch.
-- Put the panel app at **`apps/desktop/`** as its own Flutter app.
-  - Bring your converted panel code there, keeping its git history if practical.
-  - It depends on Nex's packages **by path**: `nex_core`, `nex_data` and `nex_ui`, plus `nex_ai` only behind one integration point (see the rules).
-- **Do not copy** Nex domain logic, schema, search, merge or theme tokens into the panel. One source of truth. If something you need lives only in `apps/client` and is platform-neutral (for example a model helper or a formatter):
-  - move it into the right package in a separate, behaviour-preserving commit;
-  - update `apps/client` to import it from the package;
-  - keep `make check` green.
-
-  If moving it is not small and safe, re-implement only the thin UI piece in the panel and list it in the hand-off notes as duplication to resolve.
-- **Do not change Android behaviour.** Changes to `apps/client` are limited to the moves above.
+- Build the panel as its own Flutter app at **`apps/desktop/`**, laid out **inside your local clone of Nex**. When the maintainers drop it into their repository root, it must work with no edits.
+- Bring your converted panel code into it.
+- Depend on Nex's packages **by relative path**: `../../packages/core`, `../../packages/data`, `../../packages/ui`, and `../../packages/ai` only behind one integration point (see the rules). Do not vendor or copy the packages into `apps/desktop`.
+- **Do not copy** Nex domain logic, schema, search, merge or theme tokens into the panel. One source of truth.
+- **Do not edit anything outside `apps/desktop/`** in the files you deliver. If something you need lives only in `apps/client` and should move into a package, or if the root `Makefile` or the CI workflow needs a change:
+  - make the change in your working copy so you can build and test;
+  - deliver it as a **separate unified diff** in `patches/` (see section 5), with one patch per concern and a sentence in the hand-off notes on why it is needed;
+  - keep each patch behaviour-preserving for Android;
+  - if moving something is not small and safe, re-implement only the thin UI piece inside `apps/desktop` and list it as duplication to resolve.
 - Keep Right Panel's MIT copyright notice: put its `LICENSE` text in `apps/desktop/THIRD_PARTY_NOTICES.md` and show it in the app's licences page.
 
 ## 2. Non-negotiable Nex rules (from the ADRs and the architecture)
@@ -95,20 +99,42 @@ Then implement, in priority order:
 Not in this task: LAN sync, cloud sync, the AI on-device runtime, OCR on Windows. List them as next steps.
 
 ## 4. Quality bar
-- `flutter analyze` is clean, and `dart format` is applied to the files you touched.
+- `flutter analyze` is clean for `apps/desktop`, and `dart format` is applied to the files you wrote.
 - Tests:
   - unit tests for every piece of logic you add;
   - widget tests for quick capture (type → note exists in the DB; close → still there), search, and delete → undo;
-  - one test that opens a database created by the Android app's schema, and one that round-trips a backup.
-- `make check` at the repo root stays green.
-- Add the `apps/desktop` analyze and test commands to the Makefile.
-- Add a Windows build job for `apps/desktop` to CI, modelled on the existing `client-windows` job in `.github/workflows/ci.yml` (the `windows-2022` runner).
-- No `print` statements. No hard-coded user-visible strings. No hard-coded colours outside `nex_ui` tokens.
-- Performance: the panel opens in under 150 ms after the hotkey once warm, and the timeline scrolls smoothly with 10k notes. Measure and report the numbers.
+  - one test that opens a database created with Nex's schema (as Android creates it), and one that round-trips a backup.
+- If you can run commands:
+  - run the tests and `flutter build windows --release` for `apps/desktop`;
+  - run `make check` in your working copy with your patches applied, to show nothing else broke;
+  - put the outputs in `TEST_RESULTS.md`.
 
-## 5. Commits and hand-off
-- Use small, focused commits with clear messages. Each one builds.
-- At the end, `apps/desktop/README.md` contains:
+  If you cannot run them, say so plainly in that file. Do not claim results you did not see.
+- No `print` statements. No hard-coded user-visible strings. No hard-coded colours outside `nex_ui` tokens.
+- Performance targets: the panel opens in under 150 ms after the hotkey once warm, and the timeline scrolls smoothly with 10k notes. Report measured numbers, or "not measured".
+
+## 5. What to deliver: one zip file
+Deliver a single file named **`nex-desktop-<YYYY-MM-DD>.zip`** with exactly this layout:
+
+```
+nex-desktop-<date>.zip
+├── apps/desktop/          # the app; drop-in at the Nex repo root
+│   ├── README.md          # see below
+│   ├── THIRD_PARTY_NOTICES.md
+│   ├── pubspec.yaml       # path dependencies to ../../packages/*
+│   ├── lib/  test/  windows/  assets/ …
+├── patches/               # optional; unified diffs against your base commit
+│   ├── 01-<concern>.patch # e.g. move a helper from apps/client into packages/ui
+│   ├── 02-makefile.patch  # add apps/desktop analyze + test to `make check`
+│   └── 03-ci.patch        # a Windows build job for apps/desktop, modelled on
+│                          # the `client-windows` job in .github/workflows/ci.yml
+├── HANDOFF.md             # short summary for the maintainers (see below)
+└── TEST_RESULTS.md        # what you ran and what it printed
+```
+
+- Leave out build outputs and caches: `build/`, `.dart_tool/`, `.idea/`, `*.iml`, `windows/flutter/ephemeral/`, `pubspec_overrides.yaml`, any `.exe`. Keep `pubspec.lock`.
+- Each patch must apply cleanly with `git apply` from the Nex repo root at your base commit. Make them with `git diff`. State the base commit SHA and the app version (from `apps/client/pubspec.yaml`) at the top of `HANDOFF.md`.
+- **`apps/desktop/README.md`** contains:
   - the architecture;
   - how to run, test and build;
   - the feature mapping table with its final status;
@@ -116,7 +142,11 @@ Not in this task: LAN sync, cloud sync, the AI on-device runtime, OCR on Windows
   - known bugs;
   - the duplication left to resolve;
   - decisions the owner must make (which Right Panel tools to keep);
-  - the next steps (LAN sync, OCR, vault, assistant polish).
-- Open a pull request into `main` titled "Windows panel: Nex on the desktop (base)". It must be a draft, and not merged. The description summarises the above and lists what a reviewer should try first.
+  - next steps (LAN sync, OCR, vault, assistant polish).
+- **`HANDOFF.md`** is one page:
+  - what works;
+  - what does not;
+  - the order to apply the patches;
+  - the three things a reviewer should try first.
 
-If anything in these instructions conflicts with what you find in the Nex repo (an ADR, a package API, the schema), **the repo wins**. Note the conflict in the README instead of working around it.
+If anything in these instructions conflicts with what you find in the Nex repository (an ADR, a package API, the schema), **the repository wins**. Note the conflict in the README instead of working around it.

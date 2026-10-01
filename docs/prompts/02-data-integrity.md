@@ -116,36 +116,36 @@ For each write path, write the sequence of steps as a list and ask what happens 
 
 ## Report format
 
-Write the report **in Persian (فارسی)**. Keep file paths, code, identifiers and quoted UI strings exactly as they are.
+Write the report **in English**. Quote Persian UI strings and note text exactly as they appear.
 
 ```
-# <Role> — گزارش بررسی Nex
+# <Role> — Nex review report
 
-## حکم انتشار
-<one of: آماده انتشار / آماده با رفع موارد Blocker / آماده نیست> — one paragraph why.
+## Release verdict
+<one of: Ready / Ready after fixing the Blockers / Not ready> — one paragraph why.
 
-## خلاصه
-| شدت | تعداد |
+## Summary
+| Severity | Count |
 |---|---|
 | Blocker | n |
 | High | n |
 | Medium | n |
 | Low | n |
 
-## یافته‌ها
+## Findings
 ### [ID] <short title>
-- **شدت:** Blocker | High | Medium | Low
-- **اطمینان:** confirmed | likely | unverified
-- **محل:** `path:line` (+ screen / flow)
-- **شواهد:** quoted code or exact behaviour
-- **اثر روی کاربر:** who is affected and how
-- **بازتولید:** numbered steps or the exact input
-- **پیشنهاد رفع:** concrete and minimal; a patch if short
+- **Severity:** Blocker | High | Medium | Low
+- **Confidence:** confirmed | likely | unverified
+- **Location:** `path:line` (+ screen / flow)
+- **Evidence:** quoted code or exact behaviour
+- **User impact:** who is affected and how
+- **Reproduction:** numbered steps or the exact input
+- **Suggested fix:** concrete and minimal; a patch if short
 (IDs: <PREFIX>-01, <PREFIX>-02 … ordered by severity)
 
-## بررسی شد و مشکلی نداشت
+## Checked and sound
 - bullet list
 
-## خارج از محدوده (فقط Blocker)
-- one line each, or "ندارد"
+## Outside my scope (Blockers only)
+- one line each, or "None"
 ```
