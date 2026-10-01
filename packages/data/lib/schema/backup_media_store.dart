@@ -63,8 +63,15 @@ class BackupMediaStore {
       throw const FormatException('Invalid media digest');
     }
     final result = File(p.join(root.path, hash));
+    // Both sides resolved. On Android the app's directory is itself reached
+    // through a symlink (/data/user/0 → /data/data), so a resolved blob
+    // compared with an unresolved root was never "within" it, and every
+    // blob that already existed was refused.
     if (result.existsSync() &&
-        !p.isWithin(root.absolute.path, result.resolveSymbolicLinksSync())) {
+        !p.isWithin(
+          root.resolveSymbolicLinksSync(),
+          result.resolveSymbolicLinksSync(),
+        )) {
       throw const FormatException('Unsafe media blob');
     }
     return result;
