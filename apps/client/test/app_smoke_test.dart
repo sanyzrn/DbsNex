@@ -935,7 +935,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(preferences.themePreset, 'paper');
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.theme!.scaffoldBackgroundColor, const Color(0xFFF5EEDC));
+    // Paper has a motif, so its colour is the backdrop's and the scaffold
+    // is clear over it.
+    expect(app.theme!.colorScheme.surface, const Color(0xFFF5EEDC));
+    expect(
+      app.theme!.extension<NexVisualStyle>()!.baseColor,
+      const Color(0xFFF5EEDC),
+    );
+    expect(app.theme!.scaffoldBackgroundColor.a, 0);
     await tester.scrollUntilVisible(
       find.widgetWithText(ListTile, 'Theme'),
       200,

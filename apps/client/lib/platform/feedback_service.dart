@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../app_version.dart';
+import 'device_label.dart';
 import 'nex_preferences.dart';
 
 /// Where feedback goes — a server this app's developer controls, never the
@@ -40,6 +41,7 @@ class FeedbackService {
     http.Client? client,
     required this.preferences,
     this.baseUrl = nexFeedbackApiUrl,
+    this.describeDevice = NexDevice.describe,
   }) : _client = client ?? http.Client(),
        _ownsClient = client == null;
 
@@ -49,6 +51,9 @@ class FeedbackService {
   /// default, the same way [UpdateChecker.repository] is a constructor
   /// default rather than something a screen decides.
   final String baseUrl;
+
+  /// The phone it is sent from; replaced in tests.
+  final Future<NexDeviceLabel> Function() describeDevice;
 
   final http.Client _client;
   final bool _ownsClient;
@@ -64,6 +69,7 @@ class FeedbackService {
     final reply = contact?.trim() ?? '';
 
     try {
+      final device = await describeDevice();
       final response = await _client
           .post(
             Uri.parse('$baseUrl/feedback'),
@@ -71,7 +77,8 @@ class FeedbackService {
             body: jsonEncode({
               'message': trimmed,
               'appVersion': nexAppVersion,
-              'platform': Platform.operatingSystem,
+              'platform': device.platform,
+              'device': ?device.device,
               'kind': ?kind?.name,
               if (reply.isNotEmpty) 'contact': reply,
             }),

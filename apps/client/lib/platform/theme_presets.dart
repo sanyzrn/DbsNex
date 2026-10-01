@@ -171,9 +171,21 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
         : DynamicSchemeVariant.tonalSpot,
     surface: base.brightness == Brightness.light ? p.light : p.dark,
   );
+  final visual = base.extension<NexVisualStyle>();
   return base.copyWith(
     colorScheme: colors,
-    scaffoldBackgroundColor: colors.surface,
+    // Transparent stays transparent. The base theme clears the scaffold
+    // whenever the app's backdrop has something to show — glass, a pattern,
+    // this theme's motif — and painting the palette's surface over it here
+    // hid all three: 1.92.0's motifs were drawn and never seen. The backdrop
+    // takes the palette's surface instead, below.
+    scaffoldBackgroundColor: base.scaffoldBackgroundColor.a == 0
+        ? Colors.transparent
+        : colors.surface,
+    extensions: [
+      ...base.extensions.values.where((e) => e is! NexVisualStyle),
+      ?visual?.copyWith(baseColor: colors.surface),
+    ],
     canvasColor: colors.surface,
     cardTheme: base.cardTheme.copyWith(color: colors.surfaceContainerLow),
     appBarTheme: base.appBarTheme.copyWith(

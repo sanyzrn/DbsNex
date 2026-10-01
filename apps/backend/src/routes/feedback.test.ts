@@ -85,6 +85,23 @@ describe("POST /feedback", () => {
     assert.match(body.text, /android/);
   });
 
+  test("the phone it came from is shown beside the version", async () => {
+    const res = await fetch(`${baseUrl}/feedback`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        message: "the keyboard covers the field",
+        appVersion: "1.92.1",
+        platform: "android 14",
+        device: "Samsung SM-S918B",
+      }),
+    });
+
+    assert.equal(res.status, 202);
+    const body = telegramCalls[0]!.body as { text: string };
+    assert.match(body.text, /— v1\.92\.1 · android 14 · Samsung SM-S918B$/);
+  });
+
   test("an empty message is rejected before ever reaching Telegram", async () => {
     const res = await fetch(`${baseUrl}/feedback`, {
       method: "POST",

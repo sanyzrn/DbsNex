@@ -19,7 +19,7 @@ class NexTextureBackdrop extends StatelessWidget {
     super.key,
     required this.texture,
     required this.child,
-    this.extent = 0.32,
+    this.extent = 0.36,
   });
 
   final NexThemeTexture texture;
@@ -34,7 +34,7 @@ class NexTextureBackdrop extends StatelessWidget {
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
     final ink = theme.colorScheme.onSurface.withValues(
-      alpha: dark ? 0.085 : 0.065,
+      alpha: dark ? 0.13 : 0.10,
     );
     return Stack(
       fit: StackFit.expand,
@@ -61,7 +61,7 @@ class NexTexturePainter extends CustomPainter {
   NexTexturePainter({
     required this.texture,
     required this.ink,
-    this.extent = 0.32,
+    this.extent = 0.36,
   });
 
   final NexThemeTexture texture;
@@ -108,6 +108,9 @@ class NexTexturePainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: const [Color(0x00000000), Color(0xFF000000)],
+          // Full strength over the lower part of the band, not only at the
+          // very bottom edge, where the navigation bar covers it.
+          stops: const [0, 0.6],
         ).createShader(band),
     );
     canvas.restore();

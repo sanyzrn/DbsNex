@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v1.92.1
+
+- **The sponsor card keeps its size.** Changing the card size in Appearance no longer stretches or squeezes it, and its words no longer spill past its bottom edge.
+- **The theme motifs are visible now.** In 1.92.0 they were drawn under the page and never seen; they now show along the bottom of the screen on Paper, Forest, Isfahan turquoise, Midnight and Deep sea, still faint.
+- **Feedback says which phone it came from**: the Android version and the phone's model, beside the app version. Nothing that identifies you.
+
 ## v1.92.0
 
 - **A note opens the way the assistant does** — rising smoothly from the bottom of the screen.

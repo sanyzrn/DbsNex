@@ -149,6 +149,13 @@ open class MainActivity : FlutterFragmentActivity() {
                 }
             }
             "peekPending" -> result.success(nextCapture())
+            // For feedback: which Android and which phone. Nothing that
+            // identifies the person.
+            "deviceInfo" -> result.success(mapOf(
+                "release" to Build.VERSION.RELEASE,
+                "manufacturer" to Build.MANUFACTURER,
+                "model" to Build.MODEL,
+            ))
             // Settings → Capture → "Capture from notifications" (W5.2).
             "setQuickCaptureNotification" -> {
                 NexQuickCapture.setEnabled(this, call.argument<Boolean>("enabled") == true)
