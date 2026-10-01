@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:nex_client/platform/device_label.dart';
 import 'package:nex_client/platform/feedback_service.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,6 +40,47 @@ void main() {
 
     expect(await service.send('hello'), FeedbackOutcome.sent);
     expect(preferences.pendingFeedback, isNull);
+  });
+
+  test('it says which Android and which phone it came from', () async {
+    late Map<String, dynamic> body;
+    final service = FeedbackService(
+      preferences: preferences,
+      baseUrl: 'https://example.invalid',
+      describeDevice: () async => NexDevice.label(
+        release: '14',
+        manufacturer: 'samsung',
+        model: 'SM-S918B',
+      ),
+      client: MockClient((request) async {
+        body = jsonDecode(request.body) as Map<String, dynamic>;
+        return http.Response('{}', 202);
+      }),
+    );
+    addTearDown(service.close);
+
+    expect(await service.send('hello'), FeedbackOutcome.sent);
+    expect(body['platform'], 'android 14');
+    expect(body['device'], 'Samsung SM-S918B');
+  });
+
+  test('a device label fits the relay and does not repeat the maker', () {
+    expect(
+      NexDevice.label(release: '15', manufacturer: 'Google', model: 'Pixel 8'),
+      (platform: 'android 15', device: 'Google Pixel 8'),
+    );
+    expect(NexDevice.label(manufacturer: 'Xiaomi', model: 'Xiaomi 14T Pro'), (
+      platform: 'android',
+      device: 'Xiaomi 14T Pro',
+    ));
+    expect(NexDevice.label(release: '14').device, isNull);
+    final long = NexDevice.label(
+      release: '16 QPR1 Beta 3 for developers',
+      manufacturer: 'm',
+      model: 'x' * 60,
+    );
+    expect(long.platform.length, lessThanOrEqualTo(20));
+    expect(long.device!.length, lessThanOrEqualTo(40));
   });
 
   test('no network reaches the server at all is offline, not failed', () async {

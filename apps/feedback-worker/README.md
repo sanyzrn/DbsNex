@@ -19,7 +19,7 @@ contract exactly, so the app needs **no code changes**, only a build-time URL
 Request body:
 
 ```json
-{ "message": "string, 1-4000 chars", "appVersion": "optional, ≤40 chars", "platform": "optional, ≤20 chars" }
+{ "message": "string, 1-4000 chars", "appVersion": "optional, ≤40 chars", "platform": "optional, ≤20 chars", "device": "optional, ≤40 chars" }
 ```
 
 Responses:
@@ -74,8 +74,11 @@ being blocked in Iran does not matter: the Worker, not the phone, talks to it.
 
 Besides `message`, `appVersion` and `platform`, the app sends `kind` (`bug`,
 `idea` or `other`, shown as a label at the top of the Telegram message) and an
-optional `contact` (up to 80 characters, shown as "Reply to:"). Anything else in
-those fields is refused with 400.
+optional `contact` (up to 80 characters, shown as "Reply to:"). Since 1.92.1
+`platform` carries the Android version (`android 14`) and `device` the phone's
+maker and model (`Samsung SM-S918B`); both are shown in the footer line. Anything
+else in those fields is refused with 400. An older Worker ignores `device`, so
+redeploy it to see the model.
 
 ## Rate limiting
 

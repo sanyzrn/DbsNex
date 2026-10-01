@@ -19,6 +19,7 @@ const bodySchema = z.object({
   // text appended below — this is a feedback note, not a diagnostic report.
   appVersion: z.string().max(40).optional(),
   platform: z.string().max(20).optional(),
+  device: z.string().max(40).optional(),
 });
 
 feedbackRouter.post("/", async (req: Request, res: Response) => {
@@ -37,11 +38,12 @@ feedbackRouter.post("/", async (req: Request, res: Response) => {
       parsed.error.flatten().fieldErrors,
     );
   }
-  const { message, appVersion, platform } = parsed.data;
+  const { message, appVersion, platform, device } = parsed.data;
 
   const context = [
     appVersion ? `v${appVersion}` : null,
     platform,
+    device,
   ].filter(Boolean).join(" · ");
   const text = context ? `${message}\n\n— ${context}` : message;
 

@@ -81,6 +81,31 @@ describe("feedback worker", () => {
     assert.match(body.text, /android/);
   });
 
+  test("the phone it came from is shown beside the version", async () => {
+    const res = await handleRequest(
+      post({
+        message: "the keyboard covers the field",
+        appVersion: "1.92.1",
+        platform: "android 14",
+        device: "Samsung SM-S918B",
+      }),
+      configuredEnv,
+    );
+
+    assert.equal(res.status, 202);
+    const body = telegramCalls[0]!.body as { text: string };
+    assert.match(body.text, /— v1\.92\.1 · android 14 · Samsung SM-S918B$/);
+  });
+
+  test("an over-long device is refused", async () => {
+    const res = await handleRequest(
+      post({ message: "hi", device: "x".repeat(41) }),
+      configuredEnv,
+    );
+    assert.equal(res.status, 400);
+    assert.equal(telegramCalls.length, 0);
+  });
+
   test("a category and a reply address travel with the message", async () => {
     const res = await handleRequest(
       post({ message: "search misses a word", kind: "bug", contact: "@someone" }),

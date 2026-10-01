@@ -38,13 +38,15 @@ interface FeedbackPayload {
   message: string;
   appVersion?: string;
   platform?: string;
+  // The phone's maker and model, e.g. "Samsung SM-S918B".
+  device?: string;
   kind?: FeedbackKind;
   contact?: string;
 }
 
 function parsePayload(body: unknown): FeedbackPayload | null {
   if (typeof body !== "object" || body === null) return null;
-  const { message, appVersion, platform, kind, contact } = body as Record<
+  const { message, appVersion, platform, device, kind, contact } = body as Record<
     string,
     unknown
   >;
@@ -66,6 +68,13 @@ function parsePayload(body: unknown): FeedbackPayload | null {
     return null;
   }
 
+  if (
+    device !== undefined &&
+    (typeof device !== "string" || device.length > MAX_CONTEXT_FIELD)
+  ) {
+    return null;
+  }
+
   if (kind !== undefined && (typeof kind !== "string" || !(kind in KINDS))) {
     return null;
   }
@@ -81,6 +90,7 @@ function parsePayload(body: unknown): FeedbackPayload | null {
     message: trimmed,
     appVersion: appVersion as string | undefined,
     platform: platform as string | undefined,
+    device: device as string | undefined,
     kind: kind as FeedbackKind | undefined,
     contact: reply,
   };
@@ -92,6 +102,7 @@ function buildTelegramText(payload: FeedbackPayload): string {
   const context = [
     payload.appVersion ? `v${payload.appVersion}` : null,
     payload.platform ?? null,
+    payload.device ?? null,
   ]
     .filter(Boolean)
     .join(" · ");

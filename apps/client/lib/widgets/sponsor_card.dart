@@ -35,8 +35,16 @@ class SponsorCard extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onDismiss;
 
+  // Always the standard card, whatever card size is chosen in Appearance.
+  // The words and the banner picture are laid out for that one height; a
+  // compact card clipped them and a readable one stretched the picture.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => NexCardDensityScope(
+    density: NexCardDensity.standard,
+    child: Builder(builder: _card),
+  );
+
+  Widget _card(BuildContext context) {
     final theme = Theme.of(context);
     // The card's own colour, falling back to the accent — a card whose author
     // did not choose one is still allowed to be coloured.
@@ -84,6 +92,14 @@ class SponsorCard extends StatelessWidget {
   }
 }
 
+/// Less above and below than a note card. The label, a title and a line of
+/// body come to 52 at the default size, four more than a note card's 48, and
+/// with the full inset they spilled out of the bottom of the card.
+const _wordsInsets = EdgeInsets.symmetric(
+  horizontal: NexSpacing.cardInset,
+  vertical: NexSpacing.cardInset / 2,
+);
+
 /// The version with no picture: a glyph, the words, and the card's colour.
 class _Words extends StatelessWidget {
   const _Words({
@@ -102,9 +118,8 @@ class _Words extends StatelessWidget {
     final theme = Theme.of(context);
     final body = sponsor.body;
     return Padding(
-      padding: const EdgeInsets.all(NexSpacing.cardInset),
+      padding: _wordsInsets,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: nexCardLeadingSize,
@@ -210,7 +225,7 @@ class _Picture extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(NexSpacing.cardInset),
+          padding: _wordsInsets,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
