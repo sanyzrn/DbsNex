@@ -19,6 +19,7 @@ import '../l10n/app_localizations.dart';
 import 'package:nex_ai/cloud.dart';
 import '../platform/capture_failure.dart';
 import '../platform/daily_nudge.dart';
+import '../platform/download_notice.dart';
 import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/metrics.dart';

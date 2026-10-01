@@ -27,6 +27,12 @@ abstract final class NexDownloadNotice {
         'percent': percent,
       });
 
+  /// Sends the app to the background instead of closing it — what Back on
+  /// the home screen does while a download runs, because closing the window
+  /// stops the engine the download runs in. False where there is no such
+  /// thing, and the caller closes the app the ordinary way.
+  static Future<bool> sendAppToBack() => _ask('moveTaskToBack', const {});
+
   /// Takes it down, and lets the process be suspended again.
   static Future<bool> hide() => _ask('stopDownloadNotice', const {});
 
