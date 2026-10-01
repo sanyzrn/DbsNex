@@ -123,20 +123,27 @@ class _NexCardOpeningState extends State<NexCardOpening> {
 
   @override
   Widget build(BuildContext context) {
-    final route = _route;
-    if (_done || route == null) return widget.child;
     final inset = nexCardInsets.resolve(Directionality.of(context));
     final from = inset.deflateRect(widget.origin.rect);
     final bottom = MediaQuery.sizeOf(context).height;
+    // The same widgets before, during and after: only [_Opening.active]
+    // changes. Handing back the bare child once the opening was over gave
+    // the sheet a new parent, and Flutter builds a widget with a new parent
+    // from scratch — so the note's details were thrown away and read again
+    // in the last frame, which is the flash at the end of the opening.
     return AnimatedBuilder(
-      animation: route,
-      builder: (_, child) => _Opening(
-        from: from,
-        restingBottom: bottom,
-        grow: _grow.transform(route.value),
-        opacity: _contentFade.transform(route.value),
-        child: child,
-      ),
+      animation: _route ?? kAlwaysCompleteAnimation,
+      builder: (_, child) {
+        final t = _route?.value ?? 1;
+        return _Opening(
+          active: !_done && _route != null,
+          from: from,
+          restingBottom: bottom,
+          grow: _grow.transform(t),
+          opacity: _contentFade.transform(t),
+          child: child,
+        );
+      },
       child: widget.child,
     );
   }
@@ -144,6 +151,7 @@ class _NexCardOpeningState extends State<NexCardOpening> {
 
 class _Opening extends SingleChildRenderObjectWidget {
   const _Opening({
+    required this.active,
     required this.from,
     required this.restingBottom,
     required this.grow,
@@ -151,6 +159,7 @@ class _Opening extends SingleChildRenderObjectWidget {
     super.child,
   });
 
+  final bool active;
   final Rect from;
   final double restingBottom;
   final double grow;
@@ -158,6 +167,7 @@ class _Opening extends SingleChildRenderObjectWidget {
 
   @override
   _RenderOpening createRenderObject(BuildContext context) => _RenderOpening(
+    active: active,
     from: from,
     restingBottom: restingBottom,
     grow: grow,
@@ -167,6 +177,7 @@ class _Opening extends SingleChildRenderObjectWidget {
   @override
   void updateRenderObject(BuildContext context, _RenderOpening render) {
     render
+      ..active = active
       ..from = from
       ..restingBottom = restingBottom
       ..grow = grow
@@ -176,14 +187,24 @@ class _Opening extends SingleChildRenderObjectWidget {
 
 class _RenderOpening extends RenderProxyBox {
   _RenderOpening({
+    required bool active,
     required Rect from,
     required double restingBottom,
     required double grow,
     required double opacity,
-  }) : _from = from,
+  }) : _active = active,
+       _from = from,
        _restingBottom = restingBottom,
        _grow = grow,
        _opacity = opacity;
+
+  bool _active;
+  set active(bool value) {
+    if (value == _active) return;
+    _active = value;
+    markNeedsCompositingBitsUpdate();
+    markNeedsPaint();
+  }
 
   Rect _from;
   set from(Rect value) {
@@ -214,7 +235,7 @@ class _RenderOpening extends RenderProxyBox {
   }
 
   @override
-  bool get alwaysNeedsCompositing => true;
+  bool get alwaysNeedsCompositing => _active;
 
   final _clip = LayerHandle<ClipRRectLayer>();
   final _fade = LayerHandle<OpacityLayer>();
@@ -223,6 +244,12 @@ class _RenderOpening extends RenderProxyBox {
   void paint(PaintingContext context, Offset offset) {
     final child = this.child;
     if (child == null) return;
+    if (!_active) {
+      _clip.layer = null;
+      _fade.layer = null;
+      context.paintChild(child, offset);
+      return;
+    }
     // Where the sheet is being slid to by its route right now, against
     // where it will rest: the difference is undone, so the sheet is drawn
     // at rest from the first frame and only the window onto it moves.
