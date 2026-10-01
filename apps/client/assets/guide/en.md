@@ -74,7 +74,7 @@ The **List** shows what has slipped first, then what is coming up, then what is 
 
 AI is optional and off until you turn it on. In **Settings → Intelligence**, choose a provider (or a downloaded offline model) — for **Custom**, enter the full chat address, which is used exactly as written — test it, and pick which features to use: transcription, text in photos, summaries, tag suggestions, related notes and the daily smart summary.
 
-**Hold +** to open the assistant: the panel grows out of the button. Ask about your notes, or ask it to act — create, edit, tag, remind, pin, merge, add a recurring item, or change a setting. A new note can come with its reminder in one request: "remind me Saturday at 9 about the doctor". It can change a setting such as the theme palette, accent, text size or language. Nothing is applied until you confirm it. A cloud provider receives only what the request needs; an offline model keeps everything on the phone.
+**Hold +** to open the assistant: a coloured light washes in from the edges of the screen, and a thin band of it keeps circling the screen while the assistant is open. Ask about your notes, or ask it to act — create, edit, tag, remind, pin, merge, add notes to a thread, add a recurring item, or change a setting. It can read every note with a tag or in a thread, so "summarise my work notes" or "what is in the Trip thread" works, and one request can act on several notes at once: "tag these as home and put them in a Kitchen thread". A new note can come with its reminder in one request: "remind me Saturday at 9 about the doctor". It can change a setting such as the theme palette, accent, text size or language. Nothing is applied until you confirm it. A cloud provider receives only what the request needs; an offline model keeps everything on the phone.
 
 If your model thinks before it answers and the summary comes back empty, turn on **No token limit** in the Smart summary settings — it can use many more tokens, as the summary refreshes several times a day.
 
@@ -98,7 +98,7 @@ The vault uses the phone's secure storage and never enters notes, widgets, searc
 
 ## Appearance, language and calendar
 
-**Settings → Appearance → Theme** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier, Forest retreat, Isfahan turquoise, Saffron, Midnight, Deep sea or Graphite. A new look opens out as a circle from where you tapped. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.
+**Settings → Appearance → Theme** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier, Forest retreat, Isfahan turquoise, Saffron, Midnight, Deep sea or Graphite. A new look opens out as a circle from where you tapped. Paper, Forest, Isfahan turquoise, Midnight and Deep sea add a faint motif of their own along the bottom of the screen — paper grain, contour lines, tile stars, stars and waves. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.
 
 At the end of the Theme page, **App icon** changes the icon on your home screen to one of six — the Nex logotype on dark (the default), the octopus on dark, light or blue, the logotype on light, or the previous swirl; a home-screen shortcut may need adding again afterwards.
 
@@ -114,7 +114,7 @@ Confirmations and warnings arrive as a small capsule that drips down from the to
 
 ## Home-screen widgets
 
-Add the **Capture**, **Timeline** or **Recap** widget from your launcher. Under **Settings → Appearance → Home screen widget**, choose which kinds of note and which tag the timeline widget shows and whether pinned notes come first. Widgets follow the app's language and accent. While the app lock is closed they hide your notes, unless you choose otherwise.
+Add the **Capture**, **Timeline** or **Recap** widget from your launcher. The Timeline widget starts a note, a voice note, a photo from the camera or the gallery, or a checklist with one tap from its top row; the Recap widget shows the smart summary under the Nex logo, and when there is none yet, tapping it asks for one. Under **Settings → Appearance → Home screen widget**, choose which kinds of note and which tag the timeline widget shows and whether pinned notes come first. Widgets follow the app's language and accent. While the app lock is closed they hide your notes, unless you choose otherwise.
 
 ![Home-screen widgets](widgets.webp)
 

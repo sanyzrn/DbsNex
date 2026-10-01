@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v1.92.0
+
+- **A note opens the way the assistant does** — rising smoothly from the bottom of the screen.
+- **Copy takes a photo's caption first.** The text read out of the picture is copied only when it has no caption.
+- **The assistant's light is brighter**, the way the system assistant's is, and while the assistant is open a thin band of the same colours keeps circling the edge of the screen.
+- **The assistant can do more of what you can.** It reads every note with a tag or in a thread — "summarise my work notes", "what is in the Trip thread" — acts on several notes in one request (tag, pin, remind, delete, restore), and can put notes into a thread, starting it if needed. Every change still waits for your confirmation.
+- **Five themes have a faint motif of their own** along the bottom of the screen: paper grain on Paper, contour lines on Forest, tile stars on Isfahan turquoise, stars on Midnight and waves on Deep sea.
+- **Widgets, polished.** The Timeline widget shows the Nex logo alone, and its + became a row that starts a note, a voice note, a photo from the camera or the gallery, or a checklist in one tap; each note's time now sits under it, smaller. The Recap widget shows just the logo and the summary — tap it when there is none yet to ask for one.
+
 ## v1.91.1
 
 - **Touches work as before while typing, except in the settings search.** In 1.91.0 a touch outside the box you were typing in only closed the keyboard, everywhere — which stopped tags from being picked with the keyboard up, sometimes closed the keyboard on a tap inside the box, and made selection handles hard to catch in a note being read. That rule now applies only to the settings search, where it keeps a setting from being changed by accident.

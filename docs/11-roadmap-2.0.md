@@ -464,6 +464,24 @@ Release numbers are indicative; the ordering is the argument.
 Taken out of the plan above when they shipped. Each line is what a person can
 now do; the commit history has the rest.
 
+### In 1.92.0 — the assistant, the widgets and the look
+
+- **The assistant reaches tags, threads and groups.** The protocol gains
+  `search` by `tag` or `thread`, a `threads` listing (both read, unconfirmed),
+  `ids` on every one-note action (expanded to one confirmed action per note,
+  folded on the card), and `thread` to gather notes into a thread. Each note
+  the model is given now carries its tags and caption.
+- **Light.** A brighter opening bloom and a fuller spectrum; while the
+  assistant is open, a thin border turns round the screen.
+- **A note rises like the assistant** (`nexSheetRise`); the 1.90 card-growing
+  opening and its ghost are gone.
+- **Copy** prefers a caption to OCR or a transcript (`Note.copyText`).
+- **Theme motifs.** Paper, Forest, Isfahan turquoise, Midnight and Deep sea
+  draw a faint motif in the lower third of the screen (`NexThemeTexture`).
+- **Widgets.** Logotype-only headers; the Timeline widget's capture row
+  (note, voice, camera, gallery, checklist — two new capture modes); time
+  under each row; the Recap widget without title or refresh.
+
 ### In 1.91.1 — fixes from the owner's testing
 
 - **The keyboard rule is narrowed (ADR-038).** Only the settings search

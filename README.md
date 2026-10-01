@@ -30,7 +30,7 @@ menu ([ADR-037](./docs/10-decisions.md#adr-037--text-a-person-writes-is-edited-i
 that fold (pinch the timeline to fold or open them all), and once you scroll past the top
 the day of the note under your thumb stays named under the filters. Cards are a fixed
 height in one of three sizes (compact, standard, easier to read), so the list stays even,
-and a tapped card opens into its note rather than a sheet sliding up. Swipe an edge for
+and a tapped card rises into its note the way the assistant does. Swipe an edge for
 delete or add-tag; hold a card for pin, copy, edit, remind and delete — or **Select**, which
 picks several notes at once and swaps the dock for a bar that tags, threads, pins, shares,
 copies or deletes them together, with one Undo. Up to five notes can be pinned to the top. Long notes open folded,
@@ -73,17 +73,18 @@ killed.
 **Intelligence, optional and off by default** — transcription, OCR, summarization, tag
 suggestions, semantic search and related notes, each behind its own switch, against a
 provider you configure and can test, plus an assistant you can actually talk to about what
-you have written, opened by holding the capture button. Its tone is yours to set, including one you write yourself. It is the only
+you have written, opened by holding the capture button, that can read a tag's or a thread's notes and act on several notes at once. Its tone is yours to set, including one you write yourself. It is the only
 part of Nex that can send a note off the device, it says so before it is switched on, and
 cloud requests may include your preferred name and selected note context. With only the offline model enabled, generation stays on the device. See [`docs/09-ai.md`](./docs/09-ai.md).
 
-**Home-screen widgets** — Capture, Timeline and Recap widgets on Android that follow the
+**Home-screen widgets** — Capture, Timeline (with a row that starts a note, voice note, photo or
+checklist in one tap) and Recap widgets on Android that follow the
 app's language and accent, and stay private while the app lock is on.
 
 **Persian calendar** — optional Solar Hijri dates for display and every date picker,
 independent of the interface language.
 
-**Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier, Forest, Isfahan turquoise, Saffron, Midnight, Deep sea and Graphite palettes, custom accents, text size and card size. A change of look opens out as a circle from the tap that asked for it. The Nex logotype is the app icon and the mark on notifications, the Quick Settings tile and the widget; the opening animation keeps the octopus. In-app notices are one capsule that drips out of the top edge (a "gooey" metaball effect, `packages/ui/lib/widgets/nex_gooey.dart`). Liquid Glass is temporarily disabled by owner request; its implementation is retained. Reduce-motion support and 48px minimum action targets remain.
+**Appearance** — light, dark and system modes with whole-app Classic, Paper, Autumn, Rose atelier, Forest, Isfahan turquoise, Saffron, Midnight, Deep sea and Graphite palettes, custom accents, text size and card size; five of the palettes add a faint motif of their own along the bottom of the screen. A change of look opens out as a circle from the tap that asked for it. The Nex logotype is the app icon and the mark on notifications, the Quick Settings tile and the widget; the opening animation keeps the octopus. In-app notices are one capsule that drips out of the top edge (a "gooey" metaball effect, `packages/ui/lib/widgets/nex_gooey.dart`). Liquid Glass is temporarily disabled by owner request; its implementation is retained. Reduce-motion support and 48px minimum action targets remain.
 
 **Feedback** — a compose sheet with a category and an optional reply address, relayed to
 Telegram by a separate Cloudflare Worker (`apps/feedback-worker`). It stays unavailable
