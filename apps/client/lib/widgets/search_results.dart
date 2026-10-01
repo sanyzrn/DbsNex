@@ -168,20 +168,21 @@ List<Widget> searchResultSlivers({
 
   return [
     if (saveAction() case final action?) action,
-    SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          NexSpacing.md,
-          NexSpacing.sm,
-          NexSpacing.md,
-          NexSpacing.sm,
-        ),
-        child: Text(
-          l10n.resultCount(search.results.length),
-          style: theme.textTheme.bodySmall,
+    if (search.narrowed)
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            NexSpacing.md,
+            NexSpacing.sm,
+            NexSpacing.md,
+            NexSpacing.sm,
+          ),
+          child: Text(
+            l10n.resultCount(search.results.length),
+            style: theme.textTheme.bodySmall,
+          ),
         ),
       ),
-    ),
     SliverList.builder(
       itemCount: search.results.length,
       itemBuilder: (context, index) {

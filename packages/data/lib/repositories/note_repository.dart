@@ -132,55 +132,59 @@ class SqliteNoteRepository implements NoteRepository {
 
   @override
   Note insert(Note note) {
-    db.execute(
-      '''
+    return db.together(() {
+      db.execute(
+        '''
 INSERT INTO notes (
   id, type, content, media_uri, media_hash, duration_ms,
   created_at, updated_at, deleted_at, device_id, rev, sync_state,
   caption, title, link_excerpt, mime_type
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ''',
-      [
-        note.id,
-        note.type.wireName,
-        note.content,
-        note.mediaUri,
-        note.mediaHash,
-        note.durationMs,
-        note.createdAt.toUtc().toIso8601String(),
-        note.updatedAt.toUtc().toIso8601String(),
-        note.deletedAt?.toUtc().toIso8601String(),
-        note.deviceId,
-        note.rev,
-        note.syncState.wireName,
-        note.caption,
-        note.title,
-        note.linkExcerpt,
-        note.mimeType,
-      ],
-    );
-    final searchable = note.searchableDerivedText;
-    if (searchable != null && searchable.isNotEmpty) {
-      _upsertFts(note.id, searchable);
-    }
-    return getById(note.id)!;
+        [
+          note.id,
+          note.type.wireName,
+          note.content,
+          note.mediaUri,
+          note.mediaHash,
+          note.durationMs,
+          note.createdAt.toUtc().toIso8601String(),
+          note.updatedAt.toUtc().toIso8601String(),
+          note.deletedAt?.toUtc().toIso8601String(),
+          note.deviceId,
+          note.rev,
+          note.syncState.wireName,
+          note.caption,
+          note.title,
+          note.linkExcerpt,
+          note.mimeType,
+        ],
+      );
+      final searchable = note.searchableDerivedText;
+      if (searchable != null && searchable.isNotEmpty) {
+        _upsertFts(note.id, searchable);
+      }
+      return getById(note.id)!;
+    });
   }
 
   void updateContent(String noteId, String content) {
-    final now = DateTime.now().toUtc().toIso8601String();
-    db.execute(
-      '''
+    db.together(() {
+      final now = DateTime.now().toUtc().toIso8601String();
+      db.execute(
+        '''
 UPDATE notes
 SET content = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ? AND deleted_at IS NULL
 ''',
-      [content, now, if (localDeviceId != null) localDeviceId, noteId],
-    );
-    // Re-derived from the whole note, not the raw body: a note with a title
-    // used to drop the title from its search row here, and a checklist got
-    // its `[x]` markers indexed. Every FTS writer goes through [_reindex].
-    _reindex(noteId);
+        [content, now, if (localDeviceId != null) localDeviceId, noteId],
+      );
+      // Re-derived from the whole note, not the raw body: a note with a title
+      // used to drop the title from its search row here, and a checklist got
+      // its `[x]` markers indexed. Every FTS writer goes through [_reindex].
+      _reindex(noteId);
+    });
   }
 
   /// Changes representation in place: tags, reminders, title and identity survive.
@@ -327,17 +331,19 @@ WHERE id = ? AND deleted_at IS NULL
   /// reached before any timestamp is compared — so a delete never needed a
   /// newer `updated_at` to win.
   void softDelete(String noteId) {
-    final now = DateTime.now().toUtc().toIso8601String();
-    db.execute(
-      '''
+    db.together(() {
+      final now = DateTime.now().toUtc().toIso8601String();
+      db.execute(
+        '''
 UPDATE notes
 SET deleted_at = ?, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [now, if (localDeviceId != null) localDeviceId, noteId],
-    );
-    db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+        [now, if (localDeviceId != null) localDeviceId, noteId],
+      );
+      db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+    });
   }
 
   /// Undo a soft-delete within the toast window (FR-2.6).
@@ -348,22 +354,24 @@ WHERE id = ?
   /// the row was newer than the note, so the list put it first and the card
   /// said it had just been written.
   void undelete(String noteId) {
-    final rows = db.select('SELECT * FROM notes WHERE id = ?', [noteId]);
-    if (rows.isEmpty) return;
-    db.execute(
-      '''
+    db.together(() {
+      final rows = db.select('SELECT * FROM notes WHERE id = ?', [noteId]);
+      if (rows.isEmpty) return;
+      db.execute(
+        '''
 UPDATE notes
 SET deleted_at = NULL, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ?
 ''',
-      [if (localDeviceId != null) localDeviceId, noteId],
-    );
-    // Re-derived from the whole restored row, not just the text body: a
-    // checklist, a voice note with its transcript, a photo with OCR text and
-    // a link with its excerpt all leave the trash searchable again — before
-    // this, only plain text came back findable.
-    _reindex(noteId);
+        [if (localDeviceId != null) localDeviceId, noteId],
+      );
+      // Re-derived from the whole restored row, not just the text body: a
+      // checklist, a voice note with its transcript, a photo with OCR text and
+      // a link with its excerpt all leave the trash searchable again — before
+      // this, only plain text came back findable.
+      _reindex(noteId);
+    });
   }
 
   @override
@@ -442,9 +450,18 @@ LIMIT ? OFFSET ?
 ''',
             [tagId, limit, offset],
           );
-    return rows
-        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
-        .toList();
+    return _withTags(rows);
+  }
+
+  /// Notes for [rows], with their tags read in one query rather than one per
+  /// note (PERF-06). The batch keeps each note's tags in the same order
+  /// [tagsForNote] gives them.
+  List<Note> _withTags(ResultSet rows) {
+    final tags = tagsForNotes([for (final r in rows) r['id']! as String]);
+    return [
+      for (final r in rows)
+        Note.fromRow(r, tags: tags[r['id']! as String] ?? const []),
+    ];
   }
 
   /// The tags of every note in [noteIds], in one query rather than one each.
@@ -699,21 +716,23 @@ VALUES (?, ?, ?, ?, 'synced')
 
   /// Test/helper: set content with an explicit `updated_at` (sync matrix).
   void updateContentAt(String noteId, String content, DateTime updatedAt) {
-    db.execute(
-      '''
+    db.together(() {
+      db.execute(
+        '''
 UPDATE notes
 SET content = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ? AND deleted_at IS NULL
 ''',
-      [
-        content,
-        updatedAt.toUtc().toIso8601String(),
-        if (localDeviceId != null) localDeviceId,
-        noteId,
-      ],
-    );
-    _upsertFts(noteId, content);
+        [
+          content,
+          updatedAt.toUtc().toIso8601String(),
+          if (localDeviceId != null) localDeviceId,
+          noteId,
+        ],
+      );
+      _upsertFts(noteId, content);
+    });
   }
 
   Tag upsertTagFromSync({
@@ -907,20 +926,24 @@ WHERE id = ?
   /// Persist AI transcript alongside the voice note (09-ai.md — non-destructive).
   @override
   void setTranscriptText(String noteId, String text) {
-    db.execute('UPDATE notes SET transcript_text = ? WHERE id = ?', [
-      text,
-      noteId,
-    ]);
-    // Re-derived, not replaced: writing a transcript used to drop the note's
-    // title and caption out of its search row.
-    _reindex(noteId);
+    db.together(() {
+      db.execute('UPDATE notes SET transcript_text = ? WHERE id = ?', [
+        text,
+        noteId,
+      ]);
+      // Re-derived, not replaced: writing a transcript used to drop the note's
+      // title and caption out of its search row.
+      _reindex(noteId);
+    });
   }
 
   /// Persist AI OCR text alongside the photo note.
   @override
   void setOcrText(String noteId, String text) {
-    db.execute('UPDATE notes SET ocr_text = ? WHERE id = ?', [text, noteId]);
-    _reindex(noteId);
+    db.together(() {
+      db.execute('UPDATE notes SET ocr_text = ? WHERE id = ?', [text, noteId]);
+      _reindex(noteId);
+    });
   }
 
   @override
@@ -933,43 +956,47 @@ WHERE id = ?
 
   /// Optional post-capture caption on photo/voice/file (distinct from OCR/transcript).
   void setCaption(String noteId, String? caption) {
-    final now = DateTime.now().toUtc().toIso8601String();
-    final trimmed = caption?.trim();
-    final value = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
-    db.execute(
-      '''
+    db.together(() {
+      final now = DateTime.now().toUtc().toIso8601String();
+      final trimmed = caption?.trim();
+      final value = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+      db.execute(
+        '''
 UPDATE notes
 SET caption = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ? AND deleted_at IS NULL
 ''',
-      [value, now, if (localDeviceId != null) localDeviceId, noteId],
-    );
-    final note = getById(noteId);
-    final searchable = note?.searchableDerivedText;
-    if (searchable != null && searchable.isNotEmpty) {
-      _upsertFts(noteId, searchable);
-    } else if (note?.type != NoteType.text) {
-      db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
-    }
+        [value, now, if (localDeviceId != null) localDeviceId, noteId],
+      );
+      final note = getById(noteId);
+      final searchable = note?.searchableDerivedText;
+      if (searchable != null && searchable.isNotEmpty) {
+        _upsertFts(noteId, searchable);
+      } else if (note?.type != NoteType.text) {
+        db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
+      }
+    });
   }
 
   /// The note's optional headline. Empty clears it, so the same control both
   /// names a note and un-names it.
   void setTitle(String noteId, String? title) {
-    final now = DateTime.now().toUtc().toIso8601String();
-    final trimmed = title?.trim();
-    final value = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
-    db.execute(
-      '''
+    db.together(() {
+      final now = DateTime.now().toUtc().toIso8601String();
+      final trimmed = title?.trim();
+      final value = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+      db.execute(
+        '''
 UPDATE notes
 SET title = ?, updated_at = ?, rev = rev + 1, sync_state = 'pending'
     ${localDeviceId != null ? ', device_id = ?' : ''}
 WHERE id = ? AND deleted_at IS NULL
 ''',
-      [value, now, if (localDeviceId != null) localDeviceId, noteId],
-    );
-    _reindex(noteId);
+        [value, now, if (localDeviceId != null) localDeviceId, noteId],
+      );
+      _reindex(noteId);
+    });
   }
 
   /// A link note's fetched metadata, written together because they arrive
@@ -979,19 +1006,21 @@ WHERE id = ? AND deleted_at IS NULL
   /// argument leaves that field alone rather than clearing it — a page that
   /// stops answering should not erase what was read from it the first time.
   void setLinkMetadata(String noteId, {String? title, String? excerpt}) {
-    if (title == null && excerpt == null) return;
-    final now = DateTime.now().toUtc().toIso8601String();
-    db.execute(
-      '''
+    db.together(() {
+      if (title == null && excerpt == null) return;
+      final now = DateTime.now().toUtc().toIso8601String();
+      db.execute(
+        '''
 UPDATE notes
 SET title = COALESCE(?, title),
     link_excerpt = COALESCE(?, link_excerpt),
     updated_at = ?, rev = rev + 1, sync_state = 'pending'
 WHERE id = ? AND deleted_at IS NULL
 ''',
-      [title?.trim(), excerpt?.trim(), now, noteId],
-    );
-    _reindex(noteId);
+        [title?.trim(), excerpt?.trim(), now, noteId],
+      );
+      _reindex(noteId);
+    });
   }
 
   /// Ticks or unticks one line of a checklist, by position.
@@ -1298,9 +1327,7 @@ LIMIT ?
 ''',
       [DateTime.now().toUtc().toIso8601String(), limit],
     );
-    return rows
-        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
-        .toList();
+    return _withTags(rows);
   }
 
   @override
@@ -1326,9 +1353,7 @@ LIMIT ?
 ''',
       [limit],
     );
-    return rows
-        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
-        .toList();
+    return _withTags(rows);
   }
 
   /// Every stored vector, decoded. For export and tests only: a search goes
@@ -1366,16 +1391,24 @@ LIMIT ?
     if (filters.query.trim().isNotEmpty) return rankedSearch(filters);
 
     final (where, args) = _filterClause(filters);
+    // Nothing typed and nothing chosen is the whole library, which is what
+    // opening the search box or clearing it used to read — every note, and
+    // every note's tags one query at a time (PERF-04). With nothing to
+    // narrow by, the newest [rankedLimit] are as many as anyone scrolls; a
+    // chosen tag, type or date still lists everything it matches.
+    final unnarrowed =
+        filters.tagIds.isEmpty &&
+        filters.types.isEmpty &&
+        filters.createdFrom == null &&
+        filters.createdTo == null;
     final sql =
         '''
 SELECT n.* FROM notes n
 WHERE ${where.join(' AND ')}
 ORDER BY n.created_at DESC, n.rowid DESC
+${unnarrowed ? 'LIMIT $rankedLimit' : ''}
 ''';
-    final rows = db.select(sql, args);
-    return rows
-        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
-        .toList();
+    return _withTags(db.select(sql, args));
   }
 
   /// The WHERE terms for everything in [filters] except the query, on notes
@@ -1460,7 +1493,7 @@ WHERE instr(lower(f.content), lower(?)) > 0 AND $filter
 ORDER BY n.created_at DESC, n.rowid DESC
 LIMIT ?
 ''',
-        [q, ...args, limit],
+        [nexSearchFold(q), ...args, limit],
       )) {
         final id = row['id']! as String;
         if (seen.add(id)) ids.add(id);
@@ -1537,9 +1570,7 @@ LIMIT ?
 ''',
       [limit],
     );
-    return rows
-        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
-        .toList();
+    return _withTags(rows);
   }
 
   /// Export archive: JSON + Markdown + media (FR-6 / ADR-025).
@@ -1549,9 +1580,7 @@ LIMIT ?
   }) async {
     final notes = db.select('SELECT * FROM notes WHERE deleted_at IS NULL');
     final tags = listTags();
-    final noteModels = notes
-        .map((r) => Note.fromRow(r, tags: tagsForNote(r['id']! as String)))
-        .toList();
+    final noteModels = _withTags(notes);
 
     final out = File(outputPath);
     out.parent.createSync(recursive: true);
@@ -1559,10 +1588,34 @@ LIMIT ?
     final encoder = ZipFileEncoder()..create(partial.path);
     try {
       final jsonPayload = jsonEncode({
-        'version': 1,
+        'version': 2,
         'exported_at': DateTime.now().toUtc().toIso8601String(),
-        'notes': noteModels.map((n) => n.toJson()).toList(),
+        // Reminders ride on each note; [Note.toJson] leaves them out because
+        // the sync wire does, and an archive is not the sync wire. The app
+        // rebuilds alarms from the library, so a reminder in the archive is
+        // one the device it is imported on can honour.
+        'notes': [
+          for (final n in noteModels)
+            {
+              ...n.toJson(),
+              'due_at': n.dueAt?.toUtc().toIso8601String(),
+              'due_repeat': n.dueRepeat.wireName,
+            },
+        ],
         'tags': tags.map((t) => t.toJson()).toList(),
+        // Version 2 (1.92.2): the recurring items and the threads. Version 1
+        // archives carried notes and tags only, and a library moved to a new
+        // phone through one arrived without its rent, its insurance and its
+        // threads — silently, with the import reporting success.
+        'commitments': _rowsOf(
+          'SELECT * FROM commitments WHERE deleted_at IS NULL',
+        ),
+        'threads': _rowsOf('SELECT * FROM threads WHERE deleted_at IS NULL'),
+        'note_threads': _rowsOf('''
+SELECT nt.* FROM note_threads nt
+JOIN notes n ON n.id = nt.note_id AND n.deleted_at IS NULL
+JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
+'''),
       });
       final jsonBytes = utf8.encode(jsonPayload);
       encoder.addArchiveFile(
@@ -1724,7 +1777,39 @@ LIMIT ?
           // text note does, and it is only the annotation on top that stays
           // local until the wire grows a field for it.
           _restoreEnrichment(note);
+          if (note.dueAt case final dueAt?) {
+            db.execute(
+              'UPDATE notes SET due_at = ?, due_repeat = ? WHERE id = ?',
+              [
+                dueAt.toUtc().toIso8601String(),
+                note.dueRepeat.wireName,
+                note.id,
+              ],
+            );
+          }
           imported++;
+        }
+        // Recurring items and threads, with the same additive rule as notes:
+        // a row whose id is already here is left as it is.
+        _insertRowsIfAbsent('commitments', payload['commitments']);
+        _insertRowsIfAbsent('threads', payload['threads']);
+        for (final raw in (payload['note_threads'] as List? ?? const [])) {
+          final row = raw as Map<String, dynamic>;
+          db.execute(
+            '''
+INSERT OR IGNORE INTO note_threads (note_id, thread_id, added_at)
+SELECT ?, ?, ?
+WHERE EXISTS (SELECT 1 FROM notes WHERE id = ?)
+  AND EXISTS (SELECT 1 FROM threads WHERE id = ?)
+''',
+            [
+              row['note_id'],
+              row['thread_id'],
+              row['added_at'],
+              row['note_id'],
+              row['thread_id'],
+            ],
+          );
         }
         db.execute('COMMIT');
       } catch (_) {
@@ -1734,6 +1819,36 @@ LIMIT ?
       return ImportResult(imported: imported, skipped: skipped);
     } finally {
       input.closeSync();
+    }
+  }
+
+  /// Every row [sql] returns, as plain maps for an export archive.
+  List<Map<String, Object?>> _rowsOf(String sql) => [
+    for (final row in db.select(sql))
+      {for (final column in row.keys) column: row[column]},
+  ];
+
+  /// Inserts the archived [rows] into [table], skipping ids already here.
+  ///
+  /// Only the columns this version's table has are written, so an archive
+  /// from a newer version with an extra column still imports, and one from
+  /// an older version leaves the newer columns at their defaults.
+  void _insertRowsIfAbsent(String table, Object? rows) {
+    if (rows is! List || rows.isEmpty) return;
+    final columns = {
+      for (final info in db.select('PRAGMA table_info($table)'))
+        info['name']! as String,
+    };
+    for (final raw in rows) {
+      final row = (raw as Map<String, dynamic>)
+        ..removeWhere((key, _) => !columns.contains(key));
+      if (row['id'] is! String) continue;
+      final names = row.keys.toList();
+      db.execute(
+        'INSERT OR IGNORE INTO $table (${names.join(', ')}) '
+        'VALUES (${List.filled(names.length, '?').join(', ')})',
+        [for (final name in names) row[name]],
+      );
     }
   }
 
@@ -1831,13 +1946,16 @@ WHERE id = ?
   void _upsertFts(String noteId, String content) {
     db.execute('DELETE FROM notes_fts WHERE note_id = ?', [noteId]);
     if (content.isEmpty) return;
+    // Folded, so every spelling of a word is one token
+    // (see [nexSearchIndexText]).
     db.execute('INSERT INTO notes_fts (note_id, content) VALUES (?, ?)', [
       noteId,
-      content,
+      nexSearchIndexText(content),
     ]);
   }
 
-  /// Build an FTS5 MATCH query: quote tokens so ZWNJ-split Persian words match,
+  /// Build an FTS5 MATCH query: fold it as the index is folded
+  /// ([nexSearchFold]), quote tokens so no character is read as FTS syntax,
   /// and make the final token a prefix so results narrow as the user types.
   ///
   /// Every token used to be an exact match, which meant nothing was found until
@@ -1846,7 +1964,9 @@ WHERE id = ?
   /// user finished typing and meant literally, while the trailing one is still
   /// mid-keystroke.
   String _ftsQuery(String raw) {
-    final cleaned = raw.replaceAll('"', ' ').replaceAll('*', ' ').trim();
+    final cleaned = nexSearchFold(
+      raw,
+    ).replaceAll('"', ' ').replaceAll('*', ' ').trim();
     if (cleaned.isEmpty) return '""';
     final tokens = cleaned
         .split(RegExp(r'\s+'))

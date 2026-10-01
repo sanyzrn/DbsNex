@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v1.92.2
+
+- **Persian search finds a word however it was spelled.** Arabic ي and ك (common in old Windows text files and pasted text), vowel marks, the stretching ـ, a missing or extra half-space (کتابها / کتاب‌ها) and Persian, Arabic or Latin digits no longer hide a note from search. Your library's search index is updated once, on the first launch.
+- **Export now carries your reminders, recurring items and threads.** Before, an export moved to a new phone arrived without them.
+- **A voice note that fails to save says so** and offers Retry, instead of disappearing.
+- **Faster with a large library.** Opening the search box no longer reads every note, and the timeline updates faster after each change.
+- An edit cut short by the app closing can no longer leave search showing a note's old text.
+
 ## v1.92.1
 
 - **The sponsor card keeps its size.** Changing the card size in Appearance no longer stretches or squeezes it, and its words no longer spill past its bottom edge.

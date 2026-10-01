@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:nex_core/nex_core.dart' show stableUuidV5;
+import 'package:nex_core/nex_core.dart' show nexSearchIndexText, stableUuidV5;
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
@@ -210,6 +210,17 @@ CREATE VIRTUAL TABLE IF NOT EXISTS $name USING fts5(
       'CREATE INDEX IF NOT EXISTS idx_notes_sync_state ON notes(sync_state);',
     );
     db.execute('CREATE INDEX IF NOT EXISTS idx_notes_due_at ON notes(due_at);');
+    // The timeline's own order (PERF-05): live notes, pinned first, then the
+    // most recently changed. Without it every timeline read — after every
+    // capture, edit, pin and note close — scanned all live rows and sorted
+    // them, which at 50,000 notes is the read the next capture queued behind.
+    // `deleted_at` leads so the `IS NULL` filter is the index's own prefix;
+    // read backwards, the rest is exactly the ORDER BY, rowid tie-break
+    // included, and the LIMIT stops after one page.
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_notes_timeline ON notes('
+      'deleted_at, (pinned_at IS NOT NULL), pinned_at, updated_at);',
+    );
 
     // Tags get the outbox notes have always had.
     //
@@ -364,6 +375,43 @@ CREATE TABLE IF NOT EXISTS memory_records (
     );
 
     _seedStarterTags();
+    _foldSearchIndex();
+  }
+
+  /// Rewrites the search index in folded form, once (1.92.2).
+  ///
+  /// Writers index [nexSearchIndexText] from 1.92.2 on, and queries are
+  /// folded to match it. A library indexed before that still holds rows in
+  /// their original spelling, which a folded query would no longer match, so
+  /// those rows are folded in place, in one transaction, with the fold
+  /// registered as an SQL function for the one statement.
+  void _foldSearchIndex() {
+    final done = db.select(
+      "SELECT value FROM nex_meta WHERE key = 'search_index_folded'",
+    );
+    if (done.isNotEmpty) return;
+    db.createFunction(
+      functionName: 'nex_search_fold',
+      argumentCount: const AllowedArgumentCount(1),
+      deterministic: true,
+      function: (args) {
+        final value = args[0];
+        return value is String ? nexSearchIndexText(value) : value;
+      },
+    );
+    db.beginImmediate();
+    try {
+      db.execute('UPDATE notes_fts SET content = nex_search_fold(content)');
+      db.execute(
+        "INSERT OR REPLACE INTO nex_meta (key, value) "
+        "VALUES ('search_index_folded', ?)",
+        [DateTime.now().toUtc().toIso8601String()],
+      );
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    }
   }
 
   /// Puts the starter tags in the tag table, once.

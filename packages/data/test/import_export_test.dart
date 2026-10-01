@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:nex_core/nex_core.dart'
+    show NexCadence, NexCommitment, NoteRepeat;
 import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -50,6 +52,54 @@ void main() {
     outputPath: p.join(tmp.path, 'export.zip'),
     mediaRoot: p.join(tmp.path, 'media'),
   );
+
+  test('reminders, recurring items and threads survive the round trip '
+      '(DATA-01)', () async {
+    final note = sourceRepo.insert(text('call the bank'));
+    final due = DateTime.utc(2030, 5, 1, 9);
+    sourceRepo.setDueAt(note.id, due, repeat: NoteRepeat.weekly);
+    final threads = SqliteThreadRepository(source, sourceRepo);
+    final thread = threads.create('Bank', noteIds: [note.id]);
+    final now = DateTime.now().toUtc();
+    final rent = SqliteCommitmentRepository(source).save(
+      NexCommitment(
+        id: newUuidV7(),
+        title: 'Rent',
+        cadence: NexCadence.months,
+        every: 1,
+        dueAt: DateTime.utc(2030, 6, 1, 9),
+        createdAt: now,
+        updatedAt: now,
+        details: const {'amount': '12000000'},
+      ),
+    );
+
+    final archive = await exportSource();
+    final (db, target) = freshTarget('target-v2');
+    addTearDown(db.close);
+    await target.importArchive(
+      archiveFile: archive,
+      mediaRoot: p.join(tmp.path, 'target-media'),
+    );
+
+    final restored = target.getById(note.id)!;
+    expect(restored.dueAt, due);
+    expect(restored.dueRepeat, NoteRepeat.weekly);
+    final commitment = SqliteCommitmentRepository(db).getById(rent.id)!;
+    expect(commitment.title, 'Rent');
+    expect(commitment.details['amount'], '12000000');
+    final targetThreads = SqliteThreadRepository(db, target);
+    expect(targetThreads.forNote(note.id).map((t) => t.id), [thread.id]);
+
+    // Importing the same archive again changes nothing.
+    final again = await target.importArchive(
+      archiveFile: archive,
+      mediaRoot: p.join(tmp.path, 'target-media'),
+    );
+    expect(again.imported, 0);
+    expect(SqliteCommitmentRepository(db).list(), hasLength(1));
+    expect(targetThreads.list(), hasLength(1));
+  });
 
   test('notes, tags and enrichment survive the round trip', () async {
     final note = sourceRepo.insert(text('the thing I wrote down'));

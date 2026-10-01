@@ -291,7 +291,7 @@ Each entry follows a lightweight ADR format: **Context → Decision → Rational
 - **Decision:** Use FTS5's `unicode61` tokenizer with explicit `remove_diacritics` and `tokenchars`/`separators` tuned for Persian script (Persian is space-delimited, unlike CJK, so word-based tokenization is viable, but Persian-specific characters like ZWNJ (zero-width non-joiner) and diacritics need explicit handling to avoid false-negative matches). A dedicated search-correctness test suite covering Persian sample content is added to the Phase 1 test plan, alongside the existing English-only test cases.
 - **Rationale:** This is a cheap, specific fix once named, and expensive to debug later as a vague "search feels unreliable" bug report once real Persian content exists in the wild.
 - **Alternatives Considered:** Bundle an ICU tokenizer for broader script coverage (CJK, etc.) — deferred, not rejected; not needed for Persian specifically (which is space-delimited), and adds a build dependency not currently justified until a CJK language is actually on the roadmap.
-- **Status:** Accepted, v1.
+- **Status:** Accepted, v1. **Amended in 1.92.2:** `unicode61` folds case and Latin diacritics but not the spellings Persian text actually arrives in, so both the indexed text and the query now pass through one fold (`nexSearchFold` in `packages/core`): Arabic ي/ى/ك to Persian ی/ک, harakat and tatweel removed, every digit set to Latin digits. A word containing a ZWNJ is indexed twice, split and joined, so «کتاب» and «کتابها» both find «کتاب‌ها». The note's own text is never changed; existing indexes are folded once on open.
 
 ---
 
