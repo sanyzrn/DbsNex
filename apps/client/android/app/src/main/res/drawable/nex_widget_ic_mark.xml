@@ -4,7 +4,7 @@
   the swoosh and the dot in the accent. Vectors in a widget resolve colors
   from this app's resources, so the launcher inflating this layout still
   picks up the widget theme (values-night, values-v31).
-  Drawn from docs/nex_logo_type.svg, cropped to the letters.
+  Drawn from docs/brand/nex_logo_type.svg, cropped to the letters.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="46dp"
