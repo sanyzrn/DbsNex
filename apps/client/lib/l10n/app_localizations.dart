@@ -3800,6 +3800,12 @@ abstract class AppLocalizations {
   /// **'Tick this item off?'**
   String get assistantConfirmCheck;
 
+  /// The confirmation for the assistant removing the tick from a checklist item.
+  ///
+  /// In en, this message translates to:
+  /// **'Untick this item?'**
+  String get assistantConfirmUncheck;
+
   /// Confirmation for an assistant-proposed recurring item
   ///
   /// In en, this message translates to:
@@ -5869,6 +5875,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy the recovery code'**
   String get recoveryCodeCopy;
+
+  /// The name of the whole-app palette setting, on the assistant's confirmation card.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour palette'**
+  String get assistantSettingPalette;
+
+  /// A switch turned on, on the assistant's confirmation card.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get assistantValueOn;
+
+  /// A switch turned off, on the assistant's confirmation card.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get assistantValueOff;
+
+  /// Warning on the assistant's confirmation card when a one-off reminder's time is already in the past.
+  ///
+  /// In en, this message translates to:
+  /// **'this time has passed, so it will not ring'**
+  String get assistantReminderPast;
+
+  /// Shown after the user confirmed a one-off reminder whose time had already passed.
+  ///
+  /// In en, this message translates to:
+  /// **'That time has already passed, so no reminder was set. Ask again with a time still ahead.'**
+  String get assistantReminderPastFailed;
+
+  /// After the first few note names on the assistant's confirmation card.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{and 1 more} other{and {count} more}}'**
+  String assistantMoreNotes(int count);
+
+  /// Confirmation for a search the assistant wants to run that the user did not ask for in words.
+  ///
+  /// In en, this message translates to:
+  /// **'Search your notes for this?'**
+  String get assistantConfirmSearch;
 }
 
 class _AppLocalizationsDelegate

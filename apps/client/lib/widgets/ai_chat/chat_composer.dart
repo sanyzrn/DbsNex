@@ -115,12 +115,17 @@ class _ActionCard extends StatelessWidget {
     required this.solar,
     required this.persian,
     required this.actions,
+    required this.notes,
     required this.onApply,
     required this.onDismiss,
   });
 
   final bool solar, persian;
   final List<AssistantAction> actions;
+
+  /// The notes this conversation has seen, by lowercased id — where a card
+  /// finds the words to name the note an action changes.
+  final Map<String, Note> notes;
   final VoidCallback onApply;
   final VoidCallback onDismiss;
 
@@ -133,7 +138,10 @@ class _ActionCard extends StatelessWidget {
         AssistantActionKind.tag => l10n.assistantConfirmTags,
         AssistantActionKind.merge => l10n.assistantConfirmMerge,
         AssistantActionKind.toChecklist => l10n.assistantConfirmChecklist,
-        AssistantActionKind.check => l10n.assistantConfirmCheck,
+        AssistantActionKind.check =>
+          action.flag == false
+              ? l10n.assistantConfirmUncheck
+              : l10n.assistantConfirmCheck,
         AssistantActionKind.setting => l10n.assistantConfirmSetting,
         // Setting one and clearing one are different enough to be worth
         // different words: "stop reminding me" confirmed with "Set a
@@ -158,93 +166,176 @@ class _ActionCard extends StatelessWidget {
         AssistantActionKind.commitmentDelete =>
           l10n.assistantConfirmCommitmentDelete,
         AssistantActionKind.thread => l10n.assistantConfirmThread,
-        // Never shown: a search is carried out on arrival, not confirmed.
-        AssistantActionKind.search || AssistantActionKind.threads => '',
+        // Shown only for a search the person's words did not ask for; the
+        // rest run on arrival.
+        AssistantActionKind.search => l10n.assistantConfirmSearch,
+        AssistantActionKind.threads => '',
       };
 
   /// What the action would actually do, in the user's own words where there
   /// are any — a confirmation that does not show the text being written is
   /// asking someone to approve something they cannot see.
-  String _detail(AssistantAction action) => switch (action.kind) {
-    // A new note shows its reminder too: approving one without seeing when
-    // it rings is approving an alarm blind.
-    AssistantActionKind.create => [
-      action.text ?? '',
-      if (action.at case final at?)
-        '⏰ ${_whenLabel(at)}${action.repeat != NoteRepeat.once ? ' · ${action.repeat.wireName}' : ''}',
-    ].join('\n'),
-    AssistantActionKind.edit ||
-    AssistantActionKind.merge ||
-    AssistantActionKind.toChecklist => action.text ?? '',
-    AssistantActionKind.tag => [
-      for (final tag in action.addTags) '+$tag',
-      for (final tag in action.removeTags) '−$tag',
-    ].join('  '),
-    AssistantActionKind.setting =>
-      '${action.settingKey} → ${action.settingValue}',
-    // The date, spelled out. A reminder card that did not show *when* would
-    // be asking somebody to approve an alarm they cannot see the time of,
-    // which is the one thing about a reminder that matters.
-    AssistantActionKind.remind =>
-      action.at == null
-          ? ''
-          : [
-              _whenLabel(action.at!),
-              if (action.repeat != NoteRepeat.once)
-                '· ${action.repeat.wireName}',
-            ].join(' '),
-    AssistantActionKind.title => action.text ?? '',
-    AssistantActionKind.renameTag => '${action.tagName} → ${action.text}',
-    AssistantActionKind.tagColor =>
-      '${action.tagName} → ${action.text ?? 'default'}',
-    // The cadence and the date, because those are the whole of what is being
-    // agreed to. "Set up a recurring item?" with neither is a card asking
-    // somebody to approve something they cannot see.
-    AssistantActionKind.commitment => [
-      action.commitmentName ?? '',
-      if (action.cadence case final cadence?)
-        '· ${_cadenceWire(cadence, action.every ?? 1)}',
-      if (action.at case final at?) '· ${_whenLabel(at)}',
-    ].join(' '),
-    AssistantActionKind.commitmentMet ||
-    AssistantActionKind.commitmentDelete => action.commitmentName ?? '',
-    // The thread's name and how many notes go into it.
-    AssistantActionKind.thread =>
-      '${action.threadName} · ${action.noteIds.length}',
-    AssistantActionKind.pin ||
-    AssistantActionKind.restore ||
-    AssistantActionKind.delete ||
-    AssistantActionKind.check ||
-    AssistantActionKind.search ||
-    AssistantActionKind.threads => '',
-  };
+  ///
+  /// Every fragment in the reader's language (UX-01, LOC-09): this card is
+  /// the one place the app asks to be trusted with a change to someone's own
+  /// notes, and it used to print `text_size → large` and `every 8 hours`
+  /// under a Persian question. The note an action touches is not here; it is
+  /// [_noteLabels]' job, so that a run of the same change can name each note.
+  String _detail(AppLocalizations l10n, AssistantAction action) {
+    String when(DateTime at, NoteRepeat repeat) => [
+      '⏰ ${_whenLabel(at)}',
+      if (repeat != NoteRepeat.once) nexRepeatLabel(l10n, repeat),
+      // A one-off time already gone rings never: say so here, where it can
+      // still be declined (AI-03).
+      if (repeat == NoteRepeat.once && !at.isAfter(DateTime.now()))
+        l10n.assistantReminderPast,
+    ].join(' · ');
+    return switch (action.kind) {
+      // A new note shows its reminder too: approving one without seeing
+      // when it rings is approving an alarm blind.
+      AssistantActionKind.create => [
+        action.text ?? action.items.join('\n'),
+        if (action.at case final at?) when(at, action.repeat),
+      ].where((line) => line.isNotEmpty).join('\n'),
+      AssistantActionKind.edit ||
+      AssistantActionKind.merge ||
+      AssistantActionKind.toChecklist => action.text ?? '',
+      AssistantActionKind.tag => [
+        for (final tag in action.addTags) '+$tag',
+        for (final tag in action.removeTags) '−$tag',
+      ].join('  '),
+      AssistantActionKind.setting =>
+        '${_settingName(l10n, action.settingKey)}: '
+            '${_settingValue(l10n, action.settingKey, action.settingValue)}',
+      // The date, spelled out. A reminder card that did not show *when*
+      // would be asking somebody to approve an alarm they cannot see the
+      // time of, which is the one thing about a reminder that matters.
+      AssistantActionKind.remind =>
+        action.at == null ? '' : when(action.at!, action.repeat),
+      AssistantActionKind.title => action.text ?? '',
+      AssistantActionKind.renameTag => '${action.tagName} → ${action.text}',
+      AssistantActionKind.tagColor =>
+        '${action.tagName} → ${action.text ?? l10n.defaultColor}',
+      // The cadence and the date, because those are the whole of what is
+      // being agreed to.
+      AssistantActionKind.commitment => [
+        action.commitmentName ?? '',
+        if (action.cadence case final cadence?)
+          nexCadenceLabel(l10n, cadence, action.every ?? 1),
+        if (action.at case final at?) _whenLabel(at),
+      ].where((part) => part.isNotEmpty).join(' · '),
+      AssistantActionKind.commitmentMet ||
+      AssistantActionKind.commitmentDelete => action.commitmentName ?? '',
+      AssistantActionKind.thread => action.threadName ?? '',
+      AssistantActionKind.search => _quoted(action.text ?? ''),
+      AssistantActionKind.pin ||
+      AssistantActionKind.restore ||
+      AssistantActionKind.delete ||
+      AssistantActionKind.check ||
+      AssistantActionKind.threads => '',
+    };
+  }
 
-  /// The card's lines: each action's question and detail, with a run of the
-  /// same change to several notes folded into one line and its count.
-  List<(String, String, int)> _lines(AppLocalizations l10n) {
-    final lines = <(String, String, int)>[];
+  /// The notes [action] changes, in a few words each.
+  ///
+  /// A delete used to say "Move this note to Recently Deleted? ×12" and name
+  /// none of the twelve (SEC-02, AI-08) — the most destructive change asking
+  /// for the most trust per note. A note the conversation never showed has
+  /// no words to give, and is counted instead.
+  List<String> _noteLabels(AppLocalizations l10n, AssistantAction action) {
+    final ids = action.kind == AssistantActionKind.create
+        ? const <String>[]
+        : [?action.noteId, ...action.noteIds];
+    return [
+      for (final id in ids)
+        if (notes[id.toLowerCase()] case final note?)
+          _Grounding._label(note, l10n),
+    ];
+  }
+
+  /// The card's lines: each question and detail, with the notes a run of the
+  /// same change touches gathered under it.
+  List<({String question, String detail, int count, List<String> notes})>
+  _lines(AppLocalizations l10n) {
+    final lines =
+        <({String question, String detail, int count, List<String> notes})>[];
     for (final action in actions) {
       final question = _question(l10n, action);
-      final detail = _detail(action);
+      final detail = _detail(l10n, action);
+      final labels = _noteLabels(l10n, action);
       if (lines.isNotEmpty &&
-          lines.last.$1 == question &&
-          lines.last.$2 == detail) {
-        final (q, d, count) = lines.removeLast();
-        lines.add((q, d, count + 1));
+          lines.last.question == question &&
+          lines.last.detail == detail) {
+        final last = lines.removeLast();
+        lines.add((
+          question: question,
+          detail: detail,
+          count: last.count + 1,
+          notes: [...last.notes, ...labels],
+        ));
       } else {
-        lines.add((question, detail, 1));
+        lines.add((
+          question: question,
+          detail: detail,
+          count: 1,
+          notes: labels,
+        ));
       }
     }
     return lines;
   }
 
-  /// "every 8 hours", for the confirmation card.
-  ///
-  /// Deliberately not the localised [nexCadenceLabel]: this sits next to a
-  /// raw date in the same line, and the card's job here is to show exactly
-  /// what was asked for rather than to read well.
-  static String _cadenceWire(NexCadence cadence, int every) =>
-      every == 1 ? 'every ${cadence.name}' : 'every $every ${cadence.name}';
+  /// The settings a conversation may change, by the names their rows have.
+  static String _settingName(AppLocalizations l10n, String? key) =>
+      switch (key) {
+        'theme' => l10n.theme,
+        'language' => l10n.language,
+        'ai_language' => l10n.aiOutputLanguage,
+        'text_size' => l10n.uiScale,
+        'palette' => l10n.assistantSettingPalette,
+        'accent' => l10n.accentColorSetting,
+        'haptics' => l10n.haptics,
+        'show_greeting' => l10n.layoutGreeting,
+        'show_digest' => l10n.layoutDaySummary,
+        'show_search' => l10n.layoutSearchField,
+        'show_tags' => l10n.layoutTagRow,
+        'daily_nudge' => l10n.nudgeTitle,
+        'daily_nudge_time' => l10n.nudgeTime,
+        _ => key ?? '',
+      };
+
+  /// A setting's new value, in words where the app has words for it.
+  String _settingValue(AppLocalizations l10n, String? key, String? value) {
+    final v = value ?? '';
+    switch (v) {
+      case 'on' || 'true' || 'yes':
+        return l10n.assistantValueOn;
+      case 'off' || 'false' || 'no':
+        return l10n.assistantValueOff;
+    }
+    return switch ((key, v)) {
+      ('theme', 'light') => l10n.themeLight,
+      ('theme', 'dark') => l10n.themeDark,
+      ('theme', 'system') => l10n.themeSystem,
+      ('language' || 'ai_language', 'en') => l10n.aiOutputLanguageEnglish,
+      ('language' || 'ai_language', 'fa') => l10n.aiOutputLanguagePersian,
+      ('language', 'system') => l10n.languageSystem,
+      ('ai_language', 'auto') => l10n.aiOutputLanguageAuto,
+      ('text_size', 'small') => l10n.uiScaleSmall,
+      ('text_size', 'default' || 'normal' || 'medium') => l10n.uiScaleDefault,
+      ('text_size', 'large') => l10n.uiScaleLarge,
+      ('text_size', 'larger' || 'largest') => l10n.uiScaleLarger,
+      ('accent', 'default') => l10n.defaultColor,
+      ('palette', _) =>
+        [
+              for (final preset in nexThemePresets)
+                if (preset.id == v) persian ? preset.fa : preset.en,
+            ].firstOrNull ??
+            v,
+      ('daily_nudge_time', _) => nexDigits(v, persian: persian),
+      _ => v,
+    };
+  }
 
   /// A due date as `2026-03-14 09:00`.
   ///
@@ -253,6 +344,21 @@ class _ActionCard extends StatelessWidget {
   /// is exactly the word that was ambiguous enough to need confirming.
   String _whenLabel(DateTime when) =>
       nexDisplayDate(when, solar: solar, persian: persian, time: true);
+
+  /// [text] in the quotation marks of the reader's language.
+  String _quoted(String text) => persian ? '«$text»' : '“$text”';
+
+  /// "a", "b" and "c", then "and 9 more" — enough to recognise, never a list
+  /// that pushes the button off the sheet.
+  String _noteList(AppLocalizations l10n, List<String> labels) {
+    const shown = 3;
+    String clip(String label) =>
+        label.length > 40 ? '${label.substring(0, 39)}…' : label;
+    return [
+      for (final label in labels.take(shown)) _quoted(clip(label)),
+      if (labels.length > shown) l10n.assistantMoreNotes(labels.length - shown),
+    ].join(persian ? '، ' : ', ');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -293,35 +399,50 @@ class _ActionCard extends StatelessWidget {
             // "tag these twelve as work" would otherwise be twelve identical
             // lines pushing the button off the sheet — and a set still too
             // long for the sheet scrolls rather than overflowing it.
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.3,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final (question, detail, count) in _lines(l10n)) ...[
-                      Text(
-                        count > 1 ? '$question  ×$count' : question,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (detail.isNotEmpty) ...[
-                        const SizedBox(height: NexSpacing.xs),
+            Flexible(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(context).height * 0.3,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final line in _lines(l10n)) ...[
                         Text(
-                          detail,
-                          style: theme.textTheme.bodySmall,
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                          textDirection: nexDirectionOf(detail),
-                          textAlign: TextAlign.start,
+                          line.count > 1
+                              ? '${line.question}  '
+                                    '×${nexDigits('${line.count}', persian: persian)}'
+                              : line.question,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
+                        if (line.notes.isNotEmpty) ...[
+                          const SizedBox(height: NexSpacing.xs),
+                          Text(
+                            _noteList(l10n, line.notes),
+                            style: theme.textTheme.bodySmall,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        if (line.detail case final detail
+                            when detail.isNotEmpty) ...[
+                          const SizedBox(height: NexSpacing.xs),
+                          Text(
+                            detail,
+                            style: theme.textTheme.bodySmall,
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
+                            textDirection: nexDirectionOf(detail),
+                            textAlign: TextAlign.start,
+                          ),
+                        ],
+                        const SizedBox(height: NexSpacing.sm),
                       ],
-                      const SizedBox(height: NexSpacing.sm),
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

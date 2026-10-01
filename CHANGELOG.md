@@ -41,6 +41,12 @@ Working convention:
 - **A voice note that fails to save says so** and offers Retry, instead of disappearing.
 - **Faster with a large library.** Opening the search box no longer reads every note, and the timeline updates faster after each change.
 - An edit cut short by the app closing can no longer leave search showing a note's old text.
+- **The assistant works again with Google and Claude out of the box.** The default models had been retired by their providers, so choosing Google Gemini with a working key failed on every request. Gemini now uses a current model for answers and for meaning search, and Claude a current Sonnet.
+- **The assistant's confirmation card names each note it will change**, so approving "delete these" shows which ones, and it reads fully in Persian: setting names, recurring cadences, repeats and counts.
+- **"Untick" unticks.** Asking the assistant to remove a tick used to flip the item whatever it was.
+- **A reminder time that has already passed is flagged on the card** and is not reported as set.
+- **Safer with what your notes say.** Text inside notes, photos and saved pages is treated as content, never as instructions to the assistant, and a search for something you did not ask about waits for your confirmation.
+- **Photos with no text no longer hold up reading the rest.** One picture without words stopped text recognition for every older photo and voice note behind it.
 
 ## v1.92.1
 

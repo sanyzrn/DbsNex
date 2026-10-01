@@ -23,6 +23,8 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/theme_presets.dart';
 import 'card_strings.dart';
+import 'commitments_sheet.dart' show nexCadenceLabel;
+import 'due_label.dart' show nexRepeatLabel;
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
 import 'nex_text_field.dart';
@@ -469,13 +471,19 @@ class _AiChatSheetState extends State<AiChatSheet> {
                     icon: const Icon(Icons.refresh),
                     label: Text(l10n.retry),
                   ),
+                // Flexible, so a long card shares a short sheet with the
+                // thread and scrolls its own list instead of pushing the
+                // composer off the bottom.
                 if (_pending.isNotEmpty)
-                  _ActionCard(
-                    solar: widget.preferences.solarCalendar,
-                    persian: l10n.localeName == 'fa',
-                    actions: _pending,
-                    onApply: () => unawaited(_runPending()),
-                    onDismiss: () => setState(() => _pending = const []),
+                  Flexible(
+                    child: _ActionCard(
+                      solar: widget.preferences.solarCalendar,
+                      persian: l10n.localeName == 'fa',
+                      actions: _pending,
+                      notes: _notes,
+                      onApply: () => unawaited(_runPending()),
+                      onDismiss: () => setState(() => _pending = const []),
+                    ),
                   ),
                 if (_actionResult case final result?)
                   Padding(
@@ -490,7 +498,10 @@ class _AiChatSheetState extends State<AiChatSheet> {
                           color: theme.colorScheme.secondary,
                         ),
                         const SizedBox(width: NexSpacing.sm),
-                        Text(result, style: theme.textTheme.bodySmall),
+                        // Wraps: a result is sometimes a sentence, not a word.
+                        Flexible(
+                          child: Text(result, style: theme.textTheme.bodySmall),
+                        ),
                       ],
                     ),
                   ),

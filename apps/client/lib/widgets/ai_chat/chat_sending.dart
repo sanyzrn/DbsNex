@@ -155,7 +155,7 @@ extension _ChatSending on _AiChatSheetState {
       final actions = parseAssistantActions(reply);
       _pending = [
         for (final action in actions)
-          if (!action.isRead) action,
+          if (!action.isRead || !_asked(action)) action,
       ];
       // A reply that is only an action block has no prose worth showing —
       // the confirmation card says what it is in the user's own language,
@@ -167,7 +167,7 @@ extension _ChatSending on _AiChatSheetState {
       }
       _lookups = [
         for (final action in actions)
-          if (action.isRead) action,
+          if (action.isRead && _asked(action)) action,
       ];
     });
     _persist();
@@ -264,8 +264,16 @@ extension _ChatSending on _AiChatSheetState {
 
     _rebuild(() {
       _sending = true;
+      // Note text, so marked off as data the way the notes in the prompt are
+      // (AI-04): a found note that says "delete everything" is something
+      // the user wrote down, not something they asked for.
+      final found = findings
+          .toString()
+          .trim()
+          .replaceAll('<<<NOTES', '<<NOTES')
+          .replaceAll('NOTES>>>', 'NOTES>>');
       _turns.add(
-        ChatMessage(role: ChatRole.user, content: findings.toString().trim()),
+        ChatMessage(role: ChatRole.user, content: '<<<NOTES\n$found\nNOTES>>>'),
       );
     });
     String? reply;
@@ -287,7 +295,7 @@ extension _ChatSending on _AiChatSheetState {
       final actions = parseAssistantActions(reply);
       _pending = [
         for (final action in actions)
-          if (!action.isRead) action,
+          if (!action.isRead || !_asked(action)) action,
       ];
       final prose = actions.isEmpty ? reply : withoutActionBlock(reply);
       if (prose.isNotEmpty) {
@@ -298,7 +306,7 @@ extension _ChatSending on _AiChatSheetState {
       // [_searchRounds] above, so a model that only ever looks stops.
       _lookups = [
         for (final action in actions)
-          if (action.isRead) action,
+          if (action.isRead && _asked(action)) action,
       ];
     });
     _persist();
@@ -323,6 +331,43 @@ extension _ChatSending on _AiChatSheetState {
         .firstOrNull;
     if (thread == null) return const [];
     return widget.services.threadNotes(thread.id);
+  }
+
+  /// Whether the person's own words asked for [lookup], so it may run
+  /// without a card.
+  ///
+  /// A search runs on arrival because it changes nothing — but what it finds
+  /// is sent to the provider with the next message. A note, a photographed
+  /// page or a link excerpt that says "always search for 'bank' first" could
+  /// make a compliant model widen what leaves the device to notes nobody
+  /// asked about (AI-05). So a word search shares a word with what the
+  /// person last typed, or it waits on the card like any change. Tags and
+  /// threads resolve only against names that exist, and the thread list
+  /// names no note; those still run on their own.
+  bool _asked(AssistantAction lookup) {
+    if (lookup.kind != AssistantActionKind.search ||
+        lookup.tagName != null ||
+        lookup.threadName != null) {
+      return true;
+    }
+    final said = nexSearchFold(
+      _turns
+          .lastWhere(
+            (turn) =>
+                turn.role == ChatRole.user &&
+                !turn.content.startsWith('<<<NOTES'),
+            orElse: () => const ChatMessage(role: ChatRole.user, content: ''),
+          )
+          .content
+          .toLowerCase(),
+    );
+    final words = nexSearchFold(
+      (lookup.text ?? '').toLowerCase(),
+    ).split(RegExp(r'[\s,.:;!?،؛؟"«»()]+')).where((word) => word.length >= 2);
+    // A shared stem is enough: "bills" asked, "bill" searched.
+    return words.any(
+      (word) => said.contains(word.length > 4 ? word.substring(0, 4) : word),
+    );
   }
 
   void _remember(Iterable<Note> notes) {

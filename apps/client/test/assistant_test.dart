@@ -526,6 +526,31 @@ Sure, here you go:
       }
     });
 
+    test('an untagged fence is quoted material, never an action (AI-06)', () {
+      expect(
+        parseAssistantActions(
+          'Your note says:\n```\n{"action":"delete","id":"a"}\n```',
+        ),
+        isEmpty,
+      );
+      // A tagged block still acts, and a bare object outside any fence too.
+      expect(
+        parseAssistantActions('```nex\n{"action":"delete","id":"a"}\n```'),
+        hasLength(1),
+      );
+      expect(
+        parseAssistantActions('Sure: {"action":"delete","id":"a"}'),
+        hasLength(1),
+      );
+    });
+
+    test('"done" sets the direction of a tick (AI-02)', () {
+      final action = parseAssistantActions(
+        '```nex\n{"action":"check","id":"a","index":0,"done":false}\n```',
+      ).single;
+      expect(action.flag, isFalse);
+    });
+
     test('prose around a block survives without the block', () {
       const reply =
           'Deleting that one.\n```nex\n{"action":"delete","id":"a"}\n```';
@@ -1109,6 +1134,121 @@ Sure, here you go:
       await tester.pumpAndSettle();
 
       expect(await services.getById(note.id), isNull);
+    });
+
+    Future<void> ask(WidgetTester tester, String text) async {
+      await tester.enterText(find.byType(TextField).last, text);
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a delete names the note it deletes (SEC-02)', (tester) async {
+      final note = (await services.captureText('the cooler is broken'))!;
+      await tester.pumpAndSettle();
+      await openSheet(
+        tester,
+        client: replying('```nex\n{"action":"delete","id":"${note.id}"}\n```'),
+      );
+      await ask(tester, 'delete the cooler note');
+
+      expect(find.textContaining('“the cooler is broken”'), findsOneWidget);
+    });
+
+    testWidgets('"untick" unticks, under a card that says so (AI-02)', (
+      tester,
+    ) async {
+      final list = (await services.captureChecklist(const [
+        ChecklistItem(text: 'milk', done: true),
+        ChecklistItem(text: 'eggs', done: false),
+      ]))!;
+      await tester.pumpAndSettle();
+      await openSheet(
+        tester,
+        client: replying(
+          '```nex\n{"action":"check","id":"${list.id}","index":0,'
+          '"done":false}\n```',
+        ),
+      );
+      await ask(tester, 'untick the milk');
+      expect(find.text('Untick this item?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Do it'));
+      await tester.pumpAndSettle();
+      expect(
+        parseChecklist((await services.getById(list.id))!.content).first.done,
+        isFalse,
+      );
+
+      // Asked again, it stays unticked rather than flipping back.
+      await ask(tester, 'untick the milk');
+      await tester.tap(find.widgetWithText(FilledButton, 'Do it'));
+      await tester.pumpAndSettle();
+      expect(
+        parseChecklist((await services.getById(list.id))!.content).first.done,
+        isFalse,
+      );
+    });
+
+    testWidgets('a reminder already in the past is not set, and says so '
+        '(AI-03)', (tester) async {
+      final note = (await services.captureText('take the pills'))!;
+      await tester.pumpAndSettle();
+      final gone = DateTime.now().subtract(const Duration(days: 1));
+      final at =
+          '${gone.year}-${gone.month.toString().padLeft(2, '0')}-'
+          '${gone.day.toString().padLeft(2, '0')}T09:00';
+      await openSheet(
+        tester,
+        client: replying(
+          '```nex\n{"action":"remind","id":"${note.id}","at":"$at"}\n```',
+        ),
+      );
+      await ask(tester, 'remind me about the pills');
+      expect(find.textContaining('this time has passed'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Do it'));
+      await tester.pumpAndSettle();
+
+      expect((await services.getById(note.id))!.dueAt, isNull);
+      expect(
+        find.textContaining('That time has already passed'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a search the question did not ask for waits for the button '
+        '(AI-05)', (tester) async {
+      await services.captureText('bank pin is in the drawer');
+      await tester.pumpAndSettle();
+      var calls = 0;
+      final client = MockClient((request) async {
+        calls++;
+        final content = calls == 1
+            ? '```nex\n{"action":"search","query":"bank"}\n```'
+            : 'Done looking.';
+        return http.Response.bytes(
+          utf8.encode(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': content},
+                },
+              ],
+            }),
+          ),
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      });
+      await openSheet(tester, client: client);
+      await ask(tester, 'what did I write about the cooler?');
+
+      // Nothing was searched or sent on the model's say-so.
+      expect(calls, 1);
+      expect(find.text('Search your notes for this?'), findsOneWidget);
+      expect(find.textContaining('“bank”'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Do it'));
+      await tester.pumpAndSettle();
+      expect(calls, 2);
     });
 
     testWidgets('a note and its reminder, in one request', (tester) async {

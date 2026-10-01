@@ -16,7 +16,23 @@ extension _ChatActions on _AiChatSheetState {
       _sending = true;
     });
     var ok = true;
+    var pastReminder = false;
     try {
+      // A one-off time already gone is not a reminder: the scheduler skips
+      // it, so setting it would report "Done" over an alarm that never
+      // exists (AI-03). The card already said so; nothing in the set runs.
+      final now = DateTime.now();
+      if (actions.any(
+        (action) =>
+            (action.kind == AssistantActionKind.remind ||
+                action.kind == AssistantActionKind.create) &&
+            action.repeat == NoteRepeat.once &&
+            action.at != null &&
+            !action.at!.isAfter(now),
+      )) {
+        pastReminder = true;
+        throw StateError('a reminder time has already passed');
+      }
       // Every note this set claims to act on, checked before any of it runs.
       //
       // Without this the confirmation was a guess. `ok` only went false when
@@ -66,10 +82,7 @@ extension _ChatActions on _AiChatSheetState {
           case AssistantActionKind.toChecklist:
             await _toChecklist(action);
           case AssistantActionKind.check:
-            await widget.services.toggleChecklistItem(
-              action.noteId!,
-              action.index!,
-            );
+            await _check(action);
           case AssistantActionKind.setting:
             await _applySetting(action);
           case AssistantActionKind.remind:
@@ -126,12 +139,27 @@ extension _ChatActions on _AiChatSheetState {
     } catch (_) {
       ok = false;
     }
+    // A search the person confirmed (see `_asked`): run now, and its findings
+    // go back to the assistant the way any lookup's do. A set that was only
+    // searches has nothing to report as "Done".
+    final searches = [
+      for (final action in actions)
+        if (action.isRead) action,
+    ];
+    if (ok && searches.isNotEmpty) {
+      if (mounted) _rebuild(() => _sending = false);
+      _lookups = searches;
+      await _runLookups();
+      if (searches.length == actions.length) return;
+    }
     await widget.services.refreshTimeline();
     if (!mounted) return;
     _rebuild(() {
       _sending = false;
       _actionResult = ok
           ? l10n.assistantActionDone
+          : pastReminder
+          ? l10n.assistantReminderPastFailed
           : l10n.assistantActionFailed;
     });
     // The library moved, so the context the rest of this conversation is
@@ -457,6 +485,19 @@ extension _ChatActions on _AiChatSheetState {
           await widget.preferences.setDailyNudgeMinutes(minutes);
         }
     }
+  }
+
+  /// Ticks or unticks, as asked, rather than flipping whatever the item
+  /// happens to be. A toggle is kept only for a request that named no
+  /// direction.
+  Future<void> _check(AssistantAction action) async {
+    final note = await widget.services.getById(action.noteId!);
+    final items = parseChecklist(note?.content);
+    final index = action.index!;
+    if (index >= items.length) throw RangeError.index(index, items);
+    final want = action.flag;
+    if (want != null && items[index].done == want) return;
+    await widget.services.toggleChecklistItem(action.noteId!, index);
   }
 
   Future<void> _applyTags(AssistantAction action) async {

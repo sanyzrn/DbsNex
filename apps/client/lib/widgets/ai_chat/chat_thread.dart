@@ -125,7 +125,14 @@ class _Thread extends StatelessWidget {
         // cited become chips under the bubble, and "[general]" becomes a
         // line saying the answer is not from the notes.
         final cited = mine ? null : NexCitedReply.parse(turn.content);
-        final content = cited?.text ?? turn.content;
+        // A lookup's findings are sent between data markers; the reader
+        // sees what was found, not the fence around it.
+        final content =
+            cited?.text ??
+            (turn.content.startsWith('<<<NOTES\n') &&
+                    turn.content.endsWith('\nNOTES>>>')
+                ? turn.content.substring(9, turn.content.length - 9)
+                : turn.content);
         final sources = [
           for (final id in cited?.noteIds ?? const <String>[])
             if (notes[id] case final note?) note,
