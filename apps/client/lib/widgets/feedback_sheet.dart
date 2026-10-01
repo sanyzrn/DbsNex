@@ -12,6 +12,7 @@ import 'nex_banner.dart';
 
 import 'feature_label.dart';
 import 'nex_text_field.dart';
+import 'keyboard_dismisser.dart';
 
 /// A compose-and-send sheet, replacing what used to be a single row that only
 /// copied a GitHub issues link — the actual complaint this answers is that
@@ -255,15 +256,17 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
               ),
             ],
             const SizedBox(height: NexSpacing.lg),
-            FilledButton(
-              onPressed: _sending ? null : _send,
-              child: _sending
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.feedbackSend),
+            NexTypingAction(
+              child: FilledButton(
+                onPressed: _sending ? null : _send,
+                child: _sending
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.feedbackSend),
+              ),
             ),
           ],
         ),

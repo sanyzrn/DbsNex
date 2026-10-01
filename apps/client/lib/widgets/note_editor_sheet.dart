@@ -11,6 +11,7 @@ import '../platform/nex_preferences.dart';
 import 'nex_banner.dart';
 import 'nex_dialog.dart';
 import 'nex_text_field.dart';
+import 'keyboard_dismisser.dart';
 
 /// Editing a note's words.
 ///
@@ -258,13 +259,17 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                         style: theme.textTheme.titleLarge,
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => setState(() => _expanded = !_expanded),
-                      tooltip: _expanded
-                          ? l10n.editorSmaller
-                          : l10n.editorFullScreen,
-                      icon: Icon(
-                        _expanded ? Icons.close_fullscreen : Icons.open_in_full,
+                    NexTypingAction(
+                      child: IconButton(
+                        onPressed: () => setState(() => _expanded = !_expanded),
+                        tooltip: _expanded
+                            ? l10n.editorSmaller
+                            : l10n.editorFullScreen,
+                        icon: Icon(
+                          _expanded
+                              ? Icons.close_fullscreen
+                              : Icons.open_in_full,
+                        ),
                       ),
                     ),
                   ],
@@ -282,15 +287,17 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                 // is usually disabled teaches people it is never usable.
                 if (_undo.isNotEmpty) ...[
                   const SizedBox(height: NexSpacing.sm),
-                  _UndoBar(onUndo: _undoLast),
+                  NexTypingAction(child: _UndoBar(onUndo: _undoLast)),
                 ],
                 if (_aiAvailable) ...[
                   const SizedBox(height: NexSpacing.md),
-                  _AiActions(
-                    expanded: _expanded,
-                    running: _running,
-                    enabled: _text.text.trim().isNotEmpty,
-                    onPick: (style) => unawaited(_apply(style)),
+                  NexTypingAction(
+                    child: _AiActions(
+                      expanded: _expanded,
+                      running: _running,
+                      enabled: _text.text.trim().isNotEmpty,
+                      onPick: (style) => unawaited(_apply(style)),
+                    ),
                   ),
                 ],
                 const SizedBox(height: NexSpacing.lg),
@@ -302,15 +309,17 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
                       child: Text(l10n.cancel),
                     ),
                     const SizedBox(width: NexSpacing.sm),
-                    FilledButton(
-                      // Empty is not an edit, it is a note being deleted by a
-                      // route that cannot delete notes.
-                      onPressed:
-                          (!widget.allowEmpty && _text.text.trim().isEmpty) ||
-                              _running != null
-                          ? null
-                          : _save,
-                      child: Text(l10n.save),
+                    NexTypingAction(
+                      child: FilledButton(
+                        // Empty is not an edit, it is a note being deleted by a
+                        // route that cannot delete notes.
+                        onPressed:
+                            (!widget.allowEmpty && _text.text.trim().isEmpty) ||
+                                _running != null
+                            ? null
+                            : _save,
+                        child: Text(l10n.save),
+                      ),
                     ),
                   ],
                 ),

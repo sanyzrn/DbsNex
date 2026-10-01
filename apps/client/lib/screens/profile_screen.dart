@@ -16,6 +16,7 @@ import '../widgets/draft_guard.dart';
 import '../widgets/nex_time_picker.dart';
 import '../platform/display_date.dart';
 import '../widgets/nex_text_field.dart';
+import '../widgets/keyboard_dismisser.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -183,9 +184,11 @@ class _ProfileScreenState extends State<ProfileScreen>
         appBar: AppBar(
           title: Text(l10n.profileTitle),
           actions: [
-            TextButton(
-              onPressed: _saving ? null : _save,
-              child: Text(l10n.save),
+            NexTypingAction(
+              child: TextButton(
+                onPressed: _saving ? null : _save,
+                child: Text(l10n.save),
+              ),
             ),
           ],
         ),

@@ -13,6 +13,7 @@ import '../platform/vault_session.dart';
 import '../platform/vault_store.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'vault_editor.dart';
+import '../widgets/keyboard_dismisser.dart';
 part 'vault/vault_items.dart';
 part 'vault/vault_pages.dart';
 

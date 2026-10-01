@@ -562,17 +562,22 @@ class _NativeFieldState extends State<_NativeField> {
                   ? ''
                   : '${_controller.text.characters.length}/${field.maxLength}'),
         );
-    return Focus(
-      focusNode: _focus,
-      skipTraversal: true,
-      child: InputDecorator(
-        decoration: decoration,
-        isFocused: _focused,
-        isEmpty: _controller.text.isEmpty,
-        expands: field.expands,
-        child: field.expands
-            ? view
-            : SizedBox(height: math.max(_height ?? fallback, 1), child: view),
+    // In Flutter's text-field tap group, as every TextField is: a touch on
+    // it while the keyboard is up is a touch on the field, not one that
+    // only puts the keyboard away (NexKeyboardDismisser).
+    return TextFieldTapRegion(
+      child: Focus(
+        focusNode: _focus,
+        skipTraversal: true,
+        child: InputDecorator(
+          decoration: decoration,
+          isFocused: _focused,
+          isEmpty: _controller.text.isEmpty,
+          expands: field.expands,
+          child: field.expands
+              ? view
+              : SizedBox(height: math.max(_height ?? fallback, 1), child: view),
+        ),
       ),
     );
   }
