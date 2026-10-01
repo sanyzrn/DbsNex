@@ -356,6 +356,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
               trailing: DropdownButton<NexCadence>(
                 value: _cadence,
                 underline: const SizedBox.shrink(),
+                style: Theme.of(context).textTheme.bodyLarge,
                 items: [
                   for (final cadence in NexCadence.values)
                     DropdownMenuItem(
@@ -374,6 +375,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
               trailing: DropdownButton<int>(
                 value: _every,
                 underline: const SizedBox.shrink(),
+                style: Theme.of(context).textTheme.bodyLarge,
                 items: [
                   for (final n in const [1, 2, 3, 4, 6, 8, 12])
                     DropdownMenuItem(value: n, child: Text('$n')),
@@ -413,6 +415,7 @@ class _CommitmentEditorState extends State<CommitmentEditor>
               trailing: DropdownButton<int>(
                 value: _lead?.inHours ?? -1,
                 underline: const SizedBox.shrink(),
+                style: Theme.of(context).textTheme.bodyLarge,
                 items: [
                   DropdownMenuItem(value: -1, child: Text(l10n.commitmentAuto)),
                   for (final hours in const [0, 6, 24, 48, 24 * 7, 24 * 30])
