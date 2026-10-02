@@ -141,77 +141,85 @@ class _Thread extends StatelessWidget {
           alignment: mine
               ? AlignmentDirectional.centerEnd
               : AlignmentDirectional.centerStart,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: NexSpacing.sm),
-            padding: const EdgeInsets.symmetric(
-              horizontal: NexSpacing.md,
-              vertical: NexSpacing.sm,
-            ),
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.sizeOf(context).width * 0.78,
-            ),
-            decoration: BoxDecoration(
-              color: mine
-                  ? theme.colorScheme.primaryContainer
-                  : theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(NexRadius.lg),
-            ),
-            // Long-press used to copy the whole turn and nothing else
-            // could be taken out of it, on the reasoning that what people
-            // want from a chat message is all of it. Sometimes. The rest of
-            // the time they want the one command, the one address, the one
-            // sentence — and had no way to get it, because a `Text` answers
-            // no gesture at all. An area gives both: long-press takes the
-            // word under the finger and the toolbar that comes with it
-            // offers Select all, which is the old gesture two taps later
-            // and every other selection besides.
-            //
-            // Scrolling is unaffected. Selection here begins on a long
-            // press, so a finger dragged up the thread is still a scroll.
-            child: SelectionArea(
-              contextMenuBuilder: nexSelectionMenu,
-              child: Builder(
-                builder: (context) {
-                  // The on-colour that belongs to the container behind it.
-                  // Left at the default the user's own words were onSurface on
-                  // primaryContainer — a pairing nothing guarantees the
-                  // contrast of, and in practice barely readable in the light
-                  // theme.
-                  final style = theme.textTheme.bodyMedium?.copyWith(
-                    color: mine
-                        ? theme.colorScheme.onPrimaryContainer
-                        : theme.colorScheme.onSurface,
-                  );
-                  // The assistant's own turns, and only when there is actually
-                  // markup to gain by it. A model asked for a list writes one,
-                  // and this is the difference between reading a list and
-                  // reading its asterisks. The user's turns stay literal: they
-                  // typed what they typed, and quietly eating a character of
-                  // it would be the app editing their words.
-                  if (!mine && nexLooksLikeMarkdown(content)) {
-                    return NexMarkdown(
-                      content,
-                      style: style,
-                      // Selection belongs to the area around the bubble, not
-                      // to the text inside it — which is what lets a link in a
-                      // reply still answer a tap.
-                      selectable: false,
-                    );
-                  }
-                  // Either side may be in either language — the assistant
-                  // answers in whatever the output-language setting asks for.
-                  // Hugged, in one direction for the whole turn: a bubble is
-                  // sized to its content, and a block would draw every reply,
-                  // "yes" included, most of the screen wide. Selection
-                  // belongs to the area around the bubble.
-                  return NexTextSurface(
-                    content,
-                    style: style,
-                    fit: NexTextFit.hug,
-                  );
-                },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: mine
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: NexSpacing.md,
+                  vertical: NexSpacing.sm,
+                ),
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.sizeOf(context).width * 0.78,
+                ),
+                decoration: BoxDecoration(
+                  color: mine
+                      ? theme.colorScheme.primaryContainer
+                      : theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(NexRadius.lg),
+                ),
+                // Long-press used to copy the whole turn and nothing else
+                // could be taken out of it, on the reasoning that what people
+                // want from a chat message is all of it. Sometimes. The rest of
+                // the time they want the one command, the one address, the one
+                // sentence — and had no way to get it, because a `Text` answers
+                // no gesture at all. An area gives both: long-press takes the
+                // word under the finger and the toolbar that comes with it
+                // offers Select all, which is the old gesture two taps later
+                // and every other selection besides.
+                //
+                // Scrolling is unaffected. Selection here begins on a long
+                // press, so a finger dragged up the thread is still a scroll.
+                child: SelectionArea(
+                  contextMenuBuilder: nexSelectionMenu,
+                  child: Builder(
+                    builder: (context) {
+                      // The on-colour that belongs to the container behind it.
+                      // Left at the default the user's own words were onSurface on
+                      // primaryContainer — a pairing nothing guarantees the
+                      // contrast of, and in practice barely readable in the light
+                      // theme.
+                      final style = theme.textTheme.bodyMedium?.copyWith(
+                        color: mine
+                            ? theme.colorScheme.onPrimaryContainer
+                            : theme.colorScheme.onSurface,
+                      );
+                      // The assistant's own turns, and only when there is actually
+                      // markup to gain by it. A model asked for a list writes one,
+                      // and this is the difference between reading a list and
+                      // reading its asterisks. The user's turns stay literal: they
+                      // typed what they typed, and quietly eating a character of
+                      // it would be the app editing their words.
+                      if (!mine && nexLooksLikeMarkdown(content)) {
+                        return NexMarkdown(
+                          content,
+                          style: style,
+                          // Selection belongs to the area around the bubble, not
+                          // to the text inside it — which is what lets a link in a
+                          // reply still answer a tap.
+                          selectable: false,
+                        );
+                      }
+                      // Either side may be in either language — the assistant
+                      // answers in whatever the output-language setting asks for.
+                      // Hugged, in one direction for the whole turn: a bubble is
+                      // sized to its content, and a block would draw every reply,
+                      // "yes" included, most of the screen wide. Selection
+                      // belongs to the area around the bubble.
+                      return NexTextSurface(
+                        content,
+                        style: style,
+                        fit: NexTextFit.hug,
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
+              _CopyTurn(text: content),
+            ],
           ),
         );
         if (cited == null || (!cited.general && sources.isEmpty)) return bubble;
@@ -314,6 +322,35 @@ class _Grounding extends StatelessWidget {
               tooltip: l10n.assistantOpenSource,
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// The small copy button under every turn, the user's and the assistant's.
+///
+/// Selection inside the bubble takes a part of it; this takes the whole turn
+/// in one tap, which is what is wanted most of the time from an answer.
+class _CopyTurn extends StatelessWidget {
+  const _CopyTurn({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: NexSpacing.xs),
+      child: IconButton(
+        tooltip: MaterialLocalizations.of(context).copyButtonLabel,
+        visualDensity: VisualDensity.compact,
+        iconSize: 16,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        onPressed: () async {
+          await Clipboard.setData(ClipboardData(text: text.trim()));
+          if (context.mounted) nexShowBanner(context, message: l10n.copied);
+        },
+        icon: const Icon(Icons.copy_rounded),
       ),
     );
   }

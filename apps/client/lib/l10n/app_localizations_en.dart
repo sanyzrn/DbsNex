@@ -1710,7 +1710,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get intelligenceOffBody =>
-      'Everything stays on this device. Nothing is sent anywhere, and no note leaves the app.';
+      'Everything stays on this device. No note is sent to any AI service, and no note leaves the app.';
 
   @override
   String get intelligenceConsentTitle => 'Turn on intelligence?';

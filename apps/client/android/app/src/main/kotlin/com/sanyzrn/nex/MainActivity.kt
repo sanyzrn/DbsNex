@@ -1,5 +1,6 @@
 package com.sanyzrn.nex
 
+import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -15,6 +16,7 @@ import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import android.provider.Settings
+import android.service.quicksettings.TileService
 import android.view.WindowManager
 import android.widget.Toast
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -223,6 +225,16 @@ open class MainActivity : FlutterFragmentActivity() {
                 NexWidgetAppearance.save(applicationContext,
                     call.argument<String>("locale"), call.argument<String>("accent"))
                 NexWidgetActions.refreshAll(applicationContext)
+                // The quick-capture row and the tile speak the app's language
+                // too (LOC-03): the row is re-posted if it is on, and the tile
+                // is asked to redraw its label.
+                NexQuickCapture.restore(applicationContext)
+                runCatching {
+                    TileService.requestListeningState(
+                        applicationContext,
+                        ComponentName(applicationContext, NexCaptureTileService::class.java),
+                    )
+                }
                 result.success(null)
             }
             // Hands the sound, vibration and importance of a notification

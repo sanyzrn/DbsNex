@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'photo_metadata.dart';
+
 /// Whether this platform has a share sheet worth offering.
 ///
 /// share_plus compiles for Windows and does something there, but what it does
@@ -71,12 +73,17 @@ Future<SendOutcome> nexSendFileOut(
 Future<bool> nexShareNote(Note note) async {
   final uri = note.mediaUri;
   if (uri != null && File(uri).existsSync()) {
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(uri, mimeType: note.mimeType)],
-        text: note.caption?.trim().isNotEmpty == true ? note.caption : null,
-      ),
-    );
+    final staged = <Directory>[];
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [await _shareable(note, uri, staged)],
+          text: note.caption?.trim().isNotEmpty == true ? note.caption : null,
+        ),
+      );
+    } finally {
+      _cleanUp(staged);
+    }
     return true;
   }
   final text = note.displayText?.trim() ?? '';
@@ -95,10 +102,11 @@ Future<bool> nexShareNotes(List<Note> notes) async {
   if (notes.length == 1) return nexShareNote(notes.single);
   final files = <XFile>[];
   final words = <String>[];
+  final staged = <Directory>[];
   for (final note in notes) {
     final uri = note.mediaUri;
     if (uri != null && File(uri).existsSync()) {
-      files.add(XFile(uri, mimeType: note.mimeType));
+      files.add(await _shareable(note, uri, staged));
       final caption = note.caption?.trim() ?? '';
       if (caption.isNotEmpty) words.add(caption);
       continue;
@@ -107,11 +115,51 @@ Future<bool> nexShareNotes(List<Note> notes) async {
     if (text.isNotEmpty) words.add(text);
   }
   if (files.isEmpty && words.isEmpty) return false;
-  await SharePlus.instance.share(
-    ShareParams(
-      files: files.isEmpty ? null : files,
-      text: words.isEmpty ? null : words.join('\n\n'),
-    ),
-  );
+  try {
+    await SharePlus.instance.share(
+      ShareParams(
+        files: files.isEmpty ? null : files,
+        text: words.isEmpty ? null : words.join('\n\n'),
+      ),
+    );
+  } finally {
+    _cleanUp(staged);
+  }
   return true;
+}
+
+/// The file to hand to the share sheet for [note]'s media at [path].
+///
+/// A photo goes out without where and when it was taken (SEC-08): a copy
+/// with its metadata stripped, staged in a temporary folder that is added to
+/// [staged] for the caller to remove. Everything else, and a photo that is
+/// not a JPEG or cannot be read, goes out as it is stored.
+Future<XFile> _shareable(Note note, String path, List<Directory> staged) async {
+  final original = XFile(path, mimeType: note.mimeType);
+  if (note.type != NoteType.photo) return original;
+  try {
+    final bytes = await File(path).readAsBytes();
+    final clean = jpegWithoutMetadata(bytes);
+    if (identical(clean, bytes)) return original;
+    final folder = await Directory.systemTemp.createTemp('nex-share-');
+    staged.add(folder);
+    final copy = File(
+      '${folder.path}${Platform.pathSeparator}'
+      '${path.split(Platform.pathSeparator).last}',
+    );
+    await copy.writeAsBytes(clean, flush: true);
+    return XFile(copy.path, mimeType: note.mimeType);
+  } catch (_) {
+    return original;
+  }
+}
+
+void _cleanUp(List<Directory> staged) {
+  for (final folder in staged) {
+    try {
+      folder.deleteSync(recursive: true);
+    } catch (_) {
+      // The system clears its temporary folder on its own.
+    }
+  }
 }

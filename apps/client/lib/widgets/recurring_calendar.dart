@@ -314,7 +314,7 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
       button: true,
       excludeSemantics: true,
       selected: isSelected,
-      label: '${_digits(_dayNumber(day))}, $count',
+      label: '${_digits(_dayNumber(day))}, ${_digits(count)}',
       child: InkWell(
         borderRadius: BorderRadius.circular(NexRadius.md),
         onTap: () => setState(() => _selected = day),

@@ -5,6 +5,7 @@ import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show compute;
+import '../platform/note_copy.dart';
 import '../platform/photo_encoding.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
@@ -512,11 +513,26 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                       const SizedBox(height: NexSpacing.xs),
                       if (note.caption != null &&
                           note.caption!.trim().isNotEmpty)
-                        NexTextSurface(
-                          note.caption!,
-                          style: Theme.of(context).textTheme.bodyLarge,
-                          selectable: true,
-                        )
+                        // The caption editor offers the same bold, italic and
+                        // link actions as a text note's, so a caption that
+                        // used them is drawn the way a text note's body is.
+                        nexLooksLikeMarkdown(note.caption!)
+                            ? SelectionArea(
+                                contextMenuBuilder: nexSelectionMenu,
+                                child: NexMarkdown(
+                                  note.caption!,
+                                  selectable: false,
+                                  onTapLink: _openHref,
+                                  onCopyCode: (code) =>
+                                      unawaited(_copyCodeSpan(context, code)),
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                              )
+                            : NexTextSurface(
+                                note.caption!,
+                                style: Theme.of(context).textTheme.bodyLarge,
+                                selectable: true,
+                              )
                       else
                         Text(
                           l10n.noCaption,

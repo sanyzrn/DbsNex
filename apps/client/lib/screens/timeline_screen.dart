@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show ValueListenable, compute;
 import '../documents/text_import.dart';
+import '../platform/note_copy.dart';
 import '../platform/file_opener.dart';
 import '../platform/hold_menu.dart';
 import '../widgets/translate_sheet.dart';

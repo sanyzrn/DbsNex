@@ -55,7 +55,8 @@ extension _DetailActions on _NoteDetailSheetState {
     final note = _note;
     if (note == null) return;
     final l10n = AppLocalizations.of(context);
-    final text = _copyableText(note);
+    final text = await nexCopyTextOf(note);
+    if (!mounted) return;
     if (text == null) {
       _toast(l10n.nothingToCopy);
       return;
@@ -322,7 +323,9 @@ extension _DetailActions on _NoteDetailSheetState {
               if (note.tags.isNotEmpty)
                 _DetailRow(
                   label: l10n.tags,
-                  value: note.tags.map((t) => t.name).join('، '),
+                  value: note.tags
+                      .map((t) => t.name)
+                      .join(l10n.localeName == 'fa' ? '، ' : ', '),
                 ),
               if (file != null && file.existsSync())
                 _DetailRow(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -27,11 +28,20 @@ void main() {
     if (tmp.existsSync()) tmp.deleteSync(recursive: true);
   });
 
+  /// What the release's SHA256SUMS says, for the last [newerRelease] built.
+  ///
+  /// An update is offered only with a checksum (SEC-01), so every release
+  /// here carries one, vouching for the bytes the tests serve: 1, 2, 3, … up
+  /// to the release's size.
+  var sums = '';
+
   /// A release newer than whatever this build is, so the test does not have to
   /// be edited every time the app's version moves.
   String newerRelease({int? size}) {
     final current = NexVersion.tryParse(nexAppVersion)!;
     final next = '${current.major}.${current.minor}.${current.patch + 1}';
+    final bytes = List.generate(size ?? 4, (i) => i + 1);
+    sums = '${sha256.convert(bytes)}  Nex-$next-universal.apk\n';
     return jsonEncode({
       'tag_name': 'v$next',
       'draft': false,
@@ -43,6 +53,10 @@ void main() {
           'browser_download_url':
               'https://example.invalid/Nex-$next-universal.apk',
           'size': size ?? 4,
+        },
+        {
+          'name': 'SHA256SUMS',
+          'browser_download_url': 'https://sums.invalid/SHA256SUMS',
         },
       ],
     });
@@ -57,7 +71,7 @@ void main() {
     onDownloadStatus: onDownloadStatus,
     checker: UpdateChecker(
       currentVersion: nexAppVersion,
-      client: client,
+      client: _WithSums(client, () => sums),
       assetSuffix: assetSuffix ?? '-universal.apk',
     ),
     downloader: UpdateDownloader(client: client),
@@ -453,4 +467,21 @@ void main() {
       expect(service.downloaded, isNull);
     });
   });
+}
+
+/// Answers the SHA256SUMS request itself and hands everything else to
+/// [inner], so a test's own request counting sees only what it serves.
+class _WithSums extends http.BaseClient {
+  _WithSums(this.inner, this.sums);
+
+  final http.Client inner;
+  final String Function() sums;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    if (request.url.host == 'sums.invalid') {
+      return http.StreamedResponse(Stream.value(utf8.encode(sums())), 200);
+    }
+    return inner.send(request);
+  }
 }

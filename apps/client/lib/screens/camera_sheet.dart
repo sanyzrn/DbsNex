@@ -341,7 +341,6 @@ class _NexCameraSheetState extends State<NexCameraSheet>
 
   Widget _controls(BuildContext context, double bottomInset) {
     final l10n = AppLocalizations.of(context);
-    final rtl = Directionality.of(context) == TextDirection.rtl;
     return Positioned.fill(
       left: 20,
       right: 20,
@@ -355,10 +354,9 @@ class _NexCameraSheetState extends State<NexCameraSheet>
               _RoundButton(
                 tooltip: l10n.cameraClose,
                 onPressed: _close,
-                child: Icon(
-                  rtl ? Icons.chevron_right : Icons.chevron_left,
-                  size: 28,
-                ),
+                // chevron_left mirrors itself under RTL; swapping it here
+                // as well flipped it twice (LOC-10).
+                child: const Icon(Icons.chevron_left, size: 28),
               ),
               _Shutter(
                 label: l10n.cameraShutter,

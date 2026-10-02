@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../widgets/nex_swipe_back.dart';
 import 'nex_accent_palette.dart';
 import 'nex_appearance.dart';
+import 'nex_contrast.dart';
 
 /// Every colour in Nex: one neutral ramp per theme, plus one accent.
 ///
@@ -157,6 +158,11 @@ abstract final class NexColors {
   /// render in exactly the same colour.
   static const danger = Color(0xFFC0392B);
   static const error = Color(0xFFB3261E);
+
+  /// [error] for dark grounds: #B3261E is 2.5:1 on the dark card, too dim
+  /// for a validation message (LOC-02). Material's own dark error tone,
+  /// about 8:1 there.
+  static const errorDark = Color(0xFFF2B8B5);
 
   /// The destructive half of the swipe pair — the same colour as [danger],
   /// named for the place it is used.
@@ -552,6 +558,7 @@ ThemeData _theme({
   required bool transparentScaffold,
 }) {
   final dark = brightness == Brightness.dark;
+  final errorColor = dark ? NexColors.errorDark : NexColors.error;
   final pageSurface = liquidGlass
       ? background.withValues(alpha: dark ? 0.72 : 0.68)
       : background;
@@ -585,10 +592,10 @@ ThemeData _theme({
     onTertiary: background,
     tertiaryContainer: elevated,
     onTertiaryContainer: primary,
-    error: NexColors.error,
-    onError: const Color(0xFFFFFFFF),
-    errorContainer: NexColors.error.withValues(alpha: 0.12),
-    onErrorContainer: NexColors.error,
+    error: errorColor,
+    onError: dark ? const Color(0xFF601410) : const Color(0xFFFFFFFF),
+    errorContainer: errorColor.withValues(alpha: dark ? 0.16 : 0.12),
+    onErrorContainer: errorColor,
     surface: pageSurface,
     onSurface: primary,
     onSurfaceVariant: secondary,
@@ -616,6 +623,13 @@ ThemeData _theme({
         : background,
     canvasColor: background,
     fontFamily: fontFamily,
+    // Each bundled face fills in for the other's script (LOC-04). Inter is
+    // subset to Latin, so Persian in a note read in the English UI fell
+    // through to the system's Naskh face — not the Vazirmatn the Persian UI
+    // and the native editor draw the same words in.
+    fontFamilyFallback: fontFamily == nexPersianFont
+        ? const [nexLatinFont]
+        : const [nexPersianFont],
     focusColor: accent.withValues(alpha: 0.12),
     appBarTheme: AppBarTheme(
       backgroundColor: liquidGlass
@@ -718,14 +732,11 @@ ThemeData _theme({
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(NexRadius.md),
-        borderSide: const BorderSide(color: NexColors.error),
+        borderSide: BorderSide(color: errorColor),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(NexRadius.md),
-        borderSide: const BorderSide(
-          color: NexColors.error,
-          width: nexFocusRingWidth,
-        ),
+        borderSide: BorderSide(color: errorColor, width: nexFocusRingWidth),
       ),
     ),
     iconButtonTheme: IconButtonThemeData(
@@ -759,6 +770,10 @@ ThemeData _theme({
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
+        // The accent is drawn for marks; a quiet button's label is text, and
+        // the classic light blue is 3.7:1 on white (LOC-07). Darkened just
+        // to 4.5:1 on the card; dark grounds already clear it.
+        foregroundColor: dark ? null : nexReadableOn(accent, card),
         minimumSize: const Size(nexMinTapTarget, nexMinTapTarget),
         padding: const EdgeInsets.symmetric(horizontal: NexSpacing.md),
         shape: const StadiumBorder(),

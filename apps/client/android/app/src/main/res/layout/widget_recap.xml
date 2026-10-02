@@ -15,10 +15,11 @@
   empty prompt asks for a new brief; a tap anywhere else opens the app,
   which brings the brief up to date as it opens.
 
-  The brief's own TextView carries no maxLines. The widget is resizable and
-  the launcher decides how tall it is; letting the text run and be clipped
-  by the box is the behaviour that makes a taller widget show more, which is
-  what resizing one is for.
+  The brief is a list, one row per line, rather than one TextView. The
+  widget is resizable and the launcher decides how tall it is; a TextView
+  was clipped by a box shorter than the brief, and a home-screen widget has
+  no other way to scroll. A list scrolls, and a taller widget still simply
+  shows more of it.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/nex_recap_root"
@@ -47,15 +48,19 @@
             android:src="@drawable/nex_widget_ic_mark" />
     </LinearLayout>
 
-    <TextView
+    <ListView
         android:id="@+id/nex_recap_body"
-        style="@style/NexWidget.Recap"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:divider="@null"
+        android:dividerHeight="0dp"
+        android:listSelector="@android:color/transparent"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:paddingTop="4dp"
-        android:paddingBottom="14dp" />
+        android:paddingBottom="14dp"
+        android:scrollbars="none" />
 
     <LinearLayout
         android:id="@+id/nex_recap_locked"

@@ -239,6 +239,14 @@ ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
             : colors.outline,
       ),
     ),
+    // The base theme darkens the classic accent for quiet buttons' labels
+    // (LOC-07); a palette's own primary is already a text tone, and the
+    // classic one must not leak onto it.
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: colors.primary,
+      ).merge(base.textButtonTheme.style),
+    ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: base.outlinedButtonTheme.style?.copyWith(
         side: WidgetStatePropertyAll(BorderSide(color: colors.outline)),

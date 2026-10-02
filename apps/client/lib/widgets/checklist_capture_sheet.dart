@@ -23,8 +23,14 @@ import 'nex_text_field.dart';
 /// Enter always breaks a line here, whatever the Enter-submits preference is
 /// set to: this is the one capture where a newline is the whole point.
 ///
+/// A new list is kept the way a text capture is: there is no Capture button,
+/// and closing the sheet — the ×, back or a swipe — keeps what was typed. An
+/// empty sheet keeps nothing. The draft is written as you type, so a sheet
+/// the system closed comes back with its lines.
+///
 /// The same sheet edits an existing list. Pass [initial] and it opens with
-/// those items, one per line, and says Save instead of Capture. A second
+/// those items, one per line, with a Save button and the discard question,
+/// like the note editor. A second
 /// editor was the alternative and would have been a second answer to "what
 /// does a checklist look like while you are writing it" — and the answer
 /// this one gives (lines, not rows) is the reason adding, removing and
@@ -59,6 +65,7 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
   void discardDraft() => widget.preferences.editorDrafts?.clear(_draftKey);
   @override
   bool get hasUnsavedChanges =>
+      _editing &&
       _text.text != (widget.initial?.map((e) => e.text).join('\n') ?? '');
   final TextEditingController _text = TextEditingController();
 
@@ -117,83 +124,87 @@ class _ChecklistCaptureSheetState extends State<ChecklistCaptureSheet>
     Navigator.pop(context, _items);
   }
 
+  /// Closing a new list keeps it — see the class comment.
+  void _close() => Navigator.pop(context, _items);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final count = _items.length;
-    return guardDraft(
-      NexSheetBody(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  nexNoteTypeIcon('checklist'),
-                  size: 20,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: NexSpacing.sm),
-                Expanded(
-                  child: Text(
-                    l10n.checklist,
-                    style: theme.textTheme.titleMedium,
+    final body = NexSheetBody(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                nexNoteTypeIcon('checklist'),
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: NexSpacing.sm),
+              Expanded(
+                child: Text(l10n.checklist, style: theme.textTheme.titleMedium),
+              ),
+              // Beside the title it counts, before the × (UX-07).
+              if (count > 0)
+                Text(
+                  l10n.checklistItemCount(count),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                IconButton(
-                  tooltip: l10n.closeLabel,
-                  onPressed: requestDiscard,
-                  icon: const Icon(Icons.close),
-                ),
-                if (count > 0)
-                  Text(
-                    l10n.checklistItemCount(count),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: NexSpacing.sm),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 240),
-              child: NexTextField(
-                controller: _text,
-                autofocus: true,
-                maxLines: null,
-                // Never TextInputAction.send, whatever the capture preference
-                // says — see the class comment.
-                textInputAction: TextInputAction.newline,
-                keyboardType: TextInputType.multiline,
-                decoration: InputDecoration(
-                  hintText: l10n.checklistHint,
-                  border: InputBorder.none,
-                ),
+              IconButton(
+                tooltip: l10n.closeLabel,
+                onPressed: _editing ? requestDiscard : _close,
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 240),
+            child: NexTextField(
+              controller: _text,
+              autofocus: true,
+              maxLines: null,
+              // Never TextInputAction.send, whatever the capture preference
+              // says — see the class comment.
+              textInputAction: TextInputAction.newline,
+              keyboardType: TextInputType.multiline,
+              decoration: InputDecoration(
+                hintText: l10n.checklistHint,
+                border: InputBorder.none,
               ),
             ),
+          ),
+          if (_editing) ...[
             const SizedBox(height: NexSpacing.sm),
             Align(
               alignment: AlignmentDirectional.centerEnd,
+              // An edit may legitimately empty the list — that is how the
+              // last line gets deleted — so Save is never disabled.
               child: FilledButton.icon(
-                // Disabled rather than hidden while empty: the button is where
-                // the eye already is, and a control that vanishes is worse to
-                // find again than one that is visibly not ready yet.
-                // An edit may legitimately empty the list — that is how the
-                // last line gets deleted — so only a fresh capture needs
-                // something in it before the button means anything.
-                onPressed: count == 0 && !_editing ? null : _submit,
-                icon: Icon(
-                  _editing ? Icons.check : Icons.arrow_upward,
-                  size: 18,
-                ),
-                label: Text(_editing ? l10n.save : l10n.capture),
+                onPressed: _submit,
+                icon: const Icon(Icons.check, size: 18),
+                label: Text(l10n.save),
               ),
             ),
           ],
-        ),
+        ],
       ),
+    );
+    if (_editing) return guardDraft(body);
+    // A new list: back and swipe close the sheet the way the × does, keeping
+    // the lines rather than dropping them.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _close();
+      },
+      child: body,
     );
   }
 }

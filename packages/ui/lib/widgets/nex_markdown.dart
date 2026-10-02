@@ -5,6 +5,7 @@ import 'package:markdown/markdown.dart' as md;
 
 import '../tokens/nex_text_direction.dart';
 import 'nex_selection_menu.dart';
+import '../tokens/nex_contrast.dart';
 import '../tokens/nex_tokens.dart';
 
 /// Markdown, rendered the way the rest of Nex renders the user's own writing.
@@ -142,6 +143,7 @@ class _NexMarkdownState extends State<NexMarkdown> {
     TextDirection direction,
   ) {
     final scheme = theme.colorScheme;
+    final link = nexReadableOn(scheme.primary, scheme.surface);
     final base = (body ?? const TextStyle()).copyWith(height: 1.5);
     // Monospace by family name rather than by a bundled font: the app ships
     // one typeface for its own text, and a code span that falls back to the
@@ -172,10 +174,12 @@ class _NexMarkdownState extends State<NexMarkdown> {
       em: base.copyWith(fontStyle: FontStyle.italic),
       strong: base.copyWith(fontWeight: FontWeight.w700),
       del: base.copyWith(decoration: TextDecoration.lineThrough),
+      // Link text is text: the accent darkened or lightened to 4.5:1 on the
+      // page where it falls short (LOC-07), unchanged where it does not.
       a: base.copyWith(
-        color: scheme.primary,
+        color: link,
         decoration: TextDecoration.underline,
-        decorationColor: scheme.primary.withValues(alpha: 0.5),
+        decorationColor: link.withValues(alpha: 0.5),
       ),
       code: mono.copyWith(backgroundColor: scheme.surfaceContainerHighest),
       codeblockPadding: const EdgeInsets.all(NexSpacing.sm),

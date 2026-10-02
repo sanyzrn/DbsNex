@@ -99,7 +99,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get assistantAboutYouNote =>
-      'همراه پیام‌هایت برای پرووایدری که انتخاب کرده‌ای فرستاده می‌شود.';
+      'همراه پیام‌های شما برای سرویسی که انتخاب کرده‌اید فرستاده می‌شود.';
 
   @override
   String get assistantAboutYouGroup => 'دربارهٔ شما';
@@ -815,10 +815,11 @@ class AppLocalizationsFa extends AppLocalizations {
       'همگام‌سازی ناموفق بود. چیزی روی این دستگاه عوض نشد.';
 
   @override
-  String get backupFailed => 'پشتیبان نوشته نشد. یادداشت‌هایت دست‌نخورده‌اند.';
+  String get backupFailed =>
+      'پشتیبان نوشته نشد. یادداشت‌هایتان دست‌نخورده‌اند.';
 
   @override
-  String get exportFailed => 'خروجی نوشته نشد. یادداشت‌هایت دست‌نخورده‌اند.';
+  String get exportFailed => 'خروجی نوشته نشد. یادداشت‌هایتان دست‌نخورده‌اند.';
 
   @override
   String get restoredStaysLocal =>
@@ -826,7 +827,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get recapRefreshFailed =>
-      'خلاصه تازه نشد. آنچه پایین می‌بینی آخرین خلاصه‌ای است که نکس ساخته.';
+      'خلاصه تازه نشد. آنچه پایین می‌بینید آخرین خلاصه‌ای است که نکس ساخته.';
 
   @override
   String get shareSaved => 'در نکس ذخیره شد.';
@@ -1134,16 +1135,16 @@ class AppLocalizationsFa extends AppLocalizations {
   String get sendFeedback => 'ارسال بازخورد';
 
   @override
-  String get sendFeedbackSubtitle => 'نظرت درباره اپ رو بهمون بگو';
+  String get sendFeedbackSubtitle => 'نظرتان را دربارهٔ اپ به ما بگویید';
 
   @override
-  String get feedbackHint => 'چی تو ذهنته؟';
+  String get feedbackHint => 'چه چیزی در ذهن دارید؟';
 
   @override
   String get feedbackSend => 'ارسال';
 
   @override
-  String get feedbackSent => 'بازخورد ارسال شد — ممنون از وقتی که گذاشتی';
+  String get feedbackSent => 'بازخورد ارسال شد — ممنون از وقتی که گذاشتید';
 
   @override
   String get feedbackQueuedOffline =>
@@ -1579,7 +1580,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get annotateText => 'متن';
 
   @override
-  String get annotateTextHint => 'چیزی بنویس…';
+  String get annotateTextHint => 'چیزی بنویسید…';
 
   @override
   String get annotateUndo => 'برگردان';
@@ -1639,7 +1640,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get aiProviderNoneSubtitleLocal =>
-      'روی همین گوشی جواب می‌دهد، با مدلی که دانلود کرده‌ای.';
+      'روی همین گوشی جواب می‌دهد، با مدلی که دانلود کرده‌اید.';
 
   @override
   String get aiProviderLocalNote =>
@@ -1677,7 +1678,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get intelligenceOffBody =>
-      'همه‌چیز روی همین دستگاه می‌ماند. چیزی جایی فرستاده نمی‌شود و هیچ یادداشتی از برنامه بیرون نمی‌رود.';
+      'همه‌چیز روی همین دستگاه می‌ماند. هیچ یادداشتی برای سرویس هوش مصنوعی فرستاده نمی‌شود و از برنامه بیرون نمی‌رود.';
 
   @override
   String get intelligenceConsentTitle => 'هوش مصنوعی روشن شود؟';
@@ -1697,14 +1698,14 @@ class AppLocalizationsFa extends AppLocalizations {
   String get chat => 'چت';
 
   @override
-  String get chatSubtitle => 'از دستیار داخلی Nex بپرس';
+  String get chatSubtitle => 'از دستیار داخلی Nex بپرسید';
 
   @override
   String get chatUnavailable => 'چت محلی هنوز روی این نسخه در دسترس نیست.';
 
   @override
   String get chatEmptyHint =>
-      'هر چیزی بپرس — Nex همین‌جا روی گوشی، بدون نیاز به اینترنت جواب می‌دهد.';
+      'هر چیزی بپرسید — Nex همین‌جا روی گوشی، بدون نیاز به اینترنت جواب می‌دهد.';
 
   @override
   String get chatInputHint => 'پیام…';
@@ -1854,7 +1855,7 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get chatGreeting => 'از نوت‌هایت بپرس';
+  String get chatGreeting => 'از یادداشت‌هایتان بپرسید';
 
   @override
   String get chatHint => 'چیزی بنویسید…';
@@ -2248,7 +2249,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get commitmentNotify => 'یادم بینداز';
 
   @override
-  String get commitmentNotifyOn => 'وقتی سررسید شد یک نوتیف';
+  String get commitmentNotifyOn => 'وقتی سررسید شد یک اعلان';
 
   @override
   String get commitmentNotifyOff => 'فقط در خلاصه و همین صفحه';
@@ -2274,7 +2275,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get commitmentDeleteTitle => 'این مورد تکرارشونده حذف شود؟';
 
   @override
-  String get commitmentMarkMet => 'انجام شد — برو به دفعهٔ بعد';
+  String get commitmentMarkMet => 'انجام شد — رفتن به دفعهٔ بعد';
 
   @override
   String get commitmentPaused => 'متوقف';
@@ -2482,7 +2483,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get briefSubtitle =>
-      'کارتی که بالای یادداشت‌هاست. خودت تعیین می‌کنی به چه درد بخورد.';
+      'کارتی که بالای یادداشت‌هاست. خودتان تعیین می‌کنید به چه درد بخورد.';
 
   @override
   String get briefStyleLabel => 'چه چیزی بنویسد';
@@ -2519,7 +2520,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get briefStyleCustom => 'خلاصهٔ دلخواه من';
 
   @override
-  String get briefStyleCustomAbout => 'خودت توضیح می‌دهی چه چیزی برایت بگوید.';
+  String get briefStyleCustomAbout =>
+      'خودتان توضیح می‌دهید چه چیزی برایتان بگوید.';
 
   @override
   String get briefOffline =>
@@ -2530,7 +2532,7 @@ class AppLocalizationsFa extends AppLocalizations {
       'این یکی به هوش مصنوعی روشن نیاز دارد. گزارش ساده تنها گزینه‌ای است که بدون آن کار می‌کند.';
 
   @override
-  String get briefInstructionLabel => 'می‌خواهی چه بگوید';
+  String get briefInstructionLabel => 'می‌خواهید چه بگوید';
 
   @override
   String get briefInstructionHint =>
@@ -2573,7 +2575,7 @@ class AppLocalizationsFa extends AppLocalizations {
       'نکس تاریخ بعدی هر کدام را نگه می‌دارد، در خلاصهٔ روز می‌آوردشان، و می‌تواند پیش از رسیدن موعد اعلان بفرستد.';
 
   @override
-  String get commitmentsOverdue => 'گذشته';
+  String get commitmentsOverdue => 'عقب‌افتاده';
 
   @override
   String get commitmentsComingUp => 'در پیش';
@@ -2677,7 +2679,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get nudgeSubtitle =>
-      'روزی یک نوتیفیکیشن، سر ساعتی که خودتان انتخاب می‌کنید';
+      'روزی یک اعلان، سر ساعتی که خودتان انتخاب می‌کنید';
 
   @override
   String get nudgeTime => 'ساعت';
@@ -2707,7 +2709,7 @@ class AppLocalizationsFa extends AppLocalizations {
       'خلاصه‌اش: مدل مال گوگل است، شرایط خودش را دارد، و دانلودش یعنی پذیرفتن آن شرایط.';
 
   @override
-  String get notificationTest => 'ارسال نوتیفیکیشن آزمایشی';
+  String get notificationTest => 'ارسال اعلان آزمایشی';
 
   @override
   String get notificationTestHint => 'یکی همین حالا، یکی ده ثانیه دیگر';
@@ -2748,7 +2750,7 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String get remindOverdue => 'گذشته';
+  String get remindOverdue => 'عقب‌افتاده';
 
   @override
   String remindWhenToday(String time) {
@@ -2789,7 +2791,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get swipeRemindHint => 'انتخاب اینکه کِی برگردد';
 
   @override
-  String get swipeShareHint => 'یادداشت را به برنامهٔ دیگری بفرست';
+  String get swipeShareHint => 'یادداشت را به برنامهٔ دیگری بفرستید';
 
   @override
   String get swipeAskHint => 'دستیار را روی همین یادداشت باز می‌کند';
@@ -2881,17 +2883,17 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get onboardingFilesBody =>
-      'یک سند، یک پی‌دی‌اف، یک آهنگ یا یک عکس را به نکس بفرست — خودِ آن چیز را نشانت می‌دهد، نه فقط اسم فایل را.';
+      'یک سند، یک پی‌دی‌اف، یک آهنگ یا یک عکس را به نکس بفرستید — خودِ آن چیز را نشانتان می‌دهد، نه فقط اسم فایل را.';
 
   @override
-  String get onboardingYoursTitle => 'مال خودت می‌ماند';
+  String get onboardingYoursTitle => 'مال خودتان می‌ماند';
 
   @override
   String get onboardingYoursBody =>
-      'نه حساب کاربری، نه سرور، و با اینترنتِ قطع هم کار می‌کند. اگر خواستی پشت اثر انگشتت قفلش کن، و هر وقت خواستی همه‌اش را بیرون بکش.';
+      'نه حساب کاربری، نه سرور، و با اینترنتِ قطع هم کار می‌کند. اگر خواستید پشت اثر انگشتتان قفلش کنید، و هر وقت خواستید همه‌اش را بیرون ببرید.';
 
   @override
-  String get onboardingGuideTitle => 'نمی‌دانی چیزی کجاست؟';
+  String get onboardingGuideTitle => 'نمی‌دانید چیزی کجاست؟';
 
   @override
   String get onboardingGuideBody =>

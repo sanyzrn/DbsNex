@@ -20,8 +20,13 @@ void addBoundedZipFile(ZipFileEncoder encoder, File file, String name) {
 
 /// The pinned ZIP decoder does not enforce CRC even when verify is requested.
 /// Validate the extracted file in bounded chunks before installing it.
+///
+/// The write itself stops at the size the entry declares (SEC-06). Checking
+/// the length afterwards caught a lying entry only once it had already been
+/// inflated to disk in full — a few megabytes of a crafted backup could fill
+/// the phone before the check ran.
 void extractCheckedZipFile(ArchiveFile entry, String path) {
-  final output = OutputFileStream(path);
+  final output = BoundedOutputFileStream(path, limit: entry.size);
   try {
     entry.writeContent(output);
   } finally {
@@ -44,5 +49,31 @@ void extractCheckedZipFile(ArchiveFile entry, String path) {
   }
   if (entry.crc32 != null && crc != entry.crc32) {
     throw const FormatException('ZIP checksum mismatch');
+  }
+}
+
+/// An [OutputFileStream] that refuses to grow past [limit] bytes.
+class BoundedOutputFileStream extends OutputFileStream {
+  BoundedOutputFileStream(String path, {required this.limit})
+    : super.withFileHandle(FileHandle(path, mode: FileAccess.write));
+
+  final int limit;
+
+  void _check(int more) {
+    if (length + more > limit) {
+      throw const FormatException('ZIP entry larger than it declares');
+    }
+  }
+
+  @override
+  void writeByte(int value) {
+    _check(1);
+    super.writeByte(value);
+  }
+
+  @override
+  void writeBytes(List<int> bytes, {int? length}) {
+    _check(length ?? bytes.length);
+    super.writeBytes(bytes, length: length);
   }
 }
