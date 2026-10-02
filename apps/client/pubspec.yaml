@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 1.93.0
+version: 1.93.1
 
 environment:
   sdk: ^3.9.0
@@ -130,6 +130,8 @@ flutter:
     # silently.
     - assets/CHANGELOG.md
     - third_party/jalaali-js-LICENSE.txt
+    - third_party/Inter-OFL.txt
+    - third_party/Vazirmatn-OFL.txt
     # The user guide, one file per language. Prose rather than labels — see
     # the note on GuideScreen for why it is not in the ARB catalogues.
     - assets/guide/

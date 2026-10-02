@@ -19,6 +19,15 @@ Future<void> bootstrapEntry() async {
     yield LicenseEntryWithLineBreaks([
       'jalaali-js',
     ], await rootBundle.loadString('third_party/jalaali-js-LICENSE.txt'));
+    // The two bundled fonts. Pub packages' licences reach the licence page
+    // through Flutter's NOTICES; fonts copied in by hand do not, and the SIL
+    // OFL 1.1 asks for its text to travel with the font (REL-08).
+    yield LicenseEntryWithLineBreaks([
+      'Inter',
+    ], await rootBundle.loadString('third_party/Inter-OFL.txt'));
+    yield LicenseEntryWithLineBreaks([
+      'Vazirmatn',
+    ], await rootBundle.loadString('third_party/Vazirmatn-OFL.txt'));
   });
 
   // As early as this can happen: an error during bootstrap is exactly the

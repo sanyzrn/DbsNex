@@ -24,7 +24,7 @@ Blocker / High / Medium / Low and each tied to a file and line.
 
 | File | Task |
 |---|---|
-| [08-windows-panel-nex.md](08-windows-panel-nex.md) | Bring Nex into the Flutter port of Right Panel, as `apps/desktop`. Done by an agent with read-only access to this repository: it cannot push, and returns one zip with the app, optional patches and hand-off notes |
+| [08-windows-panel-nex.md](08-windows-panel-nex.md) | Take Nex for Windows (`sanyzrn/Nex_windows_test`, 0.10.0) to 0.11.0: onto current upstream packages, reviewable structure, reminders/restore/links/recurring parity, desktop keyboard and two-pane UX, measured performance. Done by an agent with read-only access to both repositories: it cannot push, and returns one zip with the repository snapshot, upstream patches and hand-off notes |
 
 Keep these files in step with the code. When a path, a feature or a rule
 they name changes, update the prompt in the same pull request.

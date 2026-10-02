@@ -40,6 +40,10 @@ on:
       tag:
         description: "Version to build, with or without the leading v (e.g. 0.2.1)"
         required: true
+      allow_no_feedback:
+        description: "Ship without a feedback endpoint (hotfix only: Send feedback will report itself unavailable)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -184,6 +188,29 @@ jobs:
             fi
           done
           exit $missing
+
+      # Mirrors the signing check (REL-07). A release built without the
+      # endpoint has a Send feedback sheet that composes and then reports
+      # itself unavailable, and with no telemetry by design (ADR-036) that is
+      # the only direct signal from the field. Only a manual run that ticks
+      # allow_no_feedback may ship without it.
+      - name: Require feedback endpoint
+        env:
+          NEX_FEEDBACK_API_URL: ${{ vars.NEX_FEEDBACK_API_URL }}
+          ALLOW_NO_FEEDBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_no_feedback || false }}
+        run: |
+          if [ -n "$NEX_FEEDBACK_API_URL" ]; then
+            case "$NEX_FEEDBACK_API_URL" in
+              https://*) exit 0 ;;
+              *) echo "::error::NEX_FEEDBACK_API_URL must be an https:// URL."; exit 1 ;;
+            esac
+          fi
+          if [ "$ALLOW_NO_FEEDBACK" = "true" ]; then
+            echo "::warning::Building without NEX_FEEDBACK_API_URL: Send feedback will report itself unavailable in this release."
+            exit 0
+          fi
+          echo "::error::NEX_FEEDBACK_API_URL repository variable is empty — set it under Settings → Secrets and variables → Actions → Variables, or re-run manually with allow_no_feedback for a hotfix."
+          exit 1
 
       - name: Decode keystore
         env:

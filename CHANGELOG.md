@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.93.1
+
+- **One permission fewer.** Nex no longer asks Android for access to your photo library: photos are picked through the system picker, which needs no permission.
+- **Font licences.** The licences page now includes the Inter and Vazirmatn font licences.
+
 ## v1.93.0
 
 - **The Smart summary widget scrolls.** A summary longer than the widget used to be cut off; it now scrolls inside it.
