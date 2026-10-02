@@ -17,11 +17,13 @@ class NexCaptureTileService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
+        // The app's language, not the phone's (LOC-03).
+        val text = NexWidgetAppearance.localized(this)
         qsTile?.let {
             it.state = Tile.STATE_INACTIVE
-            it.label = getString(R.string.tile_capture_label)
+            it.label = text.getString(R.string.tile_capture_label)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                it.subtitle = getString(R.string.tile_capture_subtitle)
+                it.subtitle = text.getString(R.string.tile_capture_subtitle)
             }
             it.updateTile()
         }

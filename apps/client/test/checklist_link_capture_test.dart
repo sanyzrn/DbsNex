@@ -46,7 +46,10 @@ void main() {
     // One field, one item per line — not five taps into five separate rows.
     await tester.enterText(find.byType(TextField).last, 'milk\nbread\nolives');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Capture'));
+    // No Capture button: closing the sheet keeps the list, the way a text
+    // capture is kept.
+    expect(find.text('Capture'), findsNothing);
+    await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
 
     final notes = await services.timeline(limit: 5);

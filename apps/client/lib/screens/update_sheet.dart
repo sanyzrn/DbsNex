@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:nex_core/nex_core.dart' show nexDigits;
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -339,106 +340,110 @@ class _UpdateSheetState extends State<UpdateSheet> {
     );
   }
 
-  List<Widget> _body(AppLocalizations l10n, ThemeData theme) =>
-      switch (_phase) {
-        _Phase.checking => [
-          const Center(child: CircularProgressIndicator()),
-          const SizedBox(height: NexSpacing.md),
-          Text(l10n.checkingForUpdate, textAlign: TextAlign.center),
-        ],
-        _Phase.upToDate => [
-          Icon(
-            Icons.check_circle_outline,
-            size: 40,
-            color: theme.colorScheme.secondary,
+  List<Widget> _body(
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) => switch (_phase) {
+    _Phase.checking => [
+      const Center(child: CircularProgressIndicator()),
+      const SizedBox(height: NexSpacing.md),
+      Text(l10n.checkingForUpdate, textAlign: TextAlign.center),
+    ],
+    _Phase.upToDate => [
+      Icon(
+        Icons.check_circle_outline,
+        size: 40,
+        color: theme.colorScheme.secondary,
+      ),
+      const SizedBox(height: NexSpacing.sm),
+      Text(l10n.upToDate, textAlign: TextAlign.center),
+    ],
+    _Phase.available => [
+      Text(
+        l10n.updateAvailable('${_result!.version}'),
+        style: theme.textTheme.titleMedium,
+      ),
+      if (_result!.sizeBytes != null) ...[
+        const SizedBox(height: NexSpacing.xs),
+        Text(
+          nexFormatBytes(_result!.sizeBytes!),
+          style: theme.textTheme.bodySmall,
+        ),
+      ],
+      if (_result!.notes?.trim().isNotEmpty == true) ...[
+        const SizedBox(height: NexSpacing.md),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 220),
+          child: SingleChildScrollView(
+            child: ReleaseNotesList(raw: _result!.notes!),
           ),
-          const SizedBox(height: NexSpacing.sm),
-          Text(l10n.upToDate, textAlign: TextAlign.center),
-        ],
-        _Phase.available => [
-          Text(
-            l10n.updateAvailable('${_result!.version}'),
-            style: theme.textTheme.titleMedium,
-          ),
-          if (_result!.sizeBytes != null) ...[
-            const SizedBox(height: NexSpacing.xs),
-            Text(
-              nexFormatBytes(_result!.sizeBytes!),
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
-          if (_result!.notes?.trim().isNotEmpty == true) ...[
-            const SizedBox(height: NexSpacing.md),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 220),
-              child: SingleChildScrollView(
-                child: ReleaseNotesList(raw: _result!.notes!),
+        ),
+      ],
+      const SizedBox(height: NexSpacing.lg),
+      FilledButton.icon(
+        onPressed: _download,
+        icon: const Icon(Icons.download_outlined),
+        label: Text(l10n.downloadAndInstall),
+      ),
+      const SizedBox(height: NexSpacing.sm),
+      Text(l10n.updateInstallNotice, style: theme.textTheme.bodySmall),
+    ],
+    _Phase.downloading => [
+      Text(l10n.downloading, style: theme.textTheme.titleMedium),
+      const SizedBox(height: NexSpacing.md),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(NexRadius.sm),
+        // Frozen where it stopped rather than spinning: the bar is the
+        // only thing saying how much of this is already on the disk.
+        child: LinearProgressIndicator(value: _progress, minHeight: 8),
+      ),
+      const SizedBox(height: NexSpacing.sm),
+      if (_stopped)
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _outOfSpace ? l10n.updateNoSpace : l10n.downloadStopped,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
               ),
             ),
+            // Resume, not restart. The partial file is on disk and the
+            // downloader asks for the rest by byte range.
+            TextButton(onPressed: _download, child: Text(l10n.resumeDownload)),
           ],
-          const SizedBox(height: NexSpacing.lg),
-          FilledButton.icon(
-            onPressed: _download,
-            icon: const Icon(Icons.download_outlined),
-            label: Text(l10n.downloadAndInstall),
-          ),
-          const SizedBox(height: NexSpacing.sm),
-          Text(l10n.updateInstallNotice, style: theme.textTheme.bodySmall),
-        ],
-        _Phase.downloading => [
-          Text(l10n.downloading, style: theme.textTheme.titleMedium),
-          const SizedBox(height: NexSpacing.md),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(NexRadius.sm),
-            // Frozen where it stopped rather than spinning: the bar is the
-            // only thing saying how much of this is already on the disk.
-            child: LinearProgressIndicator(value: _progress, minHeight: 8),
-          ),
-          const SizedBox(height: NexSpacing.sm),
-          if (_stopped)
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _outOfSpace ? l10n.updateNoSpace : l10n.downloadStopped,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
+        )
+      else
+        Text(
+          _progress == null
+              ? ''
+              : nexDigits(
+                  '${(_progress! * 100).round()}%',
+                  persian: l10n.localeName == 'fa',
                 ),
-                // Resume, not restart. The partial file is on disk and the
-                // downloader asks for the rest by byte range.
-                TextButton(
-                  onPressed: _download,
-                  child: Text(l10n.resumeDownload),
-                ),
-              ],
-            )
-          else
-            Text(
-              _progress == null ? '' : '${(_progress! * 100).round()}%',
-              style: theme.textTheme.bodySmall,
-            ),
-        ],
-        _Phase.ready => [
-          Text(l10n.readyToInstall, style: theme.textTheme.titleMedium),
-          const SizedBox(height: NexSpacing.lg),
-          FilledButton.icon(
-            onPressed: _install,
-            icon: const Icon(Icons.install_mobile_outlined),
-            label: Text(l10n.install),
-          ),
-        ],
-        _Phase.failed => [
-          Icon(
-            Icons.cloud_off_outlined,
-            size: 40,
-            color: theme.colorScheme.secondary,
-          ),
-          const SizedBox(height: NexSpacing.sm),
-          Text(_error ?? l10n.updateCheckFailed, textAlign: TextAlign.center),
-          const SizedBox(height: NexSpacing.lg),
-          OutlinedButton(onPressed: _check, child: Text(l10n.tryAgain)),
-        ],
-      };
+          style: theme.textTheme.bodySmall,
+        ),
+    ],
+    _Phase.ready => [
+      Text(l10n.readyToInstall, style: theme.textTheme.titleMedium),
+      const SizedBox(height: NexSpacing.lg),
+      FilledButton.icon(
+        onPressed: _install,
+        icon: const Icon(Icons.install_mobile_outlined),
+        label: Text(l10n.install),
+      ),
+    ],
+    _Phase.failed => [
+      Icon(
+        Icons.cloud_off_outlined,
+        size: 40,
+        color: theme.colorScheme.secondary,
+      ),
+      const SizedBox(height: NexSpacing.sm),
+      Text(_error ?? l10n.updateCheckFailed, textAlign: TextAlign.center),
+      const SizedBox(height: NexSpacing.lg),
+      OutlinedButton(onPressed: _check, child: Text(l10n.tryAgain)),
+    ],
+  };
 }

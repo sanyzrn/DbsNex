@@ -6,7 +6,6 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'guide_screen.dart';
-import 'package:nex_ai/cloud.dart';
 import '../platform/nex_preferences.dart';
 import '../widgets/choice_cards.dart';
 
@@ -341,7 +340,12 @@ class _Page extends StatelessWidget {
   }
 }
 
-/// The last page: the four things the app cannot guess.
+/// The last page: the things the app cannot guess.
+///
+/// The AI output language used to be asked here too (UX-04). Intelligence is
+/// off until a provider is added, so nothing on first run could make that
+/// answer mean anything; "Match my notes" stays the default and the choice
+/// lives with the smart summary in Settings.
 ///
 /// Each picker writes straight through to preferences, the way it does in
 /// Settings, so the theme and language change under the user as they choose —
@@ -460,33 +464,6 @@ class _SetupPage extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: NexSpacing.lg),
-            _Field(
-              label: l10n.aiOutputLanguage,
-              hint: l10n.aiOutputLanguageSubtitle,
-            ),
-            NexChoiceCards<AiOutputLanguage>(
-              selected: preferences.aiOutputLanguage,
-              onSelected: (value) =>
-                  unawaited(preferences.setAiOutputLanguage(value)),
-              choices: [
-                NexChoice(
-                  value: AiOutputLanguage.auto,
-                  label: l10n.aiOutputLanguageAuto,
-                  preview: const NexScriptSample(icon: Icons.auto_awesome),
-                ),
-                NexChoice(
-                  value: AiOutputLanguage.english,
-                  label: l10n.aiOutputLanguageEnglish,
-                  preview: const NexScriptSample(sample: 'Aa'),
-                ),
-                NexChoice(
-                  value: AiOutputLanguage.persian,
-                  label: l10n.aiOutputLanguagePersian,
-                  preview: const NexScriptSample(sample: 'اَ'),
-                ),
-              ],
-            ),
             const SizedBox(height: NexSpacing.xl),
             // The last thing on the last step, and deliberately a card rather
             // than a line of text. Four pages of onboarding cannot cover an
@@ -547,29 +524,16 @@ class _SetupPage extends StatelessWidget {
 
 /// A label over one of the setup page's controls.
 class _Field extends StatelessWidget {
-  const _Field({required this.label, this.hint});
+  const _Field({required this.label});
 
   final String label;
-  final String? hint;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: NexSpacing.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: theme.textTheme.titleSmall),
-          if (hint != null)
-            Text(
-              hint!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-        ],
-      ),
+      child: Text(label, style: theme.textTheme.titleSmall),
     );
   }
 }

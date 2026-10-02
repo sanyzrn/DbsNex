@@ -65,15 +65,20 @@ object NexQuickCapture {
 
     private fun post(context: Context) {
         val manager = manager(context)
+        // In the app's language, as the widgets are, not the phone's (LOC-03).
+        // Re-posted from `pushWidgets` when that language changes; the
+        // channel's name follows too, since re-creating a channel may rename
+        // it.
+        val text = NexWidgetAppearance.localized(context)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // The lowest importance that still shows in the shade: no sound,
             // no vibration, no status-bar icon, no heads-up.
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                context.getString(R.string.quick_capture_channel),
+                text.getString(R.string.quick_capture_channel),
                 NotificationManager.IMPORTANCE_MIN,
             ).apply {
-                description = context.getString(R.string.quick_capture_channel_description)
+                description = text.getString(R.string.quick_capture_channel_description)
                 setShowBadge(false)
             }
             manager.createNotificationChannel(channel)
@@ -86,25 +91,25 @@ object NexQuickCapture {
         }
         val notification = builder
             .setSmallIcon(R.drawable.ic_stat_nex)
-            .setContentTitle(context.getString(R.string.quick_capture_title))
-            .setContentText(context.getString(R.string.quick_capture_text))
+            .setContentTitle(text.getString(R.string.quick_capture_title))
+            .setContentText(text.getString(R.string.quick_capture_text))
             .setContentIntent(launch(context, RC_SHEET, null))
             .setOngoing(true)
             .setShowWhen(false)
             .setOnlyAlertOnce(true)
             .setCategory(Notification.CATEGORY_REMINDER)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
-            .addAction(action(context, RC_TEXT, MODE_TEXT, R.string.quick_capture_note))
-            .addAction(action(context, RC_VOICE, MODE_VOICE, R.string.quick_capture_voice))
-            .addAction(action(context, RC_PHOTO, MODE_PHOTO, R.string.quick_capture_photo))
+            .addAction(action(context, text, RC_TEXT, MODE_TEXT, R.string.quick_capture_note))
+            .addAction(action(context, text, RC_VOICE, MODE_VOICE, R.string.quick_capture_voice))
+            .addAction(action(context, text, RC_PHOTO, MODE_PHOTO, R.string.quick_capture_photo))
             .build()
         runCatching { manager.notify(NOTIFICATION_ID, notification) }
     }
 
-    private fun action(context: Context, requestCode: Int, mode: String, label: Int) =
+    private fun action(context: Context, text: Context, requestCode: Int, mode: String, label: Int) =
         Notification.Action.Builder(
             null as Icon?,
-            context.getString(label),
+            text.getString(label),
             launch(context, requestCode, mode),
         )
             .build()

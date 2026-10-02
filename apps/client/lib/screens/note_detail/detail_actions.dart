@@ -323,7 +323,9 @@ extension _DetailActions on _NoteDetailSheetState {
               if (note.tags.isNotEmpty)
                 _DetailRow(
                   label: l10n.tags,
-                  value: note.tags.map((t) => t.name).join('، '),
+                  value: note.tags
+                      .map((t) => t.name)
+                      .join(l10n.localeName == 'fa' ? '، ' : ', '),
                 ),
               if (file != null && file.existsSync())
                 _DetailRow(

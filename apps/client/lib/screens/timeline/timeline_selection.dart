@@ -177,7 +177,17 @@ extension _TimelineSelection on TimelineScreenState {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final viewport = MediaQuery.sizeOf(context).width;
-    final width = (viewport - NexSpacing.md * 2).clamp(0.0, 420.0);
+    // Seven 48dp targets need 352dp with the end caps; a 360dp phone's
+    // margins left 328 and the last button hung past the capsule (UX-02).
+    // As on the navigation dock, the outer margin gives way before any
+    // target does, and only a phone narrower still scrolls the row.
+    final actions = nexCanShare ? 7 : 6;
+    final needed = actions * nexMinTapTarget + NexSpacing.sm * 2;
+    final width = math.min(
+      math.max((viewport - NexSpacing.md * 2).clamp(0.0, 420.0), needed),
+      viewport - NexSpacing.xs * 2,
+    );
+    final fits = width >= needed;
     const height = NexNavigationDock.height;
     final radius = BorderRadius.circular(height / 2);
     Widget action(
@@ -237,8 +247,8 @@ extension _TimelineSelection on TimelineScreenState {
               fallbackColor: scheme.surfaceContainerLowest,
               child: Material(
                 type: MaterialType.transparency,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                child: _SelectionRow(
+                  fits: fits,
                   children: [
                     action(
                       Icons.close,
@@ -276,6 +286,30 @@ extension _TimelineSelection on TimelineScreenState {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The selection bar's buttons: spread evenly when they fit, scrolled
+/// sideways on a phone too narrow for all of them.
+class _SelectionRow extends StatelessWidget {
+  const _SelectionRow({required this.fits, required this.children});
+
+  final bool fits;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    if (fits) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: children,
+      );
+    }
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
+      child: Row(children: children),
     );
   }
 }

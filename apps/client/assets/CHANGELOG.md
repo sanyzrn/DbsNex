@@ -34,6 +34,26 @@ Working convention:
 
 ## Unreleased
 
+## v1.93.0
+
+- **The Smart summary widget scrolls.** A summary longer than the widget used to be cut off; it now scrolls inside it.
+- **Captions show their formatting.** Bold, italic, links and lists you add to a caption appear formatted in the item's details.
+- **Copy any message in the assistant** with the small copy button under it.
+- **A link shows your caption.** Once you caption a link, its card shows your words instead of the page's description.
+- **Copying a text or Markdown file copies its text**, not its file name. Word (.docx) files too.
+- **Long documents open smoothly.** A long Markdown or text file now rises with the same animation as everything else, and its text fades in.
+- **New checklists save themselves.** There is no Capture button any more: close the sheet and the list is kept, like quick text. Clearing the box before closing keeps nothing.
+- **Safer updates.** An update is only offered when its checksum can be verified, and a downloaded installer is never trusted on its size alone.
+- **Shared photos no longer carry where they were taken.** Location and other camera details are removed from the copy you share; the picture still stands the right way up.
+- **Links in notes only open websites, email and phone numbers**, never other apps through hidden addresses.
+- **Safer link previews and backups.** A huge or endless web page can no longer fill memory while its title is read, and a damaged or crafted backup can no longer fill the phone's storage while it is restored.
+- **Clearer privacy wording.** The guide now says exactly what Nex itself sends: an update check and the sponsor card, at most once a day, with nothing about you or your notes.
+- **Easier to read.** Error messages in dark mode, links and quiet buttons in the default light theme, and custom accent colours that were too pale all now meet contrast guidelines.
+- **Persian text in the English interface uses Vazirmatn**, the same face as the Persian interface and the editor.
+- **The quick-capture notification and the Quick Settings tile follow the app's language**, like the widgets.
+- **Persian polish.** Consistent polite wording across the app, "عقب‌افتاده" for overdue items as in the guide, Persian digits in the download percentage and the calendar, and weekdays in the recurring editor start on Saturday.
+- **Fixes.** The multi-select bar fits on narrow phones; the camera's close arrow points the right way in Persian; tags in English details are separated by an English comma; a checklist's item count sits next to its title; the guide uses the widget names the launcher shows; and the first-run setup no longer asks about the AI language before any AI is set up.
+
 ## v1.92.3
 
 - **Smoother typing on slower phones.** Drafts are still kept as you type, but saved in a pause rather than after every letter, so the keyboard no longer stutters on slow storage. Leaving the app saves them at once.

@@ -31,7 +31,13 @@ class RecurringOptions extends StatelessWidget {
           Wrap(
             spacing: 4,
             children: [
-              for (var i = 1; i <= 7; i++)
+              // Saturday first in Persian, where the week starts on شنبه, as
+              // the recurring calendar already does (LOC-11). The stored
+              // values stay DateTime.weekday numbers either way.
+              for (final i
+                  in Localizations.localeOf(context).languageCode == 'fa'
+                      ? const [6, 7, 1, 2, 3, 4, 5]
+                      : const [1, 2, 3, 4, 5, 6, 7])
                 FilterChip(
                   label: Text(
                     nexLabel(

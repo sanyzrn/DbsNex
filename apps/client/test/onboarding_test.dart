@@ -260,12 +260,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(preferences.locale?.languageCode, 'fa');
 
-    // The AI's language is asked for separately from the app's, and answering
-    // one must not answer the other.
+    // The AI's language is not asked at the door (UX-04): intelligence is
+    // off until a provider is added, so it keeps its default.
+    expect(find.text('زبان خروجی هوش مصنوعی'), findsNothing);
     expect(preferences.aiOutputLanguage, AiOutputLanguage.auto);
-    await tester.tap(find.text('انگلیسی'));
-    await tester.pumpAndSettle();
-    expect(preferences.aiOutputLanguage, AiOutputLanguage.english);
-    expect(preferences.locale?.languageCode, 'fa');
   });
 }

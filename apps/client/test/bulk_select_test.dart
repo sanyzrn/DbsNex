@@ -23,9 +23,9 @@ void main() {
 
   tearDown(() => harness.dispose());
 
-  Future<void> open(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1080, 2340);
+  Future<void> open(WidgetTester tester, {double width = 1080 / 2.75}) async {
     tester.view.devicePixelRatio = 2.75;
+    tester.view.physicalSize = Size(width * 2.75, 2340);
     addTearDown(tester.view.reset);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
@@ -62,6 +62,28 @@ void main() {
     of: find.byKey(const ValueKey('selection-count')),
     matching: find.text(text),
   );
+
+  testWidgets('the bar keeps every button whole on a narrow phone', (
+    tester,
+  ) async {
+    // UX-02: at 360dp (and narrower) the margins used to leave less room
+    // than the buttons need, and the last one hung past the capsule.
+    await open(tester, width: 320);
+    await select(tester, 'alpha note');
+    expect(tester.takeException(), isNull);
+    final buttons = find.descendant(
+      of: bar(),
+      matching: find.byType(IconButton),
+    );
+    final barRect = tester.getRect(bar());
+    expect(barRect.width, greaterThanOrEqualTo(6 * nexMinTapTarget));
+    for (final button in buttons.evaluate()) {
+      final rect = tester.getRect(find.byWidget(button.widget));
+      expect(rect.width, greaterThanOrEqualTo(nexMinTapTarget));
+      expect(barRect.left - 0.5, lessThanOrEqualTo(rect.left));
+      expect(rect.right, lessThanOrEqualTo(barRect.right + 0.5));
+    }
+  });
 
   testWidgets('Select from the hold menu; taps pick; none left ends it', (
     tester,

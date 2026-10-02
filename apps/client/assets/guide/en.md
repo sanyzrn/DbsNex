@@ -4,7 +4,7 @@ Nex is the fastest way to put something down and find it again: a thought, a pho
 
 ## Capture something
 
-Tap **+** at the centre of the bottom bar and choose text, checklist, voice, photo, file or link. There is no Save button for quick text: it is saved when you close its sheet. Checklists, links and other editors have a **Save** or **Confirm** button. A checklist uses one item per line; a link needs a complete address.
+Tap **+** at the centre of the bottom bar and choose text, checklist, voice, photo, file or link. Quick text and new checklists have no Save button: they are kept when you close their sheet, and clearing the box before you close it removes what you started. Links and the other editors have a **Save** or **Confirm** button. A checklist uses one item per line; a link needs a complete address.
 
 Without opening Nex first: add the **Nex capture** tile to your Quick Settings (pull the shade down twice, then edit the tiles), or turn on **Settings → Capture → Capture from notifications** for a silent row with **Note**, **Voice** and **Photo** buttons.
 
@@ -114,7 +114,7 @@ Confirmations and warnings arrive as a small capsule that drips down from the to
 
 ## Home-screen widgets
 
-Add the **Capture**, **Timeline** or **Recap** widget from your launcher. The Timeline widget starts a note, a voice note, a photo from the camera or the gallery, or a checklist with one tap from its top row; the Recap widget shows the smart summary under the Nex logo, and when there is none yet, tapping it asks for one. Under **Settings → Appearance → Home screen widget**, choose which kinds of note and which tag the timeline widget shows and whether pinned notes come first. Widgets follow the app's language and accent. While the app lock is closed they hide your notes, unless you choose otherwise.
+Add the **Nex Capture**, **Nex Timeline** or **Smart summary** widget from your launcher. The Timeline widget starts a note, a voice note, a photo from the camera or the gallery, or a checklist with one tap from its top row; the Smart summary widget shows the recap under the Nex logo and scrolls when it is longer than the widget, and when there is none yet, tapping it asks for one. Under **Settings → Appearance → Home screen widget**, choose which kinds of note and which tag the timeline widget shows and whether pinned notes come first. Widgets follow the app's language and accent. While the app lock is closed they hide your notes, unless you choose otherwise.
 
 ![Home-screen widgets](widgets.webp)
 

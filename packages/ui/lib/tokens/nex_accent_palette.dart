@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'nex_contrast.dart';
+
 /// The four accent shades a theme actually needs, derived from one seed.
 ///
 /// Nex's colour system is "declared, not seeded" for the neutral ramp (see
@@ -56,10 +58,25 @@ NexAccentPalette nexAccentPaletteFrom(Color seed) {
       .withSaturation((hsl.saturation + saturationDelta).clamp(0.0, 1.0))
       .toColor();
 
+  // Pinned lightness is not pinned contrast: a yellow at 0.55 is about
+  // 1.5:1 on white, and the accent is the caret, the focus ring and the
+  // active filter (LOC-08). Each role is walked darker on the light card or
+  // lighter on the dark one until it clears the 3:1 floor for those marks,
+  // and the strong roles, which carry text, until they clear 4.5:1. A seed
+  // that already clears them — the shipped blue among them — is untouched.
+  const lightCard = Color(0xFFFFFFFF);
+  const darkCard = Color(0xFF1E1E1E);
   return NexAccentPalette(
-    light: tone(_lightTone),
-    strongLight: tone(_strongLightTone),
-    dark: tone(_darkTone, saturationDelta: -0.05),
-    strongDark: tone(_strongDarkTone, saturationDelta: -0.08),
+    light: nexReadableOn(tone(_lightTone), lightCard, ratio: 3),
+    strongLight: nexReadableOn(tone(_strongLightTone), lightCard),
+    dark: nexReadableOn(
+      tone(_darkTone, saturationDelta: -0.05),
+      darkCard,
+      ratio: 3,
+    ),
+    strongDark: nexReadableOn(
+      tone(_strongDarkTone, saturationDelta: -0.08),
+      darkCard,
+    ),
   );
 }
