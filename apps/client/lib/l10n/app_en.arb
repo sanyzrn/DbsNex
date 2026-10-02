@@ -1393,7 +1393,7 @@
   "@intelligenceMasterSubtitle": {
     "description": "The master switch's own explanation"
   },
-  "intelligenceOffBody": "Everything stays on this device. Nothing is sent anywhere, and no note leaves the app.",
+  "intelligenceOffBody": "Everything stays on this device. No note is sent to any AI service, and no note leaves the app.",
   "@intelligenceOffBody": {
     "description": "Shown while the master switch is off"
   },

@@ -331,7 +331,7 @@ void main() {
       expect(result.checksumSha256, digest);
     });
 
-    test('no SHA256SUMS asset means no checksum, not a failure', () async {
+    test('no SHA256SUMS asset means no update offered', () async {
       final checker = UpdateChecker(
         currentVersion: '0.2.0',
         assetSuffix: '-universal.apk',
@@ -341,11 +341,11 @@ void main() {
 
       final result = await checker.check();
 
-      expect(result.status, UpdateStatus.available);
-      expect(result.checksumSha256, isNull);
+      // SEC-01: an installer nothing vouches for is not offered at all.
+      expect(result.status, UpdateStatus.unavailable);
     });
 
-    test('a failed checksum fetch does not block the update', () async {
+    test('a failed checksum fetch offers no update', () async {
       final checker = UpdateChecker(
         currentVersion: '0.2.0',
         assetSuffix: '-universal.apk',
@@ -360,8 +360,7 @@ void main() {
 
       final result = await checker.check();
 
-      expect(result.status, UpdateStatus.available);
-      expect(result.checksumSha256, isNull);
+      expect(result.status, UpdateStatus.unavailable);
     });
   });
 

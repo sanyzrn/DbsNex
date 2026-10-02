@@ -45,6 +45,9 @@ class RecapWidgetProvider : AppWidgetProvider() {
         for (id in ids) {
             manager.updateAppWidget(id, views(context))
         }
+        // The brief's lines come from [RecapWidgetService]; one call asks the
+        // launcher to re-read them along with the frame just pushed.
+        manager.notifyAppWidgetViewDataChanged(ids, R.id.nex_recap_body)
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -53,9 +56,9 @@ class RecapWidgetProvider : AppWidgetProvider() {
         id: Int,
         newOptions: Bundle?,
     ) {
-        // The body is one TextView filling whatever height the launcher
-        // grants, so nothing about it reflows with size. Re-rendering keeps
-        // the rest of the frame honest after a resize all the same.
+        // The body is a list filling whatever height the launcher grants, so
+        // nothing about it reflows with size. Re-rendering keeps the rest of
+        // the frame honest after a resize all the same.
         manager.updateAppWidget(id, views(context))
     }
 
@@ -129,11 +132,17 @@ class RecapWidgetProvider : AppWidgetProvider() {
             }
             else -> {
                 show(views, R.id.nex_recap_body)
-                views.setTextViewText(R.id.nex_recap_body, recap)
-                // The brief already reads as a list; a screen reader gets the
-                // same lines rather than a second, differently-worded summary
-                // of them.
-                views.setContentDescription(R.id.nex_recap_body, recap)
+                // One row per line, so a brief taller than the widget scrolls
+                // (see widget_recap.xml). A screen reader reads the rows as
+                // they are, the same lines the eye gets.
+                views.setRemoteAdapter(
+                    R.id.nex_recap_body,
+                    RecapWidgetService.intent(context),
+                )
+                views.setPendingIntentTemplate(
+                    R.id.nex_recap_body,
+                    NexWidgetActions.openApp(context),
+                )
             }
         }
         return views

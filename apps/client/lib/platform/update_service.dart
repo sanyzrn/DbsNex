@@ -236,7 +236,11 @@ class UpdateService extends ChangeNotifier {
   Future<void> _prefetch(UpdateCheck update) async {
     final url = update.downloadUrl;
     final version = update.version;
-    if (url == null || version == null) return;
+    // No digest, no download (SEC-01): [UpdateChecker.check] offers no
+    // update without one, and this is where that is relied on.
+    if (url == null || version == null || update.checksumSha256 == null) {
+      return;
+    }
     final name = nexInstallerFilename(version);
     try {
       final dir = await _directory();
@@ -250,22 +254,20 @@ class UpdateService extends ChangeNotifier {
         // file that was the right size and the wrong bytes; with a digest
         // available, a cached installer meets the same bar a fresh download
         // does before anyone is offered the Install button.
+        // Never on size alone (SEC-01): with no digest to check it against,
+        // a cached installer is fetched again rather than trusted.
         final expected = update.checksumSha256;
-        if (expected != null) {
-          final digest = await sha256.bind(existing.openRead()).first;
-          if ('$digest' != expected.toLowerCase()) {
-            // Wrong bytes: gone, and re-fetched below like any other miss.
-            existing.deleteSync();
-          } else {
-            _downloaded = existing;
-            _notify();
-            return;
-          }
-        } else {
+        final digest = expected == null
+            ? null
+            : await sha256.bind(existing.openRead()).first;
+        if (expected != null && '$digest' == expected.toLowerCase()) {
           _downloaded = existing;
           _notify();
           return;
         }
+        // Wrong or unverifiable bytes: gone, and re-fetched below like any
+        // other miss.
+        existing.deleteSync();
       }
       _announced = false;
       _downloadError = null;

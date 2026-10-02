@@ -1677,7 +1677,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get intelligenceOffBody =>
-      'همه‌چیز روی همین دستگاه می‌ماند. چیزی جایی فرستاده نمی‌شود و هیچ یادداشتی از برنامه بیرون نمی‌رود.';
+      'همه‌چیز روی همین دستگاه می‌ماند. هیچ یادداشتی برای سرویس هوش مصنوعی فرستاده نمی‌شود و از برنامه بیرون نمی‌رود.';
 
   @override
   String get intelligenceConsentTitle => 'هوش مصنوعی روشن شود؟';

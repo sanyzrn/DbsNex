@@ -214,11 +214,14 @@ class Note {
   /// text stays reachable (and searchable) behind its own small copy icon;
   /// it just stops being the headline once someone has written one.
   ///
-  /// A [title] outranks all of it. Someone who bothered to name a note named
-  /// it because the first line was not what they wanted to see in the list.
+  /// A [title] outranks all of it — except on a link, where the title is the
+  /// page's own name read off the web and a caption is the user's word on
+  /// it, so the caption comes first there as it does everywhere else.
   String? get displayText {
     final named = title?.trim();
-    if (named != null && named.isNotEmpty) return named;
+    if (type != NoteType.link && named != null && named.isNotEmpty) {
+      return named;
+    }
     switch (type) {
       case NoteType.text:
         return content;
@@ -237,7 +240,7 @@ class Note {
             ? null
             : items.map((item) => item.text).join(' · ');
       case NoteType.link:
-        return _firstNonEmpty([caption, linkExcerpt, content]);
+        return _firstNonEmpty([caption, title, linkExcerpt, content]);
     }
   }
 

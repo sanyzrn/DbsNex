@@ -272,16 +272,54 @@ class _FileTextBodyState extends State<_FileTextBody> {
   List<List<String>> _rows = const [];
   int _omittedRows = 0;
 
+  /// Whether the file is drawn only once the sheet has finished rising.
+  ///
+  /// A long document read and laid out in the sheet's first frame took that
+  /// frame past the whole opening animation, so the sheet appeared at once
+  /// instead of rising (it did so for nothing shorter). A long file now
+  /// rises as an empty sheet of its final height and its text fades in when
+  /// the movement is done. A short one is cheap and is drawn straight away.
+  bool _deferred = false;
+
+  /// Past this many bytes a file waits for the opening animation.
+  static const _deferAbove = 8 * 1024;
+
   @override
   void initState() {
     super.initState();
-    _load();
+    _start();
   }
 
   @override
   void didUpdateWidget(_FileTextBody old) {
     super.didUpdateWidget(old);
-    if (old.path != widget.path || old.kind != widget.kind) _load();
+    if (old.path != widget.path || old.kind != widget.kind) _start();
+  }
+
+  void _start() {
+    var size = 0;
+    try {
+      size = File(widget.path).lengthSync();
+    } catch (_) {
+      // Missing or unreadable: [_load] says which.
+    }
+    if (size <= _deferAbove) {
+      _deferred = false;
+      _load();
+      return;
+    }
+    _deferred = true;
+    _text = null;
+    final path = widget.path;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await nexRouteOpened(context);
+      if (!mounted || widget.path != path) return;
+      setState(() {
+        _deferred = false;
+        _load();
+      });
+    });
   }
 
   void _load() {
@@ -327,6 +365,11 @@ class _FileTextBodyState extends State<_FileTextBody> {
     final quiet = theme.textTheme.bodyMedium?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    if (_deferred) {
+      // The height the text will take, more or less: a long file fills the
+      // sheet, so the sheet rises at the size it will stay.
+      return SizedBox(height: MediaQuery.sizeOf(context).height);
+    }
     if (_tooLarge) {
       return Padding(
         padding: const EdgeInsets.only(top: NexSpacing.sm),
@@ -341,40 +384,75 @@ class _FileTextBodyState extends State<_FileTextBody> {
     }
     final text = _text?.trim() ?? '';
     if (text.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: NexSpacing.sm),
-      child: switch (widget.kind) {
-        NexFileKind.markdown => SelectionArea(
-          contextMenuBuilder: nexSelectionMenu,
-          child: NexMarkdown(
-            text,
-            selectable: false,
-            onTapLink: _openHref,
-            onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
+    return _FadeIn(
+      child: Padding(
+        padding: const EdgeInsets.only(top: NexSpacing.sm),
+        child: switch (widget.kind) {
+          NexFileKind.markdown => SelectionArea(
+            contextMenuBuilder: nexSelectionMenu,
+            child: NexMarkdown(
+              text,
+              selectable: false,
+              onTapLink: _openHref,
+              onCopyCode: (code) => unawaited(_copyCodeSpan(context, code)),
+            ),
           ),
-        ),
-        // The same leading as a text note's body in this same sheet: a plain
-        // file someone shared and a note someone typed are both prose, and
-        // there is no reason to read them at two different densities.
-        NexFileKind.plainText => NexTextSurface(
-          text,
-          style: theme.textTheme.bodyLarge?.copyWith(height: 1.62),
-          // As selectable as the markdown branch beside it. A shared file is
-          // read here and nowhere else, so this is the only place its words
-          // can be taken from.
-          selectable: true,
-        ),
-        NexFileKind.table when _rows.isNotEmpty => _DelimitedTable(
-          rows: _rows,
-          omitted: _omittedRows,
-        ),
-        // A table whose parse produced nothing is still a text file, and
-        // showing its source beats showing an empty frame.
-        NexFileKind.table || NexFileKind.code => _CodeBlock(text),
-        _ => const SizedBox.shrink(),
-      },
+          // The same leading as a text note's body in this same sheet: a plain
+          // file someone shared and a note someone typed are both prose, and
+          // there is no reason to read them at two different densities.
+          NexFileKind.plainText => NexTextSurface(
+            text,
+            style: theme.textTheme.bodyLarge?.copyWith(height: 1.62),
+            // As selectable as the markdown branch beside it. A shared file is
+            // read here and nowhere else, so this is the only place its words
+            // can be taken from.
+            selectable: true,
+          ),
+          NexFileKind.table when _rows.isNotEmpty => _DelimitedTable(
+            rows: _rows,
+            omitted: _omittedRows,
+          ),
+          // A table whose parse produced nothing is still a text file, and
+          // showing its source beats showing an empty frame.
+          NexFileKind.table || NexFileKind.code => _CodeBlock(text),
+          _ => const SizedBox.shrink(),
+        },
+      ),
     );
   }
+}
+
+/// Completes once the route [context] sits in has finished its opening
+/// animation — at once if it already has, or if there is none.
+Future<void> nexRouteOpened(BuildContext context) {
+  final animation = ModalRoute.of(context)?.animation;
+  if (animation == null || !animation.isAnimating) return Future.value();
+  final done = Completer<void>();
+  late final AnimationStatusListener listener;
+  listener = (status) {
+    if (status == AnimationStatus.forward) return;
+    animation.removeStatusListener(listener);
+    if (!done.isCompleted) done.complete();
+  };
+  animation.addStatusListener(listener);
+  return done.future;
+}
+
+/// A short fade, so text that arrives after the sheet has opened eases in
+/// rather than appearing in a single frame.
+class _FadeIn extends StatelessWidget {
+  const _FadeIn({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: 0, end: 1),
+    duration: const Duration(milliseconds: 180),
+    curve: Curves.easeOut,
+    builder: (context, value, child) => Opacity(opacity: value, child: child),
+    child: child,
+  );
 }
 
 /// Copies a tapped `code` span and says so.
@@ -389,15 +467,25 @@ Future<void> _copyCodeSpan(BuildContext context, String code) async {
   nexShowBanner(context, message: message);
 }
 
+/// The schemes a tapped link in a note may hand to the system.
+@visibleForTesting
+const nexFollowableLinkSchemes = {'http', 'https', 'mailto', 'tel'};
+
 /// Follows a link out of rendered Markdown — a note's own body, or a file
 /// shown inside one.
 ///
 /// A schemeless href is ignored rather than guessed at: `[x](notes/plan.md)`
 /// is a relative path in somebody's repository, and handing it to the OS as a
 /// URL opens nothing at best.
+///
+/// Only web, mail and phone links are followed (SEC-05) — the rule the
+/// sponsor card already keeps for remote content. A note's text can arrive
+/// from a share, a fetched page or a converted file, and an `intent://` or
+/// app deep link dressed as `[a website](…)` launches an installed app, not
+/// a page.
 Future<void> _openHref(String href) async {
   final uri = Uri.tryParse(href);
-  if (uri == null || !uri.hasScheme) return;
+  if (uri == null || !nexFollowableLinkSchemes.contains(uri.scheme)) return;
   try {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   } catch (_) {

@@ -2825,7 +2825,7 @@ abstract class AppLocalizations {
   /// Shown while the master switch is off
   ///
   /// In en, this message translates to:
-  /// **'Everything stays on this device. Nothing is sent anywhere, and no note leaves the app.'**
+  /// **'Everything stays on this device. No note is sent to any AI service, and no note leaves the app.'**
   String get intelligenceOffBody;
 
   /// Consent dialog title

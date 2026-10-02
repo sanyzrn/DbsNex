@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -52,10 +53,7 @@ class LinkReader {
           'User-Agent': 'Mozilla/5.0 (compatible; Nex/1.0; +link-preview)',
           'Accept': 'text/html,application/xhtml+xml',
         });
-      final response = await _client
-          .send(request)
-          .timeout(_timeout)
-          .then(http.Response.fromStream);
+      final response = await _client.send(request).timeout(_timeout);
 
       if (response.statusCode != 200) return const LinkPreview();
       final type = response.headers['content-type'] ?? '';
@@ -63,9 +61,13 @@ class LinkReader {
       // trying to parse one as HTML finds nothing slowly.
       if (!type.contains('html')) return const LinkPreview();
 
-      final body = response.bodyBytes.length > _maxBytes
-          ? response.bodyBytes.sublist(0, _maxBytes)
-          : response.bodyBytes;
+      // Read the stream only as far as the cap (SEC-03). Collecting the
+      // whole response first and cutting it afterwards kept every byte of an
+      // endless or enormous page in memory before the cap was ever applied.
+      final body = await readCapped(
+        response.stream,
+        _maxBytes,
+      ).timeout(_timeout);
       return parseLinkPreview(utf8.decode(body, allowMalformed: true));
     } catch (_) {
       // Offline, DNS failure, a timeout, TLS refusal, malformed URL — all the
@@ -77,6 +79,21 @@ class LinkReader {
   void close() {
     if (_ownsClient) _client.close();
   }
+}
+
+/// The first [limit] bytes of [stream], or all of it if shorter. Stops
+/// listening — which closes the connection — as soon as the limit is reached.
+Future<List<int>> readCapped(Stream<List<int>> stream, int limit) async {
+  final bytes = BytesBuilder(copy: false);
+  await for (final chunk in stream) {
+    final room = limit - bytes.length;
+    if (chunk.length >= room) {
+      bytes.add(chunk.sublist(0, room));
+      break;
+    }
+    bytes.add(chunk);
+  }
+  return bytes.takeBytes();
 }
 
 final _ogTitle = _metaPattern('og:title');

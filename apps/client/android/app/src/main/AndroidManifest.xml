@@ -355,6 +355,12 @@
             android:name=".TimelineWidgetService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
+        <!-- The Recap widget's lines, the same arrangement as the Timeline
+             widget's rows above. -->
+        <service
+            android:name=".RecapWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
         <meta-data android:name="flutterEmbedding" android:value="2" />
         <!-- W5.2: the Quick Settings tile. Exported, as every tile must be,
              and guarded by the permission only the system holds. -->

@@ -146,6 +146,13 @@ extension _TimelineNoteActions on TimelineScreenState {
   /// The hold menu for [note]: the actions chosen in Settings, less any
   /// this particular note cannot do — no Open file on a text note, no
   /// Translate with nothing to translate or no provider to ask.
+  /// Copy from the hold menu: [nexCopyTextOf], so a text or Markdown file
+  /// copies its words rather than its name.
+  Future<void> _copyNote(Note note) async {
+    final text = await nexCopyTextOf(note);
+    if (text != null) await Clipboard.setData(ClipboardData(text: text));
+  }
+
   List<NoteMenuEntry> _holdEntries(Note note) {
     final prefs = widget.preferences;
     final l10n = AppLocalizations.of(context);
@@ -165,10 +172,7 @@ extension _TimelineNoteActions on TimelineScreenState {
       NexHoldAction.copy =>
         words.isEmpty
             ? null
-            : NoteMenuEntry(
-                action,
-                () => unawaited(Clipboard.setData(ClipboardData(text: words))),
-              ),
+            : NoteMenuEntry(action, () => unawaited(_copyNote(note))),
       NexHoldAction.edit => NoteMenuEntry(
         action,
         () => unawaited(_openNote(note, edit: true)),

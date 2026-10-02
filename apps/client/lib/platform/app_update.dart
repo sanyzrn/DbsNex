@@ -261,22 +261,24 @@ class UpdateChecker {
         suffix: suffix,
         fallbackSuffix: fallbackSuffix,
       );
-      if (result.status != UpdateStatus.available ||
-          result.checksumsUrl == null ||
-          result.assetName == null) {
-        return result;
-      }
-      // A release built before this shipped has no SHA256SUMS asset at all —
-      // that is [checksumsUrl] being null, handled above. This fetch failing
-      // (offline, a flaky GitHub Pages-style CDN blip) is different: the asset
-      // itself is fine, only this one extra request came back empty. Either
-      // way the download proceeds unverified rather than being blocked on a
-      // side channel the actual update does not depend on.
-      final hash = await _fetchChecksum(
-        result.checksumsUrl!,
-        result.assetName!,
-      );
-      return hash == null ? result : result._withChecksum(hash);
+      if (result.status != UpdateStatus.available) return result;
+      // Fail closed (SEC-01). Every release newer than this build publishes a
+      // SHA256SUMS, so one without it, or a checksum that cannot be fetched,
+      // is not offered: the next check tries again. Downloading unverified
+      // was the old answer to a flaky fetch, and it meant a missing digest
+      // and a wrong one ended up in the same place — installed.
+      //
+      // The digest comes from the same release as the installer, so it
+      // proves the download arrived intact, not who made it; the APK's
+      // signature, which Android checks against the installed app's, is
+      // what does that.
+      final url = result.checksumsUrl;
+      final asset = result.assetName;
+      if (url == null || asset == null) return const UpdateCheck.unavailable();
+      final hash = await _fetchChecksum(url, asset);
+      return hash == null
+          ? const UpdateCheck.unavailable()
+          : result._withChecksum(hash);
     } on TimeoutException {
       return const UpdateCheck.unavailable();
     } catch (_) {
