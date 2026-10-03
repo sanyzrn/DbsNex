@@ -39,7 +39,7 @@ Working convention:
 - **Copied text keeps its line breaks.** Selecting and copying text from a note's details — a note mixing Persian and English lines, or one with formatting, lists or headings — used to paste as one long line. Each line now stays a line.
 - **New tags get more distinct colours.** A new tag is given one of twelve colours, the least used one first, so colours no longer repeat after the first few tags.
 - **The sponsor card shows more reliably.** Persian text no longer comes out garbled when the server does not name its encoding, a blocked or failing server no longer hides the card for a day, and a new picture replaces the old one straight away. The card has no close button for now.
-- **Under the hood.** Builds check that native libraries suit phones with 16 KB memory pages, the shipping build is verified before each release, and a build made outside the release pipeline can install over an installed release.
+- **Under the hood.** The shipping build is verified before each release, and a build made outside the release pipeline can install over an installed release.
 
 ## v1.93.1
 
