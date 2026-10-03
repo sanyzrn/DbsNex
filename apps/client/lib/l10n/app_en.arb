@@ -2691,5 +2691,9 @@
   "assistantConfirmSearch": "Search your notes for this?",
   "@assistantConfirmSearch": {
     "description": "Confirmation for a search the assistant wants to run that the user did not ask for in words."
-  }
+  },
+  "settingsLanguageAndCalendar": "Language and calendar",
+  "settingsGesturesAndMenus": "Gestures and menus",
+  "settingsSecurityAndPrivacy": "Security and privacy",
+  "settingsRemindersAndNotifications": "Reminders and notifications"
 }

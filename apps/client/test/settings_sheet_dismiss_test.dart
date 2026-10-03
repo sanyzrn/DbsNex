@@ -57,43 +57,28 @@ void main() {
     ).dispatch(scrollable.context);
   }
 
-  testWidgets('category choices survive a new app tree and language change', (
+  testWidgets('a category opens its own page, and back returns', (
     tester,
   ) async {
+    // Categories used to fold open in place, and remembered which were open.
+    // Each now has its own page: the front page stays one line per category.
     await tester.pumpWidget(
       NexApp(services: services, preferences: preferences),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    final about = find.byKey(const ValueKey('settings-section-about'));
+    final about = find.byKey(const ValueKey('settings-category-about'));
     await tester.ensureVisible(about);
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(of: about, matching: find.byType(ListTile)).first,
-    );
+    expect(find.text('Check for updates automatically'), findsNothing);
+    await tester.tap(about);
     await tester.pumpAndSettle();
-    expect(preferences.isSettingsSectionExpanded('about'), isTrue);
-    expect(preferences.isSettingsSectionExpanded('security'), isTrue);
-    await tester.pumpWidget(const SizedBox.shrink());
+    expect(find.text('Check automatically'), findsOneWidget);
+    await tester.pageBack();
     await tester.pumpAndSettle();
-    final reloaded = await NexPreferences.load();
-    await reloaded.setLocale('fa');
-    await tester.pumpWidget(NexApp(services: services, preferences: reloaded));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
-    expect(tester.widget<ExpansionTile>(about).initiallyExpanded, isTrue);
-    await tester.ensureVisible(about);
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(of: about, matching: find.byType(ListTile)).first,
-    );
-    await tester.pumpAndSettle();
-    expect(
-      (await NexPreferences.load()).isSettingsSectionExpanded('about'),
-      isFalse,
-    );
+    expect(find.text('Check automatically'), findsNothing);
+    expect(about, findsOneWidget);
   });
 
   testWidgets('a fling settling past the top does not close Settings', (

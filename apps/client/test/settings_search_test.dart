@@ -117,9 +117,10 @@ void main() {
     tester,
   ) async {
     await open(tester);
-    await tester.enterText(searchField(), 'capture');
+    await tester.enterText(searchField(), 'gestures');
     await tester.pumpAndSettle();
     expect(find.text('Hold menu'), findsOneWidget);
+    expect(find.text('Swipe actions'), findsOneWidget);
 
     await tester.enterText(searchField(), 'zzzqqq');
     await tester.pumpAndSettle();

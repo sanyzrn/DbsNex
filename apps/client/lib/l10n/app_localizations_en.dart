@@ -3763,4 +3763,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantConfirmSearch => 'Search your notes for this?';
+
+  @override
+  String get settingsLanguageAndCalendar => 'Language and calendar';
+
+  @override
+  String get settingsGesturesAndMenus => 'Gestures and menus';
+
+  @override
+  String get settingsSecurityAndPrivacy => 'Security and privacy';
+
+  @override
+  String get settingsRemindersAndNotifications => 'Reminders and notifications';
 }

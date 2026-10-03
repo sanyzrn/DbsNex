@@ -14,9 +14,9 @@ Without opening Nex first: add the **Nex capture** tile to your Quick Settings (
 
 ## The home timeline
 
-Everything lives in one reverse-chronological stream, grouped under date headings. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again. Once you scroll down, the day of the notes you are passing stays named under the filters. Tap a card and it opens into the note; **Settings → Appearance → Theme → Card size** makes cards compact, standard or easier to read.
+Everything lives in one reverse-chronological stream, grouped under date headings. Tap a heading to fold its day; pinch two fingers together on the timeline to fold every day at once, and spread them to open them all again. Once you scroll down, the day of the notes you are passing stays named under the filters. Tap a card and it opens into the note; **Settings → Appearance → Card size** makes cards compact, standard or easier to read.
 
-Hold a note for a quick menu: **Pin**, **Copy**, **Edit**, **Remind** and **Delete** by default. **Settings → Capture → Hold menu** can add any action from a note's details — Share, Add tag, Translate and the rest — or take some away. Up to five notes can be pinned to the top. Swipe a card from either edge for the actions you chose under **Settings → Capture → Swipe actions**. The bottom bar holds, from left to right: **Tools**, **Recurring**, **+**, **Library** and **Settings**.
+Hold a note for a quick menu: **Pin**, **Copy**, **Edit**, **Remind** and **Delete** by default. **Settings → Gestures and menus → Hold menu** can add any action from a note's details — Share, Add tag, Translate and the rest — or take some away. Up to five notes can be pinned to the top. Swipe a card from either edge for the actions you chose under **Settings → Gestures and menus → Swipe actions**. The bottom bar holds, from left to right: **Tools**, **Recurring**, **+**, **Library** and **Settings**.
 
 To work on several notes at once, hold one and choose **Select** — it is always first in the menu. Now each tap on a card picks it or takes it back out, and the bottom bar shows how many are picked with **Tag**, **Threads**, **Pin**, **Share**, **Copy** and **Delete** for all of them together; one **Undo** brings back everything a delete took. **✕**, Back, or taking out the last one ends it. Swiping cards does nothing while picking.
 
@@ -58,7 +58,7 @@ If Android closes Nex while you are editing, reopen the same editor to find its 
 
 ## Reminders
 
-A reminder brings one note back at the time you choose, once or repeating. Use the quick choices, the wheels or the calendar button, and confirm the time shown. Android's notification permission is required. If Android refuses to schedule one — exact alarms off, notifications blocked, battery optimisation — Nex tells you in Android's own words, and **Settings → Notifications** has a test notification to tell "Nex never sent it" apart from "the phone swallowed it".
+A reminder brings one note back at the time you choose, once or repeating. Use the quick choices, the wheels or the calendar button, and confirm the time shown. Android's notification permission is required. If Android refuses to schedule one — exact alarms off, notifications blocked, battery optimisation — Nex tells you in Android's own words, and **Settings → Reminders and notifications** has a test notification to tell "Nex never sent it" apart from "the phone swallowed it".
 
 ## Recurring
 
@@ -98,11 +98,11 @@ The vault uses the phone's secure storage and never enters notes, widgets, searc
 
 ## Appearance, language and calendar
 
-**Settings → Appearance → Theme** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier, Forest retreat, Isfahan turquoise, Saffron, Midnight, Deep sea or Graphite. A new look opens out as a circle from where you tapped. Paper, Forest, Isfahan turquoise, Midnight and Deep sea add a faint motif of their own along the bottom of the screen — paper grain, contour lines, tile stars, stars and waves. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.
+**Settings → Appearance** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier, Forest retreat, Isfahan turquoise, Saffron, Midnight, Deep sea or Graphite. A new look opens out as a circle from where you tapped. Paper, Forest, Isfahan turquoise, Midnight and Deep sea add a faint motif of their own along the bottom of the screen — paper grain, contour lines, tile stars, stars and waves. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.
 
 At the end of the Theme page, **App icon** changes the icon on your home screen to one of six — the Nex logotype on dark (the default), the octopus on dark, light or blue, the logotype on light, or the previous swirl; a home-screen shortcut may need adding again afterwards.
 
-Language, calendar and the home-screen widget are also under Appearance. The field at the top of Settings finds any setting by name, or by something on the page it opens — "accent" finds Theme. The Persian calendar changes how dates are shown and picked, independently of the interface language; what is stored never changes. Settings remembers which categories you opened; Security, Intelligence and Appearance start open.
+Settings opens on a list of categories — Appearance, Language and calendar, Capture, Gestures and menus, Reminders and notifications, Home screen widget, Intelligence, Security and privacy, Data and backup, About — and each opens on its own page. The field at the top of Settings finds any setting by name, or by something on the page it opens — "accent" finds Theme. The Persian calendar changes how dates are shown and picked, independently of the interface language; what is stored never changes.
 
 ![The Theme page](theme.webp)
 
@@ -114,7 +114,7 @@ Confirmations and warnings arrive as a small capsule that drips down from the to
 
 ## Home-screen widgets
 
-Add the **Nex Capture**, **Nex Timeline** or **Smart summary** widget from your launcher. The Timeline widget starts a note, a voice note, a photo from the camera or the gallery, or a checklist with one tap from its top row; the Smart summary widget shows the recap under the Nex logo and scrolls when it is longer than the widget, and when there is none yet, tapping it asks for one. Under **Settings → Appearance → Home screen widget**, choose which kinds of note and which tag the timeline widget shows and whether pinned notes come first. Widgets follow the app's language and accent. While the app lock is closed they hide your notes, unless you choose otherwise.
+Add the **Nex Capture**, **Nex Timeline** or **Smart summary** widget from your launcher. The Timeline widget starts a note, a voice note, a photo from the camera or the gallery, or a checklist with one tap from its top row; the Smart summary widget shows the recap under the Nex logo and scrolls when it is longer than the widget, and when there is none yet, tapping it asks for one. Under **Settings → Home screen widget**, choose which kinds of note and which tag the timeline widget shows and whether pinned notes come first. Widgets follow the app's language and accent. While the app lock is closed they hide your notes, unless you choose otherwise.
 
 ![Home-screen widgets](widgets.webp)
 
@@ -133,9 +133,9 @@ Restoring replaces the library and restarts Nex. If a restore is interrupted, th
 
 ## Security and privacy
 
-Under **Settings → Security**, Nex can ask for your fingerprint or screen lock whenever it returns to the foreground, after a delay you choose. The lock is local and hides the screen in the task switcher. Your notes and anything about you stay on the phone unless you turn on a cloud AI provider, send feedback or share something yourself. Nex itself goes online only to check for a new version and to fetch the sponsor card, at most once a day, and sends nothing about you or your notes when it does; the update check can be turned off in Settings. **Settings → Security → What left this device** lists every request Nex made to an AI provider — which one, what for, what kind of content and from which notes — kept on the phone only; clear it whenever you like.
+Under **Settings → Security and privacy**, Nex can ask for your fingerprint or screen lock whenever it returns to the foreground, after a delay you choose. The lock is local and hides the screen in the task switcher. Your notes and anything about you stay on the phone unless you turn on a cloud AI provider, send feedback or share something yourself. Nex itself goes online only to check for a new version and to fetch the sponsor card, at most once a day, and sends nothing about you or your notes when it does; the update check can be turned off in Settings. **Settings → Security and privacy → What left this device** lists every request Nex made to an AI provider — which one, what for, what kind of content and from which notes — kept on the phone only; clear it whenever you like.
 
-**Settings → About → Speed and reliability** lets Nex time itself on your phone: how long it takes to open, how long a capture takes from opening to saved, how long a search takes to find the note you open, and how many sessions with a capture ran without an error. It is off until you switch it on. The numbers are timings and counts only — never your notes or what you searched for — stay on the phone, are never backed up, and are deleted when you switch it off.
+**Settings → Security and privacy → Speed and reliability** lets Nex time itself on your phone: how long it takes to open, how long a capture takes from opening to saved, how long a search takes to find the note you open, and how many sessions with a capture ran without an error. It is off until you switch it on. The numbers are timings and counts only — never your notes or what you searched for — stay on the phone, are never backed up, and are deleted when you switch it off.
 
 ## Updates, feedback and help
 

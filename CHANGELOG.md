@@ -36,6 +36,7 @@ Working convention:
 
 ## v1.93.2
 
+- **Settings, reorganised.** Settings now opens on a short list of categories — Appearance, Language and calendar, Capture, Gestures and menus, Reminders and notifications, Home screen widget, Intelligence, Security and privacy, Data and backup, About — each with its current state beside it, and each opens on its own page. Search still finds any setting from the top.
 - **Copied text keeps its line breaks.** Selecting and copying text from a note's details — a note mixing Persian and English lines, or one with formatting, lists or headings — used to paste as one long line. Each line now stays a line.
 - **New tags get more distinct colours.** A new tag is given one of twelve colours, the least used one first, so colours no longer repeat after the first few tags.
 - **The sponsor card shows more reliably.** Persian text no longer comes out garbled when the server does not name its encoding, a blocked or failing server no longer hides the card for a day, and a new picture replaces the old one straight away. The card has no close button for now.

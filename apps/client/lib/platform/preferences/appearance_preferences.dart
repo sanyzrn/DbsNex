@@ -61,14 +61,6 @@ mixin _AppearancePreferences on _PreferencesStore {
 
   bool get haptics => _prefs.getBool('accessibility.haptics') ?? true;
 
-  /// Stable IDs keep each category's choice across restarts and languages.
-  bool isSettingsSectionExpanded(String id) =>
-      _prefs.getBool('settings.expanded.$id') ??
-      const {'security', 'intelligence', 'appearance'}.contains(id);
-
-  Future<void> setSettingsSectionExpanded(String id, bool expanded) =>
-      _setBool('settings.expanded.$id', expanded);
-
   Locale? get locale {
     final code = _prefs.getString('appearance.locale');
     return code == null || code == 'system' ? null : Locale(code);
