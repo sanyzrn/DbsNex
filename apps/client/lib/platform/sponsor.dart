@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -136,9 +137,22 @@ class NexSponsorService {
     required this.preferences,
     http.Client? client,
     this.endpoint = defaultEndpoint,
+    this.dismissible = dismissibleByDefault,
     DateTime Function()? now,
   }) : _client = client,
        _now = now ?? DateTime.now;
+
+  /// Whether the card carries a close button, and whether a dismissal hides
+  /// it.
+  ///
+  /// Off for now, at the owner's request: while the card's display is being
+  /// tested every phone should keep showing it, including the ones that
+  /// waved an earlier card off. Turning it back on restores the close button
+  /// and [dismissalCoolOff] exactly as they were; the dismissals stored in
+  /// the meantime are kept.
+  static const dismissibleByDefault = false;
+
+  final bool dismissible;
 
   /// On the maker's own site. Publishing a card is putting a file there;
   /// taking it down is deleting it, and a 404 is the "nothing to show" case
@@ -275,10 +289,24 @@ class NexSponsorService {
     return sponsor.visibleAt(
           now: _now(),
           languageCode: languageCode,
-          dismissed: _dismissed,
+          dismissed: dismissible ? _dismissed : const {},
         )
         ? sponsor
         : null;
+  }
+
+  /// Reads a response body as the UTF-8 it is, whatever the server says.
+  ///
+  /// `http.Response.body` decodes with the charset in the Content-Type
+  /// header and falls back to Latin-1 when there is none — which a static
+  /// `.json` file on a plain web host often has. Every Persian title came out
+  /// as mojibake on those responses, and the same card read correctly from a
+  /// host that did send `charset=utf-8`. A byte-order mark, which some
+  /// editors write at the start of a saved file, is dropped as well: JSON
+  /// does not allow one, and with it the whole card failed to parse.
+  static String decodeBody(List<int> bytes) {
+    final text = utf8.decode(bytes, allowMalformed: true);
+    return text.startsWith('\uFEFF') ? text.substring(1) : text;
   }
 
   /// The cards still inside their [dismissalCoolOff].
@@ -321,26 +349,33 @@ class NexSponsorService {
         endpoint,
         const Duration(seconds: 10),
       );
-      final sponsor =
-          response.statusCode == 200 && response.bodyBytes.length <= maxBytes
-          ? NexSponsor.parse(response.body)
-          : null;
-      if (sponsor != null) {
-        // The picture first, then the card. A picture that cannot be had —
-        // blocked host, too large, not an image — no longer takes the whole
-        // card down with it; the card is shown in words instead.
-        final kept = await _cacheImage(sponsor, client);
-        if (sponsor.image != null && !kept) {
-          await _dropImage();
-        }
-        _imageSettled = true;
-        await preferences.setSponsorPayload(response.body);
-      } else {
-        // A 404 is the ordinary way a campaign ends. Clearing rather than
-        // keeping the last one is the difference between "taken down" and
-        // "runs forever once published".
+      // Only "not found" ends a campaign. Anything else that is not a card —
+      // a 403 or 5xx from the host, a filtering page served with 200 in
+      // place of the file, a body far too large — says nothing about the
+      // campaign, and used to take the card down for a whole day as if it
+      // had. Those are treated like no network at all: the cache stands and
+      // the next launch asks again.
+      if (response.statusCode == 404 || response.statusCode == 410) {
         await _forget();
+        await preferences.setSponsorFetchedAt(_now());
+        return;
       }
+      final body = response.bodyBytes.length <= maxBytes
+          ? decodeBody(response.bodyBytes)
+          : null;
+      final sponsor = response.statusCode == 200 && body != null
+          ? NexSponsor.parse(body)
+          : null;
+      if (sponsor == null) return;
+      // The picture first, then the card. A picture that cannot be had —
+      // blocked host, too large, not an image — no longer takes the whole
+      // card down with it; the card is shown in words instead.
+      final kept = await _cacheImage(sponsor, client);
+      if (sponsor.image != null && !kept) {
+        await _dropImage();
+      }
+      _imageSettled = true;
+      await preferences.setSponsorPayload(body);
       await preferences.setSponsorFetchedAt(_now());
     } catch (_) {
       // Offline, blocked, timed out, or a proxy serving something else. The
@@ -407,15 +442,30 @@ class NexSponsorService {
         return false;
       }
       final dir = await getApplicationSupportDirectory();
-      final file = File(p.join(dir.path, 'sponsor_image'));
-      // Written to one side and renamed, the same way the widget snapshot
-      // is: the card reads this file whenever it likes, and half a picture
-      // must never be the thing it finds.
-      final temp = File('${file.path}.tmp');
-      await temp.writeAsBytes(bytes, flush: true);
-      await temp.rename(file.path);
+      // Named after its contents. It used to be one fixed name, overwritten
+      // in place — and Flutter's image cache keys a file picture by its path,
+      // so a new picture at the old path kept drawing the old one until the
+      // app was restarted. A new picture is a new path; the old file goes.
+      final digest = sha256.convert(bytes).toString().substring(0, 16);
+      final file = File(p.join(dir.path, 'sponsor_image_$digest'));
+      if (!await file.exists()) {
+        // Written to one side and renamed, the same way the widget snapshot
+        // is: the card reads this file whenever it likes, and half a picture
+        // must never be the thing it finds.
+        final temp = File('${file.path}.tmp');
+        await temp.writeAsBytes(bytes, flush: true);
+        await temp.rename(file.path);
+      }
+      final previous = preferences.sponsorImagePath;
       await preferences.setSponsorImagePath(file.path);
       _image = file;
+      if (previous != null && previous != file.path) {
+        try {
+          await File(previous).delete();
+        } catch (_) {
+          // Already gone, or held open by the old frame for a moment.
+        }
+      }
       return true;
     } catch (_) {
       return false;

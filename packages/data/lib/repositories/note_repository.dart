@@ -37,11 +37,43 @@ const List<String> tagAccentPalette = [
   '#B49AE0',
 ];
 
+/// The colours a new tag is given when nobody picked one: the five starter
+/// swatches first, then seven more hues spaced between them.
+///
+/// Five alone ran out fast. A library with a dozen tags had every colour two
+/// or three times over, so colour stopped telling tags apart — which is the
+/// only thing it is for. These are mid tones chosen to read on both the light
+/// and the dark card; the colour picker still offers the five as its starters.
+const List<String> tagAutoPalette = [
+  ...tagAccentPalette,
+  '#E8684A', // coral
+  '#3FB6D0', // cyan
+  '#9CC44A', // lime
+  '#7C83E8', // indigo
+  '#D46BD0', // orchid
+  '#D9B23A', // mustard
+  '#5DB06A', // leaf
+];
+
 final _accentRandom = Random();
 
-/// A random pick off [tagAccentPalette], for a new tag nobody coloured.
-String _randomAccent() =>
-    tagAccentPalette[_accentRandom.nextInt(tagAccentPalette.length)];
+/// The colour for a new tag nobody coloured: one of the least used in
+/// [tagAutoPalette] among [inUse], so colours repeat only once every one of
+/// them has been used, and evenly after that. A random pick among the tied
+/// ones, so two libraries do not colour their tags in the same order.
+String pickTagAccent(Iterable<String?> inUse) {
+  final counts = {for (final hex in tagAutoPalette) hex.toUpperCase(): 0};
+  for (final color in inUse) {
+    final key = color?.toUpperCase();
+    if (key != null && counts.containsKey(key)) counts[key] = counts[key]! + 1;
+  }
+  final least = counts.values.reduce((a, b) => a < b ? a : b);
+  final options = [
+    for (final hex in tagAutoPalette)
+      if (counts[hex.toUpperCase()] == least) hex,
+  ];
+  return options[_accentRandom.nextInt(options.length)];
+}
 
 /// Whether a string is a colour a tag may carry: `#RRGGBB`, case-insensitive.
 bool isTagAccent(String value) => RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(value);
@@ -539,7 +571,12 @@ ORDER BY t.name COLLATE NOCASE
       // picker offers first — rather than sitting grey until somebody
       // opens the tag manager. `setTagColor` remains the explicit way back
       // to no colour at all.
-      color: color ?? _randomAccent(),
+      color:
+          color ??
+          pickTagAccent([
+            for (final row in db.select('SELECT color FROM tags'))
+              row['color'] as String?,
+          ]),
       createdAt: DateTime.now().toUtc(),
     );
     db.execute(

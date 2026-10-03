@@ -53,7 +53,9 @@ extension _TimelineNoteActions on TimelineScreenState {
       sponsor: sponsor,
       image: _sponsor.image,
       onOpen: () => unawaited(_openSponsor(sponsor)),
-      onDismiss: () => unawaited(_dismissSponsor(sponsor)),
+      onDismiss: _sponsor.dismissible
+          ? () => unawaited(_dismissSponsor(sponsor))
+          : null,
     );
   }
 

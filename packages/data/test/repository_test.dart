@@ -59,9 +59,7 @@ void main() {
     test('undo puts the note back where it was, not at the top', () {
       // Three notes a day apart, so position in the timeline is a fact about
       // the data rather than about how fast the test runs.
-      final old = repo.insert(
-        makeText('oldest', at: DateTime.utc(2026, 1, 1)),
-      );
+      final old = repo.insert(makeText('oldest', at: DateTime.utc(2026, 1, 1)));
       final middle = repo.insert(
         makeText('middle', at: DateTime.utc(2026, 1, 2)),
       );
@@ -72,16 +70,14 @@ void main() {
       repo.softDelete(middle.id);
       repo.undelete(middle.id);
 
-      expect(
-        repo.listTimeline().map((n) => n.id),
-        [newest.id, middle.id, old.id],
-      );
+      expect(repo.listTimeline().map((n) => n.id), [
+        newest.id,
+        middle.id,
+        old.id,
+      ]);
       // And the card reads as what it is: a note from the 2nd, not one
       // written just now.
-      expect(
-        repo.getById(middle.id)!.updatedAt,
-        DateTime.utc(2026, 1, 2),
-      );
+      expect(repo.getById(middle.id)!.updatedAt, DateTime.utc(2026, 1, 2));
     });
 
     test('delete and undo still reach other devices', () {
@@ -182,9 +178,18 @@ void main() {
         // intentional from the first note it is put on.
         final tag = repo.upsertTag(name: 'Freshly Typed');
         expect(tag.color, isNotNull);
-        expect(tagAccentPalette, contains(tag.color));
+        expect(tagAutoPalette, contains(tag.color));
       },
     );
+
+    test('new tags use every colour before any repeats', () {
+      // Five colours picked at random repeated within the first few tags.
+      final colors = [
+        for (var i = 0; i < tagAutoPalette.length; i++)
+          repo.upsertTag(name: 'Tag $i').color!.toUpperCase(),
+      ];
+      expect(colors.toSet(), hasLength(tagAutoPalette.length));
+    });
 
     test('setTagColor accepts any #RRGGBB and rejects anything else', () {
       final tag = repo.upsertTag(name: 'Work');

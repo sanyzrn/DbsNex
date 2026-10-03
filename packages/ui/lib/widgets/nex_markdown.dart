@@ -4,6 +4,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import '../tokens/nex_text_direction.dart';
+import 'nex_selectable_lines.dart';
 import 'nex_selection_menu.dart';
 import '../tokens/nex_contrast.dart';
 import '../tokens/nex_tokens.dart';
@@ -110,26 +111,31 @@ class _NexMarkdownState extends State<NexMarkdown> {
     final text = widget.text;
     final direction = nexDirectionOf(text) ?? Directionality.of(context);
     _codeSpans.onTap = widget.onCopyCode;
-    final body = Directionality(
-      textDirection: direction,
-      child: MarkdownBody(
-        data: text,
-        // Never the markdown body's own selection: it is a `SelectableText`,
-        // which eats the taps the code spans and links are built on. The area
-        // below does it without taking anything away — see [selectable].
-        selectable: false,
-        fitContent: false,
-        builders: {if (widget.onCopyCode != null) 'code': _codeSpans},
-        styleSheet: _sheet(
-          theme,
-          widget.style ?? theme.textTheme.bodyLarge,
-          direction,
+    // Every paragraph, heading and list item is its own text widget, so a
+    // copy across them needs its line breaks put back — see
+    // [NexSelectableLines].
+    final body = NexSelectableLines(
+      child: Directionality(
+        textDirection: direction,
+        child: MarkdownBody(
+          data: text,
+          // Never the markdown body's own selection: it is a `SelectableText`,
+          // which eats the taps the code spans and links are built on. The area
+          // below does it without taking anything away — see [selectable].
+          selectable: false,
+          fitContent: false,
+          builders: {if (widget.onCopyCode != null) 'code': _codeSpans},
+          styleSheet: _sheet(
+            theme,
+            widget.style ?? theme.textTheme.bodyLarge,
+            direction,
+          ),
+          onTapLink: widget.onTapLink == null
+              ? null
+              : (_, href, _) {
+                  if (href != null && href.isNotEmpty) widget.onTapLink!(href);
+                },
         ),
-        onTapLink: widget.onTapLink == null
-            ? null
-            : (_, href, _) {
-                if (href != null && href.isNotEmpty) widget.onTapLink!(href);
-              },
       ),
     );
     return widget.selectable

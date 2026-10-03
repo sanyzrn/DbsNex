@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/nex_selectable_lines.dart';
 import '../widgets/nex_selection_menu.dart';
 
 /// The direction a piece of user text should be laid out in.
@@ -359,10 +360,14 @@ class NexTextSurface extends StatelessWidget {
       }
       if (maxLines != null) return _MixedPreview(lines, style, maxLines!);
       final shown = lines;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [for (final line in shown) _DirectionalLine(line, style)],
+      // One widget per line, so a copy across them needs its line breaks
+      // put back — see [NexSelectableLines].
+      return NexSelectableLines(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [for (final line in shown) _DirectionalLine(line, style)],
+        ),
       );
     }
     return _paragraph(nexDirectionOf(text));

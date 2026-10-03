@@ -55,7 +55,7 @@ budget:
 # failed on a clean checkout, for everyone, while CI was green: CI has always
 # run this package with `flutter test` (the flutter-ai-package job). The
 # header at the top of this file promises to mirror CI one-to-one, and this
-# line was the place it did not.
+# line was the place it did not. (The header no longer makes that promise.)
 check-ai:
 	cd packages/ai && flutter analyze --fatal-infos && flutter test
 

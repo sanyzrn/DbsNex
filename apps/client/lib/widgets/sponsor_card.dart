@@ -14,15 +14,14 @@ import '../platform/sponsor.dart';
 /// things are in tension on purpose: it belongs to the list, and it is
 /// honest about not being part of the library.
 ///
-/// It carries a dismiss control, and the dismissal is permanent for that
-/// card. A card someone has said no to and which comes back is the thing
-/// that makes people uninstall.
+/// It carries a dismiss control when [onDismiss] is given. The timeline leaves
+/// it out while [NexSponsorService.dismissible] is off.
 class SponsorCard extends StatelessWidget {
   const SponsorCard({
     super.key,
     required this.sponsor,
     required this.onOpen,
-    required this.onDismiss,
+    this.onDismiss,
     this.image,
   });
 
@@ -33,7 +32,7 @@ class SponsorCard extends StatelessWidget {
   /// exists the file does too.
   final File? image;
   final VoidCallback onOpen;
-  final VoidCallback onDismiss;
+  final VoidCallback? onDismiss;
 
   // Always the standard card, whatever card size is chosen in Appearance.
   // The words and the banner picture are laid out for that one height; a
@@ -110,7 +109,7 @@ class _Words extends StatelessWidget {
 
   final NexSponsor sponsor;
   final Color tint;
-  final VoidCallback onDismiss;
+  final VoidCallback? onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +165,7 @@ class _Words extends StatelessWidget {
               ],
             ),
           ),
-          _Dismiss(onDismiss: onDismiss),
+          if (onDismiss case final dismiss?) _Dismiss(onDismiss: dismiss),
         ],
       ),
     );
@@ -190,7 +189,7 @@ class _Picture extends StatelessWidget {
 
   final NexSponsor sponsor;
   final File picture;
-  final VoidCallback onDismiss;
+  final VoidCallback? onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +252,8 @@ class _Picture extends StatelessWidget {
                   ],
                 ),
               ),
-              _Dismiss(onDismiss: onDismiss, onImage: true),
+              if (onDismiss case final dismiss?)
+                _Dismiss(onDismiss: dismiss, onImage: true),
             ],
           ),
         ),
