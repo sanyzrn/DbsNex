@@ -814,9 +814,7 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Intelligence'));
-    // Intelligence starts expanded.
-    await tester.pumpAndSettle();
+    await openSettingsCategory(tester, 'intelligence');
 
     // The sheet offers a way in, not a row of switches that quietly did
     // nothing because no provider stood behind them.
@@ -890,21 +888,41 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Capture'));
-    await tester.tap(find.text('Capture'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Appearance'));
-    // Appearance starts expanded.
-    await tester.pumpAndSettle();
 
-    // The pickers are behind their rows now, so what the list shows is the
-    // name of each setting and what it is currently set to. Nothing is
-    // expanded: the cards that used to fill two and a half screens of scroll
-    // before the first switch are not on screen at all.
-    expect(find.text('Swipe actions'), findsOneWidget);
-    expect(find.text('Comfort Mode'), findsNothing);
+    // The front page is one line per category, each with what it is set to;
+    // no setting's own controls are on it.
+    for (final id in [
+      'appearance',
+      'language',
+      'capture',
+      'gestures',
+      'notifications',
+      'widgets',
+      'intelligence',
+      'security',
+      'data',
+      'about',
+    ]) {
+      expect(
+        find.byKey(ValueKey('settings-category-$id'), skipOffstage: false),
+        findsOneWidget,
+        reason: id,
+      );
+    }
     expect(find.text('Appearance'), findsOneWidget);
-    expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Swipe actions'), findsNothing);
+    expect(find.text('Comfort Mode'), findsNothing);
+
+    // A category opens on its own page, with the pickers still behind their
+    // rows: the name of each setting and its current value.
+    await openSettingsCategory(tester, 'gestures');
+    expect(find.text('Swipe actions'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await openSettingsCategory(tester, 'language');
+    expect(find.text('Language'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     expect(find.text('Liquid Glass'), findsNothing);
     expect(find.text('Background'), findsNothing);
     expect(find.text('Text & UI size'), findsNothing);
@@ -913,7 +931,7 @@ void main() {
 
     // The current value sits under each name — the whole reason a collapsed
     // row is not a step backwards from an expanded picker.
-    expect(find.text('System'), findsWidgets);
+    expect(find.textContaining('System'), findsWidgets);
     expect(find.text('Nex'), findsWidgets);
   });
 
@@ -928,9 +946,8 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Theme'));
-    await tester.tap(find.text('Theme'));
-    await tester.pumpAndSettle();
+    // Appearance holds one screen, so it opens that screen directly.
+    await openSettingsCategory(tester, 'appearance');
     await tester.tap(find.text('Paper notebook'));
     await tester.pumpAndSettle();
     expect(preferences.themePreset, 'paper');
@@ -971,9 +988,7 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Intelligence'));
-    // Intelligence starts expanded.
-    await tester.pumpAndSettle();
+    await openSettingsCategory(tester, 'intelligence');
 
     expect(preferences.aiOutputLanguage, AiOutputLanguage.auto);
     // It lives in the Daily brief sheet now rather than in a row of its own,
@@ -1010,14 +1025,9 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Appearance'));
-    // Appearance starts expanded.
-    await tester.pumpAndSettle();
 
     expect(preferences.accentSeed, isNull);
-    await tester.ensureVisible(find.text('Theme'));
-    await tester.tap(find.text('Theme'));
-    await tester.pumpAndSettle();
+    await openSettingsCategory(tester, 'appearance');
     await tester.scrollUntilVisible(
       find.text('Accent color'),
       200,
@@ -1063,13 +1073,7 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Capture'));
-    await tester.tap(find.text('Capture'));
-    await tester.pumpAndSettle();
-    // Where this row falls depends on how many sections sit above it, which
-    // is not what this test is about.
-    await tester.ensureVisible(find.text('Swipe actions'));
-    await tester.pumpAndSettle();
+    await openSettingsCategory(tester, 'gestures');
     await tester.tap(find.text('Swipe actions'));
     await tester.pumpAndSettle();
 
@@ -1116,11 +1120,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('ثبت'));
-    await tester.tap(find.text('ثبت'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('کشیدن انگشت'));
-    await tester.pumpAndSettle();
+    await openSettingsCategory(tester, 'gestures');
     await tester.tap(find.text('کشیدن انگشت'));
     await tester.pumpAndSettle();
 
@@ -1295,12 +1295,13 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    expect(find.text('Security'), findsOneWidget);
+    // The first category, at the top of the scroll view.
+    expect(find.text('Appearance'), findsOneWidget);
 
-    await tester.drag(find.text('Security'), const Offset(0, 400));
+    await tester.drag(find.text('Appearance'), const Offset(0, 400));
     await tester.pumpAndSettle();
 
-    expect(find.text('Security'), findsNothing);
+    expect(find.text('Appearance'), findsNothing);
   });
 
   testWidgets('the language picker shows every language in its own script', (
@@ -1317,9 +1318,7 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Appearance'));
-    // Appearance starts expanded.
-    await tester.pumpAndSettle();
+    await openSettingsCategory(tester, 'language');
 
     await tester.tap(find.text('Language'));
     await tester.pumpAndSettle();
@@ -1851,3 +1850,13 @@ bool _isEmoji(int rune) =>
     (rune >= 0x2600 && rune <= 0x27BF) ||
     rune == 0xFE0F ||
     (rune >= 0x1F300 && rune <= 0x1FAFF);
+
+/// Opens one Settings category from the front page. Since 1.93.2 every
+/// category has its own page instead of folding open in place.
+Future<void> openSettingsCategory(WidgetTester tester, String id) async {
+  final row = find.byKey(ValueKey('settings-category-$id'));
+  await tester.ensureVisible(row);
+  await tester.pumpAndSettle();
+  await tester.tap(row);
+  await tester.pumpAndSettle();
+}

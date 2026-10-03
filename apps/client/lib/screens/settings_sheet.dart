@@ -130,7 +130,7 @@ class SettingsSheet extends StatelessWidget {
                     // old value when the picker closed, since the sheet itself is
                     // stateless and nothing else rebuilds it.
                     child: ListenableBuilder(
-                      listenable: preferences,
+                      listenable: Listenable.merge([preferences, ?updates]),
                       builder: (context, _) => SingleChildScrollView(
                         // The keyboard sits over the sheet's bottom edge, so
                         // the last rows scroll up clear of it.
@@ -143,7 +143,7 @@ class SettingsSheet extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: query.isEmpty
-                              ? _groups(context, l10n)
+                              ? _home(context, l10n)
                               : _matching(context, l10n, query),
                         ),
                       ),
@@ -153,6 +153,42 @@ class SettingsSheet extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// The front page: the profile card, then one line per category.
+  List<Widget> _home(BuildContext context, AppLocalizations l10n) {
+    final groups = _groups(context, l10n);
+    return [
+      for (final group in groups)
+        if (group is! _Section) group,
+      _SettingsCard(
+        children: [
+          for (final section in groups.whereType<_Section>())
+            _CategoryRow(
+              section: section,
+              onTap: () => _open(context, section),
+            ),
+        ],
+      ),
+    ];
+  }
+
+  /// Opens a category. One that holds a single screen opens that screen
+  /// directly: a page whose only content is a link to another page is a
+  /// tap that shows nothing.
+  void _open(BuildContext context, _Section section) {
+    if (section.children case [_Row(:final onTap?)]) {
+      onTap();
+      return;
+    }
+    unawaited(
+      Navigator.push(
+        context,
+        NexPageRoute<void>(
+          builder: (_) => _SettingsCategoryScreen(sheet: this, id: section.id),
         ),
       ),
     );
@@ -302,37 +338,272 @@ class SettingsSheet extends StatelessWidget {
     // list of somebody's bills and medication is their data, not a
     // preference about how the app behaves.
     _Section(
-      id: 'security',
-      preferences: preferences,
-      title: l10n.securityTitle,
+      id: 'appearance',
+      icon: Icons.palette_outlined,
+      title: l10n.appearance,
+      summary: nexThemePresetLabel(context, preferences.themePreset),
       children: [
         _Row(
-          icon: Icons.shield_outlined,
-          title: l10n.securityAppLock,
+          icon: Icons.palette_outlined,
+          title: l10n.theme,
           keywords:
-              'lock app lock fingerprint biometric screen lock قفل اثر انگشت',
-          value: preferences.appLockEnabled
-              ? preferences.appLockBiometricOnly
-                    ? l10n.securityBiometric
-                    : l10n.securityDevicePasscode
-              : l10n.securityOff,
+              'dark light mode accent colour color palette text size font card size density compact app icon تم تیره روشن رنگ تأکیدی پالت اندازه متن اندازه کارت فشرده آیکون',
+          value: nexThemePresetLabel(context, preferences.themePreset),
           onTap: () => Navigator.push(
             context,
             NexPageRoute<void>(
-              builder: (_) => SecurityScreen(preferences: preferences),
+              builder: (_) => _ThemeScreen(preferences: preferences),
+            ),
+          ),
+        ),
+      ],
+    ),
+    _Section(
+      id: 'language',
+      icon: Icons.translate,
+      title: l10n.settingsLanguageAndCalendar,
+      summary:
+          '${switch (preferences.locale?.languageCode) {
+            'en' => 'English',
+            'fa' => 'فارسی',
+            _ => l10n.languageSystem,
+          }} · ${preferences.solarCalendar ? l10n.calendarPersian : l10n.calendarGregorian}',
+      children: [
+        _Row(
+          icon: Icons.translate,
+          title: l10n.language,
+          value: switch (preferences.locale?.languageCode) {
+            'en' => 'English',
+            'fa' => 'فارسی',
+            _ => l10n.languageSystem,
+          },
+          onTap: () => unawaited(
+            _pick<String>(
+              context: context,
+              title: l10n.language,
+              selected: preferences.locale?.languageCode ?? 'system',
+              onSelected: preferences.setLocale,
+              choices: [
+                NexChoice(
+                  value: 'system',
+                  label: l10n.languageSystem,
+                  preview: const NexScriptSample(
+                    icon: Icons.phone_iphone_outlined,
+                  ),
+                ),
+                // Each language in its own script: recognising your own
+                // alphabet does not require reading the language the app is
+                // currently in.
+                const NexChoice(
+                  value: 'en',
+                  label: 'English',
+                  preview: NexScriptSample(sample: 'Aa'),
+                ),
+                const NexChoice(
+                  value: 'fa',
+                  label: 'فارسی',
+                  preview: NexScriptSample(sample: 'اَ'),
+                ),
+              ],
             ),
           ),
         ),
         _Row(
-          icon: Icons.cloud_upload_outlined,
-          title: l10n.disclosuresTitle,
-          keywords:
-              'privacy sent provider log disclosure data left device حریم خصوصی ارسال فرستاده خارج شد',
-          value: l10n.disclosuresRow,
+          icon: Icons.calendar_month_outlined,
+          title: l10n.calendar,
+          value: preferences.solarCalendar
+              ? l10n.calendarPersian
+              : l10n.calendarGregorian,
+          onTap: () => unawaited(
+            _pick<bool>(
+              context: context,
+              title: l10n.calendar,
+              selected: preferences.solarCalendar,
+              onSelected: preferences.setSolarCalendar,
+              choices: [
+                NexChoice(
+                  value: false,
+                  label: l10n.calendarGregorian,
+                  preview: const Icon(Icons.calendar_today_outlined),
+                ),
+                NexChoice(
+                  value: true,
+                  label: l10n.calendarPersian,
+                  preview: const Icon(Icons.calendar_month_outlined),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+    _Section(
+      id: 'capture',
+      icon: Icons.edit_note_outlined,
+      title: l10n.capture,
+      children: [
+        _SwitchRow(
+          icon: Icons.keyboard_return,
+          title: l10n.enterSubmitsCapture,
+          subtitle: l10n.enterSubmitsCaptureSubtitle,
+          value: preferences.enterSubmitsCapture,
+          onChanged: preferences.setEnterSubmitsCapture,
+        ),
+        _SwitchRow(
+          icon: Icons.vibration,
+          title: l10n.haptics,
+          value: preferences.haptics,
+          onChanged: preferences.setHaptics,
+        ),
+        _SwitchRow(
+          icon: Icons.timeline_outlined,
+          title: l10n.threadSuggestions,
+          subtitle: l10n.threadSuggestionsSubtitle,
+          value: preferences.threadSuggestions,
+          onChanged: preferences.setThreadSuggestions,
+        ),
+        // The Quick Settings tile needs no switch — it is added from the
+        // shade's own edit screen — but a notification that stays in the
+        // shade is something to opt into.
+        if (defaultTargetPlatform == TargetPlatform.android)
+          _SwitchRow(
+            icon: Icons.notifications_none_outlined,
+            title: nexLabel(
+              context,
+              'Capture from notifications',
+              'ثبت از کشوی اعلان‌ها',
+            ),
+            subtitle: nexLabel(
+              context,
+              'A silent row with Note, Voice and Photo. The Quick Settings '
+                  'tile "Nex capture" can be added from the shade.',
+              'یک ردیف بی‌صدا با یادداشت، صدا و عکس. کاشی «ثبت در Nex» را '
+                  'هم می‌توانید در تنظیمات سریع اضافه کنید.',
+            ),
+            value: preferences.quickCaptureNotification,
+            onChanged: (value) => unawaited(() async {
+              if (value) await services.reminders.requestPermission();
+              await preferences.setQuickCaptureNotification(value);
+              await QuickCaptureNotification.setEnabled(value);
+            }()),
+          ),
+      ],
+    ),
+    _Section(
+      id: 'gestures',
+      icon: Icons.swipe_outlined,
+      title: l10n.settingsGesturesAndMenus,
+      summary:
+          '${nexSwipeActionLabel(l10n, preferences.leadingAction)} · '
+          '${nexSwipeActionLabel(l10n, preferences.trailingAction)}',
+      children: [
+        _Row(
+          icon: Icons.swipe_outlined,
+          title: l10n.swipeActions,
+          keywords: 'swipe gesture edge کشیدن لبه',
+          value:
+              '${nexSwipeActionLabel(l10n, preferences.leadingAction)} · '
+              '${nexSwipeActionLabel(l10n, preferences.trailingAction)}',
+          onTap: () => unawaited(
+            nexShowSheet<void>(
+              context: context,
+              builder: (_) => _PickerSheet(
+                title: l10n.swipeActions,
+                footnote: l10n.swipeActionsHint,
+                // The one picker that is two choices rather than one, so it
+                // keeps its own widget and stays open across both.
+                child: _SwipeMapping(preferences: preferences),
+              ),
+            ),
+          ),
+        ),
+        _Row(
+          icon: Icons.touch_app_outlined,
+          title: nexLabel(context, 'Hold menu', 'منوی نگه‌داشتن'),
+          keywords: 'long press hold menu actions نگه داشتن منو',
+          value: nexLabel(
+            context,
+            '${preferences.holdMenuActions.length} actions',
+            '${preferences.holdMenuActions.length} گزینه',
+          ),
           onTap: () => Navigator.push(
             context,
             NexPageRoute<void>(
-              builder: (_) => DisclosuresScreen(services: services),
+              builder: (_) => _HoldMenuScreen(preferences: preferences),
+            ),
+          ),
+        ),
+      ],
+    ),
+    _Section(
+      id: 'notifications',
+      icon: Icons.notifications_outlined,
+      title: l10n.settingsRemindersAndNotifications,
+      summary: preferences.dailyNudge
+          ? '${l10n.nudgeTitle} · ${TimeOfDay(hour: preferences.dailyNudgeMinutes ~/ 60, minute: preferences.dailyNudgeMinutes % 60).format(context)}'
+          : null,
+      children: [
+        _SwitchRow(
+          icon: Icons.notifications_active_outlined,
+          title: l10n.nudgeTitle,
+          subtitle: l10n.nudgeSubtitle,
+          value: preferences.dailyNudge,
+          onChanged: (next) => unawaited(_setNudge(context, next)),
+        ),
+        // Only once it is on. A time picker for a notification that is not
+        // being sent is a control with nothing behind it, and the row it
+        // would sit under already says what turning it on gets you.
+        if (preferences.dailyNudge)
+          _Row(
+            icon: Icons.schedule_outlined,
+            title: l10n.nudgeTime,
+            value: TimeOfDay(
+              hour: preferences.dailyNudgeMinutes ~/ 60,
+              minute: preferences.dailyNudgeMinutes % 60,
+            ).format(context),
+            onTap: () => unawaited(_pickNudgeTime(context)),
+          ),
+        // Sound, vibration and importance live on the OS side of the line —
+        // see [NexNotificationSettings] for why an in-app picker would only
+        // pretend to work — so these two rows are doors to the right screen
+        // rather than controls of their own.
+        if (NexNotificationSettings.supported) ...[
+          _Row(
+            icon: Icons.music_note_outlined,
+            title: l10n.notificationSoundReminders,
+            value: l10n.notificationSoundSubtitle,
+            onTap: () =>
+                unawaited(_openChannel(context, NexReminders.remindersChannel)),
+          ),
+          if (preferences.dailyNudge)
+            _Row(
+              icon: Icons.music_note_outlined,
+              title: l10n.notificationSoundDaily,
+              value: l10n.notificationSoundSubtitle,
+              onTap: () =>
+                  unawaited(_openChannel(context, NexReminders.dailyChannel)),
+            ),
+        ],
+      ],
+    ),
+    _Section(
+      id: 'widgets',
+      icon: Icons.widgets_outlined,
+      title: l10n.widgetSettingsTitle,
+      summary: _widgetFilterSummary(l10n, preferences),
+      children: [
+        _Row(
+          icon: Icons.widgets_outlined,
+          title: l10n.widgetSettingsTitle,
+          keywords: 'home screen widget ویجت صفحه اصلی',
+          value: _widgetFilterSummary(l10n, preferences),
+          onTap: () => Navigator.push(
+            context,
+            NexPageRoute<void>(
+              builder: (_) => WidgetSettingsScreen(
+                preferences: preferences,
+                services: services,
+              ),
             ),
           ),
         ),
@@ -340,8 +611,11 @@ class SettingsSheet extends StatelessWidget {
     ),
     _Section(
       id: 'intelligence',
-      preferences: preferences,
+      icon: Icons.auto_awesome_outlined,
       title: l10n.intelligence,
+      summary: preferences.aiEnabled
+          ? preferences.aiProvider.provider.label
+          : l10n.intelligenceOff,
       children: [
         _Row(
           icon: Icons.auto_awesome_outlined,
@@ -400,246 +674,65 @@ class SettingsSheet extends StatelessWidget {
       ],
     ),
     _Section(
-      id: 'appearance',
-      preferences: preferences,
-      title: l10n.appearance,
+      id: 'security',
+      icon: Icons.shield_outlined,
+      title: l10n.settingsSecurityAndPrivacy,
+      summary: preferences.appLockEnabled
+          ? preferences.appLockBiometricOnly
+                ? l10n.securityBiometric
+                : l10n.securityDevicePasscode
+          : l10n.securityOff,
       children: [
         _Row(
-          icon: Icons.calendar_month_outlined,
-          title: l10n.calendar,
-          value: preferences.solarCalendar
-              ? l10n.calendarPersian
-              : l10n.calendarGregorian,
-          onTap: () => unawaited(
-            _pick<bool>(
-              context: context,
-              title: l10n.calendar,
-              selected: preferences.solarCalendar,
-              onSelected: preferences.setSolarCalendar,
-              choices: [
-                NexChoice(
-                  value: false,
-                  label: l10n.calendarGregorian,
-                  preview: const Icon(Icons.calendar_today_outlined),
-                ),
-                NexChoice(
-                  value: true,
-                  label: l10n.calendarPersian,
-                  preview: const Icon(Icons.calendar_month_outlined),
-                ),
-              ],
-            ),
-          ),
-        ),
-        _Row(
-          icon: Icons.translate,
-          title: l10n.language,
-          value: switch (preferences.locale?.languageCode) {
-            'en' => 'English',
-            'fa' => 'فارسی',
-            _ => l10n.languageSystem,
-          },
-          onTap: () => unawaited(
-            _pick<String>(
-              context: context,
-              title: l10n.language,
-              selected: preferences.locale?.languageCode ?? 'system',
-              onSelected: preferences.setLocale,
-              choices: [
-                NexChoice(
-                  value: 'system',
-                  label: l10n.languageSystem,
-                  preview: const NexScriptSample(
-                    icon: Icons.phone_iphone_outlined,
-                  ),
-                ),
-                // Each language in its own script: recognising your own
-                // alphabet does not require reading the language the app is
-                // currently in.
-                const NexChoice(
-                  value: 'en',
-                  label: 'English',
-                  preview: NexScriptSample(sample: 'Aa'),
-                ),
-                const NexChoice(
-                  value: 'fa',
-                  label: 'فارسی',
-                  preview: NexScriptSample(sample: 'اَ'),
-                ),
-              ],
-            ),
-          ),
-        ),
-        _Row(
-          icon: Icons.palette_outlined,
-          title: l10n.theme,
+          icon: Icons.shield_outlined,
+          title: l10n.securityAppLock,
           keywords:
-              'dark light mode accent colour color palette text size font card size density compact app icon تم تیره روشن رنگ تأکیدی پالت اندازه متن اندازه کارت فشرده آیکون',
-          value: nexThemePresetLabel(context, preferences.themePreset),
+              'lock app lock fingerprint biometric screen lock قفل اثر انگشت',
+          value: preferences.appLockEnabled
+              ? preferences.appLockBiometricOnly
+                    ? l10n.securityBiometric
+                    : l10n.securityDevicePasscode
+              : l10n.securityOff,
           onTap: () => Navigator.push(
             context,
             NexPageRoute<void>(
-              builder: (_) => _ThemeScreen(preferences: preferences),
+              builder: (_) => SecurityScreen(preferences: preferences),
             ),
           ),
         ),
         _Row(
-          icon: Icons.widgets_outlined,
-          title: l10n.widgetSettingsTitle,
-          keywords: 'home screen widget ویجت صفحه اصلی',
-          value: _widgetFilterSummary(l10n, preferences),
+          icon: Icons.cloud_upload_outlined,
+          title: l10n.disclosuresTitle,
+          keywords:
+              'privacy sent provider log disclosure data left device حریم خصوصی ارسال فرستاده خارج شد',
+          value: l10n.disclosuresRow,
           onTap: () => Navigator.push(
             context,
             NexPageRoute<void>(
-              builder: (_) => WidgetSettingsScreen(
-                preferences: preferences,
-                services: services,
-              ),
+              builder: (_) => DisclosuresScreen(services: services),
             ),
           ),
         ),
-      ],
-    ),
-    _Section(
-      id: 'capture',
-      preferences: preferences,
-      title: l10n.capture,
-      children: [
-        _SwitchRow(
-          icon: Icons.keyboard_return,
-          title: l10n.enterSubmitsCapture,
-          subtitle: l10n.enterSubmitsCaptureSubtitle,
-          value: preferences.enterSubmitsCapture,
-          onChanged: preferences.setEnterSubmitsCapture,
-        ),
-        _SwitchRow(
-          icon: Icons.vibration,
-          title: l10n.haptics,
-          value: preferences.haptics,
-          onChanged: preferences.setHaptics,
-        ),
         _Row(
-          icon: Icons.swipe_outlined,
-          title: l10n.swipeActions,
-          keywords: 'swipe gesture edge کشیدن لبه',
-          value:
-              '${nexSwipeActionLabel(l10n, preferences.leadingAction)} · '
-              '${nexSwipeActionLabel(l10n, preferences.trailingAction)}',
-          onTap: () => unawaited(
-            nexShowSheet<void>(
-              context: context,
-              builder: (_) => _PickerSheet(
-                title: l10n.swipeActions,
-                footnote: l10n.swipeActionsHint,
-                // The one picker that is two choices rather than one, so it
-                // keeps its own widget and stays open across both.
-                child: _SwipeMapping(preferences: preferences),
-              ),
-            ),
-          ),
-        ),
-        // Right after the swipe: the other gesture a note answers to.
-        _Row(
-          icon: Icons.touch_app_outlined,
-          title: nexLabel(context, 'Hold menu', 'منوی نگه‌داشتن'),
-          keywords: 'long press hold menu actions نگه داشتن منو',
-          value: nexLabel(
-            context,
-            '${preferences.holdMenuActions.length} actions',
-            '${preferences.holdMenuActions.length} گزینه',
-          ),
+          icon: Icons.speed_outlined,
+          title: l10n.metricsTitle,
+          keywords:
+              'speed performance metrics measure startup reliability crash سرعت کارایی اندازه‌گیری پایداری',
+          value: preferences.metricsEnabled
+              ? l10n.metricsRowOn
+              : l10n.metricsRowOff,
           onTap: () => Navigator.push(
             context,
             NexPageRoute<void>(
-              builder: (_) => _HoldMenuScreen(preferences: preferences),
+              builder: (_) => MetricsScreen(preferences: preferences),
             ),
           ),
         ),
-        _SwitchRow(
-          icon: Icons.timeline_outlined,
-          title: l10n.threadSuggestions,
-          subtitle: l10n.threadSuggestionsSubtitle,
-          value: preferences.threadSuggestions,
-          onChanged: preferences.setThreadSuggestions,
-        ),
-        // The Quick Settings tile needs no switch — it is added from the
-        // shade's own edit screen — but a notification that stays in the
-        // shade is something to opt into.
-        if (defaultTargetPlatform == TargetPlatform.android)
-          _SwitchRow(
-            icon: Icons.notifications_none_outlined,
-            title: nexLabel(
-              context,
-              'Capture from notifications',
-              'ثبت از کشوی اعلان‌ها',
-            ),
-            subtitle: nexLabel(
-              context,
-              'A silent row with Note, Voice and Photo. The Quick Settings '
-                  'tile "Nex capture" can be added from the shade.',
-              'یک ردیف بی‌صدا با یادداشت، صدا و عکس. کاشی «ثبت در Nex» را '
-                  'هم می‌توانید در تنظیمات سریع اضافه کنید.',
-            ),
-            value: preferences.quickCaptureNotification,
-            onChanged: (value) => unawaited(() async {
-              if (value) await services.reminders.requestPermission();
-              await preferences.setQuickCaptureNotification(value);
-              await QuickCaptureNotification.setEnabled(value);
-            }()),
-          ),
-      ],
-    ),
-    _Section(
-      id: 'notifications',
-      preferences: preferences,
-      title: l10n.notifications,
-      children: [
-        _SwitchRow(
-          icon: Icons.notifications_active_outlined,
-          title: l10n.nudgeTitle,
-          subtitle: l10n.nudgeSubtitle,
-          value: preferences.dailyNudge,
-          onChanged: (next) => unawaited(_setNudge(context, next)),
-        ),
-        // Only once it is on. A time picker for a notification that is not
-        // being sent is a control with nothing behind it, and the row it
-        // would sit under already says what turning it on gets you.
-        if (preferences.dailyNudge)
-          _Row(
-            icon: Icons.schedule_outlined,
-            title: l10n.nudgeTime,
-            value: TimeOfDay(
-              hour: preferences.dailyNudgeMinutes ~/ 60,
-              minute: preferences.dailyNudgeMinutes % 60,
-            ).format(context),
-            onTap: () => unawaited(_pickNudgeTime(context)),
-          ),
-        // Sound, vibration and importance live on the OS side of the line —
-        // see [NexNotificationSettings] for why an in-app picker would only
-        // pretend to work — so these two rows are doors to the right screen
-        // rather than controls of their own.
-        if (NexNotificationSettings.supported) ...[
-          _Row(
-            icon: Icons.music_note_outlined,
-            title: l10n.notificationSoundReminders,
-            value: l10n.notificationSoundSubtitle,
-            onTap: () =>
-                unawaited(_openChannel(context, NexReminders.remindersChannel)),
-          ),
-          if (preferences.dailyNudge)
-            _Row(
-              icon: Icons.music_note_outlined,
-              title: l10n.notificationSoundDaily,
-              value: l10n.notificationSoundSubtitle,
-              onTap: () =>
-                  unawaited(_openChannel(context, NexReminders.dailyChannel)),
-            ),
-        ],
       ],
     ),
     _Section(
       id: 'data',
-      preferences: preferences,
+      icon: Icons.import_export,
       title: l10n.dataAndBackup,
       children: [
         _Searchable(
@@ -677,8 +770,10 @@ class SettingsSheet extends StatelessWidget {
     ),
     _Section(
       id: 'about',
-      preferences: preferences,
+      icon: Icons.info_outline,
       title: l10n.about,
+      summary: l10n.installedVersion(nexAppVersion),
+      badge: updates?.hasUpdate ?? false,
       children: [
         _Searchable(
           text: '${l10n.checkForUpdate} update version به‌روزرسانی نسخه',
@@ -699,21 +794,6 @@ class SettingsSheet extends StatelessWidget {
           keywords: 'help guide how راهنما',
           value: l10n.guideSubtitle,
           onTap: () => unawaited(GuideScreen.show(context)),
-        ),
-        _Row(
-          icon: Icons.speed_outlined,
-          title: l10n.metricsTitle,
-          keywords:
-              'speed performance metrics measure startup reliability crash سرعت کارایی اندازه‌گیری پایداری',
-          value: preferences.metricsEnabled
-              ? l10n.metricsRowOn
-              : l10n.metricsRowOff,
-          onTap: () => Navigator.push(
-            context,
-            NexPageRoute<void>(
-              builder: (_) => MetricsScreen(preferences: preferences),
-            ),
-          ),
         ),
         _Row(
           icon: Icons.auto_stories_outlined,

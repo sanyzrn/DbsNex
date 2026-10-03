@@ -3667,4 +3667,16 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get assistantConfirmSearch =>
       'یادداشت‌هایتان را برای این جست‌وجو کنم؟';
+
+  @override
+  String get settingsLanguageAndCalendar => 'زبان و تقویم';
+
+  @override
+  String get settingsGesturesAndMenus => 'اشاره‌ها و منوها';
+
+  @override
+  String get settingsSecurityAndPrivacy => 'امنیت و حریم خصوصی';
+
+  @override
+  String get settingsRemindersAndNotifications => 'یادآورها و اعلان‌ها';
 }

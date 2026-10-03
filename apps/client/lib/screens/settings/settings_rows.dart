@@ -107,18 +107,43 @@ const _rowPadding = EdgeInsetsDirectional.only(
   bottom: NexSpacing.sm,
 );
 
+/// One category of settings: its rows, on one card.
+///
+/// It used to be an accordion — every category on the one page, each
+/// opening and closing in place, the open ones remembered. With fourteen
+/// rows spread over seven of them it was still a long page, and nobody could
+/// see the shape of Settings without opening everything. The front page is
+/// now a list of categories, one line each ([_CategoryRow]), and each one
+/// opens on its own page ([_SettingsCategoryScreen]); search still finds any
+/// row from anywhere.
+///
+/// [icon], [summary] and [badge] are how the category reads on the front
+/// page; the card itself is what its page shows.
 class _Section extends StatelessWidget {
   const _Section({
     required this.id,
-    required this.preferences,
+    required this.icon,
     required this.title,
     required this.children,
+    this.summary,
+    this.badge = false,
   });
 
   final String id;
-  final NexPreferences preferences;
-
+  final IconData icon;
   final String title;
+  final String? summary;
+  final bool badge;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => _SettingsCard(children: children);
+}
+
+/// Rows on a rounded card, with dividers between them.
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({required this.children});
+
   final List<Widget> children;
 
   @override
@@ -130,14 +155,7 @@ class _Section extends StatelessWidget {
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(NexRadius.lg),
         clipBehavior: Clip.antiAlias,
-        child: ExpansionTile(
-          key: ValueKey('settings-section-$id'),
-          initiallyExpanded: preferences.isSettingsSectionExpanded(id),
-          onExpansionChanged: (expanded) =>
-              unawaited(preferences.setSettingsSectionExpanded(id, expanded)),
-          title: Text(title, style: theme.textTheme.titleSmall),
-          shape: const Border(),
-          collapsedShape: const Border(),
+        child: Column(
           children: [
             for (var i = 0; i < children.length; i++) ...[
               if (i > 0)
@@ -152,6 +170,61 @@ class _Section extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A category on the Settings front page.
+class _CategoryRow extends StatelessWidget {
+  const _CategoryRow({required this.section, required this.onTap});
+
+  final _Section section;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => KeyedSubtree(
+    key: ValueKey('settings-category-${section.id}'),
+    child: _Row(
+      icon: section.icon,
+      title: section.title,
+      value: section.summary,
+      badge: section.badge,
+      onTap: onTap,
+    ),
+  );
+}
+
+/// One category's own page.
+///
+/// It asks the sheet for its rows on every rebuild rather than holding the
+/// list it was opened with, so a value changed here — or by a picker opened
+/// from here — shows at once.
+class _SettingsCategoryScreen extends StatelessWidget {
+  const _SettingsCategoryScreen({required this.sheet, required this.id});
+
+  final SettingsSheet sheet;
+  final String id;
+
+  _Section _section(BuildContext context) => sheet
+      ._groups(context, AppLocalizations.of(context))
+      .whereType<_Section>()
+      .firstWhere((section) => section.id == id);
+
+  @override
+  Widget build(BuildContext context) {
+    final updates = sheet.updates;
+    return ListenableBuilder(
+      listenable: Listenable.merge([sheet.preferences, ?updates]),
+      builder: (context, _) {
+        final section = _section(context);
+        return Scaffold(
+          appBar: AppBar(title: Text(section.title)),
+          body: ListView(
+            padding: const EdgeInsets.all(NexSpacing.md),
+            children: [section],
+          ),
+        );
+      },
     );
   }
 }

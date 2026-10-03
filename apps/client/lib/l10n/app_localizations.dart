@@ -5917,6 +5917,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search your notes for this?'**
   String get assistantConfirmSearch;
+
+  /// No description provided for @settingsLanguageAndCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Language and calendar'**
+  String get settingsLanguageAndCalendar;
+
+  /// No description provided for @settingsGesturesAndMenus.
+  ///
+  /// In en, this message translates to:
+  /// **'Gestures and menus'**
+  String get settingsGesturesAndMenus;
+
+  /// No description provided for @settingsSecurityAndPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Security and privacy'**
+  String get settingsSecurityAndPrivacy;
+
+  /// No description provided for @settingsRemindersAndNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders and notifications'**
+  String get settingsRemindersAndNotifications;
 }
 
 class _AppLocalizationsDelegate
