@@ -26,6 +26,27 @@ val isReleaseTask = gradle.startParameter.taskNames.any {
 }
 val isCi = System.getenv("CI") != null
 
+// CI's pull-request job builds the shipping artifact (the ai flavor, release
+// App Bundle) only to prove it assembles (REL-10). That build is thrown away,
+// so it may use the debug key; this variable is never set by release.yml.
+val ciVerifyOnly = System.getenv("NEX_CI_VERIFY_RELEASE_BUILD") == "true"
+
+// The versionCode the release pipeline stamps for a version name:
+// (major*10000 + minor*100 + patch) * 10000 — see release.yml and
+// docs/06-development.md. A plain local `flutter build` used Flutter's own,
+// far smaller number instead, so a hotfix built by hand could never install
+// over a released build (REL-13). The larger of the two is used, which is
+// exactly the release number whenever the pipeline passes one.
+fun nexReleaseVersionCode(versionName: String): Int {
+    val parts = versionName.substringBefore('-').split('.').map { it.toIntOrNull() }
+    if (parts.size != 3 || parts.any { it == null }) return 0
+    val major = parts[0]!!
+    val minor = parts[1]!!
+    val patch = parts[2]!!
+    if (minor > 99 || patch > 99) return 0
+    return (major * 10000 + minor * 100 + patch) * 10000
+}
+
 android {
     namespace = "com.sanyzrn.nex"
     compileSdk = flutter.compileSdkVersion
@@ -53,7 +74,7 @@ android {
         // clear constraint violation instead of an opaque manifest-merger error.
         minSdk = 24
         targetSdk = 35
-        versionCode = flutter.versionCode
+        versionCode = maxOf(flutter.versionCode, nexReleaseVersionCode(flutter.versionName))
         versionName = flutter.versionName
     }
 
@@ -97,7 +118,7 @@ android {
 
     buildTypes {
         release {
-            if (!keyFile.exists() && isReleaseTask && isCi) {
+            if (!keyFile.exists() && isReleaseTask && isCi && !ciVerifyOnly) {
                 throw GradleException(
                     "android/key.properties is missing - refusing to produce a " +
                         "debug-signed release artifact. See docs/06-development.md " +

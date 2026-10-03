@@ -183,6 +183,9 @@ void main() {
       preferences = await NexPreferences.load();
     });
 
+    // Dismissals are tested with the close button on, the way the card is
+    // built to run; it is off by default only while the owner tests the
+    // card's display (see `dismissibleByDefault`).
     NexSponsorService serviceReturning(
       http.Response Function(http.Request request) respond, {
       DateTime? at,
@@ -190,7 +193,65 @@ void main() {
       preferences: preferences,
       client: MockClient((request) async => respond(request)),
       now: () => at ?? now,
+      dismissible: true,
     );
+
+    test('with the close button off, a dismissed card still shows', () async {
+      final service = NexSponsorService(
+        preferences: preferences,
+        client: MockClient((_) async => http.Response(card(), 200)),
+        now: () => now,
+      );
+      expect(service.dismissible, NexSponsorService.dismissibleByDefault);
+      await service.refresh();
+      await service.dismiss('c1');
+      expect(service.visible(languageCode: 'en')?.id, 'c1');
+    });
+
+    test('a Persian card served without a charset reads as Persian', () async {
+      // `Response.body` falls back to Latin-1 when the server names no
+      // charset, which a plain `.json` file often gets.
+      final service = serviceReturning(
+        (_) => http.Response.bytes(
+          utf8.encode(card(title: 'کتاب‌فروشی محله')),
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      await service.refresh();
+      expect(service.visible(languageCode: 'en')?.title, 'کتاب‌فروشی محله');
+    });
+
+    test('a byte-order mark at the start of the file is ignored', () async {
+      final service = serviceReturning(
+        (_) => http.Response.bytes([
+          0xEF, 0xBB, 0xBF, //
+          ...utf8.encode(card()),
+        ], 200),
+      );
+      await service.refresh();
+      expect(service.visible(languageCode: 'en')?.id, 'c1');
+    });
+
+    test('a blocked or failing host does not take the card down', () async {
+      // A 403 or 5xx, or a filtering page served with 200, used to clear the
+      // card for a day as if the campaign had ended. Only a 404 means that.
+      for (final response in [
+        http.Response('Forbidden', 403),
+        http.Response('', 503),
+        http.Response('<html>blocked</html>', 200),
+      ]) {
+        await preferences.setSponsorPayload(card());
+        await preferences.setSponsorFetchedAt(now);
+        final service = serviceReturning((_) => response);
+        await service.refresh(force: true);
+        expect(
+          service.visible(languageCode: 'en')?.id,
+          'c1',
+          reason: '${response.statusCode}',
+        );
+      }
+    });
 
     test('a card that arrives is cached and shown', () async {
       final service = serviceReturning((_) => http.Response(card(), 200));
@@ -411,6 +472,25 @@ void main() {
       expect(s.image, isNotNull);
       expect(s.visible(languageCode: 'en')?.id, 'c1');
       expect(preferences.sponsorImagePath, isNotNull);
+    });
+
+    test('a new picture gets a new file, and the old one goes', () async {
+      // One fixed file name, overwritten in place, kept the old picture on
+      // screen: Flutter's image cache keys a file picture by its path.
+      var bytes = gif;
+      final s = service(
+        (request) => request.url.path.endsWith('.gif')
+            ? http.Response.bytes(bytes, 200)
+            : http.Response(withImage(), 200),
+      );
+      await s.refresh();
+      final first = s.image!.path;
+
+      bytes = Uint8List.fromList([...gif, 0x3B]);
+      await s.refresh(force: true);
+      expect(s.image!.path, isNot(first));
+      expect(File(first).existsSync(), isFalse);
+      expect(s.image!.readAsBytesSync(), bytes);
     });
 
     test('a card whose picture will not come is shown in words', () async {

@@ -152,14 +152,19 @@ workspace is deliberately *not* used, for a reason spelled out at the top of the
 
 ### Checks
 
-`make check` reproduces the CI pipeline one-to-one. Run it before pushing.
+`make check` runs the analyze and test part of CI that a contributor can run locally.
+It is not the whole pipeline: CI also builds the Android app (including the release App
+Bundle of the `ai` flavor on pull requests that touch the Android build), runs the boundary
+and deletion proofs, merge conformance and the live sync matrix. Run it before pushing.
 
 ```bash
-make check          # everything
-make check-dart     # core, data, ai — analyze + test, no Flutter
+make check          # every target below
+make check-dart     # core, data — analyze + test, no Flutter
+make check-ai       # packages/ai — needs Flutter
 make check-ui       # packages/ui
 make check-client   # apps/client
 make check-backend  # typecheck, lint, test
+make check-worker   # apps/feedback-worker — typecheck + test
 make fmt            # format Dart and TypeScript
 ```
 

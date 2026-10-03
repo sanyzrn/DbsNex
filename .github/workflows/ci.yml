@@ -380,6 +380,23 @@ jobs:
       # real signed build has to be preceded by a full check.
       - run: flutter build apk --debug --flavor standard
         if: needs.changes.outputs.android == 'true'
+      # The artifact that actually ships — the ai flavor, release mode, as an
+      # App Bundle — used to be assembled for the first time inside a release,
+      # minutes into it (REL-10). A plugin whose AAR or native library breaks
+      # only there now fails the pull request that brought it in. Pull
+      # requests only: a release (workflow_call) builds the signed artifact
+      # itself right after this suite, so building it here too would be the
+      # same minutes spent twice. Debug-signed and discarded.
+      - name: Build the shipping artifact (ai flavor, release App Bundle)
+        if: needs.changes.outputs.android == 'true' && github.event_name == 'pull_request'
+        env:
+          NEX_CI_VERIFY_RELEASE_BUILD: "true"
+        run: flutter build appbundle --release --flavor ai --target lib/main_ai.dart
+      # Android 15 devices may run with 16 KB memory pages, where a native
+      # library aligned to 4 KB does not load (REL-06).
+      - name: Native libraries are 16 KB aligned
+        if: needs.changes.outputs.android == 'true' && github.event_name == 'pull_request'
+        run: bash ../../tools/check_16kb_alignment.sh build/app/outputs/bundle/aiRelease/app-ai-release.aab
 
   client-windows:
     name: apps/client (Windows desktop build + platform tests)

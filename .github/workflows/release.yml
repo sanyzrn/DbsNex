@@ -309,6 +309,19 @@ jobs:
               | grep -E 'lib/.*\.so$' | awk '{print $4}' | sort || true
           done
 
+      # Android 15 devices may run with 16 KB memory pages, where a native
+      # library aligned to 4 KB does not load, and Play refuses a bundle that
+      # carries one (REL-06). Every published artifact is checked, so the
+      # first sign of a misaligned plugin is this step and not a store
+      # rejection or a crash report.
+      - name: Native libraries are 16 KB aligned
+        run: |
+          bash ../../tools/check_16kb_alignment.sh \
+            build/app/outputs/bundle/aiRelease/app-ai-release.aab \
+            build/app/outputs/flutter-apk/app-arm64-v8a-ai-release.apk \
+            build/app/outputs/flutter-apk/app-x86_64-ai-release.apk \
+            build/app/outputs/flutter-apk/app-ai-release.apk
+
       - name: Collect release assets
         run: |
           mkdir -p dist

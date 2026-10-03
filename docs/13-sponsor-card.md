@@ -63,8 +63,11 @@ decoder is a large thing to carry for a card the height of one note.
 - **Design for a wide strip.** The card is exactly one note card: full width,
   about 80dp tall. The picture fills it, cropped to cover, with a scrim on
   the leading edge so the label and title stay legible.
-- The file is cached on the device, replaced in place, and deleted when the
-  campaign ends.
+- The file is cached on the device under a name taken from its contents, so a
+  new picture replaces the old one on screen straight away; the old file is
+  deleted, and the last one goes when the campaign ends.
+- **Save `banner.json` as UTF-8.** The app reads it as UTF-8 whatever the
+  server's `Content-Type` says, and ignores a byte-order mark.
 - **A card whose picture cannot be fetched is shown in words.** Its `title`
   (and `body`) are drawn on the plain card instead, so write a title that
   stands on its own even for a picture-led campaign. (It used to be hidden
@@ -76,17 +79,25 @@ decoder is a large thing to carry for a card the height of one note.
 By design, all of these are the same outcome — no card, no gap, no
 placeholder, no error:
 
-- no `banner.json`, or a 404
+- no `banner.json` (a 404 or 410) — this is the one answer that takes a card
+  down; any other failure below leaves the last card in place until it ages
+  out
 - a file that is not valid JSON, or has no `id` or `title`
-- an HTML error page from a captive portal or proxy
+- an HTML error page from a captive portal, a filter or a proxy, or a 403 or
+  5xx from the host
 - a picture that is missing, too large, or not a picture
 - the device is offline, or has been for more than 48 hours (the card only
   shows while the last **successful** fetch is recent — an old campaign must
   not live on in the timeline of a phone that has been off the network)
 - the card's dates have passed, or it is for another language
-- the reader hid it in the last 24 hours
+- the reader hid it in the last 24 hours (while hiding is on — see below)
 
 ## Hiding a card
+
+**Currently off.** Since 1.93.2 the card has no close button and stored
+dismissals are not applied, so every phone shows the card while its display is
+being tested. `NexSponsorService.dismissibleByDefault` turns it back on; the
+rules below then apply again unchanged.
 
 The close button means **not now**, not never. A dismissal is recorded against
 the card's `id` with the time it happened, and holds for 24 hours — so it is

@@ -1,10 +1,10 @@
-# Builds the "ai" flavor so it can be installed on a real phone.
+# Builds the "ai" flavor as an installable test APK, without publishing a
+# release.
 #
-# Nothing else produces this artifact. `release.yml` ships the standard flavor
-# only, and CI builds a standard *debug* APK — so until now the ai flavor had
-# never been assembled anywhere, by anyone. That is the whole reason the last
-# on-device test never happened: there was no APK to install, and the absence
-# looked like an installation failure.
+# `release.yml` has shipped the ai flavor since v0.9.6 (ADR-031, amended), and
+# CI builds its release App Bundle on pull requests that touch the Android
+# build — but neither leaves an APK to install on a phone before a release.
+# This workflow does, for testing a change on a real device first.
 #
 # Manual only. This is a testing tool, not part of the release path, and the
 # model it downloads is 2 GB of someone's connection.
