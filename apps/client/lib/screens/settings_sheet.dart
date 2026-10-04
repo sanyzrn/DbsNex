@@ -369,70 +369,57 @@ class SettingsSheet extends StatelessWidget {
             _ => l10n.languageSystem,
           }} · ${preferences.solarCalendar ? l10n.calendarPersian : l10n.calendarGregorian}',
       children: [
-        _Row(
-          icon: Icons.translate,
-          title: l10n.language,
-          value: switch (preferences.locale?.languageCode) {
-            'en' => 'English',
-            'fa' => 'فارسی',
-            _ => l10n.languageSystem,
-          },
-          onTap: () => unawaited(
-            _pick<String>(
-              context: context,
-              title: l10n.language,
-              selected: preferences.locale?.languageCode ?? 'system',
-              onSelected: preferences.setLocale,
-              choices: [
-                NexChoice(
-                  value: 'system',
-                  label: l10n.languageSystem,
-                  preview: const NexScriptSample(
-                    icon: Icons.phone_iphone_outlined,
-                  ),
+        _Searchable(
+          text: '${l10n.language} ${l10n.languageSystem} English فارسی',
+          child: _InlineChoice<String>(
+            icon: Icons.translate,
+            title: l10n.language,
+            selected: preferences.locale?.languageCode ?? 'system',
+            onSelected: preferences.setLocale,
+            choices: [
+              NexChoice(
+                value: 'system',
+                label: l10n.languageSystem,
+                preview: const NexScriptSample(
+                  icon: Icons.phone_iphone_outlined,
                 ),
-                // Each language in its own script: recognising your own
-                // alphabet does not require reading the language the app is
-                // currently in.
-                const NexChoice(
-                  value: 'en',
-                  label: 'English',
-                  preview: NexScriptSample(sample: 'Aa'),
-                ),
-                const NexChoice(
-                  value: 'fa',
-                  label: 'فارسی',
-                  preview: NexScriptSample(sample: 'اَ'),
-                ),
-              ],
-            ),
+              ),
+              // Each language in its own script: recognising your own
+              // alphabet does not require reading the language the app is
+              // currently in.
+              const NexChoice(
+                value: 'en',
+                label: 'English',
+                preview: NexScriptSample(sample: 'Aa'),
+              ),
+              const NexChoice(
+                value: 'fa',
+                label: 'فارسی',
+                preview: NexScriptSample(sample: 'اَ'),
+              ),
+            ],
           ),
         ),
-        _Row(
-          icon: Icons.calendar_month_outlined,
-          title: l10n.calendar,
-          value: preferences.solarCalendar
-              ? l10n.calendarPersian
-              : l10n.calendarGregorian,
-          onTap: () => unawaited(
-            _pick<bool>(
-              context: context,
-              title: l10n.calendar,
-              selected: preferences.solarCalendar,
-              onSelected: preferences.setSolarCalendar,
-              choices: [
-                NexChoice(
-                  value: false,
-                  label: l10n.calendarGregorian,
-                  preview: const Icon(Icons.calendar_today_outlined),
-                ),
-                NexChoice(
-                  value: true,
-                  label: l10n.calendarPersian,
-                  preview: const Icon(Icons.calendar_month_outlined),
-                ),
-              ],
-            ),
+        _Searchable(
+          text:
+              '${l10n.calendar} ${l10n.calendarGregorian} ${l10n.calendarPersian}',
+          child: _InlineChoice<bool>(
+            icon: Icons.calendar_month_outlined,
+            title: l10n.calendar,
+            selected: preferences.solarCalendar,
+            onSelected: preferences.setSolarCalendar,
+            choices: [
+              NexChoice(
+                value: false,
+                label: l10n.calendarGregorian,
+                preview: const Icon(Icons.calendar_today_outlined),
+              ),
+              NexChoice(
+                value: true,
+                label: l10n.calendarPersian,
+                preview: const Icon(Icons.calendar_month_outlined),
+              ),
+            ],
           ),
         ),
       ],
