@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nex_core/nex_core.dart' show nexDigits;
@@ -270,7 +271,9 @@ class _UpdateSheetState extends State<UpdateSheet> {
       // unreadable, leaking internal URLs, and a bidirectional layout hazard
       // as a Latin-script URL inside an RTL sheet. The detail belongs in a
       // log.
-      debugPrint('update download failed: $error\n$stack');
+      // Debug builds only: a release build's logcat is readable by other
+      // tooling on the device, and the stack carries local file paths.
+      if (kDebugMode) debugPrint('update download failed: $error\n$stack');
       _stop(error);
     }
   }

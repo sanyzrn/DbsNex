@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'link_reader.dart';
 import 'nex_services.dart';
 
 /// An OS surface asking Nex to do something on the timeline once there is a
@@ -391,11 +392,17 @@ class OsCaptureBridge {
       case 'shared_text':
         final text = (payload['text'] as String?)?.trim() ?? '';
         if (text.isEmpty) throw StateError('The shared text is empty');
-        await services.worker.captureShared({
+        final note = await services.worker.captureShared({
           'requestId': payload['requestId'] as String? ?? newUuidV7(),
           'type': type!,
           'text': text,
         });
+        // A shared link became a link note: its title and description are
+        // read after it exists, as for one typed in, and never hold up the
+        // share.
+        if (note?.type == NoteType.link && note?.linkUrl != null) {
+          unawaited(_readSharedLink(note!.id, note.linkUrl!));
+        }
       case 'shared_photo':
       case 'shared_file':
         final file = await _fetch(payload);
@@ -434,6 +441,24 @@ class OsCaptureBridge {
       await services.refreshTimeline();
     } catch (_) {}
     return true;
+  }
+
+  Future<void> _readSharedLink(String noteId, String url) async {
+    final reader = LinkReader();
+    try {
+      final preview = await reader.read(url);
+      if (preview.isEmpty) return;
+      await services.setLinkMetadata(
+        noteId,
+        title: preview.title,
+        excerpt: preview.excerpt,
+      );
+      await services.refreshTimeline();
+    } catch (_) {
+      // The link note is saved; its preview was the optional part.
+    } finally {
+      reader.close();
+    }
   }
 
   /// The file a share refers to, in hand and inside the limit — or null,

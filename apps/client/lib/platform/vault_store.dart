@@ -31,7 +31,9 @@ class VaultEntry {
   };
   factory VaultEntry.fromJson(Map<String, dynamic> data) {
     final fields = Map<String, String>.from(data['fields'] as Map);
-    if (fields.length > 12 || fields.values.any((v) => v.length > 10000)) {
+    // Sixteen leaves room for the card's own fields (CVV2 came in 1.93.4)
+    // plus its colour, with a margin for the next one.
+    if (fields.length > 16 || fields.values.any((v) => v.length > 10000)) {
       throw const FormatException('Invalid vault fields');
     }
     return VaultEntry(
@@ -46,6 +48,11 @@ class VaultEntry {
 
 class VaultSnapshot {
   const VaultSnapshot(this.entries, this.draft);
+
+  /// The most items the vault holds. Raised from 2,000 in 1.93.4: a single
+  /// browser export is often that size on its own, and an import that could
+  /// not fit was refused whole.
+  static const maxEntries = 10000;
   final List<VaultEntry> entries;
   final VaultEntry? draft;
   Map<String, dynamic> toJson() => {
@@ -56,7 +63,7 @@ class VaultSnapshot {
   factory VaultSnapshot.fromJson(Map<String, dynamic> value) {
     if (value['version'] != 1 ||
         value['entries'] is! List ||
-        (value['entries'] as List).length > 2000) {
+        (value['entries'] as List).length > maxEntries) {
       throw const FormatException('Invalid vault');
     }
     final entries = (value['entries'] as List)
@@ -73,6 +80,22 @@ class VaultSnapshot {
           : VaultEntry.fromJson(Map<String, dynamic>.from(draft as Map)),
     );
   }
+}
+
+/// What an import did with each password it was given.
+class VaultImportOutcome {
+  const VaultImportOutcome({
+    required this.added,
+    required this.duplicates,
+    required this.overCapacity,
+  });
+  final int added;
+
+  /// Already in the vault with the same website, login and password.
+  final int duplicates;
+
+  /// Left out because the vault was full.
+  final int overCapacity;
 }
 
 /// Platform-encrypted storage only. A corrupt/unavailable store fails closed;
@@ -138,19 +161,52 @@ class VaultStore {
       entry,
     ], old.draft?.id == entry.id ? null : old.draft),
   );
-  Future<void> importPasswords(List<VaultEntry> imported) => _change((old) {
-    String identity(VaultEntry e) =>
-        jsonEncode([e.value('website'), e.value('login'), e.value('password')]);
-    final seen = old.entries
-        .where((e) => e.kind == VaultKind.password)
-        .map(identity)
-        .toSet();
-    return VaultSnapshot([
-      ...old.entries,
-      for (final e in imported)
-        if (e.kind == VaultKind.password && seen.add(identity(e))) e,
-    ], old.draft);
-  });
+
+  /// Adds [imported] passwords that are not already in the vault, as many as
+  /// fit under [VaultSnapshot.maxEntries], and says what happened to each.
+  Future<VaultImportOutcome> importPasswords(List<VaultEntry> imported) async {
+    var added = 0, duplicates = 0, overCapacity = 0;
+    await _change((old) {
+      added = duplicates = overCapacity = 0;
+      String identity(VaultEntry e) => jsonEncode([
+        e.value('website'),
+        e.value('login'),
+        e.value('password'),
+      ]);
+      final seen = old.entries
+          .where((e) => e.kind == VaultKind.password)
+          .map(identity)
+          .toSet();
+      final room = VaultSnapshot.maxEntries - old.entries.length;
+      final next = [...old.entries];
+      for (final e in imported) {
+        if (e.kind != VaultKind.password) continue;
+        if (!seen.add(identity(e))) {
+          duplicates++;
+        } else if (added >= room) {
+          overCapacity++;
+        } else {
+          next.add(e);
+          added++;
+        }
+      }
+      return VaultSnapshot(next, old.draft);
+    });
+    return VaultImportOutcome(
+      added: added,
+      duplicates: duplicates,
+      overCapacity: overCapacity,
+    );
+  }
+
+  /// Deletes every item of [kind], leaving the other kinds as they are. A
+  /// draft of that kind goes with them.
+  Future<void> deleteAll(VaultKind kind) => _change(
+    (old) => VaultSnapshot(
+      old.entries.where((e) => e.kind != kind).toList(),
+      old.draft?.kind == kind ? null : old.draft,
+    ),
+  );
   Future<void> delete(String id) => _change(
     (old) => VaultSnapshot(
       old.entries.where((e) => e.id != id).toList(),

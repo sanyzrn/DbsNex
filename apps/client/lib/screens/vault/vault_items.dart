@@ -239,6 +239,7 @@ extension _VaultItems on _VaultScreenState {
                   for (final (key, label) in [
                     ('number', l.vaultNumber),
                     ('expiry', l.vaultExpiry),
+                    ('cvv2', l.vaultCvv2),
                     ('iban', l.vaultIban),
                     ('account', l.vaultAccount),
                     ('holder', l.vaultHolder),
@@ -308,6 +309,7 @@ extension _VaultItems on _VaultScreenState {
     'number',
     'iban',
     'expiry',
+    'cvv2',
     'account',
     'website',
     'login',
@@ -469,6 +471,19 @@ extension _VaultItems on _VaultScreenState {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          // Printed the way a card prints them: CVV2 beside
+                          // the expiry, both left to right in either language.
+                          if (entry.value('cvv2').isNotEmpty) ...[
+                            Text(
+                              'CVV2 ${entry.value('cvv2')}',
+                              textDirection: TextDirection.ltr,
+                              style: const TextStyle(
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                            if (entry.value('expiry').isNotEmpty)
+                              const SizedBox(width: 14),
+                          ],
                           if (entry.value('expiry').isNotEmpty)
                             Text(
                               entry.value('expiry'),

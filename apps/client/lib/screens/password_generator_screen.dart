@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../platform/display_date.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/private_clipboard.dart';
+import '../platform/secure_window.dart';
 import '../platform/vault_store.dart';
 
 class PasswordGeneratorScreen extends StatefulWidget {
@@ -14,6 +17,23 @@ class _PasswordGeneratorState extends State<PasswordGeneratorScreen> {
   int length = 20;
   bool symbols = true, copied = false;
   late String password = generateVaultPassword();
+
+  // A generated password is a secret from the moment it is on screen, and
+  // this page is reachable from Tools without the vault's lock. Blocking
+  // capture here keeps it out of screenshots and the recents thumbnail
+  // whether or not the app lock is on.
+  @override
+  void initState() {
+    super.initState();
+    unawaited(NexSecureWindow.acquirePrivateSurface());
+  }
+
+  @override
+  void dispose() {
+    unawaited(NexSecureWindow.releasePrivateSurface());
+    super.dispose();
+  }
+
   void generate() => setState(() {
     password = generateVaultPassword(length: length, symbols: symbols);
     copied = false;

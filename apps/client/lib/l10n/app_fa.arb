@@ -1266,6 +1266,8 @@
   "vaultHolder": "نام صاحب کارت",
   "vaultNumber": "شمارهٔ کارت",
   "vaultExpiry": "انقضای درج‌شده روی کارت (ماه/سال)",
+  "vaultCvv2": "CVV2",
+  "vaultInvalidCvv2": "CVV2 سه یا چهار رقم است",
   "vaultIban": "شمارهٔ شبا",
   "vaultAccount": "شمارهٔ حساب",
   "vaultRequired": "این فیلد ضروری است",

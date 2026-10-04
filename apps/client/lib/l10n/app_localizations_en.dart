@@ -3210,6 +3210,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vaultExpiry => 'Expiry as printed (MM/YY)';
 
   @override
+  String get vaultCvv2 => 'CVV2';
+
+  @override
+  String get vaultInvalidCvv2 => 'CVV2 is 3 or 4 digits';
+
+  @override
   String get vaultIban => 'IBAN';
 
   @override

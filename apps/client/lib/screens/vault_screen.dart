@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:file_selector/file_selector.dart';
 import '../widgets/feature_label.dart';
 import '../widgets/nex_text_field.dart';
@@ -6,13 +5,16 @@ import '../platform/password_csv.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import '../documents/text_import.dart';
 import '../platform/app_lock.dart';
+import '../platform/display_date.dart';
 import '../platform/private_clipboard.dart';
 import '../platform/secure_window.dart';
 import '../platform/vault_session.dart';
 import '../platform/vault_store.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'vault_editor.dart';
+import '../widgets/nex_banner.dart';
 part 'vault/vault_items.dart';
 part 'vault/vault_pages.dart';
 
@@ -397,6 +399,27 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
                   ),
                   onPressed: busy ? null : _importPasswords,
                   icon: const Icon(Icons.file_download_outlined),
+                ),
+              if (unlocked &&
+                  editing == null &&
+                  !widget.picking &&
+                  widget.focusId == null &&
+                  entries.any((e) => e.kind == widget.kind))
+                PopupMenuButton<String>(
+                  key: const ValueKey('vault-page-menu'),
+                  tooltip: nexLabel(context, 'More', 'بیشتر'),
+                  enabled: !busy,
+                  onSelected: (_) => unawaited(_confirmDeleteAll()),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'delete-all',
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.delete_sweep_outlined),
+                        title: Text(_deleteAllLabel(context)),
+                      ),
+                    ),
+                  ],
                 ),
               if (unlocked)
                 IconButton(

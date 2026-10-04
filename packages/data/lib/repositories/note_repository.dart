@@ -130,7 +130,16 @@ class SqliteNoteRepository implements NoteRepository {
       }
       final capture = CaptureService(this, deviceId: localDeviceId!);
       final Note? note = switch (payload['type']) {
-        'shared_text' => capture.submitTextCapture(payload['text'] ?? ''),
+        // A browser shares a page as text. A share that is a link is
+        // captured as a link note, with any words around it as its caption.
+        // Not a recovered draft (`draft-`), which is text the person typed
+        // into a text note and stays one.
+        'shared_text' => switch (requestId.startsWith('draft-')
+            ? null
+            : sharedLink(payload['text'] ?? '')) {
+          final link? => _sharedLinkNote(capture, link.url, link.words),
+          null => capture.submitTextCapture(payload['text'] ?? ''),
+        },
         'shared_photo' => capture.submitPhotoCapture(
           mediaUri: payload['mediaUri']!,
           mediaHash: payload['mediaHash']!,
@@ -160,6 +169,13 @@ class SqliteNoteRepository implements NoteRepository {
       db.execute('ROLLBACK');
       rethrow;
     }
+  }
+
+  Note? _sharedLinkNote(CaptureService capture, String url, String? words) {
+    final note = capture.submitLinkCapture(url);
+    if (note == null || words == null) return note;
+    setCaption(note.id, words);
+    return getById(note.id);
   }
 
   @override

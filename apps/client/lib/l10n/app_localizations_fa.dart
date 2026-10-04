@@ -3149,6 +3149,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get vaultExpiry => 'انقضای درج‌شده روی کارت (ماه/سال)';
 
   @override
+  String get vaultCvv2 => 'CVV2';
+
+  @override
+  String get vaultInvalidCvv2 => 'CVV2 سه یا چهار رقم است';
+
+  @override
   String get vaultIban => 'شمارهٔ شبا';
 
   @override

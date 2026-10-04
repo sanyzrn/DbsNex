@@ -139,7 +139,7 @@ void main() {
       await store.save(entry('original'));
       final imported = parsePasswordCsv(
         'name,url,username,password\nSite,https://example.test,user,secret',
-      );
+      ).entries;
       await store.importPasswords(imported);
       await store.importPasswords(imported);
       expect((await store.read()).entries.length, 2);
@@ -303,6 +303,80 @@ void main() {
     expect(painted, isTrue);
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
+  });
+  testWidgets('a card shows its CVV2 beside the expiry', (tester) async {
+    await VaultStore().save(
+      VaultEntry(
+        id: 'card',
+        kind: VaultKind.card,
+        fields: {
+          'title': 'Salary',
+          'number': '4111111111111111',
+          'expiry': '08/29',
+          'cvv2': '123',
+        },
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+    await tester.pumpWidget(app(kind: VaultKind.card));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unlock vault'));
+    await tester.pumpAndSettle();
+    expect(find.text('CVV2 123'), findsOneWidget);
+    // And as its own copyable row under the card.
+    expect(find.text('CVV2'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+  testWidgets('delete all clears this page only, after a confirmation', (
+    tester,
+  ) async {
+    await VaultStore().save(entry('one'));
+    await VaultStore().save(entry('two', password: 'other'));
+    await VaultStore().save(
+      VaultEntry(
+        id: 'card',
+        kind: VaultKind.card,
+        fields: {'title': 'Salary', 'number': '4111111111111111'},
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unlock vault'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('vault-page-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete all passwords'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('All 2 passwords'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete all'));
+    await tester.pumpAndSettle();
+    final left = (await VaultStore().read()).entries;
+    expect(left.map((e) => e.id), ['card']);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+  test('an import reports what it added and what it skipped', () async {
+    final store = VaultStore();
+    await store.save(entry('original'));
+    final first = await store.importPasswords(
+      parsePasswordCsv(
+        'name,url,username,password\n'
+        'A,https://a.test,u,p1\n'
+        'B,https://b.test,u,p2\n',
+      ).entries,
+    );
+    expect(first.added, 2);
+    expect(first.duplicates, 0);
+    final again = await store.importPasswords(
+      parsePasswordCsv(
+        'name,url,username,password\nA,https://a.test,u,p1\n',
+      ).entries,
+    );
+    expect(again.added, 0);
+    expect(again.duplicates, 1);
+    expect((await store.read()).entries, hasLength(3));
   });
   testWidgets('a late authentication reply cannot unlock after backgrounding', (
     tester,

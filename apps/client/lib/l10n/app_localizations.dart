@@ -5072,6 +5072,18 @@ abstract class AppLocalizations {
   /// **'Expiry as printed (MM/YY)'**
   String get vaultExpiry;
 
+  /// No description provided for @vaultCvv2.
+  ///
+  /// In en, this message translates to:
+  /// **'CVV2'**
+  String get vaultCvv2;
+
+  /// No description provided for @vaultInvalidCvv2.
+  ///
+  /// In en, this message translates to:
+  /// **'CVV2 is 3 or 4 digits'**
+  String get vaultInvalidCvv2;
+
   /// No description provided for @vaultIban.
   ///
   /// In en, this message translates to:
