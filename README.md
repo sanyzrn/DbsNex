@@ -1,19 +1,49 @@
-# Nex
+<div align="center">
 
-> **Capture in Seconds. Find in Seconds.**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/readme_logo_dark.png">
+  <img src="docs/brand/readme_logo_light.png" alt="Nex — AI Second Memory" width="360">
+</picture>
 
-Nex is a local-first, minimal capture tool — the inbox for your mind. Instead of asking you
-to choose a folder, a template, or hit "Save," Nex gets out of your way: tap, capture, done.
-Organize later, if you ever need to.
+### Capture in seconds. Find in seconds.
 
-> Nex is not a knowledge base, not a project manager, not another Notion or Obsidian. It's
+A local-first capture app for Android, in Persian and English, with full right-to-left layout.
+
+[![CI](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml)
+[![Release](https://github.com/sanyzrn/DbsNex/actions/workflows/release.yml/badge.svg)](https://github.com/sanyzrn/DbsNex/actions/workflows/release.yml)
+[![Nightly stress](https://github.com/sanyzrn/DbsNex/actions/workflows/stress.yml/badge.svg)](https://github.com/sanyzrn/DbsNex/actions/workflows/stress.yml)
+[![Latest release](https://img.shields.io/github/v/release/sanyzrn/DbsNex-releases?label=release&color=0A84FF)](https://github.com/sanyzrn/DbsNex-releases/releases/latest)
+<br>
+[![Flutter](https://img.shields.io/badge/Flutter-3.35.5-02569B?logo=flutter&logoColor=white)](./.fvmrc)
+[![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)](#what-works-today)
+[![Languages](https://img.shields.io/badge/languages-فارسی%20%7C%20English-0A84FF)](#what-works-today)
+[![Local-first](https://img.shields.io/badge/data-local--first-6E56CF)](./docs/04-architecture.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](./LICENSE)
+
+[Features](#what-works-today) · [Getting started](#getting-started) · [Documentation](#documentation) · [Contributing](#contributing) · [Website](https://DbsStudio.ir/nex/)
+
+</div>
+
+---
+
+Nex is the inbox for your mind. Instead of asking you to choose a folder, a template or a
+Save button, it gets out of your way: tap, capture, done. Organize later, if you ever need to.
+
+> Nex is not a knowledge base, not a project manager, not another Notion or Obsidian. It is
 > the fastest possible front door into whatever system you use to think.
 
-Android, in English and Persian, with full right-to-left layout.
+| | |
+|---|---|
+| ⚡ **Capture never waits** | Text, voice, photos, files and checklists, with no Save button anywhere. A note exists the moment it has content. |
+| 🔎 **Find in seconds** | SQLite FTS5 full-text search with Persian-aware folding, plus tag, type and date filters. |
+| 🌐 **Persian first** | Persian and English, full right-to-left layout, the Persian calendar and Persian digits throughout. |
+| 🔒 **Local-first and private** | Your notes live in a database on your device. Encrypted backups, an app lock and a vault. |
+| 🔔 **Comes back to you** | One-off and repeating reminders, and recurring items with their own calendar. |
+| ✨ **AI that stays optional** | Transcription, OCR, summaries and a grounded assistant — off by default, with a provider you choose. |
 
-The codebase is Flutter and a Windows desktop target still builds locally, but its
-CI and release jobs are paused and no Windows build is published — so Android is
-what ships. iOS is not in progress.
+Nex ships on Android. The codebase is Flutter, and a Windows desktop target still builds
+locally, but its CI and release jobs are paused and no Windows build is published. iOS is
+not in progress.
 
 ---
 
