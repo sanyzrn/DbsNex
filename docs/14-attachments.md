@@ -1,7 +1,13 @@
 # Several attachments on one note: proposal
 
-Status: **proposal, not scheduled.** Written at the owner's request in
-1.93.2, so the work can start from a decided shape later.
+Status: **decided, scheduled for 2.0.** Written at the owner's request in
+1.93.2, so the work can start from a decided shape later. In 1.93.3 the
+owner approved the shape below, with two changes from the first draft, and
+the work was moved to 2.0 to keep the release close:
+
+- **The note's own file stays where it is.** It is not copied into the new
+  table.
+- **Sync of attachments waits for media sync (W1.3).**
 
 ## What is asked
 
@@ -35,8 +41,8 @@ assumption runs through every part of the app:
 - sync's change tracking;
 - the widget snapshot.
 
-The design below keeps that assumption true for every existing note, so that
-nothing has to be rewritten at once.
+The design below keeps that assumption true for every existing note: no
+existing row is rewritten, and no file moves.
 
 ## The shape
 
@@ -48,7 +54,7 @@ A new table. It is not more columns on `notes`, and not new note types:
 CREATE TABLE note_attachments (
   id          TEXT PRIMARY KEY NOT NULL,   -- UUIDv7, like every row
   note_id     TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
-  position    INTEGER NOT NULL,            -- order on the note, 0 first
+  position    INTEGER NOT NULL,            -- 1 first; 0 is the note's own file
   kind        TEXT NOT NULL,               -- photo | voice | file
   media_uri   TEXT NOT NULL,
   media_hash  TEXT NOT NULL,               -- content address, as today
@@ -59,7 +65,8 @@ CREATE TABLE note_attachments (
   transcript_text TEXT,
   created_at  TEXT NOT NULL,
   updated_at  TEXT NOT NULL,
-  deleted_at  TEXT,                        -- tombstone, for sync
+  deleted_at  TEXT,                        -- tombstone, for sync later
+  device_id   TEXT NOT NULL,
   rev         INTEGER NOT NULL,
   sync_state  TEXT NOT NULL
 );
@@ -69,26 +76,45 @@ CREATE INDEX idx_attachments_note ON note_attachments(note_id, position);
 - **The note's type stays what it is.** A photo note with three photos is
   still a photo note, and a text note with a picture is still a text note.
   Types decide how a note reads, and attachments are what it carries.
-- **Migration.** Every existing `media_uri` becomes attachment `0` of its
-  note, with the same `media_hash`, so no file moves and no file is copied.
-  The note's own OCR or transcript text moves with it.
-  - **First release:** the old columns stay, written for attachment `0`
-    only. An older build or an export reader then still sees the first file.
-  - **Later release:** a following schema version stops writing them.
+- **The note's own file is attachment 0, where it already is.** Its
+  `media_uri`, `media_hash`, caption, OCR and transcript stay on `notes`,
+  written by the code that writes them today. The new table holds only the
+  files *after* the first, from position 1. A text note has no file of its
+  own, so its attachments all live in the table, also from position 1.
+
+  This replaced the first draft, which copied every existing file into the
+  table as attachment 0 and kept both copies in step. It is decided this way
+  for three reasons:
+  - **No migration.** The upgrade only creates an empty table, so no
+    existing library is rewritten.
+  - **One home per fact.** Nothing is stored twice, so nothing can drift.
+  - **Older builds keep working.** An older build, or an export reader,
+    sees exactly the first file it sees today.
+- **Reading a note's files** is "the note's own file, if any, then the
+  table's rows by position". One repository method answers it, and every
+  screen asks that method instead of reading `media_uri` directly.
 - **Content-addressed media stays as it is.** The same photo attached twice
   is still one file on disk, and garbage collection counts references across
   both `notes` and `note_attachments`.
 
 ### Sync and backup
 
-- Attachments are their own syncable rows, each with its own `rev` and
-  tombstone, like tags and threads. Removing one photo from a note is then
-  one change, not an edit of the whole note.
-- The merge rules (`spec/` and the conformance test) gain the table. A note
-  deleted on one device and given an attachment on another follows the
-  existing rule for tombstones.
-- The export archive (v3) and the full backup carry the table. An older build
-  importing a v3 archive takes attachment `0` and says how many it left out.
+- **The full backup needs no change for the rows.** It copies
+  `nex.sqlite`, so the table rides along. The media it packs is chosen by
+  reference, so that query gains the new table.
+- **The export archive (v3) carries the table.** An older build importing a
+  v3 archive takes the note's own file and says how many it left out.
+- **Sync waits for media sync (W1.3).** Today's sync carries a note's text
+  and tags and no files at all, nor captions, OCR or transcripts. Syncing
+  attachment rows before their files would put on the other device a
+  reference to a file it does not have.
+  - The table is shaped for sync from the start: `rev`, `device_id`, a
+    tombstone and `sync_state`, like `commitments` and `threads`.
+  - When W1.3 lands, attachments join sync as their own rows. Removing one
+    photo from a note is then one change, not an edit of the whole note.
+  - At that point the merge rules (`spec/` and the conformance test) gain
+    the table. A note deleted on one device and given an attachment on
+    another follows the existing rule for tombstones.
 
 ### Search and AI
 
@@ -123,14 +149,13 @@ CREATE INDEX idx_attachments_note ON note_attachments(note_id, position);
 1. **Data first, behind no UI.** This step is the most sensitive, because it
    touches the database schema and the compatibility of backups. Review it
    with the owner before it starts. It covers:
-   - the table and the migration;
-   - repository methods;
+   - the table, created empty;
+   - repository methods, including "a note's files in order";
    - garbage-collection reference counting;
-   - export v3 and the full backup;
-   - sync rows and conformance.
+   - export v3, and the media the full backup packs.
 
-   It ships with tests that open a pre-migration database, migrate it, and
-   round-trip it through backup, export and sync.
+   It ships with tests that open an older database, upgrade it, and
+   round-trip it through backup and export.
 2. **Several photos on a photo note:** capture, the card mark, the detail
    strip and share.
 3. **Attachments on a text note.**

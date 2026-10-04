@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v1.93.3
+
+- **Language and calendar, in one look.** The Language and calendar page now shows every language and both calendars straight away; pick one with a single tap, without opening a menu first.
+
 ## v1.93.2
 
 - **Settings, reorganised.** Settings now opens on a short list of categories — Appearance, Language and calendar, Capture, Gestures and menus, Reminders and notifications, Home screen widget, Intelligence, Security and privacy, Data and backup, About — each with its current state beside it, and each opens on its own page. Search still finds any setting from the top.

@@ -913,8 +913,8 @@ void main() {
     expect(find.text('Swipe actions'), findsNothing);
     expect(find.text('Comfort Mode'), findsNothing);
 
-    // A category opens on its own page, with the pickers still behind their
-    // rows: the name of each setting and its current value.
+    // A category opens on its own page: most settings as a row with their
+    // current value, language and calendar as their choices in place.
     await openSettingsCategory(tester, 'gestures');
     expect(find.text('Swipe actions'), findsOneWidget);
     await tester.pageBack();
@@ -1320,13 +1320,12 @@ void main() {
     await tester.pumpAndSettle();
     await openSettingsCategory(tester, 'language');
 
-    await tester.tap(find.text('Language'));
-    await tester.pumpAndSettle();
-
-    // Not a dropdown: all three are on screen at once, and each is labelled
-    // the way a speaker of that language would recognise it.
+    // Not a dropdown, and not behind a tap: the page opens with all three
+    // languages and both calendars on screen, each labelled the way a
+    // speaker of that language would recognise it.
     final picker = find.byType(NexChoiceCards<String>);
     expect(picker, findsOneWidget);
+    expect(find.byType(NexChoiceCards<bool>), findsOneWidget);
     expect(
       find.descendant(of: picker, matching: find.text('فارسی')),
       findsOneWidget,

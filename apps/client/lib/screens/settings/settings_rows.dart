@@ -59,6 +59,58 @@ Future<void> _pick<T>({
   if (picked != null) onSelected(picked);
 }
 
+/// A setting whose few choices are shown in place, not behind a tap.
+///
+/// For the settings with two or three options that are each worth seeing
+/// (a language in its own script, a calendar), a row that opens a sheet hides
+/// the choice behind a tap for no gain. The cards are the same
+/// [NexChoiceCards] the sheet would show.
+class _InlineChoice<T> extends StatelessWidget {
+  const _InlineChoice({
+    required this.icon,
+    required this.title,
+    required this.selected,
+    required this.choices,
+    required this.onSelected,
+  });
+
+  final IconData icon;
+  final String title;
+  final T selected;
+  final List<NexChoice<T>> choices;
+  final ValueChanged<T> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsetsDirectional.only(
+      start: NexSpacing.md,
+      end: NexSpacing.md,
+      top: NexSpacing.sm,
+      bottom: NexSpacing.md,
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            _IconTile(icon),
+            const SizedBox(width: NexSpacing.md),
+            Expanded(
+              child: Text(title, style: Theme.of(context).textTheme.bodyLarge),
+            ),
+          ],
+        ),
+        const SizedBox(height: NexSpacing.sm),
+        NexChoiceCards<T>(
+          selected: selected,
+          choices: choices,
+          onSelected: onSelected,
+        ),
+      ],
+    ),
+  );
+}
+
 /// The frame every setting's picker sheet shares.
 class _PickerSheet extends StatelessWidget {
   const _PickerSheet({required this.title, required this.child, this.footnote});
