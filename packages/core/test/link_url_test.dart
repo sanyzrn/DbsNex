@@ -57,4 +57,30 @@ void main() {
       expect(urlHost('not a url'), isNull);
     });
   });
+
+  group('sharedLink', () {
+    test('a bare address from a browser share is a link', () {
+      final link = sharedLink('https://example.com/article?id=7')!;
+      expect(link.url, 'https://example.com/article?id=7');
+      expect(link.words, isNull);
+    });
+
+    test('a title line and an address keep the title as words', () {
+      final link = sharedLink('یک مقالهٔ خوب\nhttps://example.com/a')!;
+      expect(link.url, 'https://example.com/a');
+      expect(link.words, 'یک مقالهٔ خوب');
+    });
+
+    test('ordinary text with a link in it stays text', () {
+      expect(sharedLink('just words'), isNull);
+      expect(sharedLink('see https://a.test and https://b.test'), isNull);
+      expect(
+        sharedLink(
+          '${List.filled(40, 'a long paragraph').join(' ')} https://a.test',
+        ),
+        isNull,
+      );
+      expect(sharedLink('one\ntwo\nthree\nhttps://a.test'), isNull);
+    });
+  });
 }

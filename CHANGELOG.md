@@ -34,6 +34,14 @@ Working convention:
 
 ## Unreleased
 
+## v1.93.4
+
+- **Password import no longer fails on one bad row.** Importing from Chrome or Google Password Manager now brings in every row it can read and lists the ones it could not, by line and with the reason. A row with no password, which Google exports for passkeys and "never save" sites, no longer stops the whole file. Passwords with Persian letters, numbers a spreadsheet saved as formulas, semicolon-separated files and files saved again in Windows-1256 all import, and the private section now holds up to 10,000 items.
+- **CVV2 on bank cards.** A bank card can keep its CVV2, shown on the card beside the expiry and copyable like every other field.
+- **Delete all.** Passwords, bank cards and private messages each have a "Delete all" option in the page's menu, after a confirmation.
+- **Links shared from a browser become link notes.** Sharing a page from Chrome or another browser now saves a link note with its preview, instead of a text note holding the address. Any title shared with it is kept as the note's caption.
+- **Privacy and security.** The password generator now blocks screenshots and the recent-apps preview while it is open. Link previews no longer contact addresses inside your phone or your local network. A failed update download no longer writes its details to the system log.
+
 ## v1.93.3
 
 - **Language and calendar, in one look.** The Language and calendar page now shows every language and both calendars straight away; pick one with a single tap, without opening a menu first.

@@ -98,7 +98,7 @@ code), optionally the offline model and the private vault. An interrupted restor
 back on the next launch, and unfinished edits in most editors survive the app being
 killed.
 
-**Private tools** — a compact Tools page at the left of the home dock holds passwords, bank cards and private saved messages behind device authentication. One unlock opens every private tool and lasts two minutes after the last touch, including time spent in another app; leaving the app always hides the contents. Every field is shown and copyable on the list itself, bank cards take a colour of their own, and there is a standalone password generator and Chrome CSV import. Vault data is excluded from notes, AI and ordinary library backups; encrypted vault export is an explicit option in Complete app backup.
+**Private tools** — a compact Tools page at the left of the home dock holds passwords, bank cards and private saved messages behind device authentication. One unlock opens every private tool and lasts two minutes after the last touch, including time spent in another app; leaving the app always hides the contents. Every field is shown and copyable on the list itself, bank cards take a colour of their own and show their CVV2, each page can be cleared at once, and there is a standalone password generator and a Chrome / Google Password Manager CSV import that brings in every readable row and lists the rest by line. Vault data is excluded from notes, AI and ordinary library backups; encrypted vault export is an explicit option in Complete app backup.
 
 **Intelligence, optional and off by default** — transcription, OCR, summarization, tag
 suggestions, semantic search and related notes, each behind its own switch, against a

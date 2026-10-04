@@ -41,3 +41,31 @@ String? urlHost(String? url) {
   if (host == null || host.isEmpty) return null;
   return host.startsWith('www.') ? host.substring(4) : host;
 }
+
+/// The link a share carries, and any words around it, when the share is a
+/// link — or null when it is ordinary text.
+///
+/// Chrome and most browsers share a page as plain text: the bare address, or
+/// the page title and the address on two lines. Capturing that as a text note
+/// lost the link's preview and its place among links. This recognises a
+/// share with exactly one `http`/`https` address and at most a short line or
+/// two of words around it; anything longer, or with several addresses, is
+/// text that happens to contain a link and stays a text note.
+///
+/// The words are returned, not dropped: they become the link note's caption,
+/// so nothing that was shared is lost.
+({String url, String? words})? sharedLink(String text) {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty || trimmed.length > 4096) return null;
+  final matches = RegExp(
+    r'https?://\S+',
+    caseSensitive: false,
+  ).allMatches(trimmed).toList();
+  if (matches.length != 1) return null;
+  final match = matches.single;
+  final url = normaliseUrl(match.group(0)!);
+  if (url == null) return null;
+  final words = trimmed.replaceRange(match.start, match.end, '').trim();
+  if (words.length > 280 || '\n'.allMatches(words).length > 1) return null;
+  return (url: url, words: words.isEmpty ? null : words);
+}

@@ -2504,6 +2504,8 @@
   "vaultHolder": "Cardholder",
   "vaultNumber": "Card number",
   "vaultExpiry": "Expiry as printed (MM/YY)",
+  "vaultCvv2": "CVV2",
+  "vaultInvalidCvv2": "CVV2 is 3 or 4 digits",
   "vaultIban": "IBAN",
   "vaultAccount": "Account number",
   "vaultRequired": "This field is required",

@@ -38,6 +38,7 @@ class _VaultEditorState extends State<VaultEditor> {
       'holder',
       'number',
       'expiry',
+      'cvv2',
       'iban',
       'account',
     ])
@@ -71,6 +72,7 @@ class _VaultEditorState extends State<VaultEditor> {
       ).replaceAll(RegExp(r'\s'), '').toUpperCase();
       values['account'] = vaultLatinDigits(values['account']!);
       values['expiry'] = vaultLatinDigits(values['expiry']!);
+      values['cvv2'] = vaultLatinDigits(values['cvv2']!);
     }
     if (widget.entry.kind == VaultKind.card && color != null) {
       values['color'] = color!;
@@ -136,6 +138,17 @@ class _VaultEditorState extends State<VaultEditor> {
                       ).hasMatch(vaultLatinDigits(v.trim()))
                   ? null
                   : l.vaultInvalidExpiry,
+            ),
+            _field(
+              'cvv2',
+              l.vaultCvv2,
+              ltr: true,
+              keyboard: TextInputType.number,
+              validator: (v) =>
+                  v.trim().isEmpty ||
+                      RegExp(r'^\d{3,4}$').hasMatch(vaultLatinDigits(v.trim()))
+                  ? null
+                  : l.vaultInvalidCvv2,
             ),
             _field(
               'iban',

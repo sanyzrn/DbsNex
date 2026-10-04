@@ -26,12 +26,14 @@ void main() {
   // Not a translation gap. Each of these is the same string in both
   // catalogues on purpose: a product name, a URL placeholder, a greeting that
   // is the app's own name, or — for `remindRepeatingAt` — a pure layout
-  // template whose only content is the two values it joins.
+  // template whose only content is the two values it joins. `vaultCvv2` is
+  // the code as banks print it on Iranian cards too.
   const untranslatable = {
     'appTitle',
     'syncServerHint',
     'nudgeGreetingPlain',
     'remindRepeatingAt',
+    'vaultCvv2',
   };
 
   test('every English message has a Persian one', () {

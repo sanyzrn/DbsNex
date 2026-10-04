@@ -6,7 +6,7 @@ extension _VaultPages on _VaultScreenState {
     final file = await openFile(
       acceptedTypeGroups: const [
         XTypeGroup(
-          label: 'Chrome CSV',
+          label: 'Password CSV',
           extensions: ['csv'],
           mimeTypes: ['text/csv', 'text/comma-separated-values'],
         ),
@@ -18,56 +18,185 @@ extension _VaultPages on _VaultScreenState {
     }
     if (!mounted || !unlocked) return;
     final ticket = generation;
+    final PasswordCsvResult result;
     try {
-      if (await file.length() > 4 * 1024 * 1024) {
+      if (await file.length() > 16 * 1024 * 1024) {
         throw const FormatException('File too large');
       }
-      final imported = parsePasswordCsv(utf8.decode(await file.readAsBytes()));
-      if (!mounted || !unlocked || ticket != generation) return;
-      final seen = entries
-          .where((e) => e.kind == VaultKind.password)
-          .map(passwordIdentity)
-          .toSet();
-      final count = imported.where((e) => seen.add(passwordIdentity(e))).length;
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(nexLabel(context, 'Import passwords', 'ورود رمزها')),
-          content: Text(
-            nexLabel(
-              context,
-              '$count new passwords. Exact duplicates are skipped. Chrome CSV is unencrypted; delete the export after importing.',
-              '$count رمز تازه وارد می‌شود؛ تکراری‌های یکسان رد می‌شوند. فایل خروجی Chrome رمزگذاری نشده است؛ پس از ورود آن را پاک کنید.',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(AppLocalizations.of(context).cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(nexLabel(context, 'Import', 'واردکردن')),
-            ),
-          ],
-        ),
+      // UTF-8 as Chrome writes it, or UTF-16 or Windows-1256 if a
+      // spreadsheet saved it again: the decoder documents import already uses.
+      result = parsePasswordCsv(
+        NexTextImport.decodeText(await file.readAsBytes()),
       );
-      if (confirmed != true || !mounted || !unlocked || ticket != generation) {
-        return;
-      }
-      await _operate(() => store.importPasswords(imported));
     } catch (_) {
       if (mounted && unlocked && ticket == generation) {
         _rebuild(
           () => error = nexLabel(
             context,
-            'Could not import. Choose a valid Chrome password CSV (up to 2,000 rows / 4 MB). Nothing was imported.',
-            'ورود انجام نشد. فایل معتبر CSV رمزهای Chrome تا ۲۰۰۰ ردیف و ۴ مگابایت انتخاب کنید.',
+            'This file is not a password export. Choose the CSV that Chrome or Google Password Manager exports (up to 16 MB). Nothing was imported.',
+            'این فایل خروجی رمزها نیست. فایل CSV خروجی Chrome یا Google Password Manager را انتخاب کنید (تا ۱۶ مگابایت). چیزی وارد نشد.',
           ),
         );
       }
+      return;
+    }
+    if (!mounted || !unlocked || ticket != generation) return;
+    final seen = entries
+        .where((e) => e.kind == VaultKind.password)
+        .map(passwordIdentity)
+        .toSet();
+    final fresh = result.entries.where((e) => seen.add(passwordIdentity(e)));
+    final count = fresh.length;
+    final duplicates = result.entries.length - count;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(nexLabel(context, 'Import passwords', 'ورود رمزها')),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_importSummary(context, count, duplicates)),
+              if (result.problems.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _ImportProblems(problems: result.problems),
+              ],
+              const SizedBox(height: 12),
+              Text(
+                nexLabel(
+                  context,
+                  'The exported file is not encrypted; delete it after importing.',
+                  'فایل خروجی رمزگذاری نشده است؛ پس از ورود آن را پاک کنید.',
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          if (count > 0)
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(nexLabel(context, 'Import', 'واردکردن')),
+            ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted || !unlocked || ticket != generation) {
+      return;
+    }
+    VaultImportOutcome? outcome;
+    await _operate(() async {
+      outcome = await store.importPasswords(result.entries);
+    });
+    final done = outcome;
+    if (done == null || !mounted) return;
+    nexShowBanner(
+      context,
+      kind: NexBannerKind.done,
+      message: done.overCapacity == 0
+          ? nexLabel(
+              context,
+              '${done.added} passwords imported',
+              '${nexDigits('${done.added}', persian: true)} رمز وارد شد',
+            )
+          : nexLabel(
+              context,
+              '${done.added} passwords imported. ${done.overCapacity} did not fit: the vault holds ${VaultSnapshot.maxEntries} items.',
+              '${nexDigits('${done.added}', persian: true)} رمز وارد شد. ${nexDigits('${done.overCapacity}', persian: true)} رمز جا نشد؛ ظرفیت بخش خصوصی ${nexDigits('${VaultSnapshot.maxEntries}', persian: true)} مورد است.',
+            ),
+    );
+  }
+
+  String _importSummary(BuildContext context, int count, int duplicates) {
+    String fa(int n) => nexDigits('$n', persian: true);
+    final dup = duplicates == 0
+        ? ''
+        : nexLabel(
+            context,
+            ' $duplicates already in the vault are skipped.',
+            ' ${fa(duplicates)} رمزِ تکراری که از قبل هست رد می‌شود.',
+          );
+    return count == 0
+        ? nexLabel(
+            context,
+            'Nothing new to import.$dup',
+            'رمز تازه‌ای برای ورود نیست.$dup',
+          )
+        : nexLabel(
+            context,
+            '$count new passwords will be imported.$dup',
+            '${fa(count)} رمز تازه وارد می‌شود.$dup',
+          );
+  }
+
+  /// Deletes every item on this page, after a confirmation that names how
+  /// many and says it cannot be undone.
+  Future<void> _confirmDeleteAll() async {
+    final kind = widget.kind;
+    final count = entries.where((e) => e.kind == kind).length;
+    if (count == 0) return;
+    final l = AppLocalizations.of(context);
+    final n = nexLabel(context, '$count', nexDigits('$count', persian: true));
+    final what = switch (kind) {
+      VaultKind.password => nexLabel(context, 'passwords', 'رمز'),
+      VaultKind.card => nexLabel(context, 'cards', 'کارت'),
+      VaultKind.message => nexLabel(context, 'messages', 'پیام'),
+    };
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(_deleteAllLabel(ctx)),
+        content: Text(
+          nexLabel(
+            ctx,
+            'All $n $what on this page will be deleted. This cannot be undone, except by restoring a backup that includes the vault.',
+            'همهٔ $n $what این صفحه پاک می‌شود. این کار برگشت‌پذیر نیست، مگر با بازگرداندن پشتیبانی که بخش خصوصی را دارد.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            child: Text(nexLabel(ctx, 'Delete all', 'پاک کردن همه')),
+          ),
+        ],
+      ),
+    );
+    if (yes == true && mounted && unlocked) {
+      await _operate(() => store.deleteAll(kind));
     }
   }
+
+  String _deleteAllLabel(BuildContext context) => switch (widget.kind) {
+    VaultKind.password => nexLabel(
+      context,
+      'Delete all passwords',
+      'پاک کردن همهٔ رمزها',
+    ),
+    VaultKind.card => nexLabel(
+      context,
+      'Delete all cards',
+      'پاک کردن همهٔ کارت‌ها',
+    ),
+    VaultKind.message => nexLabel(
+      context,
+      'Delete all messages',
+      'پاک کردن همهٔ پیام‌ها',
+    ),
+  };
 
   Widget _messages(AppLocalizations l, ThemeData theme) {
     final messages = entries.where((e) => e.kind == VaultKind.message).toList()
@@ -257,4 +386,86 @@ extension _VaultPages on _VaultScreenState {
             ),
           ),
         );
+}
+
+/// The rows an import left out, by line, with why. Long lists show the first
+/// fifty and say how many more there are.
+class _ImportProblems extends StatelessWidget {
+  const _ImportProblems({required this.problems});
+
+  final List<PasswordCsvProblem> problems;
+
+  static const _shown = 50;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final persian = Localizations.localeOf(context).languageCode == 'fa';
+    String n(int v) => nexDigits('$v', persian: persian);
+    String reason(PasswordCsvIssue issue) => switch (issue) {
+      PasswordCsvIssue.noPassword => nexLabel(
+        context,
+        'no password (often a passkey or a "never save" site)',
+        'بدون رمز (معمولاً کلید عبور یا سایتی که «هرگز ذخیره نشود» است)',
+      ),
+      PasswordCsvIssue.wrongColumns => nexLabel(
+        context,
+        'columns do not match the header',
+        'تعداد ستون‌ها با سطر عنوان نمی‌خواند',
+      ),
+      PasswordCsvIssue.tooLong => nexLabel(
+        context,
+        'a field longer than 10,000 characters',
+        'فیلدی بلندتر از ۱۰٬۰۰۰ نویسه',
+      ),
+      PasswordCsvIssue.unclosedQuote => nexLabel(
+        context,
+        'a quote that is never closed',
+        'گیومه‌ای که بسته نشده',
+      ),
+      PasswordCsvIssue.tooMany => nexLabel(
+        context,
+        'past ${VaultSnapshot.maxEntries} rows',
+        'بیش از ${n(VaultSnapshot.maxEntries)} ردیف',
+      ),
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          nexLabel(
+            context,
+            '${problems.length} rows could not be read and will be left out:',
+            '${n(problems.length)} ردیف خوانده نشد و وارد نمی‌شود:',
+          ),
+          style: theme.textTheme.titleSmall,
+        ),
+        const SizedBox(height: 4),
+        for (final p in problems.take(_shown))
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              nexLabel(
+                context,
+                'Line ${p.line}: ${reason(p.issue)}',
+                'سطر ${n(p.line)}: ${reason(p.issue)}',
+              ),
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+        if (problems.length > _shown)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              nexLabel(
+                context,
+                'and ${problems.length - _shown} more',
+                'و ${n(problems.length - _shown)} ردیف دیگر',
+              ),
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+      ],
+    );
+  }
 }
