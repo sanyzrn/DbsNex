@@ -8,7 +8,7 @@ import 'note.dart';
 /// or in none, and leaving a thread — or the thread being deleted — changes
 /// nothing about the note. That is what keeps this from being the folders
 /// Nex exists to avoid, and the rules that hold it there are written down in
-/// `docs/11-roadmap-2.0.md` (W5.3, kill criteria).
+/// `docs/11-roadmap-2.0.md` (§7, the conditions threads must keep).
 class NoteThread {
   const NoteThread({
     required this.id,
