@@ -64,7 +64,7 @@ Ranked by leverage against the core "capture in under 3 seconds" promise — OS-
 
 ## Phase 2 — Sync & Continuity
 
-**Status:** In progress. The sync engine and backend exist; pairing, automatic sync, media sync and a second device are what release 2.0 is for — see W1 in [`11-roadmap-2.0.md`](./11-roadmap-2.0.md#w1--continuity). File attachments shipped early.
+**Status:** In progress. The sync engine and backend exist; pairing, automatic sync, media sync and a second device are what release 2.0 is for — see items 9–13 in [`11-roadmap-2.0.md`](./11-roadmap-2.0.md). File attachments shipped early.
 
 **Theme:** Solve the original motivating problem in full — a user's captures should never be stranded on a single device. Sync ships as the **first** item of Phase 2, not the last.
 

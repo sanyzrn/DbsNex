@@ -6,7 +6,7 @@ tested — device auth (`/auth`), the sync exchange (`/sync`), read routes
 (`/health`, `/health/live`, `/health/ready`) — and CI runs the live
 SyncClient against it with PostgreSQL. It is **not deployed and has no
 pairing flow in the app yet**; that is release 2.0's work (Phase 2,
-04-architecture.md → Sequencing, and W1 in `docs/11-roadmap-2.0.md`).
+04-architecture.md → Sequencing, and items 9–12 in `docs/11-roadmap-2.0.md`).
 
 ## Run locally
 

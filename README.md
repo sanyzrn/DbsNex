@@ -243,7 +243,7 @@ two are worth knowing where to find.
 | [`08-roadmap.md`](./docs/08-roadmap.md) | Phase 1 → 2 → 3 sequencing |
 | [`09-ai.md`](./docs/09-ai.md) | What the intelligence layer may and may not do |
 | [`10-decisions.md`](./docs/10-decisions.md) | Decision log (`ADR-0nn`) — why things are the way they are |
-| [`11-roadmap-2.0.md`](./docs/11-roadmap-2.0.md) | What release 2.0 should be, open items, and what has shipped release by release |
+| [`11-roadmap-2.0.md`](./docs/11-roadmap-2.0.md) | The roadmap (Persian): what is next, what 2.0 is, ideas, and the owner's open decisions. What shipped is in `CHANGELOG.md` |
 | [`13-sponsor-card.md`](./docs/13-sponsor-card.md) | Publishing the timeline's one sponsor card (`banner.example.json`) |
 | [`brand/`](./docs/brand) | Logo, logotype, icon and splash artwork; `tools/generate_brand_assets.py` builds the app's pictures from it |
 
