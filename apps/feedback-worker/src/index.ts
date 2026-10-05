@@ -26,7 +26,15 @@ const MAX_CONTEXT_FIELD = 40;
 // parsed — mirrors apps/backend's `express.json({ limit: "8kb" })`. Workers
 // have their own platform-level request size ceiling too; this just fails
 // fast and cheaply for the common case of an oversized payload.
-const MAX_BODY_BYTES = 8 * 1024;
+//
+// 32 KB since the optional diagnostics report (below): its 20,000 characters
+// are mostly ASCII, with room for Persian in the message itself.
+const MAX_BODY_BYTES = 32 * 1024;
+
+// The diagnostics report the person chose to attach, sent to the chat as a
+// text file rather than inside the message, whose 4,000 characters it would
+// not fit. The app sends its newest entries, redacted, up to 16 KB.
+const MAX_DIAGNOSTICS = 20_000;
 
 // What the person says it is. Anything else is refused rather than guessed,
 // so the chat only ever shows a label the app actually offered.
@@ -42,11 +50,12 @@ interface FeedbackPayload {
   device?: string;
   kind?: FeedbackKind;
   contact?: string;
+  diagnostics?: string;
 }
 
 function parsePayload(body: unknown): FeedbackPayload | null {
   if (typeof body !== "object" || body === null) return null;
-  const { message, appVersion, platform, device, kind, contact } = body as Record<
+  const { message, appVersion, platform, device, kind, contact, diagnostics } = body as Record<
     string,
     unknown
   >;
@@ -86,6 +95,14 @@ function parsePayload(body: unknown): FeedbackPayload | null {
     if (reply.length === 0) reply = undefined;
   }
 
+  let report: string | undefined;
+  if (diagnostics !== undefined) {
+    if (typeof diagnostics !== "string") return null;
+    report = diagnostics.trim();
+    if (report.length > MAX_DIAGNOSTICS) return null;
+    if (report.length === 0) report = undefined;
+  }
+
   return {
     message: trimmed,
     appVersion: appVersion as string | undefined,
@@ -93,6 +110,7 @@ function parsePayload(body: unknown): FeedbackPayload | null {
     device: device as string | undefined,
     kind: kind as FeedbackKind | undefined,
     contact: reply,
+    diagnostics: report,
   };
 }
 
@@ -219,7 +237,47 @@ export async function handleRequest(
     return jsonResponse(502, { error: "UpstreamError" });
   }
 
-  return jsonResponse(202, { delivered: true });
+  if (!payload.diagnostics) return jsonResponse(202, { delivered: true });
+
+  // The report goes as a reply to the message it belongs to. If it cannot be
+  // sent the message still was, so the answer is still 202, saying which.
+  let replyTo: number | undefined;
+  try {
+    const sent = (await telegramRes.json()) as { result?: { message_id?: number } };
+    replyTo = sent.result?.message_id;
+  } catch {
+    replyTo = undefined;
+  }
+  const form = new FormData();
+  form.set("chat_id", env.TELEGRAM_CHAT_ID);
+  if (replyTo !== undefined) form.set("reply_to_message_id", String(replyTo));
+  form.set(
+    "document",
+    new Blob([payload.diagnostics], { type: "text/plain;charset=utf-8" }),
+    "nex-diagnostics.txt",
+  );
+  let attached = false;
+  try {
+    const doc = await fetch(
+      `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendDocument`,
+      { method: "POST", body: form, signal: AbortSignal.timeout(10_000) },
+    );
+    attached = doc.ok;
+    if (!doc.ok) {
+      console.log(
+        JSON.stringify({
+          level: "error",
+          module: "feedback-worker",
+          message: "telegram rejected the diagnostics file",
+          status: doc.status,
+        }),
+      );
+    }
+  } catch {
+    // Never log the exception: it can carry the token-bearing URL.
+    attached = false;
+  }
+  return jsonResponse(202, { delivered: true, diagnostics: attached });
 }
 
 export default {

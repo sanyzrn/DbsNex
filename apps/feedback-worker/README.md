@@ -19,8 +19,18 @@ contract exactly, so the app needs **no code changes**, only a build-time URL
 Request body:
 
 ```json
-{ "message": "string, 1-4000 chars", "appVersion": "optional, ≤40 chars", "platform": "optional, ≤20 chars", "device": "optional, ≤40 chars" }
+{ "message": "string, 1-4000 chars", "appVersion": "optional, ≤40 chars", "platform": "optional, ≤20 chars", "device": "optional, ≤40 chars", "kind": "optional: bug | idea | other", "contact": "optional, ≤80 chars", "diagnostics": "optional, ≤20000 chars" }
 ```
+
+The whole body is capped at 32 KB. `diagnostics` is the redacted report the
+person chose to attach in the app (1.93.5). It is sent to the chat as a file,
+`nex-diagnostics.txt`, replying to the message. If that upload fails, the
+message has still been delivered: the answer is `202` with
+`{ "delivered": true, "diagnostics": false }`.
+
+**Deploy this worker before releasing an app version that attaches
+diagnostics.** An older worker caps the body at 8 KB and answers a larger
+report with 413, which the app reports as a failed send.
 
 Responses:
 

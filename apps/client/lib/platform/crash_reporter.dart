@@ -18,10 +18,23 @@ class NexCrashLog {
 
   final File file;
 
-  /// Bounds the file to a handful of the most recent crashes rather than
-  /// growing forever — a device someone never restarts should not carry
-  /// years of stack traces for a problem long since fixed.
-  static const _maxEntries = 20;
+  /// Bounds on what the file keeps, so it never grows forever.
+  ///
+  /// Crashes and the plain notes the app writes alongside them are kept
+  /// apart. When one shared limit of twenty held both, a reminder
+  /// rescheduled on every launch filled it with twenty copies of the same
+  /// line and pushed every real crash out (1.93.5).
+  static const maxCrashes = 100;
+  static const maxNotes = 50;
+
+  /// The whole file, in characters. Oldest notes go first, then the oldest
+  /// crashes.
+  static const maxChars = 256 * 1024;
+
+  /// What one diagnostics report attached to feedback may carry: the newest
+  /// entries that fit.
+  static const maxShareChars = 16 * 1024;
+
   static const _separator = '\n\x1e\n';
 
   static Future<NexCrashLog> open() async {
@@ -97,15 +110,105 @@ class NexCrashLog {
   }
 
   void _append(String entry) {
-    final existing = file.existsSync() ? file.readAsStringSync() : '';
-    final entries =
-        existing.split(_separator).where((e) => e.trim().isNotEmpty).toList()
-          ..add(entry);
-    final kept = entries.length > _maxEntries
-        ? entries.sublist(entries.length - _maxEntries)
-        : entries;
+    final entries = _entries()..add(entry);
+    _dedupeNote(entries);
+    final kept = _bounded(entries);
     file.parent.createSync(recursive: true);
     file.writeAsStringSync(kept.map(redact).join(_separator));
+  }
+
+  List<String> _entries() {
+    final existing = file.existsSync() ? file.readAsStringSync() : '';
+    return existing
+        .split(_separator)
+        .where((e) => e.trim().isNotEmpty)
+        .toList();
+  }
+
+  /// A crash names the app version on its second line; anything else is a
+  /// note.
+  static bool isCrash(String entry) {
+    final lines = entry.split('\n');
+    return lines.length > 1 && lines[1].startsWith('Nex ');
+  }
+
+  static final _repeat = RegExp(r'^(\S+) · ×(\d+) since (\S+)$');
+
+  /// A note identical to an earlier one replaces it, counted, at the end:
+  /// "the same thing happened again" is one line, not one line per launch.
+  static void _dedupeNote(List<String> entries) {
+    final latest = entries.last;
+    if (isCrash(latest)) return;
+    final split = latest.indexOf('\n');
+    if (split < 0) return;
+    final stamp = latest.substring(0, split);
+    final body = latest.substring(split + 1);
+    for (var i = entries.length - 2; i >= 0; i--) {
+      final old = entries[i];
+      if (isCrash(old)) continue;
+      final at = old.indexOf('\n');
+      if (at < 0 || old.substring(at + 1) != body) continue;
+      final head = old.substring(0, at);
+      final match = _repeat.firstMatch(head);
+      final count = match == null ? 2 : int.parse(match.group(2)!) + 1;
+      final first = match == null ? head : match.group(3)!;
+      entries
+        ..removeAt(i)
+        ..removeLast()
+        ..add('$stamp · ×$count since $first\n$body');
+      return;
+    }
+  }
+
+  static List<String> _bounded(List<String> entries) {
+    var crashes = entries.where(isCrash).length;
+    var notes = entries.length - crashes;
+    final kept = <String>[];
+    // Oldest first: drop from the front until each kind is within its limit.
+    for (final entry in entries) {
+      if (isCrash(entry) ? crashes > maxCrashes : notes > maxNotes) {
+        if (isCrash(entry)) {
+          crashes--;
+        } else {
+          notes--;
+        }
+        continue;
+      }
+      kept.add(entry);
+    }
+    var size = kept.fold<int>(0, (n, e) => n + e.length + _separator.length);
+    for (final crashPass in [false, true]) {
+      for (var i = 0; i < kept.length && size > maxChars;) {
+        if (isCrash(kept[i]) == crashPass) {
+          size -= kept[i].length + _separator.length;
+          kept.removeAt(i);
+        } else {
+          i++;
+        }
+      }
+    }
+    return kept;
+  }
+
+  /// The newest entries, redacted, up to [maxShareChars]: what "Attach the
+  /// diagnostics report" in the feedback sheet shows and sends. Null when
+  /// there is nothing to attach.
+  String? shareable() {
+    final entries = _entries();
+    if (entries.isEmpty) return null;
+    final picked = <String>[];
+    var size = 0;
+    for (final entry in entries.reversed) {
+      final clean = redact(entry);
+      if (size + clean.length > maxShareChars) break;
+      picked.insert(0, clean);
+      size += clean.length + 2;
+    }
+    if (picked.isEmpty) {
+      final newest = redact(entries.last);
+      return newest.substring(newest.length - maxShareChars);
+    }
+    return picked.join('\n\n');
   }
 
   static String redact(String text) => text
