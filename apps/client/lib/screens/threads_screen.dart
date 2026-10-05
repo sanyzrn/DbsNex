@@ -69,16 +69,13 @@ class _ThreadsScreenState extends State<ThreadsScreen> {
       body: threads == null
           ? const SizedBox.shrink()
           : threads.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(NexSpacing.xl),
-                child: Text(
-                  l10n.threadsEmpty,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
+          ? NexEmptyState(
+              icon: Icons.timeline_outlined,
+              message: l10n.threadsEmpty,
+              action: TextButton.icon(
+                onPressed: () => unawaited(_create()),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.threadNew),
               ),
             )
           : ListView(

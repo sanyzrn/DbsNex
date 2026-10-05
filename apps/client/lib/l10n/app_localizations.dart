@@ -1352,6 +1352,48 @@ abstract class AppLocalizations {
   /// **'Copy'**
   String get copy;
 
+  /// No description provided for @saveToDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to device'**
+  String get saveToDevice;
+
+  /// No description provided for @savedToDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get savedToDevice;
+
+  /// No description provided for @saveToDeviceFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the file'**
+  String get saveToDeviceFailed;
+
+  /// No description provided for @renameFileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename file'**
+  String get renameFileTitle;
+
+  /// No description provided for @fileNameEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name'**
+  String get fileNameEmpty;
+
+  /// No description provided for @fileNameForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'A name can\'t contain \\ / : * ? \" < > |'**
+  String get fileNameForbidden;
+
+  /// No description provided for @fileNameTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'That name is too long'**
+  String get fileNameTooLong;
+
   /// No description provided for @share.
   ///
   /// In en, this message translates to:
@@ -4045,6 +4087,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Change this setting?'**
   String get assistantConfirmSetting;
+
+  /// No description provided for @briefEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the smart summary'**
+  String get briefEnabled;
+
+  /// No description provided for @briefEnabledOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Written for you each day on the timeline.'**
+  String get briefEnabledOn;
+
+  /// No description provided for @briefEnabledOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off: no summary is written and nothing is sent to a provider for it.'**
+  String get briefEnabledOff;
 
   /// Title of the sheet that configures the card at the top of the timeline.
   ///

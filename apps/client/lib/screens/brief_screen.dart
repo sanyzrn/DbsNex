@@ -81,194 +81,218 @@ class _BriefScreenState extends State<BriefScreen> {
         NexSpacing.lg,
       ),
       children: [
-        Padding(
-          padding: const EdgeInsetsDirectional.only(
-            start: NexSpacing.sm,
-            bottom: NexSpacing.lg,
-          ),
-          child: Text(
-            l10n.briefSubtitle,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+        // The whole card, on or off, before any of its options: somebody who
+        // does not want it should not have to read five styles to find out
+        // how to stop it (1.94.0). Off sends nothing to a provider.
+        Card(
+          margin: const EdgeInsets.only(bottom: NexSpacing.md),
+          child: SwitchListTile(
+            key: const ValueKey('brief-enabled'),
+            secondary: const Icon(Icons.auto_awesome_outlined),
+            title: Text(l10n.briefEnabled),
+            subtitle: Text(
+              prefs.showDaySummary ? l10n.briefEnabledOn : l10n.briefEnabledOff,
             ),
+            value: prefs.showDaySummary,
+            onChanged: (on) => unawaited(prefs.setShowDaySummary(on)),
           ),
         ),
-        // The five presets, outside a card rather than inside one. They are
-        // the choice this screen exists for and they carry a sentence each;
-        // stacked inside a grouped card with dividers between them they read
-        // as a list of settings rather than as five answers to one question.
-        Padding(
-          padding: const EdgeInsetsDirectional.only(
-            start: NexSpacing.sm,
-            bottom: NexSpacing.sm,
-          ),
-          child: Text(
-            l10n.briefStyleLabel,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              letterSpacing: 0.3,
+        if (prefs.showDaySummary) ...[
+          Padding(
+            padding: const EdgeInsetsDirectional.only(
+              start: NexSpacing.sm,
+              bottom: NexSpacing.lg,
+            ),
+            child: Text(
+              l10n.briefSubtitle,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-        ),
-        for (final entry in _styles(l10n))
-          _StyleRow(
-            icon: entry.icon,
-            label: entry.label,
-            about: entry.about,
-            selected: style == entry.value,
-            onTap: () => unawaited(prefs.setBriefStyle(entry.value)),
+          // The five presets, outside a card rather than inside one. They are
+          // the choice this screen exists for and they carry a sentence each;
+          // stacked inside a grouped card with dividers between them they read
+          // as a list of settings rather than as five answers to one question.
+          Padding(
+            padding: const EdgeInsetsDirectional.only(
+              start: NexSpacing.sm,
+              bottom: NexSpacing.sm,
+            ),
+            child: Text(
+              l10n.briefStyleLabel,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                letterSpacing: 0.3,
+              ),
+            ),
           ),
-        // One line of consequence under the list, never two: what this choice
-        // costs or saves, said where the choice is made rather than in a help
-        // page nobody opens.
-        if (!style.usesModel)
-          _Note(text: l10n.briefOffline, icon: Icons.wifi_off_outlined)
-        else if (!hasModel)
-          _Note(text: l10n.briefNeedsAi, icon: Icons.info_outline, warn: true),
-        const SizedBox(height: NexSpacing.lg),
-        NexSettingsGroup(
-          title: l10n.briefTitle,
-          children: [
-            if (style == NexBriefStyle.custom)
-              NexSettingsField(
-                icon: Icons.format_quote_outlined,
-                label: l10n.briefInstructionLabel,
-                child: NexTextField(
-                  controller: _instruction,
-                  onChanged: _saveInstruction,
-                  maxLength: NexPreferences.briefInstructionMaxLength,
-                  maxLines: 3,
-                  minLines: 1,
-                  textInputAction: TextInputAction.newline,
-                  decoration: InputDecoration(
-                    hintText: l10n.briefInstructionHint,
-                    filled: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(NexRadius.md),
-                      borderSide: BorderSide.none,
+          for (final entry in _styles(l10n))
+            _StyleRow(
+              icon: entry.icon,
+              label: entry.label,
+              about: entry.about,
+              selected: style == entry.value,
+              onTap: () => unawaited(prefs.setBriefStyle(entry.value)),
+            ),
+          // One line of consequence under the list, never two: what this choice
+          // costs or saves, said where the choice is made rather than in a help
+          // page nobody opens.
+          if (!style.usesModel)
+            _Note(text: l10n.briefOffline, icon: Icons.wifi_off_outlined)
+          else if (!hasModel)
+            _Note(
+              text: l10n.briefNeedsAi,
+              icon: Icons.info_outline,
+              warn: true,
+            ),
+          const SizedBox(height: NexSpacing.lg),
+          NexSettingsGroup(
+            title: l10n.briefTitle,
+            children: [
+              if (style == NexBriefStyle.custom)
+                NexSettingsField(
+                  icon: Icons.format_quote_outlined,
+                  label: l10n.briefInstructionLabel,
+                  child: NexTextField(
+                    controller: _instruction,
+                    onChanged: _saveInstruction,
+                    maxLength: NexPreferences.briefInstructionMaxLength,
+                    maxLines: 3,
+                    minLines: 1,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      hintText: l10n.briefInstructionHint,
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(NexRadius.md),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            // Tone is about prose, and the plain report has none: there is
-            // nothing for it to colour that is not a fact. A control that
-            // visibly does nothing is worse than a control that is absent.
-            if (style.usesModel)
+              // Tone is about prose, and the plain report has none: there is
+              // nothing for it to colour that is not a fact. A control that
+              // visibly does nothing is worse than a control that is absent.
+              if (style.usesModel)
+                NexSettingsField(
+                  icon: Icons.record_voice_over_outlined,
+                  label: l10n.briefToneLabel,
+                  child: NexChoiceCards<AiResponseStyle>(
+                    selected: prefs.briefTone,
+                    onSelected: (value) => unawaited(prefs.setBriefTone(value)),
+                    choices: [
+                      NexChoice(
+                        value: AiResponseStyle.natural,
+                        label: l10n.assistantStyleNatural,
+                        preview: const NexScriptSample(icon: Icons.waves),
+                      ),
+                      NexChoice(
+                        value: AiResponseStyle.friendly,
+                        label: l10n.assistantStyleFriendly,
+                        preview: const NexScriptSample(
+                          icon: Icons.sentiment_satisfied_alt,
+                        ),
+                      ),
+                      NexChoice(
+                        value: AiResponseStyle.formal,
+                        label: l10n.assistantStyleFormal,
+                        preview: const NexScriptSample(
+                          icon: Icons.work_outline,
+                        ),
+                      ),
+                      NexChoice(
+                        value: AiResponseStyle.serious,
+                        label: l10n.assistantStyleSerious,
+                        preview: const NexScriptSample(
+                          icon: Icons.gavel_outlined,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               NexSettingsField(
-                icon: Icons.record_voice_over_outlined,
-                label: l10n.briefToneLabel,
-                child: NexChoiceCards<AiResponseStyle>(
-                  selected: prefs.briefTone,
-                  onSelected: (value) => unawaited(prefs.setBriefTone(value)),
+                icon: Icons.notes_outlined,
+                label: l10n.briefLengthLabel,
+                child: NexChoiceCards<NexBriefLength>(
+                  selected: prefs.briefLength,
+                  onSelected: (value) => unawaited(prefs.setBriefLength(value)),
                   choices: [
                     NexChoice(
-                      value: AiResponseStyle.natural,
-                      label: l10n.assistantStyleNatural,
-                      preview: const NexScriptSample(icon: Icons.waves),
+                      value: NexBriefLength.short,
+                      label: l10n.assistantLengthBrief,
+                      preview: const NexScriptSample(icon: Icons.short_text),
                     ),
                     NexChoice(
-                      value: AiResponseStyle.friendly,
-                      label: l10n.assistantStyleFriendly,
-                      preview: const NexScriptSample(
-                        icon: Icons.sentiment_satisfied_alt,
-                      ),
+                      value: NexBriefLength.medium,
+                      label: l10n.assistantLengthStandard,
+                      preview: const NexScriptSample(icon: Icons.subject),
                     ),
                     NexChoice(
-                      value: AiResponseStyle.formal,
-                      label: l10n.assistantStyleFormal,
-                      preview: const NexScriptSample(icon: Icons.work_outline),
-                    ),
-                    NexChoice(
-                      value: AiResponseStyle.serious,
-                      label: l10n.assistantStyleSerious,
-                      preview: const NexScriptSample(
-                        icon: Icons.gavel_outlined,
-                      ),
+                      value: NexBriefLength.long,
+                      label: l10n.assistantLengthFull,
+                      preview: const NexScriptSample(icon: Icons.notes),
                     ),
                   ],
                 ),
               ),
-            NexSettingsField(
-              icon: Icons.notes_outlined,
-              label: l10n.briefLengthLabel,
-              child: NexChoiceCards<NexBriefLength>(
-                selected: prefs.briefLength,
-                onSelected: (value) => unawaited(prefs.setBriefLength(value)),
-                choices: [
-                  NexChoice(
-                    value: NexBriefLength.short,
-                    label: l10n.assistantLengthBrief,
-                    preview: const NexScriptSample(icon: Icons.short_text),
+              // Only where a model writes something: the plain report asks
+              // for no tokens at all.
+              if (style.usesModel)
+                NexSwitchTile(
+                  key: const ValueKey('brief-unlimited-tokens'),
+                  secondary: const Icon(Icons.all_inclusive),
+                  title: Text(
+                    nexLabel(context, 'No token limit', 'بدون سقف توکن'),
                   ),
-                  NexChoice(
-                    value: NexBriefLength.medium,
-                    label: l10n.assistantLengthStandard,
-                    preview: const NexScriptSample(icon: Icons.subject),
+                  subtitle: Text(
+                    nexLabel(
+                      context,
+                      'For models that think before answering and come back '
+                          'empty under the usual limit. The summary refreshes '
+                          'many times a day, so token use can rise a lot.',
+                      'برای مدل‌هایی که پیش از پاسخ فکر می‌کنند و با سقف معمول '
+                          'پاسخ خالی برمی‌گردانند. خلاصه در طول روز بارها تازه '
+                          'می‌شود، پس مصرف توکن ممکن است بسیار بالا برود.',
+                    ),
                   ),
-                  NexChoice(
-                    value: NexBriefLength.long,
-                    label: l10n.assistantLengthFull,
-                    preview: const NexScriptSample(icon: Icons.notes),
-                  ),
-                ],
-              ),
-            ),
-            // Only where a model writes something: the plain report asks
-            // for no tokens at all.
-            if (style.usesModel)
-              NexSwitchTile(
-                key: const ValueKey('brief-unlimited-tokens'),
-                secondary: const Icon(Icons.all_inclusive),
-                title: Text(
-                  nexLabel(context, 'No token limit', 'بدون سقف توکن'),
+                  value: prefs.aiSummaryUnlimited,
+                  onChanged: (on) => unawaited(_setUnlimited(on)),
                 ),
-                subtitle: Text(
-                  nexLabel(
-                    context,
-                    'For models that think before answering and come back '
-                        'empty under the usual limit. The summary refreshes '
-                        'many times a day, so token use can rise a lot.',
-                    'برای مدل‌هایی که پیش از پاسخ فکر می‌کنند و با سقف معمول '
-                        'پاسخ خالی برمی‌گردانند. خلاصه در طول روز بارها تازه '
-                        'می‌شود، پس مصرف توکن ممکن است بسیار بالا برود.',
-                  ),
+              // The language, here rather than in a row of its own three
+              // sections up. It is the most visible thing about a brief and
+              // that was the last place anybody looked for it — but it is not
+              // the brief's own setting, which is what the note says.
+              NexSettingsField(
+                icon: Icons.g_translate_outlined,
+                label: l10n.aiOutputLanguage,
+                note: l10n.briefLanguageShared,
+                child: NexChoiceCards<AiOutputLanguage>(
+                  selected: prefs.aiOutputLanguage,
+                  onSelected: (value) =>
+                      unawaited(prefs.setAiOutputLanguage(value)),
+                  choices: [
+                    NexChoice(
+                      value: AiOutputLanguage.auto,
+                      label: l10n.aiOutputLanguageAuto,
+                      preview: const NexScriptSample(icon: Icons.auto_awesome),
+                    ),
+                    NexChoice(
+                      value: AiOutputLanguage.english,
+                      label: l10n.aiOutputLanguageEnglish,
+                      preview: const NexScriptSample(sample: 'Aa'),
+                    ),
+                    NexChoice(
+                      value: AiOutputLanguage.persian,
+                      label: l10n.aiOutputLanguagePersian,
+                      preview: const NexScriptSample(sample: 'اَ'),
+                    ),
+                  ],
                 ),
-                value: prefs.aiSummaryUnlimited,
-                onChanged: (on) => unawaited(_setUnlimited(on)),
               ),
-            // The language, here rather than in a row of its own three
-            // sections up. It is the most visible thing about a brief and
-            // that was the last place anybody looked for it — but it is not
-            // the brief's own setting, which is what the note says.
-            NexSettingsField(
-              icon: Icons.g_translate_outlined,
-              label: l10n.aiOutputLanguage,
-              note: l10n.briefLanguageShared,
-              child: NexChoiceCards<AiOutputLanguage>(
-                selected: prefs.aiOutputLanguage,
-                onSelected: (value) =>
-                    unawaited(prefs.setAiOutputLanguage(value)),
-                choices: [
-                  NexChoice(
-                    value: AiOutputLanguage.auto,
-                    label: l10n.aiOutputLanguageAuto,
-                    preview: const NexScriptSample(icon: Icons.auto_awesome),
-                  ),
-                  NexChoice(
-                    value: AiOutputLanguage.english,
-                    label: l10n.aiOutputLanguageEnglish,
-                    preview: const NexScriptSample(sample: 'Aa'),
-                  ),
-                  NexChoice(
-                    value: AiOutputLanguage.persian,
-                    label: l10n.aiOutputLanguagePersian,
-                    preview: const NexScriptSample(sample: 'اَ'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ],
     );
   }

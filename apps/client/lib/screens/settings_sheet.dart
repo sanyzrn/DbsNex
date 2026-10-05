@@ -644,13 +644,15 @@ class SettingsSheet extends StatelessWidget {
           icon: Icons.article_outlined,
           title: l10n.briefTitle,
           keywords: 'smart summary brief tokens greeting خلاصه هوشمند توکن',
-          value: switch (preferences.briefStyle) {
-            NexBriefStyle.assistant => l10n.briefStyleAssistant,
-            NexBriefStyle.blended => l10n.briefStyleBlended,
-            NexBriefStyle.report => l10n.briefStyleReport,
-            NexBriefStyle.planner => l10n.briefStylePlanner,
-            NexBriefStyle.custom => l10n.briefStyleCustom,
-          },
+          value: !preferences.showDaySummary
+              ? l10n.intelligenceOff
+              : switch (preferences.briefStyle) {
+                  NexBriefStyle.assistant => l10n.briefStyleAssistant,
+                  NexBriefStyle.blended => l10n.briefStyleBlended,
+                  NexBriefStyle.report => l10n.briefStyleReport,
+                  NexBriefStyle.planner => l10n.briefStylePlanner,
+                  NexBriefStyle.custom => l10n.briefStyleCustom,
+                },
           onTap: () => Navigator.push(
             context,
             NexPageRoute<void>(

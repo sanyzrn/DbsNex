@@ -269,6 +269,12 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Erases a copied secret 30 seconds on, even if the process that
+             copied it is gone by then. Only Nex's own alarm sends it. -->
+        <receiver
+            android:name=".NexClipboardWipeReceiver"
+            android:exported="false" />
+
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
             android:exported="false" />
