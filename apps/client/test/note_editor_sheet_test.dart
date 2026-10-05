@@ -240,9 +240,63 @@ void main() {
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       'a long note',
     );
-    // And the actions are all laid out rather than in a scroller, which is
-    // what asking for a bigger editor is asking for.
-    expect(find.byType(Wrap), findsWidgets);
     expect(find.byTooltip('Smaller'), findsOneWidget);
+  });
+
+  testWidgets('with the keyboard up, full screen gives the note the room', (
+    tester,
+  ) async {
+    // The bug this replaces: full screen was the sheet stretched, with its
+    // title, chips and buttons still in it, and with the keyboard up the
+    // text got the same strip in both sizes.
+    await enableAi();
+    await open(tester, initial: 'a long note');
+    tester.view.viewInsets = const FakeViewPadding(bottom: 800);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+
+    final small = tester.getSize(find.byType(TextField)).height;
+    await tester.tap(find.byTooltip('Full screen'));
+    await tester.pumpAndSettle();
+    final full = tester.getSize(find.byType(TextField)).height;
+
+    expect(full, greaterThan(small * 2));
+    // The chrome is icons, not a second copy of the sheet's.
+    expect(find.text('Edit note'), findsNothing);
+    expect(find.text('Fix writing'), findsNothing);
+    expect(find.text('Cancel'), findsNothing);
+  });
+
+  testWidgets('full screen keeps every action: AI edits, undo and Save', (
+    tester,
+  ) async {
+    await enableAi();
+    final result = await open(
+      tester,
+      initial: 'teh draft',
+      client: replying('the draft'),
+    );
+    await tester.tap(find.byTooltip('Full screen'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Edit with AI'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fix writing'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'the draft',
+    );
+
+    await tester.tap(find.byTooltip('Undo'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'teh draft',
+    );
+
+    await tester.tap(find.byTooltip('Save'));
+    await tester.pumpAndSettle();
+    expect(result(), 'teh draft');
   });
 }

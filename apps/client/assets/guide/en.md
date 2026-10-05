@@ -34,7 +34,7 @@ Tags group related notes and can carry any colour. **Library → Tags** renames,
 
 ## Read, edit and share
 
-Open an item for its exact date and time, tags, description and every action. The common actions are always visible; **More** holds the rest. Select text to copy or format it. Open a photo to zoom with two fingers, drag to look around, and drag down to close it.
+Open an item for its exact date and time, tags, description and every action. The common actions are always visible; **More** holds the rest. Select text to copy or format it. When you edit a note, the **Full screen** button gives the whole page to the text: the AI edits are behind one button at the bottom, next to Save. Open a photo to zoom with two fingers, drag to look around, and drag down to close it.
 
 **Save to device** puts a copy of the item anywhere you choose — Downloads, Documents, Google Drive — through Android's own save window, with no extra permission. A file, photo or recording is saved as it is (a photo without where and when it was taken); a note of words is saved as a Markdown file named after its first line. A file item can be given a new name with **Rename**: only the name it shows changes, the extension stays, and the new name is used when you search, share or save it.
 

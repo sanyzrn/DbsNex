@@ -94,6 +94,10 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
   bool _expanded = false;
   NexRewriteStyle? _running;
 
+  /// Keeps the one field — and Android's editor under it, with its caret,
+  /// selection and keyboard — when it moves between the two layouts.
+  final _fieldKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -215,11 +219,10 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     // Android's own editor, each paragraph in its own direction — see
     // [NexTextField].
     final field = NexTextField(
+      key: _fieldKey,
       controller: _text,
       autofocus: true,
       // Expanded, the field fills what it is given and scrolls inside it;
@@ -234,88 +237,151 @@ class _NoteEditorSheetState extends State<NoteEditorSheet>
       readOnly: _running != null,
       decoration: const InputDecoration(border: InputBorder.none),
     );
+    return guardDraft(_expanded ? _fullScreen(field) : _sheet(field));
+  }
 
-    // The height comes from the constraints rather than from the screen's:
-    // inside [NexSheetBody] they are already the sheet's own maximum less its
-    // padding and the drag handle, which is exactly the room there is. The
-    // arithmetic version of that number overflows by whatever it forgot.
-    return guardDraft(
-      NexSheetBody(
-        child: LayoutBuilder(
-          builder: (context, constraints) => SizedBox(
-            height: _expanded && constraints.maxHeight.isFinite
-                ? constraints.maxHeight
-                : null,
-            child: Column(
-              mainAxisSize: _expanded ? MainAxisSize.max : MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.editNote,
-                        style: theme.textTheme.titleLarge,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => setState(() => _expanded = !_expanded),
-                      tooltip: _expanded
-                          ? l10n.editorSmaller
-                          : l10n.editorFullScreen,
-                      icon: Icon(
-                        _expanded ? Icons.close_fullscreen : Icons.open_in_full,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: NexSpacing.sm),
-                if (_expanded)
-                  Expanded(child: field)
-                else
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 220),
-                    child: field,
-                  ),
-                // The one-tap way back from an edit nobody liked. Present only
-                // when there is something to go back to, because a control that
-                // is usually disabled teaches people it is never usable.
-                if (_undo.isNotEmpty) ...[
-                  const SizedBox(height: NexSpacing.sm),
-                  _UndoBar(onUndo: _undoLast),
-                ],
-                if (_aiAvailable) ...[
-                  const SizedBox(height: NexSpacing.md),
-                  _AiActions(
-                    expanded: _expanded,
-                    running: _running,
-                    enabled: _text.text.trim().isNotEmpty,
-                    onPick: (style) => unawaited(_apply(style)),
-                  ),
-                ],
-                const SizedBox(height: NexSpacing.lg),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: requestDiscard,
-                      child: Text(l10n.cancel),
-                    ),
-                    const SizedBox(width: NexSpacing.sm),
-                    FilledButton(
-                      // Empty is not an edit, it is a note being deleted by a
-                      // route that cannot delete notes.
-                      onPressed:
-                          (!widget.allowEmpty && _text.text.trim().isEmpty) ||
-                              _running != null
-                          ? null
-                          : _save,
-                      child: Text(l10n.save),
-                    ),
-                  ],
-                ),
-              ],
+  bool get _canSave =>
+      // Empty is not an edit, it is a note being deleted by a route that
+      // cannot delete notes.
+      (widget.allowEmpty || _text.text.trim().isNotEmpty) && _running == null;
+
+  void _toggleSize() => setState(() => _expanded = !_expanded);
+
+  /// The sheet: a title, the field in a box, the AI edits, Cancel and Save.
+  Widget _sheet(Widget field) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return NexSheetBody(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(l10n.editNote, style: theme.textTheme.titleLarge),
+              ),
+              IconButton(
+                onPressed: _toggleSize,
+                tooltip: l10n.editorFullScreen,
+                icon: const Icon(Icons.open_in_full),
+              ),
+            ],
+          ),
+          const SizedBox(height: NexSpacing.sm),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 220),
+            child: field,
+          ),
+          // The one-tap way back from an edit nobody liked. Present only
+          // when there is something to go back to, because a control that
+          // is usually disabled teaches people it is never usable.
+          if (_undo.isNotEmpty) ...[
+            const SizedBox(height: NexSpacing.sm),
+            _UndoBar(onUndo: _undoLast),
+          ],
+          if (_aiAvailable) ...[
+            const SizedBox(height: NexSpacing.md),
+            _AiActions(
+              running: _running,
+              enabled: _text.text.trim().isNotEmpty,
+              onPick: (style) => unawaited(_apply(style)),
             ),
+          ],
+          const SizedBox(height: NexSpacing.lg),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(onPressed: requestDiscard, child: Text(l10n.cancel)),
+              const SizedBox(width: NexSpacing.sm),
+              FilledButton(
+                onPressed: _canSave ? _save : null,
+                child: Text(l10n.save),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Full screen: the page is the note.
+  ///
+  /// It used to be the sheet above stretched taller, with the same title,
+  /// box, six chips and two buttons in it. With the keyboard up those took
+  /// the height the stretch had added, so the text got the same few lines
+  /// in both sizes. Here the chrome is two thin rows of icons and every
+  /// other pixel is the note: a way back to the sheet and the AI undo at the
+  /// top; the AI edits behind one button and Save at the bottom, above the
+  /// keyboard. Cancel is the back gesture, which asks before it discards.
+  Widget _fullScreen(Widget field) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return NexSheetBody(
+      padding: const EdgeInsets.fromLTRB(
+        NexSpacing.sm,
+        0,
+        NexSpacing.sm,
+        NexSpacing.sm,
+      ),
+      child: LayoutBuilder(
+        // The height comes from the constraints rather than from the
+        // screen's: inside [NexSheetBody] they are already the sheet's own
+        // maximum less its padding and the drag handle, which is exactly
+        // the room there is.
+        builder: (context, constraints) => SizedBox(
+          height: constraints.maxHeight.isFinite ? constraints.maxHeight : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: _toggleSize,
+                    tooltip: l10n.editorSmaller,
+                    icon: const Icon(Icons.close_fullscreen),
+                  ),
+                  const Spacer(),
+                  if (_undo.isNotEmpty)
+                    IconButton(
+                      onPressed: _undoLast,
+                      tooltip: l10n.aiEditUndo,
+                      icon: const Icon(Icons.undo),
+                    ),
+                ],
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: NexSpacing.sm,
+                  ),
+                  child: field,
+                ),
+              ),
+              const SizedBox(height: NexSpacing.sm),
+              Row(
+                children: [
+                  if (_aiAvailable)
+                    _AiMenuButton(
+                      running: _running,
+                      enabled: _text.text.trim().isNotEmpty,
+                      onPick: (style) => unawaited(_apply(style)),
+                    ),
+                  const Spacer(),
+                  IconButton.filled(
+                    onPressed: _canSave ? _save : null,
+                    tooltip: l10n.save,
+                    iconSize: 26,
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size.square(52),
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                    ),
+                    icon: const Icon(Icons.check),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -358,22 +424,17 @@ class _UndoBar extends StatelessWidget {
   }
 }
 
-/// The edits a model can make, as one row of chips.
+/// The edits a model can make, as one row of chips scrolling sideways.
 ///
-/// Scrolling sideways in the sheet and wrapping when the editor is full
-/// screen — which is the whole of what "more room" buys here. Six actions in
-/// a scroller means the last three are found by dragging; six in a wrap are
-/// simply all there, which is what somebody who has just asked for a bigger
-/// editor wants.
+/// Full screen has [_AiMenuButton] instead: there the room belongs to the
+/// note, not to six chips.
 class _AiActions extends StatelessWidget {
   const _AiActions({
-    required this.expanded,
     required this.running,
     required this.enabled,
     required this.onPick,
   });
 
-  final bool expanded;
   final NexRewriteStyle? running;
   final bool enabled;
   final ValueChanged<NexRewriteStyle> onPick;
@@ -404,25 +465,18 @@ class _AiActions extends StatelessWidget {
           ),
         ),
         const SizedBox(height: NexSpacing.sm),
-        if (expanded)
-          Wrap(
-            spacing: NexSpacing.sm,
-            runSpacing: NexSpacing.sm,
-            children: chips,
-          )
-        else
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final chip in chips)
-                  Padding(
-                    padding: const EdgeInsets.only(right: NexSpacing.sm),
-                    child: chip,
-                  ),
-              ],
-            ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final chip in chips)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: NexSpacing.sm),
+                  child: chip,
+                ),
+            ],
           ),
+        ),
       ],
     );
   }
@@ -448,6 +502,50 @@ class _AiActions extends StatelessWidget {
     NexRewriteStyle.concise => Icons.compress,
     NexRewriteStyle.simple => Icons.wb_sunny_outlined,
   };
+}
+
+/// The same six edits behind one button, for the full-screen editor.
+class _AiMenuButton extends StatelessWidget {
+  const _AiMenuButton({
+    required this.running,
+    required this.enabled,
+    required this.onPick,
+  });
+
+  final NexRewriteStyle? running;
+  final bool enabled;
+  final ValueChanged<NexRewriteStyle> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return PopupMenuButton<NexRewriteStyle>(
+      tooltip: l10n.aiEditTools,
+      enabled: enabled && running == null,
+      onSelected: onPick,
+      itemBuilder: (context) => [
+        for (final style in NexRewriteStyle.values)
+          PopupMenuItem(
+            value: style,
+            child: Row(
+              children: [
+                Icon(_AiActions._icon(style), size: 20),
+                const SizedBox(width: NexSpacing.md),
+                Text(_AiActions._label(l10n, style)),
+              ],
+            ),
+          ),
+      ],
+      icon: running != null
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
+    );
+  }
 }
 
 class _StyleChip extends StatelessWidget {

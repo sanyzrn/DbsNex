@@ -37,6 +37,7 @@ Working convention:
 ## v1.94.0
 
 - **Save to device.** Every item now has **Save to device** in its details: Android's own save window opens and you choose where the copy goes — Downloads, Documents, Google Drive — with no extra permission. Files, photos and recordings are saved as they are (photos without where and when they were taken); a note of words is saved as a Markdown file.
+- **A real full-screen editor.** Full screen used to be the same editing sheet made taller, so with the keyboard up the note got the same few lines in both sizes. Now the page is the note: a thin row at the top to go back to the smaller editor, the AI edits behind one button at the bottom, and Save beside it, above the keyboard.
 - **Rename a file.** A file item can be renamed from its details. The extension stays, a name the phone cannot store is refused with the reason, and the new name is used in search, sharing and saving.
 - **Markdown files get real names.** **Save as Markdown** names the file after the note's first line instead of `note.md`.
 - **Empty pages show where to start.** An empty timeline offers Write, Speak and Photograph as buttons, and an empty Threads page has a button to make the first thread.
