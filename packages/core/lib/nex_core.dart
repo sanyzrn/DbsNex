@@ -34,6 +34,7 @@ export 'import/note_import.dart';
 // What a file note is, for whoever has to show one.
 export 'files/delimited_text.dart';
 export 'files/file_kind.dart';
+export 'files/file_names.dart';
 
 // The user's own writing, with formatting in it.
 export 'text/markdown_formatting.dart';

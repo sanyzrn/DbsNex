@@ -167,6 +167,15 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
     );
   }
 
+  /// Android is short of memory with Nex on screen (`onTrimMemory`). An
+  /// on-device model is by far the largest thing Nex holds, and the system
+  /// asked before it starts killing: let go of it now rather than be the
+  /// process that goes. The next question loads it again.
+  @override
+  void didHaveMemoryPressure() {
+    unawaited(ChatAdapterBinding.instance.release() ?? Future<void>.value());
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Before anything else, and on `inactive` rather than on `paused`: the

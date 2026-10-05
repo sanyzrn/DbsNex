@@ -755,6 +755,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get copy => 'Copy';
 
   @override
+  String get saveToDevice => 'Save to device';
+
+  @override
+  String get savedToDevice => 'Saved';
+
+  @override
+  String get saveToDeviceFailed => 'Couldn\'t save the file';
+
+  @override
+  String get renameFileTitle => 'Rename file';
+
+  @override
+  String get fileNameEmpty => 'Enter a name';
+
+  @override
+  String get fileNameForbidden => 'A name can\'t contain \\ / : * ? \" < > |';
+
+  @override
+  String get fileNameTooLong => 'That name is too long';
+
+  @override
   String get share => 'Share';
 
   @override
@@ -2535,6 +2556,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantConfirmSetting => 'Change this setting?';
+
+  @override
+  String get briefEnabled => 'Show the smart summary';
+
+  @override
+  String get briefEnabledOn => 'Written for you each day on the timeline.';
+
+  @override
+  String get briefEnabledOff =>
+      'Off: no summary is written and nothing is sent to a provider for it.';
 
   @override
   String get briefTitle => 'Smart summary';

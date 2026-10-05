@@ -261,7 +261,7 @@ WHERE id = ? AND deleted_at IS NULL
 """,
         [
           toFile ? 'file' : 'text',
-          toFile ? 'note.md' : text,
+          toFile ? markdownFileNameFor(text) : text,
           uri,
           hash,
           toFile ? 'text/markdown' : null,

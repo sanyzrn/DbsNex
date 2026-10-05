@@ -34,7 +34,9 @@ Tags group related notes and can carry any colour. **Library → Tags** renames,
 
 ## Read, edit and share
 
-Open an item for its exact date and time, tags, description and every action. The common actions are always visible; **More** holds the rest. Select text to copy or format it. Open a photo to zoom with two fingers, drag to look around, and drag down to close it.
+Open an item for its exact date and time, tags, description and every action. The common actions are always visible; **More** holds the rest. Select text to copy or format it. When you edit a note, the **Full screen** button gives the whole page to the text: the AI edits are behind one button at the bottom, next to Save. Open a photo to zoom with two fingers, drag to look around, and drag down to close it.
+
+**Save to device** puts a copy of the item anywhere you choose — Downloads, Documents, Google Drive — through Android's own save window, with no extra permission. A file, photo or recording is saved as it is (a photo without where and when it was taken); a note of words is saved as a Markdown file named after its first line. A file item can be given a new name with **Rename**: only the name it shows changes, the extension stays, and the new name is used when you search, share or save it.
 
 Voice notes show playback, a position slider and a waveform drawn from the recording itself on Android. Formats without a waveform still play.
 
@@ -46,7 +48,7 @@ When you write in two languages, each line keeps its own direction and side whil
 
 Long notes open folded; tap **More** to read the rest and **Less** to fold them again.
 
-A text note can become a Markdown file with **Save as Markdown**: the same item, with its tags, pin and reminder, now a `.md` file you can share. That is the only direction a note is ever converted — Markdown is what a note already is.
+A text note can become a Markdown file with **Save as Markdown**: the same item, with its tags, pin and reminder, now a `.md` file named after its first line, which you can share. That is the only direction a note is ever converted — Markdown is what a note already is.
 
 The other way round works for any file that is mostly words. Open a file item and tap **Convert to note** to turn it into editable, searchable text. This works for Markdown, plain text and logs, Word (`.docx` and older `.doc`), OpenDocument (`.odt`), Rich Text (`.rtf`), web pages (`.html`), e-books (`.epub`), spreadsheets saved as `.csv` or `.tsv` (they become a table), and source or configuration files (they keep a fixed-width font). Older Persian text files in Windows encoding are read correctly. PDFs stay files: their text has no reliable reading order. Files up to 16 MB are supported, and a failed conversion leaves the original untouched.
 
@@ -78,7 +80,7 @@ AI is optional and off until you turn it on. In **Settings → Intelligence**, c
 
 If your model thinks before it answers and the summary comes back empty, turn on **No token limit** in the Smart summary settings — it can use many more tokens, as the summary refreshes several times a day.
 
-Tap the smart summary to open or fold it and pull down to refresh it. Hold the greeting for another phrase.
+Tap the smart summary to open or fold it and pull down to refresh it. Hold the greeting for another phrase. If you do not want it at all, turn off **Show the smart summary** at the top of its settings: no summary is written and nothing is sent to a provider for it. The greeting above it has its own switch, under **Home layout**.
 
 When an answer uses your notes, they appear under it as chips; tap one to open that note. With **Stay in my notes** off, an answer that comes from general knowledge instead says so.
 
@@ -90,7 +92,7 @@ When an answer uses your notes, they appear under it as chips; tap one to open t
 
 Everything is shown on the list itself: each password with its login, password, website and notes, and each card as a card with every detail underneath. Tap any field, or its copy icon, to copy it. Use the **⋮** menu on an item to edit it, favourite it or delete it. Each bank card can have its own colour, chosen with the same picker as tags, and its CVV2 is shown on the card beside the expiry. In Passwords, **Import Chrome CSV** adds passwords exported from Chrome or Google Password Manager, skipping exact duplicates. A row that cannot be read — one with no password, for example — does not stop the rest: everything else is imported, and the rows left out are listed by line with the reason. Delete the exported file afterwards, as it is not encrypted. The **⋮** menu at the top of each page can delete every password, card or message on that page at once, after a confirmation.
 
-The vault uses the phone's secure storage and never enters notes, widgets, search or AI. Unfinished edits are kept as encrypted drafts. Copied values are marked sensitive, and the clipboard is cleared after 30 seconds where Android allows it. The vault is included in a backup only when you choose **Include private vault** in a complete backup.
+The vault uses the phone's secure storage and never enters notes, widgets, search or AI. Unfinished edits are kept as encrypted drafts. Copied values are marked sensitive, and the clipboard is cleared after 30 seconds, even if Nex was closed in the meantime. On Android 10 and later the system does not let an app in the background look at the clipboard, so if you have left Nex the copy is cleared the moment you come back to it. The vault is included in a backup only when you choose **Include private vault** in a complete backup.
 
 ![Tools](tools.webp)
 

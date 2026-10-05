@@ -3,7 +3,19 @@ import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
 
 class EmptyTimeline extends StatelessWidget {
-  const EmptyTimeline({super.key});
+  const EmptyTimeline({
+    super.key,
+    this.onWrite,
+    this.onSpeak,
+    this.onPhotograph,
+  });
+
+  /// What each example row does when tapped: the first note, started from
+  /// the row that describes it (1.94.0). An empty library used to only
+  /// explain itself; the capture button was the one way in.
+  final VoidCallback? onWrite;
+  final VoidCallback? onSpeak;
+  final VoidCallback? onPhotograph;
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -51,11 +63,15 @@ class EmptyTimeline extends StatelessWidget {
                 // The note type's own glyph, not a capture verb's: these are
                 // previews of cards, and the card a text note arrives as
                 // carries the text glyph.
-                _Ghost(nexNoteTypeIcon('text'), l10n.emptyType),
+                _Ghost(nexNoteTypeIcon('text'), l10n.emptyType, onWrite),
                 const SizedBox(height: NexSpacing.sm),
-                _Ghost(nexNoteTypeIcon('voice'), l10n.emptySpeak),
+                _Ghost(nexNoteTypeIcon('voice'), l10n.emptySpeak, onSpeak),
                 const SizedBox(height: NexSpacing.sm),
-                _Ghost(nexNoteTypeIcon('photo'), l10n.emptyPhotograph),
+                _Ghost(
+                  nexNoteTypeIcon('photo'),
+                  l10n.emptyPhotograph,
+                  onPhotograph,
+                ),
                 const SizedBox(height: NexSpacing.md),
                 Text(l10n.emptyNoSave, style: theme.textTheme.bodySmall),
                 const SizedBox(height: NexSpacing.xs),
@@ -82,18 +98,39 @@ class EmptyTimeline extends StatelessWidget {
 /// couple of points off on every one of those, so the shape the empty screen
 /// promised was not quite the shape the first note arrived in.
 class _Ghost extends StatelessWidget {
-  const _Ghost(this.icon, this.label);
+  const _Ghost(this.icon, this.label, this.onTap);
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final radius = BorderRadius.circular(NexRadius.lg);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: _ghostBody(scheme, radius, context),
+        ),
+      ),
+    );
+  }
+
+  Widget _ghostBody(
+    ColorScheme scheme,
+    BorderRadius radius,
+    BuildContext context,
+  ) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: NexSpacing.sm),
       padding: const EdgeInsets.all(NexSpacing.sm),
       decoration: BoxDecoration(
-        border: Border.all(color: scheme.outline),
-        borderRadius: BorderRadius.circular(NexRadius.lg),
+        border: Border.all(
+          color: onTap == null ? scheme.outline : scheme.primary,
+        ),
+        borderRadius: radius,
       ),
       child: Row(
         children: [

@@ -43,6 +43,11 @@ extension _TimelineAiHeader on TimelineScreenState {
   Future<void> _loadAiSummary({bool force = false}) async {
     final prefs = widget.preferences;
     if (!_aiHeaderAvailable) return;
+    // Switched off means no request at all, not a request whose answer is
+    // hidden: the card used to be written in the background while turned
+    // off, spending tokens on text nobody could see (1.94.0). A refresh
+    // asked for by name — the recap widget's button — still runs.
+    if (!force && !prefs.showDaySummary) return;
     final today = _aiSummaryDateKey();
     // Whatever is on file goes up first, stale or not. A recap from this
     // morning is worth reading while a newer one is being written, and it is
@@ -226,6 +231,9 @@ extension _TimelineAiHeader on TimelineScreenState {
   Future<void> _loadAiHeadline({bool force = false}) async {
     final prefs = widget.preferences;
     if (!_aiHeaderAvailable) return;
+    // Drawn only beside the greeting; with the greeting hidden it is not
+    // asked for.
+    if (!force && !prefs.showGreeting) return;
     final today = _aiSummaryDateKey();
     final language = _headlineLanguage;
     final langKey = language?.wireName;

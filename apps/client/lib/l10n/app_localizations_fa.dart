@@ -740,6 +740,28 @@ class AppLocalizationsFa extends AppLocalizations {
   String get copy => 'کپی';
 
   @override
+  String get saveToDevice => 'ذخیره در گوشی';
+
+  @override
+  String get savedToDevice => 'ذخیره شد';
+
+  @override
+  String get saveToDeviceFailed => 'فایل ذخیره نشد';
+
+  @override
+  String get renameFileTitle => 'تغییر نام فایل';
+
+  @override
+  String get fileNameEmpty => 'نامی وارد کنید';
+
+  @override
+  String get fileNameForbidden =>
+      'نام نمی‌تواند این نویسه‌ها را داشته باشد: \\ / : * ? \" < > |';
+
+  @override
+  String get fileNameTooLong => 'این نام خیلی بلند است';
+
+  @override
   String get share => 'هم‌رسانی';
 
   @override
@@ -2477,6 +2499,16 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get assistantConfirmSetting => 'این تنظیم را عوض کنم؟';
+
+  @override
+  String get briefEnabled => 'نمایش خلاصهٔ هوشمند';
+
+  @override
+  String get briefEnabledOn => 'هر روز بالای تایم‌لاین برایتان نوشته می‌شود.';
+
+  @override
+  String get briefEnabledOff =>
+      'خاموش: خلاصه‌ای نوشته نمی‌شود و چیزی برای آن به سرویس فرستاده نمی‌شود.';
 
   @override
   String get briefTitle => 'خلاصه هوشمند';

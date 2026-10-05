@@ -195,6 +195,46 @@ extension _DetailActions on _NoteDetailSheetState {
     if (!await nexShareNote(note) && mounted) _toast(l10n.nothingToCopy);
   }
 
+  /// Saves a copy where the person chooses: the system's own save dialog,
+  /// so Downloads, Documents or a cloud drive, instead of the app's private
+  /// folder that most phones keep out of reach.
+  Future<void> _saveToDevice() async {
+    final note = _note;
+    if (note == null) return;
+    final l10n = AppLocalizations.of(context);
+    final outcome = await nexSaveNoteToDevice(note);
+    if (!mounted) return;
+    switch (outcome) {
+      case null:
+        _toast(l10n.nothingToCopy);
+      case SaveOutcome.saved:
+        nexShowBanner(context, message: l10n.savedToDevice);
+      case SaveOutcome.failed:
+        nexShowBanner(
+          context,
+          message: l10n.saveToDeviceFailed,
+          kind: NexBannerKind.failed,
+        );
+      case SaveOutcome.cancelled:
+        break;
+    }
+  }
+
+  /// Renames a file note. Only the name it is shown, searched, shared and
+  /// saved under changes: the file on disk is stored by its content and
+  /// does not move.
+  Future<void> _renameFile() async {
+    final note = _note;
+    if (note == null || note.type != NoteType.file) return;
+    final name = await nexAskFileName(
+      context,
+      current: note.originalFilename ?? '',
+    );
+    if (name == null || !mounted) return;
+    await widget.services.updateNote(note.id, name);
+    await _reload();
+  }
+
   Future<void> _convertMarkdown() async {
     final note = _note;
     if (note == null || _convertingMarkdown) return;

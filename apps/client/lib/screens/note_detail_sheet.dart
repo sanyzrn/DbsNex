@@ -25,6 +25,7 @@ import 'package:nex_ai/cloud.dart';
 import '../platform/file_opener.dart';
 import '../platform/sharing.dart';
 import '../widgets/nex_dialog.dart';
+import '../widgets/rename_file_dialog.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/pdf_preview.dart';
@@ -637,6 +638,18 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                           icon: Icons.ios_share,
                           label: l10n.share,
                           onPressed: _share,
+                        ),
+                      if (nexSaveTargetFor(note) != null)
+                        _DetailAction(
+                          icon: Icons.save_alt,
+                          label: l10n.saveToDevice,
+                          onPressed: _saveToDevice,
+                        ),
+                      if (note.type == NoteType.file)
+                        _DetailAction(
+                          icon: Icons.drive_file_rename_outline,
+                          label: l10n.rename,
+                          onPressed: _renameFile,
                         ),
                       if (_copyableText(note) != null)
                         _DetailAction(

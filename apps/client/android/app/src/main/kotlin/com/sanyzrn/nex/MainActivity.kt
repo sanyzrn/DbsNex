@@ -52,6 +52,14 @@ open class MainActivity : FlutterFragmentActivity() {
         super.onCreate(savedInstanceState)
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // A private copy whose wipe could not run in the background (a killed
+        // process, or Android 10+ hiding the clipboard) is erased now. Focus,
+        // not resume: Android 10+ lets only the focused window read it.
+        if (hasFocus) NexPrivateClipboard.sweep(this, foreground = true)
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("nex.captureRequestId", captureRequestId)
         super.onSaveInstanceState(outState)
@@ -75,6 +83,11 @@ open class MainActivity : FlutterFragmentActivity() {
 
     /** Waiting on the folder picker for automatic backups (W1.6). */
     private var folderPicker: MethodChannel.Result? = null
+
+    // "Save to device": the answer waiting on the system's save dialog, and
+    // the file it will copy once a place is chosen.
+    private var saver: MethodChannel.Result? = null
+    private var pendingSave: File? = null
 
     /**
      * Where the two preview renderers run.
@@ -410,6 +423,30 @@ open class MainActivity : FlutterFragmentActivity() {
                     }
                 }
             }
+            // The system's own "Save as" (Storage Access Framework): the
+            // person picks the folder — Downloads, Documents, a cloud drive —
+            // and a copy is written there. No storage permission is needed,
+            // because the provider grants access to exactly that one file.
+            "saveToDevice" -> {
+                val path = call.argument<String>("path")
+                val name = call.argument<String>("name")
+                val mime = call.argument<String>("mimeType") ?: "application/octet-stream"
+                val source = path?.let { File(it) }
+                if (source == null || name == null || !source.isFile) {
+                    result.success("failed")
+                } else {
+                    // A second request while the dialog is up answers the
+                    // first as cancelled rather than leaving it hanging.
+                    saver?.let { runCatching { it.success("cancelled") } }
+                    saver = result
+                    pendingSave = source
+                    startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = mime
+                        putExtra(Intent.EXTRA_TITLE, name)
+                    }, SAVE_REQUEST)
+                }
+            }
             "pickFile" -> {
                 picker = result
                 startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -450,6 +487,30 @@ open class MainActivity : FlutterFragmentActivity() {
             result.success(
                 if (resultCode == RESULT_OK && uri != null) NexBackupFolder.keep(this, uri) else null
             )
+            return
+        }
+        if (requestCode == SAVE_REQUEST) {
+            val result = saver.also { saver = null } ?: return
+            val source = pendingSave.also { pendingSave = null }
+            val target = data?.data
+            if (resultCode != RESULT_OK || target == null || source == null) {
+                result.success("cancelled")
+                return
+            }
+            replyAsync(result, ioExecutor) {
+                runCatching {
+                    contentResolver.openOutputStream(target, "wt")!!.use { out ->
+                        source.inputStream().use { it.copyTo(out) }
+                    }
+                    "saved"
+                }.getOrElse {
+                    // Leave no empty file behind in the chosen folder.
+                    runCatching {
+                        android.provider.DocumentsContract.deleteDocument(contentResolver, target)
+                    }
+                    "failed"
+                }
+            }
             return
         }
         if (requestCode != 9911) return
@@ -923,6 +984,12 @@ open class MainActivity : FlutterFragmentActivity() {
         private val inboxClaimLock = Any()
         private val claimed = mutableMapOf<String, MainActivity>()
         const val ACTION_TEXT_CAPTURE = "com.sanyzrn.nex.TEXT_CAPTURE"
+
+        /**
+         * The request code of the "Save to device" dialog. 9911 is the file
+         * picker's and 9912 the backup folder's ([NexBackupFolder.REQUEST]).
+         */
+        private const val SAVE_REQUEST = 9913
 
         /** Sent by a Timeline widget row; carries [EXTRA_NOTE_ID]. */
         const val ACTION_OPEN_NOTE = "com.sanyzrn.nex.OPEN_NOTE"

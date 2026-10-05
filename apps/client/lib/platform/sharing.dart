@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -162,4 +163,190 @@ void _cleanUp(List<Directory> staged) {
       // The system clears its temporary folder on its own.
     }
   }
+}
+
+/// What "Save to device" did.
+enum SaveOutcome {
+  /// A copy was written where the person chose.
+  saved,
+
+  /// The person backed out of the save dialog. Not a failure.
+  cancelled,
+
+  /// The copy could not be written.
+  failed,
+}
+
+/// What a note is saved as: an existing file at [sourcePath], or [text]
+/// written to a new one, under [name].
+typedef NoteSaveTarget = ({
+  String name,
+  String mimeType,
+  String? sourcePath,
+  String? text,
+});
+
+/// Decides what [note] is saved as, or null when it has nothing to save.
+///
+/// A note with a file saves that file: a file note under its own name, a
+/// photo or recording under its caption or the moment it was taken. A note
+/// of words saves as Markdown, named after its first line, which is what
+/// "Convert to Markdown" would have made of it.
+NoteSaveTarget? nexSaveTargetFor(Note note) {
+  final uri = note.mediaUri;
+  if (uri != null && uri.isNotEmpty) {
+    final ext = fileExtensionOf(uri.split(Platform.pathSeparator).last);
+    final mime = note.mimeType ?? _mimeFor(ext);
+    if (note.type == NoteType.file) {
+      final own = note.originalFilename?.trim() ?? '';
+      final ownExt = fileExtensionOf(own);
+      final name =
+          safeFileName(
+            fileBaseNameOf(own),
+            extension: ownExt.isEmpty ? ext : ownExt,
+          ) ??
+          'Nex file$ext';
+      return (name: name, mimeType: mime, sourcePath: uri, text: null);
+    }
+    final kind = note.type == NoteType.voice ? 'voice' : 'photo';
+    final caption = note.caption?.trim() ?? '';
+    final name =
+        safeFileName(caption, extension: ext) ??
+        'Nex $kind ${_stamp(note.createdAt)}$ext';
+    return (name: name, mimeType: mime, sourcePath: uri, text: null);
+  }
+  final text = _markdownOf(note);
+  if (text == null) return null;
+  return (
+    name: markdownFileNameFor(
+      note.title?.trim().isNotEmpty == true ? note.title! : text,
+    ),
+    mimeType: 'text/markdown',
+    sourcePath: null,
+    text: text,
+  );
+}
+
+String? _markdownOf(Note note) {
+  switch (note.type) {
+    case NoteType.link:
+      final url = note.linkUrl;
+      if (url == null || url.isEmpty) return null;
+      final title = note.title?.trim();
+      final caption = note.caption?.trim();
+      return [
+        title == null || title.isEmpty ? '<$url>' : '[$title]($url)',
+        if (caption != null && caption.isNotEmpty) caption,
+        if (note.linkExcerpt?.trim().isNotEmpty == true)
+          note.linkExcerpt!.trim(),
+      ].join('\n\n');
+    case NoteType.text:
+    case NoteType.checklist:
+      final body = note.content?.trim() ?? '';
+      return body.isEmpty ? null : '$body\n';
+    case NoteType.voice:
+    case NoteType.photo:
+    case NoteType.file:
+      final words = note.displayText?.trim() ?? '';
+      return words.isEmpty ? null : '$words\n';
+  }
+}
+
+String _stamp(DateTime at) {
+  final t = at.toLocal();
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${t.year}-${two(t.month)}-${two(t.day)} ${two(t.hour)}${two(t.minute)}';
+}
+
+String _mimeFor(String ext) => switch (ext.toLowerCase()) {
+  '.jpg' || '.jpeg' => 'image/jpeg',
+  '.png' => 'image/png',
+  '.webp' => 'image/webp',
+  '.m4a' => 'audio/mp4',
+  '.aac' => 'audio/aac',
+  '.wav' => 'audio/wav',
+  '.ogg' => 'audio/ogg',
+  '.mp3' => 'audio/mpeg',
+  '.pdf' => 'application/pdf',
+  '.md' => 'text/markdown',
+  '.txt' => 'text/plain',
+  _ => 'application/octet-stream',
+};
+
+const _osChannel = MethodChannel('nex/os_capture');
+
+/// Saves a copy of [note] where the person chooses: the system's own save
+/// dialog on Android, Save As on the desktop. Null when the note has nothing
+/// to save. A photo goes without where and when it was taken, as it does
+/// when shared (SEC-08).
+Future<SaveOutcome?> nexSaveNoteToDevice(Note note) async {
+  final target = nexSaveTargetFor(note);
+  if (target == null) return null;
+  final staged = <Directory>[];
+  try {
+    String path;
+    if (target.sourcePath != null) {
+      if (!File(target.sourcePath!).existsSync()) return SaveOutcome.failed;
+      path = (await _shareable(note, target.sourcePath!, staged)).path;
+    } else {
+      final folder = await Directory.systemTemp.createTemp('nex-save-');
+      staged.add(folder);
+      final file = File(
+        '${folder.path}${Platform.pathSeparator}${target.name}',
+      );
+      await file.writeAsString(target.text!, flush: true);
+      path = file.path;
+    }
+    return await nexSaveFileToDevice(
+      path,
+      name: target.name,
+      mimeType: target.mimeType,
+    );
+  } catch (_) {
+    return SaveOutcome.failed;
+  } finally {
+    _cleanUp(staged);
+  }
+}
+
+/// Saves a copy of the file at [path] under [name] where the person chooses.
+Future<SaveOutcome> nexSaveFileToDevice(
+  String path, {
+  required String name,
+  String mimeType = 'application/octet-stream',
+  @visibleForTesting bool? android,
+}) async {
+  if (android ?? (!kIsWeb && Platform.isAndroid)) {
+    try {
+      final answer = await _osChannel.invokeMethod<String>('saveToDevice', {
+        'path': path,
+        'name': name,
+        'mimeType': mimeType,
+      });
+      return switch (answer) {
+        'saved' => SaveOutcome.saved,
+        'cancelled' => SaveOutcome.cancelled,
+        _ => SaveOutcome.failed,
+      };
+    } on PlatformException {
+      return SaveOutcome.failed;
+    } on MissingPluginException {
+      return SaveOutcome.failed;
+    }
+  }
+  if (!kIsWeb && Platform.isIOS) {
+    // iOS has no save dialog an app can open; "Save to Files" lives in the
+    // share sheet.
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(path, mimeType: mimeType)],
+        fileNameOverrides: [name],
+      ),
+    );
+    return SaveOutcome.saved;
+  }
+  final location = await getSaveLocation(suggestedName: name);
+  if (location == null) return SaveOutcome.cancelled;
+  await File(path).copy(location.path);
+  return SaveOutcome.saved;
 }

@@ -398,6 +398,13 @@
   "noteNotFound": "Note not found",
   "mediaUnavailable": "This media file is unavailable.",
   "copy": "Copy",
+  "saveToDevice": "Save to device",
+  "savedToDevice": "Saved",
+  "saveToDeviceFailed": "Couldn't save the file",
+  "renameFileTitle": "Rename file",
+  "fileNameEmpty": "Enter a name",
+  "fileNameForbidden": "A name can't contain \\ / : * ? \" < > |",
+  "fileNameTooLong": "That name is too long",
   "share": "Share",
   "swipeActions": "Swipe actions",
   "transcription": "Transcription",
@@ -2078,6 +2085,9 @@
   "@assistantConfirmSetting": {
     "description": "Confirmation for an assistant-proposed settings change"
   },
+  "briefEnabled": "Show the smart summary",
+  "briefEnabledOn": "Written for you each day on the timeline.",
+  "briefEnabledOff": "Off: no summary is written and nothing is sent to a provider for it.",
   "briefTitle": "Smart summary",
   "@briefTitle": {"description": "Title of the sheet that configures the card at the top of the timeline."},
   "briefSubtitle": "The card above your notes. You choose what it is for.",

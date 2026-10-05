@@ -93,6 +93,13 @@ class _ActionRow extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      // Grows to fit its actions rather than stopping at the default half
+      // screen: the last of them is Delete, and a list that hides it below
+      // the fold makes the one action people look for the one they miss.
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+      ),
       builder: (sheetContext) => SafeArea(
         child: ListView(
           shrinkWrap: true,

@@ -323,8 +323,15 @@ extension _TimelineBody on TimelineScreenState {
     // the filter row with it — so the filter that caused it could not be
     // cleared without restarting the app.
     if (all.isEmpty && !_model.filtering) {
-      return const [
-        SliverFillRemaining(hasScrollBody: false, child: EmptyTimeline()),
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyTimeline(
+            onWrite: () => unawaited(openCapture()),
+            onSpeak: () => unawaited(captureVoice()),
+            onPhotograph: () => unawaited(capturePhoto(ImageSource.camera)),
+          ),
+        ),
       ];
     }
     if (_model.notes.isEmpty) {
