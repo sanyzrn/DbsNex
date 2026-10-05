@@ -121,7 +121,7 @@ class NoteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: nexCardInsets,
+      padding: nexCardInsetsFor(context),
       child: ConstrainedBox(
         // Every card, the same height. See [nexCardHeightFor] — which is
         // [nexCardHeight] at the default text size, and only grows if someone

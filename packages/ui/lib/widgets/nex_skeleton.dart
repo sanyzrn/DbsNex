@@ -126,7 +126,7 @@ class NexCardSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: nexCardInsets,
+      padding: nexCardInsetsFor(context),
       child: SizedBox(
         height: nexCardHeightFor(context),
         child: DecoratedBox(

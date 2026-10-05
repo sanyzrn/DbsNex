@@ -295,6 +295,10 @@ const nexCardInsets = EdgeInsets.symmetric(
   vertical: NexSpacing.sm,
 );
 
+/// [nexCardInsets] for the density in force — tighter only when compact.
+EdgeInsets nexCardInsetsFor(BuildContext context) =>
+    NexCardDensity.of(context).cardInsets;
+
 /// The type glyph's container on a card, and the photo thumbnail's size.
 ///
 /// Smaller than it was — the Nex_ui Figma redesign's icon box scales
@@ -394,6 +398,19 @@ enum NexCardDensity {
 
   /// One of those lines, at the default text size.
   final double lineHeight;
+
+  /// The gutter round a card on the timeline.
+  ///
+  /// Compact also draws the cards closer together — half the vertical gap,
+  /// so a screen holds more of them — which is what someone choosing it
+  /// is asking for. The horizontal gutter, and both of the other densities,
+  /// keep [nexCardInsets].
+  EdgeInsets get cardInsets => this == compact
+      ? const EdgeInsets.symmetric(
+          horizontal: NexSpacing.md,
+          vertical: NexSpacing.xs,
+        )
+      : nexCardInsets;
 
   /// The type the preview is set in: a size down when compact.
   TextStyle? previewStyle(ThemeData theme) =>
