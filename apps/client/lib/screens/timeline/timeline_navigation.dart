@@ -100,6 +100,19 @@ extension _TimelineNavigation on TimelineScreenState {
   /// the reminder just named, so both are cleared first — and so is the
   /// collapsed state of whichever date group holds it, since a folded group
   /// is the other way for a card to be absent from a list that contains it.
+  /// [_spotlight], for a note a notification named. A reminder's note is
+  /// already on the timeline and is pointed at at once; a scheduled note's
+  /// may only now be arriving, so it is released first.
+  void _openArrived(String noteId) {
+    if (_model.byId(noteId) != null) {
+      _spotlight(noteId);
+      return;
+    }
+    unawaited(
+      widget.services.releaseDueNotes().then((_) => _spotlight(noteId)),
+    );
+  }
+
   void _spotlight(String noteId) {
     if (!mounted) return;
     // A tapped reminder is an OS surface like any other: it means "show me

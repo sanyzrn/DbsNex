@@ -120,6 +120,26 @@ abstract interface class NexDb {
 
   Future<void> deleteCommitment(String id);
 
+  /* -------------------------------------------------- scheduled notes */
+
+  /// Takes the live text note [noteId] out of the library until
+  /// [releaseAt] — see [ScheduledNote]. Null when it cannot be scheduled.
+  Future<ScheduledNote?> scheduleNote(String noteId, DateTime releaseAt);
+
+  /// Everything waiting, the soonest first.
+  Future<List<ScheduledNote>> scheduledNotes();
+
+  /// Puts every note whose time has come on the timeline.
+  Future<List<Note>> releaseDueNotes(DateTime now);
+
+  /// Delivers one now, whatever its time.
+  Future<Note?> releaseScheduledNow(String id, DateTime now);
+
+  Future<bool> rescheduleNote(String id, DateTime releaseAt);
+
+  /// Throws a waiting note away for good.
+  Future<void> discardScheduled(String id);
+
   /* ---------------------------------------------------------- threads */
 
   /// Every live thread, the most recently active first (W5.3).

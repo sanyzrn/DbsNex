@@ -293,9 +293,12 @@ class TimelineScreenState extends State<TimelineScreen>
     _scroll.addListener(_onAiSummaryScroll);
     // Both halves of a tapped reminder: one for a tap while the app is up,
     // one for the tap that started it.
-    widget.services.reminders.onOpenNote = _spotlight;
+    //
+    // A scheduled note's notification names a note that is not in the
+    // library until it is released, so release comes first.
+    widget.services.reminders.onOpenNote = _openArrived;
     final launched = widget.services.reminders.takeLaunchNoteId();
-    if (launched != null) _spotlight(launched);
+    if (launched != null) _openArrived(launched);
     // Both halves of a share Nex would not keep, for the same reason as the
     // two lines above: it can arrive into a running app, or be the intent
     // that launched it — in which case the refusal already happened, during

@@ -2736,6 +2736,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remindClear => 'Remove reminder';
 
   @override
+  String get scheduleTitle => 'Schedule note';
+
+  @override
+  String get scheduleInMonth => 'In a month';
+
+  @override
+  String get scheduleInYear => 'In a year';
+
+  @override
+  String scheduleActionToday(String time) {
+    return 'Arrives today at $time';
+  }
+
+  @override
+  String scheduleActionTomorrow(String time) {
+    return 'Arrives tomorrow at $time';
+  }
+
+  @override
+  String scheduleActionOn(String date, String time) {
+    return 'Arrives on $date at $time';
+  }
+
+  @override
+  String scheduleSet(String when) {
+    return 'Scheduled — arrives $when';
+  }
+
+  @override
+  String get scheduleFailed => 'This note could not be scheduled';
+
+  @override
+  String get scheduleHint => 'Hold ↑ to schedule it for later';
+
+  @override
+  String get scheduledTitle => 'Scheduled';
+
+  @override
+  String get scheduledSubtitle => 'Notes on their way';
+
+  @override
+  String get scheduledEmpty =>
+      'Nothing scheduled. While writing a note, hold the send button to have it arrive later.';
+
+  @override
+  String scheduledArrives(String when) {
+    return 'Arrives $when';
+  }
+
+  @override
+  String scheduledWritten(String when) {
+    return 'Written $when';
+  }
+
+  @override
+  String get scheduledSendNow => 'Deliver now';
+
+  @override
+  String get scheduledChangeTime => 'Change time';
+
+  @override
+  String get scheduledDiscard => 'Discard';
+
+  @override
+  String get scheduledDiscardConfirm =>
+      'Discard this note? It never reached your notes, so it cannot be restored.';
+
+  @override
   String get remindTitle => 'Set a reminder';
 
   @override

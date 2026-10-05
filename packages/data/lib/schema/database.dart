@@ -343,6 +343,26 @@ CREATE TABLE IF NOT EXISTS note_threads (
       'ON note_threads(thread_id);',
     );
 
+    // Notes written now and delivered later ("schedule" on the capture
+    // sheet's send button). Kept out of `notes` on purpose: a row there is
+    // seen by the timeline, search, widgets, the assistant, summaries and
+    // every count — forty-odd queries, each of which would have to learn to
+    // skip it, and the one that forgot would show the note early. Here it is
+    // invisible by construction until [ScheduledNoteRepository.releaseDue]
+    // moves it across. Part of the database file, so backups carry it.
+    db.execute('''
+CREATE TABLE IF NOT EXISTS scheduled_notes (
+  id TEXT PRIMARY KEY NOT NULL,
+  content TEXT NOT NULL,
+  release_at TEXT NOT NULL,
+  written_at TEXT NOT NULL
+);
+''');
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_scheduled_notes_release '
+      'ON scheduled_notes(release_at);',
+    );
+
     // Records one-off data migrations, so a seed that the user has since
     // edited or deleted is never quietly put back.
     db.execute('''

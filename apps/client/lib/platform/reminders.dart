@@ -998,6 +998,62 @@ class NexReminders {
   static int commitmentIdFor(String commitmentId) =>
       idFor('commitment:$commitmentId');
 
+  /// The notification for a scheduled note arriving (see [ScheduledNote]).
+  ///
+  /// Its payload is the note's id, which the note keeps when it arrives, so
+  /// a tap opens it like any reminder's — once [NexServices.releaseDueNotes]
+  /// has put it on the timeline, which the tap handler does first.
+  Future<void> scheduleArrival(ScheduledNote note) async {
+    if (!supported) return;
+    lastError = null;
+    await initialise();
+    await cancelArrival(note.id);
+    if (!note.releaseAt.isAfter(DateTime.now().toUtc())) return;
+    final body = NexMarkdownText.preview(note.content).trim();
+    try {
+      await _plugin.zonedSchedule(
+        id: arrivalIdFor(note.id),
+        title: body.isEmpty ? 'Nex' : _clamp(body, 60),
+        scheduledDate: scheduledDateFor(note.releaseAt),
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            'Reminders',
+            channelDescription: 'Notes you asked Nex to bring back up',
+            importance: Importance.high,
+            priority: Priority.high,
+            visibility: hideOnLockScreen?.call() ?? false
+                ? NotificationVisibility.secret
+                : null,
+          ),
+          iOS: const DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: _scheduleMode,
+        payload: note.id,
+      );
+      onDiagnostic?.call(
+        'scheduled ${note.id} -> ${note.releaseAt.toIso8601String()} '
+        '(${tz.local.name})',
+      );
+    } catch (error) {
+      lastError = error.toString();
+    }
+  }
+
+  Future<void> cancelArrival(String noteId) async {
+    if (!supported) return;
+    await initialise();
+    try {
+      await _plugin.cancel(id: arrivalIdFor(noteId));
+    } catch (_) {}
+  }
+
+  /// A scheduled note's arrival alarm id — prefixed, like
+  /// [commitmentIdFor], so it never collides with a reminder later set on
+  /// the same note.
+  @visibleForTesting
+  static int arrivalIdFor(String noteId) => idFor('scheduled:$noteId');
+
   Future<void> cancel(String noteId) async {
     if (!supported) return;
     await initialise();
@@ -1031,6 +1087,7 @@ class NexReminders {
   Future<void> syncFromLibrary(
     List<Note> upcoming, {
     List<NexCommitment> commitments = const [],
+    List<ScheduledNote> scheduled = const [],
   }) async {
     if (!supported) return;
     await initialise();
@@ -1040,6 +1097,7 @@ class NexReminders {
       for (final commitment in commitments)
         if (commitment.notify && !commitment.paused)
           commitmentIdFor(commitment.id),
+      for (final note in scheduled) arrivalIdFor(note.id),
     };
     try {
       final pending = await _plugin.pendingNotificationRequests();
@@ -1064,6 +1122,9 @@ class NexReminders {
     }
     for (final commitment in commitments) {
       await scheduleCommitment(commitment);
+    }
+    for (final note in scheduled) {
+      await scheduleArrival(note);
     }
   }
 

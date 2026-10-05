@@ -3,11 +3,17 @@ import 'password_generator_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
+import '../platform/nex_services.dart';
 import '../platform/vault_store.dart';
+import 'scheduled_screen.dart';
 import 'vault_screen.dart';
 
 class ToolsScreen extends StatelessWidget {
-  const ToolsScreen({super.key});
+  const ToolsScreen({super.key, this.services});
+
+  /// Needed for the scheduled notes; without it (an accessibility audit of
+  /// the vault tiles alone) that tile is left out.
+  final NexServices? services;
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -66,6 +72,15 @@ class ToolsScreen extends StatelessWidget {
                 destination: const PasswordGeneratorScreen(),
               ),
             ]),
+            if (services case final services?) ...[
+              const SizedBox(height: 12),
+              _ToolTile(
+                title: l.scheduledTitle,
+                subtitle: l.scheduledSubtitle,
+                icon: Icons.schedule_send_outlined,
+                destination: ScheduledScreen(services: services),
+              ),
+            ],
             const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,

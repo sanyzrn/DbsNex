@@ -66,6 +66,12 @@ enum _DbCommand {
   renameTag,
   // Recurring obligations — see NexCommitment in packages/core.
   listCommitments,
+  scheduleNote,
+  scheduledNotes,
+  releaseDueNotes,
+  releaseScheduledNow,
+  rescheduleNote,
+  discardScheduled,
   listThreads,
   threadsForNote,
   threadNotes,
@@ -558,6 +564,39 @@ class NexDbWorker implements NexDb {
       _send<void>(_DbCommand.deleteCommitment, {'id': id});
 
   @override
+  Future<ScheduledNote?> scheduleNote(String noteId, DateTime releaseAt) =>
+      _send<ScheduledNote?>(_DbCommand.scheduleNote, {
+        'noteId': noteId,
+        'releaseAt': releaseAt.toUtc().toIso8601String(),
+      });
+
+  @override
+  Future<List<ScheduledNote>> scheduledNotes() =>
+      _send<List<ScheduledNote>>(_DbCommand.scheduledNotes);
+
+  @override
+  Future<List<Note>> releaseDueNotes(DateTime now) => _send<List<Note>>(
+    _DbCommand.releaseDueNotes,
+    {'now': now.toUtc().toIso8601String()},
+  );
+
+  @override
+  Future<Note?> releaseScheduledNow(String id, DateTime now) => _send<Note?>(
+    _DbCommand.releaseScheduledNow,
+    {'id': id, 'now': now.toUtc().toIso8601String()},
+  );
+
+  @override
+  Future<bool> rescheduleNote(String id, DateTime releaseAt) => _send<bool>(
+    _DbCommand.rescheduleNote,
+    {'id': id, 'releaseAt': releaseAt.toUtc().toIso8601String()},
+  );
+
+  @override
+  Future<void> discardScheduled(String id) =>
+      _send<void>(_DbCommand.discardScheduled, {'id': id});
+
+  @override
   Future<List<NoteThread>> listThreads() =>
       _send<List<NoteThread>>(_DbCommand.listThreads);
 
@@ -885,6 +924,7 @@ class NexDbWorker implements NexDb {
       repo,
       localDeviceId: boot.deviceId,
     );
+    final scheduled = SqliteScheduledNoteRepository(db, repo);
     final enrichment = EnrichmentService(
       repo: repo,
       adapter: boot.adapter,
@@ -1032,6 +1072,25 @@ class NexDbWorker implements NexDb {
         ),
         _DbCommand.deleteCommitment => _voided(
           () => commitments.delete(arg('id')! as String),
+        ),
+        _DbCommand.scheduleNote => scheduled.schedule(
+          arg('noteId')! as String,
+          DateTime.parse(arg('releaseAt')! as String),
+        ),
+        _DbCommand.scheduledNotes => scheduled.pending(),
+        _DbCommand.releaseDueNotes => scheduled.releaseDue(
+          DateTime.parse(arg('now')! as String),
+        ),
+        _DbCommand.releaseScheduledNow => scheduled.releaseNow(
+          arg('id')! as String,
+          DateTime.parse(arg('now')! as String),
+        ),
+        _DbCommand.rescheduleNote => scheduled.reschedule(
+          arg('id')! as String,
+          DateTime.parse(arg('releaseAt')! as String),
+        ),
+        _DbCommand.discardScheduled => _voided(
+          () => scheduled.discard(arg('id')! as String),
         ),
         _DbCommand.listThreads => threads.list(),
         _DbCommand.threadsForNote => threads.forNote(arg('noteId')! as String),
