@@ -351,6 +351,19 @@ jobs:
         working-directory: apps/client
     steps:
       - uses: actions/checkout@v7
+      # The job builds a debug APK and then the release App Bundle on one
+      # runner, on top of ~2.5 GB of restored Gradle caches, and the bundle
+      # step died with "No space left on device" (64 MB free) on a change
+      # that added nothing large (#303). The toolchains removed here come
+      # preinstalled and are never used by this job; the Android SDK, Java
+      # and Flutter stay.
+      - name: Free disk space for the Android builds
+        working-directory: .
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          df -h /
       # Kept identical to release.yml's Android job on purpose — see the note
       # there. This job builds debug, where lint does not run, so 17 worked
       # here while every release build died in lintVitalAnalyzeRelease; a CI
