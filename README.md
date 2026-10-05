@@ -9,7 +9,7 @@
 
 A local-first capture app for Android, in Persian and English, with full right-to-left layout.
 
-[![CI](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml)
+[![CI](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml/badge.svg?event=pull_request)](https://github.com/sanyzrn/DbsNex/actions/workflows/ci.yml)
 [![Release](https://github.com/sanyzrn/DbsNex/actions/workflows/release.yml/badge.svg)](https://github.com/sanyzrn/DbsNex/actions/workflows/release.yml)
 [![Nightly stress](https://github.com/sanyzrn/DbsNex/actions/workflows/stress.yml/badge.svg)](https://github.com/sanyzrn/DbsNex/actions/workflows/stress.yml)
 [![Latest release](https://img.shields.io/github/v/release/sanyzrn/DbsNex-releases?label=release&color=0A84FF)](https://github.com/sanyzrn/DbsNex-releases/releases/latest)
