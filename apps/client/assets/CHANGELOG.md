@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.93.5
+
+- **A diagnostics report that keeps what matters.** The report on your phone now keeps up to 100 errors and 50 other app events, apart, so routine events can no longer push real errors out. An event that repeats is recorded once, with how many times and since when. It used to keep only 20 entries in all, and a reminder rescheduled on every launch could fill them by itself.
+- **Attach the report to feedback.** When you send feedback you can tick **Attach the diagnostics report**. The exact report is shown before sending, with links, keys and passwords removed and nothing from your notes. It is never sent unless you tick it.
+
 ## v1.93.4
 
 - **Password import no longer fails on one bad row.** Importing from Chrome or Google Password Manager now brings in every row it can read and lists the ones it could not, by line and with the reason. A row with no password, which Google exports for passkeys and "never save" sites, no longer stops the whole file. Passwords with Persian letters, numbers a spreadsheet saved as formulas, semicolon-separated files and files saved again in Windows-1256 all import, and the private section now holds up to 10,000 items.

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../platform/crash_reporter.dart';
 import '../platform/feedback_service.dart';
 import '../platform/metrics.dart';
 import 'nex_dialog.dart';
@@ -17,13 +18,22 @@ import 'nex_text_field.dart';
 /// copied a GitHub issues link — the actual complaint this answers is that
 /// nothing about the old row felt like "feedback" at all.
 class FeedbackSheet extends StatefulWidget {
-  const FeedbackSheet({super.key, required this.service, this.metrics});
+  const FeedbackSheet({
+    super.key,
+    required this.service,
+    this.metrics,
+    this.loadDiagnostics,
+  });
 
   final FeedbackService service;
 
   /// The measurements that may be attached; [NexMetrics.shared] unless a test
   /// passes its own.
   final NexMetrics? metrics;
+
+  /// Reads the diagnostics report that may be attached; the app's own
+  /// crash log unless a test passes its own.
+  final Future<String?> Function()? loadDiagnostics;
 
   static Future<void> show(
     BuildContext context, {
@@ -47,6 +57,35 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
   /// Whether the measurements go with this message (W3.4). Never ticked on
   /// its own: attaching them is something the person does, every time.
   bool _attachMetrics = false;
+
+  /// Whether the diagnostics report goes with this message. Never ticked on
+  /// its own, like the measurements: sending it is the person's choice,
+  /// every time, after seeing exactly what it says.
+  bool _attachDiagnostics = false;
+
+  /// The redacted report, or null when there is nothing recorded.
+  String? _diagnostics;
+
+  @override
+  void initState() {
+    super.initState();
+    _readDiagnostics();
+  }
+
+  Future<void> _readDiagnostics() async {
+    String? report;
+    try {
+      final load = widget.loadDiagnostics;
+      report = load != null
+          ? await load()
+          : (await NexCrashLog.open()).shareable();
+    } catch (_) {
+      report = null;
+    }
+    if (mounted && report != null && report.trim().isNotEmpty) {
+      setState(() => _diagnostics = report);
+    }
+  }
 
   NexMetrics get _metrics => widget.metrics ?? NexMetrics.shared;
 
@@ -72,10 +111,12 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
       _lastFailure = null;
     });
 
+    final diagnostics = _attachDiagnostics ? _diagnostics : null;
     final outcome = await widget.service.send(
       text,
       kind: _kind,
       contact: _contact.text,
+      diagnostics: diagnostics,
     );
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
@@ -90,6 +131,7 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
             text,
             kind: _kind,
             contact: _contact.text,
+            diagnostics: diagnostics,
           ),
         );
         if (!mounted) return;
@@ -215,6 +257,50 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
                     textDirection: TextDirection.ltr,
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+            ],
+            if (_diagnostics != null) ...[
+              CheckboxListTile(
+                key: const ValueKey('feedback-attach-diagnostics'),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: _attachDiagnostics,
+                onChanged: _sending
+                    ? null
+                    : (value) =>
+                          setState(() => _attachDiagnostics = value ?? false),
+                title: Text(
+                  nexLabel(
+                    context,
+                    'Attach the diagnostics report',
+                    'پیوست گزارش عیب‌یابی',
+                  ),
+                ),
+                subtitle: Text(
+                  nexLabel(
+                    context,
+                    'Recent errors and app events, with links, keys and passwords removed. Nothing from your notes. Shown below before sending.',
+                    'خطاها و رویدادهای اخیر برنامه، بدون لینک، کلید و رمز. چیزی از یادداشت‌هایتان در آن نیست. پیش از ارسال در زیر نشان داده می‌شود.',
+                  ),
+                ),
+              ),
+              if (_attachDiagnostics)
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  padding: const EdgeInsets.all(NexSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(NexRadius.sm),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Text(
+                      _diagnostics!,
+                      textDirection: TextDirection.ltr,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontFamily: 'monospace',
+                      ),
                     ),
                   ),
                 ),

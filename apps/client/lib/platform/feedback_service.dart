@@ -58,10 +58,13 @@ class FeedbackService {
   final http.Client _client;
   final bool _ownsClient;
 
+  /// Sends [message], and the [diagnostics] report the person chose to
+  /// attach, if any. The relay forwards the report to the chat as a file.
   Future<FeedbackOutcome> send(
     String message, {
     FeedbackKind? kind,
     String? contact,
+    String? diagnostics,
   }) async {
     if (baseUrl.isEmpty) return FeedbackOutcome.unavailable;
     final trimmed = message.trim();
@@ -81,6 +84,8 @@ class FeedbackService {
               'device': ?device.device,
               'kind': ?kind?.name,
               if (reply.isNotEmpty) 'contact': reply,
+              if (diagnostics != null && diagnostics.trim().isNotEmpty)
+                'diagnostics': diagnostics,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -115,6 +120,7 @@ class FeedbackService {
       held.message,
       kind: held.kind,
       contact: held.contact,
+      diagnostics: held.diagnostics,
     );
     // `.sent` already cleared it; `.failed` means the server rejected this
     // exact text, so holding onto it would only retry a fixed rejection.
@@ -130,15 +136,24 @@ class FeedbackService {
     String message, {
     FeedbackKind? kind,
     String? contact,
+    String? diagnostics,
   }) => jsonEncode({
     'message': message,
     'kind': ?kind?.name,
     if (contact != null && contact.trim().isNotEmpty) 'contact': contact.trim(),
+    // The report as it was shown when Send was tapped, not a fresh read:
+    // what goes out later is what the person agreed to.
+    if (diagnostics != null && diagnostics.trim().isNotEmpty)
+      'diagnostics': diagnostics,
   });
 
-  static ({String message, FeedbackKind? kind, String? contact}) decodePending(
-    String raw,
-  ) {
+  static ({
+    String message,
+    FeedbackKind? kind,
+    String? contact,
+    String? diagnostics,
+  })
+  decodePending(String raw) {
     try {
       final value = jsonDecode(raw);
       if (value is Map && value['message'] is String) {
@@ -148,12 +163,13 @@ class FeedbackService {
               .where((k) => k.name == value['kind'])
               .firstOrNull,
           contact: value['contact'] as String?,
+          diagnostics: value['diagnostics'] as String?,
         );
       }
     } on FormatException {
       // Not JSON: a message queued by an older build.
     }
-    return (message: raw, kind: null, contact: null);
+    return (message: raw, kind: null, contact: null, diagnostics: null);
   }
 
   void close() {

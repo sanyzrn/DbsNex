@@ -20,7 +20,7 @@ function post(body: unknown, headers: Record<string, string> = {}): Request {
 
 describe("feedback worker", () => {
   test("limits real bytes without trusting Content-Length", async () => {
-    const res = await handleRequest(post({ message: "x", padding: "x".repeat(9000) }), configuredEnv);
+    const res = await handleRequest(post({ message: "x", padding: "x".repeat(40000) }), configuredEnv);
     assert.equal(res.status, 413);
   });
 
@@ -47,9 +47,15 @@ describe("feedback worker", () => {
     ) => {
       const url = input.toString();
       if (url.startsWith("https://api.telegram.org/")) {
+        const raw = init?.body;
         telegramCalls.push({
           url,
-          body: init?.body ? JSON.parse(init.body as string) : null,
+          body:
+            raw instanceof FormData
+              ? Object.fromEntries(raw.entries())
+              : raw
+                ? JSON.parse(raw as string)
+                : null,
         });
         return telegramResponse();
       }
@@ -79,6 +85,48 @@ describe("feedback worker", () => {
     assert.match(body.text, /the timeline is great/);
     assert.match(body.text, /0\.3\.0/);
     assert.match(body.text, /android/);
+  });
+
+  test("an attached diagnostics report goes as a file replying to the message", async () => {
+    telegramResponse = () =>
+      new Response(JSON.stringify({ ok: true, result: { message_id: 77 } }), { status: 200 });
+    const res = await handleRequest(
+      post({ message: "it crashed", kind: "bug", diagnostics: "2026-10-05\nNex 1.93.5 on android\nStateError" }),
+      configuredEnv,
+    );
+    assert.equal(res.status, 202);
+    assert.deepEqual(await res.json(), { delivered: true, diagnostics: true });
+    assert.equal(telegramCalls.length, 2);
+    assert.match(telegramCalls[1]!.url, /\/sendDocument$/);
+    const form = telegramCalls[1]!.body as Record<string, unknown>;
+    assert.equal(form.chat_id, "12345");
+    assert.equal(form.reply_to_message_id, "77");
+    const file = form.document as File;
+    assert.equal(file.name, "nex-diagnostics.txt");
+    assert.match(await file.text(), /StateError/);
+  });
+
+  test("a message without diagnostics sends no file", async () => {
+    const res = await handleRequest(post({ message: "hello", diagnostics: "  " }), configuredEnv);
+    assert.equal(res.status, 202);
+    assert.equal(telegramCalls.length, 1);
+  });
+
+  test("an over-long diagnostics report is refused", async () => {
+    const res = await handleRequest(
+      post({ message: "hi", diagnostics: "x".repeat(20_001) }),
+      configuredEnv,
+    );
+    assert.equal(res.status, 400);
+    assert.equal(telegramCalls.length, 0);
+  });
+
+  test("a failed file upload still reports the message as delivered", async () => {
+    let calls = 0;
+    telegramResponse = () => (++calls === 1 ? new Response("{}", { status: 200 }) : new Response("no", { status: 400 }));
+    const res = await handleRequest(post({ message: "hi", diagnostics: "log" }), configuredEnv);
+    assert.equal(res.status, 202);
+    assert.deepEqual(await res.json(), { delivered: true, diagnostics: false });
   });
 
   test("the phone it came from is shown beside the version", async () => {
@@ -183,7 +231,7 @@ describe("feedback worker", () => {
 
   test("an oversized body is rejected by content-length before parsing", async () => {
     const res = await handleRequest(
-      post({ message: "hello" }, { "content-length": String(9 * 1024) }),
+      post({ message: "hello" }, { "content-length": String(33 * 1024) }),
       configuredEnv,
     );
 
