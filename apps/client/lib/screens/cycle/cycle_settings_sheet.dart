@@ -260,6 +260,18 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 if (mounted) setState(() {});
               },
             ),
+            SwitchListTile(
+              key: const ValueKey('cycle-gentle'),
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.favorite_border),
+              title: Text(l10n.cycleGentle),
+              subtitle: Text(l10n.cycleGentleHint),
+              value: _prefs.cycleGentle,
+              onChanged: (on) async {
+                await _prefs.setCycleGentle(on);
+                if (mounted) setState(() {});
+              },
+            ),
             const SizedBox(height: NexSpacing.lg),
             Text(l10n.cycleTypicalLengths, style: theme.textTheme.titleSmall),
             _Stepper(

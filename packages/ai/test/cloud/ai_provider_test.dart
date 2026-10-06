@@ -959,6 +959,25 @@ void _attachmentGroup() {
       ).chatSystemPrompt(options);
       expect(prompt, contains('Never say you cannot see an image'));
     });
+
+    test('a gentle day softens the manner and never names a reason', () {
+      final adapter = CloudAIAdapter(
+        config: const AiProviderConfig(
+          provider: AiProvider.openai,
+          apiKey: 'k',
+        ),
+        client: MockClient((_) async => http.Response('{}', 200)),
+      );
+      final plain = adapter.chatSystemPrompt(const AiChatOptions());
+      final gentle = adapter.chatSystemPrompt(
+        const AiChatOptions(gentle: true),
+      );
+      expect(plain, isNot(contains('Be especially gentle')));
+      expect(gentle, contains('Be especially gentle'));
+      expect(gentle, contains('Never mention or hint at their body'));
+      // A manner only: nothing about the cycle itself travels with it.
+      expect(gentle, isNot(contains('Cycle day')));
+    });
   });
 }
 

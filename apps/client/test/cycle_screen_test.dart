@@ -122,6 +122,22 @@ void main() {
     expect(find.text('Heavy · Cramps'), findsOneWidget);
   });
 
+  testWidgets('gentle companion is off until turned on in settings', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    expect(harness.preferences.cycleGentle, isFalse);
+    await tester.tap(find.byTooltip('Cycle settings'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('cycle-gentle')));
+    await tester.tap(find.byKey(const ValueKey('cycle-gentle')));
+    await tester.pumpAndSettle();
+    expect(harness.preferences.cycleGentle, isTrue);
+  });
+
   testWidgets('delete all takes the cycle back to its first questions', (
     tester,
   ) async {

@@ -5432,6 +5432,18 @@ abstract class AppLocalizations {
   /// **'Two heartbeats, one gentle rhythm.'**
   String get cycleWhisperPregnant;
 
+  /// No description provided for @cycleGentle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gentle companion'**
+  String get cycleGentle;
+
+  /// No description provided for @cycleGentleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'On the days that are often harder — just before and at the start of a period, or when you log feeling low, sensitive or in pain — the assistant answers more softly and patiently. It never brings up your cycle. Only a line about tone is sent to your AI provider, never your cycle data. Off by default.'**
+  String get cycleGentleHint;
+
   /// Heading of the reminder sheet
   ///
   /// In en, this message translates to:

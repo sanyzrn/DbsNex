@@ -3369,6 +3369,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cycleWhisperPregnant => 'Two heartbeats, one gentle rhythm.';
 
   @override
+  String get cycleGentle => 'Gentle companion';
+
+  @override
+  String get cycleGentleHint =>
+      'On the days that are often harder — just before and at the start of a period, or when you log feeling low, sensitive or in pain — the assistant answers more softly and patiently. It never brings up your cycle. Only a line about tone is sent to your AI provider, never your cycle data. Off by default.';
+
+  @override
   String get remindTitle => 'Set a reminder';
 
   @override

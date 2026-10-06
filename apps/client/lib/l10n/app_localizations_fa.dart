@@ -3279,6 +3279,13 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cycleWhisperPregnant => 'دو ضربان، یک ریتم آرام.';
 
   @override
+  String get cycleGentle => 'همراهی مهربان';
+
+  @override
+  String get cycleGentleHint =>
+      'در روزهایی که معمولاً سخت‌ترند — کمی پیش از پریود و روزهای اول آن، یا وقتی حالِ گرفته، حساس یا درد ثبت کرده‌اید — دستیار نرم‌تر و صبورتر جواب می‌دهد و هرگز حرفی از چرخه‌تان نمی‌زند. فقط یک جمله دربارهٔ لحن برای سرویس هوش مصنوعی فرستاده می‌شود، نه داده‌های چرخه. پیش‌فرض خاموش است.';
+
+  @override
   String get remindTitle => 'تنظیم یادآور';
 
   @override

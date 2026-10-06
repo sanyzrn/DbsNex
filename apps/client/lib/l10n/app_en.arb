@@ -2417,6 +2417,8 @@
   "cycleWhisperFertile": "These are often the days your energy shines brightest.",
   "cycleWhisperCalm": "Every day of your cycle is part of your own rhythm.",
   "cycleWhisperPregnant": "Two heartbeats, one gentle rhythm.",
+  "cycleGentle": "Gentle companion",
+  "cycleGentleHint": "On the days that are often harder — just before and at the start of a period, or when you log feeling low, sensitive or in pain — the assistant answers more softly and patiently. It never brings up your cycle. Only a line about tone is sent to your AI provider, never your cycle data. Off by default.",
   "remindTitle": "Set a reminder",
   "@remindTitle": {
       "description": "Heading of the reminder sheet"

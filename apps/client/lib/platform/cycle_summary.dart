@@ -137,3 +137,52 @@ Future<String> nexCycleSummaryForAssistant({
   }
   return out.toString().trim();
 }
+
+/// Whether today is one of the days "Gentle companion" is for.
+///
+/// False unless the person turned it on (and «Cycle» is on and set up).
+/// Then true on the days that are often harder: the five days before the
+/// next period is expected (and up to a week of it being late — past that,
+/// it is more likely a period that was not logged than a hard week), the
+/// first three days
+/// of a period, or any day they logged feeling low or sensitive, or pain —
+/// what they logged wins over any prediction, and it is the only signal in
+/// the modes that do not predict. Only the yes or no ever leaves the phone,
+/// as one line about tone; never a date or a reason.
+Future<bool> nexCycleGentleToday({
+  required NexServices services,
+  required NexPreferences preferences,
+  DateTime? now,
+}) async {
+  if (!preferences.cycleEnabled ||
+      !preferences.cycleSetUp ||
+      !preferences.cycleGentle) {
+    return false;
+  }
+  final at = now ?? DateTime.now();
+  final today = DateTime(at.year, at.month, at.day);
+  final log = (await services.cycleDays(today, today)).firstOrNull;
+  if (log != null &&
+      (log.mood == CycleMood.low ||
+          log.mood == CycleMood.sensitive ||
+          log.symptoms.any(_painful.contains))) {
+    return true;
+  }
+  final mode = preferences.cycleMode;
+  if (!mode.predicts) return false;
+  final p = CyclePredictor.predict(
+    periods: await services.cyclePeriods(),
+    today: CycleDate.of(today),
+    typicalCycle: preferences.cycleTypicalLength,
+    typicalPeriod: preferences.cycleTypicalPeriod,
+  );
+  if (p == null) return false;
+  if (p.inPeriod) return p.cycleDay <= 3;
+  return p.daysUntilNext <= 5 && p.daysUntilNext >= -7;
+}
+
+const _painful = {
+  CycleSymptom.cramps,
+  CycleSymptom.headache,
+  CycleSymptom.backPain,
+};

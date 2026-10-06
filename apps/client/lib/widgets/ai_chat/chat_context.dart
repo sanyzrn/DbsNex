@@ -223,6 +223,7 @@ extension _ChatContext on _AiChatSheetState {
     responseStyle: widget.preferences.aiResponseStyle,
     userName: widget.preferences.aiUserName,
     userIntroduction: widget.preferences.aiUserIntroduction,
+    gentle: _gentle,
     notesContext: _context,
     attachments: _attachments,
     // Acting needs ids to act on. With no notes in context every id the model

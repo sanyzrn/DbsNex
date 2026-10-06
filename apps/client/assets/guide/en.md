@@ -115,7 +115,7 @@ If something looks unusual — a period much later than expected, or one lasting
 
 After a couple of cycles with symptoms logged, **Patterns** shows the ones that come back at the same point in your cycle. **Report for a doctor** makes a one-page summary — averages, recent periods, symptoms and patterns — to save as a PDF or share.
 
-Cycle stays on this phone and in your backups. It never appears in your notes, search or widgets. It is sent to an AI service only if you turn on **Let the assistant read Cycle**, and then only as a short summary when you ask the assistant about it — never your day notes. To remove Cycle entirely, turn off **Settings → Sections → Show Cycle**; you choose whether to keep or delete its data. It is not a method of contraception and does not replace a doctor.
+Cycle stays on this phone and in your backups. It never appears in your notes, search or widgets. It is sent to an AI service only if you turn on **Let the assistant read Cycle**, and then only as a short summary when you ask the assistant about it — never your day notes. **Gentle companion**, also in Cycle's settings and off by default, makes the assistant softer and more patient on the days that are often harder: just before and at the start of a period, or when you log feeling low, sensitive or in pain. It never mentions your cycle, and only a line about tone is sent, never your cycle data. To remove Cycle entirely, turn off **Settings → Sections → Show Cycle**; you choose whether to keep or delete its data. It is not a method of contraception and does not replace a doctor.
 
 ## Appearance, language and calendar
 
