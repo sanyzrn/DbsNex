@@ -41,7 +41,10 @@ void main() {
     tester.view.devicePixelRatio = 2.75;
     tester.view.physicalSize = const Size(1080, 2340);
     addTearDown(tester.view.reset);
-    final harness = await pumpNexApp(tester, preferences: preferences);
+    final harness = await pumpNexApp(
+      tester,
+      preferences: {'cycle.enabled': true, ...preferences},
+    );
     await tester.tap(find.byIcon(Icons.space_dashboard_outlined));
     await tester.pumpAndSettle();
     await reopen(tester);

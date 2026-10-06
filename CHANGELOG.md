@@ -36,6 +36,7 @@ Working convention:
 
 ## v1.98.0
 
+- **Cycle is now turned on in your profile, and off by default.** A card in **Profile** says in a few lines what Cycle does, with the switch to turn it on and a way straight in. If you were already using Cycle, it stays on. The old switch in **Settings → Sections** is gone; searching Settings for "Cycle" points to your profile.
 - **Cycle has a space of its own.** The page now feels like stepping into a quieter room: a soft blush-to-lavender light whose glows drift gently as you scroll, rounded frosted cards, a glowing ring and a rose button. It opens with a greeting for the time of day and a kind line for where you are in your cycle — "Be gentle with yourself today" during a period. Its sheets and dialogs share the same colours. With reduced motion, nothing moves.
 - **Fertility signs when trying to conceive.** In **Trying to conceive** mode, a day's log also takes your temperature on waking, an ovulation test and cervical mucus. A positive test is shown on the page for the rest of that cycle, and the assistant (only if you allowed it to read Cycle) sees these signs too.
 - **Gentle companion.** A new switch in Cycle's settings, off by default. When it is on, on the days that are often harder — the few days before a period, its first days, or a day you logged feeling low, sensitive or in pain — the assistant answers more softly and patiently, like a caring friend. It never brings up your cycle or suggests a reason for how you feel. Only a line about tone is sent to your AI provider, never your cycle data.

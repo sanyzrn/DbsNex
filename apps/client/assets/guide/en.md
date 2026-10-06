@@ -102,7 +102,7 @@ The vault uses the phone's secure storage and never enters notes, widgets, searc
 
 ## Cycle
 
-**Tools → Cycle** keeps track of your menstrual cycle, in a quiet space of its own: soft blush and lavender light, a greeting, and a gentle line for where you are in your cycle. The first time, it asks when your last period started and how long your periods and cycles usually are; answer what you know, or **I don't know**, and Nex learns the rest from what you log.
+**Cycle** is off until you turn it on in your **Profile**, where a few lines say what it does. Once on, **Tools → Cycle** keeps track of your menstrual cycle, in a quiet space of its own: soft blush and lavender light, a greeting, and a gentle line for where you are in your cycle. The first time, it asks when your last period started and how long your periods and cycles usually are; answer what you know, or **I don't know**, and Nex learns the rest from what you log.
 
 The large button says **Period started** or **Period ended**; **On another day?** sets either on a date in the past. The ring shows the day of your cycle, the period in rose and the likely fertile days in teal. Under it is when the next period is likely — as a range, because nobody's cycle is exact — and how sure that is. **Log today** notes flow, mood, energy, symptoms, pain relief, intimacy, the pill and a few words; tap any past day on the calendar to do the same for it. Past periods are listed with their lengths; tap one to correct or delete it.
 
@@ -115,7 +115,7 @@ If something looks unusual — a period much later than expected, or one lasting
 
 After a couple of cycles with symptoms logged, **Patterns** shows the ones that come back at the same point in your cycle. **Report for a doctor** makes a one-page summary — averages, recent periods, symptoms and patterns — to save as a PDF or share.
 
-Cycle stays on this phone and in your backups. It never appears in your notes, search or widgets. It is sent to an AI service only if you turn on **Let the assistant read Cycle**, and then only as a short summary when you ask the assistant about it — never your day notes. **Gentle companion**, also in Cycle's settings and off by default, makes the assistant softer and more patient on the days that are often harder: just before and at the start of a period, or when you log feeling low, sensitive or in pain. It never mentions your cycle, and only a line about tone is sent, never your cycle data. To remove Cycle entirely, turn off **Settings → Sections → Show Cycle**; you choose whether to keep or delete its data. It is not a method of contraception and does not replace a doctor.
+Cycle stays on this phone and in your backups. It never appears in your notes, search or widgets. It is sent to an AI service only if you turn on **Let the assistant read Cycle**, and then only as a short summary when you ask the assistant about it — never your day notes. **Gentle companion**, also in Cycle's settings and off by default, makes the assistant softer and more patient on the days that are often harder: just before and at the start of a period, or when you log feeling low, sensitive or in pain. It never mentions your cycle, and only a line about tone is sent, never your cycle data. To remove Cycle entirely, turn it off in your **Profile**; you choose whether to keep or delete its data. It is not a method of contraception and does not replace a doctor.
 
 ## Appearance, language and calendar
 
