@@ -3294,6 +3294,88 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, a summary of your cycle is sent to your AI provider only when you ask the assistant about it. Off by default.';
 
   @override
+  String get cycleFertilitySigns => 'Fertility signs';
+
+  @override
+  String get cycleTemperature => 'Temperature on waking (°C)';
+
+  @override
+  String get cycleOvulationTest => 'Ovulation test';
+
+  @override
+  String get cycleTestNegative => 'Negative';
+
+  @override
+  String get cycleTestPositive => 'Positive';
+
+  @override
+  String get cycleMucus => 'Cervical mucus';
+
+  @override
+  String get cycleMucusDry => 'Dry';
+
+  @override
+  String get cycleMucusSticky => 'Sticky';
+
+  @override
+  String get cycleMucusCreamy => 'Creamy';
+
+  @override
+  String get cycleMucusWatery => 'Watery';
+
+  @override
+  String get cycleMucusEggWhite => 'Egg white';
+
+  @override
+  String cyclePositiveTest(String date) {
+    return 'Positive ovulation test on $date: ovulation is likely within a day or two.';
+  }
+
+  @override
+  String get cycleBabyArrived => 'Has your baby arrived?';
+
+  @override
+  String get cycleBabyArrivedBody =>
+      'Congratulations. Breastfeeding keeps logging without predictions; or go back to tracking your cycle.';
+
+  @override
+  String get cycleGreetingMorning => 'Good morning';
+
+  @override
+  String get cycleGreetingAfternoon => 'Good afternoon';
+
+  @override
+  String get cycleGreetingEvening => 'Good evening';
+
+  @override
+  String get cycleGreetingNight => 'A quiet night';
+
+  @override
+  String get cycleWhisperPeriod => 'Be gentle with yourself today.';
+
+  @override
+  String get cycleWhisperSoon =>
+      'Your period is near; a little extra rest is a kindness.';
+
+  @override
+  String get cycleWhisperFertile =>
+      'These are often the days your energy shines brightest.';
+
+  @override
+  String get cycleWhisperCalm =>
+      'Every day of your cycle is part of your own rhythm.';
+
+  @override
+  String get cycleWhisperPregnant => 'Two heartbeats, one gentle rhythm.';
+
+  @override
+  String get cycleGentle => 'Gentle companion';
+
+  @override
+  String get cycleGentleHint =>
+      'On the days that are often harder — just before and at the start of a period, or when you log feeling low, sensitive or in pain — the assistant answers more softly and patiently. It never brings up your cycle. Only a line about tone is sent to your AI provider, never your cycle data. Off by default.';
+
+  @override
   String get remindTitle => 'Set a reminder';
 
   @override

@@ -7,6 +7,7 @@ import '../../platform/nex_services.dart';
 import '../../widgets/nex_dialog.dart';
 import '../../widgets/nex_text_field.dart';
 import 'cycle_format.dart';
+import 'cycle_space.dart';
 
 /// What happened on one day: a sheet of taps, every part optional.
 ///
@@ -18,6 +19,7 @@ abstract final class CycleDaySheet {
     required NexServices services,
     required DateTime day,
     required List<CyclePeriod> periods,
+    bool fertility = false,
   }) async {
     final date = CycleDate.of(day);
     final existing =
@@ -26,11 +28,18 @@ abstract final class CycleDaySheet {
     if (!context.mounted) return false;
     final saved = await nexShowSheet<bool>(
       context: context,
-      builder: (_) => _DaySheet(
-        services: services,
-        day: day,
-        initial: existing,
-        periods: periods,
+      builder: (_) => CycleSheet(
+        child: _DaySheet(
+          services: services,
+          day: day,
+          initial: existing,
+          periods: periods,
+          fertility:
+              fertility ||
+              existing.temperature != null ||
+              existing.ovulationTest != null ||
+              existing.mucus != null,
+        ),
       ),
     );
     return saved ?? false;
@@ -43,12 +52,17 @@ class _DaySheet extends StatefulWidget {
     required this.day,
     required this.initial,
     required this.periods,
+    required this.fertility,
   });
 
   final NexServices services;
   final DateTime day;
   final CycleDayLog initial;
   final List<CyclePeriod> periods;
+
+  /// Temperature, ovulation test and mucus: shown when trying to conceive,
+  /// or when the day already has any of them.
+  final bool fertility;
 
   @override
   State<_DaySheet> createState() => _DaySheetState();
@@ -57,11 +71,29 @@ class _DaySheet extends StatefulWidget {
 class _DaySheetState extends State<_DaySheet> {
   late CycleDayLog _log = widget.initial;
   late final _note = TextEditingController(text: widget.initial.note ?? '');
+  late final _temperature = TextEditingController(
+    text: widget.initial.temperature?.toStringAsFixed(2) ?? '',
+  );
 
   @override
   void dispose() {
     _note.dispose();
+    _temperature.dispose();
     super.dispose();
+  }
+
+  /// "36.6", "36,6" or «۳۶٫۶» — whatever the keyboard gave. Null when
+  /// empty, or outside what a thermometer in a mouth can read.
+  double? get _parsedTemperature {
+    const persian = '۰۱۲۳۴۵۶۷۸۹';
+    const arabic = '٠١٢٣٤٥٦٧٨٩';
+    var text = _temperature.text.trim();
+    for (var i = 0; i < 10; i++) {
+      text = text.replaceAll(persian[i], '$i').replaceAll(arabic[i], '$i');
+    }
+    text = text.replaceAll('٫', '.').replaceAll(',', '.');
+    final value = double.tryParse(text);
+    return value == null || value < 34 || value > 43 ? null : value;
   }
 
   CyclePeriod? get _period {
@@ -73,7 +105,12 @@ class _DaySheetState extends State<_DaySheet> {
   }
 
   Future<void> _save() async {
-    await widget.services.cycleSaveDay(_log.copyWith(note: () => _note.text));
+    await widget.services.cycleSaveDay(
+      _log.copyWith(
+        note: () => _note.text,
+        temperature: () => _parsedTemperature,
+      ),
+    );
     if (mounted) Navigator.pop(context, true);
   }
 
@@ -225,6 +262,62 @@ class _DaySheetState extends State<_DaySheet> {
                 ),
               ],
             ),
+            if (widget.fertility) ...[
+              heading(l10n.cycleFertilitySigns),
+              TextField(
+                key: const ValueKey('cycle-temperature'),
+                controller: _temperature,
+                // A number: left to right in either language.
+                textDirection: TextDirection.ltr,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: l10n.cycleTemperature,
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: NexSpacing.sm),
+              Text(l10n.cycleOvulationTest, style: theme.textTheme.bodyMedium),
+              Wrap(
+                spacing: NexSpacing.sm,
+                children: [
+                  for (final test in CycleOvulationTest.values)
+                    ChoiceChip(
+                      label: Text(
+                        test == CycleOvulationTest.positive
+                            ? l10n.cycleTestPositive
+                            : l10n.cycleTestNegative,
+                      ),
+                      selected: _log.ovulationTest == test,
+                      onSelected: (on) => setState(
+                        () => _log = _log.copyWith(
+                          ovulationTest: () => on ? test : null,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: NexSpacing.sm),
+              Text(l10n.cycleMucus, style: theme.textTheme.bodyMedium),
+              Wrap(
+                spacing: NexSpacing.sm,
+                runSpacing: NexSpacing.xs,
+                children: [
+                  for (final mucus in CycleMucus.values)
+                    ChoiceChip(
+                      label: Text(cycleMucusLabel(l10n, mucus)),
+                      selected: _log.mucus == mucus,
+                      onSelected: (on) => setState(
+                        () => _log = _log.copyWith(
+                          mucus: () => on ? mucus : null,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
             heading(l10n.cycleNote),
             NexTextField(
               controller: _note,

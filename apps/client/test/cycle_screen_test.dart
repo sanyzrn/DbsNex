@@ -122,6 +122,22 @@ void main() {
     expect(find.text('Heavy · Cramps'), findsOneWidget);
   });
 
+  testWidgets('gentle companion is off until turned on in settings', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    expect(harness.preferences.cycleGentle, isFalse);
+    await tester.tap(find.byTooltip('Cycle settings'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('cycle-gentle')));
+    await tester.tap(find.byKey(const ValueKey('cycle-gentle')));
+    await tester.pumpAndSettle();
+    expect(harness.preferences.cycleGentle, isTrue);
+  });
+
   testWidgets('delete all takes the cycle back to its first questions', (
     tester,
   ) async {
@@ -203,6 +219,65 @@ void main() {
       expect(find.text('Trying to conceive'), findsOneWidget);
     });
 
+    testWidgets('trying to conceive logs fertility signs', (tester) async {
+      final harness = await openCycle(
+        tester,
+        preferences: {'cycle.set_up': true, 'cycle.mode': 'conceive'},
+      );
+      await history(harness, daysAgo: 6);
+      await reopen(tester);
+      await tester.tap(find.byKey(const ValueKey('cycle-log-today')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Fertility signs'));
+      // Persian digits and the Persian decimal sign are read as a number.
+      await tester.enterText(
+        find.byKey(const ValueKey('cycle-temperature')),
+        '۳۶٫۶۵',
+      );
+      await tester.ensureVisible(find.text('Positive'));
+      await tester.tap(find.text('Positive'));
+      await tester.ensureVisible(find.text('Egg white'));
+      await tester.tap(find.text('Egg white'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const ValueKey('cycle-day-save')));
+      await tester.tap(find.byKey(const ValueKey('cycle-day-save')));
+      await tester.pumpAndSettle();
+
+      final log = (await harness.services.cycleDays(today(), today())).single;
+      expect(log.temperature, 36.65);
+      expect(log.ovulationTest, CycleOvulationTest.positive);
+      expect(log.mucus, CycleMucus.eggWhite);
+      expect(find.byKey(const ValueKey('cycle-positive-test')), findsOneWidget);
+    });
+
+    testWidgets('fertility signs stay out of the way otherwise', (
+      tester,
+    ) async {
+      await openCycle(tester, preferences: {'cycle.set_up': true});
+      await tester.tap(find.byKey(const ValueKey('cycle-log-today')));
+      await tester.pumpAndSettle();
+      expect(find.text('Fertility signs'), findsNothing);
+    });
+
+    testWidgets('after the due date, asks whether the baby has arrived', (
+      tester,
+    ) async {
+      final start = CycleDate.of(today()).addDays(-281);
+      final harness = await openCycle(
+        tester,
+        preferences: {
+          'cycle.set_up': true,
+          'cycle.mode': 'pregnant',
+          'cycle.pregnancy_start': '$start',
+        },
+      );
+      expect(find.text('Has your baby arrived?'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('cycle-to-breastfeeding')));
+      await tester.pumpAndSettle();
+      expect(harness.preferences.cycleMode, CycleMode.breastfeeding);
+      expect(find.text('Has your baby arrived?'), findsNothing);
+    });
+
     testWidgets('pregnancy counts weeks and hides the period button', (
       tester,
     ) async {
@@ -221,6 +296,8 @@ void main() {
       expect(find.textContaining('Trimester 1'), findsOneWidget);
       expect(find.byKey(const ValueKey('cycle-primary')), findsNothing);
       expect(find.byType(CycleRing), findsNothing);
+      // The page opens on a person: a greeting and a line for the moment.
+      expect(find.text('Two heartbeats, one gentle rhythm.'), findsOneWidget);
     });
 
     testWidgets('menopause logs without predicting', (tester) async {

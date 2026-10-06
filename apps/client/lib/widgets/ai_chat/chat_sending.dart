@@ -115,6 +115,14 @@ extension _ChatSending on _AiChatSheetState {
     _toBottom();
 
     await _retrieveFor(trimmed);
+    try {
+      _gentle = await nexCycleGentleToday(
+        services: widget.services,
+        preferences: widget.preferences,
+      );
+    } catch (_) {
+      _gentle = false;
+    }
 
     String? reply;
     String? requestError;

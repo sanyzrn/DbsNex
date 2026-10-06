@@ -108,4 +108,47 @@ void main() {
     expect(notes.listTimeline(), isEmpty);
     expect(notes.search(const SearchFilters(query: 'cramps')), isEmpty);
   });
+
+  test('fertility signs are kept, and alone make a day worth keeping', () {
+    cycle.saveDay(
+      CycleDayLog(
+        day: const CycleDate(2026, 10, 12),
+        temperature: 36.65,
+        ovulationTest: CycleOvulationTest.positive,
+        mucus: CycleMucus.eggWhite,
+      ),
+    );
+    final back = cycle.day(DateTime(2026, 10, 12))!;
+    expect(back.temperature, 36.65);
+    expect(back.ovulationTest, CycleOvulationTest.positive);
+    expect(back.mucus, CycleMucus.eggWhite);
+  });
+
+  test('a library from before fertility signs gains their columns', () {
+    db.close();
+    final path = p.join(tmp.path, 'nex.sqlite');
+    // Simulate the 1.96 table: drop the new columns' table and recreate it
+    // as it was.
+    final raw = NexDatabase.open(path);
+    raw.db.execute('DROP TABLE cycle_days');
+    raw.db.execute('''
+CREATE TABLE cycle_days (
+  day TEXT PRIMARY KEY NOT NULL, flow TEXT, symptoms TEXT, mood TEXT,
+  energy INTEGER, pain_relief INTEGER NOT NULL DEFAULT 0,
+  intimacy INTEGER NOT NULL DEFAULT 0, pill INTEGER NOT NULL DEFAULT 0,
+  note TEXT
+)''');
+    raw.db.execute(
+      "INSERT INTO cycle_days (day, flow) VALUES ('2026-10-01', 'light')",
+    );
+    raw.close();
+    db = NexDatabase.open(path);
+    cycle = SqliteCycleRepository(db);
+    notes = SqliteNoteRepository(db, localDeviceId: 'd');
+    expect(cycle.day(DateTime(2026, 10, 1))!.flow, CycleFlow.light);
+    cycle.saveDay(
+      CycleDayLog(day: const CycleDate(2026, 10, 2), temperature: 36.4),
+    );
+    expect(cycle.day(DateTime(2026, 10, 2))!.temperature, 36.4);
+  });
 }

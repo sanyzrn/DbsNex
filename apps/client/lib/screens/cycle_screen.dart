@@ -15,6 +15,7 @@ import 'cycle/cycle_format.dart';
 import 'cycle/cycle_report_screen.dart';
 import 'cycle/cycle_ring.dart';
 import 'cycle/cycle_settings_sheet.dart';
+import 'cycle/cycle_space.dart';
 
 /// «Cycle» — the menstrual cycle assistant.
 ///
@@ -47,6 +48,9 @@ class _CycleScreenState extends State<CycleScreen> {
   Set<CycleDate> _logged = const {};
   CycleDayLog? _todayLog;
   List<CyclePattern> _patterns = const [];
+
+  /// The latest positive ovulation test in the current cycle, if any.
+  CycleDate? _positiveTest;
   late (DateTime, DateTime) _month;
 
   NexServices get _services => widget.services;
@@ -79,6 +83,17 @@ class _CycleScreenState extends State<CycleScreen> {
       _logged = {for (final d in days) d.day};
       _todayLog = todayLog;
       _patterns = CyclePatterns.find(periods: periods, logs: allLogs);
+      final since = prediction?.lastStart;
+      _positiveTest = null;
+      if (since != null) {
+        for (final log in allLogs) {
+          if (log.ovulationTest == CycleOvulationTest.positive &&
+              !log.day.isBefore(since) &&
+              (_positiveTest == null || log.day.isAfter(_positiveTest!))) {
+            _positiveTest = log.day;
+          }
+        }
+      }
       _loading = false;
     });
   }
@@ -127,8 +142,14 @@ class _CycleScreenState extends State<CycleScreen> {
       services: _services,
       day: day,
       periods: _periods,
+      fertility: widget.preferences.cycleMode == CycleMode.conceive,
     );
     if (saved) await _changed();
+  }
+
+  Future<void> _switchMode(CycleMode mode) async {
+    await widget.preferences.setCycleMode(mode);
+    await _changed();
   }
 
   Future<void> _settings() async {
@@ -150,51 +171,53 @@ class _CycleScreenState extends State<CycleScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialog) => AlertDialog(
-          title: Text(l10n.cycleEditPeriod),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.cycleStart),
-                trailing: Text(cycleDayMonth(context, start, solar: _solar)),
-                onTap: () async {
-                  final picked = await _pickPastDay(initial: start);
-                  if (picked != null) setDialog(() => start = picked);
-                },
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.cycleEnd),
-                trailing: Text(
-                  end == null
-                      ? l10n.cycleOngoing
-                      : cycleDayMonth(context, end!, solar: _solar),
+        builder: (dialogContext, setDialog) => CycleTheme(
+          child: AlertDialog(
+            title: Text(l10n.cycleEditPeriod),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.cycleStart),
+                  trailing: Text(cycleDayMonth(context, start, solar: _solar)),
+                  onTap: () async {
+                    final picked = await _pickPastDay(initial: start);
+                    if (picked != null) setDialog(() => start = picked);
+                  },
                 ),
-                onTap: () async {
-                  final picked = await _pickPastDay(
-                    initial: end ?? start,
-                    first: start,
-                  );
-                  if (picked != null) setDialog(() => end = picked);
-                },
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.cycleEnd),
+                  trailing: Text(
+                    end == null
+                        ? l10n.cycleOngoing
+                        : cycleDayMonth(context, end!, solar: _solar),
+                  ),
+                  onTap: () async {
+                    final picked = await _pickPastDay(
+                      initial: end ?? start,
+                      first: start,
+                    );
+                    if (picked != null) setDialog(() => end = picked);
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, 'delete'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(dialogContext).colorScheme.error,
+                ),
+                child: Text(l10n.cycleDeletePeriod),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, 'save'),
+                child: Text(l10n.save),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, 'delete'),
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(dialogContext).colorScheme.error,
-              ),
-              child: Text(l10n.cycleDeletePeriod),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, 'save'),
-              child: Text(l10n.save),
-            ),
-          ],
         ),
       ),
     );
@@ -211,9 +234,24 @@ class _CycleScreenState extends State<CycleScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    return CycleSpace(
+      // Below the space's own theme, so everything inside takes its rose.
+      child: Builder(builder: (context) => _scaffold(context, l10n)),
+    );
+  }
+
+  Widget _scaffold(BuildContext context, AppLocalizations l10n) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text(l10n.cycleTitle),
+        backgroundColor: Colors.transparent,
+        centerTitle: true,
+        title: Text(
+          l10n.cycleTitle,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(letterSpacing: 0.4),
+        ),
         actions: [
           if (widget.preferences.cycleSetUp)
             IconButton(
@@ -329,6 +367,22 @@ class _CycleScreenState extends State<CycleScreen> {
           NexSpacing.xl,
         ),
         children: [
+          CycleRise(
+            child: _Greeting(
+              whisper: switch (p) {
+                _ when pregnancy != null => l10n.cycleWhisperPregnant,
+                null => l10n.cycleWhisperCalm,
+                _ when p.inPeriod => l10n.cycleWhisperPeriod,
+                _
+                    when !p.fertile.start.isAfter(p.today) &&
+                        !p.fertile.end.isBefore(p.today) =>
+                  l10n.cycleWhisperFertile,
+                _ when p.daysUntilNext >= 0 && p.daysUntilNext <= 3 =>
+                  l10n.cycleWhisperSoon,
+                _ => l10n.cycleWhisperCalm,
+              },
+            ),
+          ),
           if (mode != CycleMode.normal)
             Center(
               child: ActionChip(
@@ -344,16 +398,19 @@ class _CycleScreenState extends State<CycleScreen> {
               ),
             ),
           if (pregnancy != null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xl),
-              child: CycleProgressRing(
-                fraction: pregnancy.fraction,
-                color: rose,
-                headline: l10n.cyclePregnancyWeek(
-                  digits(pregnancy.weeks),
-                  digits(pregnancy.days),
+            CycleRise(
+              delay: 0.1,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xl),
+                child: CycleProgressRing(
+                  fraction: pregnancy.fraction,
+                  color: rose,
+                  headline: l10n.cyclePregnancyWeek(
+                    digits(pregnancy.weeks),
+                    digits(pregnancy.days),
+                  ),
+                  caption: l10n.cycleDueDate(day(pregnancy.dueDate)),
                 ),
-                caption: l10n.cycleDueDate(day(pregnancy.dueDate)),
               ),
             ),
             const SizedBox(height: NexSpacing.sm),
@@ -365,13 +422,51 @@ class _CycleScreenState extends State<CycleScreen> {
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: NexSpacing.md),
+            if (pregnancy.daysToGo <= 0)
+              CycleCard(
+                key: const ValueKey('cycle-baby-arrived'),
+                tint: rose,
+                child: Padding(
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        l10n.cycleBabyArrived,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: NexSpacing.xs),
+                      Text(l10n.cycleBabyArrivedBody),
+                      const SizedBox(height: NexSpacing.sm),
+                      Wrap(
+                        spacing: NexSpacing.sm,
+                        children: [
+                          FilledButton.tonal(
+                            key: const ValueKey('cycle-to-breastfeeding'),
+                            onPressed: () =>
+                                _switchMode(CycleMode.breastfeeding),
+                            child: Text(l10n.cycleModeBreastfeeding),
+                          ),
+                          TextButton(
+                            onPressed: () => _switchMode(CycleMode.normal),
+                            child: Text(l10n.cycleModeNormal),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ] else if (p != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xl),
-              child: CycleRing(
-                prediction: p,
-                headline: headline,
-                caption: caption,
+            CycleRise(
+              delay: 0.1,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xl),
+                child: CycleRing(
+                  prediction: p,
+                  headline: headline,
+                  caption: caption,
+                ),
               ),
             )
           else
@@ -402,6 +497,16 @@ class _CycleScreenState extends State<CycleScreen> {
                 color: scheme.onSurfaceVariant,
               ),
             ),
+            if (conceive && _positiveTest != null)
+              Padding(
+                padding: const EdgeInsets.only(top: NexSpacing.xs),
+                child: Text(
+                  l10n.cyclePositiveTest(day(_positiveTest!)),
+                  key: const ValueKey('cycle-positive-test'),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(color: teal),
+                ),
+              ),
             if (!p.fertile.end.isBefore(p.today))
               Padding(
                 padding: const EdgeInsets.only(top: NexSpacing.xs),
@@ -422,13 +527,8 @@ class _CycleScreenState extends State<CycleScreen> {
           ],
           if (pregnancy == null) ...[
             const SizedBox(height: NexSpacing.md),
-            FilledButton.icon(
+            CycleBloomButton(
               key: const ValueKey('cycle-primary'),
-              style: FilledButton.styleFrom(
-                backgroundColor: rose,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(52),
-              ),
               onPressed: () => unawaited(
                 open != null && (p?.inPeriod ?? false)
                     ? _endOn(_today)
@@ -465,36 +565,35 @@ class _CycleScreenState extends State<CycleScreen> {
             ),
           ],
           for (final alert in p?.alerts ?? const <CycleAlert>{})
-            Card(
+            CycleCard(
               margin: const EdgeInsets.only(bottom: NexSpacing.sm),
-              color: scheme.secondaryContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(NexSpacing.md),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: scheme.onSecondaryContainer,
+              tint: scheme.secondary,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.favorite_border, color: scheme.secondary),
+                  const SizedBox(width: NexSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      '${cycleAlertText(l10n, alert)} ${l10n.cycleNotAdvice}',
+                      style: theme.textTheme.bodyMedium,
                     ),
-                    const SizedBox(width: NexSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        '${cycleAlertText(l10n, alert)} ${l10n.cycleNotAdvice}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSecondaryContainer,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          Card(
-            margin: const EdgeInsets.only(bottom: NexSpacing.md),
+          const SizedBox(height: NexSpacing.sm),
+          CycleCard(
+            padding: EdgeInsets.zero,
             child: ListTile(
               key: const ValueKey('cycle-log-today'),
-              leading: Icon(Icons.edit_calendar_outlined, color: rose),
+              contentPadding: const EdgeInsetsDirectional.only(
+                start: NexSpacing.md,
+                end: NexSpacing.sm,
+                top: NexSpacing.xs,
+                bottom: NexSpacing.xs,
+              ),
+              leading: const _Bud(icon: Icons.edit_calendar_outlined),
               title: Text(l10n.cycleLogToday),
               subtitle: Text(
                 todaySummary.isEmpty ? l10n.cycleNothingLogged : todaySummary,
@@ -505,10 +604,10 @@ class _CycleScreenState extends State<CycleScreen> {
               onTap: () => _openDay(_today),
             ),
           ),
-          Card(
-            margin: const EdgeInsets.only(bottom: NexSpacing.md),
+          CycleCard(
+            padding: const EdgeInsets.all(NexSpacing.sm),
             child: Padding(
-              padding: const EdgeInsets.all(NexSpacing.sm),
+              padding: EdgeInsets.zero,
               child: CycleCalendar(
                 periods: _periods,
                 prediction: p,
@@ -524,8 +623,7 @@ class _CycleScreenState extends State<CycleScreen> {
             ),
           ),
           if (p != null) ...[
-            Text(l10n.cycleInsights, style: theme.textTheme.titleSmall),
-            const SizedBox(height: NexSpacing.sm),
+            CycleSectionTitle(l10n.cycleInsights),
             Row(
               children: [
                 _Stat(
@@ -546,34 +644,41 @@ class _CycleScreenState extends State<CycleScreen> {
             ),
             const SizedBox(height: NexSpacing.md),
           ],
-          Text(l10n.cyclePatterns, style: theme.textTheme.titleSmall),
-          const SizedBox(height: NexSpacing.xs),
-          if (_patterns.isEmpty)
-            Text(
-              l10n.cyclePatternsEmpty,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            )
-          else
-            for (final pattern in _patterns.take(6))
-              Padding(
-                padding: const EdgeInsets.only(bottom: NexSpacing.xs),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.insights_outlined, size: 18, color: teal),
-                    const SizedBox(width: NexSpacing.sm),
-                    Expanded(child: Text(cyclePatternText(context, pattern))),
-                  ],
-                ),
-              ),
-          const SizedBox(height: NexSpacing.sm),
-          Card(
-            margin: const EdgeInsets.only(bottom: NexSpacing.md),
+          CycleSectionTitle(l10n.cyclePatterns),
+          CycleCard(
+            child: _patterns.isEmpty
+                ? Text(
+                    l10n.cyclePatternsEmpty,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  )
+                : Column(
+                    children: [
+                      for (final (i, pattern) in _patterns.take(6).indexed)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: i == 0 ? 0 : NexSpacing.sm,
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.auto_awesome, size: 18, color: teal),
+                              const SizedBox(width: NexSpacing.sm),
+                              Expanded(
+                                child: Text(cyclePatternText(context, pattern)),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+          ),
+          CycleCard(
+            padding: EdgeInsets.zero,
             child: ListTile(
               key: const ValueKey('cycle-report'),
-              leading: const Icon(Icons.picture_as_pdf_outlined),
+              leading: const _Bud(icon: Icons.picture_as_pdf_outlined),
               title: Text(l10n.cycleReport),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.push(
@@ -588,23 +693,35 @@ class _CycleScreenState extends State<CycleScreen> {
             ),
           ),
           if (_periods.isNotEmpty) ...[
-            Text(l10n.cycleHistory, style: theme.textTheme.titleSmall),
-            for (final period in _periods.reversed.take(12))
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.water_drop, color: rose, size: 20),
-                title: Text(
-                  period.end == null
-                      ? '${day(period.start)} – ${l10n.cycleOngoing}'
-                      : '${day(period.start)} – ${day(period.end!)}',
-                ),
-                subtitle: period.length == null
-                    ? null
-                    : Text(digits(l10n.cycleDays(period.length!))),
-                trailing: const Icon(Icons.edit_outlined, size: 20),
-                onTap: () => _editPeriod(period),
+            CycleSectionTitle(l10n.cycleHistory),
+            CycleCard(
+              padding: const EdgeInsets.symmetric(vertical: NexSpacing.xs),
+              child: Column(
+                children: [
+                  for (final period in _periods.reversed.take(12))
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: NexSpacing.md,
+                      ),
+                      leading: Icon(Icons.water_drop, color: rose, size: 20),
+                      title: Text(
+                        period.end == null
+                            ? '${day(period.start)} – ${l10n.cycleOngoing}'
+                            : '${day(period.start)} – ${day(period.end!)}',
+                      ),
+                      subtitle: period.length == null
+                          ? null
+                          : Text(digits(l10n.cycleDays(period.length!))),
+                      trailing: Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      onTap: () => _editPeriod(period),
+                    ),
+                ],
               ),
-            const SizedBox(height: NexSpacing.md),
+            ),
           ],
           _Footnote(
             icon: Icons.health_and_safety_outlined,
@@ -632,20 +749,25 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(NexSpacing.sm + 2),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(NexRadius.lg),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
+      child: CycleCard(
+        margin: EdgeInsets.zero,
+        padding: const EdgeInsets.symmetric(
+          horizontal: NexSpacing.sm + 4,
+          vertical: NexSpacing.md,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(value, style: theme.textTheme.titleMedium),
+            Text(
+              value,
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             Text(
               label,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -654,6 +776,86 @@ class _Stat extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A greeting by the hour and a line for where the cycle is, so the page
+/// opens on a person, not on a number.
+class _Greeting extends StatelessWidget {
+  const _Greeting({required this.whisper});
+
+  final String whisper;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final hour = DateTime.now().hour;
+    final hello = hour >= 5 && hour < 12
+        ? l10n.cycleGreetingMorning
+        : hour >= 12 && hour < 17
+        ? l10n.cycleGreetingAfternoon
+        : hour >= 17 && hour < 21
+        ? l10n.cycleGreetingEvening
+        : l10n.cycleGreetingNight;
+    return Padding(
+      padding: const EdgeInsets.only(top: NexSpacing.xs, bottom: NexSpacing.md),
+      child: Column(
+        children: [
+          ShaderMask(
+            blendMode: BlendMode.srcIn,
+            shaderCallback: (bounds) => cycleBloom(
+              theme.brightness,
+            ).createShader(bounds, textDirection: Directionality.of(context)),
+            child: Text(
+              hello,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: NexSpacing.xs),
+          Text(
+            whisper,
+            key: const ValueKey('cycle-whisper'),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A small round of rose light holding an icon.
+class _Bud extends StatelessWidget {
+  const _Bud({required this.icon, this.size = 40});
+
+  final IconData icon;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final rose = cyclePeriodColor(brightness);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [
+            rose.withValues(alpha: 0.26),
+            cycleMauve(brightness).withValues(alpha: 0.10),
+          ],
+        ),
+      ),
+      child: Icon(icon, size: size * 0.5, color: rose),
     );
   }
 }
@@ -668,11 +870,18 @@ class _Footnote extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: NexSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: NexSpacing.sm,
+        vertical: NexSpacing.xs,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
+          Icon(
+            icon,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+          ),
           const SizedBox(width: NexSpacing.sm),
           Expanded(
             child: Text(
@@ -717,7 +926,6 @@ class _WelcomeState extends State<_Welcome> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final rose = cyclePeriodColor(theme.brightness);
     Widget question(String text) => Padding(
       padding: const EdgeInsets.only(top: NexSpacing.lg, bottom: NexSpacing.xs),
       child: Text(text, style: theme.textTheme.titleSmall),
@@ -730,12 +938,16 @@ class _WelcomeState extends State<_Welcome> {
     return ListView(
       padding: const EdgeInsets.all(NexSpacing.lg),
       children: [
-        Icon(Icons.water_drop_outlined, size: 48, color: rose),
-        const SizedBox(height: NexSpacing.sm),
+        const CycleRise(
+          child: Center(child: _Bud(icon: Icons.water_drop_outlined, size: 88)),
+        ),
+        const SizedBox(height: NexSpacing.md),
         Text(
           l10n.cycleWelcome,
           textAlign: TextAlign.center,
-          style: theme.textTheme.headlineSmall,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: NexSpacing.sm),
         Text(
@@ -796,13 +1008,8 @@ class _WelcomeState extends State<_Welcome> {
           ),
         dontKnow(!_cycleKnown, (on) => setState(() => _cycleKnown = !on)),
         const SizedBox(height: NexSpacing.xl),
-        FilledButton(
+        CycleBloomButton(
           key: const ValueKey('cycle-welcome-begin'),
-          style: FilledButton.styleFrom(
-            backgroundColor: rose,
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(52),
-          ),
           onPressed: _busy
               ? null
               : () async {
@@ -814,7 +1021,7 @@ class _WelcomeState extends State<_Welcome> {
                   );
                   if (mounted) setState(() => _busy = false);
                 },
-          child: Text(l10n.cycleBegin),
+          label: Text(l10n.cycleBegin),
         ),
         const SizedBox(height: NexSpacing.md),
         Text(

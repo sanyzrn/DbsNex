@@ -101,8 +101,9 @@ class SqliteCycleRepository {
     db.execute(
       '''
 INSERT OR REPLACE INTO cycle_days
-  (day, flow, symptoms, mood, energy, pain_relief, intimacy, pill, note)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  (day, flow, symptoms, mood, energy, pain_relief, intimacy, pill, note,
+   temperature, ovulation_test, mucus)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ''',
       [
         '${log.day}',
@@ -116,6 +117,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         log.intimacy ? 1 : 0,
         log.pill ? 1 : 0,
         log.note?.trim().isEmpty ?? true ? null : log.note!.trim(),
+        log.temperature,
+        log.ovulationTest?.name,
+        log.mucus?.name,
       ],
     );
   }
@@ -149,5 +153,10 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     intimacy: row['intimacy'] == 1,
     pill: row['pill'] == 1,
     note: row['note'] as String?,
+    temperature: (row['temperature'] as num?)?.toDouble(),
+    ovulationTest: CycleOvulationTest.fromWire(
+      row['ovulation_test'] as String?,
+    ),
+    mucus: CycleMucus.fromWire(row['mucus'] as String?),
   );
 }

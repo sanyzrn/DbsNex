@@ -200,6 +200,11 @@ class _AiChatSheetState extends State<AiChatSheet> {
   /// silently change what earlier answers were based on.
   String _notesContext = '';
 
+  /// "Gentle companion" says today is a harder day: answer more softly.
+  /// Worked out again before every question, so a chat left open overnight
+  /// does not carry yesterday's answer.
+  bool _gentle = false;
+
   /// The focused note's own picture, when there is one and the provider can
   /// look at it. Loaded once with the context and re-sent with every
   /// question — see [NexChatAttachment].

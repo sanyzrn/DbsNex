@@ -57,6 +57,12 @@ mixin _CyclePreferences on _PreferencesStore {
   Future<void> setCycleAssistantAccess(bool value) =>
       _setBool('cycle.assistant_access', value);
 
+  /// "Gentle companion": on the days that tend to be harder, the assistant
+  /// answers more softly. Off until turned on: it adds one line about tone
+  /// to what is sent to the AI provider on those days.
+  bool get cycleGentle => _prefs.getBool('cycle.gentle') ?? false;
+  Future<void> setCycleGentle(bool value) => _setBool('cycle.gentle', value);
+
   /// Two days before the next period is expected.
   bool get cycleRemindSoon => _prefs.getBool('cycle.remind_soon') ?? true;
   Future<void> setCycleRemindSoon(bool value) =>
@@ -91,6 +97,7 @@ mixin _CyclePreferences on _PreferencesStore {
       'cycle.mode',
       'cycle.pregnancy_start',
       'cycle.assistant_access',
+      'cycle.gentle',
     ]) {
       await _prefs.remove(key);
     }

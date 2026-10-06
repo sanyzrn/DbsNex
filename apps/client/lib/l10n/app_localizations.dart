@@ -5294,6 +5294,156 @@ abstract class AppLocalizations {
   /// **'When on, a summary of your cycle is sent to your AI provider only when you ask the assistant about it. Off by default.'**
   String get cycleAssistantAccessHint;
 
+  /// No description provided for @cycleFertilitySigns.
+  ///
+  /// In en, this message translates to:
+  /// **'Fertility signs'**
+  String get cycleFertilitySigns;
+
+  /// No description provided for @cycleTemperature.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature on waking (°C)'**
+  String get cycleTemperature;
+
+  /// No description provided for @cycleOvulationTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Ovulation test'**
+  String get cycleOvulationTest;
+
+  /// No description provided for @cycleTestNegative.
+  ///
+  /// In en, this message translates to:
+  /// **'Negative'**
+  String get cycleTestNegative;
+
+  /// No description provided for @cycleTestPositive.
+  ///
+  /// In en, this message translates to:
+  /// **'Positive'**
+  String get cycleTestPositive;
+
+  /// No description provided for @cycleMucus.
+  ///
+  /// In en, this message translates to:
+  /// **'Cervical mucus'**
+  String get cycleMucus;
+
+  /// No description provided for @cycleMucusDry.
+  ///
+  /// In en, this message translates to:
+  /// **'Dry'**
+  String get cycleMucusDry;
+
+  /// No description provided for @cycleMucusSticky.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticky'**
+  String get cycleMucusSticky;
+
+  /// No description provided for @cycleMucusCreamy.
+  ///
+  /// In en, this message translates to:
+  /// **'Creamy'**
+  String get cycleMucusCreamy;
+
+  /// No description provided for @cycleMucusWatery.
+  ///
+  /// In en, this message translates to:
+  /// **'Watery'**
+  String get cycleMucusWatery;
+
+  /// No description provided for @cycleMucusEggWhite.
+  ///
+  /// In en, this message translates to:
+  /// **'Egg white'**
+  String get cycleMucusEggWhite;
+
+  /// No description provided for @cyclePositiveTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Positive ovulation test on {date}: ovulation is likely within a day or two.'**
+  String cyclePositiveTest(String date);
+
+  /// No description provided for @cycleBabyArrived.
+  ///
+  /// In en, this message translates to:
+  /// **'Has your baby arrived?'**
+  String get cycleBabyArrived;
+
+  /// No description provided for @cycleBabyArrivedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Congratulations. Breastfeeding keeps logging without predictions; or go back to tracking your cycle.'**
+  String get cycleBabyArrivedBody;
+
+  /// No description provided for @cycleGreetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning'**
+  String get cycleGreetingMorning;
+
+  /// No description provided for @cycleGreetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon'**
+  String get cycleGreetingAfternoon;
+
+  /// No description provided for @cycleGreetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening'**
+  String get cycleGreetingEvening;
+
+  /// No description provided for @cycleGreetingNight.
+  ///
+  /// In en, this message translates to:
+  /// **'A quiet night'**
+  String get cycleGreetingNight;
+
+  /// No description provided for @cycleWhisperPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Be gentle with yourself today.'**
+  String get cycleWhisperPeriod;
+
+  /// No description provided for @cycleWhisperSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Your period is near; a little extra rest is a kindness.'**
+  String get cycleWhisperSoon;
+
+  /// No description provided for @cycleWhisperFertile.
+  ///
+  /// In en, this message translates to:
+  /// **'These are often the days your energy shines brightest.'**
+  String get cycleWhisperFertile;
+
+  /// No description provided for @cycleWhisperCalm.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day of your cycle is part of your own rhythm.'**
+  String get cycleWhisperCalm;
+
+  /// No description provided for @cycleWhisperPregnant.
+  ///
+  /// In en, this message translates to:
+  /// **'Two heartbeats, one gentle rhythm.'**
+  String get cycleWhisperPregnant;
+
+  /// No description provided for @cycleGentle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gentle companion'**
+  String get cycleGentle;
+
+  /// No description provided for @cycleGentleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'On the days that are often harder — just before and at the start of a period, or when you log feeling low, sensitive or in pain — the assistant answers more softly and patiently. It never brings up your cycle. Only a line about tone is sent to your AI provider, never your cycle data. Off by default.'**
+  String get cycleGentleHint;
+
   /// Heading of the reminder sheet
   ///
   /// In en, this message translates to:

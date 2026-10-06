@@ -3206,6 +3206,86 @@ class AppLocalizationsFa extends AppLocalizations {
       'اگر روشن باشد، فقط وقتی از دستیار دربارهٔ چرخه بپرسید، خلاصه‌ای از آن برای سرویس هوش مصنوعی‌تان فرستاده می‌شود. به‌طور پیش‌فرض خاموش است.';
 
   @override
+  String get cycleFertilitySigns => 'نشانه‌های باروری';
+
+  @override
+  String get cycleTemperature => 'دمای بدن هنگام بیدار شدن (°C)';
+
+  @override
+  String get cycleOvulationTest => 'تست تخمک‌گذاری';
+
+  @override
+  String get cycleTestNegative => 'منفی';
+
+  @override
+  String get cycleTestPositive => 'مثبت';
+
+  @override
+  String get cycleMucus => 'ترشحات دهانهٔ رحم';
+
+  @override
+  String get cycleMucusDry => 'خشک';
+
+  @override
+  String get cycleMucusSticky => 'چسبنده';
+
+  @override
+  String get cycleMucusCreamy => 'کرمی';
+
+  @override
+  String get cycleMucusWatery => 'آبکی';
+
+  @override
+  String get cycleMucusEggWhite => 'شبیه سفیدهٔ تخم‌مرغ';
+
+  @override
+  String cyclePositiveTest(String date) {
+    return 'تست تخمک‌گذاری $date مثبت بود: تخمک‌گذاری احتمالاً تا یکی دو روز بعد است.';
+  }
+
+  @override
+  String get cycleBabyArrived => 'فرزندتان به دنیا آمده؟';
+
+  @override
+  String get cycleBabyArrivedBody =>
+      'مبارک باشد. با «شیردهی» ثبت بدون پیش‌بینی ادامه پیدا می‌کند؛ یا به ثبت چرخه برگردید.';
+
+  @override
+  String get cycleGreetingMorning => 'صبحت بخیر';
+
+  @override
+  String get cycleGreetingAfternoon => 'روزت بخیر';
+
+  @override
+  String get cycleGreetingEvening => 'عصرت بخیر';
+
+  @override
+  String get cycleGreetingNight => 'شبت آرام';
+
+  @override
+  String get cycleWhisperPeriod => 'امروز با خودت مهربان‌تر باش.';
+
+  @override
+  String get cycleWhisperSoon =>
+      'پریودت نزدیکه؛ کمی استراحت بیشتر، مهربانی با خودته.';
+
+  @override
+  String get cycleWhisperFertile => 'این روزها معمولاً انرژی‌ات در اوجه.';
+
+  @override
+  String get cycleWhisperCalm => 'هر روز از چرخه، بخشی از ریتم خود توست.';
+
+  @override
+  String get cycleWhisperPregnant => 'دو ضربان، یک ریتم آرام.';
+
+  @override
+  String get cycleGentle => 'همراهی مهربان';
+
+  @override
+  String get cycleGentleHint =>
+      'در روزهایی که معمولاً سخت‌ترند — کمی پیش از پریود و روزهای اول آن، یا وقتی حالِ گرفته، حساس یا درد ثبت کرده‌اید — دستیار نرم‌تر و صبورتر جواب می‌دهد و هرگز حرفی از چرخه‌تان نمی‌زند. فقط یک جمله دربارهٔ لحن برای سرویس هوش مصنوعی فرستاده می‌شود، نه داده‌های چرخه. پیش‌فرض خاموش است.';
+
+  @override
   String get remindTitle => 'تنظیم یادآور';
 
   @override

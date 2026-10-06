@@ -160,3 +160,12 @@ String cyclePatternText(BuildContext context, CyclePattern pattern) {
     CyclePhase.ovulation => l10n.cyclePatternOvulation(symptom),
   };
 }
+
+String cycleMucusLabel(AppLocalizations l10n, CycleMucus mucus) =>
+    switch (mucus) {
+      CycleMucus.dry => l10n.cycleMucusDry,
+      CycleMucus.sticky => l10n.cycleMucusSticky,
+      CycleMucus.creamy => l10n.cycleMucusCreamy,
+      CycleMucus.watery => l10n.cycleMucusWatery,
+      CycleMucus.eggWhite => l10n.cycleMucusEggWhite,
+    };

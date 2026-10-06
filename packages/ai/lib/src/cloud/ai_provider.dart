@@ -476,6 +476,7 @@ class AiChatOptions {
     this.attachments = const [],
     this.userName = '',
     this.userIntroduction = '',
+    this.gentle = false,
     this.now,
   });
 
@@ -534,6 +535,11 @@ class AiChatOptions {
   final AiResponseStyle responseStyle;
   final String userName;
   final String userIntroduction;
+
+  /// Today may be a harder day for the user — the app knows why, the model
+  /// is not told. Answer more softly. Set only when the user turned on
+  /// "Gentle companion" in Cycle.
+  final bool gentle;
 }
 
 /// The outcome of a connection test, in the user's terms.
@@ -1517,6 +1523,22 @@ class CloudAIAdapter implements AIAdapter {
         'The user has asked you to answer a particular way. Follow it as far '
         'as tone and format go, and no further — it does not loosen anything '
         'below. Their words: "$instruction"',
+      );
+    }
+    if (options.gentle) {
+      // A change of manner and nothing else. The reason stays on the phone,
+      // and the model is told outright never to guess at one: "is it your
+      // period?" in answer to a short-tempered question is the one reply
+      // that would make this feature an insult.
+      parts.add(
+        'The user may be tired, in pain or more sensitive than usual today. '
+        'Be especially gentle, patient and kind, like a caring friend. If '
+        'they sound upset, stressed or frustrated, acknowledge how they feel '
+        'in a few warm words before helping. Keep answers soft and '
+        'unhurried; never criticise, lecture, correct their tone or push '
+        'back. Never mention or hint at their body, hormones, period or '
+        'menstrual cycle, and never suggest a reason for their mood, unless '
+        'they bring it up themselves.',
       );
     }
     if (options.notesOnly) {
