@@ -1086,8 +1086,11 @@ class NexServices {
       'Nex-${DateTime.now().microsecondsSinceEpoch}.nexfull',
     );
     final store = await NexModelStore.open();
-    final model = includeModel && store.isInstalled(NexModels.gemma4E2B)
-        ? store.fileFor(NexModels.gemma4E2B).path
+    // The model in use, if it is on the phone — the one a restore should
+    // bring back working.
+    final chosen = store.selected;
+    final model = includeModel && store.isInstalled(chosen)
+        ? store.fileFor(chosen).path
         : null;
     await Isolate.run(
       () => FullBackup.create(
@@ -1096,7 +1099,7 @@ class NexServices {
         settings: settings,
         key: key,
         model: model,
-        modelHash: model == null ? null : NexModels.gemma4E2B.sha256,
+        modelHash: model == null ? null : chosen.sha256,
       ),
     );
     return output;
@@ -1114,13 +1117,19 @@ class NexServices {
     var recoveryStarted = false;
     try {
       final path = staging.path;
+      // Which model the backup carries, from its unencrypted header; unpack
+      // then verifies the file against that model's own digest and size, so
+      // a header that lies only fails the restore.
+      final backedUp =
+          NexModels.bySha256(FullBackup.modelHashOf(source.path)) ??
+          NexModels.standard;
       final settings = await Isolate.run(
         () => FullBackup.unpack(
           source.path,
           path,
           key,
-          modelHash: NexModels.gemma4E2B.sha256,
-          modelBytes: NexModels.gemma4E2B.sizeBytes,
+          modelHash: backedUp.sha256,
+          modelBytes: backedUp.sizeBytes,
         ),
       );
       NexPreferences.validateBackupSettings(settings);
@@ -1151,11 +1160,12 @@ class NexServices {
         final model = File(p.join(path, 'model.litertlm'));
         if (await model.exists()) {
           final store = await NexModelStore.open();
-          final target = store.fileFor(NexModels.gemma4E2B);
+          final target = store.fileFor(backedUp);
           await target.parent.create(recursive: true);
           // Stage beside the destination so rename remains atomic across volumes.
           final pending = await model.copy('${target.path}.restore');
           await pending.rename(target.path);
+          await store.select(backedUp);
         }
       } catch (error) {
         // The restart path reads the secure journal and restores the original

@@ -21,17 +21,33 @@ import 'package:nex_core/nex_core.dart';
 /// package's dependency list.
 class LiteRtChatAdapter implements ChatAdapter {
   LiteRtChatAdapter({
-    required this.modelPath,
+    required String modelPath,
     this.preferGpu = true,
     @visibleForTesting LiteLmEngine? engine,
-  }) : _engine = engine;
+  }) : _path = (() => modelPath),
+       _engine = engine,
+       _enginePath = engine == null ? null : modelPath;
+
+  /// An adapter whose model can change while the app runs: [modelPath] is
+  /// asked again before every load, and a loaded model that is no longer the
+  /// one it names is released and the new one loaded in its place.
+  LiteRtChatAdapter.following(
+    String Function() modelPath, {
+    this.preferGpu = true,
+  }) : _path = modelPath;
+
+  final String Function() _path;
 
   /// Where the `.litertlm` weights live on disk.
   ///
-  /// Supplied rather than discovered: the file is ~2.6 GB and arrives through
-  /// a download this package deliberately knows nothing about. A path that is
-  /// not there yet is an ordinary state, not an error — see [available].
-  final String modelPath;
+  /// Supplied rather than discovered: the file is gigabytes and arrives
+  /// through a download this package deliberately knows nothing about. A path
+  /// that is not there yet is an ordinary state, not an error — see
+  /// [available].
+  String get modelPath => _path();
+
+  /// The path [_engine] was loaded from.
+  String? _enginePath;
 
   /// Try the GPU (OpenCL) backend first.
   ///
@@ -98,7 +114,9 @@ class LiteRtChatAdapter implements ChatAdapter {
   /// "there is a wait coming" without starting one.
   @override
   Future<void>? warmUp() {
-    if (!available || _engine != null) return null;
+    if (!available || (_engine != null && _enginePath == modelPath)) {
+      return null;
+    }
     return _ensureEngine().whenComplete(_settle);
   }
 
@@ -276,8 +294,12 @@ class LiteRtChatAdapter implements ChatAdapter {
   }
 
   Future<LiteLmEngine> _ensureEngine() async {
+    final path = modelPath;
     final existing = _engine;
-    if (existing != null) return existing;
+    if (existing != null && _enginePath == path) return existing;
+    // Another model was picked since this one loaded: two sets of weights
+    // will not fit in memory together, so the old one goes first.
+    if (existing != null) await close();
 
     final crashed = _crashedBackends();
     Object? lastFailure;
@@ -291,10 +313,11 @@ class LiteRtChatAdapter implements ChatAdapter {
       _recordAttempt(backend);
       try {
         final engine = await LiteLmEngine.create(
-          LiteLmEngineConfig(modelPath: modelPath, backend: backend),
+          LiteLmEngineConfig(modelPath: path, backend: backend),
         );
         _clearAttempt(backend);
         _engine = engine;
+        _enginePath = path;
         return engine;
       } catch (error) {
         // A device that reports OpenCL and still fails to bring up the GPU
@@ -305,9 +328,7 @@ class LiteRtChatAdapter implements ChatAdapter {
         lastFailure = error;
       }
     }
-    throw StateError(
-      'No LiteRT-LM backend could load $modelPath: $lastFailure',
-    );
+    throw StateError('No LiteRT-LM backend could load $path: $lastFailure');
   }
 
   /// Releases the model. Worth calling: the weights are the largest single
@@ -318,6 +339,7 @@ class LiteRtChatAdapter implements ChatAdapter {
     await _engine?.dispose();
     _conversation = null;
     _engine = null;
+    _enginePath = null;
     _sentThroughIndex = 0;
     _sentSignature = 0;
     _systemInstruction = null;

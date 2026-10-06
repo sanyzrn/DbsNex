@@ -3296,6 +3296,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cycleInProfile => 'در پروفایل';
 
   @override
+  String get localModelChoose => 'مدل';
+
+  @override
+  String get localModelOnPhone => 'روی این گوشی';
+
+  @override
   String get remindTitle => 'تنظیم یادآور';
 
   @override
@@ -3354,7 +3360,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get localModelLicenseGloss =>
-      'خلاصه‌اش: مدل مال گوگل است، شرایط خودش را دارد، و دانلودش یعنی پذیرفتن آن شرایط.';
+      'خلاصه‌اش: مدل مال سازنده‌اش است، شرایط خودش را دارد، و دانلودش یعنی پذیرفتن آن شرایط.';
 
   @override
   String get notificationTest => 'ارسال اعلان آزمایشی';

@@ -39,6 +39,7 @@ class ModelPart {
 class ModelRelease {
   const ModelRelease({
     required this.id,
+    required this.name,
     required this.filename,
     required this.parts,
     required this.sha256,
@@ -49,6 +50,9 @@ class ModelRelease {
 
   /// Stable identifier, used as the on-disk directory name.
   final String id;
+
+  /// What the person sees: the model's own name, not a file name.
+  final String name;
 
   /// What the joined file is called — the name LiteRT-LM is handed.
   final String filename;
@@ -107,6 +111,7 @@ abstract final class NexModels {
   /// truncating the model again.
   static const gemma4E2B = ModelRelease(
     id: 'gemma-4-e2b-it',
+    name: 'Gemma 4 E2B',
     filename: 'gemma-4-E2B-it.litertlm',
     sizeBytes: 2588147712,
     // Gemma's terms, not the repository's apache-2.0 badge. That badge covers
@@ -136,6 +141,54 @@ abstract final class NexModels {
       ),
     ],
   );
+
+  /// MiniCPM5-2B, INT4, 1,553,670,064 bytes in one asset — about 40% smaller
+  /// than [gemma4E2B], offered beside it so the two can be compared on the
+  /// same phone. Size and digest are GitHub's own for the uploaded asset.
+  ///
+  /// The licence link is OpenBMB's MiniCPM repository, where the terms for
+  /// their weights are published; check them before this leaves testing.
+  static const miniCpm5_2B = ModelRelease(
+    id: 'minicpm5-2b-int4',
+    name: 'MiniCPM5 2B',
+    filename: 'MiniCPM5-2B_int4.litertlm',
+    sizeBytes: 1553670064,
+    licenseUrl: 'https://github.com/OpenBMB/MiniCPM',
+    licenseNotice:
+        'MiniCPM is provided by OpenBMB under the terms published at '
+        'github.com/OpenBMB/MiniCPM',
+    sha256: '9858563beafbc6d5e0d25fcee3827541515296a9302ed3d088b16a58d4fbe7b8',
+    parts: [
+      ModelPart(
+        url:
+            'https://github.com/sanyzrn/DbsNex-releases/releases/download'
+            '/MiniCPM5-2B/MiniCPM5-2B_int4.litertlm',
+        filename: 'MiniCPM5-2B_int4.litertlm',
+        sha256:
+            '9858563beafbc6d5e0d25fcee3827541515296a9302ed3d088b16a58d4fbe7b8',
+      ),
+    ],
+  );
+
+  /// Every model on offer, the long-standing one first.
+  static const all = [gemma4E2B, miniCpm5_2B];
+
+  /// The one used until somebody picks another.
+  static const standard = gemma4E2B;
+
+  static ModelRelease? byId(String? id) {
+    for (final model in all) {
+      if (model.id == id) return model;
+    }
+    return null;
+  }
+
+  static ModelRelease? bySha256(String? sha256) {
+    for (final model in all) {
+      if (model.sha256 == sha256) return model;
+    }
+    return null;
+  }
 }
 
 /// How far along an install is, for the screen watching it.
@@ -230,6 +283,31 @@ class NexModelStore {
       if (entity is File) total += await entity.length();
     }
     return total;
+  }
+
+  /// The model the assistant answers with: the one picked on the
+  /// on-device model screen, or [NexModels.standard].
+  ///
+  /// Kept in a small file beside the models rather than in preferences,
+  /// because the entry point that binds the runtime reads it before the
+  /// preferences exist — and because it belongs to the files it points at.
+  ModelRelease get selected {
+    final cached = _selected;
+    if (cached != null) return cached;
+    String? id;
+    try {
+      final file = File(p.join(root.path, 'selected'));
+      if (file.existsSync()) id = file.readAsStringSync().trim();
+    } catch (_) {}
+    return _selected = NexModels.byId(id) ?? NexModels.standard;
+  }
+
+  ModelRelease? _selected;
+
+  Future<void> select(ModelRelease model) async {
+    _selected = model;
+    await root.create(recursive: true);
+    await File(p.join(root.path, 'selected')).writeAsString(model.id);
   }
 
   /// Where models live. A directory of Nex's own, not the media directory:

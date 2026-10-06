@@ -40,8 +40,8 @@ enum ModelInstallPhase {
 /// user says so.
 ///
 /// Deliberately a plain [ChangeNotifier] singleton rather than anything
-/// wider. There is exactly one model and one install of it; a registry keyed by
-/// model id would be scaffolding for a second model that does not exist.
+/// wider. There is one install at a time, of the model in [model]; the screen
+/// does not let another be picked while it runs.
 class ModelInstallController extends ChangeNotifier {
   ModelInstallController._();
 
@@ -60,6 +60,10 @@ class ModelInstallController extends ChangeNotifier {
   bool _discardOnStop = false;
 
   ModelInstallPhase get phase => _phase;
+
+  /// The model the current or last install was for.
+  ModelRelease? get model => _model;
+  ModelRelease? _model;
   ModelInstallProgress? get progress => _progress;
   Object? get error => _error;
 
@@ -81,6 +85,7 @@ class ModelInstallController extends ChangeNotifier {
   /// header for whatever is already here.
   Future<void> start(NexModelStore store, ModelRelease model) async {
     if (isRunning) return;
+    _model = model;
     _stopRequested = false;
     _discardOnStop = false;
     _error = null;

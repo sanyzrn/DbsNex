@@ -3386,6 +3386,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cycleInProfile => 'In your profile';
 
   @override
+  String get localModelChoose => 'Model';
+
+  @override
+  String get localModelOnPhone => 'On this phone';
+
+  @override
   String get remindTitle => 'Set a reminder';
 
   @override
@@ -3443,7 +3449,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get localModelLicenseGloss =>
-      'In short: the model is Google\'s, it comes with its own terms, and downloading it means accepting them.';
+      'In short: the model belongs to its maker, it comes with its own terms, and downloading it means accepting them.';
 
   @override
   String get notificationTest => 'Send a test notification';

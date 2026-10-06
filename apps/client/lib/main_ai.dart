@@ -25,8 +25,10 @@ Future<void> main() async {
   // method uses — until the file exists, which is exactly the placeholder's
   // old job done honestly instead of with a canned sentence.
   final store = await NexModelStore.open();
+  // Follows the model picked on the on-device model screen, so switching
+  // between them needs no restart.
   ChatAdapterBinding.bind(
-    LiteRtChatAdapter(modelPath: store.fileFor(NexModels.gemma4E2B).path),
+    LiteRtChatAdapter.following(() => store.fileFor(store.selected).path),
   );
   runApp(const NexBootstrapHost());
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
@@ -71,5 +73,50 @@ void main() {
     // Set only by main_ai.dart. If this ever defaults true, the standard build
     // starts offering a download nothing in it can load.
     expect(LocalAi.flavorSupportsLocalModels, isFalse);
+  });
+
+  group('more than one model', () {
+    test('both are offered, the long-standing one first and by default', () {
+      expect(NexModels.all.map((m) => m.id), [
+        NexModels.gemma4E2B.id,
+        NexModels.miniCpm5_2B.id,
+      ]);
+      expect(NexModels.standard, NexModels.gemma4E2B);
+      for (final model in NexModels.all) {
+        expect(NexModelStore.installable(model), isTrue, reason: model.id);
+        expect(model.name, isNotEmpty);
+        expect(model.licenseUrl, isNotEmpty);
+      }
+      // Each is found by its digest — what a full backup records.
+      expect(
+        NexModels.bySha256(NexModels.miniCpm5_2B.sha256),
+        NexModels.miniCpm5_2B,
+      );
+      expect(NexModels.byId('nope'), isNull);
+    });
+
+    test('MiniCPM5 is the published single asset, digest and size', () {
+      const model = NexModels.miniCpm5_2B;
+      expect(model.parts, hasLength(1));
+      expect(model.sizeBytes, 1553670064);
+      expect(model.parts.single.sha256, model.sha256);
+      expect(model.parts.single.url, endsWith('/MiniCPM5-2B_int4.litertlm'));
+    });
+
+    test('the choice is remembered beside the models', () async {
+      final root = Directory.systemTemp.createTempSync('nex_models_');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final store = NexModelStore(root: root);
+      expect(store.selected, NexModels.standard);
+      await store.select(NexModels.miniCpm5_2B);
+      expect(store.selected, NexModels.miniCpm5_2B);
+      // A fresh store — the next launch — reads it back.
+      expect(NexModelStore(root: root).selected, NexModels.miniCpm5_2B);
+      // Each model has its own place on disk.
+      expect(
+        store.fileFor(NexModels.gemma4E2B).parent.path,
+        isNot(store.fileFor(NexModels.miniCpm5_2B).parent.path),
+      );
+    });
   });
 }

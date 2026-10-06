@@ -5462,6 +5462,18 @@ abstract class AppLocalizations {
   /// **'In your profile'**
   String get cycleInProfile;
 
+  /// No description provided for @localModelChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get localModelChoose;
+
+  /// No description provided for @localModelOnPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'On this phone'**
+  String get localModelOnPhone;
+
   /// Heading of the reminder sheet
   ///
   /// In en, this message translates to:
@@ -5552,10 +5564,10 @@ abstract class AppLocalizations {
   /// **'A clear page. Nex is here when something comes up.'**
   String get nudgeNothing;
 
-  /// Plain-language gloss under the verbatim Gemma notice
+  /// Plain-language gloss under the model's verbatim licence notice
   ///
   /// In en, this message translates to:
-  /// **'In short: the model is Google\'s, it comes with its own terms, and downloading it means accepting them.'**
+  /// **'In short: the model belongs to its maker, it comes with its own terms, and downloading it means accepting them.'**
   String get localModelLicenseGloss;
 
   /// Settings row that posts a test notification

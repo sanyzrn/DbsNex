@@ -23,6 +23,7 @@ ModelRelease releaseFor({
   String? partDigest,
 }) => ModelRelease(
   id: 'test-model',
+  name: 'Test model',
   filename: 'model.litertlm',
   sizeBytes: whole.length,
   licenseUrl: 'https://example.invalid/terms',
@@ -160,6 +161,7 @@ void main() {
     // the same path as a list of two.
     ModelRelease single() => ModelRelease(
       id: 'single-part-model',
+      name: 'Single part',
       filename: 'model.litertlm',
       sizeBytes: whole.length,
       licenseUrl: 'https://example.invalid/terms',

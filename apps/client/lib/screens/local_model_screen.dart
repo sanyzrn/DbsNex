@@ -24,14 +24,12 @@ import '../widgets/nex_banner.dart';
 /// with no warning; this screen now watches something that keeps running when
 /// it is gone.
 class LocalModelScreen extends StatefulWidget {
-  const LocalModelScreen({
-    super.key,
-    required this.preferences,
-    this.model = NexModels.gemma4E2B,
-  });
+  const LocalModelScreen({super.key, required this.preferences, this.model});
 
   final NexPreferences preferences;
-  final ModelRelease model;
+
+  /// The model to show first; the one in use when null.
+  final ModelRelease? model;
 
   @override
   State<LocalModelScreen> createState() => _LocalModelScreenState();
@@ -43,6 +41,10 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
   NexModelStore? _store;
   LocalAiSupport? _support;
   bool _accepted = false;
+
+  /// The model this screen is about: the one in use, or the one just
+  /// picked — picking one makes it the one in use.
+  late ModelRelease _model = widget.model ?? NexModels.standard;
 
   @override
   void initState() {
@@ -106,11 +108,15 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
     // reason to have a models directory created on it — and checking in this
     // order means the unsupported case never touches a platform channel,
     // which is what stopped this screen from resolving at all under test.
-    final support = await LocalAi.check(widget.model);
+    var support = await LocalAi.check(_model);
     NexModelStore? store;
     if (support.supported) {
       try {
         store = await NexModelStore.open();
+        if (widget.model == null && store.selected.id != _model.id) {
+          _model = store.selected;
+          support = await LocalAi.check(_model);
+        }
       } catch (_) {
         // No support directory means nowhere to put 2 GB. Reported as an
         // ordinary blocker rather than left as a spinner: a screen that never
@@ -129,12 +135,28 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
               freeBytes: null,
             )
           : support;
-      _accepted = widget.preferences.acceptedModelLicense(widget.model.id);
+      _accepted = widget.preferences.acceptedModelLicense(_model.id);
+    });
+  }
+
+  /// Makes [model] the one the assistant uses, and this screen about it.
+  /// The runtime follows on its next question; the old weights are released
+  /// before the new ones load.
+  Future<void> _pick(ModelRelease model) async {
+    final store = _store;
+    if (store == null || model.id == _model.id || _install.isRunning) return;
+    await store.select(model);
+    final support = await LocalAi.check(model);
+    if (!mounted) return;
+    setState(() {
+      _model = model;
+      _support = support;
+      _accepted = widget.preferences.acceptedModelLicense(model.id);
     });
   }
 
   Future<void> _accept() async {
-    await widget.preferences.acceptModelLicense(widget.model.id);
+    await widget.preferences.acceptModelLicense(_model.id);
     if (!mounted) return;
     nexBump();
     setState(() => _accepted = true);
@@ -143,7 +165,7 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
   void _start() {
     final store = _store;
     if (store == null) return;
-    unawaited(_install.start(store, widget.model));
+    unawaited(_install.start(store, _model));
   }
 
   Future<void> _confirmStop() async {
@@ -170,7 +192,7 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
       _install.stop();
     } else {
       final store = _store;
-      if (store != null) await _install.discard(store, widget.model);
+      if (store != null) await _install.discard(store, _model);
     }
   }
 
@@ -197,7 +219,7 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
       ),
     );
     if (confirmed != true) return;
-    await store.delete(widget.model);
+    await store.delete(_model);
     if (!mounted) return;
     nexBump();
     setState(() {});
@@ -246,14 +268,26 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
                   ),
                 ),
                 const SizedBox(height: NexSpacing.lg),
+                if (store != null && NexModels.all.length > 1) ...[
+                  _ModelPicker(
+                    store: store,
+                    selected: _model,
+                    // One download at a time, and it is for the model
+                    // shown: switching mid-way would show its progress
+                    // under the other model's name.
+                    enabled: !_install.isRunning,
+                    onPick: (model) => unawaited(_pick(model)),
+                  ),
+                  const SizedBox(height: NexSpacing.lg),
+                ],
                 if (!support.supported || store == null)
                   _Blocked(
                     blocker: support.blocker ?? LocalAiBlocker.storage,
-                    model: widget.model,
+                    model: _model,
                   )
-                else if (store.isInstalled(widget.model)) ...[
+                else if (store.isInstalled(_model)) ...[
                   _Installed(
-                    bytes: store.installedBytes(widget.model),
+                    bytes: store.installedBytes(_model),
                     onDelete: () => unawaited(_delete()),
                   ),
                   // The one place the runtime's own words are shown. A model
@@ -268,14 +302,20 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
                   ],
                 ] else ...[
                   _License(
-                    model: widget.model,
+                    model: _model,
                     accepted: _accepted,
                     onAccept: () => unawaited(_accept()),
                   ),
                   const SizedBox(height: NexSpacing.lg),
                   _InstallControls(
-                    model: widget.model,
-                    install: _install,
+                    model: _model,
+                    // A paused download of the other model is not this one's
+                    // to resume; its parts wait on disk until it is picked.
+                    install:
+                        _install.model == null ||
+                            _install.model!.id == _model.id
+                        ? _install
+                        : null,
                     enabled: _accepted,
                     onStart: _start,
                     onPause: _install.pause,
@@ -300,7 +340,10 @@ class _InstallControls extends StatelessWidget {
   });
 
   final ModelRelease model;
-  final ModelInstallController install;
+
+  /// Null when the install in flight, or paused, is another model's:
+  /// this one is then simply not started.
+  final ModelInstallController? install;
 
   /// False until the licence is accepted. That order is the licence
   /// condition, not a UX preference — and it gates the file picker too, since
@@ -315,10 +358,11 @@ class _InstallControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final progress = install.progress;
+    final phase = install?.phase ?? ModelInstallPhase.idle;
+    final progress = install?.progress;
     final total = progress?.totalBytes ?? model.sizeBytes;
 
-    return switch (install.phase) {
+    return switch (phase) {
       ModelInstallPhase.downloading ||
       ModelInstallPhase.joining ||
       ModelInstallPhase.loading => Column(
@@ -328,13 +372,13 @@ class _InstallControls extends StatelessWidget {
             // Indeterminate while loading: the runtime reports nothing, and a
             // bar frozen at 100% reads as a hang, which is the exact
             // impression this phase exists to prevent.
-            value: install.phase == ModelInstallPhase.loading
+            value: phase == ModelInstallPhase.loading
                 ? null
                 : progress?.fraction,
             minHeight: 4,
           ),
           const SizedBox(height: NexSpacing.sm),
-          Text(switch (install.phase) {
+          Text(switch (phase) {
             ModelInstallPhase.loading => l10n.localModelLoading,
             ModelInstallPhase.joining => l10n.localModelJoining,
             _ when progress == null => l10n.localModelDownloading,
@@ -344,8 +388,7 @@ class _InstallControls extends StatelessWidget {
             ),
             _ => l10n.localModelDownloading,
           }, style: theme.textTheme.bodySmall),
-          if (progress != null &&
-              install.phase == ModelInstallPhase.downloading)
+          if (progress != null && phase == ModelInstallPhase.downloading)
             Text(
               l10n.localModelBytes(
                 _size(context, progress.receivedBytes),
@@ -356,7 +399,7 @@ class _InstallControls extends StatelessWidget {
               ),
             ),
           const SizedBox(height: NexSpacing.md),
-          if (install.phase == ModelInstallPhase.downloading)
+          if (phase == ModelInstallPhase.downloading)
             Row(
               children: [
                 Expanded(
@@ -643,6 +686,60 @@ class _License extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The models on offer, the one in use selected. Picking one makes it the
+/// one the assistant answers with; each keeps its own download.
+class _ModelPicker extends StatelessWidget {
+  const _ModelPicker({
+    required this.store,
+    required this.selected,
+    required this.enabled,
+    required this.onPick,
+  });
+
+  final NexModelStore store;
+  final ModelRelease selected;
+  final bool enabled;
+  final ValueChanged<ModelRelease> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(l10n.localModelChoose, style: theme.textTheme.titleSmall),
+        const SizedBox(height: NexSpacing.xs),
+        RadioGroup<String>(
+          groupValue: selected.id,
+          onChanged: (id) {
+            final model = NexModels.byId(id);
+            if (enabled && model != null) onPick(model);
+          },
+          child: Column(
+            children: [
+              for (final model in NexModels.all)
+                RadioListTile<String>(
+                  key: ValueKey('local-model-${model.id}'),
+                  value: model.id,
+                  enabled: enabled,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(model.name),
+                  subtitle: Text(
+                    [
+                      _gigabytes(context, model.sizeBytes),
+                      if (store.isInstalled(model)) l10n.localModelOnPhone,
+                    ].join(' · '),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

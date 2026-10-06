@@ -36,6 +36,7 @@ Working convention:
 
 ## v1.98.0
 
+- **A second on-device model to try.** In the on-device model page you can now choose between **Gemma 4 E2B** and the lighter **MiniCPM5 2B** (1.45 GB). Each downloads separately, and the one you pick is the one the assistant uses — no restart needed. A full backup includes the model in use.
 - **Every sheet closes with a swipe down.** Pulling a sheet's content down from the top now closes it, not only its handle — Cycle's settings and day log included, which could not be swiped away before.
 - **Cycle is now turned on in your profile, and off by default.** A card in **Profile** says in a few lines what Cycle does, with the switch to turn it on and a way straight in. If you were already using Cycle, it stays on. The old switch in **Settings → Sections** is gone; searching Settings for "Cycle" points to your profile.
 - **Cycle has a space of its own.** The page now feels like stepping into a quieter room: a soft blush-to-lavender light whose glows drift gently as you scroll, rounded frosted cards, a glowing ring and a rose button. It opens with a greeting for the time of day and a kind line for where you are in your cycle — "Be gentle with yourself today" during a period. Its sheets and dialogs share the same colours. With reduced motion, nothing moves.

@@ -177,6 +177,7 @@ void main() {
         modelBytes: 0,
       );
       expect(restored, settings);
+      expect(FullBackup.modelHashOf(output), isNull);
       expect(
         File('${root.path}/restored/library.nexbak').readAsStringSync(),
         'library-fixture',
@@ -209,6 +210,9 @@ void main() {
       );
       final output = '${root.path}/complete.nexfull';
       create(output);
+      // The header says which model is inside, so a restore knows which of
+      // the offered models to check it against.
+      expect(FullBackup.modelHashOf(output), hash);
       FullBackup.unpack(
         output,
         '${root.path}/restored',
