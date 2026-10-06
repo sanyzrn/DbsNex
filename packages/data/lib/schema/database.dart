@@ -363,6 +363,35 @@ CREATE TABLE IF NOT EXISTS scheduled_notes (
       'ON scheduled_notes(release_at);',
     );
 
+    // «Cycle», the menstrual cycle assistant. Its own tables, joined to
+    // nothing: no note, search entry, embedding or widget ever reads them,
+    // and the assistant only does if the person turns that on. Days are
+    // `yyyy-MM-dd` calendar dates, not instants (see CycleDate).
+    db.execute('''
+CREATE TABLE IF NOT EXISTS cycle_periods (
+  id TEXT PRIMARY KEY NOT NULL,
+  start_day TEXT NOT NULL,
+  end_day TEXT
+);
+''');
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_cycle_periods_start '
+      'ON cycle_periods(start_day);',
+    );
+    db.execute('''
+CREATE TABLE IF NOT EXISTS cycle_days (
+  day TEXT PRIMARY KEY NOT NULL,
+  flow TEXT,
+  symptoms TEXT,
+  mood TEXT,
+  energy INTEGER,
+  pain_relief INTEGER NOT NULL DEFAULT 0,
+  intimacy INTEGER NOT NULL DEFAULT 0,
+  pill INTEGER NOT NULL DEFAULT 0,
+  note TEXT
+);
+''');
+
     // Records one-off data migrations, so a seed that the user has since
     // edited or deleted is never quietly put back.
     db.execute('''

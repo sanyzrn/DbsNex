@@ -2804,6 +2804,323 @@ class AppLocalizationsEn extends AppLocalizations {
       'Discard this note? It never reached your notes, so it cannot be restored.';
 
   @override
+  String get cycleTitle => 'Cycle';
+
+  @override
+  String get cycleSubtitle => 'Your cycle, kept on this phone';
+
+  @override
+  String get cycleWelcome => 'A few questions to begin';
+
+  @override
+  String get cycleWelcomeBody =>
+      'Answer what you know; Nex learns the rest from what you log. Everything stays on this phone.';
+
+  @override
+  String get cycleAskLastStart => 'When did your last period start?';
+
+  @override
+  String get cycleAskPeriodLength => 'How many days does it usually last?';
+
+  @override
+  String get cycleAskCycleLength =>
+      'How many days from one period to the next?';
+
+  @override
+  String get cycleDontKnow => 'I don\'t know';
+
+  @override
+  String get cyclePickDate => 'Pick a date';
+
+  @override
+  String cycleDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cycleBegin => 'Begin';
+
+  @override
+  String cycleDayOfPeriod(String day) {
+    return 'Period, day $day';
+  }
+
+  @override
+  String cycleDaysUntil(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days until your period',
+      one: '1 day until your period',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cycleDueToday => 'Your period may start today';
+
+  @override
+  String cycleLate(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days late',
+      one: '1 day late',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cycleDayOfCycle(String day) {
+    return 'Day $day of your cycle';
+  }
+
+  @override
+  String cycleLikelyBetween(String from, String to) {
+    return 'Likely between $from and $to';
+  }
+
+  @override
+  String get cycleConfidenceLow => 'Still learning your cycle';
+
+  @override
+  String get cycleConfidenceMedium => 'Getting to know your cycle';
+
+  @override
+  String get cycleConfidenceHigh => 'Based on your regular cycles';
+
+  @override
+  String get cycleFertileNow => 'Likely fertile days';
+
+  @override
+  String get cyclePeriodStarted => 'Period started';
+
+  @override
+  String get cyclePeriodEnded => 'Period ended';
+
+  @override
+  String get cycleAnotherDay => 'On another day?';
+
+  @override
+  String get cycleLogToday => 'Log today';
+
+  @override
+  String get cycleNothingLogged => 'Nothing noted yet';
+
+  @override
+  String get cycleLegendPeriod => 'Period';
+
+  @override
+  String get cycleLegendPredicted => 'Expected';
+
+  @override
+  String get cycleLegendFertile => 'Fertile window';
+
+  @override
+  String get cycleInsights => 'Your averages';
+
+  @override
+  String get cycleAverageCycle => 'Cycle';
+
+  @override
+  String get cycleCyclesCounted => 'Cycles counted';
+
+  @override
+  String get cycleHistory => 'Past periods';
+
+  @override
+  String get cycleOngoing => 'ongoing';
+
+  @override
+  String get cycleEditPeriod => 'Edit period';
+
+  @override
+  String get cycleStart => 'Start';
+
+  @override
+  String get cycleEnd => 'End';
+
+  @override
+  String get cycleDeletePeriod => 'Delete this period';
+
+  @override
+  String get cycleDisclaimer =>
+      'Predictions are estimates from your own history. Cycle is not a method of contraception and does not replace a doctor.';
+
+  @override
+  String get cyclePrivacy =>
+      'Kept only on this phone and in your backups. Never sent to an AI service.';
+
+  @override
+  String get cycleAlertLate =>
+      'Your period is later than usual. Stress, travel and illness can all do this; if it goes on, or you might be pregnant, it is worth checking.';
+
+  @override
+  String get cycleAlertLongPeriod =>
+      'This period has gone on for more than eight days. If it keeps on, or is very heavy, talk to a doctor.';
+
+  @override
+  String get cycleAlertShortCycle =>
+      'Your last cycle was shorter than 21 days. One short cycle is common; if it happens often, mention it to a doctor.';
+
+  @override
+  String get cycleAlertLongCycle =>
+      'Your last cycle was longer than 38 days. If your cycles stay this long, mention it to a doctor.';
+
+  @override
+  String get cycleAlertIrregular =>
+      'Your cycles vary by more than a week, so predictions are wide. If this is new for you, a doctor can help.';
+
+  @override
+  String get cycleNotAdvice => 'This is not medical advice.';
+
+  @override
+  String get cycleFlow => 'Flow';
+
+  @override
+  String get cycleFlowNone => 'None';
+
+  @override
+  String get cycleFlowSpotting => 'Spotting';
+
+  @override
+  String get cycleFlowLight => 'Light';
+
+  @override
+  String get cycleFlowMedium => 'Medium';
+
+  @override
+  String get cycleFlowHeavy => 'Heavy';
+
+  @override
+  String get cycleMood => 'Mood';
+
+  @override
+  String get cycleMoodLow => 'Low';
+
+  @override
+  String get cycleMoodSensitive => 'Sensitive';
+
+  @override
+  String get cycleMoodCalm => 'Calm';
+
+  @override
+  String get cycleMoodGood => 'Good';
+
+  @override
+  String get cycleMoodGreat => 'Great';
+
+  @override
+  String get cycleEnergy => 'Energy';
+
+  @override
+  String get cycleSymptoms => 'Symptoms';
+
+  @override
+  String get cycleSymptomCramps => 'Cramps';
+
+  @override
+  String get cycleSymptomHeadache => 'Headache';
+
+  @override
+  String get cycleSymptomBackPain => 'Back pain';
+
+  @override
+  String get cycleSymptomBloating => 'Bloating';
+
+  @override
+  String get cycleSymptomBreastTenderness => 'Tender breasts';
+
+  @override
+  String get cycleSymptomAcne => 'Acne';
+
+  @override
+  String get cycleSymptomNausea => 'Nausea';
+
+  @override
+  String get cycleSymptomFatigue => 'Tiredness';
+
+  @override
+  String get cycleSymptomCravings => 'Cravings';
+
+  @override
+  String get cycleSymptomInsomnia => 'Poor sleep';
+
+  @override
+  String get cycleSymptomDizziness => 'Dizziness';
+
+  @override
+  String get cycleSymptomDischarge => 'Discharge';
+
+  @override
+  String get cyclePainRelief => 'Took pain relief';
+
+  @override
+  String get cycleIntimacy => 'Intimacy';
+
+  @override
+  String get cyclePillTaken => 'Took my pill';
+
+  @override
+  String get cycleNote => 'Note';
+
+  @override
+  String get cycleStartHere => 'Period started this day';
+
+  @override
+  String get cycleEndHere => 'Period ended this day';
+
+  @override
+  String get cycleSettings => 'Cycle settings';
+
+  @override
+  String get cycleReminders => 'Reminders';
+
+  @override
+  String get cycleRemindSoon => 'Two days before my period';
+
+  @override
+  String get cycleRemindLog => 'Each evening of my period, to log the day';
+
+  @override
+  String get cycleRemindPill => 'Daily pill';
+
+  @override
+  String get cycleRemindersHint =>
+      'Notifications only say “Nex reminder”, never what they are about.';
+
+  @override
+  String get cycleTypicalLengths => 'Typical lengths';
+
+  @override
+  String get cycleDeleteAll => 'Delete all cycle data';
+
+  @override
+  String get cycleDeleteAllConfirm =>
+      'Every period, every logged day and these settings are deleted from this phone. Your notes are not touched. This cannot be undone.';
+
+  @override
+  String get cycleDeleted => 'Cycle data deleted';
+
+  @override
+  String get cycleNotifyTitle => 'Nex reminder';
+
+  @override
+  String get cycleNotifySoon => 'A reminder for the coming days';
+
+  @override
+  String get cycleNotifyLog => 'Time for today\'s check-in';
+
+  @override
+  String get cycleNotifyPill => 'Your daily reminder';
+
+  @override
   String get remindTitle => 'Set a reminder';
 
   @override

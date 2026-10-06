@@ -100,6 +100,16 @@ The vault uses the phone's secure storage and never enters notes, widgets, searc
 
 ![Bank cards with every detail on the list](vault-cards.webp)
 
+## Cycle
+
+**Tools → Cycle** keeps track of your menstrual cycle. The first time, it asks when your last period started and how long your periods and cycles usually are; answer what you know, or **I don't know**, and Nex learns the rest from what you log.
+
+The large button says **Period started** or **Period ended**; **On another day?** sets either on a date in the past. The ring shows the day of your cycle, the period in rose and the likely fertile days in teal. Under it is when the next period is likely — as a range, because nobody's cycle is exact — and how sure that is. **Log today** notes flow, mood, energy, symptoms, pain relief, intimacy, the pill and a few words; tap any past day on the calendar to do the same for it. Past periods are listed with their lengths; tap one to correct or delete it.
+
+If something looks unusual — a period much later than expected, or one lasting more than eight days — a short note says so and suggests a doctor; it is never a diagnosis. The settings button at the top sets the reminders (two days before a period, each evening of a period, a daily pill), which only ever say "Nex reminder", and holds **Delete all cycle data**.
+
+Cycle stays on this phone and in your backups. It never appears in your notes, search or widgets and is never sent to an AI service. It is not a method of contraception and does not replace a doctor.
+
 ## Appearance, language and calendar
 
 **Settings → Appearance** sets, in order: light, dark or system mode; text size; the accent colour; and the whole-app palette — Nex, Paper notebook, Autumn, Rose atelier, Forest retreat, Isfahan turquoise, Saffron, Midnight, Deep sea or Graphite. A new look opens out as a circle from where you tapped. Paper, Forest, Isfahan turquoise, Midnight and Deep sea add a faint motif of their own along the bottom of the screen — paper grain, contour lines, tile stars, stars and waves. Choosing a palette also brings its own accent, and the accent row shows the colour actually in use; pick another accent afterwards if you prefer.

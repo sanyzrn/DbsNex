@@ -998,6 +998,85 @@ class NexReminders {
   static int commitmentIdFor(String commitmentId) =>
       idFor('commitment:$commitmentId');
 
+  /// «Cycle»'s alarms, by key: `soon`, `pill`, and `log0`…`log9` for the
+  /// evenings of a period.
+  ///
+  /// Kept out of [syncFromLibrary]'s sweep: the library does not know
+  /// them, `CycleReminders` does, and it re-arms them whenever the cycle
+  /// changes or the app opens.
+  static final cycleKeys = [
+    'soon',
+    'pill',
+    for (var i = 0; i < 10; i++) 'log$i',
+  ];
+  static final Set<int> _cycleIds = {
+    for (final key in cycleKeys) cycleIdFor(key),
+  };
+
+  @visibleForTesting
+  static int cycleIdFor(String key) => idFor('cycle:$key');
+
+  /// One cycle alarm at [at], or every day at [at]'s time when [daily].
+  ///
+  /// The words are whatever the caller hands in, and the caller hands in
+  /// words that say nothing about a cycle: a lock screen is read by
+  /// whoever is holding the phone.
+  Future<void> scheduleCycle(
+    String key, {
+    required DateTime at,
+    required String title,
+    required String body,
+    bool daily = false,
+  }) async {
+    if (!supported) return;
+    lastError = null;
+    await initialise();
+    await cancelCycle(key);
+    var when = tz.TZDateTime.from(at, tz.local);
+    final now = tz.TZDateTime.now(tz.local);
+    if (daily) {
+      while (!when.isAfter(now)) {
+        when = when.add(const Duration(days: 1));
+      }
+    } else if (!when.isAfter(now)) {
+      return;
+    }
+    try {
+      await _plugin.zonedSchedule(
+        id: cycleIdFor(key),
+        title: title,
+        body: body.isEmpty ? null : body,
+        scheduledDate: when,
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            'Reminders',
+            channelDescription: 'Notes you asked Nex to bring back up',
+            importance: Importance.high,
+            priority: Priority.high,
+            visibility: NotificationVisibility.private,
+          ),
+          iOS: const DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: _scheduleMode,
+        matchDateTimeComponents: daily ? DateTimeComponents.time : null,
+      );
+    } catch (error) {
+      lastError = error.toString();
+    }
+  }
+
+  /// Cancels the cycle alarm [key], or every one of them.
+  Future<void> cancelCycle([String? key]) async {
+    if (!supported) return;
+    await initialise();
+    for (final k in key == null ? cycleKeys : [key]) {
+      try {
+        await _plugin.cancel(id: cycleIdFor(k));
+      } catch (_) {}
+    }
+  }
+
   /// The notification for a scheduled note arriving (see [ScheduledNote]).
   ///
   /// Its payload is the note's id, which the note keeps when it arrives, so
@@ -1105,7 +1184,7 @@ class NexReminders {
         final id = request.id;
         // Reserved ids are never touched — none of them is a note, so none of
         // them is in the library to be asked for.
-        if (id < reservedIds) continue;
+        if (id < reservedIds || _cycleIds.contains(id)) continue;
         if (!wanted.contains(id)) {
           try {
             await _plugin.cancel(id: id);

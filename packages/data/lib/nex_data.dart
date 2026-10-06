@@ -31,6 +31,7 @@ export 'package:nex_core/nex_core.dart'
         sha256OfFile;
 
 export 'repositories/commitment_repository.dart';
+export 'repositories/cycle_repository.dart';
 export 'repositories/library_maintenance.dart';
 export 'repositories/memory_repository.dart';
 export 'repositories/note_repository.dart';

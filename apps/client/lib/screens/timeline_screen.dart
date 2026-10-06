@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show ValueListenable, compute;
 import '../documents/text_import.dart';
+import '../platform/cycle_reminders.dart';
 import '../platform/note_copy.dart';
 import '../platform/file_opener.dart';
 import '../platform/hold_menu.dart';
@@ -296,6 +297,20 @@ class TimelineScreenState extends State<TimelineScreen>
     //
     // A scheduled note's notification names a note that is not in the
     // library until it is released, so release comes first.
+    // «Cycle»'s alarms follow its prediction, which moves as the days pass
+    // and does not survive a reinstall: re-armed once per launch.
+    if (widget.preferences.cycleSetUp) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(
+          CycleReminders.apply(
+            context: context,
+            services: widget.services,
+            preferences: widget.preferences,
+          ),
+        );
+      });
+    }
     widget.services.reminders.onOpenNote = _openArrived;
     final launched = widget.services.reminders.takeLaunchNoteId();
     if (launched != null) _openArrived(launched);

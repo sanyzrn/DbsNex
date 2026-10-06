@@ -32,6 +32,7 @@ class InProcessDb implements NexDb {
     _commitments = SqliteCommitmentRepository(_db, localDeviceId: deviceId);
     _threads = SqliteThreadRepository(_db, _repo, localDeviceId: deviceId);
     _scheduled = SqliteScheduledNoteRepository(_db, _repo);
+    _cycle = SqliteCycleRepository(_db);
     // Same composition as the real worker: the purge paths only delete
     // attachment files they can prove live under the media directory.
     _maintenance = LibraryMaintenance(
@@ -80,6 +81,7 @@ class InProcessDb implements NexDb {
   late final SqliteCommitmentRepository _commitments;
   late final SqliteThreadRepository _threads;
   late final SqliteScheduledNoteRepository _scheduled;
+  late final SqliteCycleRepository _cycle;
   late final SearchService _search;
   late final LibraryMaintenance _maintenance;
   late final EnrichmentService _enrichment;
@@ -272,6 +274,39 @@ class InProcessDb implements NexDb {
 
   @override
   Future<void> deleteCommitment(String id) async => _commitments.delete(id);
+
+  @override
+  Future<List<CyclePeriod>> cyclePeriods() async => _cycle.periods();
+
+  @override
+  Future<CyclePeriod> cycleStartPeriod(
+    DateTime day, {
+    int closeAfter = 5,
+  }) async => _cycle.startPeriod(day, closeAfter: closeAfter);
+
+  @override
+  Future<void> cycleEndPeriod(String id, DateTime day) async =>
+      _cycle.endPeriod(id, day);
+
+  @override
+  Future<void> cycleUpdatePeriod(
+    String id,
+    DateTime start,
+    DateTime? end,
+  ) async => _cycle.updatePeriod(id, start, end);
+
+  @override
+  Future<void> cycleDeletePeriod(String id) async => _cycle.deletePeriod(id);
+
+  @override
+  Future<List<CycleDayLog>> cycleDays(DateTime from, DateTime to) async =>
+      _cycle.days(from, to);
+
+  @override
+  Future<void> cycleSaveDay(CycleDayLog log) async => _cycle.saveDay(log);
+
+  @override
+  Future<void> cycleDeleteAll() async => _cycle.deleteAll();
 
   @override
   Future<ScheduledNote?> scheduleNote(
