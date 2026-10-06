@@ -455,7 +455,10 @@ extension _TimelineLayout on TimelineScreenState {
                   Navigator.push<void>(
                     context,
                     NexPageRoute<void>(
-                      builder: (_) => ToolsScreen(services: widget.services),
+                      builder: (_) => ToolsScreen(
+                        services: widget.services,
+                        preferences: widget.preferences,
+                      ),
                     ),
                   ),
                 );

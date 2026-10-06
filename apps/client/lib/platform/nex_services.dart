@@ -517,6 +517,51 @@ class NexServices {
     await refreshTimeline();
   }
 
+  /* ------------------------------------------------------------ cycle */
+
+  Future<List<CyclePeriod>> cyclePeriods() => worker.cyclePeriods();
+
+  /// Starts a period on [day]. A forgotten open one is closed at the
+  /// expected length first.
+  Future<CyclePeriod> cycleStartPeriod(DateTime day) async {
+    final prediction = await cyclePrediction();
+    return worker.cycleStartPeriod(
+      day,
+      closeAfter: prediction?.averagePeriod ?? _preferences.cycleTypicalPeriod,
+    );
+  }
+
+  Future<void> cycleEndPeriod(String id, DateTime day) =>
+      worker.cycleEndPeriod(id, day);
+
+  Future<void> cycleUpdatePeriod(String id, DateTime start, DateTime? end) =>
+      worker.cycleUpdatePeriod(id, start, end);
+
+  Future<void> cycleDeletePeriod(String id) => worker.cycleDeletePeriod(id);
+
+  Future<List<CycleDayLog>> cycleDays(DateTime from, DateTime to) =>
+      worker.cycleDays(from, to);
+
+  Future<void> cycleSaveDay(CycleDayLog log) => worker.cycleSaveDay(log);
+
+  /// What the cycle screen shows, from everything logged. Null until a
+  /// period has been.
+  Future<CyclePrediction?> cyclePrediction({DateTime? today}) async =>
+      CyclePredictor.predict(
+        periods: await worker.cyclePeriods(),
+        today: CycleDate.of(today ?? DateTime.now()),
+        typicalCycle: _preferences.cycleTypicalLength,
+        typicalPeriod: _preferences.cycleTypicalPeriod,
+      );
+
+  /// Every period, every logged day, the settings and the reminders —
+  /// gone, and nothing else touched.
+  Future<void> cycleDeleteAll() async {
+    await worker.cycleDeleteAll();
+    await reminders.cancelCycle();
+    await _preferences.resetCycle();
+  }
+
   /* -------------------------------------------------- scheduled notes */
 
   Timer? _scheduledTimer;

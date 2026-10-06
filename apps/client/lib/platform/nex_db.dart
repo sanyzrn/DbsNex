@@ -120,6 +120,27 @@ abstract interface class NexDb {
 
   Future<void> deleteCommitment(String id);
 
+  /* ------------------------------------------------------------ cycle */
+
+  /// Every logged period, the earliest first.
+  Future<List<CyclePeriod>> cyclePeriods();
+
+  Future<CyclePeriod> cycleStartPeriod(DateTime day, {int closeAfter = 5});
+
+  Future<void> cycleEndPeriod(String id, DateTime day);
+
+  Future<void> cycleUpdatePeriod(String id, DateTime start, DateTime? end);
+
+  Future<void> cycleDeletePeriod(String id);
+
+  Future<List<CycleDayLog>> cycleDays(DateTime from, DateTime to);
+
+  /// Saves a day's log, or forgets the day when it is empty.
+  Future<void> cycleSaveDay(CycleDayLog log);
+
+  /// Every period and logged day, gone.
+  Future<void> cycleDeleteAll();
+
   /* -------------------------------------------------- scheduled notes */
 
   /// Takes the live text note [noteId] out of the library until

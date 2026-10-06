@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+## v1.96.0
+
+- **Cycle — a menstrual cycle assistant.** A new **Cycle** page in **Tools**. Three optional questions to begin; then one large button for "Period started" and "Period ended", a ring showing where you are in your cycle, and a month calendar (in the solar calendar when you use it) with your periods, the expected ones and the likely fertile days.
+  - **Predictions from your own history**, not a fixed 28 days: a range rather than a single date, and a plain note of how sure it is. A month you forgot to log is not mistaken for one long cycle.
+  - **A day's log in a few taps:** flow, mood, energy, symptoms, pain relief, intimacy, the pill and a short note.
+  - **Your averages and past periods**, each period editable or deletable.
+  - **A gentle word, never a diagnosis,** when something is unusual: a period much later than expected, one lasting more than eight days, very short or long cycles, or cycles that vary a lot.
+  - **Optional reminders** two days before a period, each evening of a period, and for a daily pill. They only ever say "Nex reminder".
+  - **Private by design:** kept only on this phone and in your backups, never in your notes, search or widgets, and never sent to an AI service. **Delete all cycle data** removes everything at once.
+  - Cycle is not a method of contraception and does not replace a doctor.
+
 ## v1.95.0
 
 - **Schedule a note for later.** While writing a note, hold the send button instead of tapping it, and choose when it should arrive: tomorrow morning, next week, in a month, in a year, or any day and time. Until then it is nowhere in your notes, search or widgets; at its time it lands on the timeline as an ordinary note, with a notification. **Tools → Scheduled** lists what is on its way, where each one can be delivered now, moved to another time or discarded.

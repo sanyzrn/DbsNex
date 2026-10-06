@@ -4478,6 +4478,558 @@ abstract class AppLocalizations {
   /// **'Discard this note? It never reached your notes, so it cannot be restored.'**
   String get scheduledDiscardConfirm;
 
+  /// No description provided for @cycleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle'**
+  String get cycleTitle;
+
+  /// No description provided for @cycleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cycle, kept on this phone'**
+  String get cycleSubtitle;
+
+  /// No description provided for @cycleWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'A few questions to begin'**
+  String get cycleWelcome;
+
+  /// No description provided for @cycleWelcomeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer what you know; Nex learns the rest from what you log. Everything stays on this phone.'**
+  String get cycleWelcomeBody;
+
+  /// No description provided for @cycleAskLastStart.
+  ///
+  /// In en, this message translates to:
+  /// **'When did your last period start?'**
+  String get cycleAskLastStart;
+
+  /// No description provided for @cycleAskPeriodLength.
+  ///
+  /// In en, this message translates to:
+  /// **'How many days does it usually last?'**
+  String get cycleAskPeriodLength;
+
+  /// No description provided for @cycleAskCycleLength.
+  ///
+  /// In en, this message translates to:
+  /// **'How many days from one period to the next?'**
+  String get cycleAskCycleLength;
+
+  /// No description provided for @cycleDontKnow.
+  ///
+  /// In en, this message translates to:
+  /// **'I don\'t know'**
+  String get cycleDontKnow;
+
+  /// No description provided for @cyclePickDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a date'**
+  String get cyclePickDate;
+
+  /// No description provided for @cycleDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day} other{{count} days}}'**
+  String cycleDays(int count);
+
+  /// No description provided for @cycleBegin.
+  ///
+  /// In en, this message translates to:
+  /// **'Begin'**
+  String get cycleBegin;
+
+  /// No description provided for @cycleDayOfPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Period, day {day}'**
+  String cycleDayOfPeriod(String day);
+
+  /// No description provided for @cycleDaysUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day until your period} other{{count} days until your period}}'**
+  String cycleDaysUntil(int count);
+
+  /// No description provided for @cycleDueToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Your period may start today'**
+  String get cycleDueToday;
+
+  /// No description provided for @cycleLate.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day late} other{{count} days late}}'**
+  String cycleLate(int count);
+
+  /// No description provided for @cycleDayOfCycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {day} of your cycle'**
+  String cycleDayOfCycle(String day);
+
+  /// No description provided for @cycleLikelyBetween.
+  ///
+  /// In en, this message translates to:
+  /// **'Likely between {from} and {to}'**
+  String cycleLikelyBetween(String from, String to);
+
+  /// No description provided for @cycleConfidenceLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Still learning your cycle'**
+  String get cycleConfidenceLow;
+
+  /// No description provided for @cycleConfidenceMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting to know your cycle'**
+  String get cycleConfidenceMedium;
+
+  /// No description provided for @cycleConfidenceHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Based on your regular cycles'**
+  String get cycleConfidenceHigh;
+
+  /// No description provided for @cycleFertileNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Likely fertile days'**
+  String get cycleFertileNow;
+
+  /// No description provided for @cyclePeriodStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Period started'**
+  String get cyclePeriodStarted;
+
+  /// No description provided for @cyclePeriodEnded.
+  ///
+  /// In en, this message translates to:
+  /// **'Period ended'**
+  String get cyclePeriodEnded;
+
+  /// No description provided for @cycleAnotherDay.
+  ///
+  /// In en, this message translates to:
+  /// **'On another day?'**
+  String get cycleAnotherDay;
+
+  /// No description provided for @cycleLogToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Log today'**
+  String get cycleLogToday;
+
+  /// No description provided for @cycleNothingLogged.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing noted yet'**
+  String get cycleNothingLogged;
+
+  /// No description provided for @cycleLegendPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Period'**
+  String get cycleLegendPeriod;
+
+  /// No description provided for @cycleLegendPredicted.
+  ///
+  /// In en, this message translates to:
+  /// **'Expected'**
+  String get cycleLegendPredicted;
+
+  /// No description provided for @cycleLegendFertile.
+  ///
+  /// In en, this message translates to:
+  /// **'Fertile window'**
+  String get cycleLegendFertile;
+
+  /// No description provided for @cycleInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'Your averages'**
+  String get cycleInsights;
+
+  /// No description provided for @cycleAverageCycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle'**
+  String get cycleAverageCycle;
+
+  /// No description provided for @cycleCyclesCounted.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycles counted'**
+  String get cycleCyclesCounted;
+
+  /// No description provided for @cycleHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Past periods'**
+  String get cycleHistory;
+
+  /// No description provided for @cycleOngoing.
+  ///
+  /// In en, this message translates to:
+  /// **'ongoing'**
+  String get cycleOngoing;
+
+  /// No description provided for @cycleEditPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit period'**
+  String get cycleEditPeriod;
+
+  /// No description provided for @cycleStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get cycleStart;
+
+  /// No description provided for @cycleEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'End'**
+  String get cycleEnd;
+
+  /// No description provided for @cycleDeletePeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this period'**
+  String get cycleDeletePeriod;
+
+  /// No description provided for @cycleDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Predictions are estimates from your own history. Cycle is not a method of contraception and does not replace a doctor.'**
+  String get cycleDisclaimer;
+
+  /// No description provided for @cyclePrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept only on this phone and in your backups. Never sent to an AI service.'**
+  String get cyclePrivacy;
+
+  /// No description provided for @cycleAlertLate.
+  ///
+  /// In en, this message translates to:
+  /// **'Your period is later than usual. Stress, travel and illness can all do this; if it goes on, or you might be pregnant, it is worth checking.'**
+  String get cycleAlertLate;
+
+  /// No description provided for @cycleAlertLongPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'This period has gone on for more than eight days. If it keeps on, or is very heavy, talk to a doctor.'**
+  String get cycleAlertLongPeriod;
+
+  /// No description provided for @cycleAlertShortCycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your last cycle was shorter than 21 days. One short cycle is common; if it happens often, mention it to a doctor.'**
+  String get cycleAlertShortCycle;
+
+  /// No description provided for @cycleAlertLongCycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your last cycle was longer than 38 days. If your cycles stay this long, mention it to a doctor.'**
+  String get cycleAlertLongCycle;
+
+  /// No description provided for @cycleAlertIrregular.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cycles vary by more than a week, so predictions are wide. If this is new for you, a doctor can help.'**
+  String get cycleAlertIrregular;
+
+  /// No description provided for @cycleNotAdvice.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not medical advice.'**
+  String get cycleNotAdvice;
+
+  /// No description provided for @cycleFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Flow'**
+  String get cycleFlow;
+
+  /// No description provided for @cycleFlowNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get cycleFlowNone;
+
+  /// No description provided for @cycleFlowSpotting.
+  ///
+  /// In en, this message translates to:
+  /// **'Spotting'**
+  String get cycleFlowSpotting;
+
+  /// No description provided for @cycleFlowLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get cycleFlowLight;
+
+  /// No description provided for @cycleFlowMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get cycleFlowMedium;
+
+  /// No description provided for @cycleFlowHeavy.
+  ///
+  /// In en, this message translates to:
+  /// **'Heavy'**
+  String get cycleFlowHeavy;
+
+  /// No description provided for @cycleMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood'**
+  String get cycleMood;
+
+  /// No description provided for @cycleMoodLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get cycleMoodLow;
+
+  /// No description provided for @cycleMoodSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'Sensitive'**
+  String get cycleMoodSensitive;
+
+  /// No description provided for @cycleMoodCalm.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm'**
+  String get cycleMoodCalm;
+
+  /// No description provided for @cycleMoodGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get cycleMoodGood;
+
+  /// No description provided for @cycleMoodGreat.
+  ///
+  /// In en, this message translates to:
+  /// **'Great'**
+  String get cycleMoodGreat;
+
+  /// No description provided for @cycleEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get cycleEnergy;
+
+  /// No description provided for @cycleSymptoms.
+  ///
+  /// In en, this message translates to:
+  /// **'Symptoms'**
+  String get cycleSymptoms;
+
+  /// No description provided for @cycleSymptomCramps.
+  ///
+  /// In en, this message translates to:
+  /// **'Cramps'**
+  String get cycleSymptomCramps;
+
+  /// No description provided for @cycleSymptomHeadache.
+  ///
+  /// In en, this message translates to:
+  /// **'Headache'**
+  String get cycleSymptomHeadache;
+
+  /// No description provided for @cycleSymptomBackPain.
+  ///
+  /// In en, this message translates to:
+  /// **'Back pain'**
+  String get cycleSymptomBackPain;
+
+  /// No description provided for @cycleSymptomBloating.
+  ///
+  /// In en, this message translates to:
+  /// **'Bloating'**
+  String get cycleSymptomBloating;
+
+  /// No description provided for @cycleSymptomBreastTenderness.
+  ///
+  /// In en, this message translates to:
+  /// **'Tender breasts'**
+  String get cycleSymptomBreastTenderness;
+
+  /// No description provided for @cycleSymptomAcne.
+  ///
+  /// In en, this message translates to:
+  /// **'Acne'**
+  String get cycleSymptomAcne;
+
+  /// No description provided for @cycleSymptomNausea.
+  ///
+  /// In en, this message translates to:
+  /// **'Nausea'**
+  String get cycleSymptomNausea;
+
+  /// No description provided for @cycleSymptomFatigue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tiredness'**
+  String get cycleSymptomFatigue;
+
+  /// No description provided for @cycleSymptomCravings.
+  ///
+  /// In en, this message translates to:
+  /// **'Cravings'**
+  String get cycleSymptomCravings;
+
+  /// No description provided for @cycleSymptomInsomnia.
+  ///
+  /// In en, this message translates to:
+  /// **'Poor sleep'**
+  String get cycleSymptomInsomnia;
+
+  /// No description provided for @cycleSymptomDizziness.
+  ///
+  /// In en, this message translates to:
+  /// **'Dizziness'**
+  String get cycleSymptomDizziness;
+
+  /// No description provided for @cycleSymptomDischarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Discharge'**
+  String get cycleSymptomDischarge;
+
+  /// No description provided for @cyclePainRelief.
+  ///
+  /// In en, this message translates to:
+  /// **'Took pain relief'**
+  String get cyclePainRelief;
+
+  /// No description provided for @cycleIntimacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Intimacy'**
+  String get cycleIntimacy;
+
+  /// No description provided for @cyclePillTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Took my pill'**
+  String get cyclePillTaken;
+
+  /// No description provided for @cycleNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get cycleNote;
+
+  /// No description provided for @cycleStartHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Period started this day'**
+  String get cycleStartHere;
+
+  /// No description provided for @cycleEndHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Period ended this day'**
+  String get cycleEndHere;
+
+  /// No description provided for @cycleSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle settings'**
+  String get cycleSettings;
+
+  /// No description provided for @cycleReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get cycleReminders;
+
+  /// No description provided for @cycleRemindSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Two days before my period'**
+  String get cycleRemindSoon;
+
+  /// No description provided for @cycleRemindLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Each evening of my period, to log the day'**
+  String get cycleRemindLog;
+
+  /// No description provided for @cycleRemindPill.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily pill'**
+  String get cycleRemindPill;
+
+  /// No description provided for @cycleRemindersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications only say “Nex reminder”, never what they are about.'**
+  String get cycleRemindersHint;
+
+  /// No description provided for @cycleTypicalLengths.
+  ///
+  /// In en, this message translates to:
+  /// **'Typical lengths'**
+  String get cycleTypicalLengths;
+
+  /// No description provided for @cycleDeleteAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all cycle data'**
+  String get cycleDeleteAll;
+
+  /// No description provided for @cycleDeleteAllConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Every period, every logged day and these settings are deleted from this phone. Your notes are not touched. This cannot be undone.'**
+  String get cycleDeleteAllConfirm;
+
+  /// No description provided for @cycleDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle data deleted'**
+  String get cycleDeleted;
+
+  /// No description provided for @cycleNotifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nex reminder'**
+  String get cycleNotifyTitle;
+
+  /// No description provided for @cycleNotifySoon.
+  ///
+  /// In en, this message translates to:
+  /// **'A reminder for the coming days'**
+  String get cycleNotifySoon;
+
+  /// No description provided for @cycleNotifyLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Time for today\'s check-in'**
+  String get cycleNotifyLog;
+
+  /// No description provided for @cycleNotifyPill.
+  ///
+  /// In en, this message translates to:
+  /// **'Your daily reminder'**
+  String get cycleNotifyPill;
+
   /// Heading of the reminder sheet
   ///
   /// In en, this message translates to:

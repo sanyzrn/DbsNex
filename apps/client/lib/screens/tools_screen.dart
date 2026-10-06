@@ -3,17 +3,20 @@ import 'password_generator_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../l10n/app_localizations.dart';
+import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import 'cycle_screen.dart';
 import '../platform/vault_store.dart';
 import 'scheduled_screen.dart';
 import 'vault_screen.dart';
 
 class ToolsScreen extends StatelessWidget {
-  const ToolsScreen({super.key, this.services});
+  const ToolsScreen({super.key, this.services, this.preferences});
 
-  /// Needed for the scheduled notes; without it (an accessibility audit of
-  /// the vault tiles alone) that tile is left out.
+  /// Needed for the scheduled notes and «Cycle»; without them (an
+  /// accessibility audit of the vault tiles alone) those tiles are left out.
   final NexServices? services;
+  final NexPreferences? preferences;
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -74,12 +77,24 @@ class ToolsScreen extends StatelessWidget {
             ]),
             if (services case final services?) ...[
               const SizedBox(height: 12),
-              _ToolTile(
-                title: l.scheduledTitle,
-                subtitle: l.scheduledSubtitle,
-                icon: Icons.schedule_send_outlined,
-                destination: ScheduledScreen(services: services),
-              ),
+              _pairs([
+                if (preferences case final preferences?)
+                  _ToolTile(
+                    title: l.cycleTitle,
+                    subtitle: l.cycleSubtitle,
+                    icon: Icons.water_drop_outlined,
+                    destination: CycleScreen(
+                      services: services,
+                      preferences: preferences,
+                    ),
+                  ),
+                _ToolTile(
+                  title: l.scheduledTitle,
+                  subtitle: l.scheduledSubtitle,
+                  icon: Icons.schedule_send_outlined,
+                  destination: ScheduledScreen(services: services),
+                ),
+              ]),
             ],
             const SizedBox(height: 20),
             Row(

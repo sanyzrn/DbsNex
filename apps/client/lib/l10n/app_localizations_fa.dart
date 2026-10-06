@@ -2748,6 +2748,304 @@ class AppLocalizationsFa extends AppLocalizations {
       'این یادداشت دور انداخته شود؟ هنوز به یادداشت‌هایتان نرسیده، پس برگرداندنی نیست.';
 
   @override
+  String get cycleTitle => 'چرخه';
+
+  @override
+  String get cycleSubtitle => 'چرخهٔ شما، فقط روی همین گوشی';
+
+  @override
+  String get cycleWelcome => 'چند سؤال برای شروع';
+
+  @override
+  String get cycleWelcomeBody =>
+      'هرچه را می‌دانید جواب دهید؛ بقیه را Nex از ثبت‌هایتان یاد می‌گیرد. همه‌چیز فقط روی همین گوشی می‌ماند.';
+
+  @override
+  String get cycleAskLastStart => 'آخرین پریود کِی شروع شد؟';
+
+  @override
+  String get cycleAskPeriodLength => 'معمولاً چند روز طول می‌کشد؟';
+
+  @override
+  String get cycleAskCycleLength => 'فاصلهٔ شروع دو پریود معمولاً چند روز است؟';
+
+  @override
+  String get cycleDontKnow => 'نمی‌دانم';
+
+  @override
+  String get cyclePickDate => 'انتخاب تاریخ';
+
+  @override
+  String cycleDays(int count) {
+    return '$count روز';
+  }
+
+  @override
+  String get cycleBegin => 'شروع';
+
+  @override
+  String cycleDayOfPeriod(String day) {
+    return 'پریود، روز $day';
+  }
+
+  @override
+  String cycleDaysUntil(int count) {
+    return '$count روز تا پریود بعدی';
+  }
+
+  @override
+  String get cycleDueToday => 'پریود ممکن است امروز شروع شود';
+
+  @override
+  String cycleLate(int count) {
+    return '$count روز تأخیر';
+  }
+
+  @override
+  String cycleDayOfCycle(String day) {
+    return 'روز $day از چرخه';
+  }
+
+  @override
+  String cycleLikelyBetween(String from, String to) {
+    return 'احتمالاً بین $from تا $to';
+  }
+
+  @override
+  String get cycleConfidenceLow => 'هنوز در حال شناختن چرخهٔ شما';
+
+  @override
+  String get cycleConfidenceMedium => 'چرخه‌تان کم‌کم شناخته می‌شود';
+
+  @override
+  String get cycleConfidenceHigh => 'بر اساس چرخه‌های منظم شما';
+
+  @override
+  String get cycleFertileNow => 'روزهای احتمالی باروری';
+
+  @override
+  String get cyclePeriodStarted => 'پریود شروع شد';
+
+  @override
+  String get cyclePeriodEnded => 'پریود تمام شد';
+
+  @override
+  String get cycleAnotherDay => 'روز دیگری؟';
+
+  @override
+  String get cycleLogToday => 'ثبت امروز';
+
+  @override
+  String get cycleNothingLogged => 'هنوز چیزی ثبت نشده';
+
+  @override
+  String get cycleLegendPeriod => 'پریود';
+
+  @override
+  String get cycleLegendPredicted => 'پیش‌بینی';
+
+  @override
+  String get cycleLegendFertile => 'پنجرهٔ باروری';
+
+  @override
+  String get cycleInsights => 'میانگین‌های شما';
+
+  @override
+  String get cycleAverageCycle => 'چرخه';
+
+  @override
+  String get cycleCyclesCounted => 'چرخه‌های شمرده‌شده';
+
+  @override
+  String get cycleHistory => 'پریودهای گذشته';
+
+  @override
+  String get cycleOngoing => 'ادامه دارد';
+
+  @override
+  String get cycleEditPeriod => 'ویرایش پریود';
+
+  @override
+  String get cycleStart => 'شروع';
+
+  @override
+  String get cycleEnd => 'پایان';
+
+  @override
+  String get cycleDeletePeriod => 'حذف این پریود';
+
+  @override
+  String get cycleDisclaimer =>
+      'پیش‌بینی‌ها تخمینی از سابقهٔ خود شماست. «چرخه» روش پیشگیری از بارداری نیست و جای پزشک را نمی‌گیرد.';
+
+  @override
+  String get cyclePrivacy =>
+      'فقط روی همین گوشی و در بکاپ‌هایتان نگه داشته می‌شود و هرگز برای سرویس هوش مصنوعی فرستاده نمی‌شود.';
+
+  @override
+  String get cycleAlertLate =>
+      'پریود دیرتر از همیشه است. استرس، سفر و بیماری همه می‌توانند باعثش شوند؛ اگر ادامه پیدا کرد یا احتمال بارداری هست، بهتر است بررسی کنید.';
+
+  @override
+  String get cycleAlertLongPeriod =>
+      'این پریود بیش از هشت روز طول کشیده است. اگر ادامه دارد یا خیلی شدید است، با پزشک صحبت کنید.';
+
+  @override
+  String get cycleAlertShortCycle =>
+      'چرخهٔ آخر کوتاه‌تر از ۲۱ روز بود. یک چرخهٔ کوتاه رایج است؛ اگر زیاد تکرار شد، به پزشک بگویید.';
+
+  @override
+  String get cycleAlertLongCycle =>
+      'چرخهٔ آخر بیشتر از ۳۸ روز طول کشید. اگر چرخه‌ها همین‌قدر طولانی ماندند، به پزشک بگویید.';
+
+  @override
+  String get cycleAlertIrregular =>
+      'طول چرخه‌هایتان بیش از یک هفته فرق می‌کند، پس پیش‌بینی‌ها بازهٔ پهنی دارند. اگر این برایتان تازه است، پزشک می‌تواند کمک کند.';
+
+  @override
+  String get cycleNotAdvice => 'این توصیهٔ پزشکی نیست.';
+
+  @override
+  String get cycleFlow => 'خونریزی';
+
+  @override
+  String get cycleFlowNone => 'ندارد';
+
+  @override
+  String get cycleFlowSpotting => 'لکه‌بینی';
+
+  @override
+  String get cycleFlowLight => 'کم';
+
+  @override
+  String get cycleFlowMedium => 'متوسط';
+
+  @override
+  String get cycleFlowHeavy => 'زیاد';
+
+  @override
+  String get cycleMood => 'حال';
+
+  @override
+  String get cycleMoodLow => 'بی‌حوصله';
+
+  @override
+  String get cycleMoodSensitive => 'حساس';
+
+  @override
+  String get cycleMoodCalm => 'آرام';
+
+  @override
+  String get cycleMoodGood => 'خوب';
+
+  @override
+  String get cycleMoodGreat => 'عالی';
+
+  @override
+  String get cycleEnergy => 'انرژی';
+
+  @override
+  String get cycleSymptoms => 'علائم';
+
+  @override
+  String get cycleSymptomCramps => 'دل‌درد';
+
+  @override
+  String get cycleSymptomHeadache => 'سردرد';
+
+  @override
+  String get cycleSymptomBackPain => 'کمردرد';
+
+  @override
+  String get cycleSymptomBloating => 'نفخ';
+
+  @override
+  String get cycleSymptomBreastTenderness => 'حساسیت سینه';
+
+  @override
+  String get cycleSymptomAcne => 'جوش';
+
+  @override
+  String get cycleSymptomNausea => 'حالت تهوع';
+
+  @override
+  String get cycleSymptomFatigue => 'خستگی';
+
+  @override
+  String get cycleSymptomCravings => 'هوس خوردن';
+
+  @override
+  String get cycleSymptomInsomnia => 'بدخوابی';
+
+  @override
+  String get cycleSymptomDizziness => 'سرگیجه';
+
+  @override
+  String get cycleSymptomDischarge => 'ترشحات';
+
+  @override
+  String get cyclePainRelief => 'مسکن خوردم';
+
+  @override
+  String get cycleIntimacy => 'رابطه';
+
+  @override
+  String get cyclePillTaken => 'قرص را خوردم';
+
+  @override
+  String get cycleNote => 'یادداشت';
+
+  @override
+  String get cycleStartHere => 'پریود در این روز شروع شد';
+
+  @override
+  String get cycleEndHere => 'پریود در این روز تمام شد';
+
+  @override
+  String get cycleSettings => 'تنظیمات چرخه';
+
+  @override
+  String get cycleReminders => 'یادآورها';
+
+  @override
+  String get cycleRemindSoon => 'دو روز قبل از پریود';
+
+  @override
+  String get cycleRemindLog => 'هر شب در روزهای پریود، برای ثبت';
+
+  @override
+  String get cycleRemindPill => 'قرص روزانه';
+
+  @override
+  String get cycleRemindersHint =>
+      'اعلان‌ها فقط «یادآور Nex» می‌گویند، نه اینکه درباره چیست.';
+
+  @override
+  String get cycleTypicalLengths => 'طول‌های معمول';
+
+  @override
+  String get cycleDeleteAll => 'حذف همهٔ داده‌های چرخه';
+
+  @override
+  String get cycleDeleteAllConfirm =>
+      'همهٔ پریودها، روزهای ثبت‌شده و این تنظیمات از این گوشی حذف می‌شوند. به یادداشت‌هایتان دست زده نمی‌شود. این کار برگشت‌پذیر نیست.';
+
+  @override
+  String get cycleDeleted => 'داده‌های چرخه حذف شد';
+
+  @override
+  String get cycleNotifyTitle => 'یادآور Nex';
+
+  @override
+  String get cycleNotifySoon => 'یادآوری برای روزهای پیش رو';
+
+  @override
+  String get cycleNotifyLog => 'وقت ثبت امروز است';
+
+  @override
+  String get cycleNotifyPill => 'یادآور روزانهٔ شما';
+
+  @override
   String get remindTitle => 'تنظیم یادآور';
 
   @override

@@ -66,6 +66,14 @@ enum _DbCommand {
   renameTag,
   // Recurring obligations — see NexCommitment in packages/core.
   listCommitments,
+  cyclePeriods,
+  cycleStartPeriod,
+  cycleEndPeriod,
+  cycleUpdatePeriod,
+  cycleDeletePeriod,
+  cycleDays,
+  cycleSaveDay,
+  cycleDeleteAll,
   scheduleNote,
   scheduledNotes,
   releaseDueNotes,
@@ -564,6 +572,49 @@ class NexDbWorker implements NexDb {
       _send<void>(_DbCommand.deleteCommitment, {'id': id});
 
   @override
+  Future<List<CyclePeriod>> cyclePeriods() =>
+      _send<List<CyclePeriod>>(_DbCommand.cyclePeriods);
+
+  @override
+  Future<CyclePeriod> cycleStartPeriod(DateTime day, {int closeAfter = 5}) =>
+      _send<CyclePeriod>(_DbCommand.cycleStartPeriod, {
+        'day': day.toIso8601String(),
+        'closeAfter': closeAfter,
+      });
+
+  @override
+  Future<void> cycleEndPeriod(String id, DateTime day) => _send<void>(
+    _DbCommand.cycleEndPeriod,
+    {'id': id, 'day': day.toIso8601String()},
+  );
+
+  @override
+  Future<void> cycleUpdatePeriod(String id, DateTime start, DateTime? end) =>
+      _send<void>(_DbCommand.cycleUpdatePeriod, {
+        'id': id,
+        'start': start.toIso8601String(),
+        'end': end?.toIso8601String(),
+      });
+
+  @override
+  Future<void> cycleDeletePeriod(String id) =>
+      _send<void>(_DbCommand.cycleDeletePeriod, {'id': id});
+
+  @override
+  Future<List<CycleDayLog>> cycleDays(DateTime from, DateTime to) =>
+      _send<List<CycleDayLog>>(_DbCommand.cycleDays, {
+        'from': from.toIso8601String(),
+        'to': to.toIso8601String(),
+      });
+
+  @override
+  Future<void> cycleSaveDay(CycleDayLog log) =>
+      _send<void>(_DbCommand.cycleSaveDay, {'log': log});
+
+  @override
+  Future<void> cycleDeleteAll() => _send<void>(_DbCommand.cycleDeleteAll);
+
+  @override
   Future<ScheduledNote?> scheduleNote(String noteId, DateTime releaseAt) =>
       _send<ScheduledNote?>(_DbCommand.scheduleNote, {
         'noteId': noteId,
@@ -925,6 +976,7 @@ class NexDbWorker implements NexDb {
       localDeviceId: boot.deviceId,
     );
     final scheduled = SqliteScheduledNoteRepository(db, repo);
+    final cycle = SqliteCycleRepository(db);
     final enrichment = EnrichmentService(
       repo: repo,
       adapter: boot.adapter,
@@ -1073,6 +1125,38 @@ class NexDbWorker implements NexDb {
         _DbCommand.deleteCommitment => _voided(
           () => commitments.delete(arg('id')! as String),
         ),
+        _DbCommand.cyclePeriods => cycle.periods(),
+        _DbCommand.cycleStartPeriod => cycle.startPeriod(
+          DateTime.parse(arg('day')! as String),
+          closeAfter: arg('closeAfter')! as int,
+        ),
+        _DbCommand.cycleEndPeriod => _voided(
+          () => cycle.endPeriod(
+            arg('id')! as String,
+            DateTime.parse(arg('day')! as String),
+          ),
+        ),
+        _DbCommand.cycleUpdatePeriod => _voided(
+          () => cycle.updatePeriod(
+            arg('id')! as String,
+            DateTime.parse(arg('start')! as String),
+            switch (arg('end')) {
+              final String end => DateTime.parse(end),
+              _ => null,
+            },
+          ),
+        ),
+        _DbCommand.cycleDeletePeriod => _voided(
+          () => cycle.deletePeriod(arg('id')! as String),
+        ),
+        _DbCommand.cycleDays => cycle.days(
+          DateTime.parse(arg('from')! as String),
+          DateTime.parse(arg('to')! as String),
+        ),
+        _DbCommand.cycleSaveDay => _voided(
+          () => cycle.saveDay(arg('log')! as CycleDayLog),
+        ),
+        _DbCommand.cycleDeleteAll => _voided(cycle.deleteAll),
         _DbCommand.scheduleNote => scheduled.schedule(
           arg('noteId')! as String,
           DateTime.parse(arg('releaseAt')! as String),
