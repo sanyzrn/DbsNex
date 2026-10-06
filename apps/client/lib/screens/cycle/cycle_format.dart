@@ -131,3 +131,32 @@ String cycleAlertText(AppLocalizations l10n, CycleAlert alert) =>
       CycleAlert.longCycle => l10n.cycleAlertLongCycle,
       CycleAlert.irregular => l10n.cycleAlertIrregular,
     };
+
+String cycleModeLabel(AppLocalizations l10n, CycleMode mode) => switch (mode) {
+  CycleMode.normal => l10n.cycleModeNormal,
+  CycleMode.conceive => l10n.cycleModeConceive,
+  CycleMode.pregnant => l10n.cycleModePregnant,
+  CycleMode.breastfeeding => l10n.cycleModeBreastfeeding,
+  CycleMode.menopause => l10n.cycleModeMenopause,
+};
+
+String cycleModeHint(AppLocalizations l10n, CycleMode mode) => switch (mode) {
+  CycleMode.normal => l10n.cycleModeNormalHint,
+  CycleMode.conceive => l10n.cycleModeConceiveHint,
+  CycleMode.pregnant => l10n.cycleModePregnantHint,
+  CycleMode.breastfeeding || CycleMode.menopause => l10n.cycleModeOffHint,
+};
+
+/// "Headache: usually about 2 days before your period".
+String cyclePatternText(BuildContext context, CyclePattern pattern) {
+  final l10n = AppLocalizations.of(context);
+  final symptom = cycleSymptomLabel(l10n, pattern.symptom);
+  return switch (pattern.phase) {
+    CyclePhase.beforePeriod => l10n.cyclePatternBefore(
+      symptom,
+      cycleDigits(context, l10n.cycleDays(pattern.daysBefore)),
+    ),
+    CyclePhase.period => l10n.cyclePatternDuring(symptom),
+    CyclePhase.ovulation => l10n.cyclePatternOvulation(symptom),
+  };
+}

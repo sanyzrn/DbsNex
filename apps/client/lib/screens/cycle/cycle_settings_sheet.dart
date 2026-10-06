@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -70,6 +71,69 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     await _rearm();
   }
 
+  /// Pregnancy asks once where to count from: the first day of the last
+  /// period (offered from the log when there is one), or the due date.
+  Future<void> _setMode(CycleMode mode) async {
+    if (mode == CycleMode.pregnant) {
+      final start = await _askPregnancyStart();
+      if (start == null) return;
+      await _prefs.setCyclePregnancyStart(start);
+    }
+    await _prefs.setCycleMode(mode);
+    if (!mounted) return;
+    setState(() {});
+    await _rearm();
+  }
+
+  Future<CycleDate?> _askPregnancyStart() async {
+    final l10n = AppLocalizations.of(context);
+    final solar = widget.services.solarCalendar;
+    final periods = await widget.services.cyclePeriods();
+    if (!mounted) return null;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final suggested = periods.isEmpty ? null : periods.last.start.local;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.cycleModePregnant),
+        content: NexDialogBody(child: Text(l10n.cyclePregnancyNote)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 'due'),
+            child: Text(l10n.cycleKnowDueDate),
+          ),
+          TextButton(
+            key: const ValueKey('cycle-pregnancy-last-period'),
+            onPressed: () => Navigator.pop(dialogContext, 'last'),
+            child: Text(l10n.cyclePregnancyStart),
+          ),
+        ],
+      ),
+    );
+    if (choice == null || !mounted) return null;
+    if (choice == 'due') {
+      final due = await nexPickDate(
+        context,
+        initial: today.add(const Duration(days: 180)),
+        first: today,
+        last: today.add(const Duration(days: 300)),
+        solar: solar,
+      );
+      return due == null
+          ? null
+          : CyclePregnancy.lastPeriodFor(CycleDate.of(due));
+    }
+    final last = await nexPickDate(
+      context,
+      initial: suggested ?? today.subtract(const Duration(days: 42)),
+      first: today.subtract(const Duration(days: 300)),
+      last: today,
+      solar: solar,
+    );
+    return last == null ? null : CycleDate.of(last);
+  }
+
   Future<void> _deleteAll() async {
     final l10n = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
@@ -120,6 +184,26 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           children: [
             Text(l10n.cycleSettings, style: theme.textTheme.titleLarge),
             const SizedBox(height: NexSpacing.md),
+            Text(l10n.cycleMode, style: theme.textTheme.titleSmall),
+            RadioGroup<CycleMode>(
+              groupValue: _prefs.cycleMode,
+              onChanged: (mode) {
+                if (mode != null) unawaited(_setMode(mode));
+              },
+              child: Column(
+                children: [
+                  for (final mode in CycleMode.values)
+                    RadioListTile<CycleMode>(
+                      key: ValueKey('cycle-mode-${mode.name}'),
+                      contentPadding: EdgeInsets.zero,
+                      value: mode,
+                      title: Text(cycleModeLabel(l10n, mode)),
+                      subtitle: Text(cycleModeHint(l10n, mode)),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: NexSpacing.lg),
             Text(l10n.cycleReminders, style: theme.textTheme.titleSmall),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -160,6 +244,19 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
+            ),
+            const SizedBox(height: NexSpacing.lg),
+            SwitchListTile(
+              key: const ValueKey('cycle-assistant-access'),
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.auto_awesome_outlined),
+              title: Text(l10n.cycleAssistantAccess),
+              subtitle: Text(l10n.cycleAssistantAccessHint),
+              value: _prefs.cycleAssistantAccess,
+              onChanged: (on) async {
+                await _prefs.setCycleAssistantAccess(on);
+                if (mounted) setState(() {});
+              },
             ),
             const SizedBox(height: NexSpacing.lg),
             Text(l10n.cycleTypicalLengths, style: theme.textTheme.titleSmall),

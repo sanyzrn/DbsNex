@@ -5,6 +5,12 @@ part of '../nex_preferences.dart';
 /// The periods and daily logs themselves are in the library database, so a
 /// backup carries them; these are only how this phone should behave.
 mixin _CyclePreferences on _PreferencesStore {
+  /// Whether «Cycle» is part of the app at all. On by default; off, its
+  /// tile, its reminders and everything it does at launch are gone, and its
+  /// data is kept or deleted as the person chose when turning it off.
+  bool get cycleEnabled => _prefs.getBool('cycle.enabled') ?? true;
+  Future<void> setCycleEnabled(bool value) => _setBool('cycle.enabled', value);
+
   /// Whether the three opening questions have been answered or skipped.
   bool get cycleSetUp => _prefs.getBool('cycle.set_up') ?? false;
   Future<void> setCycleSetUp(bool value) => _setBool('cycle.set_up', value);
@@ -20,6 +26,36 @@ mixin _CyclePreferences on _PreferencesStore {
     if (period != null) await _prefs.setInt('cycle.typical_period', period);
     notifyListeners();
   }
+
+  /// What «Cycle» is for right now — see [CycleMode].
+  CycleMode get cycleMode => CycleMode.fromWire(_prefs.getString('cycle.mode'));
+  Future<void> setCycleMode(CycleMode mode) async {
+    await _prefs.setString('cycle.mode', mode.name);
+    notifyListeners();
+  }
+
+  /// In [CycleMode.pregnant]: the first day of the last period, from which
+  /// the weeks are counted.
+  CycleDate? get cyclePregnancyStart {
+    final text = _prefs.getString('cycle.pregnancy_start');
+    return text == null ? null : CycleDate.parse(text);
+  }
+
+  Future<void> setCyclePregnancyStart(CycleDate? day) async {
+    if (day == null) {
+      await _prefs.remove('cycle.pregnancy_start');
+    } else {
+      await _prefs.setString('cycle.pregnancy_start', '$day');
+    }
+    notifyListeners();
+  }
+
+  /// Whether the assistant may read a summary of «Cycle» when asked about
+  /// it. Off until turned on: the summary goes to the AI provider.
+  bool get cycleAssistantAccess =>
+      _prefs.getBool('cycle.assistant_access') ?? false;
+  Future<void> setCycleAssistantAccess(bool value) =>
+      _setBool('cycle.assistant_access', value);
 
   /// Two days before the next period is expected.
   bool get cycleRemindSoon => _prefs.getBool('cycle.remind_soon') ?? true;
@@ -52,6 +88,9 @@ mixin _CyclePreferences on _PreferencesStore {
       'cycle.remind_log',
       'cycle.remind_pill',
       'cycle.pill_minutes',
+      'cycle.mode',
+      'cycle.pregnancy_start',
+      'cycle.assistant_access',
     ]) {
       await _prefs.remove(key);
     }

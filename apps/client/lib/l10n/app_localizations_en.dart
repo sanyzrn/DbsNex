@@ -2955,7 +2955,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cyclePrivacy =>
-      'Kept only on this phone and in your backups. Never sent to an AI service.';
+      'Kept only on this phone and in your backups. Sent to an AI service only if you let the assistant read it.';
 
   @override
   String get cycleAlertLate =>
@@ -3119,6 +3119,179 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cycleNotifyPill => 'Your daily reminder';
+
+  @override
+  String get settingsFeatures => 'Sections';
+
+  @override
+  String get cycleShow => 'Show Cycle';
+
+  @override
+  String get cycleShowSubtitle => 'The menstrual cycle assistant in Tools';
+
+  @override
+  String get cycleTurnOffTitle => 'Turn off Cycle?';
+
+  @override
+  String get cycleTurnOffBody =>
+      'Its page and reminders will be gone. Keep your cycle data for when you turn it back on, or delete it now?';
+
+  @override
+  String get cycleTurnOffKeep => 'Keep data';
+
+  @override
+  String get cycleTurnOffDelete => 'Delete data';
+
+  @override
+  String get cycleMode => 'Mode';
+
+  @override
+  String get cycleModeNormal => 'Tracking my cycle';
+
+  @override
+  String get cycleModeConceive => 'Trying to conceive';
+
+  @override
+  String get cycleModePregnant => 'Pregnant';
+
+  @override
+  String get cycleModeBreastfeeding => 'Breastfeeding';
+
+  @override
+  String get cycleModeMenopause => 'Perimenopause or menopause';
+
+  @override
+  String get cycleModeNormalHint =>
+      'Predictions, the fertile window and gentle alerts.';
+
+  @override
+  String get cycleModeConceiveHint =>
+      'The fertile window and likely ovulation, front and centre.';
+
+  @override
+  String get cycleModePregnantHint =>
+      'Weeks of pregnancy and the due date instead of predictions.';
+
+  @override
+  String get cycleModeOffHint =>
+      'Predictions are off; you can still log periods and days.';
+
+  @override
+  String get cyclePredictionsOff =>
+      'Predictions are off in this mode. Logging works as always.';
+
+  @override
+  String get cycleFertileToday => 'A likely fertile day';
+
+  @override
+  String cycleUntilFertile(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days to your fertile window',
+      one: '1 day to your fertile window',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cycleOvulationOn(String date) {
+    return 'Likely ovulation: $date';
+  }
+
+  @override
+  String cyclePregnancyWeek(String weeks, String days) {
+    return 'Week $weeks, day $days';
+  }
+
+  @override
+  String cycleDueDate(String date) {
+    return 'Due date: $date';
+  }
+
+  @override
+  String cycleTrimester(String n) {
+    return 'Trimester $n';
+  }
+
+  @override
+  String cycleDaysToGo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days to go',
+      one: '1 day to go',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cyclePregnancyStart => 'First day of the last period';
+
+  @override
+  String get cycleKnowDueDate => 'I know my due date';
+
+  @override
+  String get cyclePregnancyNote =>
+      'Weeks are counted from the first day of your last period, the way doctors count them.';
+
+  @override
+  String get cyclePatterns => 'Patterns';
+
+  @override
+  String get cyclePatternsEmpty =>
+      'Patterns appear here after a couple of cycles with symptoms logged.';
+
+  @override
+  String cyclePatternBefore(String symptom, String days) {
+    return '$symptom: usually about $days before your period';
+  }
+
+  @override
+  String cyclePatternDuring(String symptom) {
+    return '$symptom: usually during your period';
+  }
+
+  @override
+  String cyclePatternOvulation(String symptom) {
+    return '$symptom: usually around ovulation';
+  }
+
+  @override
+  String get cycleReport => 'Report for a doctor';
+
+  @override
+  String get cycleReportTitle => 'Cycle report';
+
+  @override
+  String cycleReportMade(String date) {
+    return 'Made with Nex on $date';
+  }
+
+  @override
+  String get cycleReportPeriods => 'Recent periods';
+
+  @override
+  String get cycleReportCycleLength => 'Cycle length';
+
+  @override
+  String get cycleReportVariation => 'Variation';
+
+  @override
+  String get cycleReportSymptoms => 'Symptoms, last six months';
+
+  @override
+  String get cycleReportSave => 'Save PDF';
+
+  @override
+  String get cycleReportSaved => 'Report saved';
+
+  @override
+  String get cycleAssistantAccess => 'Let the assistant read Cycle';
+
+  @override
+  String get cycleAssistantAccessHint =>
+      'When on, a summary of your cycle is sent to your AI provider only when you ask the assistant about it. Off by default.';
 
   @override
   String get remindTitle => 'Set a reminder';

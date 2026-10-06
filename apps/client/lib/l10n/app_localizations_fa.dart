@@ -2880,7 +2880,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cyclePrivacy =>
-      'فقط روی همین گوشی و در بکاپ‌هایتان نگه داشته می‌شود و هرگز برای سرویس هوش مصنوعی فرستاده نمی‌شود.';
+      'فقط روی همین گوشی و در بکاپ‌هایتان نگه داشته می‌شود و فقط اگر اجازه دهید دستیار آن را ببیند، برای سرویس هوش مصنوعی فرستاده می‌شود.';
 
   @override
   String get cycleAlertLate =>
@@ -3044,6 +3044,166 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cycleNotifyPill => 'یادآور روزانهٔ شما';
+
+  @override
+  String get settingsFeatures => 'بخش‌ها';
+
+  @override
+  String get cycleShow => 'نمایش چرخه';
+
+  @override
+  String get cycleShowSubtitle => 'دستیار قاعدگی در ابزارها';
+
+  @override
+  String get cycleTurnOffTitle => '«چرخه» خاموش شود؟';
+
+  @override
+  String get cycleTurnOffBody =>
+      'صفحه و یادآورهایش حذف می‌شوند. داده‌های چرخه برای وقتی که دوباره روشنش کردید بمانند، یا همین حالا حذف شوند؟';
+
+  @override
+  String get cycleTurnOffKeep => 'داده‌ها بمانند';
+
+  @override
+  String get cycleTurnOffDelete => 'حذف داده‌ها';
+
+  @override
+  String get cycleMode => 'حالت';
+
+  @override
+  String get cycleModeNormal => 'ثبت چرخه';
+
+  @override
+  String get cycleModeConceive => 'اقدام به بارداری';
+
+  @override
+  String get cycleModePregnant => 'باردار';
+
+  @override
+  String get cycleModeBreastfeeding => 'شیردهی';
+
+  @override
+  String get cycleModeMenopause => 'پیش‌یائسگی یا یائسگی';
+
+  @override
+  String get cycleModeNormalHint => 'پیش‌بینی، پنجرهٔ باروری و هشدارهای ملایم.';
+
+  @override
+  String get cycleModeConceiveHint =>
+      'پنجرهٔ باروری و تخمک‌گذاری احتمالی، در صدر صفحه.';
+
+  @override
+  String get cycleModePregnantHint =>
+      'به‌جای پیش‌بینی، هفته‌های بارداری و زمان احتمالی زایمان.';
+
+  @override
+  String get cycleModeOffHint =>
+      'پیش‌بینی خاموش است؛ ثبت پریود و روزها ادامه دارد.';
+
+  @override
+  String get cyclePredictionsOff =>
+      'در این حالت پیش‌بینی خاموش است. ثبت مثل همیشه کار می‌کند.';
+
+  @override
+  String get cycleFertileToday => 'روز احتمالی باروری';
+
+  @override
+  String cycleUntilFertile(int count) {
+    return '$count روز تا پنجرهٔ باروری';
+  }
+
+  @override
+  String cycleOvulationOn(String date) {
+    return 'تخمک‌گذاری احتمالی: $date';
+  }
+
+  @override
+  String cyclePregnancyWeek(String weeks, String days) {
+    return 'هفتهٔ $weeks، روز $days';
+  }
+
+  @override
+  String cycleDueDate(String date) {
+    return 'زمان احتمالی زایمان: $date';
+  }
+
+  @override
+  String cycleTrimester(String n) {
+    return 'سه‌ماههٔ $n';
+  }
+
+  @override
+  String cycleDaysToGo(int count) {
+    return '$count روز مانده';
+  }
+
+  @override
+  String get cyclePregnancyStart => 'اولین روز آخرین پریود';
+
+  @override
+  String get cycleKnowDueDate => 'تاریخ زایمان را می‌دانم';
+
+  @override
+  String get cyclePregnancyNote =>
+      'هفته‌ها از اولین روز آخرین پریود شمرده می‌شوند، همان‌طور که پزشک‌ها می‌شمارند.';
+
+  @override
+  String get cyclePatterns => 'الگوها';
+
+  @override
+  String get cyclePatternsEmpty =>
+      'بعد از چند چرخه که علائم ثبت شده باشد، الگوها اینجا پیدا می‌شوند.';
+
+  @override
+  String cyclePatternBefore(String symptom, String days) {
+    return '$symptom: معمولاً حدود $days قبل از پریود';
+  }
+
+  @override
+  String cyclePatternDuring(String symptom) {
+    return '$symptom: معمولاً در روزهای پریود';
+  }
+
+  @override
+  String cyclePatternOvulation(String symptom) {
+    return '$symptom: معمولاً حوالی تخمک‌گذاری';
+  }
+
+  @override
+  String get cycleReport => 'گزارش برای پزشک';
+
+  @override
+  String get cycleReportTitle => 'گزارش چرخه';
+
+  @override
+  String cycleReportMade(String date) {
+    return 'تهیه‌شده با Nex در $date';
+  }
+
+  @override
+  String get cycleReportPeriods => 'پریودهای اخیر';
+
+  @override
+  String get cycleReportCycleLength => 'طول چرخه';
+
+  @override
+  String get cycleReportVariation => 'نوسان';
+
+  @override
+  String get cycleReportSymptoms => 'علائم در شش ماه اخیر';
+
+  @override
+  String get cycleReportSave => 'ذخیرهٔ PDF';
+
+  @override
+  String get cycleReportSaved => 'گزارش ذخیره شد';
+
+  @override
+  String get cycleAssistantAccess => 'دستیار بتواند «چرخه» را ببیند';
+
+  @override
+  String get cycleAssistantAccessHint =>
+      'اگر روشن باشد، فقط وقتی از دستیار دربارهٔ چرخه بپرسید، خلاصه‌ای از آن برای سرویس هوش مصنوعی‌تان فرستاده می‌شود. به‌طور پیش‌فرض خاموش است.';
 
   @override
   String get remindTitle => 'تنظیم یادآور';

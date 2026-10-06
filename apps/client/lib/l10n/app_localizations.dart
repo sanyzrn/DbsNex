@@ -4715,7 +4715,7 @@ abstract class AppLocalizations {
   /// No description provided for @cyclePrivacy.
   ///
   /// In en, this message translates to:
-  /// **'Kept only on this phone and in your backups. Never sent to an AI service.'**
+  /// **'Kept only on this phone and in your backups. Sent to an AI service only if you let the assistant read it.'**
   String get cyclePrivacy;
 
   /// No description provided for @cycleAlertLate.
@@ -5029,6 +5029,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your daily reminder'**
   String get cycleNotifyPill;
+
+  /// No description provided for @settingsFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Sections'**
+  String get settingsFeatures;
+
+  /// No description provided for @cycleShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Cycle'**
+  String get cycleShow;
+
+  /// No description provided for @cycleShowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The menstrual cycle assistant in Tools'**
+  String get cycleShowSubtitle;
+
+  /// No description provided for @cycleTurnOffTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off Cycle?'**
+  String get cycleTurnOffTitle;
+
+  /// No description provided for @cycleTurnOffBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Its page and reminders will be gone. Keep your cycle data for when you turn it back on, or delete it now?'**
+  String get cycleTurnOffBody;
+
+  /// No description provided for @cycleTurnOffKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep data'**
+  String get cycleTurnOffKeep;
+
+  /// No description provided for @cycleTurnOffDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete data'**
+  String get cycleTurnOffDelete;
+
+  /// No description provided for @cycleMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode'**
+  String get cycleMode;
+
+  /// No description provided for @cycleModeNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracking my cycle'**
+  String get cycleModeNormal;
+
+  /// No description provided for @cycleModeConceive.
+  ///
+  /// In en, this message translates to:
+  /// **'Trying to conceive'**
+  String get cycleModeConceive;
+
+  /// No description provided for @cycleModePregnant.
+  ///
+  /// In en, this message translates to:
+  /// **'Pregnant'**
+  String get cycleModePregnant;
+
+  /// No description provided for @cycleModeBreastfeeding.
+  ///
+  /// In en, this message translates to:
+  /// **'Breastfeeding'**
+  String get cycleModeBreastfeeding;
+
+  /// No description provided for @cycleModeMenopause.
+  ///
+  /// In en, this message translates to:
+  /// **'Perimenopause or menopause'**
+  String get cycleModeMenopause;
+
+  /// No description provided for @cycleModeNormalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Predictions, the fertile window and gentle alerts.'**
+  String get cycleModeNormalHint;
+
+  /// No description provided for @cycleModeConceiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The fertile window and likely ovulation, front and centre.'**
+  String get cycleModeConceiveHint;
+
+  /// No description provided for @cycleModePregnantHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Weeks of pregnancy and the due date instead of predictions.'**
+  String get cycleModePregnantHint;
+
+  /// No description provided for @cycleModeOffHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Predictions are off; you can still log periods and days.'**
+  String get cycleModeOffHint;
+
+  /// No description provided for @cyclePredictionsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Predictions are off in this mode. Logging works as always.'**
+  String get cyclePredictionsOff;
+
+  /// No description provided for @cycleFertileToday.
+  ///
+  /// In en, this message translates to:
+  /// **'A likely fertile day'**
+  String get cycleFertileToday;
+
+  /// No description provided for @cycleUntilFertile.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day to your fertile window} other{{count} days to your fertile window}}'**
+  String cycleUntilFertile(int count);
+
+  /// No description provided for @cycleOvulationOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Likely ovulation: {date}'**
+  String cycleOvulationOn(String date);
+
+  /// No description provided for @cyclePregnancyWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week {weeks}, day {days}'**
+  String cyclePregnancyWeek(String weeks, String days);
+
+  /// No description provided for @cycleDueDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Due date: {date}'**
+  String cycleDueDate(String date);
+
+  /// No description provided for @cycleTrimester.
+  ///
+  /// In en, this message translates to:
+  /// **'Trimester {n}'**
+  String cycleTrimester(String n);
+
+  /// No description provided for @cycleDaysToGo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day to go} other{{count} days to go}}'**
+  String cycleDaysToGo(int count);
+
+  /// No description provided for @cyclePregnancyStart.
+  ///
+  /// In en, this message translates to:
+  /// **'First day of the last period'**
+  String get cyclePregnancyStart;
+
+  /// No description provided for @cycleKnowDueDate.
+  ///
+  /// In en, this message translates to:
+  /// **'I know my due date'**
+  String get cycleKnowDueDate;
+
+  /// No description provided for @cyclePregnancyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Weeks are counted from the first day of your last period, the way doctors count them.'**
+  String get cyclePregnancyNote;
+
+  /// No description provided for @cyclePatterns.
+  ///
+  /// In en, this message translates to:
+  /// **'Patterns'**
+  String get cyclePatterns;
+
+  /// No description provided for @cyclePatternsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Patterns appear here after a couple of cycles with symptoms logged.'**
+  String get cyclePatternsEmpty;
+
+  /// No description provided for @cyclePatternBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'{symptom}: usually about {days} before your period'**
+  String cyclePatternBefore(String symptom, String days);
+
+  /// No description provided for @cyclePatternDuring.
+  ///
+  /// In en, this message translates to:
+  /// **'{symptom}: usually during your period'**
+  String cyclePatternDuring(String symptom);
+
+  /// No description provided for @cyclePatternOvulation.
+  ///
+  /// In en, this message translates to:
+  /// **'{symptom}: usually around ovulation'**
+  String cyclePatternOvulation(String symptom);
+
+  /// No description provided for @cycleReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report for a doctor'**
+  String get cycleReport;
+
+  /// No description provided for @cycleReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle report'**
+  String get cycleReportTitle;
+
+  /// No description provided for @cycleReportMade.
+  ///
+  /// In en, this message translates to:
+  /// **'Made with Nex on {date}'**
+  String cycleReportMade(String date);
+
+  /// No description provided for @cycleReportPeriods.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent periods'**
+  String get cycleReportPeriods;
+
+  /// No description provided for @cycleReportCycleLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle length'**
+  String get cycleReportCycleLength;
+
+  /// No description provided for @cycleReportVariation.
+  ///
+  /// In en, this message translates to:
+  /// **'Variation'**
+  String get cycleReportVariation;
+
+  /// No description provided for @cycleReportSymptoms.
+  ///
+  /// In en, this message translates to:
+  /// **'Symptoms, last six months'**
+  String get cycleReportSymptoms;
+
+  /// No description provided for @cycleReportSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save PDF'**
+  String get cycleReportSave;
+
+  /// No description provided for @cycleReportSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Report saved'**
+  String get cycleReportSaved;
+
+  /// No description provided for @cycleAssistantAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the assistant read Cycle'**
+  String get cycleAssistantAccess;
+
+  /// No description provided for @cycleAssistantAccessHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, a summary of your cycle is sent to your AI provider only when you ask the assistant about it. Off by default.'**
+  String get cycleAssistantAccessHint;
 
   /// Heading of the reminder sheet
   ///

@@ -72,6 +72,11 @@ enum AssistantActionKind {
   /// Reads: the library's threads, by name, with how many notes each holds.
   /// Like [search], carried out on arrival.
   threads,
+
+  /// Reads: a summary of «Cycle», the menstrual cycle assistant — answered
+  /// only when the person has allowed the assistant to read it, and
+  /// otherwise with a line saying it is not shared.
+  cycle,
 }
 
 /// One thing the assistant has asked to do, already parsed and validated.
@@ -176,7 +181,9 @@ class AssistantAction {
   /// not, so it is carried out as soon as it arrives; everything else waits
   /// for the user.
   bool get isRead =>
-      kind == AssistantActionKind.search || kind == AssistantActionKind.threads;
+      kind == AssistantActionKind.search ||
+      kind == AssistantActionKind.threads ||
+      kind == AssistantActionKind.cycle;
 }
 
 /// The settings the assistant is allowed to change.
@@ -364,8 +371,16 @@ To see which threads exist:
 {"action": "threads"}
 ```
 
-Searches and the thread list are carried out at once and need no
-confirmation; everything else waits for the user.
+When the user asks about their period or menstrual cycle, read their Cycle
+summary first and answer from it — it may say they have not shared it, in
+which case tell them it can be allowed in Cycle's settings:
+
+```nex
+{"action": "cycle"}
+```
+
+Searches, the thread list and the Cycle summary are carried out at once and
+need no confirmation; everything else waits for the user.
 
 Rules: nothing outside the block — no words, no emoji, no leading bullet,
 not even "Sure:". The app shows the user what you asked for and waits for
@@ -566,6 +581,7 @@ AssistantAction? _action(Map<Object?, Object?> decoded) {
         threadName: _string(decoded['thread']),
       ),
     'threads' => const AssistantAction(kind: AssistantActionKind.threads),
+    'cycle' => const AssistantAction(kind: AssistantActionKind.cycle),
     'thread'
         when _strings(decoded['ids']).isNotEmpty &&
             _string(decoded['name']) != null =>

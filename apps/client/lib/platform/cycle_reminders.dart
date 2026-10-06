@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:nex_core/nex_core.dart';
 
 import '../l10n/app_localizations.dart';
 import 'nex_preferences.dart';
@@ -29,7 +30,7 @@ abstract final class CycleReminders {
     if (!NexReminders.supported) return;
     final l10n = AppLocalizations.of(context);
     final reminders = services.reminders;
-    if (!preferences.cycleSetUp) {
+    if (!preferences.cycleEnabled || !preferences.cycleSetUp) {
       await reminders.cancelCycle();
       return;
     }
@@ -39,7 +40,9 @@ abstract final class CycleReminders {
     final today = DateTime(now.year, now.month, now.day);
 
     // Ten in the morning, two days ahead of the likeliest start.
+    final mode = preferences.cycleMode;
     if (preferences.cycleRemindSoon &&
+        mode.predicts &&
         prediction != null &&
         !prediction.inPeriod) {
       await reminders.scheduleCycle(
@@ -62,6 +65,7 @@ abstract final class CycleReminders {
       await reminders.cancelCycle('log$i');
     }
     if (preferences.cycleRemindLog &&
+        mode != CycleMode.pregnant &&
         prediction != null &&
         prediction.inPeriod) {
       final last = (prediction.averagePeriod + 1).clamp(1, evenings);

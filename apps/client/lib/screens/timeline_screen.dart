@@ -299,7 +299,7 @@ class TimelineScreenState extends State<TimelineScreen>
     // library until it is released, so release comes first.
     // «Cycle»'s alarms follow its prediction, which moves as the days pass
     // and does not survive a reinstall: re-armed once per launch.
-    if (widget.preferences.cycleSetUp) {
+    if (widget.preferences.cycleEnabled && widget.preferences.cycleSetUp) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         unawaited(

@@ -108,7 +108,14 @@ The large button says **Period started** or **Period ended**; **On another day?*
 
 If something looks unusual — a period much later than expected, or one lasting more than eight days — a short note says so and suggests a doctor; it is never a diagnosis. The settings button at the top sets the reminders (two days before a period, each evening of a period, a daily pill), which only ever say "Nex reminder", and holds **Delete all cycle data**.
 
-Cycle stays on this phone and in your backups. It never appears in your notes, search or widgets and is never sent to an AI service. It is not a method of contraception and does not replace a doctor.
+**Modes**, in the same settings, fit Cycle to where you are:
+- **Trying to conceive** leads with the fertile window and likely ovulation.
+- **Pregnant** shows the week and day, the due date and the trimester, counted from the first day of your last period or from a due date you already know.
+- **Breastfeeding** and **perimenopause or menopause** turn predictions off and keep logging.
+
+After a couple of cycles with symptoms logged, **Patterns** shows the ones that come back at the same point in your cycle. **Report for a doctor** makes a one-page summary — averages, recent periods, symptoms and patterns — to save as a PDF or share.
+
+Cycle stays on this phone and in your backups. It never appears in your notes, search or widgets. It is sent to an AI service only if you turn on **Let the assistant read Cycle**, and then only as a short summary when you ask the assistant about it — never your day notes. To remove Cycle entirely, turn off **Settings → Sections → Show Cycle**; you choose whether to keep or delete its data. It is not a method of contraception and does not replace a doctor.
 
 ## Appearance, language and calendar
 

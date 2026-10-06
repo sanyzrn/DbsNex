@@ -15,6 +15,7 @@ import '../widgets/nex_time_picker.dart';
 import '../widgets/swipe_actions.dart';
 import '../widgets/tag_color_picker.dart';
 import 'package:nex_ai/cloud.dart';
+import '../platform/cycle_reminders.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/notification_settings.dart';
@@ -330,6 +331,52 @@ class SettingsSheet extends StatelessWidget {
     );
   }
 
+  /// Turning «Cycle» off asks once what to do with its data; turning it
+  /// back on is the switch alone.
+  Future<void> _setCycleEnabled(BuildContext context, bool value) async {
+    if (value) {
+      await preferences.setCycleEnabled(true);
+      if (!context.mounted) return;
+      await CycleReminders.apply(
+        context: context,
+        services: services,
+        preferences: preferences,
+      );
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.cycleTurnOffTitle),
+        content: NexDialogBody(child: Text(l10n.cycleTurnOffBody)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            key: const ValueKey('cycle-off-delete'),
+            onPressed: () => Navigator.pop(dialogContext, 'delete'),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            child: Text(l10n.cycleTurnOffDelete),
+          ),
+          TextButton(
+            key: const ValueKey('cycle-off-keep'),
+            onPressed: () => Navigator.pop(dialogContext, 'keep'),
+            child: Text(l10n.cycleTurnOffKeep),
+          ),
+        ],
+      ),
+    );
+    if (choice == null) return;
+    if (choice == 'delete') await services.cycleDeleteAll();
+    await services.reminders.cancelCycle();
+    await preferences.setCycleEnabled(false);
+  }
+
   List<Widget> _groups(BuildContext context, AppLocalizations l10n) => [
     _ProfileCard(services: services, preferences: preferences),
     // Recurring items used to have a section here, because Settings was the
@@ -474,6 +521,20 @@ class SettingsSheet extends StatelessWidget {
               await QuickCaptureNotification.setEnabled(value);
             }()),
           ),
+      ],
+    ),
+    _Section(
+      id: 'features',
+      icon: Icons.dashboard_customize_outlined,
+      title: l10n.settingsFeatures,
+      children: [
+        _SwitchRow(
+          icon: Icons.water_drop_outlined,
+          title: l10n.cycleShow,
+          subtitle: l10n.cycleShowSubtitle,
+          value: preferences.cycleEnabled,
+          onChanged: (value) => unawaited(_setCycleEnabled(context, value)),
+        ),
       ],
     ),
     _Section(

@@ -12,6 +12,7 @@ import '../widgets/nex_time_picker.dart';
 import 'cycle/cycle_calendar.dart';
 import 'cycle/cycle_day_sheet.dart';
 import 'cycle/cycle_format.dart';
+import 'cycle/cycle_report_screen.dart';
 import 'cycle/cycle_ring.dart';
 import 'cycle/cycle_settings_sheet.dart';
 
@@ -45,6 +46,7 @@ class _CycleScreenState extends State<CycleScreen> {
   CyclePrediction? _prediction;
   Set<CycleDate> _logged = const {};
   CycleDayLog? _todayLog;
+  List<CyclePattern> _patterns = const [];
   late (DateTime, DateTime) _month;
 
   NexServices get _services => widget.services;
@@ -69,12 +71,14 @@ class _CycleScreenState extends State<CycleScreen> {
     final prediction = await _services.cyclePrediction(today: _today);
     final days = await _services.cycleDays(_month.$1, _month.$2);
     final todayLog = (await _services.cycleDays(_today, _today)).firstOrNull;
+    final allLogs = await _services.cycleDays(DateTime(2000), _today);
     if (!mounted) return;
     setState(() {
       _periods = periods;
       _prediction = prediction;
       _logged = {for (final d in days) d.day};
       _todayLog = todayLog;
+      _patterns = CyclePatterns.find(periods: periods, logs: allLogs);
       _loading = false;
     });
   }
@@ -253,16 +257,44 @@ class _CycleScreenState extends State<CycleScreen> {
     final scheme = theme.colorScheme;
     final rose = cyclePeriodColor(theme.brightness);
     final teal = cycleFertileColor(theme.brightness);
-    final p = _prediction;
+    final mode = widget.preferences.cycleMode;
+    // Out of the modes that predict, nothing below shows a prediction: no
+    // ring, no range, no alerts, no expected days on the calendar.
+    final p = mode.predicts ? _prediction : null;
+    final conceive = mode == CycleMode.conceive;
+    final pregnancy = mode == CycleMode.pregnant
+        ? CyclePregnancy(
+            lastPeriod:
+                widget.preferences.cyclePregnancyStart ??
+                _prediction?.lastStart ??
+                CycleDate.of(_today),
+            today: CycleDate.of(_today),
+          )
+        : null;
     final open = _open;
     String digits(Object v) => cycleDigits(context, v);
     String day(CycleDate d) => cycleDayMonth(context, d.local, solar: _solar);
 
     final (headline, caption) = switch (p) {
+      null when !mode.predicts => (
+        cycleModeLabel(l10n, mode),
+        l10n.cyclePredictionsOff,
+      ),
       null => (l10n.cycleNothingLogged, l10n.cycleWelcomeBody),
       _ when p.inPeriod => (
         l10n.cycleDayOfPeriod(digits(p.cycleDay)),
         l10n.cycleDayOfCycle(digits(p.cycleDay)),
+      ),
+      // Trying to conceive: the fertile window leads, and the next period
+      // is the line under it.
+      _
+          when conceive &&
+              !p.fertile.start.isAfter(p.today) &&
+              !p.fertile.end.isBefore(p.today) =>
+        (l10n.cycleFertileToday, l10n.cycleOvulationOn(day(p.ovulation))),
+      _ when conceive && p.fertile.start.isAfter(p.today) => (
+        digits(l10n.cycleUntilFertile(p.fertile.start.daysSince(p.today))),
+        l10n.cycleOvulationOn(day(p.ovulation)),
       ),
       _ when p.daysUntilNext > 0 => (
         digits(l10n.cycleDaysUntil(p.daysUntilNext)),
@@ -297,7 +329,43 @@ class _CycleScreenState extends State<CycleScreen> {
           NexSpacing.xl,
         ),
         children: [
-          if (p != null)
+          if (mode != CycleMode.normal)
+            Center(
+              child: ActionChip(
+                key: const ValueKey('cycle-mode-chip'),
+                avatar: Icon(
+                  mode == CycleMode.pregnant
+                      ? Icons.child_friendly_outlined
+                      : Icons.tune,
+                  size: 18,
+                ),
+                label: Text(cycleModeLabel(l10n, mode)),
+                onPressed: _settings,
+              ),
+            ),
+          if (pregnancy != null) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xl),
+              child: CycleProgressRing(
+                fraction: pregnancy.fraction,
+                color: rose,
+                headline: l10n.cyclePregnancyWeek(
+                  digits(pregnancy.weeks),
+                  digits(pregnancy.days),
+                ),
+                caption: l10n.cycleDueDate(day(pregnancy.dueDate)),
+              ),
+            ),
+            const SizedBox(height: NexSpacing.sm),
+            Text(
+              '${l10n.cycleTrimester(digits(pregnancy.trimester))} · '
+              '${digits(l10n.cycleDaysToGo(pregnancy.daysToGo.clamp(0, 400)))}',
+              key: const ValueKey('cycle-pregnancy-line'),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: NexSpacing.md),
+          ] else if (p != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: NexSpacing.xl),
               child: CycleRing(
@@ -352,48 +420,50 @@ class _CycleScreenState extends State<CycleScreen> {
                 ),
               ),
           ],
-          const SizedBox(height: NexSpacing.md),
-          FilledButton.icon(
-            key: const ValueKey('cycle-primary'),
-            style: FilledButton.styleFrom(
-              backgroundColor: rose,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(52),
+          if (pregnancy == null) ...[
+            const SizedBox(height: NexSpacing.md),
+            FilledButton.icon(
+              key: const ValueKey('cycle-primary'),
+              style: FilledButton.styleFrom(
+                backgroundColor: rose,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(52),
+              ),
+              onPressed: () => unawaited(
+                open != null && (p?.inPeriod ?? false)
+                    ? _endOn(_today)
+                    : _startOn(_today),
+              ),
+              icon: Icon(
+                open != null && (p?.inPeriod ?? false)
+                    ? Icons.check_circle_outline
+                    : Icons.water_drop_outlined,
+              ),
+              label: Text(
+                open != null && (p?.inPeriod ?? false)
+                    ? l10n.cyclePeriodEnded
+                    : l10n.cyclePeriodStarted,
+              ),
             ),
-            onPressed: () => unawaited(
-              open != null && (p?.inPeriod ?? false)
-                  ? _endOn(_today)
-                  : _startOn(_today),
+            Center(
+              child: TextButton(
+                onPressed: () async {
+                  final picked = await _pickPastDay(
+                    first: open != null && (p?.inPeriod ?? false)
+                        ? open.start.local
+                        : null,
+                  );
+                  if (picked == null) return;
+                  if (open != null && (p?.inPeriod ?? false)) {
+                    await _endOn(picked);
+                  } else {
+                    await _startOn(picked);
+                  }
+                },
+                child: Text(l10n.cycleAnotherDay),
+              ),
             ),
-            icon: Icon(
-              open != null && (p?.inPeriod ?? false)
-                  ? Icons.check_circle_outline
-                  : Icons.water_drop_outlined,
-            ),
-            label: Text(
-              open != null && (p?.inPeriod ?? false)
-                  ? l10n.cyclePeriodEnded
-                  : l10n.cyclePeriodStarted,
-            ),
-          ),
-          Center(
-            child: TextButton(
-              onPressed: () async {
-                final picked = await _pickPastDay(
-                  first: open != null && (p?.inPeriod ?? false)
-                      ? open.start.local
-                      : null,
-                );
-                if (picked == null) return;
-                if (open != null && (p?.inPeriod ?? false)) {
-                  await _endOn(picked);
-                } else {
-                  await _startOn(picked);
-                }
-              },
-              child: Text(l10n.cycleAnotherDay),
-            ),
-          ),
+          ],
           for (final alert in p?.alerts ?? const <CycleAlert>{})
             Card(
               margin: const EdgeInsets.only(bottom: NexSpacing.sm),
@@ -476,6 +546,47 @@ class _CycleScreenState extends State<CycleScreen> {
             ),
             const SizedBox(height: NexSpacing.md),
           ],
+          Text(l10n.cyclePatterns, style: theme.textTheme.titleSmall),
+          const SizedBox(height: NexSpacing.xs),
+          if (_patterns.isEmpty)
+            Text(
+              l10n.cyclePatternsEmpty,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            )
+          else
+            for (final pattern in _patterns.take(6))
+              Padding(
+                padding: const EdgeInsets.only(bottom: NexSpacing.xs),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.insights_outlined, size: 18, color: teal),
+                    const SizedBox(width: NexSpacing.sm),
+                    Expanded(child: Text(cyclePatternText(context, pattern))),
+                  ],
+                ),
+              ),
+          const SizedBox(height: NexSpacing.sm),
+          Card(
+            margin: const EdgeInsets.only(bottom: NexSpacing.md),
+            child: ListTile(
+              key: const ValueKey('cycle-report'),
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: Text(l10n.cycleReport),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                NexPageRoute<void>(
+                  builder: (_) => CycleReportScreen(
+                    services: _services,
+                    preferences: widget.preferences,
+                  ),
+                ),
+              ),
+            ),
+          ),
           if (_periods.isNotEmpty) ...[
             Text(l10n.cycleHistory, style: theme.textTheme.titleSmall),
             for (final period in _periods.reversed.take(12))
@@ -499,6 +610,11 @@ class _CycleScreenState extends State<CycleScreen> {
             icon: Icons.health_and_safety_outlined,
             text: l10n.cycleDisclaimer,
           ),
+          if (pregnancy != null)
+            _Footnote(
+              icon: Icons.child_friendly_outlined,
+              text: l10n.cyclePregnancyNote,
+            ),
           _Footnote(icon: Icons.lock_outline, text: l10n.cyclePrivacy),
         ],
       ),
