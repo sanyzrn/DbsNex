@@ -5,6 +5,7 @@ import 'package:nex_ui/nex_ui.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/feature_label.dart';
 import 'cycle_format.dart';
+import 'cycle_space.dart';
 
 /// A month of the cycle: logged periods filled in rose, the expected ones
 /// washed in it, the fertile window in teal, and a dot on every day with
@@ -226,7 +227,7 @@ class _CycleCalendarState extends State<CycleCalendar> {
     final number = widget.solar ? nexPersianDate(day).day : day.day;
 
     final Color? fill = logged
-        ? rose
+        ? null
         : predicted
         ? rose.withValues(alpha: 0.16)
         : fertile
@@ -235,7 +236,7 @@ class _CycleCalendarState extends State<CycleCalendar> {
     final Border? border = predicted
         ? Border.all(color: rose.withValues(alpha: 0.7), width: 1.5)
         : isToday
-        ? Border.all(color: scheme.onSurface, width: 1.5)
+        ? Border.all(color: rose, width: 1.8)
         : null;
     final textColor = logged ? Colors.white : scheme.onSurface;
 
@@ -254,8 +255,24 @@ class _CycleCalendarState extends State<CycleCalendar> {
               height: 36,
               decoration: BoxDecoration(
                 color: fill,
+                gradient: logged
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [rose, cycleMauve(theme.brightness)],
+                      )
+                    : null,
                 shape: BoxShape.circle,
                 border: border,
+                boxShadow: logged
+                    ? [
+                        BoxShadow(
+                          color: rose.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : null,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

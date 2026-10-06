@@ -101,6 +101,30 @@ Future<String> nexCycleSummaryForAssistant({
       '${sorted.map((e) => '${e.key.name} ×${e.value}').join(', ')}',
     );
   }
+  // Fertility signs of the current cycle, oldest first: what someone
+  // trying to conceive would ask about.
+  final cycleStart = periods.isEmpty ? since : periods.last.start;
+  final signs = [
+    for (final log in logs)
+      if (!log.day.isBefore(cycleStart) &&
+          (log.temperature != null ||
+              log.ovulationTest != null ||
+              log.mucus != null))
+        [
+          '${log.day}:',
+          if (log.temperature != null)
+            '${log.temperature!.toStringAsFixed(2)}°C',
+          if (log.ovulationTest != null)
+            'ovulation test ${log.ovulationTest!.name}',
+          if (log.mucus != null) 'mucus ${log.mucus!.name}',
+        ].join(' '),
+  ];
+  if (signs.isNotEmpty) {
+    out.writeln('Fertility signs this cycle:');
+    for (final line in signs.reversed.take(20).toList().reversed) {
+      out.writeln('- $line');
+    }
+  }
   final patterns = CyclePatterns.find(periods: periods, logs: logs);
   if (patterns.isNotEmpty) {
     out.writeln(

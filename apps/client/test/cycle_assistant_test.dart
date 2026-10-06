@@ -66,6 +66,25 @@ void main() {
       expect(text, isNot(contains('private words')));
     });
 
+    test('fertility signs of this cycle are included', () async {
+      await harness.preferences.setCycleAssistantAccess(true);
+      final now = DateTime.now();
+      await harness.services.cycleSaveDay(
+        CycleDayLog(
+          day: CycleDate.of(DateTime(now.year, now.month, now.day - 1)),
+          temperature: 36.7,
+          ovulationTest: CycleOvulationTest.positive,
+          mucus: CycleMucus.eggWhite,
+        ),
+      );
+      final text = await nexCycleSummaryForAssistant(
+        services: harness.services,
+        preferences: harness.preferences,
+      );
+      expect(text, contains('Fertility signs this cycle:'));
+      expect(text, contains('36.70°C ovulation test positive mucus eggWhite'));
+    });
+
     test('turning Cycle off takes it away again', () async {
       await harness.preferences.setCycleAssistantAccess(true);
       await harness.preferences.setCycleEnabled(false);

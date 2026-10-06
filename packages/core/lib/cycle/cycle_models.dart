@@ -90,6 +90,35 @@ enum CycleFlow {
   }
 }
 
+/// An ovulation (LH) test.
+enum CycleOvulationTest {
+  negative,
+  positive;
+
+  static CycleOvulationTest? fromWire(String? value) {
+    for (final t in values) {
+      if (t.name == value) return t;
+    }
+    return null;
+  }
+}
+
+/// Cervical mucus, from least to most fertile.
+enum CycleMucus {
+  dry,
+  sticky,
+  creamy,
+  watery,
+  eggWhite;
+
+  static CycleMucus? fromWire(String? value) {
+    for (final m in values) {
+      if (m.name == value) return m;
+    }
+    return null;
+  }
+}
+
 /// How a day felt, from low to high.
 enum CycleMood {
   low,
@@ -142,6 +171,9 @@ class CycleDayLog {
     this.intimacy = false,
     this.pill = false,
     this.note,
+    this.temperature,
+    this.ovulationTest,
+    this.mucus,
   });
 
   final CycleDate day;
@@ -158,6 +190,11 @@ class CycleDayLog {
   final bool pill;
   final String? note;
 
+  /// Basal body temperature on waking, in °C.
+  final double? temperature;
+  final CycleOvulationTest? ovulationTest;
+  final CycleMucus? mucus;
+
   bool get isEmpty =>
       flow == null &&
       symptoms.isEmpty &&
@@ -166,6 +203,9 @@ class CycleDayLog {
       !painRelief &&
       !intimacy &&
       !pill &&
+      temperature == null &&
+      ovulationTest == null &&
+      mucus == null &&
       (note?.trim().isEmpty ?? true);
 
   CycleDayLog copyWith({
@@ -177,6 +217,9 @@ class CycleDayLog {
     bool? intimacy,
     bool? pill,
     String? Function()? note,
+    double? Function()? temperature,
+    CycleOvulationTest? Function()? ovulationTest,
+    CycleMucus? Function()? mucus,
   }) => CycleDayLog(
     day: day,
     flow: flow == null ? this.flow : flow(),
@@ -187,5 +230,8 @@ class CycleDayLog {
     intimacy: intimacy ?? this.intimacy,
     pill: pill ?? this.pill,
     note: note == null ? this.note : note(),
+    temperature: temperature == null ? this.temperature : temperature(),
+    ovulationTest: ovulationTest == null ? this.ovulationTest : ovulationTest(),
+    mucus: mucus == null ? this.mucus : mucus(),
   );
 }

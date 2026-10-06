@@ -391,6 +391,10 @@ CREATE TABLE IF NOT EXISTS cycle_days (
   note TEXT
 );
 ''');
+    // Fertility signs, added with «Cycle»'s trying-to-conceive mode.
+    _addColumnIfMissing('cycle_days', 'temperature', 'REAL');
+    _addColumnIfMissing('cycle_days', 'ovulation_test', 'TEXT');
+    _addColumnIfMissing('cycle_days', 'mucus', 'TEXT');
 
     // Records one-off data migrations, so a seed that the user has since
     // edited or deleted is never quietly put back.

@@ -102,15 +102,15 @@ The vault uses the phone's secure storage and never enters notes, widgets, searc
 
 ## Cycle
 
-**Tools → Cycle** keeps track of your menstrual cycle. The first time, it asks when your last period started and how long your periods and cycles usually are; answer what you know, or **I don't know**, and Nex learns the rest from what you log.
+**Tools → Cycle** keeps track of your menstrual cycle, in a quiet space of its own: soft blush and lavender light, a greeting, and a gentle line for where you are in your cycle. The first time, it asks when your last period started and how long your periods and cycles usually are; answer what you know, or **I don't know**, and Nex learns the rest from what you log.
 
 The large button says **Period started** or **Period ended**; **On another day?** sets either on a date in the past. The ring shows the day of your cycle, the period in rose and the likely fertile days in teal. Under it is when the next period is likely — as a range, because nobody's cycle is exact — and how sure that is. **Log today** notes flow, mood, energy, symptoms, pain relief, intimacy, the pill and a few words; tap any past day on the calendar to do the same for it. Past periods are listed with their lengths; tap one to correct or delete it.
 
 If something looks unusual — a period much later than expected, or one lasting more than eight days — a short note says so and suggests a doctor; it is never a diagnosis. The settings button at the top sets the reminders (two days before a period, each evening of a period, a daily pill), which only ever say "Nex reminder", and holds **Delete all cycle data**.
 
 **Modes**, in the same settings, fit Cycle to where you are:
-- **Trying to conceive** leads with the fertile window and likely ovulation.
-- **Pregnant** shows the week and day, the due date and the trimester, counted from the first day of your last period or from a due date you already know.
+- **Trying to conceive** leads with the fertile window and likely ovulation. A day's log then also has **Fertility signs**: your temperature on waking, an ovulation test and cervical mucus; a positive test is shown on the page for the rest of that cycle.
+- **Pregnant** shows the week and day, the due date and the trimester, counted from the first day of your last period or from a due date you already know. Once the due date has passed, Cycle asks whether your baby has arrived and offers to switch to **Breastfeeding** or back to **Normal**.
 - **Breastfeeding** and **perimenopause or menopause** turn predictions off and keep logging.
 
 After a couple of cycles with symptoms logged, **Patterns** shows the ones that come back at the same point in your cycle. **Report for a doctor** makes a one-page summary — averages, recent periods, symptoms and patterns — to save as a PDF or share.

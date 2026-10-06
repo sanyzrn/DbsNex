@@ -5,6 +5,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import 'cycle_format.dart';
+import 'cycle_space.dart';
 
 /// The cycle as a ring: the period at its start in rose, the fertile window
 /// in teal, and a dot for today that travels round as the days go.
@@ -46,10 +47,11 @@ class CycleRing extends StatelessWidget {
           curve: Curves.easeOutCubic,
           builder: (context, t, _) => CustomPaint(
             painter: _RingPainter(
-              track: theme.colorScheme.surfaceContainerHighest,
+              track: theme.colorScheme.onSurface.withValues(alpha: 0.07),
               period: cyclePeriodColor(brightness),
+              periodEnd: cycleMauve(brightness),
               fertile: cycleFertileColor(brightness),
-              marker: theme.colorScheme.onSurface,
+              marker: Colors.white,
               periodFraction: p.averagePeriod / length,
               fertileFrom: fertileFrom / length,
               fertileTo: fertileTo / length,
@@ -91,6 +93,7 @@ class _RingPainter extends CustomPainter {
   _RingPainter({
     required this.track,
     required this.period,
+    required this.periodEnd,
     required this.fertile,
     required this.marker,
     required this.periodFraction,
@@ -99,49 +102,103 @@ class _RingPainter extends CustomPainter {
     required this.progress,
   });
 
-  final Color track, period, fertile, marker;
+  final Color track, period, periodEnd, fertile, marker;
   final double periodFraction, fertileFrom, fertileTo, progress;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final stroke = size.shortestSide * 0.075;
+    final stroke = size.shortestSide * 0.06;
     final rect = Rect.fromCircle(
       center: size.center(Offset.zero),
-      radius: (size.shortestSide - stroke) / 2 - 4,
+      radius: (size.shortestSide - stroke) / 2 - stroke,
     );
     const start = -math.pi / 2;
     const full = math.pi * 2;
-    Paint arc(Color color) => Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round;
 
-    canvas.drawArc(rect, 0, full, false, arc(track));
+    // A soft light in the middle, so the words sit in a glow rather than
+    // on a hole.
+    canvas.drawCircle(
+      rect.center,
+      rect.width / 2,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            period.withValues(alpha: 0.10),
+            periodEnd.withValues(alpha: 0.04),
+            period.withValues(alpha: 0),
+          ],
+          stops: const [0, 0.7, 1],
+        ).createShader(rect),
+    );
     canvas.drawArc(
       rect,
-      start,
-      full * periodFraction.clamp(0.02, 1.0),
+      0,
+      full,
       false,
-      arc(period),
+      Paint()
+        ..color = track
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke,
     );
-    if (fertileTo > fertileFrom && fertileFrom >= 0 && fertileTo <= 1.0) {
+
+    // Each arc twice: blurred underneath for its glow, then itself — a
+    // gradient along its own length, so it reads as light, not as paint.
+    void arc(double from, double sweep, Color a, Color b) {
+      if (sweep <= 0) return;
+      Shader along(Color a, Color b) => SweepGradient(
+        endAngle: sweep,
+        colors: [a, b],
+        transform: GradientRotation(from),
+      ).createShader(rect);
+      final shader = along(a, b);
       canvas.drawArc(
         rect,
-        start + full * fertileFrom,
-        full * (fertileTo - fertileFrom),
+        from,
+        sweep,
         false,
-        arc(fertile),
+        Paint()
+          ..shader = along(a.withValues(alpha: 0.4), b.withValues(alpha: 0.4))
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke * 1.4
+          ..strokeCap = StrokeCap.round
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, stroke * 0.8),
+      );
+      canvas.drawArc(
+        rect,
+        from,
+        sweep,
+        false,
+        Paint()
+          ..shader = shader
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke
+          ..strokeCap = StrokeCap.round,
       );
     }
-    // Today: a dot riding the ring, ringed in the page colour so it reads
-    // on top of either arc.
+
+    arc(start, full * periodFraction.clamp(0.02, 1.0), period, periodEnd);
+    if (fertileTo > fertileFrom && fertileFrom >= 0 && fertileTo <= 1.0) {
+      arc(
+        start + full * fertileFrom,
+        full * (fertileTo - fertileFrom),
+        fertile.withValues(alpha: 0.75),
+        fertile,
+      );
+    }
+    // Today: a pearl riding the ring, with a halo of rose round it.
     final angle = start + full * progress;
     final at =
         rect.center +
         Offset(math.cos(angle), math.sin(angle)) * (rect.width / 2);
-    canvas.drawCircle(at, stroke * 0.75, Paint()..color = track);
-    canvas.drawCircle(at, stroke * 0.5, Paint()..color = marker);
+    canvas.drawCircle(
+      at,
+      stroke * 1.2,
+      Paint()
+        ..color = period.withValues(alpha: 0.45)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, stroke * 0.7),
+    );
+    canvas.drawCircle(at, stroke * 0.72, Paint()..color = marker);
+    canvas.drawCircle(at, stroke * 0.36, Paint()..color = period);
   }
 
   @override
@@ -149,6 +206,7 @@ class _RingPainter extends CustomPainter {
       old.progress != progress ||
       old.track != track ||
       old.period != period ||
+      old.periodEnd != periodEnd ||
       old.fertile != fertile ||
       old.periodFraction != periodFraction ||
       old.fertileFrom != fertileFrom ||
@@ -187,10 +245,11 @@ class CycleProgressRing extends StatelessWidget {
           curve: Curves.easeOutCubic,
           builder: (context, t, _) => CustomPaint(
             painter: _RingPainter(
-              track: theme.colorScheme.surfaceContainerHighest,
+              track: theme.colorScheme.onSurface.withValues(alpha: 0.07),
               period: color,
+              periodEnd: cycleMauve(theme.brightness),
               fertile: Colors.transparent,
-              marker: theme.colorScheme.onSurface,
+              marker: Colors.white,
               periodFraction: t,
               fertileFrom: 0,
               fertileTo: 0,

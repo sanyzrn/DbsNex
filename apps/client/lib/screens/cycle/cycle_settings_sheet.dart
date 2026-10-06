@@ -12,6 +12,7 @@ import '../../widgets/nex_banner.dart';
 import '../../widgets/nex_dialog.dart';
 import '../../widgets/nex_time_picker.dart';
 import 'cycle_format.dart';
+import 'cycle_space.dart';
 
 /// Reminders, the typical lengths, and deleting everything.
 ///
@@ -25,8 +26,9 @@ abstract final class CycleSettingsSheet {
   }) async =>
       await nexShowSheet<bool>(
         context: context,
-        builder: (_) =>
-            _SettingsSheet(services: services, preferences: preferences),
+        builder: (_) => CycleSheet(
+          child: _SettingsSheet(services: services, preferences: preferences),
+        ),
       ) ??
       false;
 }
