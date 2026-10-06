@@ -3286,6 +3286,22 @@ class AppLocalizationsFa extends AppLocalizations {
       'در روزهایی که معمولاً سخت‌ترند — کمی پیش از پریود و روزهای اول آن، یا وقتی حالِ گرفته، حساس یا درد ثبت کرده‌اید — دستیار نرم‌تر و صبورتر جواب می‌دهد و هرگز حرفی از چرخه‌تان نمی‌زند. فقط یک جمله دربارهٔ لحن برای سرویس هوش مصنوعی فرستاده می‌شود، نه داده‌های چرخه. پیش‌فرض خاموش است.';
 
   @override
+  String get cycleProfileAbout =>
+      'چرخهٔ قاعدگی‌ات را دنبال می‌کند و پریود بعدی و روزهای باروری را از روی سابقهٔ خودت پیش‌بینی می‌کند.\nبا ثبت حال و علائم، الگوهای بدنت را نشانت می‌دهد و اگر بخواهی دستیار هم در روزهای سخت‌تر همراه مهربان‌تری می‌شود.\nهمه‌چیز فقط روی همین گوشی می‌ماند.';
+
+  @override
+  String get cycleProfileOpen => 'باز کردن چرخه';
+
+  @override
+  String get cycleInProfile => 'در پروفایل';
+
+  @override
+  String get localModelChoose => 'مدل';
+
+  @override
+  String get localModelOnPhone => 'روی این گوشی';
+
+  @override
   String get remindTitle => 'تنظیم یادآور';
 
   @override
@@ -3344,7 +3360,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get localModelLicenseGloss =>
-      'خلاصه‌اش: مدل مال گوگل است، شرایط خودش را دارد، و دانلودش یعنی پذیرفتن آن شرایط.';
+      'خلاصه‌اش: مدل مال سازنده‌اش است، شرایط خودش را دارد، و دانلودش یعنی پذیرفتن آن شرایط.';
 
   @override
   String get notificationTest => 'ارسال اعلان آزمایشی';

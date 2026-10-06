@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:nex_ui/nex_ui.dart';
+import 'dismiss_on_overscroll.dart';
 
 /// Wraps dialog content at a stable width.
 ///
@@ -114,7 +115,19 @@ Future<T?> nexShowSheet<T>({
         children: [
           if (dismissible) handle,
           if (guarded) _SwipeHandle(child: handle),
-          Flexible(child: SafeArea(top: false, child: builder(context))),
+          Flexible(
+            child: SafeArea(
+              top: false,
+              // Every dismissible sheet closes when its content is pulled
+              // down past the top, not only from the handle: a scrolling
+              // body wins the drag before the sheet sees it, and a sheet
+              // that cannot be swiped away reads as stuck. Here, once, so a
+              // new sheet cannot forget it (the Cycle settings did).
+              child: dismissible
+                  ? NexDismissOnOverscroll(child: builder(context))
+                  : builder(context),
+            ),
+          ),
         ],
       ),
     );

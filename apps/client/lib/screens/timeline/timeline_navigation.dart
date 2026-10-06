@@ -226,6 +226,24 @@ extension _TimelineNavigation on TimelineScreenState {
     _surfaceTimeline();
   }
 
+  /// A Cycle widget: «Cycle» itself, on top of the timeline — or just the
+  /// timeline when Cycle has been turned off since the widget was placed.
+  void _openCycleFromOs() {
+    if (!mounted) return;
+    _surfaceTimeline();
+    if (!widget.preferences.cycleEnabled) return;
+    unawaited(
+      Navigator.of(context).push(
+        NexPageRoute<void>(
+          builder: (_) => CycleScreen(
+            services: widget.services,
+            preferences: widget.preferences,
+          ),
+        ),
+      ),
+    );
+  }
+
   void _openCaptureFromOs() {
     if (!mounted) return;
     _surfaceTimeline();

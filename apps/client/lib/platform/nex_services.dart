@@ -100,6 +100,18 @@ class NexServices {
   final _timelineController = StreamController<List<Note>>.broadcast();
   Stream<List<Note>> get timelineStream => _timelineController.stream;
 
+  /// Fires after anything in «Cycle» is written — what the Cycle widgets
+  /// redraw on. Its own stream: a period is not a note, and the timeline's
+  /// listeners have no business waking for one.
+  final _cycleController = StreamController<void>.broadcast();
+  Stream<void> get cycleChanges => _cycleController.stream;
+
+  Future<T> _cycleWrite<T>(Future<T> write) async {
+    final result = await write;
+    if (!_cycleController.isClosed) _cycleController.add(null);
+    return result;
+  }
+
   bool _closed = false;
 
   /// [aiAdapter] is injected from Core types only. Defaults to
@@ -525,24 +537,29 @@ class NexServices {
   /// expected length first.
   Future<CyclePeriod> cycleStartPeriod(DateTime day) async {
     final prediction = await cyclePrediction();
-    return worker.cycleStartPeriod(
-      day,
-      closeAfter: prediction?.averagePeriod ?? _preferences.cycleTypicalPeriod,
+    return _cycleWrite(
+      worker.cycleStartPeriod(
+        day,
+        closeAfter:
+            prediction?.averagePeriod ?? _preferences.cycleTypicalPeriod,
+      ),
     );
   }
 
   Future<void> cycleEndPeriod(String id, DateTime day) =>
-      worker.cycleEndPeriod(id, day);
+      _cycleWrite(worker.cycleEndPeriod(id, day));
 
   Future<void> cycleUpdatePeriod(String id, DateTime start, DateTime? end) =>
-      worker.cycleUpdatePeriod(id, start, end);
+      _cycleWrite(worker.cycleUpdatePeriod(id, start, end));
 
-  Future<void> cycleDeletePeriod(String id) => worker.cycleDeletePeriod(id);
+  Future<void> cycleDeletePeriod(String id) =>
+      _cycleWrite(worker.cycleDeletePeriod(id));
 
   Future<List<CycleDayLog>> cycleDays(DateTime from, DateTime to) =>
       worker.cycleDays(from, to);
 
-  Future<void> cycleSaveDay(CycleDayLog log) => worker.cycleSaveDay(log);
+  Future<void> cycleSaveDay(CycleDayLog log) =>
+      _cycleWrite(worker.cycleSaveDay(log));
 
   /// What the cycle screen shows, from everything logged. Null until a
   /// period has been.
@@ -560,6 +577,7 @@ class NexServices {
     await worker.cycleDeleteAll();
     await reminders.cancelCycle();
     await _preferences.resetCycle();
+    if (!_cycleController.isClosed) _cycleController.add(null);
   }
 
   /* -------------------------------------------------- scheduled notes */
@@ -1086,8 +1104,11 @@ class NexServices {
       'Nex-${DateTime.now().microsecondsSinceEpoch}.nexfull',
     );
     final store = await NexModelStore.open();
-    final model = includeModel && store.isInstalled(NexModels.gemma4E2B)
-        ? store.fileFor(NexModels.gemma4E2B).path
+    // The model in use, if it is on the phone — the one a restore should
+    // bring back working.
+    final chosen = store.selected;
+    final model = includeModel && store.isInstalled(chosen)
+        ? store.fileFor(chosen).path
         : null;
     await Isolate.run(
       () => FullBackup.create(
@@ -1096,7 +1117,7 @@ class NexServices {
         settings: settings,
         key: key,
         model: model,
-        modelHash: model == null ? null : NexModels.gemma4E2B.sha256,
+        modelHash: model == null ? null : chosen.sha256,
       ),
     );
     return output;
@@ -1114,13 +1135,19 @@ class NexServices {
     var recoveryStarted = false;
     try {
       final path = staging.path;
+      // Which model the backup carries, from its unencrypted header; unpack
+      // then verifies the file against that model's own digest and size, so
+      // a header that lies only fails the restore.
+      final backedUp =
+          NexModels.bySha256(FullBackup.modelHashOf(source.path)) ??
+          NexModels.standard;
       final settings = await Isolate.run(
         () => FullBackup.unpack(
           source.path,
           path,
           key,
-          modelHash: NexModels.gemma4E2B.sha256,
-          modelBytes: NexModels.gemma4E2B.sizeBytes,
+          modelHash: backedUp.sha256,
+          modelBytes: backedUp.sizeBytes,
         ),
       );
       NexPreferences.validateBackupSettings(settings);
@@ -1151,11 +1178,12 @@ class NexServices {
         final model = File(p.join(path, 'model.litertlm'));
         if (await model.exists()) {
           final store = await NexModelStore.open();
-          final target = store.fileFor(NexModels.gemma4E2B);
+          final target = store.fileFor(backedUp);
           await target.parent.create(recursive: true);
           // Stage beside the destination so rename remains atomic across volumes.
           final pending = await model.copy('${target.path}.restore');
           await pending.rename(target.path);
+          await store.select(backedUp);
         }
       } catch (error) {
         // The restart path reads the secure journal and restores the original
@@ -1371,6 +1399,7 @@ class NexServices {
   Future<void> dispose() async {
     _scheduledTimer?.cancel();
     await _timelineController.close();
+    await _cycleController.close();
     await _closeOnce();
   }
 }

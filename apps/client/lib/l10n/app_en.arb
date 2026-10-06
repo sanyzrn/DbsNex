@@ -2419,6 +2419,11 @@
   "cycleWhisperPregnant": "Two heartbeats, one gentle rhythm.",
   "cycleGentle": "Gentle companion",
   "cycleGentleHint": "On the days that are often harder — just before and at the start of a period, or when you log feeling low, sensitive or in pain — the assistant answers more softly and patiently. It never brings up your cycle. Only a line about tone is sent to your AI provider, never your cycle data. Off by default.",
+  "cycleProfileAbout": "Follows your menstrual cycle and predicts your next period and fertile days from your own history.\nLog how you feel and what you notice, and it shows you your body's patterns — and, if you like, the assistant becomes a gentler companion on harder days.\nEverything stays on this phone.",
+  "cycleProfileOpen": "Open Cycle",
+  "cycleInProfile": "In your profile",
+  "localModelChoose": "Model",
+  "localModelOnPhone": "On this phone",
   "remindTitle": "Set a reminder",
   "@remindTitle": {
       "description": "Heading of the reminder sheet"
@@ -2490,8 +2495,8 @@
   "@nudgeGreetingPlain": {"description": "Notification title when there is no name"},
   "nudgeNothing": "A clear page. Nex is here when something comes up.",
   "@nudgeNothing": {"description": "Notification body when there is no recap"},
-  "localModelLicenseGloss": "In short: the model is Google's, it comes with its own terms, and downloading it means accepting them.",
-  "@localModelLicenseGloss": {"description": "Plain-language gloss under the verbatim Gemma notice"},
+  "localModelLicenseGloss": "In short: the model belongs to its maker, it comes with its own terms, and downloading it means accepting them.",
+  "@localModelLicenseGloss": {"description": "Plain-language gloss under the model's verbatim licence notice"},
   "notificationTest": "Send a test notification",
   "@notificationTest": {"description": "Settings row that posts a test notification"},
   "notificationTestHint": "One now, and one in ten seconds",

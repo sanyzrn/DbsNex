@@ -5444,6 +5444,36 @@ abstract class AppLocalizations {
   /// **'On the days that are often harder — just before and at the start of a period, or when you log feeling low, sensitive or in pain — the assistant answers more softly and patiently. It never brings up your cycle. Only a line about tone is sent to your AI provider, never your cycle data. Off by default.'**
   String get cycleGentleHint;
 
+  /// No description provided for @cycleProfileAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows your menstrual cycle and predicts your next period and fertile days from your own history.\nLog how you feel and what you notice, and it shows you your body\'s patterns — and, if you like, the assistant becomes a gentler companion on harder days.\nEverything stays on this phone.'**
+  String get cycleProfileAbout;
+
+  /// No description provided for @cycleProfileOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Cycle'**
+  String get cycleProfileOpen;
+
+  /// No description provided for @cycleInProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'In your profile'**
+  String get cycleInProfile;
+
+  /// No description provided for @localModelChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get localModelChoose;
+
+  /// No description provided for @localModelOnPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'On this phone'**
+  String get localModelOnPhone;
+
   /// Heading of the reminder sheet
   ///
   /// In en, this message translates to:
@@ -5534,10 +5564,10 @@ abstract class AppLocalizations {
   /// **'A clear page. Nex is here when something comes up.'**
   String get nudgeNothing;
 
-  /// Plain-language gloss under the verbatim Gemma notice
+  /// Plain-language gloss under the model's verbatim licence notice
   ///
   /// In en, this message translates to:
-  /// **'In short: the model is Google\'s, it comes with its own terms, and downloading it means accepting them.'**
+  /// **'In short: the model belongs to its maker, it comes with its own terms, and downloading it means accepting them.'**
   String get localModelLicenseGloss;
 
   /// Settings row that posts a test notification

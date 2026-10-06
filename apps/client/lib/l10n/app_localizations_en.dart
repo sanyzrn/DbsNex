@@ -3376,6 +3376,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'On the days that are often harder — just before and at the start of a period, or when you log feeling low, sensitive or in pain — the assistant answers more softly and patiently. It never brings up your cycle. Only a line about tone is sent to your AI provider, never your cycle data. Off by default.';
 
   @override
+  String get cycleProfileAbout =>
+      'Follows your menstrual cycle and predicts your next period and fertile days from your own history.\nLog how you feel and what you notice, and it shows you your body\'s patterns — and, if you like, the assistant becomes a gentler companion on harder days.\nEverything stays on this phone.';
+
+  @override
+  String get cycleProfileOpen => 'Open Cycle';
+
+  @override
+  String get cycleInProfile => 'In your profile';
+
+  @override
+  String get localModelChoose => 'Model';
+
+  @override
+  String get localModelOnPhone => 'On this phone';
+
+  @override
   String get remindTitle => 'Set a reminder';
 
   @override
@@ -3433,7 +3449,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get localModelLicenseGloss =>
-      'In short: the model is Google\'s, it comes with its own terms, and downloading it means accepting them.';
+      'In short: the model belongs to its maker, it comes with its own terms, and downloading it means accepting them.';
 
   @override
   String get notificationTest => 'Send a test notification';

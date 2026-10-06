@@ -33,6 +33,17 @@ void main() {
       expect(LiteRtChatAdapter(modelPath: '').available, isFalse);
     });
 
+    test('a following adapter asks again which model, every time', () {
+      // The on-device screen can switch models; the bound adapter must not
+      // keep answering for the one it started with.
+      var path = '';
+      final adapter = LiteRtChatAdapter.following(() => path);
+      expect(adapter.modelPath, '');
+      path = '/models/minicpm5-2b-int4/MiniCPM5-2B_int4.litertlm';
+      expect(adapter.modelPath, path);
+      expect(adapter.available, isFalse);
+    });
+
     test('an empty history is never sent anywhere', () {
       final adapter = LiteRtChatAdapter(modelPath: '');
       expect(adapter.sendMessage(const []), isNull);

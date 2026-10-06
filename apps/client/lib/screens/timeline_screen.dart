@@ -26,6 +26,7 @@ import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/metrics.dart';
 import 'timeline/timeline_model.dart';
+import 'cycle_screen.dart';
 import 'update_sheet.dart';
 import '../platform/brief_report.dart';
 import '../platform/nex_services.dart';
@@ -343,6 +344,7 @@ class TimelineScreenState extends State<TimelineScreen>
     widget.osCapture?.onOpenNoteRequested = _openNoteFromOs;
     widget.osCapture?.onRecapRefreshRequested = _refreshRecapFromOs;
     widget.osCapture?.onOpenTimelineRequested = _openTimelineFromOs;
+    widget.osCapture?.onOpenCycleRequested = _openCycleFromOs;
     final requested = widget.osCapture?.takeRequest();
     if (requested != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -357,6 +359,8 @@ class TimelineScreenState extends State<TimelineScreen>
             }
           case PendingOsRequestKind.openTimeline:
             _openTimelineFromOs();
+          case PendingOsRequestKind.openCycle:
+            _openCycleFromOs();
           case PendingOsRequestKind.openNote:
             _openNoteFromOs(requested.noteId!);
         }

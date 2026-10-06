@@ -47,6 +47,10 @@ enum PendingOsRequestKind {
   /// in Settings, which is a perfectly reasonable thing for Android to do and
   /// not at all what the tap meant.
   openTimeline,
+
+  /// A tap on one of the Cycle widgets: open «Cycle», behind the app lock
+  /// like everything else.
+  openCycle,
 }
 
 /// Which capture a quick-capture notification button asked for (W5.2).
@@ -101,6 +105,11 @@ class PendingOsRequest {
 
   const PendingOsRequest.openTimeline()
     : kind = PendingOsRequestKind.openTimeline,
+      noteId = null,
+      captureMode = null;
+
+  const PendingOsRequest.openCycle()
+    : kind = PendingOsRequestKind.openCycle,
       noteId = null,
       captureMode = null;
 
@@ -204,6 +213,9 @@ class OsCaptureBridge {
   /// Called when a plain tap on a widget asks for the timeline itself.
   void Function()? onOpenTimelineRequested;
 
+  /// Called when a Cycle widget asks for «Cycle».
+  void Function()? onOpenCycleRequested;
+
   PendingOsRequest? _request;
 
   /// The request that arrived before anything was listening, once.
@@ -230,6 +242,7 @@ class OsCaptureBridge {
       },
       PendingOsRequestKind.refreshRecap => _call(onRecapRefreshRequested),
       PendingOsRequestKind.openTimeline => _call(onOpenTimelineRequested),
+      PendingOsRequestKind.openCycle => _call(onOpenCycleRequested),
       PendingOsRequestKind.openNote => switch (onOpenNoteRequested) {
         final open? => _run(() => open(request.noteId!)),
         null => false,
@@ -388,6 +401,9 @@ class OsCaptureBridge {
         return false;
       case 'open_timeline':
         _dispatch(const PendingOsRequest.openTimeline());
+        return false;
+      case 'open_cycle':
+        _dispatch(const PendingOsRequest.openCycle());
         return false;
       case 'shared_text':
         final text = (payload['text'] as String?)?.trim() ?? '';

@@ -238,6 +238,7 @@ two are worth knowing where to find.
 | [`02-product-specification.md`](./docs/02-product-specification.md) | Functional requirements (`FR-n.n`) and the data model |
 | [`04-architecture.md`](./docs/04-architecture.md) | Local-first architecture and the sync design |
 | [`05-design.md`](./docs/05-design.md) | Design language, UI principles, accessibility floors |
+| [`16-design-language.md`](./docs/16-design-language.md) | How every new page, sheet and dialog is built — the practical rules and the tests that enforce them |
 | [`06-development.md`](./docs/06-development.md) | Conventions, folder structure, testing strategy |
 | [`07-contributing.md`](./docs/07-contributing.md) | How to contribute |
 | [`08-roadmap.md`](./docs/08-roadmap.md) | Phase 1 → 2 → 3 sequencing |

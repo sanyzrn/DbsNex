@@ -16,6 +16,7 @@ import '../widgets/draft_guard.dart';
 import '../widgets/nex_time_picker.dart';
 import '../platform/display_date.dart';
 import '../widgets/nex_text_field.dart';
+import 'cycle/cycle_switch.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -282,6 +283,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                   child: Icon(Icons.notes_outlined),
                 ),
               ),
+            ),
+            CycleProfileCard(
+              services: widget.services,
+              preferences: widget.preferences,
             ),
           ],
         ),

@@ -55,6 +55,23 @@ abstract final class FullBackup {
     }
   }
 
+  /// The digest of the model a backup says it carries, or null when it
+  /// carries none or cannot be read. Unauthenticated: only good for choosing
+  /// which model [unpack] should verify against, never for trusting the file.
+  static String? modelHashOf(String source) {
+    final input = InputFileStream(source);
+    try {
+      final meta = ZipDecoder().decodeStream(input).findFile('format.json');
+      if (meta == null || meta.size > 4096) return null;
+      final format = jsonDecode(utf8.decode(meta.content));
+      return format is Map ? format['modelSha256'] as String? : null;
+    } catch (_) {
+      return null;
+    } finally {
+      input.closeSync();
+    }
+  }
+
   /// Extract into a caller-owned staging directory. No live data is touched
   /// before decryption, entry validation and model verification have succeeded.
   static Map<String, dynamic> unpack(

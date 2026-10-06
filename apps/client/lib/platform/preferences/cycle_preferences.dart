@@ -8,7 +8,10 @@ mixin _CyclePreferences on _PreferencesStore {
   /// Whether «Cycle» is part of the app at all. On by default; off, its
   /// tile, its reminders and everything it does at launch are gone, and its
   /// data is kept or deleted as the person chose when turning it off.
-  bool get cycleEnabled => _prefs.getBool('cycle.enabled') ?? true;
+  ///
+  /// Off until turned on in the profile — except for someone who had
+  /// already set it up while it was on by default, who keeps it.
+  bool get cycleEnabled => _prefs.getBool('cycle.enabled') ?? cycleSetUp;
   Future<void> setCycleEnabled(bool value) => _setBool('cycle.enabled', value);
 
   /// Whether the three opening questions have been answered or skipped.

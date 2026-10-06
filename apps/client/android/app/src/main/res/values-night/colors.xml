@@ -9,4 +9,12 @@
     <color name="nex_widget_text_dim">#ABABAB</color>
     <color name="nex_widget_stroke">#323232</color>
     <color name="nex_widget_action">#18F2F2F3</color>
+
+    <color name="nex_cycle_bg_start">#2E1A26</color>
+    <color name="nex_cycle_bg_end">#221C33</color>
+    <color name="nex_cycle_stroke">#17FFFFFF</color>
+    <color name="nex_cycle_text">#F6EEF3</color>
+    <color name="nex_cycle_text_dim">#B9A9B3</color>
+    <color name="nex_cycle_rose">#F28DA4</color>
+    <color name="nex_cycle_teal">#72D2BF</color>
 </resources>

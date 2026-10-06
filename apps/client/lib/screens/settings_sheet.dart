@@ -15,7 +15,6 @@ import '../widgets/nex_time_picker.dart';
 import '../widgets/swipe_actions.dart';
 import '../widgets/tag_color_picker.dart';
 import 'package:nex_ai/cloud.dart';
-import '../platform/cycle_reminders.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/notification_settings.dart';
@@ -211,6 +210,36 @@ class SettingsSheet extends StatelessWidget {
     }
 
     final out = <Widget>[];
+    // «Cycle» is switched on and off in the profile, not here; searching
+    // for it still finds the way there.
+    if (finds(
+      '${l10n.profileTitle} ${l10n.cycleTitle} Cycle period چرخه پریود قاعدگی',
+    )) {
+      out.add(
+        Material(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(NexRadius.lg),
+          clipBehavior: Clip.antiAlias,
+          child: KeyedSubtree(
+            key: const ValueKey('settings-search-cycle'),
+            child: _Row(
+              icon: Icons.water_drop_outlined,
+              title: l10n.cycleTitle,
+              value: l10n.cycleInProfile,
+              onTap: () => Navigator.push(
+                context,
+                NexPageRoute<void>(
+                  builder: (_) => ProfileScreen(
+                    services: services,
+                    preferences: preferences,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     for (final group in _groups(context, l10n)) {
       if (group is! _Section) continue;
       final rows = finds(group.title)
@@ -329,52 +358,6 @@ class SettingsSheet extends StatelessWidget {
       reminders: services.reminders,
       recap: preferences.lastRecap,
     );
-  }
-
-  /// Turning «Cycle» off asks once what to do with its data; turning it
-  /// back on is the switch alone.
-  Future<void> _setCycleEnabled(BuildContext context, bool value) async {
-    if (value) {
-      await preferences.setCycleEnabled(true);
-      if (!context.mounted) return;
-      await CycleReminders.apply(
-        context: context,
-        services: services,
-        preferences: preferences,
-      );
-      return;
-    }
-    final l10n = AppLocalizations.of(context);
-    final choice = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.cycleTurnOffTitle),
-        content: NexDialogBody(child: Text(l10n.cycleTurnOffBody)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            key: const ValueKey('cycle-off-delete'),
-            onPressed: () => Navigator.pop(dialogContext, 'delete'),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(dialogContext).colorScheme.error,
-            ),
-            child: Text(l10n.cycleTurnOffDelete),
-          ),
-          TextButton(
-            key: const ValueKey('cycle-off-keep'),
-            onPressed: () => Navigator.pop(dialogContext, 'keep'),
-            child: Text(l10n.cycleTurnOffKeep),
-          ),
-        ],
-      ),
-    );
-    if (choice == null) return;
-    if (choice == 'delete') await services.cycleDeleteAll();
-    await services.reminders.cancelCycle();
-    await preferences.setCycleEnabled(false);
   }
 
   List<Widget> _groups(BuildContext context, AppLocalizations l10n) => [
@@ -521,20 +504,6 @@ class SettingsSheet extends StatelessWidget {
               await QuickCaptureNotification.setEnabled(value);
             }()),
           ),
-      ],
-    ),
-    _Section(
-      id: 'features',
-      icon: Icons.dashboard_customize_outlined,
-      title: l10n.settingsFeatures,
-      children: [
-        _SwitchRow(
-          icon: Icons.water_drop_outlined,
-          title: l10n.cycleShow,
-          subtitle: l10n.cycleShowSubtitle,
-          value: preferences.cycleEnabled,
-          onChanged: (value) => unawaited(_setCycleEnabled(context, value)),
-        ),
       ],
     ),
     _Section(

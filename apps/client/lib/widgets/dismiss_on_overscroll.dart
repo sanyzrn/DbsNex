@@ -37,9 +37,15 @@ class _NexDismissOnOverscrollState extends State<NexDismissOnOverscroll> {
   bool _dismissed = false;
 
   bool _onNotification(OverscrollNotification notification) {
-    if (!_dismissed &&
+    // Only a finger pulling down past the top of a vertical list. A
+    // horizontal row of chips overscrolls too, at its start edge, and that
+    // is not a request to close anything.
+    final pulledDown =
+        notification.metrics.axis == Axis.vertical &&
         notification.dragDetails != null &&
-        notification.overscroll < -8) {
+        notification.overscroll < -8;
+    if (!pulledDown) return false;
+    if (!_dismissed) {
       _dismissed = true;
       Navigator.of(context).maybePop();
       // The latch has to come back off when the pop is refused — a route with
@@ -55,7 +61,10 @@ class _NexDismissOnOverscrollState extends State<NexDismissOnOverscroll> {
         if (ModalRoute.of(context)?.isActive ?? false) _dismissed = false;
       });
     }
-    return false;
+    // Handled here, so a second one further out — every shared sheet has
+    // one now, and some sheets kept their own — does not pop the page
+    // underneath as well.
+    return true;
   }
 
   @override

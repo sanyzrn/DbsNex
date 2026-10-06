@@ -33,4 +33,13 @@
     <color name="nex_widget_stroke">#E0E0E0</color>
     <!-- The capture buttons' pill: the text colour at a few percent. -->
     <color name="nex_widget_action">#10262626</color>
+
+    <!-- Cycle's own space on the home screen (CycleWidgetProvider). -->
+    <color name="nex_cycle_bg_start">#FCEAF0</color>
+    <color name="nex_cycle_bg_end">#F1EAFB</color>
+    <color name="nex_cycle_stroke">#D9FFFFFF</color>
+    <color name="nex_cycle_text">#3A2430</color>
+    <color name="nex_cycle_text_dim">#7A6470</color>
+    <color name="nex_cycle_rose">#D9506F</color>
+    <color name="nex_cycle_teal">#2E9C88</color>
 </resources>
