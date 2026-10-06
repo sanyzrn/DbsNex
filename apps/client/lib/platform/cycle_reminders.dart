@@ -29,7 +29,7 @@ abstract final class CycleReminders {
     if (!NexReminders.supported) return;
     final l10n = AppLocalizations.of(context);
     final reminders = services.reminders;
-    if (!preferences.cycleSetUp) {
+    if (!preferences.cycleEnabled || !preferences.cycleSetUp) {
       await reminders.cancelCycle();
       return;
     }

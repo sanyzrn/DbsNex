@@ -5030,6 +5030,48 @@ abstract class AppLocalizations {
   /// **'Your daily reminder'**
   String get cycleNotifyPill;
 
+  /// No description provided for @settingsFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Sections'**
+  String get settingsFeatures;
+
+  /// No description provided for @cycleShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Cycle'**
+  String get cycleShow;
+
+  /// No description provided for @cycleShowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The menstrual cycle assistant in Tools'**
+  String get cycleShowSubtitle;
+
+  /// No description provided for @cycleTurnOffTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off Cycle?'**
+  String get cycleTurnOffTitle;
+
+  /// No description provided for @cycleTurnOffBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Its page and reminders will be gone. Keep your cycle data for when you turn it back on, or delete it now?'**
+  String get cycleTurnOffBody;
+
+  /// No description provided for @cycleTurnOffKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep data'**
+  String get cycleTurnOffKeep;
+
+  /// No description provided for @cycleTurnOffDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete data'**
+  String get cycleTurnOffDelete;
+
   /// Heading of the reminder sheet
   ///
   /// In en, this message translates to:

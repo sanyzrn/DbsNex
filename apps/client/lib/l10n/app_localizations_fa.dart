@@ -3046,6 +3046,28 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cycleNotifyPill => 'یادآور روزانهٔ شما';
 
   @override
+  String get settingsFeatures => 'بخش‌ها';
+
+  @override
+  String get cycleShow => 'نمایش چرخه';
+
+  @override
+  String get cycleShowSubtitle => 'دستیار قاعدگی در ابزارها';
+
+  @override
+  String get cycleTurnOffTitle => '«چرخه» خاموش شود؟';
+
+  @override
+  String get cycleTurnOffBody =>
+      'صفحه و یادآورهایش حذف می‌شوند. داده‌های چرخه برای وقتی که دوباره روشنش کردید بمانند، یا همین حالا حذف شوند؟';
+
+  @override
+  String get cycleTurnOffKeep => 'داده‌ها بمانند';
+
+  @override
+  String get cycleTurnOffDelete => 'حذف داده‌ها';
+
+  @override
   String get remindTitle => 'تنظیم یادآور';
 
   @override

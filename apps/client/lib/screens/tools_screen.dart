@@ -78,7 +78,8 @@ class ToolsScreen extends StatelessWidget {
             if (services case final services?) ...[
               const SizedBox(height: 12),
               _pairs([
-                if (preferences case final preferences?)
+                if (preferences case final preferences?
+                    when preferences.cycleEnabled)
                   _ToolTile(
                     title: l.cycleTitle,
                     subtitle: l.cycleSubtitle,

@@ -5,6 +5,12 @@ part of '../nex_preferences.dart';
 /// The periods and daily logs themselves are in the library database, so a
 /// backup carries them; these are only how this phone should behave.
 mixin _CyclePreferences on _PreferencesStore {
+  /// Whether «Cycle» is part of the app at all. On by default; off, its
+  /// tile, its reminders and everything it does at launch are gone, and its
+  /// data is kept or deleted as the person chose when turning it off.
+  bool get cycleEnabled => _prefs.getBool('cycle.enabled') ?? true;
+  Future<void> setCycleEnabled(bool value) => _setBool('cycle.enabled', value);
+
   /// Whether the three opening questions have been answered or skipped.
   bool get cycleSetUp => _prefs.getBool('cycle.set_up') ?? false;
   Future<void> setCycleSetUp(bool value) => _setBool('cycle.set_up', value);

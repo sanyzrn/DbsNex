@@ -2339,6 +2339,13 @@
   "cycleNotifySoon": "A reminder for the coming days",
   "cycleNotifyLog": "Time for today's check-in",
   "cycleNotifyPill": "Your daily reminder",
+  "settingsFeatures": "Sections",
+  "cycleShow": "Show Cycle",
+  "cycleShowSubtitle": "The menstrual cycle assistant in Tools",
+  "cycleTurnOffTitle": "Turn off Cycle?",
+  "cycleTurnOffBody": "Its page and reminders will be gone. Keep your cycle data for when you turn it back on, or delete it now?",
+  "cycleTurnOffKeep": "Keep data",
+  "cycleTurnOffDelete": "Delete data",
   "remindTitle": "Set a reminder",
   "@remindTitle": {
       "description": "Heading of the reminder sheet"

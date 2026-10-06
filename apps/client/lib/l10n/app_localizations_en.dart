@@ -3121,6 +3121,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cycleNotifyPill => 'Your daily reminder';
 
   @override
+  String get settingsFeatures => 'Sections';
+
+  @override
+  String get cycleShow => 'Show Cycle';
+
+  @override
+  String get cycleShowSubtitle => 'The menstrual cycle assistant in Tools';
+
+  @override
+  String get cycleTurnOffTitle => 'Turn off Cycle?';
+
+  @override
+  String get cycleTurnOffBody =>
+      'Its page and reminders will be gone. Keep your cycle data for when you turn it back on, or delete it now?';
+
+  @override
+  String get cycleTurnOffKeep => 'Keep data';
+
+  @override
+  String get cycleTurnOffDelete => 'Delete data';
+
+  @override
   String get remindTitle => 'Set a reminder';
 
   @override
