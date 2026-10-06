@@ -8,6 +8,8 @@ Nex's interface must feel **weightless** — like a fast capture surface, never 
 
 Guiding statement: *if a design element doesn't help the user capture or find something faster, remove it.*
 
+> **Building a screen?** Start with [`16-design-language.md`](./16-design-language.md): the practical rules every new page, sheet and dialog follows, and the tests that enforce them.
+
 ---
 
 ## Design Language

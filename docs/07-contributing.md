@@ -104,7 +104,7 @@ Reviewers evaluate PRs in this order:
 2. Does it preserve offline-first behavior?
 3. Does it avoid adding any decision point to the capture flow?
 4. Is it well-tested per the [Testing Strategy](./06-development.md#testing-strategy)?
-5. Is it consistent with existing conventions and design language ([`05-design.md`](./05-design.md))?
+5. Is it consistent with existing conventions and design language ([`05-design.md`](./05-design.md), and the checklist in [`16-design-language.md`](./16-design-language.md#9-before-you-open-the-pull-request))?
 
 ---
 
