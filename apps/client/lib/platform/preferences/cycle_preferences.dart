@@ -50,6 +50,13 @@ mixin _CyclePreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  /// Whether the assistant may read a summary of «Cycle» when asked about
+  /// it. Off until turned on: the summary goes to the AI provider.
+  bool get cycleAssistantAccess =>
+      _prefs.getBool('cycle.assistant_access') ?? false;
+  Future<void> setCycleAssistantAccess(bool value) =>
+      _setBool('cycle.assistant_access', value);
+
   /// Two days before the next period is expected.
   bool get cycleRemindSoon => _prefs.getBool('cycle.remind_soon') ?? true;
   Future<void> setCycleRemindSoon(bool value) =>
@@ -83,6 +90,7 @@ mixin _CyclePreferences on _PreferencesStore {
       'cycle.pill_minutes',
       'cycle.mode',
       'cycle.pregnancy_start',
+      'cycle.assistant_access',
     ]) {
       await _prefs.remove(key);
     }

@@ -18,6 +18,7 @@ import '../screens/note_detail_sheet.dart';
 import 'dismiss_on_overscroll.dart';
 import 'assistant_settings.dart';
 import 'package:nex_ai/cloud.dart';
+import '../platform/cycle_summary.dart';
 import '../platform/assistant_citations.dart';
 import '../platform/chat_history.dart';
 import '../platform/nex_preferences.dart';

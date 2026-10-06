@@ -169,7 +169,7 @@ class _ActionCard extends StatelessWidget {
         // Shown only for a search the person's words did not ask for; the
         // rest run on arrival.
         AssistantActionKind.search => l10n.assistantConfirmSearch,
-        AssistantActionKind.threads => '',
+        AssistantActionKind.threads || AssistantActionKind.cycle => '',
       };
 
   /// What the action would actually do, in the user's own words where there
@@ -232,7 +232,8 @@ class _ActionCard extends StatelessWidget {
       AssistantActionKind.restore ||
       AssistantActionKind.delete ||
       AssistantActionKind.check ||
-      AssistantActionKind.threads => '',
+      AssistantActionKind.threads ||
+      AssistantActionKind.cycle => '',
     };
   }
 

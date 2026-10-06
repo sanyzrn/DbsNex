@@ -4715,7 +4715,7 @@ abstract class AppLocalizations {
   /// No description provided for @cyclePrivacy.
   ///
   /// In en, this message translates to:
-  /// **'Kept only on this phone and in your backups. Never sent to an AI service.'**
+  /// **'Kept only on this phone and in your backups. Sent to an AI service only if you let the assistant read it.'**
   String get cyclePrivacy;
 
   /// No description provided for @cycleAlertLate.
@@ -5197,6 +5197,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weeks are counted from the first day of your last period, the way doctors count them.'**
   String get cyclePregnancyNote;
+
+  /// No description provided for @cyclePatterns.
+  ///
+  /// In en, this message translates to:
+  /// **'Patterns'**
+  String get cyclePatterns;
+
+  /// No description provided for @cyclePatternsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Patterns appear here after a couple of cycles with symptoms logged.'**
+  String get cyclePatternsEmpty;
+
+  /// No description provided for @cyclePatternBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'{symptom}: usually about {days} before your period'**
+  String cyclePatternBefore(String symptom, String days);
+
+  /// No description provided for @cyclePatternDuring.
+  ///
+  /// In en, this message translates to:
+  /// **'{symptom}: usually during your period'**
+  String cyclePatternDuring(String symptom);
+
+  /// No description provided for @cyclePatternOvulation.
+  ///
+  /// In en, this message translates to:
+  /// **'{symptom}: usually around ovulation'**
+  String cyclePatternOvulation(String symptom);
+
+  /// No description provided for @cycleReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report for a doctor'**
+  String get cycleReport;
+
+  /// No description provided for @cycleReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle report'**
+  String get cycleReportTitle;
+
+  /// No description provided for @cycleReportMade.
+  ///
+  /// In en, this message translates to:
+  /// **'Made with Nex on {date}'**
+  String cycleReportMade(String date);
+
+  /// No description provided for @cycleReportPeriods.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent periods'**
+  String get cycleReportPeriods;
+
+  /// No description provided for @cycleReportCycleLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle length'**
+  String get cycleReportCycleLength;
+
+  /// No description provided for @cycleReportVariation.
+  ///
+  /// In en, this message translates to:
+  /// **'Variation'**
+  String get cycleReportVariation;
+
+  /// No description provided for @cycleReportSymptoms.
+  ///
+  /// In en, this message translates to:
+  /// **'Symptoms, last six months'**
+  String get cycleReportSymptoms;
+
+  /// No description provided for @cycleReportSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save PDF'**
+  String get cycleReportSave;
+
+  /// No description provided for @cycleReportSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Report saved'**
+  String get cycleReportSaved;
+
+  /// No description provided for @cycleAssistantAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the assistant read Cycle'**
+  String get cycleAssistantAccess;
+
+  /// No description provided for @cycleAssistantAccessHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, a summary of your cycle is sent to your AI provider only when you ask the assistant about it. Off by default.'**
+  String get cycleAssistantAccessHint;
 
   /// Heading of the reminder sheet
   ///

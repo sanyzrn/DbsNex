@@ -2955,7 +2955,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cyclePrivacy =>
-      'Kept only on this phone and in your backups. Never sent to an AI service.';
+      'Kept only on this phone and in your backups. Sent to an AI service only if you let the assistant read it.';
 
   @override
   String get cycleAlertLate =>
@@ -3234,6 +3234,64 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cyclePregnancyNote =>
       'Weeks are counted from the first day of your last period, the way doctors count them.';
+
+  @override
+  String get cyclePatterns => 'Patterns';
+
+  @override
+  String get cyclePatternsEmpty =>
+      'Patterns appear here after a couple of cycles with symptoms logged.';
+
+  @override
+  String cyclePatternBefore(String symptom, String days) {
+    return '$symptom: usually about $days before your period';
+  }
+
+  @override
+  String cyclePatternDuring(String symptom) {
+    return '$symptom: usually during your period';
+  }
+
+  @override
+  String cyclePatternOvulation(String symptom) {
+    return '$symptom: usually around ovulation';
+  }
+
+  @override
+  String get cycleReport => 'Report for a doctor';
+
+  @override
+  String get cycleReportTitle => 'Cycle report';
+
+  @override
+  String cycleReportMade(String date) {
+    return 'Made with Nex on $date';
+  }
+
+  @override
+  String get cycleReportPeriods => 'Recent periods';
+
+  @override
+  String get cycleReportCycleLength => 'Cycle length';
+
+  @override
+  String get cycleReportVariation => 'Variation';
+
+  @override
+  String get cycleReportSymptoms => 'Symptoms, last six months';
+
+  @override
+  String get cycleReportSave => 'Save PDF';
+
+  @override
+  String get cycleReportSaved => 'Report saved';
+
+  @override
+  String get cycleAssistantAccess => 'Let the assistant read Cycle';
+
+  @override
+  String get cycleAssistantAccessHint =>
+      'When on, a summary of your cycle is sent to your AI provider only when you ask the assistant about it. Off by default.';
 
   @override
   String get remindTitle => 'Set a reminder';

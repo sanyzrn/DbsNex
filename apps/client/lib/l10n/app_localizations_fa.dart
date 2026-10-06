@@ -2880,7 +2880,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cyclePrivacy =>
-      'فقط روی همین گوشی و در بکاپ‌هایتان نگه داشته می‌شود و هرگز برای سرویس هوش مصنوعی فرستاده نمی‌شود.';
+      'فقط روی همین گوشی و در بکاپ‌هایتان نگه داشته می‌شود و فقط اگر اجازه دهید دستیار آن را ببیند، برای سرویس هوش مصنوعی فرستاده می‌شود.';
 
   @override
   String get cycleAlertLate =>
@@ -3146,6 +3146,64 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get cyclePregnancyNote =>
       'هفته‌ها از اولین روز آخرین پریود شمرده می‌شوند، همان‌طور که پزشک‌ها می‌شمارند.';
+
+  @override
+  String get cyclePatterns => 'الگوها';
+
+  @override
+  String get cyclePatternsEmpty =>
+      'بعد از چند چرخه که علائم ثبت شده باشد، الگوها اینجا پیدا می‌شوند.';
+
+  @override
+  String cyclePatternBefore(String symptom, String days) {
+    return '$symptom: معمولاً حدود $days قبل از پریود';
+  }
+
+  @override
+  String cyclePatternDuring(String symptom) {
+    return '$symptom: معمولاً در روزهای پریود';
+  }
+
+  @override
+  String cyclePatternOvulation(String symptom) {
+    return '$symptom: معمولاً حوالی تخمک‌گذاری';
+  }
+
+  @override
+  String get cycleReport => 'گزارش برای پزشک';
+
+  @override
+  String get cycleReportTitle => 'گزارش چرخه';
+
+  @override
+  String cycleReportMade(String date) {
+    return 'تهیه‌شده با Nex در $date';
+  }
+
+  @override
+  String get cycleReportPeriods => 'پریودهای اخیر';
+
+  @override
+  String get cycleReportCycleLength => 'طول چرخه';
+
+  @override
+  String get cycleReportVariation => 'نوسان';
+
+  @override
+  String get cycleReportSymptoms => 'علائم در شش ماه اخیر';
+
+  @override
+  String get cycleReportSave => 'ذخیرهٔ PDF';
+
+  @override
+  String get cycleReportSaved => 'گزارش ذخیره شد';
+
+  @override
+  String get cycleAssistantAccess => 'دستیار بتواند «چرخه» را ببیند';
+
+  @override
+  String get cycleAssistantAccessHint =>
+      'اگر روشن باشد، فقط وقتی از دستیار دربارهٔ چرخه بپرسید، خلاصه‌ای از آن برای سرویس هوش مصنوعی‌تان فرستاده می‌شود. به‌طور پیش‌فرض خاموش است.';
 
   @override
   String get remindTitle => 'تنظیم یادآور';

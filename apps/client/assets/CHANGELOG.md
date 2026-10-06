@@ -34,6 +34,18 @@ Working convention:
 
 ## Unreleased
 
+## v1.97.0
+
+- **Cycle, version two.**
+  - **Modes.** Choose one in Cycle's settings:
+    - **Trying to conceive** puts the fertile window and likely ovulation first.
+    - **Pregnant** counts weeks and days, with the due date and trimester. It counts from the first day of the last period, or from a due date you already know.
+    - **Breastfeeding** and **perimenopause or menopause** turn predictions off and keep logging.
+  - **Patterns.** After a couple of cycles with symptoms logged, Cycle points out the ones that come back at the same time, such as "Headache: usually about 2 days before your period".
+  - **Report for a doctor.** A one-page summary — averages, recent periods with their lengths, symptoms of the last six months and patterns — saved as a PDF or shared. In Persian it looks exactly as it does in the app.
+  - **Assistant access, only if you allow it.** With **Let the assistant read Cycle** on (it is off by default), the assistant can answer questions about your cycle from a short summary. Your day notes are never included.
+- **Turn Cycle off completely.** **Settings → Sections → Show Cycle** (on by default). Turning it off asks whether to keep or delete your cycle data; either way its page and reminders are gone until you turn it back on.
+
 ## v1.96.0
 
 - **Cycle — a menstrual cycle assistant.** A new **Cycle** page in **Tools**. Three optional questions to begin; then one large button for "Period started" and "Period ended", a ring showing where you are in your cycle, and a month calendar (in the solar calendar when you use it) with your periods, the expected ones and the likely fertile days.

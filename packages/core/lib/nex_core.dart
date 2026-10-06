@@ -17,6 +17,7 @@ library;
 // Domain models.
 export 'cycle/cycle_models.dart';
 export 'cycle/cycle_mode.dart';
+export 'cycle/cycle_patterns.dart';
 export 'cycle/cycle_predictor.dart';
 export 'models/checklist.dart';
 export 'models/commitment.dart';

@@ -246,6 +246,19 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               ),
             ),
             const SizedBox(height: NexSpacing.lg),
+            SwitchListTile(
+              key: const ValueKey('cycle-assistant-access'),
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.auto_awesome_outlined),
+              title: Text(l10n.cycleAssistantAccess),
+              subtitle: Text(l10n.cycleAssistantAccessHint),
+              value: _prefs.cycleAssistantAccess,
+              onChanged: (on) async {
+                await _prefs.setCycleAssistantAccess(on);
+                if (mounted) setState(() {});
+              },
+            ),
+            const SizedBox(height: NexSpacing.lg),
             Text(l10n.cycleTypicalLengths, style: theme.textTheme.titleSmall),
             _Stepper(
               label: l10n.cycleLegendPeriod,

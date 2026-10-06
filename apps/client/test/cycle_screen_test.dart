@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/reminders.dart';
+import 'package:nex_client/screens/cycle/cycle_report_screen.dart';
 import 'package:nex_client/screens/cycle/cycle_ring.dart';
 import 'package:nex_client/screens/cycle_screen.dart';
 import 'package:nex_core/nex_core.dart';
@@ -234,5 +235,45 @@ void main() {
       expect(find.textContaining('Likely between'), findsNothing);
       expect(find.byKey(const ValueKey('cycle-primary')), findsOneWidget);
     });
+  });
+
+  testWidgets('patterns show, and the report opens on its A4 page', (
+    tester,
+  ) async {
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    final services = harness.services;
+    final last = today().subtract(const Duration(days: 10));
+    for (var k = 3; k >= 0; k--) {
+      final start = last.subtract(Duration(days: 28 * k));
+      final p = await services.cycleStartPeriod(start);
+      await services.cycleEndPeriod(p.id, start.add(const Duration(days: 4)));
+      if (k > 0) {
+        // A headache two days before each of the next periods.
+        await services.cycleSaveDay(
+          CycleDayLog(
+            day: CycleDate.of(start.add(const Duration(days: 26))),
+            symptoms: {CycleSymptom.headache},
+          ),
+        );
+      }
+    }
+    await reopen(tester);
+    await scrollTo(tester, find.textContaining('Headache: usually'));
+    expect(
+      find.text('Headache: usually about 2 days before your period'),
+      findsOneWidget,
+    );
+
+    await scrollTo(tester, find.byKey(const ValueKey('cycle-report')));
+    await tester.tap(find.byKey(const ValueKey('cycle-report')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CycleReportScreen), findsOneWidget);
+    expect(find.text('Cycle report'), findsOneWidget);
+    expect(find.text('Recent periods'), findsOneWidget);
+    expect(find.byKey(const ValueKey('cycle-report-save')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

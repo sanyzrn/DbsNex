@@ -12,6 +12,7 @@ import '../widgets/nex_time_picker.dart';
 import 'cycle/cycle_calendar.dart';
 import 'cycle/cycle_day_sheet.dart';
 import 'cycle/cycle_format.dart';
+import 'cycle/cycle_report_screen.dart';
 import 'cycle/cycle_ring.dart';
 import 'cycle/cycle_settings_sheet.dart';
 
@@ -45,6 +46,7 @@ class _CycleScreenState extends State<CycleScreen> {
   CyclePrediction? _prediction;
   Set<CycleDate> _logged = const {};
   CycleDayLog? _todayLog;
+  List<CyclePattern> _patterns = const [];
   late (DateTime, DateTime) _month;
 
   NexServices get _services => widget.services;
@@ -69,12 +71,14 @@ class _CycleScreenState extends State<CycleScreen> {
     final prediction = await _services.cyclePrediction(today: _today);
     final days = await _services.cycleDays(_month.$1, _month.$2);
     final todayLog = (await _services.cycleDays(_today, _today)).firstOrNull;
+    final allLogs = await _services.cycleDays(DateTime(2000), _today);
     if (!mounted) return;
     setState(() {
       _periods = periods;
       _prediction = prediction;
       _logged = {for (final d in days) d.day};
       _todayLog = todayLog;
+      _patterns = CyclePatterns.find(periods: periods, logs: allLogs);
       _loading = false;
     });
   }
@@ -542,6 +546,47 @@ class _CycleScreenState extends State<CycleScreen> {
             ),
             const SizedBox(height: NexSpacing.md),
           ],
+          Text(l10n.cyclePatterns, style: theme.textTheme.titleSmall),
+          const SizedBox(height: NexSpacing.xs),
+          if (_patterns.isEmpty)
+            Text(
+              l10n.cyclePatternsEmpty,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            )
+          else
+            for (final pattern in _patterns.take(6))
+              Padding(
+                padding: const EdgeInsets.only(bottom: NexSpacing.xs),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.insights_outlined, size: 18, color: teal),
+                    const SizedBox(width: NexSpacing.sm),
+                    Expanded(child: Text(cyclePatternText(context, pattern))),
+                  ],
+                ),
+              ),
+          const SizedBox(height: NexSpacing.sm),
+          Card(
+            margin: const EdgeInsets.only(bottom: NexSpacing.md),
+            child: ListTile(
+              key: const ValueKey('cycle-report'),
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: Text(l10n.cycleReport),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                NexPageRoute<void>(
+                  builder: (_) => CycleReportScreen(
+                    services: _services,
+                    preferences: widget.preferences,
+                  ),
+                ),
+              ),
+            ),
+          ),
           if (_periods.isNotEmpty) ...[
             Text(l10n.cycleHistory, style: theme.textTheme.titleSmall),
             for (final period in _periods.reversed.take(12))

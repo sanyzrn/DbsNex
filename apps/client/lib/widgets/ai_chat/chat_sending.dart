@@ -193,6 +193,21 @@ extension _ChatSending on _AiChatSheetState {
     for (final lookup in queries) {
       // The library's threads, by name — what "summarise the Trip thread"
       // needs first when the model was not told which threads there are.
+      // «Cycle»: a summary only when it was allowed; otherwise a line that
+      // says so, which the model is told to pass on.
+      if (lookup.kind == AssistantActionKind.cycle) {
+        try {
+          findings.writeln(
+            await nexCycleSummaryForAssistant(
+              services: widget.services,
+              preferences: widget.preferences,
+            ),
+          );
+        } catch (_) {
+          findings.writeln('Cycle: (could not be read)');
+        }
+        continue;
+      }
       if (lookup.kind == AssistantActionKind.threads) {
         findings.writeln('Threads:');
         try {
