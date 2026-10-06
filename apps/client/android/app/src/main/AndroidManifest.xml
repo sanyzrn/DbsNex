@@ -356,6 +356,34 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/recap_widget_info" />
         </receiver>
 
+        <!--
+          The two Cycle widgets: the full one and the discreet ring. They read
+          nex_cycle_widget.json, which the app writes beside the notes snapshot
+          and empties while the app lock is closed. A tap opens Cycle through
+          OPEN_CYCLE, behind the lock.
+        -->
+        <receiver
+            android:name=".CycleWidgetProvider"
+            android:exported="true"
+            android:label="@string/cycle_widget_picker_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/cycle_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".CycleDiscreetWidgetProvider"
+            android:exported="true"
+            android:label="@string/cycle_discreet_widget_picker_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/cycle_discreet_widget_info" />
+        </receiver>
+
         <service
             android:name=".TimelineWidgetService"
             android:exported="false"

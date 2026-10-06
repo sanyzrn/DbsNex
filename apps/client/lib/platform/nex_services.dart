@@ -100,6 +100,18 @@ class NexServices {
   final _timelineController = StreamController<List<Note>>.broadcast();
   Stream<List<Note>> get timelineStream => _timelineController.stream;
 
+  /// Fires after anything in «Cycle» is written — what the Cycle widgets
+  /// redraw on. Its own stream: a period is not a note, and the timeline's
+  /// listeners have no business waking for one.
+  final _cycleController = StreamController<void>.broadcast();
+  Stream<void> get cycleChanges => _cycleController.stream;
+
+  Future<T> _cycleWrite<T>(Future<T> write) async {
+    final result = await write;
+    if (!_cycleController.isClosed) _cycleController.add(null);
+    return result;
+  }
+
   bool _closed = false;
 
   /// [aiAdapter] is injected from Core types only. Defaults to
@@ -525,24 +537,29 @@ class NexServices {
   /// expected length first.
   Future<CyclePeriod> cycleStartPeriod(DateTime day) async {
     final prediction = await cyclePrediction();
-    return worker.cycleStartPeriod(
-      day,
-      closeAfter: prediction?.averagePeriod ?? _preferences.cycleTypicalPeriod,
+    return _cycleWrite(
+      worker.cycleStartPeriod(
+        day,
+        closeAfter:
+            prediction?.averagePeriod ?? _preferences.cycleTypicalPeriod,
+      ),
     );
   }
 
   Future<void> cycleEndPeriod(String id, DateTime day) =>
-      worker.cycleEndPeriod(id, day);
+      _cycleWrite(worker.cycleEndPeriod(id, day));
 
   Future<void> cycleUpdatePeriod(String id, DateTime start, DateTime? end) =>
-      worker.cycleUpdatePeriod(id, start, end);
+      _cycleWrite(worker.cycleUpdatePeriod(id, start, end));
 
-  Future<void> cycleDeletePeriod(String id) => worker.cycleDeletePeriod(id);
+  Future<void> cycleDeletePeriod(String id) =>
+      _cycleWrite(worker.cycleDeletePeriod(id));
 
   Future<List<CycleDayLog>> cycleDays(DateTime from, DateTime to) =>
       worker.cycleDays(from, to);
 
-  Future<void> cycleSaveDay(CycleDayLog log) => worker.cycleSaveDay(log);
+  Future<void> cycleSaveDay(CycleDayLog log) =>
+      _cycleWrite(worker.cycleSaveDay(log));
 
   /// What the cycle screen shows, from everything logged. Null until a
   /// period has been.
@@ -560,6 +577,7 @@ class NexServices {
     await worker.cycleDeleteAll();
     await reminders.cancelCycle();
     await _preferences.resetCycle();
+    if (!_cycleController.isClosed) _cycleController.add(null);
   }
 
   /* -------------------------------------------------- scheduled notes */
@@ -1381,6 +1399,7 @@ class NexServices {
   Future<void> dispose() async {
     _scheduledTimer?.cancel();
     await _timelineController.close();
+    await _cycleController.close();
     await _closeOnce();
   }
 }

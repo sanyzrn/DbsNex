@@ -36,6 +36,7 @@ Working convention:
 
 ## v1.98.0
 
+- **Two Cycle widgets.** **Cycle** shows the ring, where you are in your cycle, the fertile window and a kind word for the day, in Cycle's own soft colours. **Cycle, discreet** is just the ring and one number, with no words. Both stay right day by day without opening Nex, open Cycle when tapped, and show nothing while the app lock is closed.
 - **A second on-device model to try.** In the on-device model page you can now choose between **Gemma 4 E2B** and the lighter **MiniCPM5 2B** (1.45 GB). Each downloads separately, and the one you pick is the one the assistant uses — no restart needed. A full backup includes the model in use.
 - **Every sheet closes with a swipe down.** Pulling a sheet's content down from the top now closes it, not only its handle — Cycle's settings and day log included, which could not be swiped away before.
 - **Cycle is now turned on in your profile, and off by default.** A card in **Profile** says in a few lines what Cycle does, with the switch to turn it on and a way straight in. If you were already using Cycle, it stays on. The old switch in **Settings → Sections** is gone; searching Settings for "Cycle" points to your profile.

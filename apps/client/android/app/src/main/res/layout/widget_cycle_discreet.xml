@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The discreet Cycle widget: the ring and one number in it, no words. The
+  ground is the same soft blush, so it still looks like part of Cycle to the
+  person who placed it and like a quiet ring to anyone else.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/nex_cycle_discreet_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="6dp"
+    android:background="@drawable/nex_cycle_widget_bg">
+
+    <ImageView
+        android:id="@+id/nex_cycle_discreet_ring"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitCenter"
+        android:importantForAccessibility="no"
+        android:src="@drawable/nex_widget_preview_cycle" />
+
+    <ImageView
+        android:id="@+id/nex_cycle_discreet_lock"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_gravity="center"
+        android:importantForAccessibility="no"
+        android:src="@drawable/nex_widget_ic_lock"
+        android:visibility="gone" />
+</FrameLayout>

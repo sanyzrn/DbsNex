@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The full Cycle widget. Four cells by two; resizable both ways.
+
+  updatePeriodMillis is three hours, unlike the other widgets' 0: what it
+  shows is counted from today's date, and nothing else would wake it when
+  the day turns over on a day the app is not opened. Data changes are still
+  pushed by the app the moment they happen.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:maxResizeWidth="420dp"
+    android:maxResizeHeight="220dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="10800000"
+    android:initialLayout="@layout/widget_cycle"
+    android:previewImage="@drawable/nex_widget_preview_cycle"
+    android:previewLayout="@layout/widget_cycle"
+    android:widgetCategory="home_screen"
+    android:description="@string/cycle_widget_description" />

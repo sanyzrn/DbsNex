@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The full Cycle widget: the ring on one side, and beside it where the cycle
+  is, the line under that and a kind word for the day. Drawn on Cycle's own
+  blush-to-lavender ground so it reads as that space, not as another card.
+  The texts below are what the widget picker's preview shows; the provider
+  replaces every one of them.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/nex_cycle_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layoutDirection="locale"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="14dp"
+    android:background="@drawable/nex_cycle_widget_bg">
+
+    <FrameLayout
+        android:layout_width="84dp"
+        android:layout_height="84dp">
+
+        <ImageView
+            android:id="@+id/nex_cycle_ring"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:src="@drawable/nex_widget_preview_cycle" />
+
+        <ImageView
+            android:id="@+id/nex_cycle_lock"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            android:src="@drawable/nex_widget_ic_lock"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="14dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/nex_cycle_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="@string/cycle_widget_title"
+            android:textAlignment="viewStart"
+            android:textColor="@color/nex_cycle_text_dim"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/nex_cycle_headline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:text="@string/cycle_widget_preview_headline"
+            android:textAlignment="viewStart"
+            android:textColor="@color/nex_cycle_text"
+            android:textSize="17sp" />
+
+        <TextView
+            android:id="@+id/nex_cycle_subline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textAlignment="viewStart"
+            android:textColor="@color/nex_cycle_rose"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/nex_cycle_whisper"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:text="@string/cycle_widget_whisper_calm"
+            android:textAlignment="viewStart"
+            android:textColor="@color/nex_cycle_text_dim"
+            android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>

@@ -57,4 +57,51 @@
     <string name="quick_capture_note">یادداشت</string>
     <string name="quick_capture_voice">صدا</string>
     <string name="quick_capture_photo">عکس</string>
+
+    <!-- The two Cycle widgets. -->
+    <string name="cycle_widget_picker_label">چرخه</string>
+    <string name="cycle_discreet_widget_picker_label">چرخه، محتاطانه</string>
+    <string name="cycle_widget_description">جایی که در چرخه هستی، در یک نگاه.</string>
+    <string name="cycle_discreet_widget_description">فقط حلقه و یک عدد، بدون کلمه.</string>
+    <string name="cycle_discreet_widget_a11y">Nex</string>
+    <string name="cycle_widget_title">چرخه</string>
+    <string name="cycle_widget_title_day">چرخه · روز %1$s</string>
+    <string name="cycle_widget_preview_headline">۱۲ روز تا پریود بعدی</string>
+    <string name="cycle_widget_today">پریود احتمالاً امروز</string>
+    <string name="cycle_widget_tomorrow">پریود احتمالاً فردا</string>
+    <string name="cycle_widget_period">پریود، روز %1$s</string>
+    <string name="cycle_widget_fertile">پنجرهٔ باروری</string>
+    <string name="cycle_widget_ovulation_today">تخمک‌گذاری احتمالاً امروز</string>
+    <string name="cycle_widget_of">روز %1$s از %2$s</string>
+    <string name="cycle_widget_pregnant">هفتهٔ %1$s، روز %2$s</string>
+    <string name="cycle_widget_quiet">برای ثبت امروز بزن</string>
+    <string name="cycle_widget_first">اولین پریودت را ثبت کن</string>
+    <string name="cycle_widget_off">«چرخه» را در پروفایل روشن کن</string>
+    <string name="cycle_widget_setup">چند سؤال برای شروع</string>
+    <string name="cycle_widget_locked">برای دیدن، Nex را باز کن</string>
+    <string name="cycle_widget_whisper_period">امروز با خودت مهربان‌تر باش.</string>
+    <string name="cycle_widget_whisper_soon">پریودت نزدیکه؛ کمی استراحت بیشتر، مهربانی با خودته.</string>
+    <string name="cycle_widget_whisper_fertile">این روزها معمولاً انرژی‌ات در اوجه.</string>
+    <string name="cycle_widget_whisper_calm">هر روز از چرخه، بخشی از ریتم خود توست.</string>
+    <string name="cycle_widget_whisper_pregnant">دو ضربان، یک ریتم آرام.</string>
+    <plurals name="cycle_widget_until">
+        <item quantity="one">%1$s روز تا پریود بعدی</item>
+        <item quantity="other">%1$s روز تا پریود بعدی</item>
+    </plurals>
+    <plurals name="cycle_widget_late">
+        <item quantity="one">%1$s روز تأخیر</item>
+        <item quantity="other">%1$s روز تأخیر</item>
+    </plurals>
+    <plurals name="cycle_widget_fertile_in">
+        <item quantity="one">پنجرهٔ باروری از فردا</item>
+        <item quantity="other">پنجرهٔ باروری تا %1$s روز دیگر</item>
+    </plurals>
+    <plurals name="cycle_widget_ovulation_in">
+        <item quantity="one">تخمک‌گذاری احتمالاً فردا</item>
+        <item quantity="other">تخمک‌گذاری احتمالاً %1$s روز دیگر</item>
+    </plurals>
+    <plurals name="cycle_widget_to_go">
+        <item quantity="one">%1$s روز مانده</item>
+        <item quantity="other">%1$s روز مانده</item>
+    </plurals>
 </resources>

@@ -55,6 +55,7 @@ object NexWidgetActions {
     private const val RC_TEXT_CAPTURE = 0x4E650002
     private const val RC_OPEN_NOTE = 0x4E650003
     private const val RC_REFRESH_RECAP = 0x4E650004
+    private const val RC_OPEN_CYCLE = 0x4E650005
 
     // One per capture-row button. The mode rides in an extra, and extras do
     // not take part in PendingIntent matching — five buttons sharing one
@@ -106,6 +107,13 @@ object NexWidgetActions {
 
     fun openApp(context: Context): PendingIntent = activity(context, RC_OPEN_APP) {
         openAppIntent(context)
+    }
+
+    /** Opens «Cycle» — what a tap on either Cycle widget means. */
+    fun openCycle(context: Context): PendingIntent = activity(context, RC_OPEN_CYCLE) {
+        Intent(context, MainActivity::class.java)
+            .setAction(MainActivity.ACTION_OPEN_CYCLE)
+            .addFlags(launchFlags)
     }
 
     fun textCapture(context: Context): PendingIntent = activity(context, RC_TEXT_CAPTURE) {
@@ -174,6 +182,8 @@ object NexWidgetActions {
             CaptureWidgetProvider::class.java,
             TimelineWidgetProvider::class.java,
             RecapWidgetProvider::class.java,
+            CycleWidgetProvider::class.java,
+            CycleDiscreetWidgetProvider::class.java,
         )
         for (provider in providers) {
             val ids = manager.getAppWidgetIds(ComponentName(context, provider))

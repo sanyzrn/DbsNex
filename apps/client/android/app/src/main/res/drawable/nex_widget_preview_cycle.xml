@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The ring as the widget picker shows it, before any data: a soft track,
+     a rose arc for the period, a teal one for the fertile days. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="84dp"
+    android:height="84dp"
+    android:viewportWidth="84"
+    android:viewportHeight="84">
+    <path
+        android:pathData="M42,10 A32,32 0 1,1 41.99,10"
+        android:strokeColor="#1F000000"
+        android:strokeWidth="7" />
+    <path
+        android:pathData="M42,10 A32,32 0 0,1 68.5,24"
+        android:strokeColor="@color/nex_cycle_rose"
+        android:strokeLineCap="round"
+        android:strokeWidth="7" />
+    <path
+        android:pathData="M70,58 A32,32 0 0,1 56,71"
+        android:strokeColor="@color/nex_cycle_teal"
+        android:strokeLineCap="round"
+        android:strokeWidth="7" />
+</vector>

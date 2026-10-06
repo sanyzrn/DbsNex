@@ -73,4 +73,51 @@
     <string name="quick_capture_note">Note</string>
     <string name="quick_capture_voice">Voice</string>
     <string name="quick_capture_photo">Photo</string>
+
+    <!-- The two Cycle widgets. -->
+    <string name="cycle_widget_picker_label">Cycle</string>
+    <string name="cycle_discreet_widget_picker_label">Cycle, discreet</string>
+    <string name="cycle_widget_description">Where you are in your cycle, at a glance.</string>
+    <string name="cycle_discreet_widget_description">Just the ring and a number, no words.</string>
+    <string name="cycle_discreet_widget_a11y">Nex</string>
+    <string name="cycle_widget_title">Cycle</string>
+    <string name="cycle_widget_title_day">Cycle · day %1$s</string>
+    <string name="cycle_widget_preview_headline">12 days until your period</string>
+    <string name="cycle_widget_today">Period likely today</string>
+    <string name="cycle_widget_tomorrow">Period likely tomorrow</string>
+    <string name="cycle_widget_period">Period, day %1$s</string>
+    <string name="cycle_widget_fertile">Your fertile window</string>
+    <string name="cycle_widget_ovulation_today">Ovulation likely today</string>
+    <string name="cycle_widget_of">Day %1$s of %2$s</string>
+    <string name="cycle_widget_pregnant">Week %1$s, day %2$s</string>
+    <string name="cycle_widget_quiet">Tap to log today</string>
+    <string name="cycle_widget_first">Log your first period</string>
+    <string name="cycle_widget_off">Turn on Cycle in your profile</string>
+    <string name="cycle_widget_setup">A few questions to begin</string>
+    <string name="cycle_widget_locked">Open Nex to see</string>
+    <string name="cycle_widget_whisper_period">Be gentle with yourself today.</string>
+    <string name="cycle_widget_whisper_soon">Your period is near; a little extra rest is a kindness.</string>
+    <string name="cycle_widget_whisper_fertile">These are often the days your energy shines brightest.</string>
+    <string name="cycle_widget_whisper_calm">Every day of your cycle is part of your own rhythm.</string>
+    <string name="cycle_widget_whisper_pregnant">Two heartbeats, one gentle rhythm.</string>
+    <plurals name="cycle_widget_until">
+        <item quantity="one">%1$s day until your period</item>
+        <item quantity="other">%1$s days until your period</item>
+    </plurals>
+    <plurals name="cycle_widget_late">
+        <item quantity="one">%1$s day late</item>
+        <item quantity="other">%1$s days late</item>
+    </plurals>
+    <plurals name="cycle_widget_fertile_in">
+        <item quantity="one">Fertile window tomorrow</item>
+        <item quantity="other">Fertile window in %1$s days</item>
+    </plurals>
+    <plurals name="cycle_widget_ovulation_in">
+        <item quantity="one">Ovulation likely tomorrow</item>
+        <item quantity="other">Ovulation likely in %1$s days</item>
+    </plurals>
+    <plurals name="cycle_widget_to_go">
+        <item quantity="one">%1$s day to go</item>
+        <item quantity="other">%1$s days to go</item>
+    </plurals>
 </resources>

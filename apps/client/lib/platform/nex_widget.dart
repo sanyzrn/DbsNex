@@ -7,6 +7,7 @@ import 'package:nex_core/nex_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'cycle_widget.dart';
 import 'nex_preferences.dart';
 import 'package:nex_ai/cloud.dart';
 import 'nex_services.dart';
@@ -270,8 +271,10 @@ class NexWidgetBridge {
   static const _debounce = Duration(milliseconds: 300);
 
   File? _file;
+  File? _cycleFile;
   Timer? _timer;
   StreamSubscription<List<Note>>? _subscription;
+  StreamSubscription<void>? _cycleSubscription;
   bool? _lastWrittenLock;
   String? _lastWrittenFilter;
   bool _disposed = false;
@@ -284,8 +287,10 @@ class NexWidgetBridge {
     // content provider for anything else to reach.
     final support = await getApplicationSupportDirectory();
     _file = File(p.join(support.path, NexWidgetSnapshotCache.fileName));
+    _cycleFile = File(p.join(support.path, NexCycleWidgetSnapshot.fileName));
     preferences.addListener(_onPreferencesChanged);
     _subscription = services.timelineStream.listen((_) => _schedule());
+    _cycleSubscription = services.cycleChanges.listen((_) => _schedule());
     await _write();
   }
 
@@ -340,7 +345,11 @@ class NexWidgetBridge {
       '${(preferences.widgetTypes.toList()..sort()).join(',')}'
       '|${(preferences.widgetTagIds.toList()..sort()).join(',')}'
       '|${preferences.widgetPinnedFirst}'
-      '|${preferences.locale?.languageCode}|${preferences.accentSeed}';
+      '|${preferences.locale?.languageCode}|${preferences.accentSeed}'
+      // What the Cycle widgets show moves with these too.
+      '|${preferences.cycleEnabled}|${preferences.cycleSetUp}'
+      '|${preferences.cycleMode.name}|${preferences.cyclePregnancyStart}'
+      '|${preferences.cycleTypicalLength}|${preferences.cycleTypicalPeriod}';
 
   /// Writes now, for a change this bridge cannot see coming.
   ///
@@ -378,6 +387,7 @@ class NexWidgetBridge {
           final temp = File('${file.path}.lock');
           temp.writeAsStringSync(jsonEncode(locked.toJson()), flush: true);
           temp.renameSync(file.path);
+          _writeCycleLocked();
           _lastWrittenLock = true;
           return _push();
         } catch (_) {
@@ -443,6 +453,7 @@ class NexWidgetBridge {
       }
       // No event-loop gap between the final privacy check and atomic publish.
       temp.renameSync(file.path);
+      await _writeCycle();
       _lastWrittenLock = publishedLock;
       _lastWrittenFilter = _filterSignature;
       await _push();
@@ -451,6 +462,52 @@ class NexWidgetBridge {
       // notes untouched and the widget showing whatever it last had. Nothing
       // in the app should break because its home screen could not refresh.
     }
+  }
+
+  /// The Cycle widgets' file, written beside the notes snapshot and by the
+  /// same lock rule. Best-effort like the rest: a widget that cannot be
+  /// refreshed never gets in the way of the app.
+  Future<void> _writeCycle() async {
+    final file = _cycleFile;
+    if (file == null) return;
+    try {
+      final enabled = preferences.cycleEnabled;
+      final setUp = preferences.cycleSetUp;
+      final ready = enabled && setUp && !_hidden;
+      final periods = ready
+          ? await services.cyclePeriods()
+          : const <CyclePeriod>[];
+      final prediction = ready ? await services.cyclePrediction() : null;
+      final snapshot = NexCycleWidgetSnapshot.build(
+        enabled: enabled,
+        setUp: setUp,
+        // Asked again after the reads: a lock that closed meanwhile wins.
+        hidden: _hidden,
+        mode: preferences.cycleMode,
+        periods: periods,
+        prediction: prediction,
+        pregnancyStart: preferences.cyclePregnancyStart,
+      );
+      final temp = File('${file.path}.tmp');
+      await temp.writeAsString(jsonEncode(snapshot), flush: true);
+      temp.renameSync(file.path);
+    } catch (_) {}
+  }
+
+  void _writeCycleLocked() {
+    final file = _cycleFile;
+    if (file == null) return;
+    try {
+      final temp = File('${file.path}.lock');
+      temp.writeAsStringSync(
+        jsonEncode({
+          'version': NexCycleWidgetSnapshot.version,
+          'state': 'locked',
+        }),
+        flush: true,
+      );
+      temp.renameSync(file.path);
+    } catch (_) {}
   }
 
   Future<void> _push() async {
@@ -471,6 +528,8 @@ class NexWidgetBridge {
     _timer?.cancel();
     unawaited(_subscription?.cancel());
     _subscription = null;
+    unawaited(_cycleSubscription?.cancel());
+    _cycleSubscription = null;
     preferences.removeListener(_onPreferencesChanged);
   }
 }

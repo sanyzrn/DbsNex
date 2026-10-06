@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The discreet Cycle widget: one cell, a ring and a number. Resizable, and
+  woken every three hours for the same reason as the full one.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:maxResizeWidth="200dp"
+    android:maxResizeHeight="200dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="10800000"
+    android:initialLayout="@layout/widget_cycle_discreet"
+    android:previewImage="@drawable/nex_widget_preview_cycle"
+    android:previewLayout="@layout/widget_cycle_discreet"
+    android:widgetCategory="home_screen"
+    android:description="@string/cycle_discreet_widget_description" />

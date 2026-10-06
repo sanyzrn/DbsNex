@@ -597,6 +597,11 @@ open class MainActivity : FlutterFragmentActivity() {
         if (intent?.action == ACTION_OPEN_TIMELINE) {
             return enqueue(mapOf("type" to "open_timeline"), live)
         }
+        // A Cycle widget: «Cycle» itself, opened by Dart behind the app lock
+        // like every other route in.
+        if (intent?.action == ACTION_OPEN_CYCLE) {
+            return enqueue(mapOf("type" to "open_cycle"), live)
+        }
         // A file handed to Nex to open, rather than shared into it: a .md
         // tapped in a file manager, or Telegram's "Open in". Same payload as
         // a share and the same Dart path — the difference is only where the
@@ -1013,5 +1018,8 @@ open class MainActivity : FlutterFragmentActivity() {
          * "back to Nex", the other says "this thing here".
          */
         const val ACTION_OPEN_TIMELINE = "com.sanyzrn.nex.OPEN_TIMELINE"
+
+        /** Sent by a tap on either Cycle widget; carries nothing. */
+        const val ACTION_OPEN_CYCLE = "com.sanyzrn.nex.OPEN_CYCLE"
     }
 }
