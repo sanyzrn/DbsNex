@@ -23,6 +23,7 @@ export 'package:nex_core/nex_core.dart'
         SearchFilters,
         SyncPort,
         SyncResult,
+        ScheduledNote,
         SyncState,
         Tag,
         newUuidV7,
@@ -33,6 +34,7 @@ export 'repositories/commitment_repository.dart';
 export 'repositories/library_maintenance.dart';
 export 'repositories/memory_repository.dart';
 export 'repositories/note_repository.dart';
+export 'repositories/scheduled_note_repository.dart';
 export 'repositories/thread_repository.dart';
 export 'schema/backup_archive.dart';
 export 'schema/import_archive.dart';

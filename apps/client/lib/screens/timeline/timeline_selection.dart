@@ -201,27 +201,32 @@ extension _TimelineSelection on TimelineScreenState {
       onPressed: () => unawaited(run()),
       icon: Icon(icon),
     );
+    var beat = 1;
+    Widget staggered(Widget child) => _StaggerIn(index: beat++, child: child);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          key: const ValueKey('selection-count'),
-          padding: const EdgeInsets.symmetric(
-            horizontal: NexSpacing.md,
-            vertical: NexSpacing.xs + 2,
-          ),
-          margin: const EdgeInsets.only(bottom: NexSpacing.sm),
-          decoration: BoxDecoration(
-            color: scheme.primary,
-            borderRadius: BorderRadius.circular(NexRadius.pill),
-          ),
-          child: Text(
-            nexDigits(
-              l10n.selectionCount(_selected.length),
-              persian: Localizations.localeOf(context).languageCode == 'fa',
+        _StaggerIn(
+          index: 0,
+          child: Container(
+            key: const ValueKey('selection-count'),
+            padding: const EdgeInsets.symmetric(
+              horizontal: NexSpacing.md,
+              vertical: NexSpacing.xs + 2,
             ),
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: scheme.onPrimary,
+            margin: const EdgeInsets.only(bottom: NexSpacing.sm),
+            decoration: BoxDecoration(
+              color: scheme.primary,
+              borderRadius: BorderRadius.circular(NexRadius.pill),
+            ),
+            child: Text(
+              nexDigits(
+                l10n.selectionCount(_selected.length),
+                persian: Localizations.localeOf(context).languageCode == 'fa',
+              ),
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: scheme.onPrimary,
+              ),
             ),
           ),
         ),
@@ -250,35 +255,38 @@ extension _TimelineSelection on TimelineScreenState {
                 child: _SelectionRow(
                   fits: fits,
                   children: [
-                    action(
-                      Icons.close,
-                      l10n.selectionClose,
-                      () async => _endSelection(),
-                    ),
-                    action(Icons.label_outline, l10n.addTag, _tagSelected),
-                    action(
-                      Icons.timeline_outlined,
-                      l10n.threads,
-                      _threadSelected,
-                    ),
-                    action(
-                      _selectedNotes.every((n) => n.pinnedAt != null)
-                          ? Icons.push_pin
-                          : Icons.push_pin_outlined,
-                      _selectedNotes.every((n) => n.pinnedAt != null)
-                          ? l10n.unpin
-                          : l10n.pin,
-                      _pinSelected,
-                    ),
-                    if (nexCanShare)
-                      action(Icons.ios_share, l10n.share, _shareSelected),
-                    action(Icons.copy_outlined, l10n.copy, _copySelected),
-                    action(
-                      Icons.delete_outline,
-                      l10n.delete,
-                      _deleteSelected,
-                      color: scheme.error,
-                    ),
+                    for (final button in <Widget>[
+                      action(
+                        Icons.close,
+                        l10n.selectionClose,
+                        () async => _endSelection(),
+                      ),
+                      action(Icons.label_outline, l10n.addTag, _tagSelected),
+                      action(
+                        Icons.timeline_outlined,
+                        l10n.threads,
+                        _threadSelected,
+                      ),
+                      action(
+                        _selectedNotes.every((n) => n.pinnedAt != null)
+                            ? Icons.push_pin
+                            : Icons.push_pin_outlined,
+                        _selectedNotes.every((n) => n.pinnedAt != null)
+                            ? l10n.unpin
+                            : l10n.pin,
+                        _pinSelected,
+                      ),
+                      if (nexCanShare)
+                        action(Icons.ios_share, l10n.share, _shareSelected),
+                      action(Icons.copy_outlined, l10n.copy, _copySelected),
+                      action(
+                        Icons.delete_outline,
+                        l10n.delete,
+                        _deleteSelected,
+                        color: scheme.error,
+                      ),
+                    ])
+                      staggered(button),
                   ],
                 ),
               ),
@@ -288,6 +296,94 @@ extension _TimelineSelection on TimelineScreenState {
       ],
     );
   }
+}
+
+/// The dock and the selection bar changing places.
+///
+/// One transition for both directions — [AnimatedSwitcher] runs it forwards
+/// for the bar arriving and backwards for the one leaving — so each capsule
+/// widens from 70% while rising 24 logical pixels, and the other narrows and
+/// sinks the same way out.
+Widget _morphTransition(Widget child, Animation<double> animation) =>
+    AnimatedBuilder(
+      animation: animation,
+      child: child,
+      builder: (context, child) {
+        final t = animation.value;
+        return Opacity(
+          opacity: Curves.easeOut.transform(t.clamp(0.0, 1.0)),
+          child: Transform.translate(
+            offset: Offset(0, (1 - t) * 24),
+            child: Transform(
+              alignment: Alignment.bottomCenter,
+              transform: Matrix4.diagonal3Values(
+                0.7 + 0.3 * t,
+                0.85 + 0.15 * t,
+                1,
+              ),
+              child: child,
+            ),
+          ),
+        );
+      },
+    );
+
+/// One of the selection bar's buttons or its count, arriving [index] beats
+/// after the bar itself: scaled up from 60% and faded in, 35 ms apart.
+///
+/// Runs once, when the bar appears — not again as the count changes —
+/// and not at all with reduced motion.
+class _StaggerIn extends StatefulWidget {
+  const _StaggerIn({required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  State<_StaggerIn> createState() => _StaggerInState();
+}
+
+class _StaggerInState extends State<_StaggerIn>
+    with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 260),
+  );
+  late final _scale = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOutBack,
+  );
+  Timer? _delay;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_controller.isAnimating || _controller.isCompleted) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.value = 1;
+      return;
+    }
+    _delay ??= Timer(Duration(milliseconds: 120 + 35 * widget.index), () {
+      if (mounted) unawaited(_controller.forward());
+    });
+  }
+
+  @override
+  void dispose() {
+    _delay?.cancel();
+    _scale.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+    opacity: _controller,
+    child: ScaleTransition(
+      scale: Tween(begin: 0.6, end: 1.0).animate(_scale),
+      child: widget.child,
+    ),
+  );
 }
 
 /// The selection bar's buttons: spread evenly when they fit, scrolled

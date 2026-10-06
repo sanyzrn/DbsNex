@@ -82,15 +82,16 @@ class _CommitReceiptState extends State<CommitReceipt>
   Widget build(BuildContext context) {
     if (!widget.active) return widget.child;
     final scheme = Theme.of(context).colorScheme;
+    final insets = nexCardInsetsFor(context);
     return Stack(
       children: [
         widget.child,
         // Inside the card's own gutter and clipped to its radius, so the bar
         // sits on the card rather than floating beside it.
         PositionedDirectional(
-          top: nexCardInsets.top,
-          bottom: nexCardInsets.bottom,
-          start: nexCardInsets.left,
+          top: insets.top,
+          bottom: insets.bottom,
+          start: insets.left,
           child: IgnorePointer(
             child: FadeTransition(
               opacity: _fade,

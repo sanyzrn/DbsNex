@@ -402,6 +402,18 @@ class NexPreferences extends _PreferencesStore
   Future<void> dismissCaptureHoldHint() =>
       _setBool('home.capture_hold_hint_seen', true);
 
+  /// "Hold ↑ to schedule" on the capture sheet: shown on the first few
+  /// sheets something is typed into, and gone for good once a note has been
+  /// scheduled — a hold nobody is told about is a feature nobody has.
+  bool get scheduleHintDue =>
+      !(_prefs.getBool('capture.schedule_used') ?? false) &&
+      (_prefs.getInt('capture.schedule_hint_shown') ?? 0) < 3;
+  Future<void> countScheduleHint() => _prefs.setInt(
+    'capture.schedule_hint_shown',
+    (_prefs.getInt('capture.schedule_hint_shown') ?? 0) + 1,
+  );
+  Future<void> markScheduleUsed() => _setBool('capture.schedule_used', true);
+
   bool get tourComplete => _prefs.getBool(_kTourComplete) ?? false;
 
   Future<void> completeTour() async {

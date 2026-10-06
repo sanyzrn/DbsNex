@@ -31,6 +31,7 @@ class InProcessDb implements NexDb {
     _search = SearchService(_repo);
     _commitments = SqliteCommitmentRepository(_db, localDeviceId: deviceId);
     _threads = SqliteThreadRepository(_db, _repo, localDeviceId: deviceId);
+    _scheduled = SqliteScheduledNoteRepository(_db, _repo);
     // Same composition as the real worker: the purge paths only delete
     // attachment files they can prove live under the media directory.
     _maintenance = LibraryMaintenance(
@@ -78,6 +79,7 @@ class InProcessDb implements NexDb {
   late final TagService _tags;
   late final SqliteCommitmentRepository _commitments;
   late final SqliteThreadRepository _threads;
+  late final SqliteScheduledNoteRepository _scheduled;
   late final SearchService _search;
   late final LibraryMaintenance _maintenance;
   late final EnrichmentService _enrichment;
@@ -270,6 +272,30 @@ class InProcessDb implements NexDb {
 
   @override
   Future<void> deleteCommitment(String id) async => _commitments.delete(id);
+
+  @override
+  Future<ScheduledNote?> scheduleNote(
+    String noteId,
+    DateTime releaseAt,
+  ) async => _scheduled.schedule(noteId, releaseAt);
+
+  @override
+  Future<List<ScheduledNote>> scheduledNotes() async => _scheduled.pending();
+
+  @override
+  Future<List<Note>> releaseDueNotes(DateTime now) async =>
+      _scheduled.releaseDue(now);
+
+  @override
+  Future<Note?> releaseScheduledNow(String id, DateTime now) async =>
+      _scheduled.releaseNow(id, now);
+
+  @override
+  Future<bool> rescheduleNote(String id, DateTime releaseAt) async =>
+      _scheduled.reschedule(id, releaseAt);
+
+  @override
+  Future<void> discardScheduled(String id) async => _scheduled.discard(id);
 
   @override
   Future<List<NoteThread>> listThreads() async => _threads.list();

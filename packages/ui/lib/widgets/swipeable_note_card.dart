@@ -247,7 +247,7 @@ class SwipeableNoteCard extends StatefulWidget {
     required this.onAction,
     this.haptics = true,
     this.controller,
-    this.insets = nexCardInsets,
+    this.insets,
     this.reorderIndex,
   });
 
@@ -257,8 +257,8 @@ class SwipeableNoteCard extends StatefulWidget {
   ///
   /// The action panel is laid out inside the same margin, so it lines up with
   /// the card exactly instead of running past it to the physical screen edge.
-  /// Defaults to the timeline card's own gutter.
-  final EdgeInsets insets;
+  /// Defaults to the timeline card's own gutter for the density in force.
+  final EdgeInsets? insets;
   final NexSwipeActionResolver resolveAction;
 
   /// Run when an edge's action is committed — by dragging past the commit
@@ -519,7 +519,7 @@ class _SwipeableNoteCardState extends State<SwipeableNoteCard>
                         // where the card starts and the two look like one
                         // object rather than a card floating over a bar.
                         child: Padding(
-                          padding: widget.insets,
+                          padding: widget.insets ?? nexCardInsetsFor(context),
                           child: Align(
                             // Physical, not directional: whichever way the card
                             // actually moved is the side the space opened on.

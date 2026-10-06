@@ -4370,6 +4370,114 @@ abstract class AppLocalizations {
   /// **'Remove reminder'**
   String get remindClear;
 
+  /// Title of the sheet that delivers the note being written at a later time
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule note'**
+  String get scheduleTitle;
+
+  /// No description provided for @scheduleInMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'In a month'**
+  String get scheduleInMonth;
+
+  /// No description provided for @scheduleInYear.
+  ///
+  /// In en, this message translates to:
+  /// **'In a year'**
+  String get scheduleInYear;
+
+  /// No description provided for @scheduleActionToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrives today at {time}'**
+  String scheduleActionToday(String time);
+
+  /// No description provided for @scheduleActionTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrives tomorrow at {time}'**
+  String scheduleActionTomorrow(String time);
+
+  /// No description provided for @scheduleActionOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrives on {date} at {time}'**
+  String scheduleActionOn(String date, String time);
+
+  /// No description provided for @scheduleSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled — arrives {when}'**
+  String scheduleSet(String when);
+
+  /// No description provided for @scheduleFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'This note could not be scheduled'**
+  String get scheduleFailed;
+
+  /// No description provided for @scheduleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold ↑ to schedule it for later'**
+  String get scheduleHint;
+
+  /// No description provided for @scheduledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled'**
+  String get scheduledTitle;
+
+  /// No description provided for @scheduledSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes on their way'**
+  String get scheduledSubtitle;
+
+  /// No description provided for @scheduledEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing scheduled. While writing a note, hold the send button to have it arrive later.'**
+  String get scheduledEmpty;
+
+  /// No description provided for @scheduledArrives.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrives {when}'**
+  String scheduledArrives(String when);
+
+  /// No description provided for @scheduledWritten.
+  ///
+  /// In en, this message translates to:
+  /// **'Written {when}'**
+  String scheduledWritten(String when);
+
+  /// No description provided for @scheduledSendNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Deliver now'**
+  String get scheduledSendNow;
+
+  /// No description provided for @scheduledChangeTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Change time'**
+  String get scheduledChangeTime;
+
+  /// No description provided for @scheduledDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get scheduledDiscard;
+
+  /// No description provided for @scheduledDiscardConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard this note? It never reached your notes, so it cannot be restored.'**
+  String get scheduledDiscardConfirm;
+
   /// Heading of the reminder sheet
   ///
   /// In en, this message translates to:

@@ -2680,6 +2680,74 @@ class AppLocalizationsFa extends AppLocalizations {
   String get remindClear => 'حذف یادآوری';
 
   @override
+  String get scheduleTitle => 'زمان‌بندی یادداشت';
+
+  @override
+  String get scheduleInMonth => 'یک ماه بعد';
+
+  @override
+  String get scheduleInYear => 'یک سال بعد';
+
+  @override
+  String scheduleActionToday(String time) {
+    return 'امروز ساعت $time می‌رسد';
+  }
+
+  @override
+  String scheduleActionTomorrow(String time) {
+    return 'فردا ساعت $time می‌رسد';
+  }
+
+  @override
+  String scheduleActionOn(String date, String time) {
+    return '$date ساعت $time می‌رسد';
+  }
+
+  @override
+  String scheduleSet(String when) {
+    return 'زمان‌بندی شد؛ $when می‌رسد';
+  }
+
+  @override
+  String get scheduleFailed => 'این یادداشت زمان‌بندی نشد';
+
+  @override
+  String get scheduleHint => 'برای فرستادن در زمانی دیگر، ↑ را نگه دارید';
+
+  @override
+  String get scheduledTitle => 'زمان‌بندی‌شده‌ها';
+
+  @override
+  String get scheduledSubtitle => 'یادداشت‌هایی که در راه‌اند';
+
+  @override
+  String get scheduledEmpty =>
+      'چیزی زمان‌بندی نشده است. هنگام نوشتن یادداشت، دکمهٔ ارسال را نگه دارید تا بعداً برسد.';
+
+  @override
+  String scheduledArrives(String when) {
+    return 'می‌رسد: $when';
+  }
+
+  @override
+  String scheduledWritten(String when) {
+    return 'نوشته‌شده: $when';
+  }
+
+  @override
+  String get scheduledSendNow => 'همین حالا برسد';
+
+  @override
+  String get scheduledChangeTime => 'تغییر زمان';
+
+  @override
+  String get scheduledDiscard => 'دور انداختن';
+
+  @override
+  String get scheduledDiscardConfirm =>
+      'این یادداشت دور انداخته شود؟ هنوز به یادداشت‌هایتان نرسیده، پس برگرداندنی نیست.';
+
+  @override
   String get remindTitle => 'تنظیم یادآور';
 
   @override

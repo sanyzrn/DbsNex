@@ -356,7 +356,27 @@ extension _TimelineLayout on TimelineScreenState {
       floatingActionButton: _searching
           ? null
           : AnimatedSwitcher(
-              duration: NexMotion.standard,
+              // The dock does not cross-fade into the selection bar: it
+              // gives way. The capsule leaving narrows and sinks, the one
+              // arriving rises and widens out of it, and the bar's buttons
+              // then land one after another (see [_StaggerIn]) — so the
+              // change reads as the same bar turning into a different
+              // tool rather than one picture swapped for another.
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 420),
+              reverseDuration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 260),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: _morphTransition,
+              // Bottom-aligned: the selection bar carries a count above it,
+              // and centring the two would lift the capsule mid-change.
+              layoutBuilder: (current, previous) => Stack(
+                alignment: Alignment.bottomCenter,
+                children: [...previous, if (current != null) current],
+              ),
               child: _selecting
                   ? KeyedSubtree(
                       key: const ValueKey('selection'),
@@ -434,7 +454,9 @@ extension _TimelineLayout on TimelineScreenState {
                 unawaited(
                   Navigator.push<void>(
                     context,
-                    NexPageRoute<void>(builder: (_) => const ToolsScreen()),
+                    NexPageRoute<void>(
+                      builder: (_) => ToolsScreen(services: widget.services),
+                    ),
                   ),
                 );
               },

@@ -63,6 +63,68 @@ void main() {
     matching: find.text(text),
   );
 
+  testWidgets('the dock turns into the selection bar, not a cut', (
+    tester,
+  ) async {
+    await open(tester);
+    final dock = find.byType(NexNavigationDock);
+    expect(dock, findsOneWidget);
+
+    await tester.longPress(card('alpha note'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Select'));
+    // Partway through: the two bars are both on screen, the arriving one
+    // still narrower than it will be.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(dock, findsOneWidget);
+    expect(bar(), findsOneWidget);
+    final partway = tester.getRect(bar()).width;
+    final buttons = find.descendant(
+      of: bar(),
+      matching: find.byType(IconButton),
+    );
+    final early = tester.widget<FadeTransition>(
+      find
+          .ancestor(of: buttons.last, matching: find.byType(FadeTransition))
+          .first,
+    );
+    expect(early.opacity.value, lessThan(1), reason: 'buttons land after');
+
+    await tester.pumpAndSettle();
+    expect(dock, findsNothing);
+    final settled = tester.getRect(bar()).width;
+    expect(partway, lessThan(settled));
+    for (final button in buttons.evaluate()) {
+      final fade = tester.widget<FadeTransition>(
+        find
+            .ancestor(
+              of: find.byWidget(button.widget),
+              matching: find.byType(FadeTransition),
+            )
+            .first,
+      );
+      expect(fade.opacity.value, 1);
+    }
+  });
+
+  testWidgets('with reduced motion the bars swap at once', (tester) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await open(tester);
+    final swap = tester.widget<AnimatedSwitcher>(
+      find
+          .ancestor(
+            of: find.byType(NexNavigationDock),
+            matching: find.byType(AnimatedSwitcher),
+          )
+          .first,
+    );
+    expect(swap.duration, Duration.zero);
+    expect(swap.reverseDuration, Duration.zero);
+  });
+
   testWidgets('the bar keeps every button whole on a narrow phone', (
     tester,
   ) async {

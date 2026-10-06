@@ -8,6 +8,7 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import 'nex_banner.dart';
 import 'reminder_picker.dart';
+import 'schedule_picker.dart';
 import 'nex_text_field.dart';
 
 class CaptureSheet extends StatefulWidget {
@@ -270,6 +271,64 @@ class _CaptureSheetState extends State<CaptureSheet> {
     setState(() => hasReminder = saved?.dueAt != null);
   }
 
+  /// The held Send: the note being written arrives later instead of now.
+  ///
+  /// It is already a note by now (no Save button, ADR-002), so this hands
+  /// that note to [NexServices.scheduleNote], which takes it back out of the
+  /// library until its time — and then the sheet closes with nothing left
+  /// behind to write: the draft is forgotten, not flushed, or the close
+  /// would put the words straight back on the timeline.
+  bool _scheduling = false;
+  bool _hintCounted = false;
+
+  Future<void> _schedule() async {
+    if (_scheduling || _closing || controller.text.trim().isEmpty) return;
+    if (widget.preferences.haptics) unawaited(HapticFeedback.mediumImpact());
+    _scheduling = true;
+    try {
+      await flush();
+      final id = noteId;
+      if (id == null || persisted != _latestText || !mounted) return;
+      final when = await nexPickScheduleTime(
+        context: context,
+        services: widget.services,
+      );
+      if (when == null || !mounted) return;
+      // Typed while the picker was up — the field is still live under it.
+      await flush();
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      final scheduled = await widget.services.scheduleNote(id, when.toUtc());
+      if (!mounted) return;
+      if (scheduled == null) {
+        nexShowBanner(
+          context,
+          message: l10n.scheduleFailed,
+          kind: NexBannerKind.failed,
+        );
+        return;
+      }
+      unawaited(widget.preferences.markScheduleUsed());
+      // Forgotten rather than flushed: see above.
+      debounce?.cancel();
+      noteId = null;
+      _latestText = '';
+      persisted = '';
+      queued = null;
+      draft = null;
+      widget.services.captureJournal.complete(_draftId);
+      nexShowBanner(
+        context,
+        message: l10n.scheduleSet(nexUntilLabel(l10n, when)),
+        kind: NexBannerKind.done,
+      );
+      setState(() => _allowClose = true);
+      Navigator.pop(context);
+    } finally {
+      _scheduling = false;
+    }
+  }
+
   Future<void> close() async {
     if (_closing) return;
     _closing = true;
@@ -295,6 +354,13 @@ class _CaptureSheetState extends State<CaptureSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final showScheduleHint =
+        controller.text.trim().isNotEmpty &&
+        (_hintCounted || widget.preferences.scheduleHintDue);
+    if (showScheduleHint && !_hintCounted) {
+      _hintCounted = true;
+      unawaited(widget.preferences.countScheduleHint());
+    }
     return PopScope(
       canPop: _allowClose,
       onPopInvokedWithResult: (didPop, _) {
@@ -366,6 +432,28 @@ class _CaptureSheetState extends State<CaptureSheet> {
               ),
             ),
             const Divider(height: 1),
+            AnimatedSize(
+              duration: NexMotion.standard,
+              alignment: Alignment.topCenter,
+              child: showScheduleHint
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: NexSpacing.xs),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: Text(
+                          l10n.scheduleHint,
+                          key: const ValueKey('schedule-hint'),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
             Row(
               children: [
                 Expanded(
@@ -414,22 +502,41 @@ class _CaptureSheetState extends State<CaptureSheet> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                IconButton.filled(
-                  // Keep the primary action anchored while attachment tools scroll.
-                  // The quieter reminder retains a full 48px touch target.
-                  constraints: const BoxConstraints.tightFor(
-                    width: 60,
-                    height: 60,
+                // Tap sends; hold schedules. The tooltip keeps its label for
+                // screen readers and tests but no longer claims the hold,
+                // which belongs to scheduling.
+                Semantics(
+                  onLongPressHint: l10n.scheduleTitle,
+                  child: GestureDetector(
+                    key: const ValueKey('capture-send'),
+                    onLongPress: controller.text.trim().isEmpty
+                        ? null
+                        : () => unawaited(_schedule()),
+                    child: TooltipTheme(
+                      data: const TooltipThemeData(
+                        triggerMode: TooltipTriggerMode.manual,
+                      ),
+                      child: IconButton.filled(
+                        // Keep the primary action anchored while attachment tools scroll.
+                        // The quieter reminder retains a full 48px touch target.
+                        constraints: const BoxConstraints.tightFor(
+                          width: 60,
+                          height: 60,
+                        ),
+                        onPressed: _closing ? null : close,
+                        tooltip: l10n.capture,
+                        icon: _closing
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.arrow_upward, size: 32),
+                      ),
+                    ),
                   ),
-                  onPressed: _closing ? null : close,
-                  tooltip: l10n.capture,
-                  icon: _closing
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.arrow_upward, size: 32),
                 ),
               ],
             ),

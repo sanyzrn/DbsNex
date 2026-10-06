@@ -22,6 +22,7 @@ export 'models/memory_record.dart';
 export 'models/note.dart';
 export 'models/note_embedding.dart';
 export 'models/note_thread.dart';
+export 'models/scheduled_note.dart';
 export 'search/fused_ranking.dart';
 export 'search/search_fold.dart';
 export 'models/search_filters.dart';

@@ -4,7 +4,9 @@ Nex is the fastest way to put something down and find it again: a thought, a pho
 
 ## Capture something
 
-Tap **+** at the centre of the bottom bar and choose text, checklist, voice, photo, file or link. Quick text and new checklists have no Save button: they are kept when you close their sheet, and clearing the box before you close it removes what you started. Links and the other editors have a **Save** or **Confirm** button. A checklist uses one item per line; a link needs a complete address.
+Tap **+** at the centre of the bottom bar and choose text, checklist, voice, photo, file or link. Quick text and new checklists have no Save button: they are kept when you close their sheet, and clearing the box before you close it removes what you started.
+
+To have a note arrive later — a letter to yourself, a thought for next month — **hold** the send button instead of tapping it and choose when: tomorrow morning, next week, in a month, in a year, or any day and time. Until then it is not in your notes, search or widgets; at its time it lands on the timeline with a notification. **Tools → Scheduled** shows what is on its way, where you can deliver one now, change its time or discard it. Links and the other editors have a **Save** or **Confirm** button. A checklist uses one item per line; a link needs a complete address.
 
 Without opening Nex first: add the **Nex capture** tile to your Quick Settings (pull the shade down twice, then edit the tiles), or turn on **Settings → Capture → Capture from notifications** for a silent row with **Note**, **Voice** and **Photo** buttons.
 

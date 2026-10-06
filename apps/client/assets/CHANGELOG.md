@@ -34,6 +34,12 @@ Working convention:
 
 ## Unreleased
 
+## v1.95.0
+
+- **Schedule a note for later.** While writing a note, hold the send button instead of tapping it, and choose when it should arrive: tomorrow morning, next week, in a month, in a year, or any day and time. Until then it is nowhere in your notes, search or widgets; at its time it lands on the timeline as an ordinary note, with a notification. **Tools → Scheduled** lists what is on its way, where each one can be delivered now, moved to another time or discarded.
+- **Compact cards sit closer together.** With **Card size → Compact**, the cards on the timeline are spaced more tightly, so a screen holds more of them. The other two sizes are unchanged.
+- **Picking notes feels like one bar turning into another.** When you start selecting notes, the bottom bar narrows and sinks away while the selection bar rises in its place and its buttons appear one after another. With reduced motion, the bars simply swap.
+
 ## v1.94.0
 
 - **Save to device.** Every item now has **Save to device** in its details: Android's own save window opens and you choose where the copy goes — Downloads, Documents, Google Drive — with no extra permission. Files, photos and recordings are saved as they are (photos without where and when they were taken); a note of words is saved as a Markdown file.

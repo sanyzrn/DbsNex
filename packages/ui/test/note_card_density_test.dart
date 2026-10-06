@@ -60,7 +60,7 @@ void main() {
             density.leading,
             density.lineHeight * density.lines,
           ].reduce((a, b) => a > b ? a : b) +
-          nexCardInsets.vertical;
+          density.cardInsets.vertical;
       expect(heights.single, expected);
     });
   }
@@ -78,5 +78,20 @@ void main() {
       greaterThan(height(NexCardDensity.standard)),
     );
     expect(NexCardDensity.fromWire('nonsense'), NexCardDensity.standard);
+  });
+
+  test('only compact draws the cards closer together', () {
+    expect(NexCardDensity.standard.cardInsets, nexCardInsets);
+    expect(NexCardDensity.readable.cardInsets, nexCardInsets);
+    expect(
+      NexCardDensity.compact.cardInsets.vertical,
+      lessThan(nexCardInsets.vertical),
+    );
+    // The side gutter stays: the swipe panel and the day headings line up
+    // with it.
+    expect(
+      NexCardDensity.compact.cardInsets.horizontal,
+      nexCardInsets.horizontal,
+    );
   });
 }
