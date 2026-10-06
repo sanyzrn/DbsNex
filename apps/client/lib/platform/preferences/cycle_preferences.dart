@@ -27,6 +27,29 @@ mixin _CyclePreferences on _PreferencesStore {
     notifyListeners();
   }
 
+  /// What «Cycle» is for right now — see [CycleMode].
+  CycleMode get cycleMode => CycleMode.fromWire(_prefs.getString('cycle.mode'));
+  Future<void> setCycleMode(CycleMode mode) async {
+    await _prefs.setString('cycle.mode', mode.name);
+    notifyListeners();
+  }
+
+  /// In [CycleMode.pregnant]: the first day of the last period, from which
+  /// the weeks are counted.
+  CycleDate? get cyclePregnancyStart {
+    final text = _prefs.getString('cycle.pregnancy_start');
+    return text == null ? null : CycleDate.parse(text);
+  }
+
+  Future<void> setCyclePregnancyStart(CycleDate? day) async {
+    if (day == null) {
+      await _prefs.remove('cycle.pregnancy_start');
+    } else {
+      await _prefs.setString('cycle.pregnancy_start', '$day');
+    }
+    notifyListeners();
+  }
+
   /// Two days before the next period is expected.
   bool get cycleRemindSoon => _prefs.getBool('cycle.remind_soon') ?? true;
   Future<void> setCycleRemindSoon(bool value) =>
@@ -58,6 +81,8 @@ mixin _CyclePreferences on _PreferencesStore {
       'cycle.remind_log',
       'cycle.remind_pill',
       'cycle.pill_minutes',
+      'cycle.mode',
+      'cycle.pregnancy_start',
     ]) {
       await _prefs.remove(key);
     }

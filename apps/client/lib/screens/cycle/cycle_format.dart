@@ -131,3 +131,18 @@ String cycleAlertText(AppLocalizations l10n, CycleAlert alert) =>
       CycleAlert.longCycle => l10n.cycleAlertLongCycle,
       CycleAlert.irregular => l10n.cycleAlertIrregular,
     };
+
+String cycleModeLabel(AppLocalizations l10n, CycleMode mode) => switch (mode) {
+  CycleMode.normal => l10n.cycleModeNormal,
+  CycleMode.conceive => l10n.cycleModeConceive,
+  CycleMode.pregnant => l10n.cycleModePregnant,
+  CycleMode.breastfeeding => l10n.cycleModeBreastfeeding,
+  CycleMode.menopause => l10n.cycleModeMenopause,
+};
+
+String cycleModeHint(AppLocalizations l10n, CycleMode mode) => switch (mode) {
+  CycleMode.normal => l10n.cycleModeNormalHint,
+  CycleMode.conceive => l10n.cycleModeConceiveHint,
+  CycleMode.pregnant => l10n.cycleModePregnantHint,
+  CycleMode.breastfeeding || CycleMode.menopause => l10n.cycleModeOffHint,
+};

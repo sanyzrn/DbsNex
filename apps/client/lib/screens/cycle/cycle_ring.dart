@@ -154,3 +154,76 @@ class _RingPainter extends CustomPainter {
       old.fertileFrom != fertileFrom ||
       old.fertileTo != fertileTo;
 }
+
+/// One arc for how far along something is — the forty weeks of a
+/// pregnancy — with words in the middle, matching [CycleRing].
+class CycleProgressRing extends StatelessWidget {
+  const CycleProgressRing({
+    super.key,
+    required this.fraction,
+    required this.color,
+    required this.headline,
+    required this.caption,
+  });
+
+  final double fraction;
+  final Color color;
+  final String headline;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      label: '$headline. $caption',
+      excludeSemantics: true,
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: fraction.clamp(0.0, 1.0)),
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 900),
+          curve: Curves.easeOutCubic,
+          builder: (context, t, _) => CustomPaint(
+            painter: _RingPainter(
+              track: theme.colorScheme.surfaceContainerHighest,
+              period: color,
+              fertile: Colors.transparent,
+              marker: theme.colorScheme.onSurface,
+              periodFraction: t,
+              fertileFrom: 0,
+              fertileTo: 0,
+              progress: t,
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(NexSpacing.xl + NexSpacing.md),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      headline,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: NexSpacing.xs),
+                    Text(
+                      caption,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/reminders.dart';
+import 'package:nex_client/screens/cycle/cycle_ring.dart';
 import 'package:nex_client/screens/cycle_screen.dart';
 import 'package:nex_core/nex_core.dart';
 
@@ -171,4 +172,67 @@ void main() {
       expect(ids, isNot(contains(NexReminders.idFor('soon'))));
     },
   );
+
+  group('modes', () {
+    Future<void> history(NexTestHarness harness, {int daysAgo = 3}) async {
+      final last = today().subtract(Duration(days: daysAgo));
+      for (var k = 3; k >= 0; k--) {
+        final start = last.subtract(Duration(days: 28 * k));
+        final p = await harness.services.cycleStartPeriod(start);
+        await harness.services.cycleEndPeriod(
+          p.id,
+          start.add(const Duration(days: 4)),
+        );
+      }
+    }
+
+    testWidgets('trying to conceive puts the fertile window first', (
+      tester,
+    ) async {
+      final harness = await openCycle(
+        tester,
+        preferences: {'cycle.set_up': true, 'cycle.mode': 'conceive'},
+      );
+      // Day 7 of a 28-day cycle, the period over: the fertile window opens
+      // on day 10.
+      await history(harness, daysAgo: 6);
+      await reopen(tester);
+      expect(find.text('3 days to your fertile window'), findsOneWidget);
+      expect(find.textContaining('Likely ovulation'), findsOneWidget);
+      expect(find.text('Trying to conceive'), findsOneWidget);
+    });
+
+    testWidgets('pregnancy counts weeks and hides the period button', (
+      tester,
+    ) async {
+      final start = CycleDate.of(today()).addDays(-86);
+      final harness = await openCycle(
+        tester,
+        preferences: {
+          'cycle.set_up': true,
+          'cycle.mode': 'pregnant',
+          'cycle.pregnancy_start': '$start',
+        },
+      );
+      expect(harness.preferences.cyclePregnancyStart, start);
+      expect(find.text('Week 12, day 2'), findsOneWidget);
+      expect(find.textContaining('Due date'), findsOneWidget);
+      expect(find.textContaining('Trimester 1'), findsOneWidget);
+      expect(find.byKey(const ValueKey('cycle-primary')), findsNothing);
+      expect(find.byType(CycleRing), findsNothing);
+    });
+
+    testWidgets('menopause logs without predicting', (tester) async {
+      final harness = await openCycle(
+        tester,
+        preferences: {'cycle.set_up': true, 'cycle.mode': 'menopause'},
+      );
+      await history(harness);
+      await reopen(tester);
+      expect(find.byType(CycleRing), findsNothing);
+      expect(find.textContaining('Predictions are off'), findsOneWidget);
+      expect(find.textContaining('Likely between'), findsNothing);
+      expect(find.byKey(const ValueKey('cycle-primary')), findsOneWidget);
+    });
+  });
 }

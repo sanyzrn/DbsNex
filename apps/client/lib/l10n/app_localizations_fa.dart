@@ -3068,6 +3068,86 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cycleTurnOffDelete => 'حذف داده‌ها';
 
   @override
+  String get cycleMode => 'حالت';
+
+  @override
+  String get cycleModeNormal => 'ثبت چرخه';
+
+  @override
+  String get cycleModeConceive => 'اقدام به بارداری';
+
+  @override
+  String get cycleModePregnant => 'باردار';
+
+  @override
+  String get cycleModeBreastfeeding => 'شیردهی';
+
+  @override
+  String get cycleModeMenopause => 'پیش‌یائسگی یا یائسگی';
+
+  @override
+  String get cycleModeNormalHint => 'پیش‌بینی، پنجرهٔ باروری و هشدارهای ملایم.';
+
+  @override
+  String get cycleModeConceiveHint =>
+      'پنجرهٔ باروری و تخمک‌گذاری احتمالی، در صدر صفحه.';
+
+  @override
+  String get cycleModePregnantHint =>
+      'به‌جای پیش‌بینی، هفته‌های بارداری و زمان احتمالی زایمان.';
+
+  @override
+  String get cycleModeOffHint =>
+      'پیش‌بینی خاموش است؛ ثبت پریود و روزها ادامه دارد.';
+
+  @override
+  String get cyclePredictionsOff =>
+      'در این حالت پیش‌بینی خاموش است. ثبت مثل همیشه کار می‌کند.';
+
+  @override
+  String get cycleFertileToday => 'روز احتمالی باروری';
+
+  @override
+  String cycleUntilFertile(int count) {
+    return '$count روز تا پنجرهٔ باروری';
+  }
+
+  @override
+  String cycleOvulationOn(String date) {
+    return 'تخمک‌گذاری احتمالی: $date';
+  }
+
+  @override
+  String cyclePregnancyWeek(String weeks, String days) {
+    return 'هفتهٔ $weeks، روز $days';
+  }
+
+  @override
+  String cycleDueDate(String date) {
+    return 'زمان احتمالی زایمان: $date';
+  }
+
+  @override
+  String cycleTrimester(String n) {
+    return 'سه‌ماههٔ $n';
+  }
+
+  @override
+  String cycleDaysToGo(int count) {
+    return '$count روز مانده';
+  }
+
+  @override
+  String get cyclePregnancyStart => 'اولین روز آخرین پریود';
+
+  @override
+  String get cycleKnowDueDate => 'تاریخ زایمان را می‌دانم';
+
+  @override
+  String get cyclePregnancyNote =>
+      'هفته‌ها از اولین روز آخرین پریود شمرده می‌شوند، همان‌طور که پزشک‌ها می‌شمارند.';
+
+  @override
   String get remindTitle => 'تنظیم یادآور';
 
   @override

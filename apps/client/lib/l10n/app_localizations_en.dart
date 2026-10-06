@@ -3143,6 +3143,99 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cycleTurnOffDelete => 'Delete data';
 
   @override
+  String get cycleMode => 'Mode';
+
+  @override
+  String get cycleModeNormal => 'Tracking my cycle';
+
+  @override
+  String get cycleModeConceive => 'Trying to conceive';
+
+  @override
+  String get cycleModePregnant => 'Pregnant';
+
+  @override
+  String get cycleModeBreastfeeding => 'Breastfeeding';
+
+  @override
+  String get cycleModeMenopause => 'Perimenopause or menopause';
+
+  @override
+  String get cycleModeNormalHint =>
+      'Predictions, the fertile window and gentle alerts.';
+
+  @override
+  String get cycleModeConceiveHint =>
+      'The fertile window and likely ovulation, front and centre.';
+
+  @override
+  String get cycleModePregnantHint =>
+      'Weeks of pregnancy and the due date instead of predictions.';
+
+  @override
+  String get cycleModeOffHint =>
+      'Predictions are off; you can still log periods and days.';
+
+  @override
+  String get cyclePredictionsOff =>
+      'Predictions are off in this mode. Logging works as always.';
+
+  @override
+  String get cycleFertileToday => 'A likely fertile day';
+
+  @override
+  String cycleUntilFertile(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days to your fertile window',
+      one: '1 day to your fertile window',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cycleOvulationOn(String date) {
+    return 'Likely ovulation: $date';
+  }
+
+  @override
+  String cyclePregnancyWeek(String weeks, String days) {
+    return 'Week $weeks, day $days';
+  }
+
+  @override
+  String cycleDueDate(String date) {
+    return 'Due date: $date';
+  }
+
+  @override
+  String cycleTrimester(String n) {
+    return 'Trimester $n';
+  }
+
+  @override
+  String cycleDaysToGo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days to go',
+      one: '1 day to go',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cyclePregnancyStart => 'First day of the last period';
+
+  @override
+  String get cycleKnowDueDate => 'I know my due date';
+
+  @override
+  String get cyclePregnancyNote =>
+      'Weeks are counted from the first day of your last period, the way doctors count them.';
+
+  @override
   String get remindTitle => 'Set a reminder';
 
   @override
