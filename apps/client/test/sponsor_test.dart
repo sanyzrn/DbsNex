@@ -193,7 +193,6 @@ void main() {
       preferences: preferences,
       client: MockClient((request) async => respond(request)),
       now: () => at ?? now,
-      delay: (_) async {},
       dismissible: true,
     );
 
@@ -283,7 +282,6 @@ void main() {
           preferences: preferences,
           client: MockClient((_) async => throw const SocketFailure()),
           now: () => now,
-          delay: (_) async {},
         );
         await service.refresh();
 
@@ -308,10 +306,9 @@ void main() {
       },
     );
 
-    test('a failed batch retries twice, then cools off for two hours', () async {
+    test('a failed automatic check retries once, then cools off', () async {
       var asked = 0;
       var clock = now;
-      final waited = <Duration>[];
 
       NexSponsorService service() => NexSponsorService(
         preferences: preferences,
@@ -320,26 +317,24 @@ void main() {
           return http.Response('', 503);
         }),
         now: () => clock,
-        delay: (duration) async => waited.add(duration),
       );
 
       await service().refresh();
-      expect(asked, 3);
-      expect(waited, NexSponsorService.retryDelays);
+      expect(asked, NexSponsorService.automaticAttempts);
       expect(preferences.sponsorFetchedAt, isNull);
 
-      // Reopening the app inside the cool-off does not create another batch.
-      clock = now.add(const Duration(hours: 1));
+      // Reopening or resuming inside the cool-off does not create a new batch.
+      clock = now.add(const Duration(minutes: 29));
       await service().refresh();
-      expect(asked, 3);
+      expect(asked, NexSponsorService.automaticAttempts);
 
-      // Once the cool-off has elapsed, recovery gets another small batch.
+      // Once the cool-off has elapsed, recovery gets another tiny batch.
       clock = now.add(NexSponsorService.failedRefreshCooldown);
       await service().refresh();
-      expect(asked, 6);
+      expect(asked, NexSponsorService.automaticAttempts * 2);
     });
 
-    test('manual recovery is one request and no more than every 30 minutes', () async {
+    test('manual recovery is one request and uses the same cooldown', () async {
       var asked = 0;
       var clock = now;
 
@@ -350,7 +345,6 @@ void main() {
           return http.Response('', 503);
         }),
         now: () => clock,
-        delay: (_) async {},
       );
 
       await service().refresh(manual: true);
@@ -360,7 +354,7 @@ void main() {
       await service().refresh(manual: true);
       expect(asked, 1);
 
-      clock = now.add(NexSponsorService.manualRetryCooldown);
+      clock = now.add(NexSponsorService.failedRefreshCooldown);
       await service().refresh(manual: true);
       expect(asked, 2);
     });
@@ -379,7 +373,6 @@ void main() {
         preferences: preferences,
         client: MockClient((_) async => http.Response('', 500)),
         now: () => now,
-        delay: (_) async {},
       );
 
       expect(service.visible(languageCode: 'en'), isNull);
