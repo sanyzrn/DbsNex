@@ -44,6 +44,27 @@ void main() {
       expect(adapter.available, isFalse);
     });
 
+    test('the instructions open the first user turn, once', () {
+      const turns = [
+        ChatMessage(role: ChatRole.user, content: 'what is left to do?'),
+        ChatMessage(role: ChatRole.assistant, content: 'The plumber.'),
+        ChatMessage(role: ChatRole.user, content: 'and tomorrow?'),
+      ];
+      final prepared = LiteRtChatAdapter.withInstructions(
+        'You are the assistant inside Nex.',
+        turns,
+      );
+      expect(prepared, hasLength(3));
+      expect(prepared.first.content, startsWith('[Instructions from the Nex'));
+      expect(prepared.first.content, contains('You are the assistant inside'));
+      expect(prepared.first.content, endsWith('what is left to do?'));
+      // Only the first: later turns are the user's words alone.
+      expect(prepared[1].content, 'The plumber.');
+      expect(prepared[2].content, 'and tomorrow?');
+      // Nothing to add, nothing added.
+      expect(LiteRtChatAdapter.withInstructions(null, turns), same(turns));
+    });
+
     test('an empty history is never sent anywhere', () {
       final adapter = LiteRtChatAdapter(modelPath: '');
       expect(adapter.sendMessage(const []), isNull);

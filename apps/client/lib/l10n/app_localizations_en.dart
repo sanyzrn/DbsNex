@@ -3392,6 +3392,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get localModelOnPhone => 'On this phone';
 
   @override
+  String localModelPartial(String size) {
+    return '$size downloaded so far';
+  }
+
+  @override
+  String localModelNoticeTitle(String model) {
+    return 'Downloading $model';
+  }
+
+  @override
+  String get chatLookedSearch => 'Searched your notes';
+
+  @override
+  String get chatLookedCycle => 'Read your Cycle summary';
+
+  @override
+  String get chatLookedThreads => 'Looked at your threads';
+
+  @override
+  String get chatLookedNotes => 'Read the notes asked about';
+
+  @override
   String get remindTitle => 'Set a reminder';
 
   @override

@@ -113,6 +113,9 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
     if (support.supported) {
       try {
         store = await NexModelStore.open();
+        // Leftovers from a failed or replaced install go before anything
+        // is shown, so the sizes below are what is really on the phone.
+        if (!_install.isRunning) await store.sweep();
         if (widget.model == null && store.selected.id != _model.id) {
           _model = store.selected;
           support = await LocalAi.check(_model);
@@ -165,7 +168,15 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
   void _start() {
     final store = _store;
     if (store == null) return;
-    unawaited(_install.start(store, _model));
+    unawaited(
+      _install.start(
+        store,
+        _model,
+        noticeTitle: AppLocalizations.of(
+          context,
+        ).localModelNoticeTitle(_model.name),
+      ),
+    );
   }
 
   Future<void> _confirmStop() async {
@@ -732,7 +743,12 @@ class _ModelPicker extends StatelessWidget {
                   subtitle: Text(
                     [
                       _gigabytes(context, model.sizeBytes),
-                      if (store.isInstalled(model)) l10n.localModelOnPhone,
+                      if (store.isInstalled(model))
+                        l10n.localModelOnPhone
+                      else if (store.partialBytes(model) > 0)
+                        l10n.localModelPartial(
+                          _size(context, store.partialBytes(model)),
+                        ),
                     ].join(' · '),
                   ),
                 ),

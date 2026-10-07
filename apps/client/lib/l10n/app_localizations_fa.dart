@@ -3302,6 +3302,28 @@ class AppLocalizationsFa extends AppLocalizations {
   String get localModelOnPhone => 'روی این گوشی';
 
   @override
+  String localModelPartial(String size) {
+    return '$size دانلود شده';
+  }
+
+  @override
+  String localModelNoticeTitle(String model) {
+    return 'در حال دانلود $model';
+  }
+
+  @override
+  String get chatLookedSearch => 'در یادداشت‌ها جست‌وجو کرد';
+
+  @override
+  String get chatLookedCycle => 'خلاصهٔ «چرخه» را خواند';
+
+  @override
+  String get chatLookedThreads => 'رشته‌ها را نگاه کرد';
+
+  @override
+  String get chatLookedNotes => 'یادداشت‌های مرتبط را خواند';
+
+  @override
   String get remindTitle => 'تنظیم یادآور';
 
   @override

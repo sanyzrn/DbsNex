@@ -22,6 +22,7 @@ import 'package:nex_ai/cloud.dart';
 import '../platform/capture_failure.dart';
 import '../platform/daily_nudge.dart';
 import '../platform/download_notice.dart';
+import '../platform/model_install_controller.dart';
 import '../platform/link_reader.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/metrics.dart';
@@ -212,6 +213,10 @@ class TimelineScreenState extends State<TimelineScreen>
   /// The AI-generated recap under the headline — see [_loadAiSummary].
   String? _aiSummaryText;
   bool _aiSummaryLoading = false;
+
+  /// The brief being asked for right now, so a pull that arrives while one
+  /// is running waits for it instead of being dropped.
+  Future<void>? _aiSummaryInFlight;
 
   /// The AI-generated line across the top — see [_loadAiHeadline].
   String? _aiHeadlineText;

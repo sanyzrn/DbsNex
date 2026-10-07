@@ -926,6 +926,46 @@ Sure, here you go:
       expect(find.text('Recovered answer'), findsOneWidget);
     });
 
+    testWidgets('what the app looked up shows as a quiet line, not a message', (
+      tester,
+    ) async {
+      var asked = 0;
+      await openSheet(
+        tester,
+        client: MockClient((request) async {
+          asked++;
+          final content = asked == 1
+              ? '```nex\n{"action": "cycle"}\n```'
+              : 'Your period is likely in a week.';
+          return http.Response.bytes(
+            utf8.encode(
+              jsonEncode({
+                'choices': [
+                  {
+                    'message': {'content': content},
+                  },
+                ],
+              }),
+            ),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        }),
+      );
+      final field = find.descendant(
+        of: find.byType(AiChatSheet),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(field, 'when is my period?');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      expect(asked, 2);
+      expect(find.text('Your period is likely in a week.'), findsOneWidget);
+      expect(find.text('Read your Cycle summary'), findsOneWidget);
+      // The data the model was handed is not shown as if the person sent it.
+      expect(find.textContaining('Cycle: not shared'), findsNothing);
+    });
+
     testWidgets('the composer turns to the script being typed', (tester) async {
       await openSheet(
         tester,

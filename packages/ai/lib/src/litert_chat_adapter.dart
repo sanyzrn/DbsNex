@@ -157,9 +157,9 @@ class LiteRtChatAdapter implements ChatAdapter {
   }
 
   Future<ChatResponse> _send(List<ChatMessage> conversation) async {
-    // The system message becomes LiteRT-LM's `systemInstruction` rather than a
-    // turn in the transcript. It is not something the user said, and models
-    // weight it differently when it arrives in the slot meant for it.
+    // The system message is taken off the transcript and written into the
+    // start of the first user turn — see [withInstructions] for why not
+    // LiteRT-LM's own `systemInstruction` slot.
     final system = conversation.first.role == ChatRole.system
         ? conversation.first.content
         : null;
@@ -170,15 +170,16 @@ class LiteRtChatAdapter implements ChatAdapter {
     if (turns.isEmpty) {
       return const ChatResponse(content: '');
     }
+    final prepared = withInstructions(system, turns);
 
-    await _ensureConversation(system, turns);
+    await _ensureConversation(system, turns, prepared);
 
     // Only the turns the live conversation has not seen. The contract hands
     // over the whole history every call, and replaying all of it would mean
     // re-running prefill over the entire transcript on every message — which
     // is the expensive half on this hardware, and grows with the conversation.
     // `_sentThroughIndex` is what lets an append-only history cost one turn.
-    final pending = turns.sublist(_sentThroughIndex.clamp(0, turns.length));
+    final pending = prepared.sublist(_sentThroughIndex.clamp(0, turns.length));
     final userTurns = [
       for (final turn in pending)
         if (turn.role == ChatRole.user) turn.content,
@@ -210,6 +211,7 @@ class LiteRtChatAdapter implements ChatAdapter {
   Future<void> _ensureConversation(
     String? system,
     List<ChatMessage> turns,
+    List<ChatMessage> prepared,
   ) async {
     final engine = await _ensureEngine();
     final diverged =
@@ -229,12 +231,13 @@ class LiteRtChatAdapter implements ChatAdapter {
     // Everything before the pending turns is replayed as history the model is
     // given rather than as messages it answers, which is what
     // `initialMessages` is for.
-    final replay = turns.length > 1
-        ? turns.sublist(0, turns.length - 1)
+    final replay = prepared.length > 1
+        ? prepared.sublist(0, prepared.length - 1)
         : const <ChatMessage>[];
     _conversation = await engine.createConversation(
+      // No `systemInstruction`: the instructions ride the first user turn
+      // instead — see [withInstructions].
       LiteLmConversationConfig(
-        systemInstruction: system,
         initialMessages: [
           for (final turn in replay)
             turn.role == ChatRole.assistant
@@ -245,6 +248,39 @@ class LiteRtChatAdapter implements ChatAdapter {
     );
     _sentThroughIndex = replay.length;
     _sentSignature = _signatureOf(system, turns, replay.length);
+  }
+
+  /// [turns] with [system] written into the start of the first user turn.
+  ///
+  /// Not LiteRT-LM's `systemInstruction`. Whether that slot reaches the
+  /// model depends on the model's own chat template, and with Gemma 4 it
+  /// did not: the assistant introduced itself as "Gemma, not Nex" and had
+  /// never seen the notes it was asked about, though both were in the
+  /// instruction it was given. Every template carries a user turn, so the
+  /// instructions go there — once, at the start of the conversation, and
+  /// marked as the app's rather than the person's words.
+  @visibleForTesting
+  static List<ChatMessage> withInstructions(
+    String? system,
+    List<ChatMessage> turns,
+  ) {
+    if (system == null || system.trim().isEmpty) return turns;
+    final first = turns.indexWhere((turn) => turn.role == ChatRole.user);
+    if (first < 0) return turns;
+    return [
+      for (var i = 0; i < turns.length; i++)
+        if (i == first)
+          ChatMessage(
+            role: ChatRole.user,
+            content:
+                '[Instructions from the Nex app — not written by the user]\n'
+                '${system.trim()}\n'
+                '[End of instructions. The user says:]\n'
+                '${turns[i].content}',
+          )
+        else
+          turns[i],
+    ];
   }
 
   /// A note on disk saying "a backend load is in progress".

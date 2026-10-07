@@ -163,7 +163,11 @@ abstract final class NexModels {
         url:
             'https://github.com/sanyzrn/DbsNex-releases/releases/download'
             '/MiniCPM5-2B/MiniCPM5-2B_int4.litertlm',
-        filename: 'MiniCPM5-2B_int4.litertlm',
+        // Never the model's own file name. The part lands beside the
+        // finished model, and joining deletes its parts once the model is
+        // in place: a part named like the model was the model, and 1.99.0
+        // deleted every MiniCPM install the moment it finished.
+        filename: 'MiniCPM5-2B_int4.litertlm.part-aa',
         sha256:
             '9858563beafbc6d5e0d25fcee3827541515296a9302ed3d088b16a58d4fbe7b8',
       ),
@@ -475,6 +479,9 @@ class NexModelStore {
     // failure anywhere above leaves every downloaded byte on disk to resume
     // from; after it they are 1.3 GB each of pure duplication.
     for (final part in parts) {
+      // A part sharing the model's path *is* the model now; deleting it
+      // would throw away the install that just finished.
+      if (p.equals(part.path, target.path)) continue;
       try {
         await part.delete();
       } catch (_) {}
@@ -483,6 +490,43 @@ class NexModelStore {
   }
 
   /// Removes a model and anything left over from installing it.
+  /// Clears what no install needs any more, so a model that failed or was
+  /// replaced never sits on the phone's storage unseen.
+  ///
+  /// - a folder no offered model owns (one dropped from [NexModels]);
+  /// - beside a finished model, every leftover part and scratch file — the
+  ///   runtime's crash marker (`.loading`) excepted.
+  ///
+  /// A download that has not finished keeps its parts: they are what lets it
+  /// resume, and the model screen shows how much of it is on the phone.
+  Future<void> sweep() async {
+    if (!root.existsSync()) return;
+    for (final entity in root.listSync()) {
+      if (entity is! Directory) continue;
+      final model = NexModels.byId(p.basename(entity.path));
+      if (model == null) {
+        try {
+          await entity.delete(recursive: true);
+        } catch (_) {}
+        continue;
+      }
+      final finished = fileFor(model);
+      if (!finished.existsSync()) continue;
+      for (final file in entity.listSync().whereType<File>()) {
+        if (p.equals(file.path, finished.path)) continue;
+        if (file.path.endsWith('.loading')) continue;
+        try {
+          await file.delete();
+        } catch (_) {}
+      }
+    }
+  }
+
+  /// Bytes of a download that started and has not finished: the parts on
+  /// disk while the finished model is not. Zero once it is installed.
+  int partialBytes(ModelRelease model) =>
+      isInstalled(model) ? 0 : installedBytes(model);
+
   Future<void> delete(ModelRelease model) async {
     final dir = _dirFor(model);
     if (dir.existsSync()) await dir.delete(recursive: true);

@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.1
+
+- **MiniCPM5 installs now.** In 1.99.0 its download finished and then the model was removed by mistake, so it never became active. Download it again from the on-device model page. Nothing from the failed attempts is left on your phone: leftover and half-finished files are cleared, and the page shows how much of an unfinished download is already there.
+- **On-device model downloads keep going in the background.** Like an app update, the download shows its progress in the notification shade and continues when you leave Nex; Back on the home screen sends Nex to the background instead of stopping it.
+- **The on-device assistant knows it is Nex's assistant.** It now sees its instructions and your notes on every model, so it answers about your notes instead of introducing itself as the bare model.
+- **What the assistant looks up is no longer shown as your message.** When it reads your Cycle summary or searches your notes, a small line says so — "Read your Cycle summary", "Searched your notes" — instead of a bubble of raw data in your name.
+- **Pull to refresh always refreshes the smart summary.** A pull made while a summary was already being written used to do nothing; it now waits for that one, and asks again if it brought nothing new. With the length limit lifted, a summary that never comes back no longer blocks the card.
+- **The sponsor card recovers after a wrong phone date.** A phone whose date was once set in the future no longer holds the card back until that date comes round.
+
 ## v1.99.0
 
 - **Cycle is now turned on in your profile, and off by default.** A card in **Profile** says in a few lines what Cycle does, with the switch to turn it on and a way straight in. If you were already using Cycle, it stays on. The old switch in **Settings → Sections** is gone; searching Settings for "Cycle" points to your profile.
