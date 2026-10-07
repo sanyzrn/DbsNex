@@ -658,6 +658,17 @@ class TimelineScreenState extends State<TimelineScreen>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       unawaited(_model.retireSpentReminders());
+      return;
+    }
+    if (state == AppLifecycleState.resumed) {
+      // A failed sponsor fetch is retried on a real return to the app rather
+      // than by leaving timers behind in the timeline. The service's
+      // 30-minute failure cool-off and 24-hour success interval still apply.
+      unawaited(
+        _sponsor.refresh().then((_) {
+          if (mounted) setState(() {});
+        }),
+      );
     }
   }
 
