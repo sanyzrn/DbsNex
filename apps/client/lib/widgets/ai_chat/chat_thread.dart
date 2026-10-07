@@ -120,6 +120,16 @@ class _Thread extends StatelessWidget {
           );
         }
         final turn = turns[index];
+        // What the app looked up for the assistant. It travels as a user
+        // turn — the one role every wire format agrees on — but it is not
+        // something the person said, and in their bubble, raw, it read as a
+        // strange message sent in their name. A quiet line says what was
+        // looked at instead.
+        if (turn.role == ChatRole.user &&
+            turn.content.startsWith('<<<NOTES\n') &&
+            turn.content.endsWith('\nNOTES>>>')) {
+          return _LookupLine(findings: turn.content);
+        }
         final mine = turn.role == ChatRole.user;
         // The assistant's markers come out of what is read: the ids it
         // cited become chips under the bubble, and "[general]" becomes a
@@ -351,6 +361,57 @@ class _CopyTurn extends StatelessWidget {
           if (context.mounted) nexShowBanner(context, message: l10n.copied);
         },
         icon: const Icon(Icons.copy_rounded),
+      ),
+    );
+  }
+}
+
+/// One line, centred and quiet, for what the app looked up between two
+/// turns: "Searched your notes", "Read your Cycle summary".
+class _LookupLine extends StatelessWidget {
+  const _LookupLine({required this.findings});
+
+  final String findings;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final what = <(IconData, String)>[
+      if (findings.contains('\nCycle') ||
+          findings.startsWith('<<<NOTES\nCycle'))
+        (Icons.water_drop_outlined, l10n.chatLookedCycle),
+      if (findings.contains('Results for "'))
+        (Icons.search, l10n.chatLookedSearch),
+      if (findings.contains('Threads:'))
+        (Icons.forum_outlined, l10n.chatLookedThreads),
+      if (findings.contains('Notes with '))
+        (Icons.sticky_note_2_outlined, l10n.chatLookedNotes),
+    ];
+    if (what.isEmpty) what.add((Icons.search, l10n.chatLookedSearch));
+    final color = theme.colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: NexSpacing.sm),
+      child: Center(
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: NexSpacing.md,
+          runSpacing: NexSpacing.xs,
+          children: [
+            for (final (icon, label) in what)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 14, color: color),
+                  const SizedBox(width: NexSpacing.xs),
+                  Text(
+                    label,
+                    style: theme.textTheme.labelSmall?.copyWith(color: color),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }

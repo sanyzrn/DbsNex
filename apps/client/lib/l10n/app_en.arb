@@ -2424,6 +2424,14 @@
   "cycleInProfile": "In your profile",
   "localModelChoose": "Model",
   "localModelOnPhone": "On this phone",
+  "localModelPartial": "{size} downloaded so far",
+  "@localModelPartial": {"placeholders": {"size": {"type": "String"}}},
+  "localModelNoticeTitle": "Downloading {model}",
+  "@localModelNoticeTitle": {"placeholders": {"model": {"type": "String"}}},
+  "chatLookedSearch": "Searched your notes",
+  "chatLookedCycle": "Read your Cycle summary",
+  "chatLookedThreads": "Looked at your threads",
+  "chatLookedNotes": "Read the notes asked about",
   "remindTitle": "Set a reminder",
   "@remindTitle": {
       "description": "Heading of the reminder sheet"

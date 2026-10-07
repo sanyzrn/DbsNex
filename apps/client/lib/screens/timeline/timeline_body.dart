@@ -232,7 +232,8 @@ extension _TimelineBody on TimelineScreenState {
       // Not `force: true` for the sponsor: the gesture must not bypass its
       // daily success interval or failed-refresh cool-off.
       onRefresh: () async {
-        if (_aiSummaryLoading) return;
+        // Not dropped while a brief is already being written: the pull
+        // waits for that one (see [_loadAiSummary]).
         nexBump();
         await Future.wait<void>([
           _sponsor.refresh(manual: true),

@@ -392,8 +392,12 @@ extension _TimelineLayout on TimelineScreenState {
       navigator.pop();
       return;
     }
-    if ((widget.updates?.isDownloading ?? false) &&
-        await NexDownloadNotice.sendAppToBack()) {
+    // An on-device model downloads the same way: closing the window would
+    // stop it, going to the background does not.
+    final downloading =
+        (widget.updates?.isDownloading ?? false) ||
+        ModelInstallController.instance.isRunning;
+    if (downloading && await NexDownloadNotice.sendAppToBack()) {
       return;
     }
     await SystemNavigator.pop();

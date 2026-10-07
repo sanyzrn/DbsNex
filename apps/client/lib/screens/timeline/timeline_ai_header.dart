@@ -40,7 +40,33 @@ extension _TimelineAiHeader on TimelineScreenState {
   /// [force] skips the cache — it is what the card's refresh button does.
   /// Without it, tapping refresh on a day whose text was already stored would
   /// have re-read the same string and looked broken.
+  /// Asks for the brief, or — when one is already being written — waits for
+  /// that one.
+  ///
+  /// A pull used to be dropped outright while any brief was in flight. With
+  /// the token ceiling lifted, the one asked for on launch had no time limit
+  /// either, and a model that thinks before answering kept it in flight for
+  /// minutes: every pull in that time did nothing at all, and the card
+  /// looked as if it could not be refreshed by hand.
   Future<void> _loadAiSummary({bool force = false}) async {
+    final running = _aiSummaryInFlight;
+    if (running != null) {
+      final before = _aiSummaryText;
+      await running;
+      // The one waited for came back with nothing new — usually the quiet
+      // launch-time kind, which never says it failed: the pull still gets
+      // its own, which does.
+      if (!force || !mounted || _aiSummaryText != before) return;
+      if (_aiSummaryInFlight != null) return _aiSummaryInFlight;
+    }
+    final work = _askAiSummary(force: force);
+    _aiSummaryInFlight = work;
+    return work.whenComplete(() {
+      if (identical(_aiSummaryInFlight, work)) _aiSummaryInFlight = null;
+    });
+  }
+
+  Future<void> _askAiSummary({required bool force}) async {
     final prefs = widget.preferences;
     if (!_aiHeaderAvailable) return;
     // Switched off means no request at all, not a request whose answer is
@@ -141,8 +167,13 @@ extension _TimelineAiHeader on TimelineScreenState {
         // turns out to mean.
         // With the ceiling lifted the model is one that thinks first, and
         // twenty seconds is rarely enough for it even on launch.
-        timeout: force || prefs.aiSummaryUnlimited
-            ? null
+        //
+        // Never unbounded, though: a brief that never comes back holds the
+        // card's spinner, and every pull behind it, for as long as it hangs.
+        timeout: force
+            ? const Duration(minutes: 5)
+            : prefs.aiSummaryUnlimited
+            ? const Duration(minutes: 3)
             : CloudAIAdapter.ambientTimeout,
       );
       // The app's lines stand whether or not the model answered. That is the

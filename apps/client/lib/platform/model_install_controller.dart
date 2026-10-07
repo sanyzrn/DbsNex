@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:nex_core/nex_core.dart';
 
 import 'app_update.dart';
+import 'download_notice.dart';
 import 'model_store.dart';
 
 /// Where an install has got to.
@@ -83,9 +84,15 @@ class ModelInstallController extends ChangeNotifier {
   /// Starts, or picks up where a pause left off — the same call, because to
   /// the downloader they are the same thing: ask for the file, send a Range
   /// header for whatever is already here.
-  Future<void> start(NexModelStore store, ModelRelease model) async {
+  Future<void> start(
+    NexModelStore store,
+    ModelRelease model, {
+    String? noticeTitle,
+  }) async {
     if (isRunning) return;
     _model = model;
+    _noticeTitle = noticeTitle;
+    _noticePercent = -1;
     _stopRequested = false;
     _discardOnStop = false;
     _error = null;
@@ -100,10 +107,13 @@ class ModelInstallController extends ChangeNotifier {
           if (progress.joining && _phase == ModelInstallPhase.downloading) {
             _phase = ModelInstallPhase.joining;
           }
+          _notice(progress.fraction);
           notifyListeners();
         },
       );
       await _warmUp();
+      // Anything the install left beside the model, gone now it is in place.
+      await store.sweep();
       _set(ModelInstallPhase.installed);
     } on DownloadPaused {
       // Asked for, not broken. The parts stay unless stop() was what asked.
@@ -119,7 +129,28 @@ class ModelInstallController extends ChangeNotifier {
       _set(ModelInstallPhase.failed);
     } finally {
       _stopRequested = false;
+      // Down in every outcome: done, paused, stopped or failed. A progress
+      // bar left in the shade for a download that is not running is the
+      // one thing worse than none.
+      _noticePercent = -1;
+      unawaited(NexDownloadNotice.hide());
     }
+  }
+
+  String? _noticeTitle;
+  int _noticePercent = -1;
+
+  /// The download's place in the notification shade — and, being a
+  /// foreground service on Android, what keeps it running once Nex is left
+  /// for another app. The same service the app update uses. Rewritten only
+  /// when the whole percentage moves, not on every chunk.
+  void _notice(double? fraction) {
+    final title = _noticeTitle;
+    if (title == null) return;
+    final percent = ((fraction ?? 0) * 100).floor().clamp(0, 100);
+    if (percent == _noticePercent) return;
+    _noticePercent = percent;
+    unawaited(NexDownloadNotice.show(title: title, percent: percent));
   }
 
   /// Brings the runtime up while the user is still looking at the screen that

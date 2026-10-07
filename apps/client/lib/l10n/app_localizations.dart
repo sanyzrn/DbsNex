@@ -5474,6 +5474,42 @@ abstract class AppLocalizations {
   /// **'On this phone'**
   String get localModelOnPhone;
 
+  /// No description provided for @localModelPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} downloaded so far'**
+  String localModelPartial(String size);
+
+  /// No description provided for @localModelNoticeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {model}'**
+  String localModelNoticeTitle(String model);
+
+  /// No description provided for @chatLookedSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Searched your notes'**
+  String get chatLookedSearch;
+
+  /// No description provided for @chatLookedCycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read your Cycle summary'**
+  String get chatLookedCycle;
+
+  /// No description provided for @chatLookedThreads.
+  ///
+  /// In en, this message translates to:
+  /// **'Looked at your threads'**
+  String get chatLookedThreads;
+
+  /// No description provided for @chatLookedNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the notes asked about'**
+  String get chatLookedNotes;
+
   /// Heading of the reminder sheet
   ///
   /// In en, this message translates to:

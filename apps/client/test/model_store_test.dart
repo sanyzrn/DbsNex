@@ -389,4 +389,85 @@ void main() {
       skip: !Platform.isAndroid && !Platform.isIOS,
     );
   });
+
+  group('parts never share the model\'s name', () {
+    test('no shipped part is named like its model', () {
+      // 1.99.0: MiniCPM's one part was called exactly what the finished
+      // model is called, so joining "deleted the part" — the model — the
+      // moment the install finished. The install looked done and never was.
+      for (final model in NexModels.all) {
+        for (final part in model.parts) {
+          expect(part.filename, isNot(model.filename), reason: model.id);
+          expect(part.filename, isNot('${model.filename}.part'));
+        }
+      }
+    });
+
+    test('even so, a part named like the model survives the join', () async {
+      final model = ModelRelease(
+        id: 'same-name',
+        name: 'Same name',
+        filename: 'model.litertlm',
+        sizeBytes: whole.length,
+        licenseUrl: 'https://example.invalid/terms',
+        licenseNotice: 'Notice',
+        sha256: digestOf(whole),
+        parts: [
+          ModelPart(
+            url: 'https://example.invalid/model.whole',
+            filename: 'model.litertlm',
+            sha256: digestOf(whole),
+          ),
+        ],
+      );
+      final store = storeWith(
+        MockClient((request) async => http.Response.bytes(whole, 200)),
+      );
+      addTearDown(store.close);
+      final file = await store.install(model);
+      expect(file.existsSync(), isTrue);
+      expect(file.readAsBytesSync(), whole);
+    });
+  });
+
+  group('sweeping', () {
+    test(
+      'leftovers beside a finished model go; its crash marker stays',
+      () async {
+        final store = storeWith(server());
+        addTearDown(store.close);
+        const model = NexModels.miniCpm5_2B;
+        final file = store.fileFor(model)..createSync(recursive: true);
+        file.writeAsBytesSync(whole);
+        final dir = file.parent;
+        final part = File('${dir.path}/${model.parts.single.filename}')
+          ..writeAsBytesSync(partA);
+        final joining = File('${file.path}.joining')..writeAsStringSync('x');
+        final marker = File('${file.path}.loading')..writeAsStringSync('gpu');
+        // A folder no offered model owns: a model dropped from the list.
+        final orphan = Directory('${tmp.path}/retired-model')..createSync();
+        File('${orphan.path}/weights.litertlm').writeAsStringSync('old');
+
+        await store.sweep();
+
+        expect(file.existsSync(), isTrue);
+        expect(marker.existsSync(), isTrue);
+        expect(part.existsSync(), isFalse);
+        expect(joining.existsSync(), isFalse);
+        expect(orphan.existsSync(), isFalse);
+      },
+    );
+
+    test('an unfinished download keeps its parts, and says how much', () async {
+      final store = storeWith(server());
+      addTearDown(store.close);
+      final dir = Directory('${tmp.path}/${NexModels.miniCpm5_2B.id}')
+        ..createSync();
+      File(
+        '${dir.path}/MiniCPM5-2B_int4.litertlm.part-aa.part',
+      ).writeAsBytesSync(partA);
+      await store.sweep();
+      expect(store.partialBytes(NexModels.miniCpm5_2B), partA.length);
+    });
+  });
 }
