@@ -95,9 +95,9 @@ void main() {
 
     // The other half, which must keep working: a gesture that visibly does
     // nothing is what a broken control looks like, so the ask is answered.
-    // A `RefreshIndicator` is attached, and only because there is a brief to
-    // rewrite — `_wrapInRefresh` leaves it off otherwise, so that a pull with
-    // nothing to refresh is not a gesture that silently does nothing.
+    // A `RefreshIndicator` is always attached now: sponsor recovery gives
+    // the gesture a job even without a recap. With a model recap on screen,
+    // the same pull also asks for a fresh recap.
     final indicator = tester.widget<RefreshIndicator>(
       find.byType(RefreshIndicator),
     );
