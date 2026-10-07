@@ -227,7 +227,7 @@ class NexSponsorService {
   final http.Client? _client;
   final DateTime Function() _now;
 
-  Future<void>? _refreshing;
+  Future<bool>? _refreshing;
 
   /// Where the cached picture lives, once one has been kept. Null before the
   /// first successful fetch of a card that has one.
@@ -356,8 +356,10 @@ class NexSponsorService {
   /// and foreground resumes.
   ///
   /// Never throws and never reports: a card that could not be fetched is
-  /// indistinguishable from no card, which is the whole design.
-  Future<void> refresh({bool force = false, bool manual = false}) {
+  /// indistinguishable from no card, which is the whole design. Resolves to
+  /// whether the cached card changed — a new one kept, or an ended one
+  /// forgotten — so a caller redraws only when there is something to draw.
+  Future<bool> refresh({bool force = false, bool manual = false}) {
     final active = _refreshing;
     if (active != null) return active;
 
@@ -368,21 +370,17 @@ class NexSponsorService {
     });
   }
 
-  Future<void> _refresh({
-    required bool force,
-    required bool manual,
-  }) async {
+  Future<bool> _refresh({required bool force, required bool manual}) async {
     if (!force) {
       final now = _now();
-      final lastSuccess = preferences.sponsorFetchedAt;
-      if (lastSuccess != null &&
-          now.difference(lastSuccess) < refreshInterval) {
-        return;
-      }
-      final lastAttempt = preferences.sponsorAttemptedAt;
-      if (lastAttempt != null &&
-          now.difference(lastAttempt) < failedRefreshCooldown) {
-        return;
+      // A time stamped in the future means the clock was moved back since —
+      // a phone once set to the wrong year. Treated as long ago rather than
+      // as recent, or the card would wait out the wrong year to refresh.
+      bool within(DateTime? at, Duration window) =>
+          at != null && !now.isBefore(at) && now.difference(at) < window;
+      if (within(preferences.sponsorFetchedAt, refreshInterval)) return false;
+      if (within(preferences.sponsorAttemptedAt, failedRefreshCooldown)) {
+        return false;
       }
     }
 
@@ -405,7 +403,7 @@ class NexSponsorService {
           if (response.statusCode == 404 || response.statusCode == 410) {
             await _forget();
             await preferences.setSponsorFetchedAt(_now());
-            return;
+            return true;
           }
 
           final body = response.bodyBytes.length <= maxBytes
@@ -425,13 +423,14 @@ class NexSponsorService {
             _imageSettled = true;
             await preferences.setSponsorPayload(body);
             await preferences.setSponsorFetchedAt(_now());
-            return;
+            return true;
           }
         } catch (_) {
           // Timeout, DNS, filtering and other transient failures use the same
           // tiny retry budget. The last good cache is untouched.
         }
       }
+      return false;
     } finally {
       if (_client == null) client.close();
     }

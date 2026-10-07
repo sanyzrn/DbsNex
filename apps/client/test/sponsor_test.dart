@@ -359,36 +359,40 @@ void main() {
       expect(asked, 2);
     });
 
-    test('a cached picture failure settles to the text card after restart', () async {
-      final source = jsonEncode({
-        'id': 'c1',
-        'title': 'A local bookshop',
-        'image': 'https://example.com/banner.webp',
-      });
-      await preferences.setSponsorPayload(source);
-      await preferences.setSponsorFetchedAt(now);
-      await preferences.setSponsorImagePath(null);
+    test(
+      'a cached picture failure settles to the text card after restart',
+      () async {
+        final source = jsonEncode({
+          'id': 'c1',
+          'title': 'A local bookshop',
+          'image': 'https://example.com/banner.webp',
+        });
+        await preferences.setSponsorPayload(source);
+        await preferences.setSponsorFetchedAt(now);
+        await preferences.setSponsorImagePath(null);
 
-      final service = NexSponsorService(
-        preferences: preferences,
-        client: MockClient((_) async => http.Response('', 500)),
-        now: () => now,
-      );
+        final service = NexSponsorService(
+          preferences: preferences,
+          client: MockClient((_) async => http.Response('', 500)),
+          now: () => now,
+        );
 
-      expect(service.visible(languageCode: 'en'), isNull);
-      await service.restoreCachedImage();
-      expect(
-        service.visible(languageCode: 'en')?.id,
-        'c1',
-        reason: 'no cached picture means fallback to words, not hide the card',
-      );
-      await service.refresh();
-      expect(
-        service.visible(languageCode: 'en')?.id,
-        'c1',
-        reason: 'the fresh daily cache skips the network without hiding it',
-      );
-    });
+        expect(service.visible(languageCode: 'en'), isNull);
+        await service.restoreCachedImage();
+        expect(
+          service.visible(languageCode: 'en')?.id,
+          'c1',
+          reason:
+              'no cached picture means fallback to words, not hide the card',
+        );
+        await service.refresh();
+        expect(
+          service.visible(languageCode: 'en')?.id,
+          'c1',
+          reason: 'the fresh daily cache skips the network without hiding it',
+        );
+      },
+    );
 
     test('a body far too large is not a card', () async {
       final service = serviceReturning(
@@ -396,6 +400,40 @@ void main() {
       );
       await service.refresh();
       expect(preferences.sponsorPayload, isNull);
+    });
+
+    test('a clock moved back does not stall the card for the gap', () async {
+      // Stamped "next year" by a phone whose date was wrong, then fixed.
+      await preferences.setSponsorFetchedAt(now.add(const Duration(days: 365)));
+      await preferences.setSponsorAttemptedAt(
+        now.add(const Duration(days: 365)),
+      );
+      var asked = 0;
+      final service = NexSponsorService(
+        preferences: preferences,
+        client: MockClient((_) async {
+          asked++;
+          return http.Response(card(), 200);
+        }),
+        now: () => now,
+      );
+      expect(await service.refresh(), isTrue);
+      expect(asked, 1);
+      expect(
+        preferences.sponsorFetchedAt?.millisecondsSinceEpoch,
+        now.millisecondsSinceEpoch,
+      );
+    });
+
+    test('it says whether the card changed', () async {
+      final service = serviceReturning((_) => http.Response(card(), 200));
+      expect(await service.refresh(), isTrue, reason: 'a card arrived');
+      expect(await service.refresh(), isFalse, reason: 'not due again yet');
+      final failing = serviceReturning(
+        (_) => http.Response('', 503),
+        at: now.add(const Duration(days: 2)),
+      );
+      expect(await failing.refresh(), isFalse, reason: 'nothing new');
     });
 
     test('it asks at most once a day', () async {
