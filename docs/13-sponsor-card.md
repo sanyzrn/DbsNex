@@ -129,3 +129,8 @@ normal 24-hour interval after a successful check.
 
 A failed check never advances the successful-fetch clock, so a temporary host
 problem cannot make Nex wait a full day before recovery.
+
+A stored time that lies in the future — the phone's clock was moved back since
+it was written — counts as long ago, not as recent, so a corrected date never
+holds the card back until the wrong date comes round. A foreground resume
+redraws the timeline only when the check actually changed the card.

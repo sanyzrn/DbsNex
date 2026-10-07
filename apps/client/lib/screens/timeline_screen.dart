@@ -664,9 +664,11 @@ class TimelineScreenState extends State<TimelineScreen>
       // A failed sponsor fetch is retried on a real return to the app rather
       // than by leaving timers behind in the timeline. The service's
       // 30-minute failure cool-off and 24-hour success interval still apply.
+      // Only a card that actually changed redraws the timeline: a resume is
+      // usually a no-op here, and rebuilding the whole list for it is not.
       unawaited(
-        _sponsor.refresh().then((_) {
-          if (mounted) setState(() {});
+        _sponsor.refresh().then((changed) {
+          if (changed && mounted) setState(() {});
         }),
       );
     }
