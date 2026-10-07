@@ -237,7 +237,7 @@ extension _TimelineBody on TimelineScreenState {
         // Never force the sponsor here. Repeated pulls must not turn a tiny
         // recovery affordance into repeated network traffic; the service's
         // daily success interval and failed-refresh cool-off still apply.
-        final sponsorRefresh = _sponsor.refresh();
+        final sponsorRefresh = _sponsor.refresh(manual: true);
 
         if (refreshAiSummary && !_aiSummaryLoading) {
           await Future.wait<void>([
