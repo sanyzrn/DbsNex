@@ -134,13 +134,12 @@ extension _TimelineLayout on TimelineScreenState {
                     // search field", and it was replaced precisely because it
                     // never revealed anything.
                     //
-                    // The recap is the one thing on this screen that does not
-                    // refresh itself: it is asked for at most once an hour,
-                    // and until now the only way to ask sooner was a button
-                    // sitting on the card. With the card gone, the gesture
-                    // inherits the job — and it is still attached to a real
-                    // one, so it is only wired up when there is a recap on
-                    // screen to rewrite.
+                    // The remote sponsor gives the gesture a second real
+                    // job now: recovering after a transient endpoint failure.
+                    // Its service rate-limits that recovery, so a pull does
+                    // not become a general "phone home again" button. When a
+                    // model recap is on screen, the same gesture also asks it
+                    // to rewrite.
                     child: NotificationListener<ScrollNotification>(
                       onNotification: _onScroll,
                       child: _wrapInRefresh(
