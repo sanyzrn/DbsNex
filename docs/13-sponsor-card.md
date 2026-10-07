@@ -115,5 +115,17 @@ has ever seen.
 
 ## Cadence
 
-Checked at most once a day. A failed request deliberately does **not** record
-the attempt, so the next launch tries again rather than waiting out the day.
+After a successful check, the card is checked at most once every 24 hours.
+
+If a due automatic check fails transiently, Nex makes one immediate retry.
+If both attempts fail, another sponsor check is held for 30 minutes, including
+across app restarts. Returning to the app after that cool-off gives it another
+chance without leaving background timers behind.
+
+When a model recap already exposes pull-to-refresh, sponsor recovery piggybacks
+on that gesture with **one** request. It does not add pull-to-refresh to every
+timeline and it never bypasses the same 30-minute failure cool-off or the
+normal 24-hour interval after a successful check.
+
+A failed check never advances the successful-fetch clock, so a temporary host
+problem cannot make Nex wait a full day before recovery.

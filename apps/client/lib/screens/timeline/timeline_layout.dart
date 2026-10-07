@@ -135,19 +135,12 @@ extension _TimelineLayout on TimelineScreenState {
                     // never revealed anything.
                     //
                     // The recap is the one thing on this screen that does not
-                    // refresh itself: it is asked for at most once an hour,
-                    // and until now the only way to ask sooner was a button
-                    // sitting on the card. With the card gone, the gesture
-                    // inherits the job — and it is still attached to a real
-                    // one, so it is only wired up when there is a recap on
-                    // screen to rewrite.
+                    // refresh itself, so it owns the pull gesture. When that
+                    // gesture exists, sponsor recovery piggybacks on it too;
+                    // the sponsor service keeps its own traffic limits.
                     child: NotificationListener<ScrollNotification>(
                       onNotification: _onScroll,
                       child: _wrapInRefresh(
-                        // Only where a pull has something to ask for. The
-                        // plain report is rebuilt from the database every
-                        // time this screen moves, so there is nothing a
-                        // gesture could refresh that is not already there.
                         enabled:
                             showSummary &&
                             widget.preferences.briefStyle.usesModel,

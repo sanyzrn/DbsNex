@@ -229,14 +229,16 @@ extension _TimelineBody on TimelineScreenState {
     return RefreshIndicator(
       color: scheme.primary,
       backgroundColor: scheme.surfaceContainerLowest,
-      // Not `force: true` on a request already in flight: two in flight means
-      // whichever finishes last wins, which is not necessarily the one the
-      // pull asked for. The spinner still runs, and it is the honest picture
-      // — something is being written, just not a second something.
+      // Not `force: true` for the sponsor: the gesture must not bypass its
+      // daily success interval or failed-refresh cool-off.
       onRefresh: () async {
         if (_aiSummaryLoading) return;
         nexBump();
-        await _loadAiSummary(force: true);
+        await Future.wait<void>([
+          _sponsor.refresh(manual: true),
+          _loadAiSummary(force: true),
+        ]);
+        if (mounted) _rebuild(() {});
       },
       child: child,
     );

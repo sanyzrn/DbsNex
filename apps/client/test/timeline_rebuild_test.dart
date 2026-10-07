@@ -911,10 +911,9 @@ void main() {
   });
 
   testWidgets('the timeline offers no pull-to-refresh', (tester) async {
-    // A gesture that re-reads data which is already current does nothing, and
-    // this screen's own history is the argument: the pull used to be "reveal
-    // the search field" and was replaced precisely because it never revealed
-    // anything.
+    // A gesture that re-reads data which is already current does nothing. The
+    // sponsor now retries on launch/resume with its own cooldown, and only
+    // piggybacks on pull-to-refresh when a model recap already owns it.
     await services.captureText('a note');
     await services.refreshTimeline();
     await tester.pumpWidget(
