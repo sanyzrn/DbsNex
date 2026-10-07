@@ -339,6 +339,32 @@ void main() {
       expect(asked, 6);
     });
 
+    test('manual recovery is one request and no more than every 30 minutes', () async {
+      var asked = 0;
+      var clock = now;
+
+      NexSponsorService service() => NexSponsorService(
+        preferences: preferences,
+        client: MockClient((_) async {
+          asked++;
+          return http.Response('', 503);
+        }),
+        now: () => clock,
+        delay: (_) async {},
+      );
+
+      await service().refresh(manual: true);
+      expect(asked, 1);
+
+      clock = now.add(const Duration(minutes: 29));
+      await service().refresh(manual: true);
+      expect(asked, 1);
+
+      clock = now.add(NexSponsorService.manualRetryCooldown);
+      await service().refresh(manual: true);
+      expect(asked, 2);
+    });
+
     test('a cached picture failure settles to the text card after restart', () async {
       final source = jsonEncode({
         'id': 'c1',
