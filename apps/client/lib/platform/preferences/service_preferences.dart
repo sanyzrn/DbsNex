@@ -21,6 +21,15 @@ mixin _ServicePreferences on _PreferencesStore {
     return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
   }
 
+  /// When the most recent sponsor refresh batch started, successful or not.
+  ///
+  /// Separate from [sponsorFetchedAt]: a failed host must be tried again sooner
+  /// than a healthy daily refresh, but repeated launches must not hammer it.
+  DateTime? get sponsorAttemptedAt {
+    final value = _prefs.getInt('sponsor.attempted_at');
+    return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
+  }
+
   /// Where the sponsor card's picture was written, or null for a card with
   /// none. A path rather than the bytes: preferences are read on every build
   /// and half a megabyte does not belong in them.
@@ -80,6 +89,9 @@ mixin _ServicePreferences on _PreferencesStore {
 
   Future<void> setSponsorFetchedAt(DateTime value) =>
       _prefs.setInt('sponsor.fetched_at', value.millisecondsSinceEpoch);
+
+  Future<void> setSponsorAttemptedAt(DateTime value) =>
+      _prefs.setInt('sponsor.attempted_at', value.millisecondsSinceEpoch);
 
   Future<void> setSponsorImagePath(String? value) async {
     if (value == null) {
