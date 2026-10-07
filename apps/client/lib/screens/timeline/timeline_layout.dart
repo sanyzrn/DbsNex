@@ -144,11 +144,12 @@ extension _TimelineLayout on TimelineScreenState {
                     child: NotificationListener<ScrollNotification>(
                       onNotification: _onScroll,
                       child: _wrapInRefresh(
-                        // Only where a pull has something to ask for. The
-                        // plain report is rebuilt from the database every
-                        // time this screen moves, so there is nothing a
-                        // gesture could refresh that is not already there.
-                        enabled:
+                        // Pull-to-refresh always gives the sponsor cache a
+                        // recovery chance. The sponsor service itself keeps
+                        // that cheap: daily after success, two-hour cool-off
+                        // after a failed retry batch. A model recap joins the
+                        // same gesture when one is actually on screen.
+                        refreshAiSummary:
                             showSummary &&
                             widget.preferences.briefStyle.usesModel,
                         child: CustomScrollView(
