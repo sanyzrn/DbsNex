@@ -910,11 +910,12 @@ void main() {
     expect(find.text('arrived while you were away'), findsOneWidget);
   });
 
-  testWidgets('the timeline offers no pull-to-refresh', (tester) async {
-    // A gesture that re-reads data which is already current does nothing, and
-    // this screen's own history is the argument: the pull used to be "reveal
-    // the search field" and was replaced precisely because it never revealed
-    // anything.
+  testWidgets('the timeline offers pull-to-refresh for sponsor recovery', (
+    tester,
+  ) async {
+    // The timeline data is already live, but the sponsor endpoint is remote.
+    // A pull now gives a failed sponsor fetch another chance without bypassing
+    // the service's own daily/cool-off limits.
     await services.captureText('a note');
     await services.refreshTimeline();
     await tester.pumpWidget(
@@ -922,7 +923,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(RefreshIndicator), findsNothing);
+    expect(find.byType(RefreshIndicator), findsOneWidget);
   });
 
   testWidgets('scrolling toward the bottom loads notes past the first 200', (
