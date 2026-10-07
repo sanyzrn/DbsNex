@@ -209,7 +209,10 @@ extension _TimelineBody on TimelineScreenState {
     });
   }
 
-  Widget _wrapInRefresh({required bool enabled, required Widget child}) {
+  Widget _wrapInRefresh({
+    required bool refreshAiSummary,
+    required Widget child,
+  }) {
     child = Listener(
       onPointerDown: (event) {
         _pinchPointers[event.pointer] = event.localPosition;
@@ -224,19 +227,28 @@ extension _TimelineBody on TimelineScreenState {
       onPointerCancel: (event) => _pinchPointers.remove(event.pointer),
       child: child,
     );
-    if (!enabled) return child;
     final scheme = Theme.of(context).colorScheme;
     return RefreshIndicator(
       color: scheme.primary,
       backgroundColor: scheme.surfaceContainerLowest,
-      // Not `force: true` on a request already in flight: two in flight means
-      // whichever finishes last wins, which is not necessarily the one the
-      // pull asked for. The spinner still runs, and it is the honest picture
-      // — something is being written, just not a second something.
       onRefresh: () async {
-        if (_aiSummaryLoading) return;
         nexBump();
-        await _loadAiSummary(force: true);
+
+        // Never force the sponsor here. Repeated pulls must not turn a tiny
+        // recovery affordance into repeated network traffic; the service's
+        // daily success interval and failed-refresh cool-off still apply.
+        final sponsorRefresh = _sponsor.refresh();
+
+        if (refreshAiSummary && !_aiSummaryLoading) {
+          await Future.wait<void>([
+            sponsorRefresh,
+            _loadAiSummary(force: true),
+          ]);
+        } else {
+          await sponsorRefresh;
+        }
+
+        if (mounted) _rebuild(() {});
       },
       child: child,
     );
