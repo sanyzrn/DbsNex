@@ -297,7 +297,10 @@ void main() {
           isNull,
           reason: 'a failure is not a successful daily refresh',
         );
-        expect(preferences.sponsorAttemptedAt, now);
+        expect(
+          preferences.sponsorAttemptedAt?.millisecondsSinceEpoch,
+          now.millisecondsSinceEpoch,
+        );
         // It is kept, and it is not shown: nothing has ever been fetched, so
         // there is no successful check to be recent. See the "going quiet"
         // group for the rule.
