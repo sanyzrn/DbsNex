@@ -134,21 +134,14 @@ extension _TimelineLayout on TimelineScreenState {
                     // search field", and it was replaced precisely because it
                     // never revealed anything.
                     //
-                    // The remote sponsor gives the gesture a second real
-                    // job now: recovering after a transient endpoint failure.
-                    // Its service rate-limits that recovery, so a pull does
-                    // not become a general "phone home again" button. When a
-                    // model recap is on screen, the same gesture also asks it
-                    // to rewrite.
+                    // The recap is the one thing on this screen that does not
+                    // refresh itself, so it owns the pull gesture. When that
+                    // gesture exists, sponsor recovery piggybacks on it too;
+                    // the sponsor service keeps its own traffic limits.
                     child: NotificationListener<ScrollNotification>(
                       onNotification: _onScroll,
                       child: _wrapInRefresh(
-                        // Pull-to-refresh always gives the sponsor cache a
-                        // recovery chance. The sponsor service itself keeps
-                        // that cheap: daily after success, two-hour cool-off
-                        // after a failed retry batch. A model recap joins the
-                        // same gesture when one is actually on screen.
-                        refreshAiSummary:
+                        enabled:
                             showSummary &&
                             widget.preferences.briefStyle.usesModel,
                         child: CustomScrollView(
