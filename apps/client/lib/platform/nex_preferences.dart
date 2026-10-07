@@ -175,6 +175,7 @@ class NexPreferences extends _PreferencesStore
       key != _kDeviceId &&
       key != 'profile.photo' &&
       key != 'sponsor.image_path' &&
+      key != 'sponsor.attempted_at' &&
       key != _kSyncBearerToken &&
       !key.startsWith('ai.key.') &&
       !key.startsWith('restore.') &&
