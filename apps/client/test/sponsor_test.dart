@@ -193,6 +193,7 @@ void main() {
       preferences: preferences,
       client: MockClient((request) async => respond(request)),
       now: () => at ?? now,
+      delay: (_) async {},
       dismissible: true,
     );
 
@@ -275,13 +276,14 @@ void main() {
     });
 
     test(
-      'a failed request leaves the cache and does not start the clock',
+      'a failed request leaves the cache and does not start the daily clock',
       () async {
         await preferences.setSponsorPayload(card());
         final service = NexSponsorService(
           preferences: preferences,
           client: MockClient((_) async => throw const SocketFailure()),
           now: () => now,
+          delay: (_) async {},
         );
         await service.refresh();
 
@@ -293,14 +295,78 @@ void main() {
         expect(
           preferences.sponsorFetchedAt,
           isNull,
-          reason: 'so the next launch tries again instead of waiting a day',
+          reason: 'a failure is not a successful daily refresh',
         );
+        expect(preferences.sponsorAttemptedAt, now);
         // It is kept, and it is not shown: nothing has ever been fetched, so
         // there is no successful check to be recent. See the "going quiet"
         // group for the rule.
         expect(service.visible(languageCode: 'en'), isNull);
       },
     );
+
+    test('a failed batch retries twice, then cools off for two hours', () async {
+      var asked = 0;
+      var clock = now;
+      final waited = <Duration>[];
+
+      NexSponsorService service() => NexSponsorService(
+        preferences: preferences,
+        client: MockClient((_) async {
+          asked++;
+          return http.Response('', 503);
+        }),
+        now: () => clock,
+        delay: (duration) async => waited.add(duration),
+      );
+
+      await service().refresh();
+      expect(asked, 3);
+      expect(waited, NexSponsorService.retryDelays);
+      expect(preferences.sponsorFetchedAt, isNull);
+
+      // Reopening the app inside the cool-off does not create another batch.
+      clock = now.add(const Duration(hours: 1));
+      await service().refresh();
+      expect(asked, 3);
+
+      // Once the cool-off has elapsed, recovery gets another small batch.
+      clock = now.add(NexSponsorService.failedRefreshCooldown);
+      await service().refresh();
+      expect(asked, 6);
+    });
+
+    test('a cached picture failure settles to the text card after restart', () async {
+      final source = jsonEncode({
+        'id': 'c1',
+        'title': 'A local bookshop',
+        'image': 'https://example.com/banner.webp',
+      });
+      await preferences.setSponsorPayload(source);
+      await preferences.setSponsorFetchedAt(now);
+      await preferences.setSponsorImagePath(null);
+
+      final service = NexSponsorService(
+        preferences: preferences,
+        client: MockClient((_) async => http.Response('', 500)),
+        now: () => now,
+        delay: (_) async {},
+      );
+
+      expect(service.visible(languageCode: 'en'), isNull);
+      await service.restoreCachedImage();
+      expect(
+        service.visible(languageCode: 'en')?.id,
+        'c1',
+        reason: 'no cached picture means fallback to words, not hide the card',
+      );
+      await service.refresh();
+      expect(
+        service.visible(languageCode: 'en')?.id,
+        'c1',
+        reason: 'the fresh daily cache skips the network without hiding it',
+      );
+    });
 
     test('a body far too large is not a card', () async {
       final service = serviceReturning(
