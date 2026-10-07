@@ -139,8 +139,10 @@ class NexSponsorService {
     this.endpoint = defaultEndpoint,
     this.dismissible = dismissibleByDefault,
     DateTime Function()? now,
+    Future<void> Function(Duration)? delay,
   }) : _client = client,
-       _now = now ?? DateTime.now;
+       _now = now ?? DateTime.now,
+       _delay = delay ?? ((duration) => Future<void>.delayed(duration));
 
   /// Whether the card carries a close button, and whether a dismissal hides
   /// it.
@@ -160,6 +162,20 @@ class NexSponsorService {
   static const defaultEndpoint = 'https://saeedzarrini.ir/banner.json';
 
   static const refreshInterval = Duration(hours: 24);
+
+  /// A complete failed refresh batch is not started again on every launch.
+  ///
+  /// One batch already retries twice below. Two hours keeps a bad host or a
+  /// filtered network from turning every app open into three more requests,
+  /// while still recovering the same day without waiting for tomorrow.
+  static const failedRefreshCooldown = Duration(hours: 2);
+
+  /// Short retries for the common case: the app starts while connectivity is
+  /// still settling. These happen only when the daily refresh is due.
+  static const retryDelays = <Duration>[
+    Duration(seconds: 5),
+    Duration(seconds: 30),
+  ];
 
   /// How stale the last *successful* fetch may be before the card stops
   /// appearing.
@@ -217,6 +233,9 @@ class NexSponsorService {
   final String endpoint;
   final http.Client? _client;
   final DateTime Function() _now;
+  final Future<void> Function(Duration) _delay;
+
+  Future<void>? _refreshing;
 
   /// Where the cached picture lives, once one has been kept. Null before the
   /// first successful fetch of a card that has one.
@@ -327,60 +346,99 @@ class NexSponsorService {
   /// Called once when the timeline starts, before the network is asked,
   /// so a card that was fetched yesterday draws on the first frame today.
   Future<void> restoreCachedImage() async {
-    final path = preferences.sponsorImagePath;
-    if (path == null) return;
-    final file = File(path);
-    if (await file.exists()) _image = file;
-    _imageSettled = true;
+    try {
+      final path = preferences.sponsorImagePath;
+      if (path == null) return;
+      final file = File(path);
+      if (await file.exists()) _image = file;
+    } finally {
+      // Settled means "we looked", not "a file exists". Leaving this false
+      // when a previous picture fetch failed made a perfectly valid cached
+      // card disappear after the next app restart until the 24-hour refresh.
+      _imageSettled = true;
+    }
   }
 
-  /// Refreshes at most once a day. Never throws, and never reports: a card
-  /// that could not be fetched is indistinguishable from no card, which is
-  /// the whole design.
-  Future<void> refresh({bool force = false}) async {
+  /// Refreshes at most once a day after success. A transient failure gets two
+  /// short retries, then a two-hour cool-off shared across app launches.
+  ///
+  /// Never throws and never reports: a card that could not be fetched is
+  /// indistinguishable from no card, which is the whole design.
+  Future<void> refresh({bool force = false}) {
+    final active = _refreshing;
+    if (active != null) return active;
+
+    final work = _refresh(force: force);
+    _refreshing = work;
+    return work.whenComplete(() {
+      if (identical(_refreshing, work)) _refreshing = null;
+    });
+  }
+
+  Future<void> _refresh({required bool force}) async {
     if (!force) {
-      final last = preferences.sponsorFetchedAt;
-      if (last != null && _now().difference(last) < refreshInterval) return;
-    }
-    final client = _client ?? http.Client();
-    try {
-      final response = await _get(
-        client,
-        endpoint,
-        const Duration(seconds: 10),
-      );
-      // Only "not found" ends a campaign. Anything else that is not a card —
-      // a 403 or 5xx from the host, a filtering page served with 200 in
-      // place of the file, a body far too large — says nothing about the
-      // campaign, and used to take the card down for a whole day as if it
-      // had. Those are treated like no network at all: the cache stands and
-      // the next launch asks again.
-      if (response.statusCode == 404 || response.statusCode == 410) {
-        await _forget();
-        await preferences.setSponsorFetchedAt(_now());
+      final now = _now();
+      final lastSuccess = preferences.sponsorFetchedAt;
+      if (lastSuccess != null &&
+          now.difference(lastSuccess) < refreshInterval) {
         return;
       }
-      final body = response.bodyBytes.length <= maxBytes
-          ? decodeBody(response.bodyBytes)
-          : null;
-      final sponsor = response.statusCode == 200 && body != null
-          ? NexSponsor.parse(body)
-          : null;
-      if (sponsor == null) return;
-      // The picture first, then the card. A picture that cannot be had —
-      // blocked host, too large, not an image — no longer takes the whole
-      // card down with it; the card is shown in words instead.
-      final kept = await _cacheImage(sponsor, client);
-      if (sponsor.image != null && !kept) {
-        await _dropImage();
+      final lastAttempt = preferences.sponsorAttemptedAt;
+      if (lastAttempt != null &&
+          now.difference(lastAttempt) < failedRefreshCooldown) {
+        return;
       }
-      _imageSettled = true;
-      await preferences.setSponsorPayload(body);
-      await preferences.setSponsorFetchedAt(_now());
-    } catch (_) {
-      // Offline, blocked, timed out, or a proxy serving something else. The
-      // cache stands, and the timestamp is deliberately *not* written, so the
-      // next launch tries again rather than waiting a day.
+    }
+
+    await preferences.setSponsorAttemptedAt(_now());
+    final client = _client ?? http.Client();
+    try {
+      for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
+        try {
+          final response = await _get(
+            client,
+            endpoint,
+            const Duration(seconds: 10),
+          );
+
+          // Only "not found" ends a campaign. Anything else that is not a
+          // card — a 403 or 5xx from the host, a filtering page served with
+          // 200 in place of the file, a body far too large — says nothing
+          // about the campaign. The cache stands while this batch retries.
+          if (response.statusCode == 404 || response.statusCode == 410) {
+            await _forget();
+            await preferences.setSponsorFetchedAt(_now());
+            return;
+          }
+
+          final body = response.bodyBytes.length <= maxBytes
+              ? decodeBody(response.bodyBytes)
+              : null;
+          final sponsor = response.statusCode == 200 && body != null
+              ? NexSponsor.parse(body)
+              : null;
+          if (sponsor != null) {
+            // The picture first, then the card. A picture that cannot be had
+            // no longer takes the whole card down with it; the card is shown
+            // in words instead and the image gets another chance tomorrow.
+            final kept = await _cacheImage(sponsor, client);
+            if (sponsor.image != null && !kept) {
+              await _dropImage();
+            }
+            _imageSettled = true;
+            await preferences.setSponsorPayload(body);
+            await preferences.setSponsorFetchedAt(_now());
+            return;
+          }
+        } catch (_) {
+          // Timeout, DNS, filtering and other transient failures all use the
+          // same tiny retry budget below. The last good cache is untouched.
+        }
+
+        if (attempt < retryDelays.length) {
+          await _delay(retryDelays[attempt]);
+        }
+      }
     } finally {
       if (_client == null) client.close();
     }
