@@ -910,12 +910,10 @@ void main() {
     expect(find.text('arrived while you were away'), findsOneWidget);
   });
 
-  testWidgets('the timeline offers pull-to-refresh for sponsor recovery', (
-    tester,
-  ) async {
-    // The timeline data is already live, but the sponsor endpoint is remote.
-    // A pull now gives a failed sponsor fetch another chance without bypassing
-    // the service's own daily/cool-off limits.
+  testWidgets('the timeline offers no pull-to-refresh', (tester) async {
+    // A gesture that re-reads data which is already current does nothing. The
+    // sponsor now retries on launch/resume with its own cooldown, and only
+    // piggybacks on pull-to-refresh when a model recap already owns it.
     await services.captureText('a note');
     await services.refreshTimeline();
     await tester.pumpWidget(
@@ -923,7 +921,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(RefreshIndicator), findsOneWidget);
+    expect(find.byType(RefreshIndicator), findsNothing);
   });
 
   testWidgets('scrolling toward the bottom loads notes past the first 200', (
