@@ -170,6 +170,12 @@ class NexSponsorService {
   /// while still recovering the same day without waiting for tomorrow.
   static const failedRefreshCooldown = Duration(hours: 2);
 
+  /// A manual pull may try sooner, but never on every gesture.
+  ///
+  /// It gets one request rather than the automatic batch below, so even
+  /// repeated manual recovery attempts stay tiny.
+  static const manualRetryCooldown = Duration(minutes: 30);
+
   /// Short retries for the common case: the app starts while connectivity is
   /// still settling. These happen only when the daily refresh is due.
   static const retryDelays = <Duration>[
@@ -364,18 +370,21 @@ class NexSponsorService {
   ///
   /// Never throws and never reports: a card that could not be fetched is
   /// indistinguishable from no card, which is the whole design.
-  Future<void> refresh({bool force = false}) {
+  Future<void> refresh({bool force = false, bool manual = false}) {
     final active = _refreshing;
     if (active != null) return active;
 
-    final work = _refresh(force: force);
+    final work = _refresh(force: force, manual: manual);
     _refreshing = work;
     return work.whenComplete(() {
       if (identical(_refreshing, work)) _refreshing = null;
     });
   }
 
-  Future<void> _refresh({required bool force}) async {
+  Future<void> _refresh({
+    required bool force,
+    required bool manual,
+  }) async {
     if (!force) {
       final now = _now();
       final lastSuccess = preferences.sponsorFetchedAt;
@@ -384,16 +393,20 @@ class NexSponsorService {
         return;
       }
       final lastAttempt = preferences.sponsorAttemptedAt;
+      final failedCooldown = manual
+          ? manualRetryCooldown
+          : failedRefreshCooldown;
       if (lastAttempt != null &&
-          now.difference(lastAttempt) < failedRefreshCooldown) {
+          now.difference(lastAttempt) < failedCooldown) {
         return;
       }
     }
 
     await preferences.setSponsorAttemptedAt(_now());
     final client = _client ?? http.Client();
+    final delays = manual ? const <Duration>[] : retryDelays;
     try {
-      for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
+      for (var attempt = 0; attempt <= delays.length; attempt++) {
         try {
           final response = await _get(
             client,
@@ -435,8 +448,8 @@ class NexSponsorService {
           // same tiny retry budget below. The last good cache is untouched.
         }
 
-        if (attempt < retryDelays.length) {
-          await _delay(retryDelays[attempt]);
+        if (attempt < delays.length) {
+          await _delay(delays[attempt]);
         }
       }
     } finally {
