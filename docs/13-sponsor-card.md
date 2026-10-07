@@ -117,13 +117,15 @@ has ever seen.
 
 After a successful check, the card is checked at most once every 24 hours.
 
-If a due check fails transiently, Nex retries after 5 seconds and 30 seconds.
-If the whole three-attempt batch still fails, another automatic batch is held
-for 2 hours, including across app restarts.
+If a due automatic check fails transiently, Nex makes one immediate retry.
+If both attempts fail, another sponsor check is held for 30 minutes, including
+across app restarts. Returning to the app after that cool-off gives it another
+chance without leaving background timers behind.
 
-Pull-to-refresh is the manual escape hatch: while there is no fresh successful
-check it may make **one** sponsor request, at most once every 30 minutes. It
-does not bypass the normal 24-hour interval after a successful check.
+When a model recap already exposes pull-to-refresh, sponsor recovery piggybacks
+on that gesture with **one** request. It does not add pull-to-refresh to every
+timeline and it never bypasses the same 30-minute failure cool-off or the
+normal 24-hour interval after a successful check.
 
-A failed batch never advances the successful-fetch clock, so a temporary host
+A failed check never advances the successful-fetch clock, so a temporary host
 problem cannot make Nex wait a full day before recovery.
