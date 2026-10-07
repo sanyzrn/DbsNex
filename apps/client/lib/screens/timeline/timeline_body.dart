@@ -209,10 +209,7 @@ extension _TimelineBody on TimelineScreenState {
     });
   }
 
-  Widget _wrapInRefresh({
-    required bool refreshAiSummary,
-    required Widget child,
-  }) {
+  Widget _wrapInRefresh({required bool enabled, required Widget child}) {
     child = Listener(
       onPointerDown: (event) {
         _pinchPointers[event.pointer] = event.localPosition;
@@ -227,27 +224,20 @@ extension _TimelineBody on TimelineScreenState {
       onPointerCancel: (event) => _pinchPointers.remove(event.pointer),
       child: child,
     );
+    if (!enabled) return child;
     final scheme = Theme.of(context).colorScheme;
     return RefreshIndicator(
       color: scheme.primary,
       backgroundColor: scheme.surfaceContainerLowest,
+      // Not `force: true` for the sponsor: the gesture must not bypass its
+      // daily success interval or failed-refresh cool-off.
       onRefresh: () async {
+        if (_aiSummaryLoading) return;
         nexBump();
-
-        // Never force the sponsor here. Repeated pulls must not turn a tiny
-        // recovery affordance into repeated network traffic; the service's
-        // daily success interval and failed-refresh cool-off still apply.
-        final sponsorRefresh = _sponsor.refresh(manual: true);
-
-        if (refreshAiSummary && !_aiSummaryLoading) {
-          await Future.wait<void>([
-            sponsorRefresh,
-            _loadAiSummary(force: true),
-          ]);
-        } else {
-          await sponsorRefresh;
-        }
-
+        await Future.wait<void>([
+          _sponsor.refresh(manual: true),
+          _loadAiSummary(force: true),
+        ]);
         if (mounted) _rebuild(() {});
       },
       child: child,
