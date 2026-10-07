@@ -115,5 +115,12 @@ has ever seen.
 
 ## Cadence
 
-Checked at most once a day. A failed request deliberately does **not** record
-the attempt, so the next launch tries again rather than waiting out the day.
+After a successful check, the card is checked at most once every 24 hours.
+
+If a due check fails transiently, Nex retries after 5 seconds and 30 seconds.
+If the whole three-attempt batch still fails, another automatic batch is held
+for 2 hours, including across app restarts. Pull-to-refresh uses the same
+limits rather than forcing extra traffic.
+
+A failed batch never advances the successful-fetch clock, so a temporary host
+problem cannot make Nex wait a full day before recovery.
