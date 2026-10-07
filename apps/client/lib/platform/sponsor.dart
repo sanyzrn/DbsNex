@@ -139,10 +139,8 @@ class NexSponsorService {
     this.endpoint = defaultEndpoint,
     this.dismissible = dismissibleByDefault,
     DateTime Function()? now,
-    Future<void> Function(Duration)? delay,
   }) : _client = client,
-       _now = now ?? DateTime.now,
-       _delay = delay ?? ((duration) => Future<void>.delayed(duration));
+       _now = now ?? DateTime.now;
 
   /// Whether the card carries a close button, and whether a dismissal hides
   /// it.
@@ -163,25 +161,14 @@ class NexSponsorService {
 
   static const refreshInterval = Duration(hours: 24);
 
-  /// A complete failed refresh batch is not started again on every launch.
-  ///
-  /// One batch already retries twice below. Two hours keeps a bad host or a
-  /// filtered network from turning every app open into three more requests,
-  /// while still recovering the same day without waiting for tomorrow.
-  static const failedRefreshCooldown = Duration(hours: 2);
+  /// After a failed refresh, do not turn every app open/resume into another
+  /// request. Half an hour still recovers the same day, while keeping the
+  /// worst-case traffic tiny even on a broken or filtered host.
+  static const failedRefreshCooldown = Duration(minutes: 30);
 
-  /// A manual pull may try sooner, but never on every gesture.
-  ///
-  /// It gets one request rather than the automatic batch below, so even
-  /// repeated manual recovery attempts stay tiny.
-  static const manualRetryCooldown = Duration(minutes: 30);
-
-  /// Short retries for the common case: the app starts while connectivity is
-  /// still settling. These happen only when the daily refresh is due.
-  static const retryDelays = <Duration>[
-    Duration(seconds: 5),
-    Duration(seconds: 30),
-  ];
+  /// A due automatic refresh gets one immediate retry for transient failures.
+  /// Manual pull-to-refresh gets one request only.
+  static const automaticAttempts = 2;
 
   /// How stale the last *successful* fetch may be before the card stops
   /// appearing.
@@ -239,7 +226,6 @@ class NexSponsorService {
   final String endpoint;
   final http.Client? _client;
   final DateTime Function() _now;
-  final Future<void> Function(Duration) _delay;
 
   Future<void>? _refreshing;
 
@@ -365,8 +351,9 @@ class NexSponsorService {
     }
   }
 
-  /// Refreshes at most once a day after success. A transient failure gets two
-  /// short retries, then a two-hour cool-off shared across app launches.
+  /// Refreshes at most once a day after success. A due automatic check gets
+  /// one immediate retry, then a 30-minute cool-off shared across app launches
+  /// and foreground resumes.
   ///
   /// Never throws and never reports: a card that could not be fetched is
   /// indistinguishable from no card, which is the whole design.
@@ -393,20 +380,17 @@ class NexSponsorService {
         return;
       }
       final lastAttempt = preferences.sponsorAttemptedAt;
-      final failedCooldown = manual
-          ? manualRetryCooldown
-          : failedRefreshCooldown;
       if (lastAttempt != null &&
-          now.difference(lastAttempt) < failedCooldown) {
+          now.difference(lastAttempt) < failedRefreshCooldown) {
         return;
       }
     }
 
     await preferences.setSponsorAttemptedAt(_now());
     final client = _client ?? http.Client();
-    final delays = manual ? const <Duration>[] : retryDelays;
+    final attempts = manual ? 1 : automaticAttempts;
     try {
-      for (var attempt = 0; attempt <= delays.length; attempt++) {
+      for (var attempt = 0; attempt < attempts; attempt++) {
         try {
           final response = await _get(
             client,
@@ -444,12 +428,8 @@ class NexSponsorService {
             return;
           }
         } catch (_) {
-          // Timeout, DNS, filtering and other transient failures all use the
-          // same tiny retry budget below. The last good cache is untouched.
-        }
-
-        if (attempt < delays.length) {
-          await _delay(delays[attempt]);
+          // Timeout, DNS, filtering and other transient failures use the same
+          // tiny retry budget. The last good cache is untouched.
         }
       }
     } finally {
