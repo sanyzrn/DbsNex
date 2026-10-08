@@ -157,4 +157,48 @@ void main() {
       expect(await gentleOn(last.add(const Duration(days: 1))), isFalse);
     });
   });
+
+  group('a lookup already in the conversation', () {
+    const notShared =
+        'Cycle: not shared. The user has not allowed the assistant to '
+        'read Cycle. If they want this, it is "Let the assistant read Cycle" '
+        "in Cycle's settings.";
+    const shared =
+        'Cycle (menstrual cycle data the user chose to share; answer kindly '
+        'and never as a diagnosis):\nMode: regular\nCycle day 11';
+
+    test('says what is true now once sharing is turned on', () {
+      final out = nexCycleFindingsAsOfNow(
+        '<<<NOTES\n$notShared\nNOTES>>>',
+        shared,
+      );
+      expect(out, '<<<NOTES\n$shared\nNOTES>>>');
+    });
+
+    test('stops carrying the summary once sharing is turned off', () {
+      final out = nexCycleFindingsAsOfNow(
+        '<<<NOTES\n$shared\nNOTES>>>',
+        notShared,
+      );
+      expect(out, '<<<NOTES\n$notShared\nNOTES>>>');
+      expect(out, isNot(contains('Cycle day')));
+    });
+
+    test('leaves the other lookups in the same turn alone', () {
+      const search = 'Results for "dentist":\n[n1] dentist on Monday';
+      final out = nexCycleFindingsAsOfNow(
+        '<<<NOTES\n$shared\nThreads:\n- Trip (3 notes)\n$search\nNOTES>>>',
+        notShared,
+      );
+      expect(
+        out,
+        '<<<NOTES\n$notShared\nThreads:\n- Trip (3 notes)\n$search\nNOTES>>>',
+      );
+    });
+
+    test('a turn with no Cycle part comes back as it was', () {
+      const turn = '<<<NOTES\nThreads:\n(none)\nNOTES>>>';
+      expect(nexCycleFindingsAsOfNow(turn, shared), turn);
+    });
+  });
 }

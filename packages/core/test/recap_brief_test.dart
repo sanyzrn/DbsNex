@@ -14,7 +14,8 @@ void main() {
       // The word clamp this replaced collapsed every run of whitespace in a
       // reply — newlines included — and handed back the paragraph the prompt
       // had just asked it not to write.
-      const reply = '⏰ Call the plumber, overdue by two days.\n'
+      const reply =
+          '⏰ Call the plumber, overdue by two days.\n'
           '📋 Shopping: bread and milk still on the list.';
       expect(nexTidyBrief(reply), reply);
     });
@@ -76,7 +77,10 @@ void main() {
     });
 
     test('blank and decorative lines are dropped, not counted', () {
-      expect(nexTidyBrief('⏰ real\n\n---\n\n📋 also real'), '⏰ real\n📋 also real');
+      expect(
+        nexTidyBrief('⏰ real\n\n---\n\n📋 also real'),
+        '⏰ real\n📋 also real',
+      );
     });
 
     test('nothing usable is the same as no answer', () {
@@ -98,12 +102,19 @@ void main() {
       expect(nexBriefLines(20), 4);
     });
 
+    test('the reader\'s choice is the ceiling, and the only one', () {
+      // "Long" used to be capped at four lines before the choice was even
+      // looked at, which made it the same as "medium".
+      expect(nexBriefLines(20, ceiling: 2), 2);
+      expect(nexBriefLines(20, ceiling: 4), 4);
+      expect(nexBriefLines(20, ceiling: 8), 8);
+      // A quiet day is short whatever was chosen.
+      expect(nexBriefLines(3, ceiling: 8), 3);
+    });
+
     test('more to say about is never less room to say it', () {
       for (var i = 1; i < 40; i++) {
-        expect(
-          nexBriefLines(i + 1),
-          greaterThanOrEqualTo(nexBriefLines(i)),
-        );
+        expect(nexBriefLines(i + 1), greaterThanOrEqualTo(nexBriefLines(i)));
       }
     });
   });

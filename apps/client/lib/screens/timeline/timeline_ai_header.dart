@@ -95,7 +95,8 @@ extension _TimelineAiHeader on TimelineScreenState {
     // not overflow under "short".
     final budget = nexBriefLines(
       '\n'.allMatches(source).length + 1,
-    ).clamp(1, prefs.briefLength.lines);
+      ceiling: prefs.briefLength.lines,
+    );
     // What the app knows for itself. Written before anything is asked of
     // anybody, and under `report` it is the entire brief — which is why that
     // style needs no provider, no key and no signal.
@@ -161,6 +162,7 @@ extension _TimelineAiHeader on TimelineScreenState {
         tone: prefs.briefTone,
         instruction: prefs.briefInstruction,
         written: written ?? '',
+        words: prefs.briefLength.words,
         // A tap gets the full budget; the one that runs itself on launch does
         // not. On a network that is joined but not connected, ninety seconds
         // of spinner at the top of the timeline is what "the app loads slowly"

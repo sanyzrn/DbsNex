@@ -15,6 +15,7 @@ void main() {
     Duration age = Duration.zero,
     Duration? due,
     DateTime? deletedAt,
+    List<String> tags = const [],
   }) {
     final written = now.subtract(age);
     return Note(
@@ -28,14 +29,17 @@ void main() {
       rev: 1,
       syncState: SyncState.pending,
       dueAt: due == null ? null : now.add(due),
+      tags: [
+        for (final name in tags) Tag(id: name, name: name, createdAt: now),
+      ],
     );
   }
 
-  List<String> linesOf(List<Note> notes, {int limit = 20}) =>
-      nexRecapSource(notes, now: now, limit: limit)
-          .split('\n')
-          .where((line) => line.isNotEmpty)
-          .toList();
+  List<String> linesOf(List<Note> notes, {int limit = 20}) => nexRecapSource(
+    notes,
+    now: now,
+    limit: limit,
+  ).split('\n').where((line) => line.isNotEmpty).toList();
 
   test('a note that is due is first, however old it is', () {
     // The case the old source could not represent at all. A reminder set last
@@ -43,7 +47,11 @@ void main() {
     // a library, and "the twenty newest notes" would never have included it.
     final notes = [
       for (var i = 0; i < 25; i++)
-        note(id: 'recent$i', content: 'something $i', age: Duration(hours: i)),
+        note(
+          id: 'recent$i',
+          content: 'something $i',
+          age: Duration(hours: i),
+        ),
       note(
         id: 'appointment',
         content: 'pick up the prescription',
@@ -58,7 +66,11 @@ void main() {
 
   test('overdue comes before merely due, and both before the rest', () {
     final lines = linesOf([
-      note(id: 'later', content: 'water the plants', due: const Duration(days: 3)),
+      note(
+        id: 'later',
+        content: 'water the plants',
+        due: const Duration(days: 3),
+      ),
       note(id: 'fresh', content: 'written this morning'),
       note(
         id: 'missed',
@@ -106,7 +118,10 @@ void main() {
       ),
     ]);
 
-    expect(lines.first, '2d ago | checklist 2/3 left | milk · bread · call the plumber');
+    expect(
+      lines.first,
+      '2d ago | checklist 2/3 left | milk · bread · call the plumber',
+    );
     expect(lines[1], 'today | text | a thought');
   });
 
@@ -147,7 +162,11 @@ void main() {
     final lines = linesOf([
       note(id: 'long', content: long),
       for (var i = 0; i < 40; i++)
-        note(id: 'n$i', content: 'note $i', age: Duration(hours: i + 1)),
+        note(
+          id: 'n$i',
+          content: 'note $i',
+          age: Duration(hours: i + 1),
+        ),
     ], limit: 20);
 
     expect(lines, hasLength(20));
@@ -164,6 +183,66 @@ void main() {
     ]);
 
     expect(lines, ['today | text | something']);
+  });
+
+  test('what was just written still gets lines on a busy morning', () {
+    // Thirty reminders due this week used to take every line, and the plan
+    // written an hour ago never reached the recap at all.
+    final lines = linesOf([
+      for (var i = 0; i < 30; i++)
+        note(
+          id: 'due$i',
+          content: 'errand $i',
+          due: Duration(hours: i + 1),
+        ),
+      note(
+        id: 'idea',
+        content: 'book the hall for Sara on the 14th',
+        age: const Duration(hours: 1),
+      ),
+      note(id: 'old', content: 'an old thought', age: const Duration(days: 9)),
+    ]);
+
+    expect(lines, hasLength(20));
+    expect(lines.first, 'DUE in 1h | text | errand 0');
+    expect(
+      lines,
+      contains('today | text | book the hall for Sara on the 14th'),
+    );
+    // Kept for the recent ones only: an old note does not displace a
+    // reminder.
+    expect(lines.where((l) => l.contains('an old thought')), isEmpty);
+  });
+
+  test('no lines are held back when nothing is recent', () {
+    final lines = linesOf([
+      for (var i = 0; i < 30; i++)
+        note(
+          id: 'due$i',
+          content: 'errand $i',
+          due: Duration(hours: i + 1),
+        ),
+      note(id: 'old', content: 'an old thought', age: const Duration(days: 9)),
+    ]);
+
+    expect(lines, hasLength(20));
+    expect(lines.every((l) => l.startsWith('DUE')), isTrue);
+  });
+
+  test("a note's tags ride in the middle column", () {
+    final lines = linesOf([
+      note(
+        id: 'tickets',
+        content: 'the plane tickets',
+        tags: ['trip', 'summer plans'],
+      ),
+      note(id: 'plain', content: 'no tags here', age: const Duration(hours: 1)),
+    ]);
+
+    expect(lines, [
+      'today | text #trip #summer_plans | the plane tickets',
+      'today | text | no tags here',
+    ]);
   });
 
   group('the standing commitments', () {
@@ -193,10 +272,12 @@ void main() {
     );
 
     List<String> withCommitments(List<NexCommitment> all, {int limit = 20}) =>
-        nexRecapSource(const [], commitments: all, now: now, limit: limit)
-            .split('\n')
-            .where((line) => line.isNotEmpty)
-            .toList();
+        nexRecapSource(
+          const [],
+          commitments: all,
+          now: now,
+          limit: limit,
+        ).split('\n').where((line) => line.isNotEmpty).toList();
 
     test('only the ones close enough to matter are sent', () {
       // The whole reason a commitment carries a lead time. An insurance

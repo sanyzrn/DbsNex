@@ -400,10 +400,40 @@ extension _ChatSending on _AiChatSheetState {
     }
   }
 
-  Future<String?> _ask() => NexDisclosureLog.about(
-    () => _adapter.chat(List.of(_turns), options: _options),
-    notes: _given,
-  );
+  Future<String?> _ask() => NexDisclosureLog.about(() async {
+    final turns = await _cycleAsOfNow(List.of(_turns));
+    return _adapter.chat(turns, options: _options);
+  }, notes: _given);
+
+  /// [turns] with every «Cycle» lookup in them brought up to date — see
+  /// [nexCycleFindingsAsOfNow]. Only what is sent changes; the thread on
+  /// screen and on disk keeps what was read at the time.
+  Future<List<ChatMessage>> _cycleAsOfNow(List<ChatMessage> turns) async {
+    bool hasCycle(ChatMessage turn) =>
+        turn.role == ChatRole.user &&
+        turn.content.startsWith('<<<NOTES\n') &&
+        (turn.content.contains('\nCycle: ') ||
+            turn.content.contains('\nCycle ('));
+    if (!turns.any(hasCycle)) return turns;
+    final String current;
+    try {
+      current = await nexCycleSummaryForAssistant(
+        services: widget.services,
+        preferences: widget.preferences,
+      );
+    } catch (_) {
+      return turns;
+    }
+    return [
+      for (final turn in turns)
+        hasCycle(turn)
+            ? ChatMessage(
+                role: turn.role,
+                content: nexCycleFindingsAsOfNow(turn.content, current),
+              )
+            : turn,
+    ];
+  }
 
   /// Writes the conversation after every exchange. Fire-and-forget: a thread
   /// that fails to save is not worth interrupting the conversation over.

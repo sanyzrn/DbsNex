@@ -420,16 +420,21 @@ enum NexBriefStyle {
 /// Still a ceiling, never a target. A day with one thing on it gets one line
 /// under all three.
 enum NexBriefLength {
-  short('short', 2),
-  medium('medium', 4),
-  long('long', 6);
+  short('short', 2, 12),
+  medium('medium', 4, 16),
+  long('long', 8, 28);
 
-  const NexBriefLength(this.wireName, this.lines);
+  const NexBriefLength(this.wireName, this.lines, this.words);
 
   final String wireName;
 
   /// The most lines the whole brief may have, the app's own included.
   final int lines;
+
+  /// The most words a line may have. Under "long" a line has room for why
+  /// the thing matters or what to do next, not only what it is: more lines
+  /// alone made a longer list of the same one-liners.
+  final int words;
 
   static NexBriefLength fromWire(String? value) =>
       NexBriefLength.values.firstWhere(
@@ -1101,6 +1106,53 @@ class CloudAIAdapter implements AIAdapter {
     return Summary(text: reply?.trim() ?? '');
   }
 
+  /// How the brief prompts explain a `#name` in the middle column — see
+  /// `nexRecapSource`.
+  static const _briefTagsKey =
+      'A `#name` after the kind is a tag the person gave that note; notes '
+      'that share a tag belong together, and saying so — "three things left '
+      'for the trip" — is shorter than listing them.';
+
+  /// The token ceiling for a brief of [lines] lines of up to [words] words:
+  /// about four tokens a word, which leaves room for Persian and for a reply
+  /// cut by the ceiling never to end mid-word on the last line.
+  static int _briefTokens(int lines, int words, int floor) =>
+      (lines * words * 4).clamp(floor, 2000);
+
+  /// Today's date, said to the model so that "tomorrow" in a note written
+  /// two days ago can be read as the day before yesterday.
+  ///
+  /// The date only, never the time: the brief is cached for an hour or more
+  /// and a time of day in its prompt would be wrong for most of that hour.
+  @visibleForTesting
+  static String briefToday(DateTime now) {
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return 'Today is ${days[now.weekday - 1]}, ${now.day} '
+        '${months[now.month - 1]} ${now.year}.';
+  }
+
   /// The recap the timeline shows when the app is opened.
   ///
   /// Not part of [AIAdapter]: every other capability there takes one [Note],
@@ -1147,8 +1199,11 @@ class CloudAIAdapter implements AIAdapter {
     AiResponseStyle tone = AiResponseStyle.natural,
     String instruction = '',
     String written = '',
+    DateTime? now,
+    int words = 16,
   }) => NexDisclosureLog.about(() async {
     if (!canAnswerText || recentNotesText.trim().isEmpty) return null;
+    final today = briefToday(now ?? DateTime.now());
     if (style != NexBriefStyle.assistant) {
       return _sideBrief(
         recentNotesText,
@@ -1157,7 +1212,9 @@ class CloudAIAdapter implements AIAdapter {
         instruction: instruction,
         written: written,
         lines: lines,
+        words: words,
         timeout: timeout,
+        today: today,
       );
     }
     final reply = await _complete(
@@ -1176,8 +1233,13 @@ class CloudAIAdapter implements AIAdapter {
       'tablet — and "3 of 7 today" is how many times it has been done today. '
       'Say those the way somebody would: "the rent is due on Friday", not '
       '"you have a monthly commitment". '
+      '$_briefTagsKey '
+      '$today '
       'Answer with at most $lines lines. One thing per line, each beginning '
-      'with a single emoji that fits it, then a short sentence. Overdue '
+      'with a single emoji that fits it, then '
+      '${words > 16 ? 'one or two sentences of up to about $words words: what '
+                'it is, and why it matters now or what the next step is' : 'a short sentence'}. '
+      'Overdue '
       'first, then what is due soon, then what is unfinished, then anything '
       'worth being reminded of. Say what to do where there is something to '
       'do: "Call the plumber — overdue by two days", not "you have an '
@@ -1198,6 +1260,17 @@ class CloudAIAdapter implements AIAdapter {
       'plainly and say what it means — "the dentist and the school run are '
       'both at 3" — and put it where it belongs in the order, not always '
       'last. '
+      // What the lines kept for recent notes are for. Without these the
+      // model was told only about what is waiting, and passed over the plan
+      // written an hour ago as if it were not there.
+      'Two more things are worth a line, after what is overdue or due. A '
+      'note with no reminder whose text names a day or a time that is still '
+      'ahead — "tomorrow", "on the 14th", "Friday at 5" — counted from when '
+      'the note was written, not from today: say what it is and suggest a '
+      'reminder for it. And what they were in the middle of: if a note from '
+      'today or yesterday is a plan, an idea or a half-made list, say where '
+      'they left off. A note that is only a record — a saved link, a '
+      'receipt, a quote — is not worth a line by itself. '
       'Fewer lines when there is less: if only one thing is waiting, answer '
       'with one line. Never pad to the limit, and never manufacture an '
       'observation to fill one — if nothing about the set is worth saying, '
@@ -1223,14 +1296,18 @@ class CloudAIAdapter implements AIAdapter {
       // Room for the whole budget and then some, because a reply cut off by
       // the token ceiling ends mid-word and the tidier cannot tell that from
       // a model that simply stopped.
-      maxTokens: unlimitedSummary ? null : (lines * 60).clamp(200, 800),
+      maxTokens: unlimitedSummary ? null : _briefTokens(lines, words, 200),
       timeout: timeout,
     );
     // Line-aware, unlike the word clamp this replaced: that one collapsed
     // every run of whitespace in the reply, newlines included, which turned
     // a list back into the paragraph it was asked not to be.
     return _plausible(
-      nexTidyBrief(cleanDecorativeReply(reply), maxLines: lines),
+      nexTidyBrief(
+        cleanDecorativeReply(reply),
+        maxLines: lines,
+        maxWords: words,
+      ),
       shortLine: false,
     );
   }, purpose: DisclosurePurpose.dailySummary);
@@ -1253,6 +1330,8 @@ class CloudAIAdapter implements AIAdapter {
     required String instruction,
     required String written,
     required int lines,
+    required int words,
+    required String today,
     Duration? timeout,
   }) async {
     // Under a custom instruction the user's sentence is the whole brief, so
@@ -1294,6 +1373,8 @@ class CloudAIAdapter implements AIAdapter {
       'written as `when | kind | text`. A line starting DUE carries a '
       'reminder — "DUE in 6h", "DUE overdue 2d". On a checklist, "3/5 left" '
       'means three of its five items are still unticked. '
+      '$_briefTagsKey '
+      '$today '
       '${written.trim().isEmpty ? '' : 'These lines are already written and '
                 'will be shown to the reader above yours. Do not repeat them and '
                 'do not restate what they say:\n$written\n'}'
@@ -1318,11 +1399,15 @@ class CloudAIAdapter implements AIAdapter {
       'language only. '
       'Reply with the lines only. ${outputLanguage.promptRule}',
       recentNotesText,
-      maxTokens: unlimitedSummary ? null : (budget * 60).clamp(120, 800),
+      maxTokens: unlimitedSummary ? null : _briefTokens(budget, words, 120),
       timeout: timeout,
     );
     return _plausible(
-      nexTidyBrief(cleanDecorativeReply(reply), maxLines: budget),
+      nexTidyBrief(
+        cleanDecorativeReply(reply),
+        maxLines: budget,
+        maxWords: words,
+      ),
       shortLine: false,
     );
   }
