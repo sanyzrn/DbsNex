@@ -37,6 +37,7 @@ Working convention:
 ## v1.99.2
 
 - **The smart summary reads what you just wrote.** Reminders and open lists used to take every line, so a note from this morning without a reminder never made it in. A share of the summary is now kept for the last two days' notes: it says where you left off, and when a note mentions a day or time — "tomorrow", "on the 14th" — with no reminder set, it suggests one. Your tags are read too, so related things are said together ("three things left for the trip"), and a note that is only a record, like a saved link or a receipt, is not mentioned on its own.
+- **"Full" in the smart summary is really fuller.** It was held to the same four short lines as "Standard", so choosing it changed nothing. Now "Brief" is two short lines, "Standard" four, and "Full" up to eight, each with room to say why it matters or what to do next. A quiet day is still short under all three.
 - **The assistant sees Cycle as soon as you allow it.** After turning on "Let the assistant read Cycle", an open chat still said it could not see Cycle until you started a new one. It now goes by the setting as it is when you ask, and turning the setting off stops what it read earlier from being sent again.
 
 ## v1.99.1

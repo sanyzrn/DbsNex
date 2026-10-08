@@ -1108,6 +1108,41 @@ void _recapGroup() {
       expect(prompt, contains('is a tag the person gave that note'));
     });
 
+    test('"long" is longer than "medium", in lines and in each line', () async {
+      // It used to be capped at four lines of sixteen words like "medium",
+      // so choosing it changed nothing on the card.
+      expect(
+        NexBriefLength.long.lines,
+        greaterThan(NexBriefLength.medium.lines),
+      );
+      expect(
+        NexBriefLength.long.words,
+        greaterThan(NexBriefLength.medium.words),
+      );
+
+      late http.Request seen;
+      final line =
+          '⏰ Call the plumber about the leak under the sink, two days '
+          'overdue now — the landlord needs his report before Friday, so '
+          'ring him first thing.';
+      final reply = List.filled(8, line).join('\n');
+      final brief = await adapter(reply, onSend: (r) => seen = r).digest(
+        'DUE overdue 2d | text | call the plumber',
+        lines: NexBriefLength.long.lines,
+        words: NexBriefLength.long.words,
+      );
+
+      final prompt = jsonEncode(
+        (jsonDecode(seen.body) as Map<String, dynamic>)['messages'],
+      );
+      expect(prompt, contains('at most 8 lines'));
+      expect(prompt, contains('why it matters now or what the next step is'));
+      // All eight lines kept, each whole: twenty-six words is inside the
+      // long budget and would have been cut at sixteen.
+      expect(brief!.split('\n'), hasLength(8));
+      expect(brief.split('\n').first, line);
+    });
+
     test('a reply over the line count is cut to it', () async {
       // Models treat "at most" as a suggestion, which is why the number is
       // enforced on the way out as well as asked for on the way in.

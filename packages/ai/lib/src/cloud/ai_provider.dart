@@ -420,16 +420,21 @@ enum NexBriefStyle {
 /// Still a ceiling, never a target. A day with one thing on it gets one line
 /// under all three.
 enum NexBriefLength {
-  short('short', 2),
-  medium('medium', 4),
-  long('long', 6);
+  short('short', 2, 12),
+  medium('medium', 4, 16),
+  long('long', 8, 28);
 
-  const NexBriefLength(this.wireName, this.lines);
+  const NexBriefLength(this.wireName, this.lines, this.words);
 
   final String wireName;
 
   /// The most lines the whole brief may have, the app's own included.
   final int lines;
+
+  /// The most words a line may have. Under "long" a line has room for why
+  /// the thing matters or what to do next, not only what it is: more lines
+  /// alone made a longer list of the same one-liners.
+  final int words;
 
   static NexBriefLength fromWire(String? value) =>
       NexBriefLength.values.firstWhere(
@@ -1108,6 +1113,12 @@ class CloudAIAdapter implements AIAdapter {
       'that share a tag belong together, and saying so — "three things left '
       'for the trip" — is shorter than listing them.';
 
+  /// The token ceiling for a brief of [lines] lines of up to [words] words:
+  /// about four tokens a word, which leaves room for Persian and for a reply
+  /// cut by the ceiling never to end mid-word on the last line.
+  static int _briefTokens(int lines, int words, int floor) =>
+      (lines * words * 4).clamp(floor, 2000);
+
   /// Today's date, said to the model so that "tomorrow" in a note written
   /// two days ago can be read as the day before yesterday.
   ///
@@ -1189,6 +1200,7 @@ class CloudAIAdapter implements AIAdapter {
     String instruction = '',
     String written = '',
     DateTime? now,
+    int words = 16,
   }) => NexDisclosureLog.about(() async {
     if (!canAnswerText || recentNotesText.trim().isEmpty) return null;
     final today = briefToday(now ?? DateTime.now());
@@ -1200,6 +1212,7 @@ class CloudAIAdapter implements AIAdapter {
         instruction: instruction,
         written: written,
         lines: lines,
+        words: words,
         timeout: timeout,
         today: today,
       );
@@ -1223,7 +1236,10 @@ class CloudAIAdapter implements AIAdapter {
       '$_briefTagsKey '
       '$today '
       'Answer with at most $lines lines. One thing per line, each beginning '
-      'with a single emoji that fits it, then a short sentence. Overdue '
+      'with a single emoji that fits it, then '
+      '${words > 16 ? 'one or two sentences of up to about $words words: what '
+                'it is, and why it matters now or what the next step is' : 'a short sentence'}. '
+      'Overdue '
       'first, then what is due soon, then what is unfinished, then anything '
       'worth being reminded of. Say what to do where there is something to '
       'do: "Call the plumber — overdue by two days", not "you have an '
@@ -1280,14 +1296,18 @@ class CloudAIAdapter implements AIAdapter {
       // Room for the whole budget and then some, because a reply cut off by
       // the token ceiling ends mid-word and the tidier cannot tell that from
       // a model that simply stopped.
-      maxTokens: unlimitedSummary ? null : (lines * 60).clamp(200, 800),
+      maxTokens: unlimitedSummary ? null : _briefTokens(lines, words, 200),
       timeout: timeout,
     );
     // Line-aware, unlike the word clamp this replaced: that one collapsed
     // every run of whitespace in the reply, newlines included, which turned
     // a list back into the paragraph it was asked not to be.
     return _plausible(
-      nexTidyBrief(cleanDecorativeReply(reply), maxLines: lines),
+      nexTidyBrief(
+        cleanDecorativeReply(reply),
+        maxLines: lines,
+        maxWords: words,
+      ),
       shortLine: false,
     );
   }, purpose: DisclosurePurpose.dailySummary);
@@ -1310,6 +1330,7 @@ class CloudAIAdapter implements AIAdapter {
     required String instruction,
     required String written,
     required int lines,
+    required int words,
     required String today,
     Duration? timeout,
   }) async {
@@ -1378,11 +1399,15 @@ class CloudAIAdapter implements AIAdapter {
       'language only. '
       'Reply with the lines only. ${outputLanguage.promptRule}',
       recentNotesText,
-      maxTokens: unlimitedSummary ? null : (budget * 60).clamp(120, 800),
+      maxTokens: unlimitedSummary ? null : _briefTokens(budget, words, 120),
       timeout: timeout,
     );
     return _plausible(
-      nexTidyBrief(cleanDecorativeReply(reply), maxLines: budget),
+      nexTidyBrief(
+        cleanDecorativeReply(reply),
+        maxLines: budget,
+        maxWords: words,
+      ),
       shortLine: false,
     );
   }

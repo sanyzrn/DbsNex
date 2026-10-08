@@ -45,11 +45,7 @@ final _wrapped = RegExp(r'^([*_~]{1,3})[^*_~].*\1$');
 /// Null when there is nothing usable left, which the caller treats the same
 /// as no answer at all: the card keeps whatever it had rather than replacing
 /// a good recap with a bad one.
-String? nexTidyBrief(
-  String? reply, {
-  int maxLines = 4,
-  int maxWords = 16,
-}) {
+String? nexTidyBrief(String? reply, {int maxLines = 4, int maxWords = 16}) {
   final source = reply?.trim();
   if (source == null || source.isEmpty) return null;
 
@@ -110,8 +106,13 @@ String _clampWords(String line, int maxWords) {
 /// morning is a card people stop reading — which is the same reasoning the
 /// word budget it replaces was built on, applied to the shape that replaced
 /// it.
-int nexBriefLines(int noteCount) => switch (noteCount) {
-  <= 2 => 2,
-  <= 6 => 3,
-  _ => 4,
-};
+///
+/// [ceiling] is the reader's own choice of length, and it is the only cap.
+/// This used to stop at four whatever was chosen and was then held to the
+/// choice as well, so "long" (six) could never be longer than "medium"
+/// (four): the setting appeared to do nothing. The count of things now only
+/// ever *lowers* the number — a quiet day under "long" is still short.
+int nexBriefLines(int noteCount, {int ceiling = 4}) {
+  final top = ceiling < 2 ? 2 : ceiling;
+  return noteCount < 2 ? 2 : (noteCount > top ? top : noteCount);
+}
