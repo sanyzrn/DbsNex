@@ -1101,6 +1101,47 @@ class CloudAIAdapter implements AIAdapter {
     return Summary(text: reply?.trim() ?? '');
   }
 
+  /// How the brief prompts explain a `#name` in the middle column — see
+  /// `nexRecapSource`.
+  static const _briefTagsKey =
+      'A `#name` after the kind is a tag the person gave that note; notes '
+      'that share a tag belong together, and saying so — "three things left '
+      'for the trip" — is shorter than listing them.';
+
+  /// Today's date, said to the model so that "tomorrow" in a note written
+  /// two days ago can be read as the day before yesterday.
+  ///
+  /// The date only, never the time: the brief is cached for an hour or more
+  /// and a time of day in its prompt would be wrong for most of that hour.
+  @visibleForTesting
+  static String briefToday(DateTime now) {
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return 'Today is ${days[now.weekday - 1]}, ${now.day} '
+        '${months[now.month - 1]} ${now.year}.';
+  }
+
   /// The recap the timeline shows when the app is opened.
   ///
   /// Not part of [AIAdapter]: every other capability there takes one [Note],
@@ -1147,8 +1188,10 @@ class CloudAIAdapter implements AIAdapter {
     AiResponseStyle tone = AiResponseStyle.natural,
     String instruction = '',
     String written = '',
+    DateTime? now,
   }) => NexDisclosureLog.about(() async {
     if (!canAnswerText || recentNotesText.trim().isEmpty) return null;
+    final today = briefToday(now ?? DateTime.now());
     if (style != NexBriefStyle.assistant) {
       return _sideBrief(
         recentNotesText,
@@ -1158,6 +1201,7 @@ class CloudAIAdapter implements AIAdapter {
         written: written,
         lines: lines,
         timeout: timeout,
+        today: today,
       );
     }
     final reply = await _complete(
@@ -1176,6 +1220,8 @@ class CloudAIAdapter implements AIAdapter {
       'tablet — and "3 of 7 today" is how many times it has been done today. '
       'Say those the way somebody would: "the rent is due on Friday", not '
       '"you have a monthly commitment". '
+      '$_briefTagsKey '
+      '$today '
       'Answer with at most $lines lines. One thing per line, each beginning '
       'with a single emoji that fits it, then a short sentence. Overdue '
       'first, then what is due soon, then what is unfinished, then anything '
@@ -1198,6 +1244,17 @@ class CloudAIAdapter implements AIAdapter {
       'plainly and say what it means — "the dentist and the school run are '
       'both at 3" — and put it where it belongs in the order, not always '
       'last. '
+      // What the lines kept for recent notes are for. Without these the
+      // model was told only about what is waiting, and passed over the plan
+      // written an hour ago as if it were not there.
+      'Two more things are worth a line, after what is overdue or due. A '
+      'note with no reminder whose text names a day or a time that is still '
+      'ahead — "tomorrow", "on the 14th", "Friday at 5" — counted from when '
+      'the note was written, not from today: say what it is and suggest a '
+      'reminder for it. And what they were in the middle of: if a note from '
+      'today or yesterday is a plan, an idea or a half-made list, say where '
+      'they left off. A note that is only a record — a saved link, a '
+      'receipt, a quote — is not worth a line by itself. '
       'Fewer lines when there is less: if only one thing is waiting, answer '
       'with one line. Never pad to the limit, and never manufacture an '
       'observation to fill one — if nothing about the set is worth saying, '
@@ -1253,6 +1310,7 @@ class CloudAIAdapter implements AIAdapter {
     required String instruction,
     required String written,
     required int lines,
+    required String today,
     Duration? timeout,
   }) async {
     // Under a custom instruction the user's sentence is the whole brief, so
@@ -1294,6 +1352,8 @@ class CloudAIAdapter implements AIAdapter {
       'written as `when | kind | text`. A line starting DUE carries a '
       'reminder — "DUE in 6h", "DUE overdue 2d". On a checklist, "3/5 left" '
       'means three of its five items are still unticked. '
+      '$_briefTagsKey '
+      '$today '
       '${written.trim().isEmpty ? '' : 'These lines are already written and '
                 'will be shown to the reader above yours. Do not repeat them and '
                 'do not restate what they say:\n$written\n'}'

@@ -27,8 +27,19 @@ import '../models/note.dart';
 /// twenty newest" is the wrong twenty for a recap whose job is to say what is
 /// waiting: a reminder set last month for tomorrow morning is the single most
 /// worth mentioning thing in the library and would never have been in it.
+///
+/// But not *only* what is waiting. With enough reminders and open lists the
+/// waiting kind filled every line, and what somebody wrote this morning —
+/// a plan, an idea, a date mentioned in passing with no reminder on it —
+/// never reached the recap at all. So a share of the lines, a quarter, is
+/// kept for notes of the last [recentWindow] that nobody is waiting on.
+///
+/// A note's tags ride in the middle column as `#name`: they say what a note
+/// is about in the words its writer chose, which is what lets the recap say
+/// "three things left for the trip" rather than list them one by one.
 String nexRecapSource(
   List<Note> notes, {
+
   /// The recurring obligations — the insurance, the rent, the tablet — that
   /// are not notes and are not on the timeline, but are exactly the sort of
   /// thing a brief exists to raise.
@@ -49,10 +60,16 @@ String nexRecapSource(
   /// Per note. A long note would otherwise take the budget the other
   /// nineteen were meant to share.
   int maxTextLength = 160,
+
+  /// How recent a note has to be to have a line kept for it.
+  Duration recentWindow = const Duration(hours: 48),
 }) {
   final local = now ?? DateTime.now();
   final at = local.toUtc();
-  final live = [for (final note in notes) if (note.deletedAt == null) note];
+  final live = [
+    for (final note in notes)
+      if (note.deletedAt == null) note,
+  ];
 
   bool waiting(Note note) {
     final due = note.dueAt;
@@ -67,8 +84,10 @@ String nexRecapSource(
   // ordered by different things — the due ones by when they are due, the rest
   // by when they were written — and a single comparator that tries to say
   // that is a comparator nobody can read.
-  final due = [for (final note in live) if (waiting(note)) note]
-    ..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
+  final due = [
+    for (final note in live)
+      if (waiting(note)) note,
+  ]..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
   final open = [
     for (final note in live)
       if (!waiting(note) && unfinished(note)) note,
@@ -78,7 +97,7 @@ String nexRecapSource(
       if (!waiting(note) && !unfinished(note)) note,
   ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
-  final lines = <String>[];
+  final pressing = <String>[];
   // Commitments first, unconditionally. Every one that reaches this point is
   // already past its lead time — that is what put it here — so it is by
   // construction more pressing than a note somebody wrote on Tuesday. They
@@ -89,18 +108,47 @@ String nexRecapSource(
       if (commitment.isWaiting(local)) commitment,
   ]..sort((a, b) => a.dueAt.compareTo(b.dueAt));
   for (final commitment in waitingNow) {
-    if (lines.length >= limit) break;
-    lines.add(_commitmentLine(commitment, local));
+    pressing.add(_commitmentLine(commitment, local));
   }
 
-  for (final note in [...due, ...open, ...rest]) {
-    if (lines.length >= limit) break;
+  String? line(Note note) {
     final text = _oneLine(note.displayText, maxTextLength);
-    if (text.isEmpty) continue;
+    if (text.isEmpty) return null;
     final when = _when(note, at, due: waiting(note));
-    lines.add('$when | ${_kind(note)} | $text');
+    return '$when | ${_kind(note)}${_tags(note)} | $text';
   }
-  return lines.join('\n');
+
+  for (final note in [...due, ...open]) {
+    if (line(note) case final text?) pressing.add(text);
+  }
+  final others = [
+    for (final note in rest)
+      if (line(note) case final text?) (text, note),
+  ];
+  // The lines kept back for what was just written: never more than there
+  // are recent notes to fill them, and never more than a quarter, so a
+  // morning with a dozen things overdue still leads with them.
+  final recent = others
+      .where(
+        (entry) => at.difference(entry.$2.updatedAt.toUtc()) < recentWindow,
+      )
+      .length;
+  final kept = recent.clamp(0, limit ~/ 4);
+  final lines = [
+    ...pressing.take((limit - kept).clamp(0, limit)),
+    for (final entry in others) entry.$1,
+  ];
+  return lines.take(limit).join('\n');
+}
+
+/// The note's tags, as ` #name` each, after the kind. Spaces inside a name
+/// become underscores so that one tag reads as one word.
+String _tags(Note note) {
+  if (note.tags.isEmpty) return '';
+  return [
+    for (final tag in note.tags.take(3))
+      ' #${tag.name.trim().replaceAll(RegExp(r'\s+'), '_')}',
+  ].join();
 }
 
 /// One commitment, in the same three-column shape the notes use.

@@ -138,6 +138,44 @@ Future<String> nexCycleSummaryForAssistant({
   return out.toString().trim();
 }
 
+/// A lookup turn already in a conversation, with its «Cycle» part replaced
+/// by [current] — the summary as the setting stands now.
+///
+/// A lookup is answered once and then stays in the history, and the model
+/// reads that history rather than asking again. So "not shared", read
+/// before the person turned sharing on, kept the assistant saying it could
+/// not see «Cycle» until a new chat was started; and a summary read before
+/// sharing was turned off kept going to the provider with every message
+/// after. Rewritten on the way out, the conversation says what is true now
+/// in both directions.
+///
+/// The part runs from its first line to the next lookup's heading or the
+/// end of the turn. Turns with no «Cycle» part come back unchanged.
+String nexCycleFindingsAsOfNow(String findings, String current) {
+  bool startsCycle(String line) =>
+      line.startsWith('Cycle: not shared') ||
+      line.startsWith('Cycle (') ||
+      line.startsWith('Cycle: (could not be read)');
+  bool startsOther(String line) =>
+      line.startsWith('Threads:') ||
+      line.startsWith('Notes with ') ||
+      line.startsWith('Results for "') ||
+      line == 'NOTES>>>';
+  final out = <String>[];
+  var inCycle = false;
+  for (final line in findings.split('\n')) {
+    if (startsCycle(line)) {
+      inCycle = true;
+      out.add(current);
+      continue;
+    }
+    if (inCycle && !startsOther(line)) continue;
+    inCycle = false;
+    out.add(line);
+  }
+  return out.join('\n');
+}
+
 /// Whether today is one of the days "Gentle companion" is for.
 ///
 /// False unless the person turned it on (and «Cycle» is on and set up).

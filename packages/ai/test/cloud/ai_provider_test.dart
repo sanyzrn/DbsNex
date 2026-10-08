@@ -1070,6 +1070,44 @@ void _recapGroup() {
       expect(prompt, contains('never manufacture an observation'));
     });
 
+    test('it is told the date, what tags mean, and what else is worth a '
+        'line', () async {
+      // What the lines kept for recent notes are for: a date mentioned in a
+      // note with no reminder on it, and what somebody was in the middle of.
+      // "Tomorrow" in a note written two days ago only reads right with
+      // today's date beside it.
+      late http.Request seen;
+      await adapter('⏰ a line', onSend: (r) => seen = r).digest(
+        'today | text #trip | book the hall on the 14th',
+        lines: 3,
+        now: DateTime(2026, 10, 8, 9),
+      );
+
+      final prompt = jsonEncode(
+        (jsonDecode(seen.body) as Map<String, dynamic>)['messages'],
+      );
+      expect(prompt, contains('Today is Thursday, 8 October 2026.'));
+      expect(prompt, contains('is a tag the person gave that note'));
+      expect(prompt, contains('suggest a reminder for it'));
+      expect(prompt, contains('say where they left off'));
+      expect(prompt, contains('is not worth a line by itself'));
+    });
+
+    test('the styles that write their own facts get the same key', () async {
+      late http.Request seen;
+      await adapter('💡 a line', onSend: (r) => seen = r).digest(
+        'today | text #trip | book the hall on the 14th',
+        style: NexBriefStyle.planner,
+        now: DateTime(2026, 10, 8, 9),
+      );
+
+      final prompt = jsonEncode(
+        (jsonDecode(seen.body) as Map<String, dynamic>)['messages'],
+      );
+      expect(prompt, contains('Today is Thursday, 8 October 2026.'));
+      expect(prompt, contains('is a tag the person gave that note'));
+    });
+
     test('a reply over the line count is cut to it', () async {
       // Models treat "at most" as a suggestion, which is why the number is
       // enforced on the way out as well as asked for on the way in.
