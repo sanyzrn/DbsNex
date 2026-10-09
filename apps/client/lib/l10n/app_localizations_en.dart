@@ -3414,6 +3414,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatLookedNotes => 'Read the notes asked about';
 
   @override
+  String get searchModelTitle => 'On-device search';
+
+  @override
+  String get searchModelExplained =>
+      'EmbeddingGemma 2 lets Nex find notes by what they mean, right on this phone — in search, in related notes, and when the assistant looks something up. It does not chat or write anything; it only finds. Nothing you write is sent anywhere for it, and it works with no internet.';
+
+  @override
+  String get searchModelReady =>
+      'On-device search is ready. Your notes are being prepared for it in the background.';
+
+  @override
+  String get searchModelDeleteBody =>
+      'Search by meaning goes back to your AI provider, if it offers it. Your notes are not affected.';
+
+  @override
+  String get searchModelRowOn => 'On — finds notes by meaning on this phone';
+
+  @override
+  String get searchModelRowOff => 'Find notes by meaning with no internet';
+
+  @override
   String get remindTitle => 'Set a reminder';
 
   @override

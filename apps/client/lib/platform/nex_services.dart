@@ -30,6 +30,7 @@ import 'media_picker_impl.dart';
 import 'crash_reporter.dart';
 import 'nex_preferences.dart';
 import 'profile_photo.dart';
+import 'local_ai_support.dart';
 import 'model_store.dart';
 import 'reminders.dart';
 
@@ -307,12 +308,52 @@ class NexServices {
         'outputLanguage': preferences.aiOutputLanguage.wireName,
       }),
     );
+    // After the provider, so that the search model, when there is one, has
+    // the last word on which vector space the library is in.
+    final searchModel = activeSearchModel(preferences);
+    unawaited(worker.setLocalEmbedder(searchModel));
     // Turning it on has to mean something for the notes that are already here.
     // Enrichment is a capture-time step, so without this the layer would only
     // ever read notes captured after the moment it was configured — and every
     // recording made before that would stay untranscribed for good.
     if (ai.isUsable) unawaited(backfillEnrichment());
+    if (searchModel != null) unawaited(embedLibrary());
   }
+
+  /// The on-device search model's file, when it is installed in a build that
+  /// can run it; null otherwise. Checked against the disk, not only the
+  /// preference: a model deleted by hand, or lost with a cleared app, must
+  /// hand search back to the provider rather than fail every query.
+  static String? activeSearchModel(NexPreferences preferences) {
+    if (!LocalAi.flavorSupportsLocalModels) return null;
+    final path = preferences.searchModelPath;
+    if (path == null || !File(path).existsSync()) return null;
+    return path;
+  }
+
+  Future<void>? _embeddingLibrary;
+
+  /// Gives every note a vector, in rounds, until none is left without one.
+  ///
+  /// A new vector space starts empty — the search model taking over throws
+  /// the provider's vectors away — and the ordinary backfill takes 25 notes
+  /// per call, which left a library mostly unsearchable until enough
+  /// launches had happened. On the phone each note costs milliseconds, so
+  /// this simply keeps going. One run at a time, however often it is asked.
+  Future<void> embedLibrary() => _embeddingLibrary ??= () async {
+    try {
+      // A bound, not an expectation: 400 rounds is 10,000 notes.
+      for (var round = 0; round < 400 && !_closed; round++) {
+        final done = await worker.backfillEmbeddings(limit: 25);
+        if (done == 0) break;
+      }
+    } catch (_) {
+      // The notes are untouched; they are found by their words until the
+      // next launch tries again.
+    } finally {
+      _embeddingLibrary = null;
+    }
+  }();
 
   /// Fire-and-forget post-capture enrichment — never awaited by capture UI.
   void scheduleEnrichment(String noteId) {

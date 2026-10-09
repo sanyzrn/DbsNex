@@ -6,10 +6,12 @@ import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:nex_ai/cloud.dart';
+import '../platform/local_ai_support.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../widgets/nex_banner.dart';
 import 'ai_provider_screen.dart';
+import 'local_model_screen.dart';
 
 /// Everything the intelligence layer can do, behind one switch.
 ///
@@ -104,6 +106,10 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
     final enabled = _prefs.aiEnabled;
     final provider = _prefs.aiProvider.provider;
     final capabilities = _prefs.aiCapabilities;
+    // The on-device search model makes these two work whatever the provider
+    // is, and with none at all.
+    final searchModel = NexServices.activeSearchModel(_prefs) != null;
+    final embeds = provider.embeds || searchModel;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.intelligence)),
       body: ListView(
@@ -200,7 +206,7 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
               title: l10n.semanticSearch,
               subtitle: l10n.semanticSearchSubtitle,
               value: capabilities.semanticSearch,
-              supported: provider.embeds,
+              supported: embeds,
               onChanged: (value) => unawaited(
                 _setCapabilities(capabilities.copyWith(semanticSearch: value)),
               ),
@@ -210,11 +216,36 @@ class _IntelligenceScreenState extends State<IntelligenceScreen> {
               title: l10n.relatedNotes,
               subtitle: l10n.relatedNotesSubtitle,
               value: capabilities.relatedNotes,
-              supported: provider.embeds,
+              supported: embeds,
               onChanged: (value) => unawaited(
                 _setCapabilities(capabilities.copyWith(relatedNotes: value)),
               ),
             ),
+            // Only in the build that can run a model on the phone.
+            if (LocalAi.flavorSupportsLocalModels)
+              ListTile(
+                key: const ValueKey('search-model-row'),
+                leading: const Icon(Icons.manage_search),
+                title: Text(l10n.searchModelTitle),
+                subtitle: Text(
+                  searchModel ? l10n.searchModelRowOn : l10n.searchModelRowOff,
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    NexPageRoute<void>(
+                      builder: (_) => LocalModelScreen(
+                        preferences: _prefs,
+                        search: true,
+                        onSearchModelChanged: () =>
+                            widget.services.applyAiPreferences(_prefs),
+                      ),
+                    ),
+                  );
+                  if (mounted) setState(() {});
+                },
+              ),
             const Divider(),
             _Heading(l10n.catchUpTitle),
             Padding(

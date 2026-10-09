@@ -63,6 +63,7 @@ export 'ai/chat_adapter_binding.dart';
 export 'ai/chat_scope_policy.dart';
 export 'ai/entitlement.dart';
 export 'ai/enrichment_service.dart';
+export 'ai/note_embedder.dart';
 export 'ai/import/context_import_draft.dart';
 export 'ai/on_device_ai_adapter.dart';
 export 'ai/recap_brief.dart';

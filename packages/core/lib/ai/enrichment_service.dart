@@ -6,6 +6,7 @@ import '../ports/note_repository.dart';
 
 import 'ai_adapter.dart';
 import 'ai_capabilities.dart';
+import 'note_embedder.dart';
 
 /// Post-capture enrichment orchestrator (09-ai.md).
 ///
@@ -29,6 +30,17 @@ class EnrichmentService {
     _queryVectors.clear();
   }
 
+  /// The model every vector comes from while one is set, in place of the
+  /// provider's — see [NoteEmbedder]. Null hands embedding back to the
+  /// adapter.
+  NoteEmbedder? _embedder;
+
+  void updateEmbedder(NoteEmbedder? embedder) {
+    _embedder = embedder;
+    // Its own space, so the cached query vectors are from another one.
+    _queryVectors.clear();
+  }
+
   /// The last few queries' embeddings. A search runs as the reader types and
   /// again when they refine it; asking the provider for "boiler" three times
   /// in a row would spend a request, and its latency, to learn nothing new.
@@ -38,9 +50,14 @@ class EnrichmentService {
   Future<List<double>?> _queryVector(String query) async {
     final cached = _queryVectors.remove(query);
     if (cached != null) return _queryVectors[query] = cached;
-    final call = _adapter.embed(query);
-    if (call == null) return null;
-    final vector = (await call).values;
+    final List<double> vector;
+    if (_embedder case final embedder?) {
+      vector = await embedder.embedQuery(query);
+    } else {
+      final call = _adapter.embed(query);
+      if (call == null) return null;
+      vector = (await call).values;
+    }
     if (vector.isEmpty) return null;
     _queryVectors[query] = vector;
     while (_queryVectors.length > _queryVectorCache) {
@@ -138,6 +155,13 @@ class EnrichmentService {
   /// a dead key or an exhausted quota answers every remaining note the same
   /// way, and spending the quota to find that out twenty-five times is worse
   /// than stopping.
+  /// Embeds up to [limit] notes that have no vector yet, and nothing else —
+  /// no transcripts, no text read out of photos. What a new vector space
+  /// needs: the on-device search model taking over throws every vector away,
+  /// and only these have to come back.
+  Future<int> backfillEmbeddings({int limit = 25}) =>
+      _backfillEmbeddings(limit: limit);
+
   Future<int> _backfillEmbeddings({required int limit}) async {
     if (!_capabilities.semanticSearch && !_capabilities.relatedNotes) return 0;
     var done = 0;
@@ -293,13 +317,18 @@ class EnrichmentService {
   Future<void> _embed(Note note) async {
     final text = _searchableText(note);
     if (text.trim().isEmpty) return;
-    final call = _adapter.embed(text);
-    if (call == null) return;
     // A failure propagates without writing a row: the note stays in the
     // embedding backlog and is retried. Storing an empty vector on failure
     // is how one rate-limited request made a note permanently invisible to
     // semantic search — and to related notes — forever.
-    final vector = await call;
+    final Vector vector;
+    if (_embedder case final embedder?) {
+      vector = Vector(await embedder.embedDocument(text));
+    } else {
+      final call = _adapter.embed(text);
+      if (call == null) return;
+      vector = await call;
+    }
     if (vector.values.isNotEmpty) {
       _repo.setEmbedding(note.id, vector.values);
     } else {

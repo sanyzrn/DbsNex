@@ -2432,6 +2432,18 @@
   "chatLookedCycle": "Read your Cycle summary",
   "chatLookedThreads": "Looked at your threads",
   "chatLookedNotes": "Read the notes asked about",
+  "searchModelTitle": "On-device search",
+  "@searchModelTitle": {"description": "Title of the on-device search model screen and its row in the intelligence settings."},
+  "searchModelExplained": "EmbeddingGemma 2 lets Nex find notes by what they mean, right on this phone — in search, in related notes, and when the assistant looks something up. It does not chat or write anything; it only finds. Nothing you write is sent anywhere for it, and it works with no internet.",
+  "@searchModelExplained": {"description": "What the on-device search model is and is not, at the top of its screen."},
+  "searchModelReady": "On-device search is ready. Your notes are being prepared for it in the background.",
+  "@searchModelReady": {"description": "Banner after the search model installed and ran."},
+  "searchModelDeleteBody": "Search by meaning goes back to your AI provider, if it offers it. Your notes are not affected.",
+  "@searchModelDeleteBody": {"description": "Body of the dialog confirming removal of the search model."},
+  "searchModelRowOn": "On — finds notes by meaning on this phone",
+  "@searchModelRowOn": {"description": "Subtitle of the on-device search row when the model is in use."},
+  "searchModelRowOff": "Find notes by meaning with no internet",
+  "@searchModelRowOff": {"description": "Subtitle of the on-device search row when the model is not installed."},
   "remindTitle": "Set a reminder",
   "@remindTitle": {
       "description": "Heading of the reminder sheet"

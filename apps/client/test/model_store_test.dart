@@ -395,7 +395,7 @@ void main() {
       // 1.99.0: MiniCPM's one part was called exactly what the finished
       // model is called, so joining "deleted the part" — the model — the
       // moment the install finished. The install looked done and never was.
-      for (final model in NexModels.all) {
+      for (final model in [...NexModels.all, ...NexModels.search]) {
         for (final part in model.parts) {
           expect(part.filename, isNot(model.filename), reason: model.id);
           expect(part.filename, isNot('${model.filename}.part'));
@@ -468,6 +468,63 @@ void main() {
       ).writeAsBytesSync(partA);
       await store.sweep();
       expect(store.partialBytes(NexModels.miniCpm5_2B), partA.length);
+    });
+  });
+
+  group('the search model', () {
+    test('is installable, and never offered as a chat model', () {
+      const model = NexModels.embeddingGemma2Text;
+      expect(NexModelStore.installable(model), isTrue);
+      expect(model.sha256, matches(RegExp(r'^[0-9a-f]{64}$')));
+      // Picked for chat it would have nothing to say: an embedding model
+      // turns text into numbers and writes no reply.
+      expect(NexModels.all, isNot(contains(model)));
+      expect(NexModels.byId(model.id), isNull);
+      expect(NexModels.ownerOf(model.id), model);
+    });
+
+    test('a sweep keeps it — it is not an orphan', () async {
+      // Sweeping by the chat list alone deleted the search model's folder
+      // the first time the model screen opened after installing it.
+      final store = storeWith(server());
+      addTearDown(store.close);
+      const model = NexModels.embeddingGemma2Text;
+      final file = store.fileFor(model)..createSync(recursive: true);
+      file.writeAsBytesSync(whole);
+
+      await store.sweep();
+
+      expect(file.existsSync(), isTrue);
+      expect(store.isInstalled(model), isTrue);
+    });
+
+    test('it installs from its one part and leaves one file', () async {
+      final model = ModelRelease(
+        id: NexModels.embeddingGemma2Text.id,
+        name: NexModels.embeddingGemma2Text.name,
+        filename: NexModels.embeddingGemma2Text.filename,
+        sizeBytes: whole.length,
+        licenseUrl: NexModels.embeddingGemma2Text.licenseUrl,
+        licenseNotice: NexModels.embeddingGemma2Text.licenseNotice,
+        sha256: digestOf(whole),
+        parts: [
+          ModelPart(
+            url: 'https://example.invalid/embeddinggemma.litertlm',
+            filename: NexModels.embeddingGemma2Text.parts.single.filename,
+            sha256: digestOf(whole),
+          ),
+        ],
+      );
+      final store = storeWith(
+        MockClient((request) async => http.Response.bytes(whole, 200)),
+      );
+      addTearDown(store.close);
+
+      final file = await store.install(model);
+      await store.sweep();
+
+      expect(file.readAsBytesSync(), whole);
+      expect(file.parent.listSync().whereType<File>().toList(), hasLength(1));
     });
   });
 }

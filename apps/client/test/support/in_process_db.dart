@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:nex_ai/cloud.dart';
+import 'package:nex_client/platform/local_embedder.dart';
 import 'package:nex_client/platform/nex_db.dart';
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
@@ -454,6 +455,10 @@ class InProcessDb implements NexDb {
   Future<int> backfillEnrichment({int limit = 25}) =>
       _enrichment.backfill(limit: limit);
 
+  @override
+  Future<int> backfillEmbeddings({int limit = 25}) =>
+      _enrichment.backfillEmbeddings(limit: limit);
+
   /// Writes a derived field the way a finished enrichment pass would.
   ///
   /// Test-only, and not on [NexDb]: the app has no reason to set a transcript
@@ -518,6 +523,17 @@ class InProcessDb implements NexDb {
       resolved.isUsable
           ? CloudAIAdapter(config: resolved)
           : const OnDeviceAIAdapter(),
+    );
+  }
+
+  /// The search model's path as last set, for a test to read back.
+  String? localEmbedderPath;
+
+  @override
+  Future<void> setLocalEmbedder(String? modelPath) async {
+    localEmbedderPath = modelPath;
+    _enrichment.updateEmbedder(
+      modelPath == null ? null : NexLocalEmbedder(modelPath),
     );
   }
 

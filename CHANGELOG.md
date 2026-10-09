@@ -34,6 +34,10 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.3
+
+- **Search by meaning, right on your phone.** A new on-device search model, **EmbeddingGemma 2** (about 160 MB), is in **Settings → Intelligence → On-device search**. Once downloaded, Nex finds notes by what they mean with no internet and no AI provider: in search, in related notes, and when the assistant looks for the notes that answer your question — so the on-device assistant finds the right note even when you ask in different words. Nothing you write is sent anywhere for it. It only finds; it does not chat, so it sits beside the assistant's models rather than among them. Your notes are prepared for it in the background after it is installed.
+
 ## v1.99.2
 
 - **The smart summary reads what you just wrote.** Reminders and open lists used to take every line, so a note from this morning without a reminder never made it in. A share of the summary is now kept for the last two days' notes: it says where you left off, and when a note mentions a day or time — "tomorrow", "on the 14th" — with no reminder set, it suggests one. Your tags are read too, so related things are said together ("three things left for the trip"), and a note that is only a record, like a saved link or a receipt, is not mentioned on its own.

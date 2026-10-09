@@ -37,6 +37,40 @@ void main() {
     expect(find.byIcon(Icons.info_outline), findsOneWidget);
   });
 
+  testWidgets('the search model has its own screen, with no chat picker', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: LocalModelScreen(preferences: preferences, search: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(LocalModelScreen)),
+    );
+
+    expect(find.text(l10n.searchModelTitle), findsOneWidget);
+    expect(find.text(l10n.searchModelExplained), findsOneWidget);
+    // It is not one of the models the assistant can answer with.
+    expect(find.text(l10n.localModelChoose), findsNothing);
+    for (final model in NexModels.all) {
+      expect(find.byKey(ValueKey('local-model-${model.id}')), findsNothing);
+    }
+  });
+
+  test('the search model is used only once it is shown to run', () async {
+    // Remembered by the screen after the model answered its check; until
+    // then nothing points the library's vectors at it.
+    expect(preferences.searchModelPath, isNull);
+    await preferences.setSearchModelPath('/models/eg2.litertlm');
+    expect(preferences.searchModelPath, '/models/eg2.litertlm');
+    await preferences.setSearchModelPath(null);
+    expect(preferences.searchModelPath, isNull);
+  });
+
   group('the licence record', () {
     test('starts unaccepted and is remembered once given', () async {
       expect(preferences.acceptedModelLicense(NexModels.gemma4E2B.id), isFalse);

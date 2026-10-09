@@ -158,4 +158,11 @@ dependencies {
     // Pinned rather than floating for the same reason it matters at all:
     // this decides which JDK APIs exist at runtime on old devices.
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    // The search model's runtime (NexEmbedder.kt). Declared here rather than
+    // reached through the chat plugin, so this module's own code compiles
+    // whatever happens to that plugin; the version is the root build's, the
+    // one every module is held to.
+    implementation(
+        "com.google.ai.edge.litertlm:litertlm-android:${rootProject.extra["litertlmVersion"]}",
+    )
 }

@@ -88,6 +88,11 @@ class ModelInstallController extends ChangeNotifier {
     NexModelStore store,
     ModelRelease model, {
     String? noticeTitle,
+
+    /// What proves the model runs once it is on the phone. The chat
+    /// runtime's warm-up when null; the search model passes its own, since
+    /// the chat runtime would try to load it as a model that talks.
+    Future<void> Function()? warmUp,
   }) async {
     if (isRunning) return;
     _model = model;
@@ -111,7 +116,7 @@ class ModelInstallController extends ChangeNotifier {
           notifyListeners();
         },
       );
-      await _warmUp();
+      await _warmUp(warmUp);
       // Anything the install left beside the model, gone now it is in place.
       await store.sweep();
       _set(ModelInstallPhase.installed);
@@ -159,8 +164,8 @@ class ModelInstallController extends ChangeNotifier {
   /// Best-effort: a runtime that cannot load here will fail the same way on
   /// the first message, where there is already a place to say so. The install
   /// itself succeeded either way — the file is on disk and verified.
-  Future<void> _warmUp() async {
-    final pending = ChatAdapterBinding.instance.warmUp();
+  Future<void> _warmUp(Future<void> Function()? own) async {
+    final pending = own != null ? own() : ChatAdapterBinding.instance.warmUp();
     if (pending == null) return;
     _set(ModelInstallPhase.loading);
     try {
