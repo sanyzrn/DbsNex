@@ -33,7 +33,8 @@ class DownloadService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val title = intent?.getStringExtra(EXTRA_TITLE).orEmpty().ifEmpty { "Nex" }
         val percent = intent?.getIntExtra(EXTRA_PERCENT, 0) ?: 0
-        val notification = build(this, title, percent)
+        val body = intent?.getStringExtra(EXTRA_BODY)
+        val notification = build(this, title, percent, body)
         // The type is declared in the manifest as well; API 34 wants it named
         // at the call too, or it refuses to start the service at all.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -47,6 +48,18 @@ class DownloadService : Service() {
         // put a progress bar on screen for a transfer that is not running.
         // Coming back to the app resumes it from the `.part` on disk instead.
         return START_NOT_STICKY
+    }
+
+    /**
+     * Android 15 gives a `dataSync` service six hours a day (REL-06). When
+     * they run out the service has to stop at once or the app is killed; the
+     * transfer stops with it and resumes from its `.part` file the next time
+     * Nex is opened, as after any other interruption.
+     */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        running = false
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     override fun onDestroy() {
@@ -81,17 +94,23 @@ class DownloadService : Service() {
 
         const val EXTRA_TITLE = "title"
         const val EXTRA_PERCENT = "percent"
+        const val EXTRA_BODY = "body"
 
         /** Rewrites the notification of a service that is already running. */
-        fun update(context: Context, title: String, percent: Int) {
-            manager(context).notify(ID, build(context, title, percent))
+        fun update(context: Context, title: String, percent: Int, body: String? = null) {
+            manager(context).notify(ID, build(context, title, percent, body))
         }
 
         private fun manager(context: Context): NotificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         @Suppress("DEPRECATION")
-        private fun build(context: Context, title: String, percent: Int): Notification {
+        private fun build(
+            context: Context,
+            title: String,
+            percent: Int,
+            body: String? = null,
+        ): Notification {
             val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 // Created here rather than left to whichever half posts first:
                 // this service can be the first thing to use the channel on a
@@ -121,7 +140,7 @@ class DownloadService : Service() {
             return builder
                 .setSmallIcon(R.drawable.ic_stat_nex)
                 .setContentTitle(title)
-                .setContentText("$percent%")
+                .setContentText(body ?: "$percent%")
                 .setProgress(100, percent.coerceIn(0, 100), false)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)

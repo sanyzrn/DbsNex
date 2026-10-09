@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/reminders.dart';
 import 'package:nex_client/screens/cycle/cycle_report_screen.dart';
@@ -103,6 +104,25 @@ void main() {
     await scrollTo(tester, find.text('29 days'));
     expect(find.text('29 days'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a calendar day says what it is, and opens with TalkBack '
+      '(LOC-02, LOC-13)', (tester) async {
+    final semantics = tester.ensureSemantics();
+    final harness = await openCycle(
+      tester,
+      preferences: {'cycle.set_up': true},
+    );
+    final start = today().subtract(const Duration(days: 2));
+    final p = await harness.services.cycleStartPeriod(start);
+    await harness.services.cycleEndPeriod(p.id, today());
+    await reopen(tester);
+
+    final days = find.bySemanticsLabel(RegExp(r', today, Period$'));
+    await scrollTo(tester, days.first);
+    final node = tester.getSemantics(days.first);
+    expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+    semantics.dispose();
   });
 
   testWidgets("today's log is saved and summarised", (tester) async {

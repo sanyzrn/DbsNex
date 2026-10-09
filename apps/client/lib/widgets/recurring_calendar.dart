@@ -315,6 +315,9 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
       excludeSemantics: true,
       selected: isSelected,
       label: '${_digits(_dayNumber(day))}, ${_digits(count)}',
+      // The action on the node itself (LOC-03): the excluded subtree took
+      // the InkWell's with it.
+      onTap: () => setState(() => _selected = day),
       child: InkWell(
         borderRadius: BorderRadius.circular(NexRadius.md),
         onTap: () => setState(() => _selected = day),

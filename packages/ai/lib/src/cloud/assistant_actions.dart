@@ -449,11 +449,39 @@ a question, answer normally with no block.''';
 /// `[nex]` inside the fence, or on a line of its own above an untagged one —
 /// and that block then appeared in the chat as raw JSON. Both still name the
 /// protocol, so both count; an untagged fence alone still does not.
+///
+/// Two of those shapes are also how a quote looks (AI-02): a `json` fence,
+/// and a `[nex]` label over an untagged one. They count only when nothing
+/// follows them. A model asking for an action ends its reply with the block
+/// ("Sure, here you go:" before it is common); a quoted note is shown and
+/// then talked about. `nex` in the fence counts wherever it is.
 final _blockPattern = RegExp(
-  r'(?:\[nex\][ \t]*\r?\n\s*```[^\n]*|```[ \t]*\[?(?:nex|json)\]?[ \t]*)\r?\n(.*?)```',
+  r'```[ \t]*\[?nex\]?[ \t]*\r?\n(.*?)```',
   dotAll: true,
   caseSensitive: false,
 );
+
+final _looseBlockPattern = RegExp(
+  r'(?:\[nex\][ \t]*\r?\n\s*```[^\n]*|```[ \t]*json[ \t]*)\r?\n(.*?)```',
+  dotAll: true,
+  caseSensitive: false,
+);
+
+/// [_looseBlockPattern]'s blocks, when nothing but them ends the reply.
+Iterable<RegExpMatch> _looseBlocks(String reply) {
+  final matches = _looseBlockPattern.allMatches(reply).toList();
+  if (matches.isEmpty) return const [];
+  final after = reply.substring(matches.last.end);
+  final between = [
+    for (var i = 1; i < matches.length; i++)
+      reply.substring(matches[i - 1].end, matches[i].start),
+  ];
+  final quiet = [
+    after,
+    ...between,
+  ].every((text) => _withoutStrayMarks(text).isEmpty);
+  return quiet ? matches : const [];
+}
 
 /// Any fenced block, tagged or not: quoted material, never read for bare
 /// action objects.
@@ -478,6 +506,7 @@ AssistantAction? parseAssistantAction(String reply) {
 List<AssistantAction> parseAssistantActions(String reply) {
   final bodies = [
     for (final match in _blockPattern.allMatches(reply)) match.group(1)!.trim(),
+    for (final match in _looseBlocks(reply)) match.group(1)!.trim(),
   ];
   // A reply with no fence at all. Models do this when the prompt has been in
   // context a while, and refusing it would mean the feature works for the
@@ -920,5 +949,32 @@ List<String> _strings(Object? value) {
 ///
 /// Used when a reply carries both, which the prompt forbids and models do
 /// anyway. The prose is worth showing; the JSON never is.
-String withoutActionBlock(String reply) =>
-    reply.replaceAll(_blockPattern, '').trim();
+String withoutActionBlock(String reply) {
+  final loose = _looseBlocks(reply).isNotEmpty;
+  final stripped = loose
+      ? reply.replaceAll(_blockPattern, '').replaceAll(_looseBlockPattern, '')
+      : reply.replaceAll(_blockPattern, '');
+  if (stripped.length != reply.length) return _withoutStrayMarks(stripped);
+  // No fence: the parser read bare objects out of the prose, so those are
+  // what come out of it (AI-01) — only the ones that are actions, so JSON a
+  // reply is genuinely about stays. Shown otherwise, the user got the
+  // protocol in the bubble and a confirmation card for it underneath.
+  var out = reply;
+  for (final object in _objectsIn(reply.replaceAll(_anyFence, ''))) {
+    if (parseAssistantActions(object).isNotEmpty) {
+      out = out.replaceFirst(object, '');
+    }
+  }
+  return out.length == reply.length ? reply.trim() : _withoutStrayMarks(out);
+}
+
+/// What a small model leaves around a block it wrote loosely: a `[nex]`
+/// label on a line of its own, a lone closing brace.
+String _withoutStrayMarks(String text) => text
+    .split('\n')
+    .where((line) {
+      final t = line.trim().toLowerCase();
+      return t != '[nex]' && t != 'nex' && t != '}';
+    })
+    .join('\n')
+    .trim();

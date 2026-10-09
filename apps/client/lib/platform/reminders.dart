@@ -717,6 +717,7 @@ class NexReminders {
   Future<void> showDownloadProgress({
     required String title,
     required int percent,
+    String? body,
   }) async {
     if (!supported) return;
     await initialise();
@@ -724,7 +725,7 @@ class NexReminders {
       await _plugin.show(
         id: _updateId,
         title: title,
-        body: '$percent%',
+        body: body ?? '$percent%',
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _updateChannelId,

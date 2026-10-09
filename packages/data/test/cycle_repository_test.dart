@@ -39,6 +39,30 @@ void main() {
     expect(cycle.periods(), isEmpty);
   });
 
+  test('an edit that would overlap another period is refused (DATA-10)', () {
+    final first = cycle.startPeriod(DateTime(2026, 8, 1));
+    cycle.endPeriod(first.id, DateTime(2026, 8, 5));
+    final second = cycle.startPeriod(DateTime(2026, 8, 29));
+    cycle.endPeriod(second.id, DateTime(2026, 9, 2));
+
+    expect(
+      () => cycle.updatePeriod(
+        second.id,
+        DateTime(2026, 8, 3),
+        DateTime(2026, 8, 7),
+      ),
+      throwsStateError,
+    );
+    expect(cycle.periods().map((p) => '${p.start}'), [
+      '2026-08-01',
+      '2026-08-29',
+    ]);
+
+    // Next to it, not on it, is fine.
+    cycle.updatePeriod(second.id, DateTime(2026, 8, 6), DateTime(2026, 8, 9));
+    expect('${cycle.periods().last.start}', '2026-08-06');
+  });
+
   test('"started" twice, or a day late, is still one period', () {
     final first = cycle.startPeriod(DateTime(2026, 10, 1));
     expect(cycle.startPeriod(DateTime(2026, 10, 1)).id, first.id);

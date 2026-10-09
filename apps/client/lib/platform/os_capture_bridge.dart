@@ -419,6 +419,9 @@ class OsCaptureBridge {
         if (note?.type == NoteType.link && note?.linkUrl != null) {
           unawaited(_readSharedLink(note!.id, note.linkUrl!));
         }
+        // Read like a note typed in (AI-11): a shared note was found by
+        // meaning only after the next launch's backfill.
+        if (note != null) services.scheduleEnrichment(note.id);
       case 'shared_photo':
       case 'shared_file':
         final file = await _fetch(payload);
@@ -441,6 +444,7 @@ class OsCaptureBridge {
             'mimeType': payload['mimeType'] as String,
         });
         if (note?.mediaUri != dest) await File(dest).delete();
+        if (note != null) services.scheduleEnrichment(note.id);
         // A desktop picker hands us the original, not a disposable cache copy.
         // Durable share-inbox files belong to native ackPending, which runs
         // only after the committed receipt. Picker/cache files are disposable.

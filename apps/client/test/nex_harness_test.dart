@@ -39,4 +39,30 @@ void main() {
     addTearDown(harness.dispose);
     expect(harness.services.solarCalendar, isTrue);
   });
+
+  test(
+    'Persian gets the solar calendar until it is turned off (LOC-11)',
+    () async {
+      final fa = await NexTestHarness.create(
+        preferences: {'appearance.locale': 'fa'},
+      );
+      addTearDown(fa.dispose);
+      expect(fa.preferences.solarCalendar, isTrue);
+
+      final chosen = await NexTestHarness.create(
+        preferences: {
+          'appearance.locale': 'fa',
+          'appearance.solar_calendar': false,
+        },
+      );
+      addTearDown(chosen.dispose);
+      expect(chosen.preferences.solarCalendar, isFalse);
+
+      final en = await NexTestHarness.create(
+        preferences: {'appearance.locale': 'en'},
+      );
+      addTearDown(en.dispose);
+      expect(en.preferences.solarCalendar, isFalse);
+    },
+  );
 }

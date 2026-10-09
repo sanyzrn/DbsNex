@@ -158,13 +158,25 @@ open class MainActivity : FlutterFragmentActivity() {
                 val path = call.argument<String>("path")
                 if (path == null) result.error("path", "Missing audio path", null)
                 else replyAsync(result, waveformExecutor) {
-                    val file = java.io.File(path).canonicalFile
-                    val roots = listOf(filesDir.canonicalPath, cacheDir.canonicalPath, applicationInfo.dataDir)
-                    require(roots.any { file.path.startsWith(it + java.io.File.separator) })
+                    val file = requireNotNull(inAppStorage(path))
                     NexAudioWaveform.read(file.path)
                 }
             }
             "peekPending" -> result.success(nextCapture())
+            // Which app installed this copy: a store that did owns its
+            // updates, and the in-app updater stays out of its way (REL-01).
+            "installSource" -> result.success(
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        packageManager.getInstallSourceInfo(packageName).installingPackageName
+                    } else {
+                        @Suppress("DEPRECATION")
+                        packageManager.getInstallerPackageName(packageName)
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+            )
             // For feedback: which Android and which phone. Nothing that
             // identifies the person.
             "deviceInfo" -> result.success(mapOf(
@@ -323,13 +335,15 @@ open class MainActivity : FlutterFragmentActivity() {
             "downloadNotice" -> {
                 val title = call.argument<String>("title").orEmpty()
                 val percent = call.argument<Int>("percent") ?: 0
+                val body = call.argument<String>("body")
                 if (DownloadService.running) {
-                    DownloadService.update(this, title, percent)
+                    DownloadService.update(this, title, percent, body)
                     result.success(true)
                 } else {
                     val intent = Intent(this, DownloadService::class.java)
                         .putExtra(DownloadService.EXTRA_TITLE, title)
                         .putExtra(DownloadService.EXTRA_PERCENT, percent)
+                        .putExtra(DownloadService.EXTRA_BODY, body)
                     val started = runCatching {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             startForegroundService(intent)
@@ -432,7 +446,9 @@ open class MainActivity : FlutterFragmentActivity() {
                 val path = call.argument<String>("path")
                 val name = call.argument<String>("name")
                 val mime = call.argument<String>("mimeType") ?: "application/octet-stream"
-                val source = path?.let { File(it) }
+                // Only the app's own files (SEC-05): this channel takes a path
+                // from Dart, and a path is all it takes to export a file.
+                val source = inAppStorage(path)
                 if (source == null || name == null || !source.isFile) {
                     result.success("failed")
                 } else {
@@ -460,12 +476,14 @@ open class MainActivity : FlutterFragmentActivity() {
                 val path = call.argument<String>("path")
                 val width = call.argument<Int>("width") ?: 1200
                 val maxHeight = call.argument<Int>("maxHeight") ?: 960
-                replyAsync(result) { renderPdfPreview(path, width, maxHeight) }
+                replyAsync(result) {
+                    renderPdfPreview(inAppStorage(path)?.path, width, maxHeight)
+                }
             }
             "videoPreview" -> {
                 val path = call.argument<String>("path")
                 val width = call.argument<Int>("width") ?: 1080
-                replyAsync(result) { renderVideoPoster(path, width) }
+                replyAsync(result) { renderVideoPoster(inAppStorage(path)?.path, width) }
             }
             "shareText" -> {
                 startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
@@ -703,6 +721,20 @@ open class MainActivity : FlutterFragmentActivity() {
      * nothing was drawn, which under a dark theme would come out as black text
      * on a black page.
      */
+    /// [path] when it is inside the app's own storage, resolved; null
+    /// otherwise (SEC-05). Paths reach these handlers from Dart, and the
+    /// waveform reader's check is now every file handler's.
+    private fun inAppStorage(path: String?): File? {
+        if (path.isNullOrEmpty()) return null
+        return try {
+            val file = File(path).canonicalFile
+            val roots = listOf(filesDir.canonicalPath, cacheDir.canonicalPath, applicationInfo.dataDir)
+            if (roots.any { file.path.startsWith(it + File.separator) }) file else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private fun renderPdfPreview(path: String?, width: Int, maxHeight: Int): ByteArray? {
         if (path.isNullOrEmpty()) return null
         val file = File(path)

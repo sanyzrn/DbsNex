@@ -8,10 +8,17 @@ abstract final class PrivateClipboard {
   static Timer? _clear;
   static Future<void> copy(String value) async {
     if (Platform.isAndroid) {
-      await const MethodChannel(
-        'nex/os_capture',
-      ).invokeMethod<void>('copyPrivate', {'text': value});
-      return;
+      try {
+        await const MethodChannel(
+          'nex/os_capture',
+        ).invokeMethod<void>('copyPrivate', {'text': value});
+        return;
+      } on PlatformException {
+        // The native half refused (PERF-06): copied the ordinary way below,
+        // with the same half-minute wipe, rather than a tap that did nothing.
+      } on MissingPluginException {
+        // An engine without the native half: the same.
+      }
     }
     await Clipboard.setData(ClipboardData(text: value));
     _clear?.cancel();

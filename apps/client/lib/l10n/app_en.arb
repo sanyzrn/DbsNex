@@ -326,6 +326,7 @@
   "silenceTitle": "Silence is a feature",
   "silenceBody": "Nex sends only the reminders and download notices you request. No engagement prompts or streaks.",
   "privacy": "Privacy",
+  "privacyPolicy": "Privacy policy",
   "privacyBody": "Core capture and search do not collect or transmit your notes.",
   "shareDiagnostics": "Share diagnostics",
   "shareDiagnosticsBody": "A local log of the last few crashes, in case something breaks. Nothing is sent anywhere unless you choose to share it here.",
@@ -904,6 +905,10 @@
   "@checkForUpdate": {
     "description": "Settings row and update sheet title"
   },
+  "updatesFromBazaar": "Nex was installed from Cafe Bazaar, so its updates come from Cafe Bazaar too.",
+  "@updatesFromBazaar": {"description": "Update screen when the app was installed by Cafe Bazaar"},
+  "updatesFromMyket": "Nex was installed from Myket, so its updates come from Myket too.",
+  "@updatesFromMyket": {"description": "Update screen when the app was installed by Myket"},
   "checkingForUpdate": "Looking for a newer release…",
   "@checkingForUpdate": {
     "description": "Update sheet, while the check runs"
@@ -1821,6 +1826,8 @@
   "@assistantActionDone": {
     "description": "Shown after the assistant's confirmed action succeeds"
   },
+  "assistantActionPartlyDone": "{done} of {total} changes were made before one failed. Check the notes before asking again.",
+  "@assistantActionPartlyDone": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
   "assistantActionFailed": "That didn't work.",
   "@assistantActionFailed": {
     "description": "Shown when the assistant's confirmed action fails"
@@ -1862,6 +1869,7 @@
   "@chatNewConversation": {
     "description": "Starts a fresh assistant conversation"
   },
+  "chatClearHistoryBody": "Delete every conversation? They cannot be brought back; your notes are not touched.",
   "chatClearHistory": "Delete all conversations",
   "@chatClearHistory": {
     "description": "Clears the assistant's saved history"
@@ -2275,6 +2283,11 @@
   "cycleAnotherDay": "On another day?",
   "cycleLogToday": "Log today",
   "cycleNothingLogged": "Nothing noted yet",
+  "cycleDayToday": "today",
+  "cycleDayOvulation": "likely ovulation",
+  "cycleDayLogged": "logged",
+  "cyclePeriodOverlap": "Those dates overlap another period. Change them, or delete the other period first.",
+  "cycleLegendOvulation": "Likely ovulation",
   "cycleLegendPeriod": "Period",
   "cycleLegendPredicted": "Expected",
   "cycleLegendFertile": "Fertile window",
@@ -2335,7 +2348,7 @@
   "cycleRemindersHint": "Notifications only say “Nex reminder”, never what they are about.",
   "cycleTypicalLengths": "Typical lengths",
   "cycleDeleteAll": "Delete all cycle data",
-  "cycleDeleteAllConfirm": "Every period, every logged day and these settings are deleted from this phone. Your notes are not touched. This cannot be undone.",
+  "cycleDeleteAllConfirm": "Every period, every logged day and these settings are deleted from this phone, and the backups on this phone are replaced with one that does not hold them. Your notes are not touched. Copies you saved to a folder or shared are not changed. This cannot be undone.",
   "cycleDeleted": "Cycle data deleted",
   "cycleNotifyTitle": "Nex reminder",
   "cycleNotifySoon": "A reminder for the coming days",

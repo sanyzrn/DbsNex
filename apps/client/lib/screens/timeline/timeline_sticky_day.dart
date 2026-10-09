@@ -135,7 +135,7 @@ extension _TimelineStickyDay on TimelineScreenState {
             'دوشنبه',
             'سه‌شنبه',
             'چهارشنبه',
-            'پنجشنبه',
+            'پنج‌شنبه',
             'جمعه',
             'شنبه',
             'یکشنبه',

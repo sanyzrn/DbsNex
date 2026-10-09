@@ -76,7 +76,7 @@
             android:maxLines="1"
             android:ellipsize="end"
             android:textAlignment="viewStart"
-            android:textColor="@color/nex_cycle_rose"
+            android:textColor="@color/nex_cycle_text_dim"
             android:textSize="13sp" />
 
         <TextView

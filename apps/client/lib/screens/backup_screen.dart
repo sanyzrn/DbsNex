@@ -5,9 +5,11 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:nex_ui/nex_ui.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/display_date.dart';
+import '../platform/export_cache.dart';
 import '../platform/full_backup.dart';
 import '../platform/app_lock.dart';
 import '../platform/sharing.dart';
@@ -451,6 +453,7 @@ class _BackupScreenState extends State<BackupScreen> {
     if (file == null) return;
     try {
       final result = await widget.services.importArchive(file.path);
+      await discardPickedCopy(file.path, await getTemporaryDirectory());
       // Said out loud, because the alternative is a silent false promise.
       //
       // An import writes its notes as already-synced — the same call the
@@ -503,7 +506,13 @@ class _BackupScreenState extends State<BackupScreen> {
         ),
       ],
     );
-    if (file != null && mounted) await _restore(File(file.path));
+    if (file == null) return;
+    try {
+      if (mounted) await _restore(File(file.path));
+    } finally {
+      // A whole library, unencrypted, in the picker's copy (SEC-01).
+      await discardPickedCopy(file.path, await getTemporaryDirectory());
+    }
   }
 
   Future<void> _deleteBackup(File backup) async {

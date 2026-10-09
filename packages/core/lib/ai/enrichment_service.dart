@@ -314,14 +314,26 @@ class EnrichmentService {
     _repo.setSummaryText(note.id, result.text);
   }
 
+  /// The most of a note's text sent to be embedded.
+  static const embedCharacterLimit = 4000;
+
   Future<void> _embed(Note note) async {
-    final text = _searchableText(note);
-    if (text.trim().isEmpty) return;
+    final full = _searchableText(note);
+    if (full.trim().isEmpty) return;
+    // What a note is about is in its opening, and a provider refuses an
+    // input past its limit (AI-06): one very long note answered 400 every
+    // time and stopped the whole backfill behind it. The on-device model
+    // takes the same cut.
+    final text = full.length > embedCharacterLimit
+        ? full.substring(0, embedCharacterLimit)
+        : full;
     // A failure propagates without writing a row: the note stays in the
     // embedding backlog and is retried. Storing an empty vector on failure
     // is how one rate-limited request made a note permanently invisible to
     // semantic search — and to related notes — forever.
     final Vector vector;
+    final embedderAsked = _embedder;
+    final adapterAsked = _adapter;
     if (_embedder case final embedder?) {
       vector = Vector(await embedder.embedDocument(text));
     } else {
@@ -329,6 +341,16 @@ class EnrichmentService {
       if (call == null) return;
       vector = await call;
     }
+    // The answer is for the text and the model it was asked of (AI-09). A
+    // note edited, deleted or moved to another vector space while the
+    // request ran keeps no vector from it: the backlog asks again for what
+    // the note says now, of the model in use now.
+    if (!identical(_embedder, embedderAsked) ||
+        !identical(_adapter, adapterAsked)) {
+      return;
+    }
+    final now = _repo.getById(note.id);
+    if (now == null || _searchableText(now) != full) return;
     if (vector.values.isNotEmpty) {
       _repo.setEmbedding(note.id, vector.values);
     } else {

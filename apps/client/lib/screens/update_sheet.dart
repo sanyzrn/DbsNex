@@ -11,6 +11,7 @@ import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/app_update.dart';
 import '../platform/file_opener.dart';
+import '../platform/install_source.dart';
 import '../platform/update_service.dart';
 import '../widgets/release_notes.dart';
 
@@ -63,7 +64,7 @@ class UpdateSheet extends StatefulWidget {
   State<UpdateSheet> createState() => _UpdateSheetState();
 }
 
-enum _Phase { checking, upToDate, available, downloading, ready, failed }
+enum _Phase { checking, upToDate, available, downloading, ready, failed, store }
 
 class _UpdateSheetState extends State<UpdateSheet> {
   // Only built when the sheet has to do the work itself. With a service in
@@ -100,6 +101,12 @@ class _UpdateSheetState extends State<UpdateSheet> {
   @override
   void initState() {
     super.initState();
+    // Installed by Cafe Bazaar or Myket: updates come from there, and this
+    // screen says so rather than fetching an APK from GitHub (REL-01).
+    if (NexInstallSource.store != null) {
+      _phase = _Phase.store;
+      return;
+    }
     final service = widget.service;
     service?.addListener(_followService);
     final ready = service?.available;
@@ -347,6 +354,21 @@ class _UpdateSheetState extends State<UpdateSheet> {
     AppLocalizations l10n,
     ThemeData theme,
   ) => switch (_phase) {
+    _Phase.store => [
+      Icon(
+        Icons.storefront_outlined,
+        size: 40,
+        color: theme.colorScheme.primary,
+      ),
+      const SizedBox(height: NexSpacing.md),
+      Text(
+        NexInstallSource.store == NexStore.myket
+            ? l10n.updatesFromMyket
+            : l10n.updatesFromBazaar,
+        textAlign: TextAlign.center,
+        style: theme.textTheme.bodyLarge,
+      ),
+    ],
     _Phase.checking => [
       const Center(child: CircularProgressIndicator()),
       const SizedBox(height: NexSpacing.md),

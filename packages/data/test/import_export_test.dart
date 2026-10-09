@@ -101,6 +101,31 @@ void main() {
     expect(targetThreads.list(), hasLength(1));
   });
 
+  test(
+    'a note held back until later survives the round trip (DATA-03)',
+    () async {
+      final note = sourceRepo.insert(text('happy birthday, said on the day'));
+      final release = DateTime.utc(2030, 3, 4, 9);
+      SqliteScheduledNoteRepository(
+        source,
+        sourceRepo,
+      ).schedule(note.id, release);
+
+      final archive = await exportSource();
+      final (db, target) = freshTarget('target-scheduled');
+      addTearDown(db.close);
+      await target.importArchive(
+        archiveFile: archive,
+        mediaRoot: p.join(tmp.path, 'target-media'),
+      );
+
+      final held = SqliteScheduledNoteRepository(db, target).pending();
+      expect(held, hasLength(1));
+      expect(held.single.content, 'happy birthday, said on the day');
+      expect(held.single.releaseAt, release);
+    },
+  );
+
   test('notes, tags and enrichment survive the round trip', () async {
     final note = sourceRepo.insert(text('the thing I wrote down'));
     sourceRepo.setCaption(note.id, 'a caption');

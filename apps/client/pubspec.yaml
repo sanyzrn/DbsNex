@@ -3,7 +3,7 @@ description: >-
   Nex client. A single Flutter app target that builds to Android, Windows and
   (later) iOS — see ADR-024.
 publish_to: "none"
-version: 1.99.6
+version: 1.99.7
 
 environment:
   sdk: ^3.9.0
@@ -135,6 +135,8 @@ flutter:
     # The user guide, one file per language. Prose rather than labels — see
     # the note on GuideScreen for why it is not in the ARB catalogues.
     - assets/guide/
+    # The privacy policy, one file per language (REL-02).
+    - assets/privacy/
     # The guide's screenshots. A directory entry does not include its
     # subdirectories, so this needs its own line.
     - assets/guide/images/

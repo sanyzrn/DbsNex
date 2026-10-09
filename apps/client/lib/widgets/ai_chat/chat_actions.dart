@@ -17,6 +17,9 @@ extension _ChatActions on _AiChatSheetState {
     });
     var ok = true;
     var pastReminder = false;
+    // How far the set got, for a failure part-way through it.
+    var attempted = 0;
+    final writes = actions.where((action) => !action.isRead).length;
     try {
       // A one-off time already gone is not a reminder: the scheduler skips
       // it, so setting it would report "Done" over an alarm that never
@@ -55,6 +58,7 @@ extension _ChatActions on _AiChatSheetState {
       // two of its three changes in place is a state nobody asked for and
       // nobody can see.
       for (final action in actions) {
+        if (!action.isRead) attempted++;
         switch (action.kind) {
           case AssistantActionKind.create:
             final created = action.items.isNotEmpty
@@ -162,6 +166,10 @@ extension _ChatActions on _AiChatSheetState {
           ? l10n.assistantActionDone
           : pastReminder
           ? l10n.assistantReminderPastFailed
+          // Some of the set had already happened (AI-10): "That didn't
+          // work" over notes that did change is the wrong thing to believe.
+          : attempted > 1
+          ? l10n.assistantActionPartlyDone(attempted - 1, writes)
           : l10n.assistantActionFailed;
     });
     // The library moved, so the context the rest of this conversation is

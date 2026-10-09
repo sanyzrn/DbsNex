@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:archive/archive_io.dart';
 import 'package:path/path.dart' as p;
@@ -226,6 +227,7 @@ class NexBackupArchive {
     final input = InputFileStream(backup.path);
     try {
       final archive = ZipDecoder().decodeStream(input);
+      assertReasonableSize(archive, backup.lengthSync());
       final dbEntry = archive.files.where(
         (file) => file.isFile && file.name == _dbEntry,
       );
@@ -243,6 +245,37 @@ class NexBackupArchive {
       input.closeSync();
     }
   }
+
+  /// Refuses an archive whose entries add up to far more than its own size
+  /// could hold, or that holds absurdly many (SEC-04). Checked from the
+  /// central directory, before anything is written: a crafted backup could
+  /// otherwise unpack until the phone's storage was full.
+  ///
+  /// The bound is generous for real backups — photos and recordings barely
+  /// compress, and the database compresses perhaps tenfold — and still stops
+  /// a zip bomb long before it fills a phone.
+  static void assertReasonableSize(Archive archive, int archiveBytes) {
+    var total = 0;
+    var count = 0;
+    for (final file in archive.files) {
+      if (!file.isFile) continue;
+      count++;
+      total += file.size;
+    }
+    final limit = math.max(archiveBytes * maxExpansion, minUnpackedLimit);
+    if (count > maxEntries || total > limit) {
+      throw StateError('Backup is larger unpacked than it could really be');
+    }
+  }
+
+  /// How many times its own size a backup may unpack to.
+  static const maxExpansion = 100;
+
+  /// Below this, any size is accepted: a small library compresses well.
+  static const minUnpackedLimit = 1 << 30;
+
+  /// More files than any real library has.
+  static const maxEntries = 500000;
 
   /// Writes one archive entry to [path] without holding it whole in memory.
   static void _extract(ArchiveFile entry, String path) {

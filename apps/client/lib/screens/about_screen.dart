@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
+import 'guide_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/crash_reporter.dart';
 import '../platform/feedback_service.dart';
@@ -139,8 +140,10 @@ class AboutScreen extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.lock_outline),
-            title: Text(l10n.privacy),
+            title: Text(l10n.privacyPolicy),
             subtitle: Text(l10n.privacyBody),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => GuideScreen.show(context, privacy: true),
           ),
           ListTile(
             leading: const Icon(Icons.bug_report_outlined),

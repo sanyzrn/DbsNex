@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ai/cloud.dart';
 import 'package:nex_client/platform/local_embedder.dart';
+import 'package:nex_client/platform/model_store.dart';
+import 'package:nex_client/platform/nex_services.dart';
 
 /// The Dart half of the on-device search model. The native half
 /// (NexEmbedder.kt) is LiteRT-LM's and only runs on a phone; what is tested
@@ -142,5 +144,31 @@ void main() {
         isNull,
       );
     });
+  });
+
+  test('only the model store\'s own file is taken as the search model '
+      '(SEC-03)', () {
+    // The path travels in a backup's settings: a crafted one must not point
+    // the native embedder at an arbitrary, never-verified file.
+    const root = '/data/user/0/com.sanyzrn.nex/files/models';
+    final model = NexModels.search.single;
+    expect(
+      NexServices.isSearchModelFile(
+        '$root/${model.id}/${model.filename}',
+        root: root,
+      ),
+      isTrue,
+    );
+    for (final elsewhere in [
+      '/sdcard/Download/${model.filename}',
+      '$root/../../evil/${model.filename}',
+      '$root/${model.id}/other.bin',
+    ]) {
+      expect(
+        NexServices.isSearchModelFile(elsewhere, root: root),
+        isFalse,
+        reason: elsewhere,
+      );
+    }
   });
 }

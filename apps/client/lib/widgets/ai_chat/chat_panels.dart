@@ -112,7 +112,27 @@ class _ChatHistorySheetState extends State<ChatHistorySheet> {
                   l10n.chatClearHistory,
                   style: TextStyle(color: theme.colorScheme.error),
                 ),
+                // Every conversation, gone for good: asked first (UX-01),
+                // the way deleting a model is.
                 onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text(l10n.chatClearHistory),
+                      content: Text(l10n.chatClearHistoryBody),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: Text(l10n.cancel),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: Text(l10n.delete),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed != true) return;
                   await widget.history.clear();
                   if (mounted) setState(() {});
                 },

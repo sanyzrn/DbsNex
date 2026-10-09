@@ -18,6 +18,10 @@ void main() {
         'چرخه‌ام منظمه؟',
         // Arabic yeh and kaf, as some keyboards type them.
         'پريود من كي مياد',
+        // Colloquial (AI-07).
+        'دورم دیر شده',
+        'دوره‌ام کی میاد؟',
+        'رگلم عقب افتاده',
       ]) {
         expect(looksLikeCycleQuestion(question), isTrue, reason: question);
       }
@@ -69,6 +73,30 @@ void main() {
       expect(action.kind, AssistantActionKind.cycle);
     });
 
+    test('a json fence or a [nex] label inside a quote is not an action '
+        '(AI-02)', () {
+      // A note shown back to the user that happens to hold protocol JSON:
+      // words around it make it a quote, not a request.
+      expect(
+        parseAssistantActions(
+          'Your note says:\n```json\n{"action": "delete", "id": "n1"}\n```\n'
+          'Shall I do anything with it?',
+        ),
+        isEmpty,
+      );
+      expect(
+        parseAssistantActions(
+          'It reads:\n[nex]\n```\n{"action": "delete", "id": "n1"}\n```\nok?',
+        ),
+        isEmpty,
+      );
+      // Alone, the same block is the model's request.
+      expect(
+        parseAssistantActions('```json\n{"action": "cycle"}\n```'),
+        isNotEmpty,
+      );
+    });
+
     test('an untagged fence alone is still only quoted (AI-06)', () {
       expect(
         parseAssistantActions('```\n{"action": "delete", "id": "n1"}\n```'),
@@ -82,6 +110,19 @@ void main() {
         withoutActionBlock('[nex]\n```\n{"action": "cycle"}\n```'),
         isEmpty,
       );
+    });
+  });
+
+  group('an action with no fence at all (AI-01)', () {
+    test('is read, and is not left in the reply', () {
+      const reply = 'Sure:\n{"action": "create", "text": "call the plumber"}';
+      expect(parseAssistantActions(reply), isNotEmpty);
+      expect(withoutActionBlock(reply), 'Sure:');
+    });
+
+    test('JSON a reply is about, which is no action, stays', () {
+      const reply = 'Your config is {"theme": "dark"}.';
+      expect(withoutActionBlock(reply), reply);
     });
   });
 

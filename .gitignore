@@ -45,3 +45,10 @@ Thumbs.db
 .vscode/
 .idea/
 *.iml
+
+# Release signing material (REL-03). apps/client/android/.gitignore already
+# covers it; repeated here so a keystore copied anywhere else in the
+# repository is never committed either.
+*.keystore
+*.jks
+key.properties

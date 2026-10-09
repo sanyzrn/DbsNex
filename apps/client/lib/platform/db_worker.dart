@@ -1062,10 +1062,14 @@ class NexDbWorker implements NexDb {
         // export, writing its photos out and inserting a few thousand rows
         // are all long enough to drop frames, and the point of this worker
         // is that none of it happens on the thread drawing the screen.
-        _DbCommand.importNotes => _importNotes(
-          capture,
-          File(arg('path')! as String),
-          Directory(arg('mediaDir')! as String),
+        // One transaction (DATA-02): an import that failed part-way left
+        // half its notes behind, and the retry duplicated them.
+        _DbCommand.importNotes => db.db.together(
+          () => _importNotes(
+            capture,
+            File(arg('path')! as String),
+            Directory(arg('mediaDir')! as String),
+          ),
         ),
         _DbCommand.captureLink => capture.submitLinkCapture(
           arg('url')! as String,

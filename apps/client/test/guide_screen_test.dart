@@ -48,6 +48,37 @@ void main() {
     expect(find.textContaining('Reminders'), findsNothing);
   });
 
+  testWidgets('the privacy policy opens in each language (REL-02)', (
+    tester,
+  ) async {
+    for (final (locale, title, topic) in [
+      (const Locale('en'), 'Privacy policy', 'When something leaves'),
+      (const Locale('fa'), 'سیاست حریم خصوصی', 'وقتی چیزی از گوشی خارج'),
+    ]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const GuideScreen(privacy: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(title), findsOneWidget);
+      expect(find.textContaining(topic), findsWidgets);
+    }
+  });
+
+  test('the privacy policy covers the same sections in both languages', () {
+    String read(String name) => File(
+      p.join(Directory.current.path, 'assets', 'privacy', name),
+    ).readAsStringSync();
+    int sections(String s) =>
+        s.split('\n').where((l) => l.startsWith('### ')).length;
+    expect(sections(read('fa.md')), sections(read('en.md')));
+    expect(sections(read('en.md')), greaterThanOrEqualTo(5));
+  });
+
   group('the two languages stay in step', () {
     String read(String name) => File(
       p.join(Directory.current.path, 'assets', 'guide', name),

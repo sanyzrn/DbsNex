@@ -780,6 +780,30 @@ Sure, here you go:
       },
     );
 
+    testWidgets('deleting every conversation asks first (UX-01)', (
+      tester,
+    ) async {
+      await history.save('t1', exchange('keep me'));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(body: ChatHistorySheet(history: history)),
+        ),
+      );
+      await tester.tap(find.text('Delete all conversations'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(history.threads, hasLength(1));
+
+      await tester.tap(find.text('Delete all conversations'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+      expect(history.threads, isEmpty);
+    });
+
     test('deleting one leaves the rest', () async {
       await history.save('t1', exchange('one'));
       await history.save('t2', exchange('two'));

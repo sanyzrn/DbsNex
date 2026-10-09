@@ -21,11 +21,15 @@ abstract final class NexDownloadNotice {
   /// ordinary notification was always all this needed — and the caller posts
   /// its own instead. False also covers a start Android refused, which is
   /// the old behaviour rather than a failure worth reporting.
-  static Future<bool> show({required String title, required int percent}) =>
-      _ask('downloadNotice', <String, Object>{
-        'title': title,
-        'percent': percent,
-      });
+  static Future<bool> show({
+    required String title,
+    required int percent,
+    String? body,
+  }) => _ask('downloadNotice', <String, Object>{
+    'title': title,
+    'percent': percent,
+    'body': ?body,
+  });
 
   /// Sends the app to the background instead of closing it — what Back on
   /// the home screen does while a download runs, because closing the window

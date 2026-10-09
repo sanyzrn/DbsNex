@@ -490,6 +490,27 @@ class NexWidgetBridge {
       );
       final temp = File('${file.path}.tmp');
       await temp.writeAsString(jsonEncode(snapshot), flush: true);
+      // The write above is an await too (SEC-09): a lock that closed, or
+      // Cycle turned off, while it ran must not be overwritten by the older
+      // dates. Checked again here, and the safe state written and published
+      // with no event-loop gap before the rename.
+      final stillEnabled = preferences.cycleEnabled;
+      final stillSetUp = preferences.cycleSetUp;
+      if (ready && (_hidden || !stillEnabled || !stillSetUp)) {
+        temp.writeAsStringSync(
+          jsonEncode(
+            NexCycleWidgetSnapshot.build(
+              enabled: stillEnabled,
+              setUp: stillSetUp,
+              hidden: _hidden,
+              mode: preferences.cycleMode,
+              periods: const [],
+              prediction: null,
+            ),
+          ),
+          flush: true,
+        );
+      }
       temp.renameSync(file.path);
     } catch (_) {}
   }

@@ -701,6 +701,11 @@ class CloudAIAdapter implements AIAdapter {
   /// minute and a half after launch is an app that looks broken.
   static const ambientTimeout = Duration(seconds: 20);
 
+  /// The least an on-device answer is given, whatever a caller's network
+  /// budget: enough to load the model from cold and write a short reply on
+  /// a mid-range phone.
+  static const localTimeoutFloor = Duration(minutes: 2);
+
   /// How long a connection may take to establish, as opposed to answer.
   ///
   /// The case this is for is a network that is joined but not connected — the
@@ -804,7 +809,20 @@ class CloudAIAdapter implements AIAdapter {
       // unless the request carries an image, which is the one thing the local
       // path cannot take, so that stays unavailable rather than silently
       // dropping the picture and answering about nothing.
-      if (_preferLocal && media == null) return _completeLocally(system, user);
+      if (_preferLocal && media == null) {
+        // Bounded too (PERF-01): the caller's timeout used to apply to the
+        // network only, so a cold on-device model held the brief's spinner,
+        // and every pull behind it, for as long as it took. Never less than
+        // [localTimeoutFloor], though: loading the weights alone can take
+        // longer than a network budget, and a summary the phone was always
+        // going to finish should not be thrown away at twenty seconds.
+        final local = _completeLocally(system, user);
+        if (timeout == null) return local;
+        return local.timeout(
+          timeout > localTimeoutFloor ? timeout : localTimeoutFloor,
+          onTimeout: () => null,
+        );
+      }
       return null;
     }
     final base64Media = media == null ? null : base64Encode(media);

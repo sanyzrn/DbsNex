@@ -106,7 +106,11 @@ ThemeData cycleTheme(ThemeData base) {
       ),
     ),
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(foregroundColor: rose),
+      // Readable on the space's ground (LOC-08): the rose itself is 3.9:1 on
+      // the light one, under the 4.5:1 a text button's label needs.
+      style: TextButton.styleFrom(
+        foregroundColor: nexReadableOn(rose, base.colorScheme.surface),
+      ),
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith(

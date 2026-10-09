@@ -1106,6 +1106,12 @@ abstract class AppLocalizations {
   /// **'Privacy'**
   String get privacy;
 
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get privacyPolicy;
+
   /// No description provided for @privacyBody.
   ///
   /// In en, this message translates to:
@@ -2167,6 +2173,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check for update'**
   String get checkForUpdate;
+
+  /// Update screen when the app was installed by Cafe Bazaar
+  ///
+  /// In en, this message translates to:
+  /// **'Nex was installed from Cafe Bazaar, so its updates come from Cafe Bazaar too.'**
+  String get updatesFromBazaar;
+
+  /// Update screen when the app was installed by Myket
+  ///
+  /// In en, this message translates to:
+  /// **'Nex was installed from Myket, so its updates come from Myket too.'**
+  String get updatesFromMyket;
 
   /// Update sheet, while the check runs
   ///
@@ -3614,6 +3632,12 @@ abstract class AppLocalizations {
   /// **'Done.'**
   String get assistantActionDone;
 
+  /// No description provided for @assistantActionPartlyDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} changes were made before one failed. Check the notes before asking again.'**
+  String assistantActionPartlyDone(int done, int total);
+
   /// Shown when the assistant's confirmed action fails
   ///
   /// In en, this message translates to:
@@ -3673,6 +3697,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New conversation'**
   String get chatNewConversation;
+
+  /// No description provided for @chatClearHistoryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete every conversation? They cannot be brought back; your notes are not touched.'**
+  String get chatClearHistoryBody;
 
   /// Clears the assistant's saved history
   ///
@@ -4640,6 +4670,36 @@ abstract class AppLocalizations {
   /// **'Nothing noted yet'**
   String get cycleNothingLogged;
 
+  /// No description provided for @cycleDayToday.
+  ///
+  /// In en, this message translates to:
+  /// **'today'**
+  String get cycleDayToday;
+
+  /// No description provided for @cycleDayOvulation.
+  ///
+  /// In en, this message translates to:
+  /// **'likely ovulation'**
+  String get cycleDayOvulation;
+
+  /// No description provided for @cycleDayLogged.
+  ///
+  /// In en, this message translates to:
+  /// **'logged'**
+  String get cycleDayLogged;
+
+  /// No description provided for @cyclePeriodOverlap.
+  ///
+  /// In en, this message translates to:
+  /// **'Those dates overlap another period. Change them, or delete the other period first.'**
+  String get cyclePeriodOverlap;
+
+  /// No description provided for @cycleLegendOvulation.
+  ///
+  /// In en, this message translates to:
+  /// **'Likely ovulation'**
+  String get cycleLegendOvulation;
+
   /// No description provided for @cycleLegendPeriod.
   ///
   /// In en, this message translates to:
@@ -5003,7 +5063,7 @@ abstract class AppLocalizations {
   /// No description provided for @cycleDeleteAllConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Every period, every logged day and these settings are deleted from this phone. Your notes are not touched. This cannot be undone.'**
+  /// **'Every period, every logged day and these settings are deleted from this phone, and the backups on this phone are replaced with one that does not hold them. Your notes are not touched. Copies you saved to a folder or shared are not changed. This cannot be undone.'**
   String get cycleDeleteAllConfirm;
 
   /// No description provided for @cycleDeleted.

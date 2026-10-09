@@ -34,6 +34,30 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.7
+
+- **Cycle stays private when the app locks.** A home-screen Cycle widget that was refreshing at the moment the app lock closed could show your dates again afterwards. It now always ends on the locked state.
+- **Deleting Cycle really deletes it from this phone.** The backups on the phone still held every period and logged day. They are now replaced with one that does not, and the confirmation says plainly that copies you saved elsewhere are not changed.
+- **No leftover copies of imported files.** Importing a password CSV or restoring a backup left a full, unencrypted copy of the file in the app's cache. The copy is now deleted as soon as it has been read, and any old ones are cleared when the app starts.
+- **Updates from Cafe Bazaar and Myket.** If you installed Nex from Cafe Bazaar or Myket, the app no longer looks for updates on its own; the update screen tells you they come from the store. Copies installed another way keep updating in the app.
+- **A privacy policy in the app.** Under About Nex → Privacy policy, in Persian and English: what stays on the phone, when anything leaves it, and what you control. The guide's privacy paragraph now also mentions link previews and model downloads.
+- **TalkBack can read and copy the recovery code,** and the Cycle calendar says what each day is (period, expected, fertile, likely ovulation, logged) and opens it. The recurring-items calendar's days open with TalkBack too.
+- **Cycle periods can no longer overlap.** Editing a period onto another's dates is refused with a message, instead of quietly skewing every prediction.
+- **Search by meaning follows your edits.** An edited note used to be found by what it said before; it is now prepared again in the background after each change.
+- **The on-device smart summary no longer spins forever.** A summary the phone's model never finishes is given up on after two minutes.
+- **No raw instructions in the chat.** When the assistant wrote an action without its usual wrapping, the chat showed it as code above the confirmation card. It now shows only the card.
+
+- **More from the same review, smaller but real:**
+  - Deleting all assistant conversations now asks first, and an assistant change that fails part-way says how many changes were made instead of only "That didn't work".
+  - A note shared into Nex from another app can be found by meaning right away, not only after the next launch; a very long note no longer stops the others from being prepared for search; and asking the phone's model about one note lets it read the whole note.
+  - The on-device assistant no longer gets a line telling it to answer general questions when "Stay in my notes" is on.
+  - The Cycle calendar marks the likely ovulation day with its own ring and legend; the ring's text fits at the largest text sizes; and a few Persian phrases are corrected.
+  - Persian users get the solar calendar by default until they choose otherwise.
+  - An export now carries notes scheduled for later, and importing an export is all-or-nothing, so a retry never duplicates notes.
+  - The download notification shows its percentage in Persian digits, and a long model download pauses cleanly when Android 15's daily limit for background transfers is reached.
+  - A backup that would unpack to far more than its own size is refused; file previews and "Save to device" only open the app's own files; the search model is only loaded from where Nex installed it; and the app no longer asks for access to your photos, videos and audio, which it never used.
+  - The licences page now lists the on-device model runtime.
+
 ## v1.99.6
 
 - **The on-device assistant answers questions about your period.** Asked "how many days until my period?", the model on your phone guessed a number or said it could not see Cycle, because it is meant to ask for your Cycle summary first and seldom did. Now, when you ask about your period, cycle, ovulation or pregnancy and the assistant is allowed to read Cycle, Nex reads the summary for it before it answers, and you see "Read your Cycle summary" as you do with a cloud provider. Nothing leaves your phone for this.

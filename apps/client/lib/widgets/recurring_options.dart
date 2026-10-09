@@ -47,7 +47,7 @@ class RecurringOptions extends StatelessWidget {
                         'دوشنبه',
                         'سه‌شنبه',
                         'چهارشنبه',
-                        'پنجشنبه',
+                        'پنج‌شنبه',
                         'جمعه',
                         'شنبه',
                         'یکشنبه',

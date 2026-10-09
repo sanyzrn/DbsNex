@@ -188,7 +188,7 @@ class _CycleCalendarState extends State<CycleCalendar> {
               for (final day in days.skip(row * 7).take(7))
                 Expanded(
                   child: day.isBefore(from) || day.isAfter(to)
-                      ? const SizedBox(height: 44)
+                      ? const SizedBox(height: 48)
                       : _cell(context, day, rose: rose, teal: teal),
                 ),
             ],
@@ -202,6 +202,7 @@ class _CycleCalendarState extends State<CycleCalendar> {
             _legend(context, rose, l10n.cycleLegendPeriod, filled: true),
             _legend(context, rose, l10n.cycleLegendPredicted, filled: false),
             _legend(context, teal, l10n.cycleLegendFertile, filled: true),
+            _legend(context, teal, l10n.cycleLegendOvulation, filled: false),
           ],
         ),
       ],
@@ -233,22 +234,44 @@ class _CycleCalendarState extends State<CycleCalendar> {
         : fertile
         ? teal.withValues(alpha: ovulation ? 0.32 : 0.18)
         : null;
+    // Ovulation has a mark of its own, not only a deeper tint (LOC-10):
+    // colour alone told it apart from the rest of the fertile window.
     final Border? border = predicted
         ? Border.all(color: rose.withValues(alpha: 0.7), width: 1.5)
         : isToday
         ? Border.all(color: rose, width: 1.8)
+        : ovulation
+        ? Border.all(color: teal, width: 1.8)
         : null;
     final textColor = logged ? Colors.white : scheme.onSurface;
 
+    // What the day is, not only its date, and the tap as the node's own
+    // action (LOC-02, LOC-13): the colours and the dot were all a screen
+    // reader never heard, and excluding the subtree had dropped the tap.
+    final l10n = AppLocalizations.of(context);
+    final state = [
+      cycleDayMonth(context, day, solar: widget.solar),
+      if (isToday) l10n.cycleDayToday,
+      if (logged) l10n.cycleLegendPeriod,
+      if (predicted) l10n.cycleLegendPredicted,
+      if (ovulation)
+        l10n.cycleDayOvulation
+      else if (fertile)
+        l10n.cycleLegendFertile,
+      if (hasNote) l10n.cycleDayLogged,
+    ];
     return Semantics(
       button: !future,
-      label: cycleDayMonth(context, day, solar: widget.solar),
+      label: state.join(
+        Localizations.localeOf(context).languageCode == 'fa' ? '، ' : ', ',
+      ),
+      onTap: future ? null : () => widget.onDay(day),
       excludeSemantics: true,
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: future ? null : () => widget.onDay(day),
         child: SizedBox(
-          height: 44,
+          height: 48,
           child: Center(
             child: Container(
               width: 36,

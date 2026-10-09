@@ -1394,7 +1394,10 @@ LIMIT ?
 SELECT n.* FROM notes n
 LEFT JOIN note_embeddings e ON e.note_id = n.id
 WHERE n.deleted_at IS NULL
-  AND e.note_id IS NULL
+  -- No vector yet, or one older than the note's last change (DATA-01): an
+  -- edit, a caption, a transcript or a title written since it was embedded
+  -- left the vector describing what the note used to say.
+  AND (e.note_id IS NULL OR e.updated_at < n.updated_at)
   AND (
     COALESCE(TRIM(n.content), '') <> ''
     OR COALESCE(TRIM(n.transcript_text), '') <> ''
@@ -1664,6 +1667,10 @@ LIMIT ?
           'SELECT * FROM commitments WHERE deleted_at IS NULL',
         ),
         'threads': _rowsOf('SELECT * FROM threads WHERE deleted_at IS NULL'),
+        // Notes written now and held back until later (DATA-03): not in
+        // `notes` until they are released, so an export without them lost
+        // them on the way to a new phone.
+        'scheduled': _rowsOf('SELECT * FROM scheduled_notes'),
         'note_threads': _rowsOf('''
 SELECT nt.* FROM note_threads nt
 JOIN notes n ON n.id = nt.note_id AND n.deleted_at IS NULL
@@ -1846,6 +1853,7 @@ JOIN threads t ON t.id = nt.thread_id AND t.deleted_at IS NULL
         // a row whose id is already here is left as it is.
         _insertRowsIfAbsent('commitments', payload['commitments']);
         _insertRowsIfAbsent('threads', payload['threads']);
+        _insertRowsIfAbsent('scheduled_notes', payload['scheduled']);
         for (final raw in (payload['note_threads'] as List? ?? const [])) {
           final row = raw as Map<String, dynamic>;
           db.execute(
