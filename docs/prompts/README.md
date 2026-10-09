@@ -7,8 +7,14 @@ local, without the others.
 
 ## Pre-release review (Android)
 
-One role per file. Reports come back in English, with findings labelled
-Blocker / High / Medium / Low and each tied to a file and line.
+One role per file, written against **1.99.4**. Reports come back in
+English, with findings labelled Blocker / High / Medium / Low, each tied to
+a file and line, a reproduction or failing test where possible, and the test
+that would catch it. Every report also carries the commit it reviewed, a
+regression pass over earlier findings with the same prefix, and a coverage
+ledger of every scope item — a scope item left unmentioned counts as a
+failed review, not a clean one. Vault and Cycle data are treated as the most
+sensitive things in the app.
 
 | File | Role | Finding prefix |
 |---|---|---|

@@ -190,6 +190,19 @@ class ModelInstallController extends ChangeNotifier {
   String? _loadError;
   String? get loadError => _loadError;
 
+  /// Loads an installed model again, from a clean slate: every backend that
+  /// was given up on is tried again. What "try again" on the model screen
+  /// does when the model is on the phone and will not start.
+  Future<void> retryLoad(NexModelStore store, ModelRelease model) async {
+    if (isRunning) return;
+    _model = model;
+    _error = null;
+    _loadError = null;
+    await store.forgetFailedLoads(model);
+    await _warmUp(null);
+    _set(ModelInstallPhase.installed);
+  }
+
   /// Stops and keeps what has arrived.
   void pause() {
     if (_phase != ModelInstallPhase.downloading) return;

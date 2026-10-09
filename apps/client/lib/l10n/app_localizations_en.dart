@@ -3435,6 +3435,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchModelRowOff => 'Find notes by meaning with no internet';
 
   @override
+  String get localModelRetry => 'Try loading it again';
+
+  @override
   String get remindTitle => 'Set a reminder';
 
   @override

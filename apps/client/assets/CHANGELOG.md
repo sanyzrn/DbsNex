@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.4
+
+- **The on-device assistant starts reliably.** Opening the assistant and sending a message at the same moment loaded the model twice, which does not fit in a phone's memory, and the app could close mid-load. After that, the model could refuse to start for good, showing "would not start on this phone" on every message. Now it loads once whoever asks, a load that was cut short is simply tried again, and the on-device model page has **Try loading it again**, so you never have to download it again to recover. When it still will not start, the chat shows the runtime's own message under the error.
+- **MiniCPM5 is no longer offered.** It closed the app on the phones it was tried on, so Gemma 4 E2B is the on-device model again. If you had MiniCPM installed, its 1.45 GB is freed the next time you open the on-device model page.
+
 ## v1.99.3
 
 - **Search by meaning, right on your phone.** A new on-device search model, **EmbeddingGemma 2** (about 160 MB), is in **Settings → Intelligence → On-device search**. Once downloaded, Nex finds notes by what they mean with no internet and no AI provider: in search, in related notes, and when the assistant looks for the notes that answer your question — so the on-device assistant finds the right note even when you ask in different words. Nothing you write is sent anywhere for it. It only finds; it does not chat, so it sits beside the assistant's models rather than among them. Your notes are prepared for it in the background after it is installed.

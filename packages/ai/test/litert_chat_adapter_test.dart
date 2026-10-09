@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter_litert_lm/flutter_litert_lm.dart' show LiteLmEngine;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ai/nex_ai.dart';
 
@@ -107,4 +111,132 @@ void main() {
     // there is nothing to wait for and nothing to close (PERF-02).
     expect(LiteRtChatAdapter(modelPath: '').release(), isNull);
   });
+
+  group('loading the model', () {
+    late Directory dir;
+    late String path;
+
+    setUp(() {
+      dir = Directory.systemTemp.createTempSync('nex_litert_');
+      path = '${dir.path}/model.litertlm';
+      File(path).writeAsStringSync('weights');
+    });
+    tearDown(() => dir.deleteSync(recursive: true));
+
+    File marker() => File('$path.loading');
+
+    test('two callers at once share one load, never two', () async {
+      // Opening the assistant warms the model up; a message sent in the
+      // same moment used to start a second load, and two copies of the
+      // weights do not fit on a phone.
+      var loads = 0;
+      final release = Completer<void>();
+      final adapter = LiteRtChatAdapter(
+        modelPath: path,
+        preferGpu: false,
+        loadEngine: (config) async {
+          loads++;
+          await release.future;
+          return _FakeEngine();
+        },
+      );
+
+      final first = adapter.ensureEngine();
+      final second = adapter.ensureEngine();
+      release.complete();
+      expect(identical(await first, await second), isTrue);
+      expect(loads, 1);
+    });
+
+    test('a load that never came back once is tried again', () async {
+      // Swiped away, or reclaimed by Android mid-load: not a broken
+      // backend. One of these used to bar the backend for good.
+      marker().writeAsStringSync('cpu');
+      var loads = 0;
+      final adapter = LiteRtChatAdapter(
+        modelPath: path,
+        preferGpu: false,
+        loadEngine: (config) async {
+          loads++;
+          return _FakeEngine();
+        },
+      );
+
+      await adapter.ensureEngine();
+      expect(loads, 1);
+      expect(marker().existsSync(), isFalse, reason: 'cleared on success');
+    });
+
+    test('twice in a row, recently, and the backend is skipped', () async {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      marker().writeAsStringSync('cpu 2 $now');
+      final adapter = LiteRtChatAdapter(
+        modelPath: path,
+        preferGpu: false,
+        loadEngine: (config) async => _FakeEngine(),
+      );
+
+      await expectLater(adapter.ensureEngine(), throwsStateError);
+    });
+
+    test('a skipped backend is tried again once the strikes expire', () async {
+      final old = DateTime.now()
+          .subtract(LiteRtChatAdapter.strikeExpiry + const Duration(minutes: 1))
+          .millisecondsSinceEpoch;
+      marker().writeAsStringSync('cpu 2 $old');
+      var loads = 0;
+      final adapter = LiteRtChatAdapter(
+        modelPath: path,
+        preferGpu: false,
+        loadEngine: (config) async {
+          loads++;
+          return _FakeEngine();
+        },
+      );
+
+      await adapter.ensureEngine();
+      expect(loads, 1);
+    });
+
+    test('the attempt is on disk while the load is running', () async {
+      // What survives a crash: written before the native call, gone after.
+      final release = Completer<void>();
+      String? during;
+      final adapter = LiteRtChatAdapter(
+        modelPath: path,
+        preferGpu: false,
+        loadEngine: (config) async {
+          during = marker().readAsStringSync();
+          await release.future;
+          return _FakeEngine();
+        },
+      );
+
+      final loading = adapter.ensureEngine();
+      await Future<void>.delayed(Duration.zero);
+      release.complete();
+      await loading;
+      expect(during, startsWith('cpu 1 '));
+      expect(marker().existsSync(), isFalse);
+    });
+
+    test('a load that fails politely clears its attempt', () async {
+      final adapter = LiteRtChatAdapter(
+        modelPath: path,
+        preferGpu: false,
+        loadEngine: (config) async => throw StateError('no OpenCL'),
+      );
+
+      await expectLater(adapter.ensureEngine(), throwsStateError);
+      expect(marker().existsSync(), isFalse);
+    });
+  });
+}
+
+class _FakeEngine implements LiteLmEngine {
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

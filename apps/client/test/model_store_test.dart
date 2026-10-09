@@ -436,7 +436,7 @@ void main() {
       () async {
         final store = storeWith(server());
         addTearDown(store.close);
-        const model = NexModels.miniCpm5_2B;
+        const model = NexModels.embeddingGemma2Text;
         final file = store.fileFor(model)..createSync(recursive: true);
         file.writeAsBytesSync(whole);
         final dir = file.parent;
@@ -461,13 +461,13 @@ void main() {
     test('an unfinished download keeps its parts, and says how much', () async {
       final store = storeWith(server());
       addTearDown(store.close);
-      final dir = Directory('${tmp.path}/${NexModels.miniCpm5_2B.id}')
-        ..createSync();
+      const model = NexModels.embeddingGemma2Text;
+      final dir = Directory('${tmp.path}/${model.id}')..createSync();
       File(
-        '${dir.path}/MiniCPM5-2B_int4.litertlm.part-aa.part',
+        '${dir.path}/${model.parts.single.filename}.part',
       ).writeAsBytesSync(partA);
       await store.sweep();
-      expect(store.partialBytes(NexModels.miniCpm5_2B), partA.length);
+      expect(store.partialBytes(model), partA.length);
     });
   });
 
@@ -526,5 +526,22 @@ void main() {
       expect(file.readAsBytesSync(), whole);
       expect(file.parent.listSync().whereType<File>().toList(), hasLength(1));
     });
+  });
+
+  test('"try again" forgets the loads that never finished', () async {
+    // The runtime gives up on a backend that took the app down twice in a
+    // row. Clearing that record is the way back without another download.
+    final store = storeWith(server());
+    addTearDown(store.close);
+    const model = NexModels.gemma4E2B;
+    final file = store.fileFor(model)..createSync(recursive: true);
+    final marker = File('${file.path}.loading')..writeAsStringSync('gpu 2 0');
+
+    await store.forgetFailedLoads(model);
+
+    expect(marker.existsSync(), isFalse);
+    expect(file.existsSync(), isTrue, reason: 'the model itself stays');
+    // Nothing to forget is not an error.
+    await store.forgetFailedLoads(model);
   });
 }
