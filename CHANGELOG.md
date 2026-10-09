@@ -38,6 +38,7 @@ Working convention:
 
 - **The on-device assistant answers with many notes and long conversations.** The phone's model reads about 4,000 tokens at a time — the assistant's instructions, your notes and the conversation together — and once a library or a chat grew past that, every message was refused and the chat said the model would not start. Requests are now fitted to it: the notes found for your question come first, each note line is kept short, older turns of a long conversation give way to the newest, and the action instructions take a shorter form when room is tight. Your newest question is always kept.
 - **The smart summary is written in the language you chose.** With the summary language set to Persian, the on-device model could still answer in English, even repeating labels like "DUE" from what it was given. The language is now the first thing it is told and the last, and those labels are no longer copied into the summary.
+- **Clearer expectations for each assistant.** The on-device model page now says plainly that a model on the phone does not reach the quality of a cloud model, and the cloud provider page that how good the results are depends entirely on the model you choose.
 
 ## v1.99.4
 
