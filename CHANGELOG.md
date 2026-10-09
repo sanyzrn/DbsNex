@@ -47,6 +47,17 @@ Working convention:
 - **The on-device smart summary no longer spins forever.** A summary the phone's model never finishes is given up on after two minutes.
 - **No raw instructions in the chat.** When the assistant wrote an action without its usual wrapping, the chat showed it as code above the confirmation card. It now shows only the card.
 
+- **More from the same review, smaller but real:**
+  - Deleting all assistant conversations now asks first, and an assistant change that fails part-way says how many changes were made instead of only "That didn't work".
+  - A note shared into Nex from another app can be found by meaning right away, not only after the next launch; a very long note no longer stops the others from being prepared for search; and asking the phone's model about one note lets it read the whole note.
+  - The on-device assistant no longer gets a line telling it to answer general questions when "Stay in my notes" is on.
+  - The Cycle calendar marks the likely ovulation day with its own ring and legend; the ring's text fits at the largest text sizes; and a few Persian phrases are corrected.
+  - Persian users get the solar calendar by default until they choose otherwise.
+  - An export now carries notes scheduled for later, and importing an export is all-or-nothing, so a retry never duplicates notes.
+  - The download notification shows its percentage in Persian digits, and a long model download pauses cleanly when Android 15's daily limit for background transfers is reached.
+  - A backup that would unpack to far more than its own size is refused; file previews and "Save to device" only open the app's own files; the search model is only loaded from where Nex installed it; and the app no longer asks for access to your photos, videos and audio, which it never used.
+  - The licences page now lists the on-device model runtime.
+
 ## v1.99.6
 
 - **The on-device assistant answers questions about your period.** Asked "how many days until my period?", the model on your phone guessed a number or said it could not see Cycle, because it is meant to ask for your Cycle summary first and seldom did. Now, when you ask about your period, cycle, ovulation or pregnancy and the assistant is allowed to read Cycle, Nex reads the summary for it before it answers, and you see "Read your Cycle summary" as you do with a cloud provider. Nothing leaves your phone for this.

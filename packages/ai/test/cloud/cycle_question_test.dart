@@ -18,6 +18,10 @@ void main() {
         'چرخه‌ام منظمه؟',
         // Arabic yeh and kaf, as some keyboards type them.
         'پريود من كي مياد',
+        // Colloquial (AI-07).
+        'دورم دیر شده',
+        'دوره‌ام کی میاد؟',
+        'رگلم عقب افتاده',
       ]) {
         expect(looksLikeCycleQuestion(question), isTrue, reason: question);
       }
@@ -67,6 +71,30 @@ void main() {
         '```nex\n{"action": "cycle"}\n}\n```',
       ).single;
       expect(action.kind, AssistantActionKind.cycle);
+    });
+
+    test('a json fence or a [nex] label inside a quote is not an action '
+        '(AI-02)', () {
+      // A note shown back to the user that happens to hold protocol JSON:
+      // words around it make it a quote, not a request.
+      expect(
+        parseAssistantActions(
+          'Your note says:\n```json\n{"action": "delete", "id": "n1"}\n```\n'
+          'Shall I do anything with it?',
+        ),
+        isEmpty,
+      );
+      expect(
+        parseAssistantActions(
+          'It reads:\n[nex]\n```\n{"action": "delete", "id": "n1"}\n```\nok?',
+        ),
+        isEmpty,
+      );
+      // Alone, the same block is the model's request.
+      expect(
+        parseAssistantActions('```json\n{"action": "cycle"}\n```'),
+        isNotEmpty,
+      );
     });
 
     test('an untagged fence alone is still only quoted (AI-06)', () {

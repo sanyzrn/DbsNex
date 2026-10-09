@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:test/test.dart';
@@ -102,6 +103,20 @@ void main() {
       }
     },
   );
+
+  test('an archive that unpacks far past its own size is refused (SEC-04)', () {
+    final archive = Archive()
+      ..addFile(ArchiveFile('nex.sqlite', 3 << 30, Uint8List(0)));
+    expect(
+      () => NexBackupArchive.assertReasonableSize(archive, 1 << 20),
+      throwsStateError,
+    );
+    // A real one, photos and all, is well inside it.
+    final real = Archive()
+      ..addFile(ArchiveFile('nex.sqlite', 40 << 20, Uint8List(0)))
+      ..addFile(ArchiveFile('media/a.jpg', 300 << 20, Uint8List(0)));
+    NexBackupArchive.assertReasonableSize(real, 320 << 20);
+  });
 
   test('a restore onto a moved sandbox rewrites media paths', () {
     // The reinstall case: every restore on iOS and most on Android lands in

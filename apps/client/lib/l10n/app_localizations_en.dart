@@ -2193,6 +2193,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantActionDone => 'Done.';
 
   @override
+  String assistantActionPartlyDone(int done, int total) {
+    return '$done of $total changes were made before one failed. Check the notes before asking again.';
+  }
+
+  @override
   String get assistantActionFailed => 'That didn\'t work.';
 
   @override
@@ -2223,6 +2228,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatNewConversation => 'New conversation';
+
+  @override
+  String get chatClearHistoryBody =>
+      'Delete every conversation? They cannot be brought back; your notes are not touched.';
 
   @override
   String get chatClearHistory => 'Delete all conversations';
@@ -2940,6 +2949,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cyclePeriodOverlap =>
       'Those dates overlap another period. Change them, or delete the other period first.';
+
+  @override
+  String get cycleLegendOvulation => 'Likely ovulation';
 
   @override
   String get cycleLegendPeriod => 'Period';

@@ -202,6 +202,7 @@ class _CycleCalendarState extends State<CycleCalendar> {
             _legend(context, rose, l10n.cycleLegendPeriod, filled: true),
             _legend(context, rose, l10n.cycleLegendPredicted, filled: false),
             _legend(context, teal, l10n.cycleLegendFertile, filled: true),
+            _legend(context, teal, l10n.cycleLegendOvulation, filled: false),
           ],
         ),
       ],
@@ -233,10 +234,14 @@ class _CycleCalendarState extends State<CycleCalendar> {
         : fertile
         ? teal.withValues(alpha: ovulation ? 0.32 : 0.18)
         : null;
+    // Ovulation has a mark of its own, not only a deeper tint (LOC-10):
+    // colour alone told it apart from the rest of the fertile window.
     final Border? border = predicted
         ? Border.all(color: rose.withValues(alpha: 0.7), width: 1.5)
         : isToday
         ? Border.all(color: rose, width: 1.8)
+        : ovulation
+        ? Border.all(color: teal, width: 1.8)
         : null;
     final textColor = logged ? Colors.white : scheme.onSurface;
 

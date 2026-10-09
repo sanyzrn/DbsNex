@@ -79,7 +79,10 @@ void main() {
         expect(result, hasLength(2));
         expect(result.first.role, ChatRole.system);
         expect(result.first.content, startsWith('custom system prompt'));
-        expect(result.first.content, contains(nexChatScopeCeilingPrompt));
+        expect(result.first.content, contains(nexChatScopeRule));
+        // Not the line about general questions (AI-03): the caller's prompt
+        // says what the assistant is for, notes-only included.
+        expect(result.first.content, isNot(contains('general questions')));
         // And it is idempotent: applying it again changes nothing.
         final again = withScopeCeiling(result);
         expect(again.first.content, result.first.content);

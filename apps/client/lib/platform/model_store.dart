@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
@@ -575,8 +576,14 @@ class NexModelStore {
     if (dir.existsSync()) await dir.delete(recursive: true);
   }
 
-  static Future<String> _digestOf(File file) async =>
-      '${await sha256.bind(file.openRead()).first}';
+  /// Off the UI isolate (PERF-02): hashing gigabytes there dropped frames
+  /// for as long as the install's checks took.
+  static Future<String> _digestOf(File file) {
+    final path = file.path;
+    return Isolate.run(
+      () async => '${await sha256.bind(File(path).openRead()).first}',
+    );
+  }
 
   void close() => _downloader.close();
 }

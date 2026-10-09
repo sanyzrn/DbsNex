@@ -20,7 +20,7 @@ abstract final class LocalBudget {
   static const window = 4096;
 
   /// What a request may use, leaving the rest for the answer.
-  static const input = 3000;
+  static const input = 2800;
 
   /// Roughly how many tokens [text] costs the on-device model.
   static int estimate(String text) {
@@ -139,6 +139,9 @@ abstract final class LocalBudget {
               .where((line) => line.trim().isNotEmpty)
               .toList();
 
+    // One note and nothing found beside it is the chat about one note
+    // (AI-04): it gets the whole room, not one line's ninety tokens.
+    if (found.isEmpty && volunteered.length == 1) perNote = tokens;
     var left = tokens;
     final keptFound = <String>[];
     for (final line in found) {

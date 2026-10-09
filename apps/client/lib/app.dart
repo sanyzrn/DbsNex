@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:nex_core/nex_core.dart' show ChatAdapterBinding;
+import 'package:nex_core/nex_core.dart' show ChatAdapterBinding, nexDigits;
 import 'package:nex_ui/nex_ui.dart';
 import 'l10n/app_localizations.dart';
 import 'platform/route_observer.dart';
@@ -396,10 +396,25 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
   /// continues is, and only a service does that. Where there is no service,
   /// the app posts the notification itself, which is all this ever was.
   Future<void> _reportDownload(String title, int percent) async {
-    if (await NexDownloadNotice.show(title: title, percent: percent)) return;
+    // The percentage in the app's digits (LOC-07), formatted here where the
+    // language is known; the native side only shows it.
+    final context = _messengerKey.currentContext;
+    final persian =
+        context != null && Localizations.localeOf(context).languageCode == 'fa';
+    final body = persian
+        ? '${nexDigits('$percent', persian: true)}٪'
+        : '$percent%';
+    if (await NexDownloadNotice.show(
+      title: title,
+      percent: percent,
+      body: body,
+    )) {
+      return;
+    }
     await widget.services.reminders.showDownloadProgress(
       title: title,
       percent: percent,
+      body: body,
     );
   }
 

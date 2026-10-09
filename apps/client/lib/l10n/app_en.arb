@@ -1826,6 +1826,8 @@
   "@assistantActionDone": {
     "description": "Shown after the assistant's confirmed action succeeds"
   },
+  "assistantActionPartlyDone": "{done} of {total} changes were made before one failed. Check the notes before asking again.",
+  "@assistantActionPartlyDone": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
   "assistantActionFailed": "That didn't work.",
   "@assistantActionFailed": {
     "description": "Shown when the assistant's confirmed action fails"
@@ -1867,6 +1869,7 @@
   "@chatNewConversation": {
     "description": "Starts a fresh assistant conversation"
   },
+  "chatClearHistoryBody": "Delete every conversation? They cannot be brought back; your notes are not touched.",
   "chatClearHistory": "Delete all conversations",
   "@chatClearHistory": {
     "description": "Clears the assistant's saved history"
@@ -2284,6 +2287,7 @@
   "cycleDayOvulation": "likely ovulation",
   "cycleDayLogged": "logged",
   "cyclePeriodOverlap": "Those dates overlap another period. Change them, or delete the other period first.",
+  "cycleLegendOvulation": "Likely ovulation",
   "cycleLegendPeriod": "Period",
   "cycleLegendPredicted": "Expected",
   "cycleLegendFertile": "Fertile window",

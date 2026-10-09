@@ -66,8 +66,12 @@ mixin _AppearancePreferences on _PreferencesStore {
     return code == null || code == 'system' ? null : Locale(code);
   }
 
+  /// The solar (Jalali) calendar for someone using Nex in Persian, until
+  /// they choose otherwise (LOC-11): it is the calendar they live by, and it
+  /// used to be one setting away that most never found.
   bool get solarCalendar =>
-      _prefs.getBool('appearance.solar_calendar') ?? false;
+      _prefs.getBool('appearance.solar_calendar') ??
+      ((locale ?? PlatformDispatcher.instance.locale).languageCode == 'fa');
   Future<void> setSolarCalendar(bool enabled) async {
     await _prefs.setBool('appearance.solar_calendar', enabled);
     notifyListeners();

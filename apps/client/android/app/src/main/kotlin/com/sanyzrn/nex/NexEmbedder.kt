@@ -3,6 +3,7 @@ package com.sanyzrn.nex
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.EmbeddingEngine
 import com.google.ai.edge.litertlm.EmbeddingEngineConfig
@@ -39,6 +40,28 @@ object NexEmbedder {
     private var engine: EmbeddingEngine? = null
     private var enginePath: String? = null
 
+    /**
+     * Released after this long unused (PERF-05), as the chat model is: it
+     * used to stay in memory for the life of the process once loaded. The
+     * next embed loads it again, in about a second.
+     */
+    private const val IDLE_MS = 3 * 60 * 1000L
+
+    @Volatile
+    private var lastUse = 0L
+
+    private val idleClose = Runnable {
+        worker.execute {
+            if (SystemClock.uptimeMillis() - lastUse >= IDLE_MS) close()
+        }
+    }
+
+    private fun touch() {
+        lastUse = SystemClock.uptimeMillis()
+        main.removeCallbacks(idleClose)
+        main.postDelayed(idleClose, IDLE_MS)
+    }
+
     fun register(messenger: BinaryMessenger, context: Context) {
         val cacheDir = context.cacheDir.absolutePath
         MethodChannel(messenger, CHANNEL).setMethodCallHandler { call, result ->
@@ -55,6 +78,7 @@ object NexEmbedder {
                             // native half, and an unanswered call would leave
                             // the note's enrichment waiting forever.
                             val reply = runCatching { embed(path, texts, cacheDir) }
+                            touch()
                             main.post {
                                 reply.fold(
                                     onSuccess = { result.success(it) },

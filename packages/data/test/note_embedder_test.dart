@@ -125,6 +125,24 @@ void main() {
     expect(embedder.documents, isEmpty);
   });
 
+  test('a very long note is embedded from its opening (AI-06)', () async {
+    // A provider refuses an input past its limit, and one refused note
+    // stopped the whole backfill behind it.
+    final embedder = _RecordingEmbedder();
+    final service = EnrichmentService(
+      repo: repo,
+      adapter: _CountingAdapter(),
+      capabilities: searching,
+    )..updateEmbedder(embedder);
+    repo.insert(note('n1', 'word ' * 3000));
+    await service.enrichNote('n1');
+    expect(
+      embedder.documents.single.length,
+      EnrichmentService.embedCharacterLimit,
+    );
+    expect(repo.listEmbeddings(), hasLength(1));
+  });
+
   test('a vector that arrives after an edit is not kept for the new text '
       '(AI-09)', () async {
     final embedder = _HeldEmbedder();

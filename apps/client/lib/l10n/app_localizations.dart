@@ -3632,6 +3632,12 @@ abstract class AppLocalizations {
   /// **'Done.'**
   String get assistantActionDone;
 
+  /// No description provided for @assistantActionPartlyDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} changes were made before one failed. Check the notes before asking again.'**
+  String assistantActionPartlyDone(int done, int total);
+
   /// Shown when the assistant's confirmed action fails
   ///
   /// In en, this message translates to:
@@ -3691,6 +3697,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New conversation'**
   String get chatNewConversation;
+
+  /// No description provided for @chatClearHistoryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete every conversation? They cannot be brought back; your notes are not touched.'**
+  String get chatClearHistoryBody;
 
   /// Clears the assistant's saved history
   ///
@@ -4681,6 +4693,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Those dates overlap another period. Change them, or delete the other period first.'**
   String get cyclePeriodOverlap;
+
+  /// No description provided for @cycleLegendOvulation.
+  ///
+  /// In en, this message translates to:
+  /// **'Likely ovulation'**
+  String get cycleLegendOvulation;
 
   /// No description provided for @cycleLegendPeriod.
   ///

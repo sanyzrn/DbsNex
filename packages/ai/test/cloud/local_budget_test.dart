@@ -48,6 +48,14 @@ void main() {
     });
   });
 
+  test('a chat about one note sees the note, not ninety tokens of it '
+      '(AI-04)', () {
+    final focus = '[n1] ${'یک یادداشت بلند درباره‌ی سفر ' * 80}';
+    final fitted = LocalBudget.fitNotes(focus, 1500);
+    expect(cost(fitted), greaterThan(900));
+    expect(cost(fitted), lessThanOrEqualTo(1500));
+  });
+
   group('the conversation', () {
     test('the newest question always stays; the oldest turns go', () {
       final turns = [

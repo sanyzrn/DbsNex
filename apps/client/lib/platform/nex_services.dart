@@ -139,6 +139,7 @@ class NexServices {
     await NexInstallSource.load();
     final mediaDir = p.join(support.path, 'media');
     final backupDir = p.join(support.path, 'backups');
+    modelsRoot = p.join(support.path, 'models');
 
     // Async filesystem APIs — createSync blocked the UI isolate.
     await Directory(mediaDir).create(recursive: true);
@@ -334,8 +335,24 @@ class NexServices {
   static String? activeSearchModel(NexPreferences preferences) {
     if (!LocalAi.flavorSupportsLocalModels) return null;
     final path = preferences.searchModelPath;
-    if (path == null || !File(path).existsSync()) return null;
+    if (path == null || !isSearchModelFile(path)) return null;
+    if (!File(path).existsSync()) return null;
     return path;
+  }
+
+  /// The app's own models folder, once known (set at bootstrap).
+  static String? modelsRoot;
+
+  /// Whether [path] is where the model store keeps one of the search models
+  /// (SEC-03). The path travels in backups: a crafted one could otherwise
+  /// point the native embedder at any file, never digest-checked.
+  @visibleForTesting
+  static bool isSearchModelFile(String path, {String? root}) {
+    final models = root ?? modelsRoot;
+    if (models == null) return false;
+    return NexModels.search.any(
+      (model) => p.equals(path, p.join(models, model.id, model.filename)),
+    );
   }
 
   Future<void>? _embeddingLibrary;

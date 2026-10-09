@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' show Abi;
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
@@ -543,8 +544,12 @@ class UpdateDownloader {
       throw const HttpException('Download ended early');
     }
     if (expectedSha256 != null) {
-      final digest = await sha256.bind(partial.openRead()).first;
-      if ('$digest' != expectedSha256.toLowerCase()) {
+      // Off the UI isolate (PERF-02), like the model store's checks.
+      final path = partial.path;
+      final digest = await Isolate.run(
+        () async => '${await sha256.bind(File(path).openRead()).first}',
+      );
+      if (digest != expectedSha256.toLowerCase()) {
         // Deleted, not left for a retry: unlike a truncated download, a
         // resume can only ever reproduce these same wrong bytes again.
         await partial.delete();

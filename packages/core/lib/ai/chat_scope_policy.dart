@@ -16,11 +16,20 @@ access. Help with general questions, math, writing and editing help,
 translation, summarization, and idea generation — answered directly and in
 full within a normal chat-length reply.
 
-If a request is beyond that scope — for example, asking you to build a
-complete application, write a large multi-file codebase, or produce
-something that would take far longer than a normal reply — say plainly
-that it's outside Nex's current scope, instead of attempting a partial or
-truncated answer.''';
+$nexChatScopeRule''';
+
+/// The ceiling alone, without the line about what the assistant helps with.
+///
+/// What joins a caller's own system message (AI-03): the app's prompt says
+/// what the assistant is for — and, with "Stay in my notes" on, that it
+/// answers from the notes only — so the general "help with general
+/// questions" line contradicted it on every on-device request.
+const String nexChatScopeRule = '''
+If a request is beyond a normal chat-length reply — for example, asking you
+to build a complete application, write a large multi-file codebase, or
+produce something that would take far longer than a normal reply — say
+plainly that it's outside Nex's current scope, instead of attempting a
+partial or truncated answer.''';
 
 /// Hard cap on a single response, as a technical backstop only — see
 /// [nexChatScopeCeilingPrompt]. Not a target length; ordinary replies are
@@ -42,11 +51,11 @@ List<ChatMessage> withScopeCeiling(List<ChatMessage> conversation) {
     final existing = conversation.first.content;
     // Already carrying the ceiling (a caller that applies it itself, or this
     // function run twice over the same list): unchanged.
-    if (existing.contains(nexChatScopeCeilingPrompt)) return conversation;
+    if (existing.contains(nexChatScopeRule)) return conversation;
     return [
       ChatMessage(
         role: ChatRole.system,
-        content: '$existing\n\n$nexChatScopeCeilingPrompt',
+        content: '$existing\n\n$nexChatScopeRule',
       ),
       ...conversation.skip(1),
     ];
