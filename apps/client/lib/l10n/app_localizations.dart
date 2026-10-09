@@ -767,7 +767,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchStart.
   ///
   /// In en, this message translates to:
-  /// **'Start typing to find a capture.'**
+  /// **'Start typing to find a note.'**
   String get searchStart;
 
   /// No description provided for @settings.
@@ -1421,7 +1421,7 @@ abstract class AppLocalizations {
   /// No description provided for @ocr.
   ///
   /// In en, this message translates to:
-  /// **'OCR'**
+  /// **'Text in the photo'**
   String get ocr;
 
   /// No description provided for @tagSuggestions.

@@ -230,18 +230,18 @@ class NexReminders {
     if (android == null) return;
     try {
       await android.createNotificationChannel(
-        const AndroidNotificationChannel(
+        AndroidNotificationChannel(
           _channelId,
-          'Reminders',
-          description: 'Notes you asked Nex to bring back up',
+          _text.reminders,
+          description: _text.remindersAbout,
           importance: Importance.high,
         ),
       );
       await android.createNotificationChannel(
-        const AndroidNotificationChannel(
+        AndroidNotificationChannel(
           _dailyChannelId,
-          'Daily digest',
-          description: 'One reminder a day, at a time you chose',
+          _text.daily,
+          description: _text.dailyAbout,
           importance: Importance.defaultImportance,
         ),
       );
@@ -252,6 +252,22 @@ class NexReminders {
       // launch, and the plugin creates one implicitly when it posts anyway.
       _initialisationWarning ??= 'channels: $error';
     }
+  }
+
+  /// What Android calls this app's notification channels in its settings,
+  /// in Nex's own language (LOC-06). English until the app says otherwise.
+  static NexChannelText _text = NexChannelText.en;
+  static NexChannelText get channelText => _text;
+
+  /// Names the channels in the app's language. Android lets an app rename a
+  /// channel it owns at any time (never change its sound or importance), so
+  /// re-creating them with the new names is all a language change takes.
+  Future<void> useLanguage({required bool persian}) async {
+    final text = persian ? NexChannelText.fa : NexChannelText.en;
+    if (identical(text, _text)) return;
+    _text = text;
+    // Before initialisation the channels are created by it, already named.
+    if (_ready) await _createChannels();
   }
 
   /// The channel ids the settings screen can send someone to.
@@ -497,8 +513,8 @@ class NexReminders {
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
-            'Reminders',
-            channelDescription: 'Notes you asked Nex to bring back up',
+            _text.reminders,
+            channelDescription: _text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
             visibility: hideOnLockScreen?.call() ?? false
@@ -671,11 +687,11 @@ class NexReminders {
   }) async {
     if (!supported) return 'not supported on this platform';
     await initialise();
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
-        'Reminders',
-        channelDescription: 'Notes you asked Nex to bring back up',
+        _text.reminders,
+        channelDescription: _text.remindersAbout,
         importance: Importance.high,
         priority: Priority.high,
       ),
@@ -729,8 +745,8 @@ class NexReminders {
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _updateChannelId,
-            'Updates',
-            channelDescription: 'Downloading a new version of Nex',
+            _text.updates,
+            channelDescription: _text.updatesAbout,
             importance: Importance.low,
             priority: Priority.low,
             onlyAlertOnce: true,
@@ -764,11 +780,11 @@ class NexReminders {
         id: _updateId,
         title: title,
         body: body,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _updateChannelId,
-            'Updates',
-            channelDescription: 'Downloading a new version of Nex',
+            _text.updates,
+            channelDescription: _text.updatesAbout,
             importance: Importance.high,
             priority: Priority.high,
             autoCancel: true,
@@ -873,8 +889,8 @@ class NexReminders {
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _dailyChannelId,
-            'Daily nudge',
-            channelDescription: 'One reminder a day, at a time you chose',
+            _text.daily,
+            channelDescription: _text.dailyAbout,
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
             // The recap this carries is now as long as there was something
@@ -960,8 +976,8 @@ class NexReminders {
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
-            'Reminders',
-            channelDescription: 'Notes you asked Nex to bring back up',
+            _text.reminders,
+            channelDescription: _text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
             visibility: hideOnLockScreen?.call() ?? false
@@ -1051,8 +1067,8 @@ class NexReminders {
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
-            'Reminders',
-            channelDescription: 'Notes you asked Nex to bring back up',
+            _text.reminders,
+            channelDescription: _text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
             visibility: NotificationVisibility.private,
@@ -1098,8 +1114,8 @@ class NexReminders {
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
-            'Reminders',
-            channelDescription: 'Notes you asked Nex to bring back up',
+            _text.reminders,
+            channelDescription: _text.remindersAbout,
             importance: Importance.high,
             priority: Priority.high,
             visibility: hideOnLockScreen?.call() ?? false
@@ -1246,4 +1262,42 @@ class NexReminders {
     final one = text.replaceAll(RegExp(r'\s+'), ' ');
     return one.length <= max ? one : '${one.substring(0, max)}…';
   }
+}
+
+/// The names and descriptions of Nex's notification channels, in one
+/// language.
+class NexChannelText {
+  const NexChannelText._({
+    required this.reminders,
+    required this.remindersAbout,
+    required this.daily,
+    required this.dailyAbout,
+    required this.updates,
+    required this.updatesAbout,
+  });
+
+  final String reminders;
+  final String remindersAbout;
+  final String daily;
+  final String dailyAbout;
+  final String updates;
+  final String updatesAbout;
+
+  static const en = NexChannelText._(
+    reminders: 'Reminders',
+    remindersAbout: 'Notes you asked Nex to bring back up',
+    daily: 'Daily digest',
+    dailyAbout: 'One reminder a day, at a time you chose',
+    updates: 'Updates',
+    updatesAbout: 'Downloading a new version of Nex',
+  );
+
+  static const fa = NexChannelText._(
+    reminders: 'یادآورها',
+    remindersAbout: 'یادداشت‌هایی که خواستید Nex دوباره نشانتان بدهد',
+    daily: 'خلاصهٔ روزانه',
+    dailyAbout: 'روزی یک یادآوری، در ساعتی که خودتان انتخاب کردید',
+    updates: 'به‌روزرسانی‌ها',
+    updatesAbout: 'دریافت نسخهٔ تازهٔ Nex',
+  );
 }

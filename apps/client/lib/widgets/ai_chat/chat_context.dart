@@ -2,6 +2,24 @@ part of '../ai_chat_sheet.dart';
 
 /// What the assistant is given: the notes in front of it, the focused
 /// note's file and pictures, retrieval and citations.
+/// A checklist as words a model reads: what is still to do and what is
+/// already done, said outright. Its `- [x]` marks, flattened onto one line,
+/// were read as unticked — the assistant called done items still to do.
+@visibleForTesting
+String? checklistContextLine(Note note) {
+  final items = note.checklistItems;
+  if (items.isEmpty) return note.content;
+  String said(Iterable<ChecklistItem> list) => [
+    for (final i in list) i.text.trim(),
+  ].where((t) => t.isNotEmpty).join('; ');
+  final open = said(items.where((i) => !i.done));
+  final done = said(items.where((i) => i.done));
+  return [
+    if (open.isNotEmpty) 'still to do: $open',
+    if (done.isNotEmpty) 'already done: $done',
+  ].join('. ');
+}
+
 extension _ChatContext on _AiChatSheetState {
   /// Reads the recent notes the assistant is allowed to see.
   ///
@@ -93,7 +111,10 @@ extension _ChatContext on _AiChatSheetState {
               note.title,
               // The person's own line on a photo, voice or file note.
               note.caption,
-              note.content,
+              if (note.type == NoteType.checklist)
+                checklistContextLine(note)
+              else
+                note.content,
               note.transcriptText,
               note.ocrText,
               note.linkExcerpt,

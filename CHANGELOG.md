@@ -46,6 +46,11 @@ Working convention:
 - **Search by meaning follows your edits.** An edited note used to be found by what it said before; it is now prepared again in the background after each change.
 - **The on-device smart summary no longer spins forever.** A summary the phone's model never finishes is given up on after two minutes.
 - **No raw instructions in the chat.** When the assistant wrote an action without its usual wrapping, the chat showed it as code above the confirmation card. It now shows only the card.
+- **Sharing a video no longer says it failed.** A video shared from Telegram, WhatsApp or the gallery was saved, but the message said "Capture could not be stored". A share that is in your notes is now always reported as saved.
+- **Words under a shared video or photo come with it.** When Telegram, WhatsApp or another app sends text along with a file, it becomes the note's caption.
+- **The assistant knows which checklist items are done.** It used to read ticked items as still to do; it now sees what is left and what is already done.
+- **More actions closes with a swipe down,** like every other sheet.
+- **Gemma 4's licence is Apache 2.0.** The on-device model page now shows that licence and links to it, instead of the older Gemma terms.
 
 - **More from the same review, smaller but real:**
   - Deleting all assistant conversations now asks first, and an assistant change that fails part-way says how many changes were made instead of only "That didn't work".
@@ -57,6 +62,8 @@ Working convention:
   - The download notification shows its percentage in Persian digits, and a long model download pauses cleanly when Android 15's daily limit for background transfers is reached.
   - A backup that would unpack to far more than its own size is refused; file previews and "Save to device" only open the app's own files; the search model is only loaded from where Nex installed it; and the app no longer asks for access to your photos, videos and audio, which it never used.
   - The licences page now lists the on-device model runtime.
+  - Android's notification settings name Nex's channels (Reminders, Daily digest, Updates) in the app's language.
+  - "OCR" is now "Text in the photo", and the empty search says "Start typing to find a note".
 
 ## v1.99.6
 

@@ -93,14 +93,14 @@ void main() {
     );
   });
 
-  test('the shipped model carries the notice its licence demands', () {
-    // The licence names this sentence specifically, so it is reproduced rather
-    // than paraphrased, and the screen shows it verbatim.
+  test('the shipped model names its licence: Apache 2.0 for Gemma 4', () {
+    // Gemma 4 is Apache 2.0 (REL-14); the old Gemma Terms do not apply to it.
+    expect(NexModels.gemma4E2B.licenseNotice, contains('Apache License'));
+    expect(NexModels.gemma4E2B.licenseNotice, isNot(contains('Terms of Use')));
     expect(
-      NexModels.gemma4E2B.licenseNotice,
-      contains('ai.google.dev/gemma/terms'),
+      NexModels.gemma4E2B.licenseUrl,
+      'https://ai.google.dev/gemma/apache_2',
     );
-    expect(NexModels.gemma4E2B.licenseUrl, isNotEmpty);
   });
 
   test('the standard flavor does not offer local models', () {

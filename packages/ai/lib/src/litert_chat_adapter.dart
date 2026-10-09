@@ -102,9 +102,31 @@ class LiteRtChatAdapter implements ChatAdapter {
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   /// Whether there is a model on disk to answer with.
+  ///
+  /// Remembered for a few seconds rather than asked of the disk each time
+  /// (PERF-09): the timeline header and every adapter call read this, on the
+  /// UI isolate, where a synchronous stat per rebuild is the cost the project
+  /// otherwise keeps off it. Only a model that is there is remembered: one
+  /// just installed is seen at once, one deleted within [_availabilityTtl].
   @override
-  bool get available =>
-      supportedPlatform && modelPath.isNotEmpty && File(modelPath).existsSync();
+  bool get available {
+    if (!supportedPlatform || modelPath.isEmpty) return false;
+    final now = DateTime.now();
+    final seen = _seenAt;
+    if (seen != null &&
+        _seenPath == modelPath &&
+        now.difference(seen) < _availabilityTtl) {
+      return true;
+    }
+    final present = File(modelPath).existsSync();
+    _seenPath = present ? modelPath : null;
+    _seenAt = present ? now : null;
+    return present;
+  }
+
+  static const _availabilityTtl = Duration(seconds: 3);
+  String? _seenPath;
+  DateTime? _seenAt;
 
   /// Backends to try, in order. GPU is Android-only; CPU is the floor
   /// everywhere and is always last, so there is always something left to fall

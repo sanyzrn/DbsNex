@@ -82,4 +82,33 @@ void main() {
       reason: "the More sheet's last action must clear system navigation",
     );
   });
+
+  testWidgets('More actions closes when pulled down over its list', (
+    tester,
+  ) async {
+    // Reported: the More sheet ignored a swipe down. Its list caught the
+    // drag, and the plain modal it was closed only from its handle.
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await services.captureText('a note to open');
+    await services.refreshTimeline();
+    await tester.pumpWidget(
+      NexApp(services: services, preferences: preferences),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('a note to open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('More actions'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsWidgets);
+    final before = find.text('Delete').evaluate().length;
+
+    await tester.drag(find.text('Delete').last, const Offset(0, 500));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete').evaluate().length, lessThan(before));
+    expect(find.byType(NoteDetailSheet), findsOneWidget);
+  });
 }

@@ -25,10 +25,15 @@ abstract final class NexDownloadNotice {
     required String title,
     required int percent,
     String? body,
+    String? channel,
+    String? channelAbout,
   }) => _ask('downloadNotice', <String, Object>{
     'title': title,
     'percent': percent,
     'body': ?body,
+    // What Android's settings call the channel, in the app's language.
+    'channel': ?channel,
+    'channelAbout': ?channelAbout,
   });
 
   /// Sends the app to the background instead of closing it — what Back on

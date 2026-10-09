@@ -129,7 +129,7 @@ class SqliteNoteRepository implements NoteRepository {
         return note;
       }
       final capture = CaptureService(this, deviceId: localDeviceId!);
-      final Note? note = switch (payload['type']) {
+      var note = switch (payload['type']) {
         // A browser shares a page as text. A share that is a link is
         // captured as a link note, with any words around it as its caption.
         // Not a recovered draft (`draft-`), which is text the person typed
@@ -152,6 +152,17 @@ class SqliteNoteRepository implements NoteRepository {
         ),
         _ => throw ArgumentError('Unsupported shared capture'),
       };
+      // The words another app sent with the file — Telegram's or WhatsApp's
+      // caption under a video or a photo — are the note's caption, in the
+      // same transaction, so the note never exists without them.
+      final words = payload['caption']?.trim();
+      if (note != null &&
+          words != null &&
+          words.isNotEmpty &&
+          payload['type'] != 'shared_text') {
+        setCaption(note.id, words);
+        note = getById(note.id);
+      }
       if (note == null) {
         if (requestId.startsWith('draft-')) {
           db.execute('COMMIT');
@@ -169,6 +180,18 @@ class SqliteNoteRepository implements NoteRepository {
       db.execute('ROLLBACK');
       rethrow;
     }
+  }
+
+  /// The note a share request already became, or null when it has not
+  /// committed. A capture whose answer was lost — the window closed, a step
+  /// after the commit failed — is a saved capture, not a failed one.
+  Note? capturedFor(String requestId) {
+    final receipt = db.select(
+      'SELECT note_id FROM capture_receipts WHERE request_id = ?',
+      [requestId],
+    );
+    if (receipt.isEmpty) return null;
+    return getById(receipt.first['note_id'] as String);
   }
 
   Note? _sharedLinkNote(CaptureService capture, String url, String? words) {

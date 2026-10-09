@@ -73,4 +73,48 @@ void main() {
       }
     }
   });
+
+  test('no new screen names things outside the catalogue (UX-05)', () {
+    // `nexLabel` inlines both languages at the call, past the reviewed .arb
+    // vocabulary. The files that already use it may keep it until they are
+    // next touched; a new file reaches for AppLocalizations instead.
+    const allowed = {
+      'lib/platform/hold_menu.dart',
+      'lib/platform/theme_presets.dart',
+      'lib/screens/about_screen.dart',
+      'lib/screens/ai_provider_screen.dart',
+      'lib/screens/brief_screen.dart',
+      'lib/screens/cycle/cycle_calendar.dart',
+      'lib/screens/settings/settings_appearance.dart',
+      'lib/screens/settings/settings_gestures.dart',
+      'lib/screens/settings/settings_search.dart',
+      'lib/screens/settings_sheet.dart',
+      'lib/screens/tools_screen.dart',
+      'lib/screens/vault/vault_items.dart',
+      'lib/screens/vault/vault_pages.dart',
+      'lib/screens/vault_editor.dart',
+      'lib/screens/vault_screen.dart',
+      'lib/widgets/commitments/commitment_editor.dart',
+      'lib/widgets/commitments/commitment_rows.dart',
+      'lib/widgets/commitments_sheet.dart',
+      'lib/widgets/feature_label.dart',
+      'lib/widgets/feedback_sheet.dart',
+      'lib/widgets/folded_note.dart',
+      'lib/widgets/recurring_attachments.dart',
+      'lib/widgets/recurring_calendar.dart',
+      'lib/widgets/recurring_options.dart',
+    };
+    final using = [
+      for (final file in Directory('lib').listSync(recursive: true))
+        if (file is File &&
+            file.path.endsWith('.dart') &&
+            file.readAsStringSync().contains('nexLabel('))
+          file.path.replaceAll(r'\', '/'),
+    ];
+    expect(
+      using.where((path) => !allowed.contains(path)),
+      isEmpty,
+      reason: 'put the words in app_en.arb and app_fa.arb instead',
+    );
+  });
 }

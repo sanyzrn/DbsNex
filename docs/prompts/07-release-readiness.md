@@ -86,7 +86,7 @@ Answer one question: **can this exact build be published on Cafe Bazaar and Myke
 4. **Legal**
    - Open-source licence notices for every dependency, shown in-app (`LicenseRegistry`/`showLicensePage`).
    - Font licences (the Persian font).
-   - **Model licences:** Gemma 4 E2B (Gemma Terms — the notice is reproduced verbatim and accepted before download), EmbeddingGemma 2 (stated as Apache 2.0 — verify against the model card), and any other weights in `NexModels`. Nex hosts the weights, which makes it the distributor.
+   - **Model licences:** Gemma 4 E2B (Apache 2.0, ai.google.dev/gemma/apache_2 — the licence is shown and accepted before download), EmbeddingGemma 2 (stated as Apache 2.0 — verify against the model card), and any other weights in `NexModels`. Nex hosts the weights, which makes it the distributor.
    - Third-party icons and images; the app's own `LICENSE`.
    - A privacy-policy URL: does one exist, is it linked in-app, and does it cover AI providers, the on-device models, feedback, diagnostics, the sponsor fetch and Cycle health data?
 5. **Crash and quality signals:** how will the owner learn about crashes and ANRs after release (`crash_reporter.dart`, diagnostics attached to feedback; no Play vitals on these stores)? A staged-rollout plan and a kill switch (remote config)?
