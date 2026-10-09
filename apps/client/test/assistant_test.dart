@@ -966,6 +966,70 @@ Sure, here you go:
       expect(find.textContaining('Cycle: not shared'), findsNothing);
     });
 
+    testWidgets('on the phone, a period question has Cycle read for it first', (
+      tester,
+    ) async {
+      // The on-device model was asked this and answered "209 days" without
+      // ever asking for the summary. Now the app reads it before asking, and
+      // the model is asked once, with the summary in front of it.
+      await preferences.setAiProvider(const AiProviderConfig());
+      final model = _RecordingModel('حدود ۱۱ روز دیگه.');
+      ChatAdapterBinding.bind(model);
+      addTearDown(ChatAdapterBinding.reset);
+      await openSheet(tester, client: replying('unused'));
+
+      final field = find.descendant(
+        of: find.byType(AiChatSheet),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(field, 'چند روز به پریودی من مونده؟');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+
+      expect(model.asked, hasLength(1));
+      final last = model.asked.single.last;
+      expect(last.role, ChatRole.user);
+      expect(last.content, startsWith('<<<NOTES\nCycle'));
+      expect(find.text('Read your Cycle summary'), findsOneWidget);
+      expect(find.text('حدود ۱۱ روز دیگه.'), findsOneWidget);
+    });
+
+    testWidgets('with a provider, Cycle is read only when the model asks', (
+      tester,
+    ) async {
+      final bodies = <String>[];
+      await openSheet(
+        tester,
+        client: MockClient((request) async {
+          bodies.add(request.body);
+          return http.Response.bytes(
+            utf8.encode(
+              jsonEncode({
+                'choices': [
+                  {
+                    'message': {'content': 'I cannot tell from your notes.'},
+                  },
+                ],
+              }),
+            ),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        }),
+      );
+      final field = find.descendant(
+        of: find.byType(AiChatSheet),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(field, 'when is my period?');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+
+      expect(bodies, hasLength(1));
+      expect(bodies.single, isNot(contains('<<<NOTES\\nCycle')));
+      expect(find.text('Read your Cycle summary'), findsNothing);
+    });
+
     testWidgets('the composer turns to the script being typed', (tester) async {
       await openSheet(
         tester,
@@ -1670,4 +1734,28 @@ Sure, here you go:
       );
     });
   });
+}
+
+/// An on-device model that answers every question the same way, and keeps
+/// what it was asked.
+class _RecordingModel implements ChatAdapter {
+  _RecordingModel(this.reply);
+
+  final String reply;
+  final asked = <List<ChatMessage>>[];
+
+  @override
+  bool get available => true;
+
+  @override
+  Future<void>? warmUp() => null;
+
+  @override
+  Future<void>? release() => null;
+
+  @override
+  Future<ChatResponse>? sendMessage(List<ChatMessage> history) {
+    asked.add(List.of(history));
+    return Future.value(ChatResponse(content: reply));
+  }
 }

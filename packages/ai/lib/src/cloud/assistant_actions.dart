@@ -424,7 +424,12 @@ show_search|show_tags on|off, daily_nudge on|off, daily_nudge_time "HH:MM".
 delete, tag, pin, remind, restore, to_checklist and title take `ids` for
 several notes.
 Look things up first, and wait for the result: search {query} | {tag} |
-{thread}; threads {}; cycle {} for questions about their period.
+{thread}; threads {}.
+For any question about their period, cycle, ovulation or pregnancy, send
+only this, unless their Cycle summary is already below:
+```nex
+{"action": "cycle"}
+```
 Lookups run at once; everything else waits for the user to confirm.
 Rules: nothing outside the blocks. If unsure which note is meant, ask. For
 a question, answer normally with no block.''';
@@ -439,8 +444,13 @@ a question, answer normally with no block.''';
 /// when it quotes something — a note asked to be shown, a snippet — and a
 /// quoted note that happened to hold protocol JSON used to run as if the
 /// model had proposed it.
+///
+/// The small on-device model writes the tag its own way as often as not —
+/// `[nex]` inside the fence, or on a line of its own above an untagged one —
+/// and that block then appeared in the chat as raw JSON. Both still name the
+/// protocol, so both count; an untagged fence alone still does not.
 final _blockPattern = RegExp(
-  r'```[ \t]*(?:nex|json)[ \t]*\r?\n(.*?)```',
+  r'(?:\[nex\][ \t]*\r?\n\s*```[^\n]*|```[ \t]*\[?(?:nex|json)\]?[ \t]*)\r?\n(.*?)```',
   dotAll: true,
   caseSensitive: false,
 );
@@ -493,7 +503,15 @@ List<AssistantAction> parseAssistantActions(String reply) {
     try {
       decoded = jsonDecode(body);
     } catch (_) {
-      continue;
+      // A stray brace after the object, which a small model leaves behind:
+      // the objects inside the block are still what it meant.
+      final objects = _objectsIn(body);
+      if (objects.isEmpty) continue;
+      try {
+        decoded = [for (final object in objects) jsonDecode(object)];
+      } catch (_) {
+        continue;
+      }
     }
     for (final entry in decoded is List ? decoded : [decoded]) {
       if (entry is! Map) continue;
