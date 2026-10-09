@@ -34,6 +34,11 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.6
+
+- **The on-device assistant answers questions about your period.** Asked "how many days until my period?", the model on your phone guessed a number or said it could not see Cycle, because it is meant to ask for your Cycle summary first and seldom did. Now, when you ask about your period, cycle, ovulation or pregnancy and the assistant is allowed to read Cycle, Nex reads the summary for it before it answers, and you see "Read your Cycle summary" as you do with a cloud provider. Nothing leaves your phone for this.
+- **Fewer raw instructions in the chat.** When the on-device model wrote a request to look something up in a slightly wrong shape, the chat showed it as code instead of carrying it out. Those shapes are now understood.
+
 ## v1.99.5
 
 - **The on-device assistant answers with many notes and long conversations.** The phone's model reads about 4,000 tokens at a time — the assistant's instructions, your notes and the conversation together — and once a library or a chat grew past that, every message was refused and the chat said the model would not start. Requests are now fitted to it: the notes found for your question come first, each note line is kept short, older turns of a long conversation give way to the newest, and the action instructions take a shorter form when room is tight. Your newest question is always kept.

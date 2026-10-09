@@ -123,6 +123,8 @@ extension _ChatSending on _AiChatSheetState {
     } catch (_) {
       _gentle = false;
     }
+    await _readCycleFirst(trimmed);
+    if (!mounted) return;
 
     String? reply;
     String? requestError;
@@ -185,6 +187,47 @@ extension _ChatSending on _AiChatSheetState {
     unawaited(_resolveCitations());
     _toBottom();
     if (_lookups.isNotEmpty) await _runLookups();
+  }
+
+  /// On the phone's own model, a question about the period has the Cycle
+  /// summary read for it before the model is asked.
+  ///
+  /// A provider's model asks for it (`{"action": "cycle"}`) and is given it.
+  /// The 2B model on the phone mostly did not: it guessed "209 days", or
+  /// said it had no access, or wrote the request in a shape the parser did
+  /// not know. Read here, the answer no longer depends on that. It goes in
+  /// the same way a lookup's findings do, so the thread shows the same line,
+  /// the summary is brought up to date on later turns the same way, and it
+  /// says "not shared" when the person has not allowed it. Nothing leaves
+  /// the phone, which is why this is not done for a provider: there the
+  /// model decides, and only what it asks for is sent.
+  Future<void> _readCycleFirst(String question) async {
+    if (!_adapter.answersOnDevice || !looksLikeCycleQuestion(question)) return;
+    // A retry of the same question: it was read for already.
+    if (_turns.isNotEmpty &&
+        _turns.last.role == ChatRole.user &&
+        _turns.last.content.startsWith('<<<NOTES\nCycle')) {
+      return;
+    }
+    String summary;
+    try {
+      summary = await nexCycleSummaryForAssistant(
+        services: widget.services,
+        preferences: widget.preferences,
+      );
+    } catch (_) {
+      return;
+    }
+    if (!mounted) return;
+    final found = summary
+        .trim()
+        .replaceAll('<<<NOTES', '<<NOTES')
+        .replaceAll('NOTES>>>', 'NOTES>>');
+    _rebuild(() {
+      _turns.add(
+        ChatMessage(role: ChatRole.user, content: '<<<NOTES\n$found\nNOTES>>>'),
+      );
+    });
   }
 
   /// Runs the assistant's own searches and hands it the results.

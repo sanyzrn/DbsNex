@@ -187,24 +187,18 @@ class LiteRtChatAdapter implements ChatAdapter {
     // is the expensive half on this hardware, and grows with the conversation.
     // `_sentThroughIndex` is what lets an append-only history cost one turn.
     final pending = prepared.sublist(_sentThroughIndex.clamp(0, turns.length));
-    final userTurns = [
-      for (final turn in pending)
-        if (turn.role == ChatRole.user) turn.content,
-    ];
-    if (userTurns.isEmpty) {
+    final message = asOneMessage(pending);
+    if (message == null) {
       // The last thing in the history is already an assistant turn — nothing
       // was asked. Better an empty answer than replaying the transcript to
       // manufacture one.
       return const ChatResponse(content: '');
     }
 
-    LiteLmMessage? reply;
-    for (final text in userTurns) {
-      reply = await _conversation!.sendMessage(text);
-    }
+    final reply = await _conversation!.sendMessage(message);
     _sentThroughIndex = turns.length;
     _sentSignature = _signatureOf(system, turns, _sentThroughIndex);
-    return ChatResponse(content: reply?.text.trim() ?? '');
+    return ChatResponse(content: reply.text.trim());
   }
 
   /// Brings up an engine and a conversation, reusing both when they still
@@ -255,6 +249,22 @@ class LiteRtChatAdapter implements ChatAdapter {
     );
     _sentThroughIndex = replay.length;
     _sentSignature = _signatureOf(system, turns, replay.length);
+  }
+
+  /// The user turns in [pending] as the one message the model is sent, or
+  /// null when there is none.
+  ///
+  /// One message, not one each. Two user turns in a row — a question and
+  /// the Cycle summary the app read for it — sent one at a time made the
+  /// model answer the question blind first, at the cost of a whole reply,
+  /// and only then the summary.
+  @visibleForTesting
+  static String? asOneMessage(List<ChatMessage> pending) {
+    final texts = [
+      for (final turn in pending)
+        if (turn.role == ChatRole.user) turn.content,
+    ];
+    return texts.isEmpty ? null : texts.join('\n\n');
   }
 
   /// [turns] with [system] written into the start of the first user turn.

@@ -13,6 +13,26 @@ import 'package:nex_ai/nex_ai.dart';
 /// model anything at all, and the part that decides how much of a conversation
 /// gets re-processed. Both are ours, and both are where a mistake is silent.
 void main() {
+  test('new user turns reach the model as one message', () {
+    // A question and the Cycle summary the app read for it. Sent one at a
+    // time, the model answered the question blind first — a whole reply
+    // spent on a guess — before it saw the summary.
+    expect(
+      LiteRtChatAdapter.asOneMessage(const [
+        ChatMessage(role: ChatRole.user, content: 'when is my period?'),
+        ChatMessage(role: ChatRole.user, content: '<<<NOTES\nCycle\nNOTES>>>'),
+      ]),
+      'when is my period?\n\n<<<NOTES\nCycle\nNOTES>>>',
+    );
+    expect(
+      LiteRtChatAdapter.asOneMessage(const [
+        ChatMessage(role: ChatRole.assistant, content: 'hi'),
+      ]),
+      isNull,
+      reason: 'nothing was asked',
+    );
+  });
+
   group('availability is a state, not an error', () {
     test(
       'a model that is not downloaded yet answers null, before awaiting',

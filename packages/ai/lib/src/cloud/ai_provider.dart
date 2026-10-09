@@ -643,6 +643,11 @@ class CloudAIAdapter implements AIAdapter {
   /// request should go to the phone instead of the network.
   bool get _preferLocal => !config.isUsable && _local.available;
 
+  /// Whether a chat now is answered by the model on the phone rather than
+  /// a provider — for what the chat does for that model that it leaves to
+  /// a provider's (see `looksLikeCycleQuestion`).
+  bool get answersOnDevice => _preferLocal;
+
   /// Runs one exchange against the on-device model.
   ///
   /// The system text becomes a [ChatRole.system] message rather than being

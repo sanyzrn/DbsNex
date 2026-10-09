@@ -13,4 +13,5 @@ library;
 
 export 'src/cloud/ai_provider.dart';
 export 'src/cloud/assistant_actions.dart';
+export 'src/cloud/cycle_question.dart';
 export 'src/cloud/disclosure_log.dart';
