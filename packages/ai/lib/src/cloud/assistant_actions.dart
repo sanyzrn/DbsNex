@@ -393,6 +393,42 @@ one. If you are not certain which note is meant, ask instead of
 guessing. For anything that is a question rather than a request to change
 something, answer normally and use no block at all.''';
 
+/// [assistantActionPrompt] for the on-device model, whose whole window is
+/// 4,096 tokens: every action and setting the parser accepts, in the same
+/// JSON shapes, with the explanations cut to a line. The full version alone
+/// is about a third of that window, and the notes and the conversation have
+/// to fit beside it — see `LocalBudget`.
+const assistantActionPromptCompact = '''
+You can act on the user's notes. When they ask you to, reply with nothing but
+fenced blocks tagged `nex`, one JSON object each, for example:
+```nex
+{"action": "create", "text": "buy oat milk"}
+```
+```nex
+{"action": "tag", "ids": ["<id>", "<id>"], "add": ["work"]}
+```
+Each action below is written as name {fields}; send it as JSON like the
+examples, with "action" set to the name. `id` comes from the notes below or
+a search; never invent one.
+create {text | items[], at?, repeat?} · edit {id, text} · delete {id}
+tag {id, add[], remove[]} · merge {ids[], text} · to_checklist {id}
+check {id, index, done} · remind {id, at "YYYY-MM-DDTHH:MM" local, future;
+repeat once|daily|weekly; no at = cancel} · pin {id, pinned} · title {id, text}
+restore {id} · rename_tag {tag, name} · tag_color {tag, color "#RRGGBB"}
+commitment {name, every, unit hours|days|weeks|months|years, at}
+commitment_met {name} · commitment_delete {name} · thread {ids[], name}
+setting {key, value}: theme light|dark|system, language en|fa|system,
+ai_language auto|en|fa, text_size small|default|large|larger, palette,
+accent "#RRGGBB"|default, haptics on|off, show_greeting|show_digest|
+show_search|show_tags on|off, daily_nudge on|off, daily_nudge_time "HH:MM".
+delete, tag, pin, remind, restore, to_checklist and title take `ids` for
+several notes.
+Look things up first, and wait for the result: search {query} | {tag} |
+{thread}; threads {}; cycle {} for questions about their period.
+Lookups run at once; everything else waits for the user to confirm.
+Rules: nothing outside the blocks. If unsure which note is meant, ask. For
+a question, answer normally with no block.''';
+
 /// The fenced block, wherever in the reply it landed.
 ///
 /// Models put fences after a preamble, in the wrong case, or with a trailing

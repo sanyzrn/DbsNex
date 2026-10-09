@@ -380,6 +380,18 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
                 // reads as a broken app rather than as a device that cannot
                 // carry it. The blockers below refuse the cases that can be
                 // detected; speed is not one of them, so it is said out loud.
+                // So is quality, for the chat model: a phone-sized model set
+                // beside a cloud one is judged against it, and should be
+                // known to be weaker before two gigabytes are spent on it.
+                if (!widget.search) ...[
+                  Text(
+                    l10n.localModelQualityCaveat,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: NexSpacing.xs),
+                ],
                 Text(
                   l10n.localModelDeviceCaveat,
                   style: theme.textTheme.bodySmall?.copyWith(

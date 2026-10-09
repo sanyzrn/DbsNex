@@ -2795,7 +2795,7 @@ abstract class AppLocalizations {
   /// That a weak cloud model gives weak results
   ///
   /// In en, this message translates to:
-  /// **'The model named here is what does the thinking, so it decides how good the results are. A small or cheap model summarises poorly and follows instructions loosely — pick one of the provider\'s capable models.'**
+  /// **'How good the assistant, the summary and everything else are depends entirely on the model you choose. Larger models are more accurate; small or free ones are cheaper and faster, but weaker — they summarise poorly and follow instructions loosely.'**
   String get modelChoiceHint;
 
   /// Button that verifies the configuration
@@ -3319,6 +3319,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nex can run a language model on this phone, so chat works with no internet and nothing you type leaves the device. It is a large download and it stays on your phone until you remove it.'**
   String get localModelExplained;
+
+  /// That the on-device chat model is weaker than a cloud model
+  ///
+  /// In en, this message translates to:
+  /// **'A model on the phone is small, and it never reaches the quality of a cloud model: it does well with simple requests, but with complex questions or many notes it can get things wrong or leave things out.'**
+  String get localModelQualityCaveat;
 
   /// That the on-device model's speed depends on the phone
   ///

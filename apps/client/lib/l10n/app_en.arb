@@ -1349,7 +1349,7 @@
   "@model": {
     "description": "Field label"
   },
-  "modelChoiceHint": "The model named here is what does the thinking, so it decides how good the results are. A small or cheap model summarises poorly and follows instructions loosely — pick one of the provider's capable models.",
+  "modelChoiceHint": "How good the assistant, the summary and everything else are depends entirely on the model you choose. Larger models are more accurate; small or free ones are cheaper and faster, but weaker — they summarise poorly and follow instructions loosely.",
   "@modelChoiceHint": {"description": "That a weak cloud model gives weak results"},
   "testConnection": "Test connection",
   "@testConnection": {
@@ -1681,6 +1681,8 @@
   "@localModelSubtitle": {"description": "Settings row subtitle for the local model"},
   "localModelExplained": "Nex can run a language model on this phone, so chat works with no internet and nothing you type leaves the device. It is a large download and it stays on your phone until you remove it.",
   "@localModelExplained": {"description": "What the on-device model is"},
+  "localModelQualityCaveat": "A model on the phone is small, and it never reaches the quality of a cloud model: it does well with simple requests, but with complex questions or many notes it can get things wrong or leave things out.",
+  "@localModelQualityCaveat": {"description": "That the on-device chat model is weaker than a cloud model"},
   "localModelDeviceCaveat": "It runs on this phone's own processor, so how well it works depends on the phone. On an older or slower device the replies come slowly, and on one short of memory the model may not start at all.",
   "@localModelDeviceCaveat": {"description": "That the on-device model's speed depends on the phone"},
   "localModelDownload": "Download · {size} GB",
