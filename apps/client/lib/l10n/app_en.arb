@@ -2444,6 +2444,8 @@
   "@searchModelRowOn": {"description": "Subtitle of the on-device search row when the model is in use."},
   "searchModelRowOff": "Find notes by meaning with no internet",
   "@searchModelRowOff": {"description": "Subtitle of the on-device search row when the model is not installed."},
+  "localModelRetry": "Try loading it again",
+  "@localModelRetry": {"description": "Button on the on-device model screen: load the installed model again, retrying every backend."},
   "remindTitle": "Set a reminder",
   "@remindTitle": {
       "description": "Heading of the reminder sheet"

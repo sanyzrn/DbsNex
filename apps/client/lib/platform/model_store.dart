@@ -142,38 +142,6 @@ abstract final class NexModels {
     ],
   );
 
-  /// MiniCPM5-2B, INT4, 1,553,670,064 bytes in one asset — about 40% smaller
-  /// than [gemma4E2B], offered beside it so the two can be compared on the
-  /// same phone. Size and digest are GitHub's own for the uploaded asset.
-  ///
-  /// The licence link is OpenBMB's MiniCPM repository, where the terms for
-  /// their weights are published; check them before this leaves testing.
-  static const miniCpm5_2B = ModelRelease(
-    id: 'minicpm5-2b-int4',
-    name: 'MiniCPM5 2B',
-    filename: 'MiniCPM5-2B_int4.litertlm',
-    sizeBytes: 1553670064,
-    licenseUrl: 'https://github.com/OpenBMB/MiniCPM',
-    licenseNotice:
-        'MiniCPM is provided by OpenBMB under the terms published at '
-        'github.com/OpenBMB/MiniCPM',
-    sha256: '9858563beafbc6d5e0d25fcee3827541515296a9302ed3d088b16a58d4fbe7b8',
-    parts: [
-      ModelPart(
-        url:
-            'https://github.com/sanyzrn/DbsNex-releases/releases/download'
-            '/MiniCPM5-2B/MiniCPM5-2B_int4.litertlm',
-        // Never the model's own file name. The part lands beside the
-        // finished model, and joining deletes its parts once the model is
-        // in place: a part named like the model was the model, and 1.99.0
-        // deleted every MiniCPM install the moment it finished.
-        filename: 'MiniCPM5-2B_int4.litertlm.part-aa',
-        sha256:
-            '9858563beafbc6d5e0d25fcee3827541515296a9302ed3d088b16a58d4fbe7b8',
-      ),
-    ],
-  );
-
   /// EmbeddingGemma 2, text only, 164,626,432 bytes in one asset: the
   /// on-device *search* model. It answers nothing — it turns a note, or a
   /// search, into a vector, which is what lets search, related notes and the
@@ -205,7 +173,11 @@ abstract final class NexModels {
             'https://github.com/sanyzrn/DbsNex-releases/releases/download'
             '/nex-embeddinggemma2-text-270m-v1'
             '/embeddinggemma-2-text-270m.litertlm',
-        // Never the model's own file name — see [miniCpm5_2B].
+        // Never the model's own file name. The part lands beside the
+        // finished model, and joining deletes its parts once the model is in
+        // place: a part named like the model *was* the model, and 1.99.0
+        // deleted every install of a model packaged that way the moment it
+        // finished.
         filename: 'embeddinggemma-2-text-270m.litertlm.part-aa',
         sha256:
             '2d079ee2f6f066b1f368e8d7c819f55214eaef1d0513b312321901f30ab286fb',
@@ -213,9 +185,14 @@ abstract final class NexModels {
     ],
   );
 
-  /// Every model on offer for the assistant to answer with, the
-  /// long-standing one first.
-  static const all = [gemma4E2B, miniCpm5_2B];
+  /// Every model on offer for the assistant to answer with.
+  ///
+  /// Gemma alone again since 1.99.4. MiniCPM5 2B was offered beside it in
+  /// 1.99.0 and taken off: on the phones it was tried on it brought the app
+  /// down whenever it was the model in use. Its folder is now an orphan, so
+  /// the next [NexModelStore.sweep] gives its 1.45 GB back, and a phone that
+  /// had it picked falls back to [standard].
+  static const all = [gemma4E2B];
 
   /// The search model, on its own list so that nothing choosing a chat
   /// model can ever pick it.
@@ -581,6 +558,17 @@ class NexModelStore {
   /// disk while the finished model is not. Zero once it is installed.
   int partialBytes(ModelRelease model) =>
       isInstalled(model) ? 0 : installedBytes(model);
+
+  /// Forgets the loads of [model] that never finished, so every backend is
+  /// tried again on the next one. The runtime skips a backend that took the
+  /// app down twice in a row (`LiteRtChatAdapter.maxStrikes`); this is the
+  /// way back from that without downloading the model again.
+  Future<void> forgetFailedLoads(ModelRelease model) async {
+    final marker = File('${fileFor(model).path}.loading');
+    try {
+      if (marker.existsSync()) await marker.delete();
+    } catch (_) {}
+  }
 
   Future<void> delete(ModelRelease model) async {
     final dir = _dirFor(model);

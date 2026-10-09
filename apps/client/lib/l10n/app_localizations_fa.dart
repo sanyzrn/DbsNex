@@ -3347,6 +3347,9 @@ class AppLocalizationsFa extends AppLocalizations {
       'پیدا کردن یادداشت بر اساس معنا، بدون اینترنت';
 
   @override
+  String get localModelRetry => 'دوباره بالا آوردن مدل';
+
+  @override
   String get remindTitle => 'تنظیم یادآور';
 
   @override

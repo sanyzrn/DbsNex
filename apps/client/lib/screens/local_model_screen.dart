@@ -204,6 +204,34 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
     if (mounted) setState(() => _searchError = null);
   }
 
+  bool _retrying = false;
+
+  /// Tries the installed model again: the search model's check, or the chat
+  /// model's load with every backend given up on tried again. Either way
+  /// the outcome is said — a banner when it works, the runtime's words
+  /// below when it does not.
+  Future<void> _retry(NexModelStore store) async {
+    if (_install.isRunning || _retrying) return;
+    if (!widget.search) {
+      await _install.retryLoad(store, _model);
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    final host = NexBannerHost.of(context);
+    setState(() => _retrying = true);
+    try {
+      await _activateSearch(store);
+      host?.show(
+        message: l10n.searchModelReady,
+        haptics: widget.preferences.haptics,
+      );
+    } catch (error) {
+      if (mounted) setState(() => _searchError = '$error');
+    } finally {
+      if (mounted) setState(() => _retrying = false);
+    }
+  }
+
   /// Makes [model] the one the assistant uses, and this screen about it.
   /// The runtime follows on its next question; the old weights are released
   /// before the new ones load.
@@ -382,6 +410,11 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
                   _Installed(
                     bytes: store.installedBytes(_model),
                     onDelete: () => unawaited(_delete()),
+                    onRetry: () => unawaited(_retry(store)),
+                    loading:
+                        _retrying ||
+                        (_install.phase == ModelInstallPhase.loading &&
+                            _install.model?.id == _model.id),
                   ),
                   // The one place the runtime's own words are shown. A model
                   // that downloaded perfectly and then would not start is the
@@ -662,10 +695,23 @@ class _Blocked extends StatelessWidget {
 }
 
 class _Installed extends StatelessWidget {
-  const _Installed({required this.bytes, required this.onDelete});
+  const _Installed({
+    required this.bytes,
+    required this.onDelete,
+    required this.onRetry,
+    required this.loading,
+  });
 
   final int bytes;
   final VoidCallback onDelete;
+
+  /// Loads the model again from a clean slate — every backend given up on
+  /// is tried again. The way back from "would not start" that does not cost
+  /// another download.
+  final VoidCallback onRetry;
+
+  /// True while that load is running.
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -687,8 +733,19 @@ class _Installed extends StatelessWidget {
           ],
         ),
         const SizedBox(height: NexSpacing.lg),
+        if (loading) ...[
+          const LinearProgressIndicator(minHeight: 4),
+          const SizedBox(height: NexSpacing.sm),
+          Text(l10n.localModelLoading, style: theme.textTheme.bodySmall),
+        ] else
+          OutlinedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: Text(l10n.localModelRetry),
+          ),
+        const SizedBox(height: NexSpacing.sm),
         OutlinedButton.icon(
-          onPressed: onDelete,
+          onPressed: loading ? null : onDelete,
           icon: const Icon(Icons.delete_outline),
           label: Text(l10n.localModelDelete),
         ),

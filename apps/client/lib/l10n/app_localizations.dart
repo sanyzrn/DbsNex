@@ -5546,6 +5546,12 @@ abstract class AppLocalizations {
   /// **'Find notes by meaning with no internet'**
   String get searchModelRowOff;
 
+  /// Button on the on-device model screen: load the installed model again, retrying every backend.
+  ///
+  /// In en, this message translates to:
+  /// **'Try loading it again'**
+  String get localModelRetry;
+
   /// Heading of the reminder sheet
   ///
   /// In en, this message translates to:

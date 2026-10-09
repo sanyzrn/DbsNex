@@ -150,7 +150,10 @@ extension _ChatSending on _AiChatSheetState {
         _failure =
             requestError ??
             (local != null
-                ? l10n.localModelLoadFailed
+                // The runtime's own words under the sentence: which backend,
+                // and what it said. Without them every cause of a model that
+                // will not start looked the same from the outside.
+                ? '${l10n.localModelLoadFailed}\n\n$local'
                 : switch (_adapter.lastFailureStatus) {
                     401 || 403 => l10n.chatAuthError,
                     429 => l10n.chatRateLimited,

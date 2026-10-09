@@ -24,9 +24,12 @@ class LiteRtChatAdapter implements ChatAdapter {
     required String modelPath,
     this.preferGpu = true,
     @visibleForTesting LiteLmEngine? engine,
+    @visibleForTesting
+    Future<LiteLmEngine> Function(LiteLmEngineConfig config)? loadEngine,
   }) : _path = (() => modelPath),
        _engine = engine,
-       _enginePath = engine == null ? null : modelPath;
+       _enginePath = engine == null ? null : modelPath,
+       _loadEngine = loadEngine ?? LiteLmEngine.create;
 
   /// An adapter whose model can change while the app runs: [modelPath] is
   /// asked again before every load, and a loaded model that is no longer the
@@ -34,9 +37,13 @@ class LiteRtChatAdapter implements ChatAdapter {
   LiteRtChatAdapter.following(
     String Function() modelPath, {
     this.preferGpu = true,
-  }) : _path = modelPath;
+  }) : _path = modelPath,
+       _loadEngine = LiteLmEngine.create;
 
   final String Function() _path;
+
+  /// How an engine is brought up: the runtime's own loader, or a test's.
+  final Future<LiteLmEngine> Function(LiteLmEngineConfig config) _loadEngine;
 
   /// Where the `.litertlm` weights live on disk.
   ///
@@ -291,64 +298,148 @@ class LiteRtChatAdapter implements ChatAdapter {
   /// next launch tries the same backend and dies the same way — the app
   /// becomes unopenable by the one action the user most wants to repeat.
   ///
-  /// So the attempt is written down *before* it happens and cleared after. A
-  /// marker found still sitting there on a later run means that backend took
-  /// the process with it, and it is skipped from then on.
+  /// So the attempt is written down *before* it happens and cleared after.
+  ///
+  /// One line per backend: its name, how many loads in a row never came
+  /// back, and when the last one started. This used to be the name alone,
+  /// and one unfinished load was enough to skip that backend *for good* —
+  /// but a load also never comes back when the app is swiped away, or when
+  /// Android reclaims it mid-load, which on a phone loading two gigabytes is
+  /// ordinary. Once both backends had been unlucky once, the model never
+  /// loaded again and "try again" could not change that: the error a person
+  /// saw on every message. Now a backend is skipped only after [maxStrikes]
+  /// loads in a row that took the process with them, and only for
+  /// [strikeExpiry]: a phone that was short of memory once is not barred
+  /// for ever.
   File get _attemptMarker => File('$modelPath.loading');
 
-  Set<String> _crashedBackends() {
+  /// Unfinished loads in a row before a backend is skipped.
+  static const maxStrikes = 2;
+
+  /// How long a skipped backend stays skipped before it is tried again.
+  static const strikeExpiry = Duration(hours: 12);
+
+  /// Backend name → (unfinished loads in a row, when the last one started),
+  /// leaving out entries older than [strikeExpiry]. A line in the old format
+  /// — a bare name — counts as one strike as of the file's own date, so an
+  /// install stuck under the old rule gets its backends back.
+  Map<String, (int, DateTime)> _strikes() {
     try {
-      if (!_attemptMarker.existsSync()) return const {};
-      return _attemptMarker
-          .readAsLinesSync()
-          .map((line) => line.trim())
-          .where((line) => line.isNotEmpty)
-          .toSet();
+      final file = _attemptMarker;
+      if (!file.existsSync()) return {};
+      final now = DateTime.now();
+      final written = file.lastModifiedSync();
+      final strikes = <String, (int, DateTime)>{};
+      for (final raw in file.readAsLinesSync()) {
+        final fields = raw.trim().split(' ');
+        if (fields.first.isEmpty) continue;
+        final count = fields.length > 1 ? int.tryParse(fields[1]) ?? 1 : 1;
+        final at = fields.length > 2
+            ? DateTime.fromMillisecondsSinceEpoch(
+                int.tryParse(fields[2]) ?? written.millisecondsSinceEpoch,
+              )
+            : written;
+        if (now.difference(at) > strikeExpiry) continue;
+        strikes[fields.first] = (count, at);
+      }
+      return strikes;
     } catch (_) {
-      return const {};
+      return {};
     }
   }
 
-  void _recordAttempt(LiteLmBackend backend) {
+  void _writeStrikes(Map<String, (int, DateTime)> strikes) {
     try {
-      final known = _crashedBackends()..add(backend.name);
-      _attemptMarker.writeAsStringSync(known.join('\n'), flush: true);
+      if (strikes.isEmpty) {
+        if (_attemptMarker.existsSync()) _attemptMarker.deleteSync();
+        return;
+      }
+      _attemptMarker.writeAsStringSync(
+        [
+          for (final MapEntry(:key, value: (count, at)) in strikes.entries)
+            '$key $count ${at.millisecondsSinceEpoch}',
+        ].join('\n'),
+        flush: true,
+      );
     } catch (_) {
       // An unwritable directory costs the protection, not the feature.
     }
   }
 
-  void _clearAttempt(LiteLmBackend backend) {
-    try {
-      final left = _crashedBackends()..remove(backend.name);
-      if (left.isEmpty) {
-        if (_attemptMarker.existsSync()) _attemptMarker.deleteSync();
-      } else {
-        _attemptMarker.writeAsStringSync(left.join('\n'), flush: true);
-      }
-    } catch (_) {}
+  void _recordAttempt(LiteLmBackend backend) {
+    final strikes = _strikes();
+    final (count, _) = strikes[backend.name] ?? (0, DateTime.now());
+    strikes[backend.name] = (count + 1, DateTime.now());
+    _writeStrikes(strikes);
   }
 
-  Future<LiteLmEngine> _ensureEngine() async {
+  void _clearAttempt(LiteLmBackend backend) =>
+      _writeStrikes(_strikes()..remove(backend.name));
+
+  /// The engine being brought up, while one is. Every caller in that time
+  /// waits for it instead of starting a load of its own.
+  ///
+  /// Without this, opening the assistant (which warms the model up) and
+  /// sending a message — or the smart summary asking at the same moment —
+  /// each loaded the model, and two copies of two gigabytes do not fit on a
+  /// phone: Android ended the app mid-load, which also left the marker
+  /// above behind.
+  Future<LiteLmEngine>? _loading;
+  String? _loadingPath;
+
+  @visibleForTesting
+  Future<LiteLmEngine> ensureEngine() => _ensureEngine();
+
+  Future<LiteLmEngine> _ensureEngine() {
     final path = modelPath;
+    final existing = _engine;
+    if (existing != null && _enginePath == path) return Future.value(existing);
+    final pending = _loading;
+    if (pending != null && _loadingPath == path) return pending;
+    final load = _loadAfter(pending, path);
+    _loading = load;
+    _loadingPath = path;
+    return load.whenComplete(() {
+      if (identical(_loading, load)) {
+        _loading = null;
+        _loadingPath = null;
+      }
+    });
+  }
+
+  /// Loads [path] once [before] — a load of a different model — has
+  /// settled, so the two are never in memory together.
+  Future<LiteLmEngine> _loadAfter(
+    Future<LiteLmEngine>? before,
+    String path,
+  ) async {
+    if (before != null) {
+      try {
+        await before;
+      } catch (_) {}
+    }
     final existing = _engine;
     if (existing != null && _enginePath == path) return existing;
     // Another model was picked since this one loaded: two sets of weights
     // will not fit in memory together, so the old one goes first.
     if (existing != null) await close();
 
-    final crashed = _crashedBackends();
+    final strikes = _strikes();
     Object? lastFailure;
     for (final backend in _backends) {
-      if (crashed.contains(backend.name)) {
-        // Tried before and never came back. Skipping it is the difference
-        // between an app that starts and one that does not.
-        lastFailure = StateError('${backend.name} crashed on a previous load');
+      final (count, _) = strikes[backend.name] ?? (0, DateTime.now());
+      if (count >= maxStrikes) {
+        // Tried and never came back, more than once and recently. Skipping
+        // it is the difference between an app that starts and one that
+        // does not.
+        lastFailure = StateError(
+          '${backend.name} did not finish loading $count times in a row',
+        );
         continue;
       }
       _recordAttempt(backend);
       try {
-        final engine = await LiteLmEngine.create(
+        final engine = await _loadEngine(
           LiteLmEngineConfig(modelPath: path, backend: backend),
         );
         _clearAttempt(backend);
