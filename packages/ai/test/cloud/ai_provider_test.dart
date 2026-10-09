@@ -987,27 +987,28 @@ void _attachmentGroup() {
 /// and what they were in the middle of. What is testable without a model is
 /// what it asks for and what it is allowed to say back.
 void _recapGroup() {
-  CloudAIAdapter adapter(String reply, {void Function(http.Request)? onSend}) =>
-      CloudAIAdapter(
-        config: const AiProviderConfig(
-          provider: AiProvider.openai,
-          apiKey: 'k',
-        ),
-        client: MockClient((request) async {
-          onSend?.call(request);
-          return http.Response(
-            jsonEncode({
-              'choices': [
-                {
-                  'message': {'content': reply},
-                },
-              ],
-            }),
-            200,
-            headers: {'content-type': 'application/json; charset=utf-8'},
-          );
+  CloudAIAdapter adapter(
+    String reply, {
+    void Function(http.Request)? onSend,
+    AiOutputLanguage language = AiOutputLanguage.auto,
+  }) => CloudAIAdapter(
+    outputLanguage: language,
+    config: const AiProviderConfig(provider: AiProvider.openai, apiKey: 'k'),
+    client: MockClient((request) async {
+      onSend?.call(request);
+      return http.Response(
+        jsonEncode({
+          'choices': [
+            {
+              'message': {'content': reply},
+            },
+          ],
         }),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
       );
+    }),
+  );
 
   group('the daily brief', () {
     test(
@@ -1141,6 +1142,25 @@ void _recapGroup() {
       // long budget and would have been cut at sixteen.
       expect(brief!.split('\n'), hasLength(8));
       expect(brief.split('\n').first, line);
+    });
+
+    test('under a Persian setting the language comes first, and the '
+        'English labels are not to be copied', () async {
+      // A small on-device model wrote the brief in English, opening with
+      // "DUE in 6h:" copied from the source, when the language was Persian.
+      late http.Request seen;
+      await adapter(
+        '⏰ یک خط',
+        onSend: (r) => seen = r,
+        language: AiOutputLanguage.persian,
+      ).digest('DUE in 6h | text | tax filing', lines: 3);
+
+      final messages =
+          (jsonDecode(seen.body) as Map<String, dynamic>)['messages'] as List;
+      final system = (messages.first as Map)['content'] as String;
+      expect(system, startsWith('پاسخ را کامل به فارسی بنویس.'));
+      expect(system, contains('are markers for you, not words to copy'));
+      expect(system, contains('Reply in Persian (فارسی)'));
     });
 
     test('a reply over the line count is cut to it', () async {
