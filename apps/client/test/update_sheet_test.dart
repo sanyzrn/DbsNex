@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/app_version.dart';
 import 'package:nex_client/l10n/app_localizations.dart';
 import 'package:nex_client/platform/app_update.dart';
+import 'package:nex_client/platform/install_source.dart';
 import 'package:nex_client/platform/nex_preferences.dart';
 import 'package:nex_client/platform/update_service.dart';
 import 'package:nex_client/screens/update_sheet.dart';
@@ -106,6 +107,35 @@ void main() {
       expect(find.textContaining('- first change'), findsNothing);
     },
   );
+
+  testWidgets('a copy Cafe Bazaar installed is updated by Cafe Bazaar '
+      '(REL-01)', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await NexPreferences.load();
+    final service = _FixedUpdateService(
+      UpdateCheck.available(
+        version: NexVersion.tryParse(nexAppVersion)!,
+        downloadUrl: 'https://example.invalid/Nex.apk',
+        notes: '- a newer build on GitHub',
+      ),
+      preferences: preferences,
+    );
+    addTearDown(service.dispose);
+    NexInstallSource.store = NexStore.bazaar;
+    addTearDown(() => NexInstallSource.store = null);
+
+    await pumpSheet(tester, service);
+
+    expect(
+      find.text(
+        'Nex was installed from Cafe Bazaar, so its updates come from '
+        'Cafe Bazaar too.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('a newer build on GitHub'), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
+  });
 
   testWidgets('the update screen offers one version, not a history', (
     tester,

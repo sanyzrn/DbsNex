@@ -34,6 +34,19 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.7
+
+- **Cycle stays private when the app locks.** A home-screen Cycle widget that was refreshing at the moment the app lock closed could show your dates again afterwards. It now always ends on the locked state.
+- **Deleting Cycle really deletes it from this phone.** The backups on the phone still held every period and logged day. They are now replaced with one that does not, and the confirmation says plainly that copies you saved elsewhere are not changed.
+- **No leftover copies of imported files.** Importing a password CSV or restoring a backup left a full, unencrypted copy of the file in the app's cache. The copy is now deleted as soon as it has been read, and any old ones are cleared when the app starts.
+- **Updates from Cafe Bazaar and Myket.** If you installed Nex from Cafe Bazaar or Myket, the app no longer looks for updates on its own; the update screen tells you they come from the store. Copies installed another way keep updating in the app.
+- **A privacy policy in the app.** Under About Nex → Privacy policy, in Persian and English: what stays on the phone, when anything leaves it, and what you control. The guide's privacy paragraph now also mentions link previews and model downloads.
+- **TalkBack can read and copy the recovery code,** and the Cycle calendar says what each day is (period, expected, fertile, likely ovulation, logged) and opens it. The recurring-items calendar's days open with TalkBack too.
+- **Cycle periods can no longer overlap.** Editing a period onto another's dates is refused with a message, instead of quietly skewing every prediction.
+- **Search by meaning follows your edits.** An edited note used to be found by what it said before; it is now prepared again in the background after each change.
+- **The on-device smart summary no longer spins forever.** A summary the phone's model never finishes is given up on after two minutes.
+- **No raw instructions in the chat.** When the assistant wrote an action without its usual wrapping, the chat showed it as code above the confirmation card. It now shows only the card.
+
 ## v1.99.6
 
 - **The on-device assistant answers questions about your period.** Asked "how many days until my period?", the model on your phone guessed a number or said it could not see Cycle, because it is meant to ask for your Cycle summary first and seldom did. Now, when you ask about your period, cycle, ovulation or pregnancy and the assistant is allowed to read Cycle, Nex reads the summary for it before it answers, and you see "Read your Cycle summary" as you do with a cloud provider. Nothing leaves your phone for this.

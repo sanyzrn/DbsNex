@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../app_version.dart';
 import 'app_update.dart';
+import 'install_source.dart';
 import 'nex_preferences.dart';
 
 /// Knows whether a newer release exists, and holds it ready.
@@ -202,6 +203,8 @@ class UpdateService extends ChangeNotifier {
   /// this is safe to call on every launch and every resume.
   Future<void> maybeCheck({bool force = false}) async {
     if (_busy) return;
+    // A store installed this copy and updates it (REL-01).
+    if (NexInstallSource.store != null) return;
     if (!force) {
       if (!preferences.autoUpdateCheck) return;
       final last = preferences.lastUpdateCheck;

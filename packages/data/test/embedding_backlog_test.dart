@@ -52,6 +52,20 @@ void main() {
     expect(repo.listNeedingEmbedding(), isEmpty);
   });
 
+  test('an edit after the vector puts the note back in the backlog '
+      '(DATA-01)', () {
+    // The vector was a snapshot of the note's first moments: an edited note
+    // was found by what it used to say, and never by what it says now.
+    repo.insert(note('n1', content: 'the boiler warranty expires in March'));
+    repo.setEmbedding('n1', [0.1, 0.2, 0.3]);
+    expect(repo.listNeedingEmbedding(), isEmpty);
+    sleep(const Duration(milliseconds: 2));
+    repo.updateContent('n1', 'boiler replaced, warranty void');
+    expect(repo.listNeedingEmbedding().single.id, 'n1');
+    repo.setEmbedding('n1', [0.3, 0.2, 0.1]);
+    expect(repo.listNeedingEmbedding(), isEmpty);
+  });
+
   test('a photo with nothing read out of it yet is not embedded', () {
     // Embedding it now would store a vector for an empty string and it would
     // never be reconsidered. It comes back round once OCR has run.

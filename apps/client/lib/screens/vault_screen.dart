@@ -2,6 +2,8 @@ import 'package:file_selector/file_selector.dart';
 import '../widgets/feature_label.dart';
 import '../widgets/nex_text_field.dart';
 import '../platform/password_csv.dart';
+import '../platform/export_cache.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';

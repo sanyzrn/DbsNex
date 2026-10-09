@@ -623,6 +623,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get privacy => 'Privacy';
 
   @override
+  String get privacyPolicy => 'Privacy policy';
+
+  @override
   String get privacyBody =>
       'Core capture and search do not collect or transmit your notes.';
 
@@ -1246,6 +1249,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get checkForUpdate => 'Check for update';
+
+  @override
+  String get updatesFromBazaar =>
+      'Nex was installed from Cafe Bazaar, so its updates come from Cafe Bazaar too.';
+
+  @override
+  String get updatesFromMyket =>
+      'Nex was installed from Myket, so its updates come from Myket too.';
 
   @override
   String get checkingForUpdate => 'Looking for a newer release…';
@@ -2918,6 +2929,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cycleNothingLogged => 'Nothing noted yet';
 
   @override
+  String get cycleDayToday => 'today';
+
+  @override
+  String get cycleDayOvulation => 'likely ovulation';
+
+  @override
+  String get cycleDayLogged => 'logged';
+
+  @override
+  String get cyclePeriodOverlap =>
+      'Those dates overlap another period. Change them, or delete the other period first.';
+
+  @override
   String get cycleLegendPeriod => 'Period';
 
   @override
@@ -3107,7 +3131,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cycleDeleteAllConfirm =>
-      'Every period, every logged day and these settings are deleted from this phone. Your notes are not touched. This cannot be undone.';
+      'Every period, every logged day and these settings are deleted from this phone, and the backups on this phone are replaced with one that does not hold them. Your notes are not touched. Copies you saved to a folder or shared are not changed. This cannot be undone.';
 
   @override
   String get cycleDeleted => 'Cycle data deleted';

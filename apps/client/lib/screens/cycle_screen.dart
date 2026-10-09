@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../platform/cycle_reminders.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
+import '../widgets/nex_banner.dart';
 import '../widgets/nex_time_picker.dart';
 import 'cycle/cycle_calendar.dart';
 import 'cycle/cycle_day_sheet.dart';
@@ -224,6 +225,14 @@ class _CycleScreenState extends State<CycleScreen> {
     if (result == 'delete') {
       await _services.cycleDeletePeriod(period.id);
     } else if (result == 'save') {
+      // Said, not silently stored (DATA-10): overlapping periods would skew
+      // every prediction counted from them.
+      final from = CycleDate.of(start);
+      final to = end == null ? null : CycleDate.of(end!);
+      if (CyclePeriod.clash(_periods, period.id, from, to) != null) {
+        if (mounted) nexShowBanner(context, message: l10n.cyclePeriodOverlap);
+        return;
+      }
       await _services.cycleUpdatePeriod(period.id, start, end);
     } else {
       return;

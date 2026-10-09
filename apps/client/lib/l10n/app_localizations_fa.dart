@@ -608,6 +608,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get privacy => 'حریم خصوصی';
 
   @override
+  String get privacyPolicy => 'سیاست حریم خصوصی';
+
+  @override
   String get privacyBody =>
       'ثبت و جست‌وجوی یادداشت‌ها نه چیزی جمع‌آوری می‌کند و نه چیزی به بیرون می‌فرستد.';
 
@@ -1216,6 +1219,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get checkForUpdate => 'بررسی بروزرسانی';
+
+  @override
+  String get updatesFromBazaar =>
+      'نکس از کافه‌بازار نصب شده، پس به‌روزرسانی‌هایش هم از کافه‌بازار می‌رسد.';
+
+  @override
+  String get updatesFromMyket =>
+      'نکس از مایکت نصب شده، پس به‌روزرسانی‌هایش هم از مایکت می‌رسد.';
 
   @override
   String get checkingForUpdate => 'در حال گشتن دنبال نسخهٔ تازه‌تر…';
@@ -2843,6 +2854,19 @@ class AppLocalizationsFa extends AppLocalizations {
   String get cycleNothingLogged => 'هنوز چیزی ثبت نشده';
 
   @override
+  String get cycleDayToday => 'امروز';
+
+  @override
+  String get cycleDayOvulation => 'احتمال تخمک‌گذاری';
+
+  @override
+  String get cycleDayLogged => 'ثبت‌شده';
+
+  @override
+  String get cyclePeriodOverlap =>
+      'این تاریخ‌ها با دورهٔ دیگری هم‌پوشانی دارند. تاریخ‌ها را تغییر دهید یا اول آن دوره را حذف کنید.';
+
+  @override
   String get cycleLegendPeriod => 'پریود';
 
   @override
@@ -3032,7 +3056,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get cycleDeleteAllConfirm =>
-      'همهٔ پریودها، روزهای ثبت‌شده و این تنظیمات از این گوشی حذف می‌شوند. به یادداشت‌هایتان دست زده نمی‌شود. این کار برگشت‌پذیر نیست.';
+      'همهٔ پریودها، روزهای ثبت‌شده و این تنظیمات از این گوشی حذف می‌شوند و بکاپ‌های روی این گوشی با بکاپی جایگزین می‌شوند که آن‌ها را ندارد. به یادداشت‌هایتان دست زده نمی‌شود. نسخه‌هایی که در پوشه‌ای ذخیره یا جایی فرستاده‌اید تغییر نمی‌کنند. این کار برگشت‌پذیر نیست.';
 
   @override
   String get cycleDeleted => 'داده‌های چرخه حذف شد';

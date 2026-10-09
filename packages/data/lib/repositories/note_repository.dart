@@ -1394,7 +1394,10 @@ LIMIT ?
 SELECT n.* FROM notes n
 LEFT JOIN note_embeddings e ON e.note_id = n.id
 WHERE n.deleted_at IS NULL
-  AND e.note_id IS NULL
+  -- No vector yet, or one older than the note's last change (DATA-01): an
+  -- edit, a caption, a transcript or a title written since it was embedded
+  -- left the vector describing what the note used to say.
+  AND (e.note_id IS NULL OR e.updated_at < n.updated_at)
   AND (
     COALESCE(TRIM(n.content), '') <> ''
     OR COALESCE(TRIM(n.transcript_text), '') <> ''

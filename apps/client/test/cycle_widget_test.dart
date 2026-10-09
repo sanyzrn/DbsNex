@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -128,4 +129,135 @@ void main() {
       }
     },
   );
+
+  test('a Cycle write that was mid-flight when the lock closed does not '
+      'republish the dates (SEC-09)', () async {
+    final tmp = Directory.systemTemp.createTempSync('nex_cycle_race_');
+    final oldPaths = PathProviderPlatform.instance;
+    PathProviderPlatform.instance = _Paths(tmp.path);
+    SharedPreferences.setMockInitialValues({'cycle.set_up': true});
+    final prefs = await NexPreferences.load();
+    final db = InProcessDb(dbPath: '${tmp.path}/nex.sqlite', deviceId: 'test');
+    final services = NexServices.forTest(
+      worker: db,
+      deviceId: 'test',
+      preferences: prefs,
+      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
+      dbPath: db.dbPath,
+      mediaDir: '${tmp.path}/media',
+      backupDir: '${tmp.path}/backups',
+    );
+    final file = File('${tmp.path}/${NexCycleWidgetSnapshot.fileName}');
+    final published = <String>[];
+    const channel = MethodChannel('nex/os_capture');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'pushWidgets' && file.existsSync()) {
+            published.add(file.readAsStringSync());
+          }
+          return null;
+        });
+    final overrides = _PausingCycleWrites();
+    final oldOverrides = IOOverrides.current;
+    IOOverrides.global = overrides;
+    final bridge = NexWidgetBridge(services: services, preferences: prefs);
+    try {
+      await services.cycleStartPeriod(DateTime(2026, 10, 1));
+      await bridge.start();
+      expect(file.readAsStringSync(), contains('2026-10-01'));
+
+      overrides.pause = true;
+      final oldWrite = bridge.refresh();
+      await overrides.entered.future;
+      await prefs.setAppLockEnabled(true);
+      await prefs.setAppLockClosed(true);
+      await bridge.refresh();
+      published.clear();
+      overrides.resume.complete();
+      await oldWrite;
+
+      expect(jsonDecode(file.readAsStringSync()), {
+        'version': 1,
+        'state': 'locked',
+      });
+      for (final snapshot in published) {
+        expect(snapshot, isNot(contains('2026-10-01')));
+      }
+    } finally {
+      if (!overrides.resume.isCompleted) overrides.resume.complete();
+      IOOverrides.global = oldOverrides;
+      bridge.dispose();
+      await services.dispose();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+      PathProviderPlatform.instance = oldPaths;
+      tmp.deleteSync(recursive: true);
+    }
+  });
+}
+
+/// Holds the next write of the Cycle widget's temporary file until told to
+/// go on: the await the lock can close during.
+class _PausingCycleWrites extends IOOverrides {
+  bool pause = false;
+  final entered = Completer<void>();
+  final resume = Completer<void>();
+
+  @override
+  File createFile(String path) {
+    final file = super.createFile(path);
+    return path.endsWith('${NexCycleWidgetSnapshot.fileName}.tmp')
+        ? _PausingFile(file, this)
+        : file;
+  }
+}
+
+class _PausingFile implements File {
+  _PausingFile(this._inner, this._gate);
+
+  final File _inner;
+  final _PausingCycleWrites _gate;
+
+  @override
+  String get path => _inner.path;
+
+  @override
+  Future<File> writeAsString(
+    String contents, {
+    FileMode mode = FileMode.write,
+    Encoding encoding = utf8,
+    bool flush = false,
+  }) async {
+    if (_gate.pause) {
+      _gate.pause = false;
+      _gate.entered.complete();
+      await _gate.resume.future;
+    }
+    await _inner.writeAsString(
+      contents,
+      mode: mode,
+      encoding: encoding,
+      flush: flush,
+    );
+    return this;
+  }
+
+  @override
+  void writeAsStringSync(
+    String contents, {
+    FileMode mode = FileMode.write,
+    Encoding encoding = utf8,
+    bool flush = false,
+  }) => _inner.writeAsStringSync(
+    contents,
+    mode: mode,
+    encoding: encoding,
+    flush: flush,
+  );
+
+  @override
+  File renameSync(String newPath) => _inner.renameSync(newPath);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

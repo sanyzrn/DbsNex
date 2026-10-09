@@ -920,5 +920,29 @@ List<String> _strings(Object? value) {
 ///
 /// Used when a reply carries both, which the prompt forbids and models do
 /// anyway. The prose is worth showing; the JSON never is.
-String withoutActionBlock(String reply) =>
-    reply.replaceAll(_blockPattern, '').trim();
+String withoutActionBlock(String reply) {
+  final stripped = reply.replaceAll(_blockPattern, '');
+  if (stripped.length != reply.length) return _withoutStrayMarks(stripped);
+  // No fence: the parser read bare objects out of the prose, so those are
+  // what come out of it (AI-01) — only the ones that are actions, so JSON a
+  // reply is genuinely about stays. Shown otherwise, the user got the
+  // protocol in the bubble and a confirmation card for it underneath.
+  var out = reply;
+  for (final object in _objectsIn(reply.replaceAll(_anyFence, ''))) {
+    if (parseAssistantActions(object).isNotEmpty) {
+      out = out.replaceFirst(object, '');
+    }
+  }
+  return out.length == reply.length ? reply.trim() : _withoutStrayMarks(out);
+}
+
+/// What a small model leaves around a block it wrote loosely: a `[nex]`
+/// label on a line of its own, a lone closing brace.
+String _withoutStrayMarks(String text) => text
+    .split('\n')
+    .where((line) {
+      final t = line.trim().toLowerCase();
+      return t != '[nex]' && t != 'nex' && t != '}';
+    })
+    .join('\n')
+    .trim();

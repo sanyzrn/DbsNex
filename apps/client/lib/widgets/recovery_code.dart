@@ -47,9 +47,13 @@ class _NexRecoveryCodeState extends State<NexRecoveryCode> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    // The code itself in the label and the copy as the node's own action
+    // (LOC-01): excluding the subtree had taken both, so TalkBack announced a
+    // button that neither read the code nor copied it.
     return Semantics(
       button: true,
-      label: l10n.recoveryCodeCopy,
+      label: '${l10n.recoveryCodeCopy}: ${widget.code}',
+      onTap: () => unawaited(_copy()),
       excludeSemantics: true,
       child: Material(
         color: scheme.surfaceContainerHigh,

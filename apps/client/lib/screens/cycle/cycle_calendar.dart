@@ -188,7 +188,7 @@ class _CycleCalendarState extends State<CycleCalendar> {
               for (final day in days.skip(row * 7).take(7))
                 Expanded(
                   child: day.isBefore(from) || day.isAfter(to)
-                      ? const SizedBox(height: 44)
+                      ? const SizedBox(height: 48)
                       : _cell(context, day, rose: rose, teal: teal),
                 ),
             ],
@@ -240,15 +240,33 @@ class _CycleCalendarState extends State<CycleCalendar> {
         : null;
     final textColor = logged ? Colors.white : scheme.onSurface;
 
+    // What the day is, not only its date, and the tap as the node's own
+    // action (LOC-02, LOC-13): the colours and the dot were all a screen
+    // reader never heard, and excluding the subtree had dropped the tap.
+    final l10n = AppLocalizations.of(context);
+    final state = [
+      cycleDayMonth(context, day, solar: widget.solar),
+      if (isToday) l10n.cycleDayToday,
+      if (logged) l10n.cycleLegendPeriod,
+      if (predicted) l10n.cycleLegendPredicted,
+      if (ovulation)
+        l10n.cycleDayOvulation
+      else if (fertile)
+        l10n.cycleLegendFertile,
+      if (hasNote) l10n.cycleDayLogged,
+    ];
     return Semantics(
       button: !future,
-      label: cycleDayMonth(context, day, solar: widget.solar),
+      label: state.join(
+        Localizations.localeOf(context).languageCode == 'fa' ? '، ' : ', ',
+      ),
+      onTap: future ? null : () => widget.onDay(day),
       excludeSemantics: true,
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: future ? null : () => widget.onDay(day),
         child: SizedBox(
-          height: 44,
+          height: 48,
           child: Center(
             child: Container(
               width: 36,

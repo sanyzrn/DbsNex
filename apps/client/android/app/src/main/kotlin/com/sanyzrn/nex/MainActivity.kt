@@ -165,6 +165,20 @@ open class MainActivity : FlutterFragmentActivity() {
                 }
             }
             "peekPending" -> result.success(nextCapture())
+            // Which app installed this copy: a store that did owns its
+            // updates, and the in-app updater stays out of its way (REL-01).
+            "installSource" -> result.success(
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        packageManager.getInstallSourceInfo(packageName).installingPackageName
+                    } else {
+                        @Suppress("DEPRECATION")
+                        packageManager.getInstallerPackageName(packageName)
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+            )
             // For feedback: which Android and which phone. Nothing that
             // identifies the person.
             "deviceInfo" -> result.success(mapOf(

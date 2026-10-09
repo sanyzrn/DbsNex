@@ -18,11 +18,16 @@ import '../l10n/app_localizations.dart';
 /// It also renders through [NexMarkdown], so the guide comes out in the same
 /// typography as a note — which is the point of having written that renderer.
 class GuideScreen extends StatefulWidget {
-  const GuideScreen({super.key});
+  const GuideScreen({super.key, this.privacy = false});
 
-  static Future<void> show(BuildContext context) => Navigator.of(
-    context,
-  ).push(NexPageRoute<void>(builder: (_) => const GuideScreen()));
+  /// The privacy policy rather than the guide (REL-02): the same reader, its
+  /// own files under `assets/privacy/`.
+  final bool privacy;
+
+  static Future<void> show(BuildContext context, {bool privacy = false}) =>
+      Navigator.of(
+        context,
+      ).push(NexPageRoute<void>(builder: (_) => GuideScreen(privacy: privacy)));
 
   @override
   State<GuideScreen> createState() => _GuideScreenState();
@@ -41,8 +46,9 @@ class _GuideScreenState extends State<GuideScreen> {
     final code = Localizations.localeOf(context).languageCode;
     if (code == _loadedFor) return;
     _loadedFor = code;
+    final folder = widget.privacy ? 'privacy' : 'guide';
     _guide = rootBundle.loadString(
-      code == 'fa' ? 'assets/guide/fa.md' : 'assets/guide/en.md',
+      code == 'fa' ? 'assets/$folder/fa.md' : 'assets/$folder/en.md',
     );
   }
 
@@ -50,7 +56,9 @@ class _GuideScreenState extends State<GuideScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.guideTitle)),
+      appBar: AppBar(
+        title: Text(widget.privacy ? l10n.privacyPolicy : l10n.guideTitle),
+      ),
       body: SafeArea(
         child: FutureBuilder<String>(
           future: _guide,

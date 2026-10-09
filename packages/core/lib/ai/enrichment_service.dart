@@ -322,6 +322,8 @@ class EnrichmentService {
     // is how one rate-limited request made a note permanently invisible to
     // semantic search — and to related notes — forever.
     final Vector vector;
+    final embedderAsked = _embedder;
+    final adapterAsked = _adapter;
     if (_embedder case final embedder?) {
       vector = Vector(await embedder.embedDocument(text));
     } else {
@@ -329,6 +331,16 @@ class EnrichmentService {
       if (call == null) return;
       vector = await call;
     }
+    // The answer is for the text and the model it was asked of (AI-09). A
+    // note edited, deleted or moved to another vector space while the
+    // request ran keeps no vector from it: the backlog asks again for what
+    // the note says now, of the model in use now.
+    if (!identical(_embedder, embedderAsked) ||
+        !identical(_adapter, adapterAsked)) {
+      return;
+    }
+    final now = _repo.getById(note.id);
+    if (now == null || _searchableText(now) != text) return;
     if (vector.values.isNotEmpty) {
       _repo.setEmbedding(note.id, vector.values);
     } else {

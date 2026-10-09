@@ -12,7 +12,18 @@ extension _VaultPages on _VaultScreenState {
         ),
       ],
     );
-    if (file == null || !mounted) return;
+    if (file == null) return;
+    // The picker's copy holds every password in plain text (SEC-01): it goes
+    // the moment it has been read, whichever way this ends.
+    try {
+      await _importPasswordsFrom(file);
+    } finally {
+      await discardPickedCopy(file.path, await getTemporaryDirectory());
+    }
+  }
+
+  Future<void> _importPasswordsFrom(XFile file) async {
+    if (!mounted) return;
     if (!unlocked) {
       await (session.isOpen ? _reload() : _unlock());
     }

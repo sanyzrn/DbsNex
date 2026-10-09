@@ -63,14 +63,23 @@ class SqliteCycleRepository {
   }
 
   /// Moves [id] to [start]..[end] (end null: still going).
-  void updatePeriod(String id, DateTime start, DateTime? end) {
-    final s = CycleDate.of(start);
-    final e = end == null ? null : CycleDate.of(end);
-    db.execute(
-      'UPDATE cycle_periods SET start_day = ?, end_day = ? WHERE id = ?',
-      ['$s', e == null ? null : '${e.isBefore(s) ? s : e}', id],
-    );
-  }
+  ///
+  /// Refused with a [StateError] when the new dates would share a day with
+  /// another period (DATA-10): two overlapping records of one body are not
+  /// history, and every interval the predictions count from would be wrong.
+  void updatePeriod(String id, DateTime start, DateTime? end) =>
+      db.together(() {
+        final s = CycleDate.of(start);
+        final raw = end == null ? null : CycleDate.of(end);
+        final e = raw == null ? null : (raw.isBefore(s) ? s : raw);
+        if (CyclePeriod.clash(periods(), id, s, e) != null) {
+          throw StateError('Those dates overlap another period');
+        }
+        db.execute(
+          'UPDATE cycle_periods SET start_day = ?, end_day = ? WHERE id = ?',
+          ['$s', e == null ? null : '$e', id],
+        );
+      });
 
   void deletePeriod(String id) =>
       db.execute('DELETE FROM cycle_periods WHERE id = ?', [id]);

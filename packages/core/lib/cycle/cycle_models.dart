@@ -73,6 +73,29 @@ class CyclePeriod {
 
   bool contains(CycleDate day) =>
       !day.isBefore(start) && (end == null || !day.isAfter(end!));
+
+  /// Whether this period shares a day with [from]..[to] (DATA-10). An open
+  /// end — this one's or the range's — counts as its start day only: it
+  /// says nothing yet about the days after.
+  bool overlaps(CycleDate from, CycleDate? to) {
+    final last = end ?? start;
+    final rangeLast = to ?? from;
+    return !from.isAfter(last) && !rangeLast.isBefore(start);
+  }
+
+  /// The first of [periods], other than [id], that [from]..[to] would
+  /// overlap, or null when the dates are free.
+  static CyclePeriod? clash(
+    Iterable<CyclePeriod> periods,
+    String id,
+    CycleDate from,
+    CycleDate? to,
+  ) {
+    for (final p in periods) {
+      if (p.id != id && p.overlaps(from, to)) return p;
+    }
+    return null;
+  }
 }
 
 /// How much bleeding a day had.

@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
 import 'l10n/app_localizations.dart';
+import 'platform/export_cache.dart';
 import 'platform/metrics.dart';
 import 'platform/app_lock.dart';
 import 'platform/nex_preferences.dart';
@@ -363,6 +364,7 @@ class _OpenFailed extends StatelessWidget {
           backupFile: file.path,
         ),
       );
+      await discardPickedCopy(file.path, await getTemporaryDirectory());
       onRestored();
     } on Object catch (restoreError) {
       banner?.show(

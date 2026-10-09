@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'backup_policy.dart';
+import 'install_source.dart';
 import 'full_backup.dart';
 import 'vault_store.dart';
 import 'editor_drafts.dart';
@@ -135,6 +136,7 @@ class NexServices {
     // The record of what leaves the device, beside the library it describes.
     // The database worker configures the same file for its own requests.
     NexDisclosureLog.configure(support.path);
+    await NexInstallSource.load();
     final mediaDir = p.join(support.path, 'media');
     final backupDir = p.join(support.path, 'backups');
 
@@ -160,6 +162,11 @@ class NexServices {
       await preferences.finishRestoreRecovery();
     }
     await preferences.attachProfileMirror(mediaDir);
+    // Old exports and the file picker's copies of chosen files (SEC-01):
+    // cleared on every launch, not only when the next export happens.
+    unawaited(
+      getTemporaryDirectory().then(cleanExportCache).catchError((Object _) {}),
+    );
 
     final profilePhoto = resolveProfilePhoto(
       mediaDir,
@@ -619,6 +626,40 @@ class NexServices {
     await reminders.cancelCycle();
     await _preferences.resetCycle();
     if (!_cycleController.isClosed) _cycleController.add(null);
+    await _replaceBackupsHoldingCycle();
+  }
+
+  /// The library backups on this phone, made before Cycle was deleted, still
+  /// held every period and logged day (SEC-10), and they are not encrypted:
+  /// "deleted from this phone" was not true while they were there. One new
+  /// backup is made without it, and only once it exists are the older ones
+  /// removed, so the notes are never left without a backup. Copies saved to
+  /// a folder or shared elsewhere are outside the app's reach; the
+  /// confirmation says so.
+  Future<void> _replaceBackupsHoldingCycle() async {
+    try {
+      final dir = Directory(backupDir);
+      if (!dir.existsSync()) return;
+      List<File> backups() => dir
+          .listSync()
+          .whereType<File>()
+          .where((file) => NexBackupArchive.isBackupFile(file.path))
+          .toList();
+      final older = backups();
+      if (older.isEmpty) return;
+      await worker.backup(backupDir, mediaDir: mediaDir);
+      final kept = backups()
+          .where((file) => !older.any((old) => old.path == file.path))
+          .toList();
+      if (kept.isEmpty) return;
+      for (final file in older) {
+        if (file.existsSync()) file.deleteSync();
+      }
+      NexBackupArchive.collectUnusedMedia(backupDir);
+    } catch (_) {
+      // Best effort: the live data is already gone, and a backup that could
+      // not be replaced must never take the notes' backups with it.
+    }
   }
 
   /* -------------------------------------------------- scheduled notes */

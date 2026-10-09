@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:nex_core/nex_core.dart';
@@ -123,6 +124,44 @@ void main() {
     expect(await service.backfillEmbeddings(), 0);
     expect(embedder.documents, isEmpty);
   });
+
+  test('a vector that arrives after an edit is not kept for the new text '
+      '(AI-09)', () async {
+    final embedder = _HeldEmbedder();
+    final service = EnrichmentService(
+      repo: repo,
+      adapter: _CountingAdapter(),
+      capabilities: searching,
+    )..updateEmbedder(embedder);
+
+    repo.insert(note('n1', 'dentist appointment'));
+    final asked = service.enrichNote('n1');
+    await embedder.asked.future;
+    repo.updateContent('n1', 'buy bread');
+    embedder.answer.complete([1.0, 0.0]);
+    await asked;
+
+    expect(repo.listEmbeddings(), isEmpty);
+    expect(repo.listNeedingEmbedding().single.id, 'n1');
+  });
+
+  test('nor one asked of a model that has since been replaced', () async {
+    final held = _HeldEmbedder();
+    final service = EnrichmentService(
+      repo: repo,
+      adapter: _CountingAdapter(),
+      capabilities: searching,
+    )..updateEmbedder(held);
+
+    repo.insert(note('n1', 'dentist appointment'));
+    final asked = service.enrichNote('n1');
+    await held.asked.future;
+    service.updateEmbedder(_RecordingEmbedder());
+    held.answer.complete([1.0, 0.0]);
+    await asked;
+
+    expect(repo.listEmbeddings(), isEmpty);
+  });
 }
 
 /// A tiny bag-of-letters "model": deterministic, and close for texts that
@@ -188,4 +227,22 @@ class _CountingAdapter implements AIAdapter {
 
   @override
   Future<Summary>? summarize(Note note) => null;
+}
+
+/// Answers only when told to: the await an edit can land in.
+class _HeldEmbedder implements NoteEmbedder {
+  final asked = Completer<void>();
+  final answer = Completer<List<double>>();
+
+  @override
+  String get space => 'test|held';
+
+  @override
+  Future<List<double>> embedDocument(String text) {
+    if (!asked.isCompleted) asked.complete();
+    return answer.future;
+  }
+
+  @override
+  Future<List<double>> embedQuery(String text) => answer.future;
 }

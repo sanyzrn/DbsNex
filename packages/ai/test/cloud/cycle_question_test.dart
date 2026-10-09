@@ -85,6 +85,19 @@ void main() {
     });
   });
 
+  group('an action with no fence at all (AI-01)', () {
+    test('is read, and is not left in the reply', () {
+      const reply = 'Sure:\n{"action": "create", "text": "call the plumber"}';
+      expect(parseAssistantActions(reply), isNotEmpty);
+      expect(withoutActionBlock(reply), 'Sure:');
+    });
+
+    test('JSON a reply is about, which is no action, stays', () {
+      const reply = 'Your config is {"theme": "dark"}.';
+      expect(withoutActionBlock(reply), reply);
+    });
+  });
+
   test('the short protocol shows the Cycle lookup on its own', () {
     expect(assistantActionPromptCompact, contains('{"action": "cycle"}'));
   });
