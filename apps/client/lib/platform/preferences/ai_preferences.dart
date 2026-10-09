@@ -74,6 +74,20 @@ mixin _AiPreferences on _PreferencesStore {
   }
 
   /// The capabilities actually in force: all off while the master switch is.
+  /// Where the on-device search model is, once it has been installed and
+  /// shown to run; null while it is not. See `NexServices.activeSearchModel`
+  /// for why the file is checked as well.
+  String? get searchModelPath => _prefs.getString('ai.searchModel.path');
+
+  Future<void> setSearchModelPath(String? path) async {
+    if (path == null) {
+      await _prefs.remove('ai.searchModel.path');
+    } else {
+      await _prefs.setString('ai.searchModel.path', path);
+    }
+    notifyListeners();
+  }
+
   AiCapabilities get effectiveAiCapabilities =>
       aiEnabled ? aiCapabilities : AiCapabilities.allOff;
 

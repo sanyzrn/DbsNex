@@ -239,6 +239,10 @@ abstract interface class NexDb {
   /// Enriches notes captured before the intelligence layer could read them.
   Future<int> backfillEnrichment({int limit});
 
+  /// Embeds up to [limit] notes that have no vector yet, and answers how
+  /// many. Only the vectors — what a new vector space needs back.
+  Future<int> backfillEmbeddings({int limit});
+
   Future<List<TagSuggestion>> suggestTags(String noteId);
 
   Future<Summary?> summarizeOnDemand(String noteId);
@@ -263,6 +267,12 @@ abstract interface class NexDb {
   /// HTTP client, which cannot be sent across the isolate boundary, so the
   /// worker constructs it on its own side.
   Future<void> setAiProvider(Map<String, String> config);
+
+  /// Puts every vector — notes, searches, related notes — on the on-device
+  /// search model at [modelPath], or hands them back to the provider when
+  /// null. Switching throws the old vectors away; [backfillEmbeddings]
+  /// brings them back.
+  Future<void> setLocalEmbedder(String? modelPath);
 
   Future<SyncResult> sync({required String baseUrl, String? bearerToken});
 

@@ -21,3 +21,8 @@
     public static *** d(...);
     public static *** v(...);
 }
+
+# LiteRT-LM is driven from native code through JNI: the classes and fields
+# its C++ half creates and reads (EmbeddingResponse, InputData, the configs)
+# are never referenced from Kotlin in a way R8 can see.
+-keep class com.google.ai.edge.litertlm.** { *; }

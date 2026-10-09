@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../platform/local_ai_support.dart';
+import '../platform/local_embedder.dart';
 import '../platform/display_date.dart';
 import '../platform/model_install_controller.dart';
 import '../platform/model_store.dart';
@@ -24,12 +25,28 @@ import '../widgets/nex_banner.dart';
 /// with no warning; this screen now watches something that keeps running when
 /// it is gone.
 class LocalModelScreen extends StatefulWidget {
-  const LocalModelScreen({super.key, required this.preferences, this.model});
+  const LocalModelScreen({
+    super.key,
+    required this.preferences,
+    this.model,
+    this.search = false,
+    this.onSearchModelChanged,
+  });
 
   final NexPreferences preferences;
 
   /// The model to show first; the one in use when null.
   final ModelRelease? model;
+
+  /// This screen about the on-device search model rather than the chat
+  /// ones: the same download, licence and storage, but no picker, and the
+  /// last step proves the model *embeds* instead of loading it to chat —
+  /// the chat runtime would try to talk with it, and it cannot.
+  final bool search;
+
+  /// Called when the search model starts or stops being the one in use, so
+  /// whoever opened this can point the library's vectors at it.
+  final VoidCallback? onSearchModelChanged;
 
   @override
   State<LocalModelScreen> createState() => _LocalModelScreenState();
@@ -44,7 +61,13 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
 
   /// The model this screen is about: the one in use, or the one just
   /// picked — picking one makes it the one in use.
-  late ModelRelease _model = widget.model ?? NexModels.standard;
+  late ModelRelease _model =
+      widget.model ??
+      (widget.search ? NexModels.search.first : NexModels.standard);
+
+  /// Why an installed search model is not in use, in the runtime's words.
+  /// Null while it works, or before it has been tried.
+  String? _searchError;
 
   @override
   void initState() {
@@ -77,7 +100,9 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
         if (_install.loadError == null) {
           nexBump();
           host?.show(
-            message: l10n.localModelReady,
+            message: widget.search
+                ? l10n.searchModelReady
+                : l10n.localModelReady,
             haptics: widget.preferences.haptics,
           );
         } else {
@@ -116,7 +141,9 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
         // Leftovers from a failed or replaced install go before anything
         // is shown, so the sizes below are what is really on the phone.
         if (!_install.isRunning) await store.sweep();
-        if (widget.model == null && store.selected.id != _model.id) {
+        if (!widget.search &&
+            widget.model == null &&
+            store.selected.id != _model.id) {
           _model = store.selected;
           support = await LocalAi.check(_model);
         }
@@ -140,6 +167,41 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
           : support;
       _accepted = widget.preferences.acceptedModelLicense(_model.id);
     });
+    // On the phone and not in use — an install from before this screen
+    // could prove it, or one whose check failed last time. Tried again
+    // here, quietly: it either starts working or says why below.
+    if (widget.search &&
+        store != null &&
+        store.isInstalled(_model) &&
+        !_install.isRunning &&
+        widget.preferences.searchModelPath != store.fileFor(_model).path) {
+      try {
+        await _activateSearch(store);
+      } catch (error) {
+        if (mounted) setState(() => _searchError = '$error');
+      }
+    }
+  }
+
+  /// Proves the search model embeds, then makes it the one every vector
+  /// comes from. Throws, and changes nothing, when it does not run.
+  ///
+  /// Search by meaning and related notes are switched on with it: they are
+  /// what it was downloaded for, and a model that finds nothing because two
+  /// switches elsewhere were off would look broken.
+  Future<void> _activateSearch(NexModelStore store) async {
+    final path = store.fileFor(_model).path;
+    await NexLocalEmbedder.check(path);
+    final prefs = widget.preferences;
+    await prefs.setSearchModelPath(path);
+    final capabilities = prefs.aiCapabilities;
+    if (!capabilities.semanticSearch || !capabilities.relatedNotes) {
+      await prefs.setAiCapabilities(
+        capabilities.copyWith(semanticSearch: true, relatedNotes: true),
+      );
+    }
+    widget.onSearchModelChanged?.call();
+    if (mounted) setState(() => _searchError = null);
   }
 
   /// Makes [model] the one the assistant uses, and this screen about it.
@@ -175,6 +237,7 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
         noticeTitle: AppLocalizations.of(
           context,
         ).localModelNoticeTitle(_model.name),
+        warmUp: widget.search ? () => _activateSearch(store) : null,
       ),
     );
   }
@@ -216,7 +279,11 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.localModelDeleteTitle),
-        content: Text(l10n.localModelDeleteBody),
+        content: Text(
+          widget.search
+              ? l10n.searchModelDeleteBody
+              : l10n.localModelDeleteBody,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -230,6 +297,13 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
       ),
     );
     if (confirmed != true) return;
+    if (widget.search) {
+      // Out of use before it is off the disk: a search that ran in between
+      // would otherwise ask for a model that is no longer there.
+      await widget.preferences.setSearchModelPath(null);
+      widget.onSearchModelChanged?.call();
+      await NexLocalEmbedder.release();
+    }
     await store.delete(_model);
     if (!mounted) return;
     nexBump();
@@ -248,7 +322,11 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
     final support = _support;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.localModelTitle)),
+      appBar: AppBar(
+        title: Text(
+          widget.search ? l10n.searchModelTitle : l10n.localModelTitle,
+        ),
+      ),
       // Only the genuinely-unresolved state spins. Once [_load] has answered,
       // an unsupported device renders its reason with no store at all.
       body: support == null
@@ -262,7 +340,9 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
               ),
               children: [
                 Text(
-                  l10n.localModelExplained,
+                  widget.search
+                      ? l10n.searchModelExplained
+                      : l10n.localModelExplained,
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: NexSpacing.sm),
@@ -279,7 +359,9 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
                   ),
                 ),
                 const SizedBox(height: NexSpacing.lg),
-                if (store != null && NexModels.all.length > 1) ...[
+                if (!widget.search &&
+                    store != null &&
+                    NexModels.all.length > 1) ...[
                   _ModelPicker(
                     store: store,
                     selected: _model,
@@ -307,7 +389,8 @@ class _LocalModelScreenState extends State<LocalModelScreen> {
                   // broken, and the three things that cause it — wrong file,
                   // no OpenCL, not enough memory — are indistinguishable
                   // without this string.
-                  if (_install.loadError case final failure?) ...[
+                  if ((_install.loadError ?? _searchError)
+                      case final failure?) ...[
                     const SizedBox(height: NexSpacing.lg),
                     _LoadFailure(detail: failure),
                   ],

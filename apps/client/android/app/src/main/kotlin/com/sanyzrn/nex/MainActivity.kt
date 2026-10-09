@@ -151,6 +151,7 @@ open class MainActivity : FlutterFragmentActivity() {
             NexEditTextFactory(engine.dartExecutor.binaryMessenger),
         )
         NexEditTextFactory.warmUp(this)
+        NexEmbedder.register(engine.dartExecutor.binaryMessenger, applicationContext)
         channel = MethodChannel(engine.dartExecutor.binaryMessenger, "nex/os_capture")
         channel?.setMethodCallHandler { call, result -> when (call.method) {
             "audioWaveform" -> {

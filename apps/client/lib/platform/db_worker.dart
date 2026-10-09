@@ -2,11 +2,14 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:flutter/services.dart'
+    show BackgroundIsolateBinaryMessenger, RootIsolateToken;
 import 'package:nex_core/nex_core.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:nex_ai/cloud.dart';
+import 'local_embedder.dart';
 import 'nex_db.dart';
 
 /// Commands the worker isolate understands.
@@ -99,6 +102,7 @@ enum _DbCommand {
   // Enrichment.
   enrichNote,
   backfillEnrichment,
+  backfillEmbeddings,
   suggestTags,
   summarize,
   relatedNotes,
@@ -106,6 +110,7 @@ enum _DbCommand {
   fusedSearch,
   setAiCapabilities,
   setAiProvider,
+  setLocalEmbedder,
   sync,
   close,
 }
@@ -135,6 +140,7 @@ class _WorkerBoot {
     this.adapter,
     this.capabilities,
     this.mediaDir,
+    this.rootToken,
   );
 
   final SendPort sendPort;
@@ -150,6 +156,12 @@ class _WorkerBoot {
   /// Where attachment files live. The purge paths need it to delete the file
   /// a purged note pointed at — the row alone was never the whole note.
   final String mediaDir;
+
+  /// What lets this isolate reach a platform channel: the on-device search
+  /// model is native code, and it is asked for vectors from in here, where
+  /// enrichment runs. Null where there is no engine to reach — tests, and
+  /// anything not started by Flutter.
+  final RootIsolateToken? rootToken;
 }
 
 /// Sent through the boot port when the database itself cannot be opened.
@@ -249,6 +261,7 @@ class NexDbWorker implements NexDb {
     required String mediaDir,
     AIAdapter adapter = const NullAIAdapter(),
     AiCapabilities capabilities = AiCapabilities.allOff,
+    RootIsolateToken? rootToken,
   }) async {
     final responses = ReceivePort();
     final incoming = responses.asBroadcastStream();
@@ -309,6 +322,7 @@ class NexDbWorker implements NexDb {
         adapter,
         capabilities,
         mediaDir,
+        rootToken ?? RootIsolateToken.instance,
       ),
       debugName: 'nex-db',
       errorsAreFatal: true,
@@ -827,6 +841,10 @@ class NexDbWorker implements NexDb {
       _send<int>(_DbCommand.backfillEnrichment, {'limit': limit});
 
   @override
+  Future<int> backfillEmbeddings({int limit = 25}) =>
+      _send<int>(_DbCommand.backfillEmbeddings, {'limit': limit});
+
+  @override
   Future<List<TagSuggestion>> suggestTags(String noteId) =>
       _send<List<TagSuggestion>>(_DbCommand.suggestTags, {'noteId': noteId});
 
@@ -855,6 +873,10 @@ class NexDbWorker implements NexDb {
   @override
   Future<void> setAiProvider(Map<String, String> config) =>
       _send<void>(_DbCommand.setAiProvider, {'config': config});
+
+  @override
+  Future<void> setLocalEmbedder(String? modelPath) =>
+      _send<void>(_DbCommand.setLocalEmbedder, {'modelPath': modelPath});
 
   @override
   Future<void> setAiCapabilities(AiCapabilities capabilities) =>
@@ -944,6 +966,15 @@ class NexDbWorker implements NexDb {
 
   static void _entryPoint(_WorkerBoot boot) {
     final requests = ReceivePort();
+    if (boot.rootToken case final token?) {
+      try {
+        BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+      } catch (_) {
+        // No engine behind the token. The search model then fails each
+        // call, and every note stays in the backlog rather than being
+        // marked as having nothing to embed.
+      }
+    }
 
     final NexDatabase db;
     try {
@@ -982,6 +1013,18 @@ class NexDbWorker implements NexDb {
       adapter: boot.adapter,
       capabilities: boot.capabilities,
     );
+    // What decides the library's vector space between them: the provider
+    // last configured, and whether the on-device search model is in use.
+    // Either message can arrive first, so each one re-decides from both.
+    AiProviderConfig? provider;
+    var localSearch = false;
+    void settleEmbeddingSpace() {
+      final space = nexEmbeddingSpaceFor(
+        provider: provider,
+        localSearch: localSearch,
+      );
+      if (space != null) repo.setEmbeddingSpace(space);
+    }
 
     // One repair pass per open. Cheap when the index is healthy (two set
     // lookups), and the difference between findable and silently missing
@@ -1273,6 +1316,9 @@ class NexDbWorker implements NexDb {
         _DbCommand.backfillEnrichment => await enrichment.backfill(
           limit: arg('limit')! as int,
         ),
+        _DbCommand.backfillEmbeddings => await enrichment.backfillEmbeddings(
+          limit: arg('limit')! as int,
+        ),
         _DbCommand.suggestTags => await enrichment.suggestTags(
           arg('noteId')! as String,
         ),
@@ -1328,9 +1374,16 @@ class NexDbWorker implements NexDb {
           // makes the config unusable, and that must not be read as a change
           // of space: switching off and on again would otherwise throw away
           // every vector in the library for nothing.
-          if (config.isUsable && config.provider.embeds) {
-            repo.setEmbeddingSpace(config.embeddingSpace);
-          }
+          provider = config;
+          settleEmbeddingSpace();
+        }),
+        _DbCommand.setLocalEmbedder => _voided(() {
+          final path = arg('modelPath') as String?;
+          enrichment.updateEmbedder(
+            path == null ? null : NexLocalEmbedder(path),
+          );
+          localSearch = path != null;
+          settleEmbeddingSpace();
         }),
         _DbCommand.sync => await () async {
           final client = SyncClient(
@@ -1444,6 +1497,7 @@ class NexDbWorker implements NexDb {
   static const _background = {
     _DbCommand.enrichNote,
     _DbCommand.backfillEnrichment,
+    _DbCommand.backfillEmbeddings,
     _DbCommand.suggestTags,
     _DbCommand.summarize,
     _DbCommand.relatedNotes,

@@ -5,6 +5,27 @@ allprojects {
     }
 }
 
+// LiteRT-LM, the on-device runtime, is reached by two modules: the chat
+// plugin (flutter_litert_lm, which declares 0.10.0) for the assistant's
+// models, and the app itself (NexEmbedder.kt) for the search model, whose
+// EmbeddingEngine arrived in 0.18.0. One version for both, and forced onto
+// every module rather than only resolved at packaging: a plugin compiled
+// against 0.10.0 and run against 0.18.0 calls constructors by their 0.10.0
+// shape, which fails at runtime and nowhere earlier. Compiled against the
+// same version it runs with, any break is a build error in CI instead.
+val litertlmVersion = "0.18.0"
+extra["litertlmVersion"] = litertlmVersion
+subprojects {
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "com.google.ai.edge.litertlm") {
+                useVersion(litertlmVersion)
+                because("one LiteRT-LM for the chat plugin and the search model")
+            }
+        }
+    }
+}
+
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")

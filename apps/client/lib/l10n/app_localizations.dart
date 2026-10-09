@@ -5510,6 +5510,42 @@ abstract class AppLocalizations {
   /// **'Read the notes asked about'**
   String get chatLookedNotes;
 
+  /// Title of the on-device search model screen and its row in the intelligence settings.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device search'**
+  String get searchModelTitle;
+
+  /// What the on-device search model is and is not, at the top of its screen.
+  ///
+  /// In en, this message translates to:
+  /// **'EmbeddingGemma 2 lets Nex find notes by what they mean, right on this phone — in search, in related notes, and when the assistant looks something up. It does not chat or write anything; it only finds. Nothing you write is sent anywhere for it, and it works with no internet.'**
+  String get searchModelExplained;
+
+  /// Banner after the search model installed and ran.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device search is ready. Your notes are being prepared for it in the background.'**
+  String get searchModelReady;
+
+  /// Body of the dialog confirming removal of the search model.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by meaning goes back to your AI provider, if it offers it. Your notes are not affected.'**
+  String get searchModelDeleteBody;
+
+  /// Subtitle of the on-device search row when the model is in use.
+  ///
+  /// In en, this message translates to:
+  /// **'On — finds notes by meaning on this phone'**
+  String get searchModelRowOn;
+
+  /// Subtitle of the on-device search row when the model is not installed.
+  ///
+  /// In en, this message translates to:
+  /// **'Find notes by meaning with no internet'**
+  String get searchModelRowOff;
+
   /// Heading of the reminder sheet
   ///
   /// In en, this message translates to:

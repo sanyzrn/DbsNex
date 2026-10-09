@@ -3324,6 +3324,29 @@ class AppLocalizationsFa extends AppLocalizations {
   String get chatLookedNotes => 'یادداشت‌های مرتبط را خواند';
 
   @override
+  String get searchModelTitle => 'جست‌وجوی روی دستگاه';
+
+  @override
+  String get searchModelExplained =>
+      'EmbeddingGemma 2 کاری می‌کند Nex یادداشت‌ها را بر اساس معنایشان، روی همین گوشی، پیدا کند — در جست‌وجو، در یادداشت‌های مرتبط و وقتی دستیار دنبال چیزی می‌گردد. چت نمی‌کند و چیزی نمی‌نویسد؛ فقط پیدا می‌کند. هیچ‌چیزی که می‌نویسید برای آن جایی فرستاده نمی‌شود و بدون اینترنت هم کار می‌کند.';
+
+  @override
+  String get searchModelReady =>
+      'جست‌وجوی روی دستگاه آماده است. یادداشت‌هایتان در پس‌زمینه برایش آماده می‌شوند.';
+
+  @override
+  String get searchModelDeleteBody =>
+      'جست‌وجوی معنایی به سرویس هوش مصنوعی‌تان برمی‌گردد، اگر آن را داشته باشد. یادداشت‌هایتان دست‌نخورده می‌مانند.';
+
+  @override
+  String get searchModelRowOn =>
+      'روشن — یادداشت‌ها را روی همین گوشی بر اساس معنا پیدا می‌کند';
+
+  @override
+  String get searchModelRowOff =>
+      'پیدا کردن یادداشت بر اساس معنا، بدون اینترنت';
+
+  @override
   String get remindTitle => 'تنظیم یادآور';
 
   @override

@@ -174,14 +174,67 @@ abstract final class NexModels {
     ],
   );
 
-  /// Every model on offer, the long-standing one first.
+  /// EmbeddingGemma 2, text only, 164,626,432 bytes in one asset: the
+  /// on-device *search* model. It answers nothing — it turns a note, or a
+  /// search, into a vector, which is what lets search, related notes and the
+  /// assistant's own lookups find a note by what it means with no provider
+  /// and no signal. Never offered as a chat model: picked for chat, it would
+  /// have nothing to say.
+  ///
+  /// The text-only 270M build rather than the multimodal 740M one beside it
+  /// on the release page. Search here reads text — notes, transcripts, text
+  /// in photos — and the vision and audio encoders would triple the download
+  /// and the memory to embed pictures nothing yet searches by.
+  ///
+  /// Released by Google under Apache 2.0, per its launch; the link is the
+  /// licence itself. Check it against the model card before this leaves
+  /// testing.
+  static const embeddingGemma2Text = ModelRelease(
+    id: 'embeddinggemma-2-text-270m',
+    name: 'EmbeddingGemma 2',
+    filename: 'embeddinggemma-2-text-270m.litertlm',
+    sizeBytes: 164626432,
+    licenseUrl: 'https://www.apache.org/licenses/LICENSE-2.0',
+    licenseNotice:
+        'EmbeddingGemma 2 is provided by Google under the Apache License, '
+        'Version 2.0, found at www.apache.org/licenses/LICENSE-2.0',
+    sha256: '2d079ee2f6f066b1f368e8d7c819f55214eaef1d0513b312321901f30ab286fb',
+    parts: [
+      ModelPart(
+        url:
+            'https://github.com/sanyzrn/DbsNex-releases/releases/download'
+            '/nex-embeddinggemma2-text-270m-v1'
+            '/embeddinggemma-2-text-270m.litertlm',
+        // Never the model's own file name — see [miniCpm5_2B].
+        filename: 'embeddinggemma-2-text-270m.litertlm.part-aa',
+        sha256:
+            '2d079ee2f6f066b1f368e8d7c819f55214eaef1d0513b312321901f30ab286fb',
+      ),
+    ],
+  );
+
+  /// Every model on offer for the assistant to answer with, the
+  /// long-standing one first.
   static const all = [gemma4E2B, miniCpm5_2B];
+
+  /// The search model, on its own list so that nothing choosing a chat
+  /// model can ever pick it.
+  static const search = [embeddingGemma2Text];
 
   /// The one used until somebody picks another.
   static const standard = gemma4E2B;
 
   static ModelRelease? byId(String? id) {
     for (final model in all) {
+      if (model.id == id) return model;
+    }
+    return null;
+  }
+
+  /// Any model Nex installs, chat or search — what a folder in the store
+  /// may belong to.
+  static ModelRelease? ownerOf(String? id) {
+    for (final model in [...all, ...search]) {
       if (model.id == id) return model;
     }
     return null;
@@ -503,7 +556,9 @@ class NexModelStore {
     if (!root.existsSync()) return;
     for (final entity in root.listSync()) {
       if (entity is! Directory) continue;
-      final model = NexModels.byId(p.basename(entity.path));
+      // Any model's folder, the search model's included: it is not on the
+      // chat list, and sweeping by that list deleted it as an orphan.
+      final model = NexModels.ownerOf(p.basename(entity.path));
       if (model == null) {
         try {
           await entity.delete(recursive: true);
