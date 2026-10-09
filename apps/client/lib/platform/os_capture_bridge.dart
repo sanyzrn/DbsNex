@@ -335,26 +335,55 @@ class OsCaptureBridge {
         if (pending is! Map) break;
         final payload = Map<Object?, Object?>.from(pending);
         final id = payload['requestId'] as String;
+        final share = _isShare(payload['type'] as String?);
+        bool saved;
         try {
-          final saved = await handle(payload);
-          if (_isShare(payload['type'] as String?)) {
-            _handledLaunchShare |= saved;
-            if (!saved && _rejection == null) shareFailed = true;
-          }
-          await _channel.invokeMethod<void>('ackPending', {'requestId': id});
-          if (!_disposed) _events.add(payload);
+          saved = await handle(payload);
         } catch (error) {
-          shareFailed = true;
-          // Keep the request for the next launch, but do not retry forever
-          // on a full disk or an expired provider permission.
-          await _channel.invokeMethod<void>('deferPending', {'requestId': id});
+          // A share whose note is already in the library was saved, whatever
+          // went wrong after: the toast said "could not be stored" over a
+          // video that was sitting in the timeline.
+          saved = share && await _committed(id);
+          if (!saved) {
+            shareFailed = true;
+            // Keep the request for the next launch, but do not retry forever
+            // on a full disk or an expired provider permission.
+            await _channel.invokeMethod<void>('deferPending', {
+              'requestId': id,
+            });
+            await NexServices.noteDiagnostic(
+              'shared capture failed: ${error.runtimeType}'
+              '${error is StateError ? ' (${error.message})' : ''}',
+            );
+            continue;
+          }
+        }
+        if (share) {
+          _handledLaunchShare |= saved;
+          if (!saved && _rejection == null) shareFailed = true;
+        }
+        try {
+          await _channel.invokeMethod<void>('ackPending', {'requestId': id});
+        } on PlatformException catch (error) {
+          // The note is committed with its receipt; a delivery that comes
+          // back is answered by that receipt, not stored twice.
           await NexServices.noteDiagnostic(
-            'shared capture failed: ${error.runtimeType}',
+            'share acknowledgement failed: ${error.code}',
           );
         }
+        if (!_disposed) _events.add(payload);
       }
     } on MissingPluginException {
       // Desktop has no Android share inbox.
+    }
+  }
+
+  /// Whether share [requestId] already has its note in the library.
+  Future<bool> _committed(String requestId) async {
+    try {
+      return await services.worker.capturedFor(requestId) != null;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -420,8 +449,11 @@ class OsCaptureBridge {
           unawaited(_readSharedLink(note!.id, note.linkUrl!));
         }
         // Read like a note typed in (AI-11): a shared note was found by
-        // meaning only after the next launch's backfill.
-        if (note != null) services.scheduleEnrichment(note.id);
+        // meaning only after the next launch's backfill. Never a reason for
+        // a committed share to report failure.
+        try {
+          if (note != null) services.scheduleEnrichment(note.id);
+        } catch (_) {}
       case 'shared_photo':
       case 'shared_file':
         final file = await _fetch(payload);
@@ -434,6 +466,7 @@ class OsCaptureBridge {
         // Keep the staged file if the database response is lost: the commit
         // may already reference it. An unreferenced file is safer than a
         // successful note pointing at bytes we deleted on an uncertain error.
+        final caption = (payload['text'] as String?)?.trim() ?? '';
         final note = await services.worker.captureShared({
           'requestId': payload['requestId'] as String? ?? newUuidV7(),
           'type': type!,
@@ -442,15 +475,28 @@ class OsCaptureBridge {
           'filename': name,
           if (payload['mimeType'] is String)
             'mimeType': payload['mimeType'] as String,
+          // Telegram and WhatsApp send the words under a video or a photo
+          // along with the file; they become its caption.
+          if (caption.isNotEmpty) 'caption': caption,
         });
-        if (note?.mediaUri != dest) await File(dest).delete();
-        if (note != null) services.scheduleEnrichment(note.id);
-        // A desktop picker hands us the original, not a disposable cache copy.
-        // Durable share-inbox files belong to native ackPending, which runs
-        // only after the committed receipt. Picker/cache files are disposable.
-        if (payload['requestId'] == null &&
-            (payload['uri'] != null || isSupported)) {
-          await _discardIncoming(file);
+        // Committed. Nothing below may turn a saved share into a failed one.
+        try {
+          if (note?.mediaUri != dest) await File(dest).delete();
+          if (note != null) services.scheduleEnrichment(note.id);
+          // A desktop picker hands us the original, not a disposable cache
+          // copy. Durable share-inbox files belong to native ackPending, which
+          // runs only after the committed receipt. Picker/cache files are
+          // disposable.
+          if (payload['requestId'] == null &&
+              (payload['uri'] != null || isSupported)) {
+            await _discardIncoming(file);
+          }
+        } catch (error) {
+          unawaited(
+            NexServices.noteDiagnostic(
+              'after shared capture: ${error.runtimeType}',
+            ),
+          );
         }
       default:
         return false;
@@ -672,7 +718,7 @@ class OsCaptureBridge {
   Future<String> _hashOf(String path) async {
     final hash = await sha256OfFile(path);
     if (hash == null) {
-      throw StateError('media copied to $path could not be read back');
+      throw StateError('the media copy could not be read back');
     }
     return hash;
   }

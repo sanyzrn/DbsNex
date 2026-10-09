@@ -115,13 +115,15 @@ abstract final class NexModels {
     name: 'Gemma 4 E2B',
     filename: 'gemma-4-E2B-it.litertlm',
     sizeBytes: 2588147712,
-    // Gemma's terms, not the repository's apache-2.0 badge. That badge covers
-    // the conversion, not the weights, and the weights are what is being
-    // redistributed here.
-    licenseUrl: 'https://ai.google.dev/gemma/terms',
+    // Gemma 4 is released under Apache 2.0 — the weights themselves, not
+    // only the conversion (ai.google.dev/gemma/apache_2). Earlier Gemma
+    // generations had their own Terms of Use; this one does not (REL-14).
+    // The licence is still shown and accepted before the download: Nex
+    // redistributes the weights, and Apache 2.0 asks that a copy go with them.
+    licenseUrl: 'https://ai.google.dev/gemma/apache_2',
     licenseNotice:
-        'Gemma is provided under and subject to the Gemma Terms of Use '
-        'found at ai.google.dev/gemma/terms',
+        'Gemma 4 is provided by Google under the Apache License, '
+        'Version 2.0, found at ai.google.dev/gemma/apache_2',
     sha256: '181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c',
     parts: [
       ModelPart(
@@ -155,9 +157,9 @@ abstract final class NexModels {
   /// in photos — and the vision and audio encoders would triple the download
   /// and the memory to embed pictures nothing yet searches by.
   ///
-  /// Released by Google under Apache 2.0, per its launch; the link is the
-  /// licence itself. Check it against the model card before this leaves
-  /// testing.
+  /// Released by Google under Apache 2.0: the model card says "License:
+  /// Apache 2.0" (ai.google.dev/gemma/docs/embeddinggemma/model_card_2),
+  /// checked in the 1.99.6 review (REL-08). The link is the licence itself.
   static const embeddingGemma2Text = ModelRelease(
     id: 'embeddinggemma-2-text-270m',
     name: 'EmbeddingGemma 2',

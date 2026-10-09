@@ -15,6 +15,7 @@ import 'platform/nex_preferences.dart';
 import 'platform/nex_services.dart';
 import 'platform/nex_widget.dart';
 import 'platform/os_capture_bridge.dart';
+import 'platform/reminders.dart';
 import 'platform/secure_window.dart';
 import 'platform/update_service.dart';
 import 'screens/onboarding_screen.dart';
@@ -408,6 +409,8 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       title: title,
       percent: percent,
       body: body,
+      channel: NexReminders.channelText.updates,
+      channelAbout: NexReminders.channelText.updatesAbout,
     )) {
       return;
     }
@@ -559,6 +562,14 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) {
         final media = MediaQuery.of(context);
+        // Android's notification settings name the channels in the app's
+        // language, not English whatever it is set to (LOC-06). A no-op
+        // unless the language changed.
+        unawaited(
+          widget.services.reminders.useLanguage(
+            persian: Localizations.localeOf(context).languageCode == 'fa',
+          ),
+        );
         // The user's own multiplier composes with the system's, rather than
         // replacing it — someone with a larger system font can still nudge
         // Nex a little further in either direction on top of that. The floor

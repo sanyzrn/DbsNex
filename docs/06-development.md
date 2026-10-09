@@ -218,6 +218,14 @@ The workflow builds a signed Android App Bundle plus split APKs and attaches the
 
 **Android only, for now.** The Windows installer and the iOS compile check are paused — Windows runners bill at 2x and macOS at 10x, and between them they were most of a monthly Actions allowance that ran out twice. Each paused job carries an `if: false` and a comment saying what its absence costs and exactly how to bring it back; the Windows one also lists the three edits `publish-release` needs, because none of them fail loudly on their own. While this holds, existing Windows users are not offered updates: the updater finds no `.exe` asset and reports no update available, so they stay on the version they have.
 
+**Rolling a release out (REL-09).** Cafe Bazaar and Myket report no crash or ANR figures, Myket's staged rollout needs ten thousand installs first, and Nex sends no telemetry (ADR-036). So the hold-back has to be in the order of the steps:
+
+1. **Dispatch it manually first.** Actions → Release → Run workflow publishes a **draft**, and the in-app updater treats a draft (and a pre-release) as "up to date": nobody is offered it yet.
+2. **Smoke it on a real phone.** Install the `ai-testbuild.yml` APK and go through the flows no test covers on a device: share a photo, a video and a link into Nex; record a voice note; set a reminder and let it fire; download the local model; update from the previous version over the top.
+3. **Publish** the draft, then upload the same APKs to Cafe Bazaar and Myket.
+4. **Watch for 48 hours**: the feedback relay, shared diagnostics and the store comments. Keep a sponsor-card message drafted ([`13-sponsor-card.md`](./13-sponsor-card.md)) — it is the one channel that reaches every phone with a "known issue" line.
+5. **If it goes wrong, re-draft or delete the release.** That stops every new offer of it (anyone who already downloaded keeps it); then tag a fixed version. Never move a tag that has shipped.
+
 **One-time signing setup** (never commit the keystore):
 
 - Generate: `keytool -genkey -v -keystore nex-release.keystore -alias nex -keyalg RSA -keysize 2048 -validity 10000`

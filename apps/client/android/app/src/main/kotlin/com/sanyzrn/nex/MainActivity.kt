@@ -336,6 +336,8 @@ open class MainActivity : FlutterFragmentActivity() {
                 val title = call.argument<String>("title").orEmpty()
                 val percent = call.argument<Int>("percent") ?: 0
                 val body = call.argument<String>("body")
+                call.argument<String>("channel")?.let { DownloadService.channelName = it }
+                call.argument<String>("channelAbout")?.let { DownloadService.channelAbout = it }
                 if (DownloadService.running) {
                     DownloadService.update(this, title, percent, body)
                     result.success(true)
@@ -677,7 +679,12 @@ open class MainActivity : FlutterFragmentActivity() {
         // has to be set before Dart's `start()` calls `takePending` moments
         // later, and a metadata query is fast enough that the synchronous
         // path costs nothing.
-        enqueue(labelled(describeUri(stream)), live)
+        // Telegram, WhatsApp and most messengers send the words under a
+        // video or a photo as EXTRA_TEXT beside the file. They become the
+        // note's caption instead of being dropped.
+        val words = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+        val described = labelled(describeUri(stream))
+        enqueue(if (words == null) described else described + ("text" to words), live)
     }
 
     private fun enqueue(value: Map<String, String>, live: Boolean) {

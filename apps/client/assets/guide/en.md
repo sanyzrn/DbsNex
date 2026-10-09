@@ -10,7 +10,7 @@ To have a note arrive later — a letter to yourself, a thought for next month �
 
 Without opening Nex first: add the **Nex capture** tile to your Quick Settings (pull the shade down twice, then edit the tiles), or turn on **Settings → Capture → Capture from notifications** for a silent row with **Note**, **Voice** and **Photo** buttons.
 
-**Photo** opens Nex's camera over the timeline: the large button takes the picture, **⋮** switches between front and back camera and sets the flash, and pulling the panel down closes it. If the camera cannot be opened, Nex offers the phone's camera app instead. Photos then open in a full-size preview. Choose **Edit** only when you want to crop, rotate or annotate; swipe the aspect-ratio row to see every size. Files shared into Nex from another app arrive exactly like files you pick inside it.
+**Photo** opens Nex's camera over the timeline: the large button takes the picture, **⋮** switches between front and back camera and sets the flash, and pulling the panel down closes it. If the camera cannot be opened, Nex offers the phone's camera app instead. Photos then open in a full-size preview. Choose **Edit** only when you want to crop, rotate or annotate; swipe the aspect-ratio row to see every size. Files shared into Nex from another app arrive exactly like files you pick inside it. When the app sends words along with a video or photo — a Telegram or WhatsApp caption — they become the note's caption.
 
 ![The capture menu](capture.webp)
 

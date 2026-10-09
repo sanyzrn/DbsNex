@@ -90,16 +90,12 @@ class _ActionRow extends StatelessWidget {
   }
 
   void _showMore(BuildContext context, List<_DetailAction> actions) {
-    showModalBottomSheet<void>(
+    // The app's sheet (design language §1), so a pull down closes it like
+    // every other: the plain modal's list caught the drag, and the sheet
+    // only closed from its handle. It grows to fit its actions — the last
+    // of them is Delete, the one people look for.
+    nexShowSheet<void>(
       context: context,
-      showDragHandle: true,
-      // Grows to fit its actions rather than stopping at the default half
-      // screen: the last of them is Delete, and a list that hides it below
-      // the fold makes the one action people look for the one they miss.
-      isScrollControlled: true,
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
-      ),
       builder: (sheetContext) => SafeArea(
         child: ListView(
           shrinkWrap: true,

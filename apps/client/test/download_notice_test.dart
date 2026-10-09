@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_client/platform/download_notice.dart';
+import 'package:nex_client/platform/reminders.dart';
 
 /// The native half is a foreground service, and what is testable here is the
 /// Dart half: what it asks for, and — the part the caller depends on — that
@@ -35,6 +36,29 @@ void main() {
     );
     expect(seen.single.method, 'downloadNotice');
     expect(seen.single.arguments, {'title': 'Downloading Nex', 'percent': 42});
+  });
+
+  test('the channel is named in the app\'s language (LOC-15)', () async {
+    answer((_) async => true);
+
+    await NexDownloadNotice.show(
+      title: 'x',
+      percent: 1,
+      channel: NexChannelText.fa.updates,
+      channelAbout: NexChannelText.fa.updatesAbout,
+    );
+    final arguments = seen.single.arguments as Map;
+    expect(arguments['channel'], 'به‌روزرسانی‌ها');
+    expect(arguments['channelAbout'], NexChannelText.fa.updatesAbout);
+  });
+
+  test('channels are renamed when the language changes (LOC-06)', () async {
+    final reminders = NexReminders();
+    expect(NexReminders.channelText, same(NexChannelText.en));
+    await reminders.useLanguage(persian: true);
+    expect(NexReminders.channelText.reminders, 'یادآورها');
+    await reminders.useLanguage(persian: false);
+    expect(NexReminders.channelText.reminders, 'Reminders');
   });
 
   test('taking it down is its own call, so the service can stop', () async {

@@ -104,6 +104,18 @@ class _FakeNativeSide {
   }
 }
 
+/// Commits the share and then loses the answer, the way a closing window or
+/// a failed step after the commit does.
+class _LostAnswerDb extends InProcessDb {
+  _LostAnswerDb({required super.dbPath, required super.deviceId});
+
+  @override
+  Future<Note?> captureShared(Map<String, String> payload) async {
+    await super.captureShared(payload);
+    throw StateError('the answer was lost');
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -407,6 +419,79 @@ void main() {
     // The original is the user's own file behind a content URI. It is not
     // Nex's to delete, and it never was.
     expect(source.existsSync(), isTrue);
+  });
+
+  test(
+    'a shared video with words under it keeps them as its caption',
+    () async {
+      // Telegram and WhatsApp send the caption beside the file as EXTRA_TEXT.
+      final source = File(p.join(tmp.path, 'clip.mp4'));
+      await source.writeAsBytes(Uint8List(2048), flush: true);
+      native.pending = {
+        'type': 'shared_file',
+        'uri': Uri.file(source.path).toString(),
+        'filename': 'clip.mp4',
+        'mimeType': 'video/mp4',
+        'size': '2048',
+        'text': '  The talk from Thursday  ',
+      };
+      final bridge = OsCaptureBridge(services);
+      addTearDown(bridge.dispose);
+      await bridge.start();
+
+      expect(bridge.shareFailed, isFalse);
+      expect(bridge.handledLaunchShare, isTrue);
+      final note = (await db.timeline(limit: 5)).single;
+      expect(note.mimeType, 'video/mp4');
+      expect(note.caption, 'The talk from Thursday');
+    },
+  );
+
+  test('a share already in the library is never reported as failed', () async {
+    // The owner's report: "Capture could not be stored" over a video that
+    // was in the timeline. Whatever fails after the commit, the receipt says
+    // the share was kept.
+    final lost = _LostAnswerDb(
+      dbPath: p.join(tmp.path, 'lost.sqlite'),
+      deviceId: 'test',
+    );
+    final lostServices = NexServices.forTest(
+      worker: lost,
+      deviceId: 'test',
+      preferences: await NexPreferences.load(),
+      backupPolicy: BackupPolicy(await SharedPreferences.getInstance()),
+      dbPath: p.join(tmp.path, 'lost.sqlite'),
+      mediaDir: p.join(tmp.path, 'media'),
+      backupDir: p.join(tmp.path, 'backups'),
+    );
+    addTearDown(lostServices.dispose);
+    final source = File(p.join(tmp.path, 'clip.mp4'));
+    await source.writeAsBytes(Uint8List(2048), flush: true);
+    native.pending = {
+      'type': 'shared_file',
+      'uri': Uri.file(source.path).toString(),
+      'filename': 'clip.mp4',
+      'mimeType': 'video/mp4',
+      'size': '2048',
+    };
+    final bridge = OsCaptureBridge(lostServices);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+
+    expect(bridge.shareFailed, isFalse);
+    expect(bridge.handledLaunchShare, isTrue);
+    expect(native.calls, contains('ackPending'));
+    expect(native.calls, isNot(contains('deferPending')));
+    expect(await lost.timeline(limit: 5), hasLength(1));
+  });
+
+  test('a share that never committed is still reported as failed', () async {
+    native.pending = {'type': 'shared_file', 'uri': 'content://missing/file'};
+    final bridge = OsCaptureBridge(services);
+    addTearDown(bridge.dispose);
+    await bridge.start();
+    expect(bridge.shareFailed, isTrue);
+    expect(native.calls, contains('deferPending'));
   });
 
   test('a widget tap reaches whoever is listening for it', () async {

@@ -92,6 +92,16 @@ class DownloadService : Service() {
          */
         private const val CHANNEL = "nex.updates"
 
+        /**
+         * The channel's name and description, in the app's language (LOC-15):
+         * the Dart side sends them with every notice. English until it has.
+         */
+        @Volatile
+        var channelName = "Updates"
+
+        @Volatile
+        var channelAbout = "Downloading a new version of Nex"
+
         const val EXTRA_TITLE = "title"
         const val EXTRA_PERCENT = "percent"
         const val EXTRA_BODY = "body"
@@ -119,10 +129,10 @@ class DownloadService : Service() {
                 manager(context).createNotificationChannel(
                     NotificationChannel(
                         CHANNEL,
-                        "Updates",
+                        channelName,
                         NotificationManager.IMPORTANCE_LOW,
                     ).apply {
-                        description = "Downloading a new version of Nex"
+                        description = channelAbout
                         setShowBadge(false)
                     },
                 )

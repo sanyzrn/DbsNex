@@ -406,7 +406,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchHint => 'Search notes…';
 
   @override
-  String get searchStart => 'Start typing to find a capture.';
+  String get searchStart => 'Start typing to find a note.';
 
   @override
   String get settings => 'Settings';
@@ -788,7 +788,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transcription => 'Transcription';
 
   @override
-  String get ocr => 'OCR';
+  String get ocr => 'Text in the photo';
 
   @override
   String get tagSuggestions => 'Tag suggestions';

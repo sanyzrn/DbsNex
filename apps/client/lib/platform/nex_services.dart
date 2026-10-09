@@ -381,7 +381,10 @@ class NexServices {
 
   /// Fire-and-forget post-capture enrichment — never awaited by capture UI.
   void scheduleEnrichment(String noteId) {
-    unawaited(worker.enrichNote(noteId));
+    if (_closed) return;
+    // Nobody awaits it, so nobody may be handed its failure either: a note
+    // with no transcript yet is picked up by the next backfill.
+    unawaited(worker.enrichNote(noteId).catchError((Object _) {}));
   }
 
   /// Works through the notes the intelligence layer has never read.

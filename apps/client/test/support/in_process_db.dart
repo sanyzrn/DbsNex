@@ -117,6 +117,10 @@ class InProcessDb implements NexDb {
   }
 
   @override
+  Future<Note?> capturedFor(String requestId) async =>
+      _repo.capturedFor(requestId);
+
+  @override
   Future<Note?> captureText(String content) async {
     if (captureDelay != null) await Future<void>.delayed(captureDelay!);
     return _capture.submitTextCapture(content);

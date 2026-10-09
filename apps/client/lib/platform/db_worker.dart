@@ -30,6 +30,7 @@ enum _DbCommand {
   getById,
   captureText,
   captureShared,
+  capturedFor,
   captureChecklist,
   importNotes,
   captureLink,
@@ -422,6 +423,10 @@ class NexDbWorker implements NexDb {
   @override
   Future<Note?> captureShared(Map<String, String> payload) =>
       _send<Note?>(_DbCommand.captureShared, {'payload': payload});
+
+  @override
+  Future<Note?> capturedFor(String requestId) =>
+      _send<Note?>(_DbCommand.capturedFor, {'requestId': requestId});
 
   @override
   Future<Note?> captureChecklist(List<ChecklistItem> items) =>
@@ -1052,6 +1057,7 @@ class NexDbWorker implements NexDb {
         _DbCommand.captureShared => repo.captureShared(
           Map<String, String>.from(arg('payload')! as Map),
         ),
+        _DbCommand.capturedFor => repo.capturedFor(arg('requestId')! as String),
         _DbCommand.captureText => capture.submitTextCapture(
           arg('content')! as String,
         ),

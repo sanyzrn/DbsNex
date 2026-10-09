@@ -53,4 +53,19 @@ void main() {
     })!;
     expect(note.type, NoteType.text);
   });
+
+  test('words shared with a file are its caption', () {
+    final note = repo.captureShared({
+      'requestId': 'r-video',
+      'type': 'shared_file',
+      'mediaUri': '/media/clip.mp4',
+      'mediaHash': 'abc',
+      'filename': 'clip.mp4',
+      'mimeType': 'video/mp4',
+      'caption': '  Thursday talk  ',
+    })!;
+    expect(note.caption, 'Thursday talk');
+    expect(repo.capturedFor('r-video')?.id, note.id);
+    expect(repo.capturedFor('never-sent'), isNull);
+  });
 }
