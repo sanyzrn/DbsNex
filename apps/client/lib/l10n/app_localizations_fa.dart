@@ -1042,6 +1042,10 @@ class AppLocalizationsFa extends AppLocalizations {
       'Nex نتوانست کتابخانهٔ روی دستگاه شما را باز کند. فایل‌های شما دست‌نخورده ماندند.';
 
   @override
+  String get libraryNewerVersion =>
+      'این کتابخانه با نسخهٔ جدیدتری از نکس ذخیره شده است. برای باز کردنش آخرین نسخه را نصب کنید؛ یادداشت‌هایتان سالم‌اند و تغییری نکرده‌اند.';
+
+  @override
   String get tryAgain => 'تلاش دوباره';
 
   @override

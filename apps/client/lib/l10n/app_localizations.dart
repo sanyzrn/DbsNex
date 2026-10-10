@@ -1874,6 +1874,12 @@ abstract class AppLocalizations {
   /// **'Nex could not open your local library. Your files were not changed.'**
   String get libraryOpenFailed;
 
+  /// Shown instead of the open-failed message when the library was written by a newer app version (DATA-06). No restore is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'This library was saved by a newer version of Nex. Install the latest version to open it; your notes are safe and were not changed.'**
+  String get libraryNewerVersion;
+
   /// Retries startup after a failed library open
   ///
   /// In en, this message translates to:

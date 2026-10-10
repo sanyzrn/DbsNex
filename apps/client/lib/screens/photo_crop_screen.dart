@@ -260,7 +260,12 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
         bottomNavigationBar: SafeArea(
           top: false,
           child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            padding: const EdgeInsets.fromLTRB(
+              NexSpacing.md,
+              12,
+              NexSpacing.md,
+              NexSpacing.md,
+            ),
             decoration: const BoxDecoration(
               color: Color(0xFF171717),
               border: Border(top: BorderSide(color: Color(0xFF383838))),
@@ -306,7 +311,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                     size: 20,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: NexSpacing.sm),
                 Row(
                   children: [
                     Expanded(
@@ -334,7 +339,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen>
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: NexSpacing.sm),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(

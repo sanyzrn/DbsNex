@@ -45,7 +45,21 @@ class NexDatabase {
     return nex;
   }
 
+  /// The library layout this build writes, stamped as `user_version`.
+  ///
+  /// Raise it with any change an older build could not read correctly. A
+  /// build that finds a higher number refuses to open the library (DATA-06)
+  /// instead of writing to it with an older idea of its tables — Cafe Bazaar
+  /// and Myket both let someone install an older APK over a newer one.
+  /// Libraries from before the stamp read as 0 and are simply upgraded.
+  static const schemaVersion = 1;
+
   void _migrate() {
+    final stamped = db.select('PRAGMA user_version').first.values.first as int;
+    if (stamped > schemaVersion) {
+      db.dispose();
+      throw NewerLibraryException(stamped, schemaVersion);
+    }
     // The share window and the main app have separate SQLite connections.
     // Allow a short writer to finish instead of dropping an incoming capture.
     db.execute('PRAGMA busy_timeout = 5000;');
@@ -429,6 +443,9 @@ CREATE TABLE IF NOT EXISTS memory_records (
 
     _seedStarterTags();
     _foldSearchIndex();
+    if (stamped != schemaVersion) {
+      db.execute('PRAGMA user_version = $schemaVersion');
+    }
   }
 
   /// Rewrites the search index in folded form, once (1.92.2).
@@ -749,4 +766,21 @@ CREATE TABLE notes_rebuilt (
       probe?.dispose();
     }
   }
+}
+
+/// The library on disk was written by a newer Nex than this one.
+///
+/// The name is matched by the app's "could not open" screen, which then says
+/// to install the newer version and does not offer to restore a backup over
+/// a library that is fine.
+class NewerLibraryException implements Exception {
+  const NewerLibraryException(this.found, this.supported);
+
+  final int found;
+  final int supported;
+
+  @override
+  String toString() =>
+      'NewerLibraryException: library layout $found, this build reads up to '
+      '$supported';
 }

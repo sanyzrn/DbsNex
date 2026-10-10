@@ -217,7 +217,7 @@ extension _VaultPages on _VaultScreenState {
         Expanded(
           child: ListView(
             reverse: true,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(NexSpacing.md),
             children: [
               for (final e in messages.reversed)
                 Align(
@@ -356,7 +356,7 @@ extension _VaultPages on _VaultScreenState {
       ? const Center(child: CircularProgressIndicator())
       : Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(NexSpacing.xl),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -372,7 +372,7 @@ extension _VaultPages on _VaultScreenState {
                     color: theme.colorScheme.onPrimaryContainer,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: NexSpacing.lg),
                 Text(l.vaultLocked, style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 12),
                 Text(l.vaultUnlockHint, textAlign: TextAlign.center),
@@ -387,7 +387,7 @@ extension _VaultPages on _VaultScreenState {
                     onPressed: auth.openDeviceSecurity,
                     child: Text(l.settings),
                   ),
-                const SizedBox(height: 24),
+                const SizedBox(height: NexSpacing.lg),
                 Text(
                   l.vaultPrivacyHint,
                   style: theme.textTheme.bodySmall,
@@ -451,7 +451,7 @@ class _ImportProblems extends StatelessWidget {
           ),
           style: theme.textTheme.titleSmall,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: NexSpacing.xs),
         for (final p in problems.take(_shown))
           Padding(
             padding: const EdgeInsets.only(top: 2),

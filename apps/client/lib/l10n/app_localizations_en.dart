@@ -1061,6 +1061,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nex could not open your local library. Your files were not changed.';
 
   @override
+  String get libraryNewerVersion =>
+      'This library was saved by a newer version of Nex. Install the latest version to open it; your notes are safe and were not changed.';
+
+  @override
   String get tryAgain => 'Try again';
 
   @override

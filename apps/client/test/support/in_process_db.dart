@@ -89,12 +89,16 @@ class InProcessDb implements NexDb {
 
   bool _closed = false;
 
+  /// How many times the whole timeline window has been read.
+  int timelineReads = 0;
+
   @override
   Future<List<Note>> timeline({
     int limit = 200,
     int offset = 0,
     String? tagId,
   }) async {
+    timelineReads++;
     if (readDelay != null) await Future<void>.delayed(readDelay!);
     return _search.timeline(limit: limit, offset: offset, tagId: tagId);
   }

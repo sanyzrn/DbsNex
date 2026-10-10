@@ -1,3 +1,10 @@
+/// Linux only (REL-16). The pictures were drawn by CI's Linux runner, and
+/// that is the one renderer they are checked against: on Windows the same
+/// commit differed by ~2% at glyph edges in 36 pictures — anti-aliasing,
+/// not the app. The rest of the suite runs everywhere.
+@TestOn('linux')
+library;
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';

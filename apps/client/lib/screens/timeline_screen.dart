@@ -38,6 +38,7 @@ import '../platform/note_search.dart';
 import '../platform/os_capture_bridge.dart';
 import '../platform/sharing.dart';
 import '../platform/update_service.dart';
+import '../platform/voice_spool.dart';
 import '../widgets/ai_chat_sheet.dart';
 import '../widgets/capture_sheet.dart';
 import '../widgets/checklist_capture_sheet.dart';

@@ -102,7 +102,7 @@ class _ThemeScreen extends StatelessWidget {
       body: ListenableBuilder(
         listenable: preferences,
         builder: (context, _) => ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(NexSpacing.md),
           children: [
             _Row(
               icon: Icons.dark_mode_outlined,
@@ -227,7 +227,7 @@ class _ThemeScreen extends StatelessWidget {
               ),
             ),
             _AccentColorRow(preferences: preferences),
-            const SizedBox(height: 24),
+            const SizedBox(height: NexSpacing.lg),
             Text(
               nexLabel(
                 context,
@@ -242,7 +242,7 @@ class _ThemeScreen extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
+                    horizontal: NexSpacing.md,
                     vertical: 6,
                   ),
                   leading: CircleAvatar(
@@ -339,7 +339,7 @@ class _AppIconPickerState extends State<_AppIconPicker> {
           nexLabel(context, 'App icon', 'آیکون برنامه'),
           style: theme.textTheme.titleLarge,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: NexSpacing.xs),
         Text(
           nexLabel(
             context,
@@ -375,7 +375,7 @@ class _AppIconPickerState extends State<_AppIconPicker> {
               ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: NexSpacing.md),
       ],
     );
   }
@@ -403,13 +403,13 @@ class _AppIconTile extends StatelessWidget {
       label: label,
       child: InkWell(
         key: ValueKey('app-icon-$id'),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(NexRadius.lg),
         onTap: onTap,
         child: AnimatedContainer(
           duration: NexMotion.standard,
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(NexSpacing.sm),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(NexRadius.lg),
             border: Border.all(
               width: selected ? 2 : 1,
               color: selected ? scheme.primary : scheme.outlineVariant,
@@ -437,7 +437,7 @@ class _AppIconTile extends StatelessWidget {
                 children: [
                   if (selected) ...[
                     Icon(Icons.check_circle, size: 16, color: scheme.primary),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: NexSpacing.xs),
                   ],
                   Flexible(
                     child: Text(

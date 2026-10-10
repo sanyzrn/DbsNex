@@ -23,18 +23,39 @@ abstract final class LocalBudget {
   static const input = 2800;
 
   /// Roughly how many tokens [text] costs the on-device model.
+  ///
+  /// Three rates. Persian and Arabic script, 0.6 a character. Letters, digits
+  /// and spaces, 0.33. Everything else — brackets, operators, punctuation,
+  /// emoji — 0.6 too (AI-12): a tokenizer seldom merges symbols the way it
+  /// merges letters, and a note full of code or JSON costs far more than
+  /// 0.33 a character, which let a code-heavy library past the window.
   static int estimate(String text) {
-    var script = 0;
-    var other = 0;
+    var dense = 0;
+    var plain = 0;
     for (final rune in text.runes) {
-      if (_isArabicScript(rune)) {
-        script++;
+      if (_isArabicScript(rune) || !_isPlain(rune)) {
+        dense++;
       } else {
-        other++;
+        plain++;
       }
     }
-    return (script * 0.6 + other * 0.33).ceil();
+    return (dense * 0.6 + plain * 0.33).ceil();
   }
+
+  /// A Latin letter, a digit or whitespace: what a tokenizer packs tightly.
+  static bool _isPlain(int rune) =>
+      (rune >= 0x30 && rune <= 0x39) ||
+      (rune >= 0x41 && rune <= 0x5A) ||
+      (rune >= 0x61 && rune <= 0x7A) ||
+      rune == 0x20 ||
+      rune == 0x0A ||
+      rune == 0x09 ||
+      // Ordinary punctuation inside prose: stays at the prose rate.
+      rune == 0x2E ||
+      rune == 0x2C ||
+      rune == 0x27 ||
+      // Accented Latin letters.
+      (rune >= 0xC0 && rune <= 0x24F);
 
   static bool _isArabicScript(int rune) =>
       (rune >= 0x0600 && rune <= 0x06FF) ||

@@ -405,6 +405,11 @@ jobs:
         env:
           NEX_CI_VERIFY_RELEASE_BUILD: "true"
         run: flutter build appbundle --release --flavor ai --target lib/main_ai.dart
+      # Android 15 devices may run with 16 KB memory pages, where a native
+      # library aligned to 4 KB does not load (REL-05). A warning, not a gate.
+      - name: Native libraries are 16 KB aligned (report)
+        if: needs.changes.outputs.android == 'true' && github.event_name == 'pull_request'
+        run: bash ../../tools/check_16kb_alignment.sh --warn build/app/outputs/bundle/aiRelease/app-ai-release.aab
 
   client-windows:
     name: apps/client (Windows desktop build + platform tests)

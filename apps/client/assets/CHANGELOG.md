@@ -34,6 +34,17 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.8
+
+- **A recording survives the app closing.** If Nex was closed in the middle of a voice memo — the phone ran short of memory, or the app crashed — the recording was lost, and the file left behind could not even be played. Recordings are now saved as they are made, and the next time you open Nex the interrupted one appears as a voice note, up to the moment it stopped.
+- **Search by meaning on the phone shows real matches only.** With the on-device search model, a search could list every note as "Found by meaning", even ones about something else entirely. That model now has a cut-off of its own, so unrelated notes stay out.
+- **What's new is in Persian too.** With the app in Persian, the update screen shows the release notes in Persian.
+- **Scrolling far back stays fast.** Each page of older notes used to reload every note above it, so a long scroll got slower the further it went. New pages are now added to the end.
+- **A quicker start for heavy assistant users.** Saved conversations moved out of the app's settings into a file of their own, read only when you open the assistant; they still go into settings backups.
+- **A note being typed is not wound back.** In a rare case, reopening the app could restore an older copy of a note you were typing over a newer one already saved. The newer one is now kept.
+- **Opening a library from a newer Nex.** If an older version of Nex is installed over a newer one, it now says the library needs the newer version, instead of offering to restore a backup over it.
+- **Under the hood.** The on-device assistant counts code and symbols more carefully, so a library of code notes no longer overflows it; the build without on-device models no longer carries their 22 MB runtime; release builds report whether native libraries suit phones with 16 KB memory pages; a test opens a library from the first release and checks that nothing is lost.
+
 ## v1.99.7
 
 - **Cycle stays private when the app locks.** A home-screen Cycle widget that was refreshing at the moment the app lock closed could show your dates again afterwards. It now always ends on the locked state.

@@ -692,6 +692,10 @@
     "description": "Settings group: sync, export, restore"
   },
   "libraryOpenFailed": "Nex could not open your local library. Your files were not changed.",
+  "libraryNewerVersion": "This library was saved by a newer version of Nex. Install the latest version to open it; your notes are safe and were not changed.",
+  "@libraryNewerVersion": {
+    "description": "Shown instead of the open-failed message when the library was written by a newer app version (DATA-06). No restore is offered."
+  },
   "@libraryOpenFailed": {
     "description": "Shown when the database fails to open at startup"
   },

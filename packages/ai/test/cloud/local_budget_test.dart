@@ -20,6 +20,18 @@ void main() {
       expect(cost('سلام' * 100), greaterThan(cost('abcd' * 100)));
     });
 
+    test('code costs more than prose of the same length (AI-12)', () {
+      // A tokenizer seldom merges symbols: `{"a":[1,2]}` is close to a token
+      // a character, and a library of code notes went past the window at
+      // the prose rate.
+      const code = '{"id":[1,2],"x":f(a)->b;}';
+      final prose = 'a' * code.length;
+      expect(cost(code), greaterThanOrEqualTo((code.length * 0.5).ceil()));
+      expect(cost(code), greaterThan(cost(prose)));
+      // Ordinary prose punctuation stays at the prose rate.
+      expect(cost('Hello, world. It is fine.'), lessThanOrEqualTo(9));
+    });
+
     test('a cut text fits, and says it was cut', () {
       final text = 'کتاب ' * 2000;
       final cut = LocalBudget.clip(text, 200);

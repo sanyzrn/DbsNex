@@ -244,7 +244,7 @@ class _HoldMenuScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 8),
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                padding: const EdgeInsets.fromLTRB(20, NexSpacing.xs, 20, 12),
                 child: Text(
                   nexLabel(
                     context,

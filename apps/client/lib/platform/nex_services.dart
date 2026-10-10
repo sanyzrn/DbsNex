@@ -22,6 +22,8 @@ import 'full_backup.dart';
 import 'vault_store.dart';
 import 'editor_drafts.dart';
 import 'capture_journal.dart';
+import 'voice_spool.dart';
+import 'chat_history.dart';
 import 'export_cache.dart';
 import 'db_worker.dart';
 import 'package:nex_ai/cloud.dart';
@@ -133,6 +135,7 @@ class NexServices {
 
     final support = await getApplicationSupportDirectory();
     final dbPath = p.join(support.path, 'nex.sqlite');
+    ChatHistory.storageDirectory = support.path;
     // The record of what leaves the device, beside the library it describes.
     // The database worker configures the same file for its own requests.
     NexDisclosureLog.configure(support.path);
@@ -243,6 +246,7 @@ class NexServices {
 
     if (recoverDrafts) {
       await services.recoverCaptureDrafts();
+      await services.recoverVoiceRecordings();
       unawaited(
         getTemporaryDirectory()
             .then(cleanExportCache)
@@ -423,7 +427,11 @@ class NexServices {
     for (final draft in captureJournal.pending().toList()) {
       try {
         final note = await captureDraft(draft.id, draft.text);
-        if (note != null) {
+        // A journal write can fail while the database write of the same
+        // text succeeds; a journal older than the note would then wind the
+        // note back to a stale snapshot (DATA-05). The newer one wins.
+        final behind = note != null && note.updatedAt.isAfter(draft.at);
+        if (note != null && !behind) {
           if (draft.text.isEmpty) {
             await worker.deleteNote(note.id);
           } else if (note.content != draft.text) {
@@ -445,6 +453,47 @@ class NexServices {
   /// Imports another app's export, and answers how many notes landed.
   Future<int> importNotes(String path) =>
       worker.importNotes(path, mediaDir: mediaDir);
+
+  /// Keeps the recordings the app died in the middle of (DATA-04).
+  ///
+  /// A `.recording` file is a memo that never reached Keep — the process
+  /// was killed, or crashed, with the person still talking. Its frames are
+  /// whole up to the last second written, so it is kept as a voice note
+  /// like any other, with the length it actually has. One still being
+  /// written (touched in the last two minutes — another window of the app
+  /// may be recording) is left alone.
+  Future<int> recoverVoiceRecordings({DateTime? now}) async {
+    final dir = Directory(mediaDir);
+    if (!dir.existsSync()) return 0;
+    final idle = (now ?? DateTime.now()).subtract(const Duration(minutes: 2));
+    var kept = 0;
+    for (final entity in dir.listSync(followLinks: false)) {
+      if (entity is! File ||
+          !p.basename(entity.path).startsWith('voice-') ||
+          !entity.path.endsWith(NexVoiceSpool.extension)) {
+        continue;
+      }
+      try {
+        if (entity.lastModifiedSync().isAfter(idle)) continue;
+        final durationMs = NexVoiceSpool.adtsDurationMs(
+          await entity.readAsBytes(),
+        );
+        final saved = await NexVoiceSpool.finish(entity.path);
+        if (saved == null) continue;
+        final note = await captureVoice(
+          mediaUri: saved,
+          mediaHash: (await sha256OfFile(saved))!,
+          durationMs: durationMs,
+        );
+        scheduleEnrichment(note.id);
+        kept++;
+      } catch (error) {
+        unawaited(noteDiagnostic('voice recovery: ${error.runtimeType}'));
+      }
+    }
+    if (kept > 0) unawaited(noteDiagnostic('voice recovered: $kept'));
+    return kept;
+  }
 
   Future<Note> captureVoice({
     required String mediaUri,
@@ -1016,9 +1065,17 @@ class NexServices {
   /// scrolled-down timeline back to the first page.
   int _timelineWindow = 200;
 
+  /// What the stream last carried, and how many full reads have started —
+  /// so [loadMoreTimeline] can tell whether a page may simply be appended.
+  List<Note>? _lastTimeline;
+  int _timelineReads = 0;
+
   Future<void> refreshTimeline() async {
     if (_closed) return;
-    _timelineController.add(await worker.timeline(limit: _timelineWindow));
+    _timelineReads++;
+    final notes = await worker.timeline(limit: _timelineWindow);
+    _lastTimeline = notes;
+    _timelineController.add(notes);
   }
 
   Future<List<Note>> loadMore({required int offset, int limit = 50}) =>
@@ -1032,11 +1089,32 @@ class NexServices {
   ///
   /// Returns false once a fetch turns up nothing to add, so the caller —
   /// [TimelineScreenState] — knows to stop asking until something changes.
+  ///
+  /// The page is appended rather than the window re-read (PERF-03): a
+  /// re-read cost the whole window each time, so scrolling deep into a
+  /// large library got slower with every page — about a second and a half a
+  /// page at five thousand notes. The order is stable between changes, so
+  /// appending is the same list; when anything was re-read while the page
+  /// was being fetched, the full read stays the answer.
   Future<bool> loadMoreTimeline({int by = 50}) async {
     if (_closed) return false;
-    final more = await worker.loadMore(offset: _timelineWindow, limit: by);
+    final base = _lastTimeline;
+    final reads = _timelineReads;
+    final offset = _timelineWindow;
+    final more = await worker.loadMore(offset: offset, limit: by);
     if (more.isEmpty) return false;
     _timelineWindow += more.length;
+    if (base != null && reads == _timelineReads && base.length == offset) {
+      final seen = {for (final note in base) note.id};
+      final next = List<Note>.unmodifiable([
+        ...base,
+        for (final note in more)
+          if (seen.add(note.id)) note,
+      ]);
+      _lastTimeline = next;
+      if (!_closed) _timelineController.add(next);
+      return true;
+    }
     await refreshTimeline();
     return true;
   }

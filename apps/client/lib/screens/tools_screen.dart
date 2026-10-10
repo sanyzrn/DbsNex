@@ -25,7 +25,12 @@ class ToolsScreen extends StatelessWidget {
       appBar: AppBar(title: Text(l.toolsTitle)),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+          padding: const EdgeInsets.fromLTRB(
+            NexSpacing.md,
+            NexSpacing.xs,
+            NexSpacing.md,
+            NexSpacing.lg,
+          ),
           children: [
             Text(
               l.toolsPrivateHint,
@@ -106,7 +111,7 @@ class ToolsScreen extends StatelessWidget {
                   size: 18,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: NexSpacing.sm),
                 Expanded(
                   child: Text(
                     l.vaultPrivacyHint,

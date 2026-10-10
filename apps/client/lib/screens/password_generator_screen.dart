@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:nex_ui/nex_ui.dart';
 import '../platform/display_date.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/private_clipboard.dart';
@@ -45,13 +46,13 @@ class _PasswordGeneratorState extends State<PasswordGeneratorScreen> {
       appBar: AppBar(title: Text(l.vaultGenerator)),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(NexSpacing.lg),
           children: [
             const Icon(Icons.casino_outlined, size: 48),
-            const SizedBox(height: 24),
+            const SizedBox(height: NexSpacing.lg),
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(NexSpacing.lg),
                 child: Text(
                   password,
                   textDirection: TextDirection.ltr,
@@ -81,7 +82,7 @@ class _PasswordGeneratorState extends State<PasswordGeneratorScreen> {
                 generate();
               },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: NexSpacing.lg),
             FilledButton.icon(
               onPressed: () async {
                 try {

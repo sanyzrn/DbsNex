@@ -436,7 +436,7 @@ class _VaultScreenState extends State<VaultScreen> with WidgetsBindingObserver {
               children: [
                 if (error != null)
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(NexSpacing.md),
                     child: Text(
                       error!,
                       style: TextStyle(color: theme.colorScheme.error),

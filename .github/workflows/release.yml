@@ -309,6 +309,16 @@ jobs:
               | grep -E 'lib/.*\.so$' | awk '{print $4}' | sort || true
           done
 
+      # Android 15 devices may run with 16 KB memory pages, where a native
+      # library aligned to 4 KB does not load (REL-05). Reported, not a gate:
+      # a misaligned plugin shows up here as a warning on the run.
+      - name: Native libraries are 16 KB aligned (report)
+        run: |
+          bash ../../tools/check_16kb_alignment.sh --warn \
+            build/app/outputs/bundle/aiRelease/app-ai-release.aab \
+            build/app/outputs/flutter-apk/app-arm64-v8a-ai-release.apk \
+            build/app/outputs/flutter-apk/app-x86_64-ai-release.apk
+
       - name: Collect release assets
         run: |
           mkdir -p dist
@@ -519,6 +529,23 @@ jobs:
           if [ ! -s RELEASE_NOTES.md ]; then
             echo "::error::CHANGELOG.md's '$want' section is empty — nothing to publish."
             exit 1
+          fi
+          # The same section in Persian, under a marker the app splits on
+          # (LOC-05): a phone set to Persian shows only the Persian notes, any
+          # other only the English. GitHub hides the marker itself. Optional:
+          # a release with no Persian section still ships, in English.
+          if [ -f CHANGELOG.fa.md ] && grep -qxF "$want" CHANGELOG.fa.md; then
+            awk -v want="$want" '
+              $0 == want { found = 1; next }
+              found && /^## / { exit }
+              found { print }
+            ' CHANGELOG.fa.md > RELEASE_NOTES.fa.md
+            if [ -s RELEASE_NOTES.fa.md ]; then
+              printf '\n<!-- nex:fa -->\n' >> RELEASE_NOTES.md
+              cat RELEASE_NOTES.fa.md >> RELEASE_NOTES.md
+            fi
+          else
+            echo "::warning::CHANGELOG.fa.md has no '$want' section; the update screen shows English to Persian users."
           fi
           cat RELEASE_NOTES.md
 

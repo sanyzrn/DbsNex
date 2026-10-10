@@ -189,7 +189,7 @@ class _FilteredEmpty extends StatelessWidget {
           // what hides them. Search already had the honest sentence; the
           // timeline's filter-empty now uses it too.
           Text(l10n.filteredEmpty, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 4),
+          const SizedBox(height: NexSpacing.xs),
           TextButton(onPressed: onClear, child: Text(l10n.clearFilters)),
         ],
       ),

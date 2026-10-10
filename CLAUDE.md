@@ -8,5 +8,6 @@
 - Persian and English, light and dark, right to left and left to right: every
   screen works in all of them.
 - User-facing changes get a line in both `CHANGELOG.md` and
-  `apps/client/assets/CHANGELOG.md`, and the guide (`apps/client/assets/guide/`)
+  `apps/client/assets/CHANGELOG.md`, its Persian in `CHANGELOG.fa.md` (what
+  the update screen shows a Persian reader), and the guide (`apps/client/assets/guide/`)
   in both languages when they change how something is used.

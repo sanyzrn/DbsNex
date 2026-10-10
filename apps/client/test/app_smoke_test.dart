@@ -768,9 +768,17 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(events.last, hasLength(200));
 
+      final reads = testWorker.timelineReads;
       expect(await services.loadMoreTimeline(), isTrue);
       await Future<void>.delayed(Duration.zero);
       expect(events.last, hasLength(210));
+      // Appended, not re-read (PERF-03): the window is not fetched again,
+      // and the list is the one a full read would give.
+      expect(testWorker.timelineReads, reads);
+      expect(
+        events.last.map((n) => n.id),
+        (await testWorker.timeline(limit: 210)).map((n) => n.id),
+      );
 
       // Nothing left past 210: the next ask comes back empty, and the window
       // is not reloaded a third time over it.

@@ -29,7 +29,12 @@ extension _VaultItems on _VaultScreenState {
           });
     final password = widget.kind == VaultKind.password;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      padding: const EdgeInsets.fromLTRB(
+        NexSpacing.md,
+        12,
+        NexSpacing.md,
+        NexSpacing.xl,
+      ),
       children: [
         Row(
           children: [
@@ -58,7 +63,7 @@ extension _VaultItems on _VaultScreenState {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: NexSpacing.sm),
             IconButton.filledTonal(
               tooltip: l.vaultFavorites,
               isSelected: favorites,
@@ -66,7 +71,7 @@ extension _VaultItems on _VaultScreenState {
               icon: const Icon(Icons.star_outline_rounded),
               selectedIcon: const Icon(Icons.star_rounded),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: NexSpacing.xs),
             IconButton.filled(
               tooltip: password ? l.vaultAddPassword : l.vaultAddCard,
               onPressed: busy || draft != null
@@ -107,16 +112,16 @@ extension _VaultItems on _VaultScreenState {
                   size: 44,
                   color: theme.colorScheme.primary,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: NexSpacing.md),
                 Text(
                   query.isNotEmpty || favorites
                       ? l.vaultNoResults
                       : l.vaultEmpty,
                   style: theme.textTheme.titleMedium,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: NexSpacing.sm),
                 Text(l.vaultEmptyHint, textAlign: TextAlign.center),
-                const SizedBox(height: 16),
+                const SizedBox(height: NexSpacing.md),
                 FilledButton.icon(
                   onPressed: busy || draft != null
                       ? null
@@ -167,7 +172,12 @@ extension _VaultItems on _VaultScreenState {
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 4, 10),
+        padding: const EdgeInsetsDirectional.fromSTEB(
+          NexSpacing.md,
+          NexSpacing.sm,
+          NexSpacing.xs,
+          10,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -217,7 +227,7 @@ extension _VaultItems on _VaultScreenState {
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, NexSpacing.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -230,7 +240,7 @@ extension _VaultItems on _VaultScreenState {
                 vaultCardDigits(entry.value('number')),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: NexSpacing.xs),
             Padding(
               padding: const EdgeInsetsDirectional.only(start: 6),
               child: Column(
@@ -329,7 +339,7 @@ extension _VaultItems on _VaultScreenState {
     final shown = key == 'number' ? _groupDigits(vaultCardDigits(raw)) : raw;
     final value = key == 'number' ? vaultCardDigits(raw) : raw;
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(NexRadius.md),
       onTap: () => _copy(id, value),
       child: Padding(
         padding: const EdgeInsetsDirectional.only(start: 2, top: 2, bottom: 2),
@@ -417,7 +427,12 @@ extension _VaultItems on _VaultScreenState {
                 colors: [base, second],
               ),
             ),
-            padding: const EdgeInsetsDirectional.fromSTEB(20, 8, 4, 16),
+            padding: const EdgeInsetsDirectional.fromSTEB(
+              20,
+              NexSpacing.sm,
+              NexSpacing.xs,
+              NexSpacing.md,
+            ),
             child: IconTheme.merge(
               data: IconThemeData(color: foreground),
               child: DefaultTextStyle.merge(

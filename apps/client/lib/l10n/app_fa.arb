@@ -442,6 +442,7 @@
     "description": "Settings group: sync, export, restore"
   },
   "libraryOpenFailed": "Nex نتوانست کتابخانهٔ روی دستگاه شما را باز کند. فایل‌های شما دست‌نخورده ماندند.",
+  "libraryNewerVersion": "این کتابخانه با نسخهٔ جدیدتری از نکس ذخیره شده است. برای باز کردنش آخرین نسخه را نصب کنید؛ یادداشت‌هایتان سالم‌اند و تغییری نکرده‌اند.",
   "@libraryOpenFailed": {
     "description": "Shown when the database fails to open at startup"
   },

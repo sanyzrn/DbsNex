@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:nex_core/nex_core.dart';
+import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// One saved conversation with the assistant.
@@ -102,13 +104,68 @@ class ChatHistory extends ChangeNotifier {
 
   final SharedPreferences _prefs;
 
+  /// Where the threads live once the app has said (PERF-07): a file of
+  /// their own, beside the library, read the first time the assistant
+  /// opens. In the preference store they were decoded with every other
+  /// setting at every cold start, before the first frame — a few megabytes
+  /// of transcript, for a heavy year of asking, on exactly the phones that
+  /// could least afford it. Null keeps them in preferences (tests).
+  static String? storageDirectory;
+
+  File? get _file => switch (storageDirectory) {
+    final dir? => File(p.join(dir, 'chat_threads.json')),
+    null => null,
+  };
+
   List<ChatThread>? _cache;
+
+  /// What is stored, from the file, or from preferences until the first
+  /// read moves it there.
+  String? _readRaw() {
+    final file = _file;
+    final legacy = _prefs.getString(_key);
+    if (file == null) return legacy;
+    // Threads in preferences are either from before the move or put back
+    // there by restoring a settings backup; either way they are the ones to
+    // keep, and they go to the file now.
+    if (legacy != null) {
+      try {
+        _writeFileSync(file, legacy);
+        unawaited(_prefs.remove(_key));
+      } catch (_) {
+        // Stays in preferences; the next save tries the file again.
+      }
+      return legacy;
+    }
+    try {
+      return file.existsSync() ? file.readAsStringSync() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The stored threads as the settings backup carries them, under the
+  /// preference key they had before they moved to a file — so a backup made
+  /// now restores on a phone either side of the move.
+  static const backupKey = _key;
+
+  String? exportForBackup() {
+    final raw = _readRaw();
+    return raw == null || raw.isEmpty ? null : raw;
+  }
+
+  static void _writeFileSync(File file, String json) {
+    file.parent.createSync(recursive: true);
+    final staging = File('${file.path}.tmp')
+      ..writeAsStringSync(json, flush: true);
+    staging.renameSync(file.path);
+  }
 
   /// Newest first.
   List<ChatThread> get threads {
     final cached = _cache;
     if (cached != null) return cached;
-    final raw = _prefs.getString(_key);
+    final raw = _readRaw();
     if (raw == null || raw.isEmpty) return _cache = const [];
     Object? decoded;
     try {
@@ -163,7 +220,22 @@ class ChatHistory extends ChangeNotifier {
 
   Future<void> _write(List<ChatThread> threads) async {
     _cache = List.unmodifiable(threads);
-    if (threads.isEmpty) {
+    final file = _file;
+    if (file != null) {
+      try {
+        if (threads.isEmpty) {
+          if (file.existsSync()) file.deleteSync();
+        } else {
+          _writeFileSync(
+            file,
+            jsonEncode([for (final thread in threads) thread.toJson()]),
+          );
+        }
+        await _prefs.remove(_key);
+      } catch (_) {
+        // The cache still holds them; the next save tries again.
+      }
+    } else if (threads.isEmpty) {
       await _prefs.remove(_key);
     } else {
       await _prefs.setString(
