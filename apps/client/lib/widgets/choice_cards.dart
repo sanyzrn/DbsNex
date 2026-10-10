@@ -188,7 +188,11 @@ class NexThemeSwatch extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [bar(24, 0.85), const SizedBox(height: 4), bar(16, 0.4)],
+        children: [
+          bar(24, 0.85),
+          const SizedBox(height: NexSpacing.xs),
+          bar(16, 0.4),
+        ],
       ),
     );
     if (mode != ThemeMode.system) return preview;

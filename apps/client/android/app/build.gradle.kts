@@ -143,6 +143,19 @@ android {
     }
 }
 
+// The standard flavor never runs a model on the phone (`LocalAi.
+// flavorSupportsLocalModels` is false there), yet it carried LiteRT-LM's
+// native library — 22 MB of arm64 code, the largest file in the APK —
+// because the chat plugin is a pub dependency of both flavors and Flutter
+// registers plugins per app, not per flavor (PERF-08). The Java half stays,
+// so plugin registration and the search-model channel still link; nothing in
+// standard ever loads the library they would need.
+androidComponents {
+    onVariants(selector().withFlavor("distribution" to "standard")) { variant ->
+        variant.packaging.jniLibs.excludes.add("**/liblitertlm_jni.so")
+    }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17

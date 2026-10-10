@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:nex_ui/nex_ui.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
@@ -314,7 +315,12 @@ class _NexCameraSheetState extends State<NexCameraSheet>
   Widget _unavailable(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 32, 32, 120),
+      padding: const EdgeInsets.fromLTRB(
+        NexSpacing.xl,
+        NexSpacing.xl,
+        NexSpacing.xl,
+        120,
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -329,7 +335,7 @@ class _NexCameraSheetState extends State<NexCameraSheet>
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white, fontSize: 15),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: NexSpacing.md),
           FilledButton.tonal(
             onPressed: () => Navigator.of(context).pop(_useSystemCamera),
             child: Text(l10n.cameraUseSystem),
@@ -511,7 +517,7 @@ class _Menu extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: Colors.black.withValues(alpha: .72),
-    borderRadius: BorderRadius.circular(20),
+    borderRadius: BorderRadius.circular(NexRadius.lg),
     clipBehavior: Clip.antiAlias,
     child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -541,7 +547,10 @@ class _MenuItem extends StatelessWidget {
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: NexSpacing.md,
+        vertical: 12,
+      ),
       child: Row(
         children: [
           Icon(icon, color: Colors.white, size: 22),

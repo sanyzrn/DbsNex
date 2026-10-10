@@ -112,6 +112,24 @@ void main() {
     },
   );
 
+  test(
+    'a journal older than the note does not wind it back (DATA-05)',
+    () async {
+      // The journal's last write failed while the database's succeeded, then
+      // the process died: the note is newer than the journal.
+      await boot();
+      final note = await services.captureDraft('stale', 'first words');
+      services.captureJournal.write('stale', 'first words');
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      await db.updateNote(note!.id, 'first words and the rest');
+
+      await services.recoverCaptureDrafts();
+
+      expect((await db.timeline()).single.content, 'first words and the rest');
+      expect(services.captureJournal.pending(), isEmpty);
+    },
+  );
+
   test('a failed recovery retains the journal for another launch', () async {
     await boot();
     await services.captureDraft('retry', 'old');

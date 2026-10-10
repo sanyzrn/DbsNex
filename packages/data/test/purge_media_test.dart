@@ -53,9 +53,10 @@ void main() {
 
     maintenance.purgeNote(note.id);
 
-    expect(repo.db.select('SELECT id FROM notes WHERE id = ?', [
-      note.id,
-    ]), isEmpty);
+    expect(
+      repo.db.select('SELECT id FROM notes WHERE id = ?', [note.id]),
+      isEmpty,
+    );
     expect(file.existsSync(), isFalse, reason: 'delete forever means the file');
   });
 
@@ -109,24 +110,40 @@ void main() {
     expect(outside.existsSync(), isTrue);
   });
 
-  test('sweepOrphanMedia removes unreferenced old files and keeps the rest', () {
-    final kept = insertPhotoWithFile('kept.jpg');
-    // Old enough to be sweepable, and referenced by no note.
-    final stray = File(p.join(mediaDir, 'stray.jpg'))
-      ..writeAsBytesSync(const [4, 4, 4]);
-    // Set old, because a capture mid-flight writes the file before its row.
-    stray.setLastModifiedSync(DateTime.now().subtract(const Duration(days: 2)));
-    // Fresh and unreferenced: left alone, it may belong to a capture in
-    // progress.
-    final fresh = File(p.join(mediaDir, 'fresh.jpg'))
-      ..writeAsBytesSync(const [5, 5, 5]);
+  test(
+    'sweepOrphanMedia removes unreferenced old files and keeps the rest',
+    () {
+      final kept = insertPhotoWithFile('kept.jpg');
+      // Old enough to be sweepable, and referenced by no note.
+      final stray = File(p.join(mediaDir, 'stray.jpg'))
+        ..writeAsBytesSync(const [4, 4, 4]);
+      // Set old, because a capture mid-flight writes the file before its row.
+      stray.setLastModifiedSync(
+        DateTime.now().subtract(const Duration(days: 2)),
+      );
+      // Fresh and unreferenced: left alone, it may belong to a capture in
+      // progress.
+      final fresh = File(p.join(mediaDir, 'fresh.jpg'))
+        ..writeAsBytesSync(const [5, 5, 5]);
 
-    final removed = maintenance.sweepOrphanMedia();
+      final removed = maintenance.sweepOrphanMedia();
 
-    expect(removed, 1);
-    expect(stray.existsSync(), isFalse);
-    expect(fresh.existsSync(), isTrue);
-    expect(File(kept.mediaUri!).existsSync(), isTrue);
+      expect(removed, 1);
+      expect(stray.existsSync(), isFalse);
+      expect(fresh.existsSync(), isTrue);
+      expect(File(kept.mediaUri!).existsSync(), isTrue);
+    },
+  );
+
+  test('sweepOrphanMedia keeps an interrupted voice recording', () {
+    // No note points at it until a launch turns it into one (DATA-04); a
+    // recovery that failed once must get another try, not a deletion.
+    final memo = File(p.join(mediaDir, 'voice-1.recording'))
+      ..writeAsBytesSync(const [9, 9, 9])
+      ..setLastModifiedSync(DateTime.now().subtract(const Duration(days: 2)));
+
+    expect(maintenance.sweepOrphanMedia(), 0);
+    expect(memo.existsSync(), isTrue);
   });
 
   test('sweepOrphanMedia never looks inside a subdirectory', () {
@@ -152,7 +169,11 @@ void main() {
 
     expect(removed, 1);
     expect(stray.existsSync(), isFalse);
-    expect(avatar.existsSync(), isTrue, reason: 'the profile picture is not note media');
+    expect(
+      avatar.existsSync(),
+      isTrue,
+      reason: 'the profile picture is not note media',
+    );
   });
 
   test('sweepOrphanMedia leaves trashed notes\u2019 files alone', () {

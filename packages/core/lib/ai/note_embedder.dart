@@ -17,6 +17,12 @@ abstract class NoteEmbedder {
   /// `NoteRepository.setEmbeddingSpace`.
   String get space;
 
+  /// The cosine similarity below which a search hit from this model is
+  /// noise. Each model has its own: EmbeddingGemma's scores "rarely drop
+  /// below 0.5" even for unrelated text (Google's own inference notes), so
+  /// the cloud models' 0.3 let every note through as a match (AI-05, AI-12).
+  double get minSimilarity;
+
   /// The vector for a note's text.
   Future<List<double>> embedDocument(String text);
 

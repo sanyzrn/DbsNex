@@ -162,6 +162,17 @@ open class MainActivity : FlutterFragmentActivity() {
                     NexAudioWaveform.read(file.path)
                 }
             }
+            // A finished or interrupted voice recording, from its stream of
+            // AAC frames into the `.m4a` the library keeps (DATA-04).
+            "remuxVoice" -> {
+                val from = inAppStorage(call.argument<String>("from"))
+                val to = call.argument<String>("to")
+                if (from == null || to == null || inAppStorage(File(to).parent) == null) {
+                    result.success(false)
+                } else replyAsync(result, ioExecutor) {
+                    NexVoiceRemux.remux(from, File(to))
+                }
+            }
             "peekPending" -> result.success(nextCapture())
             // Which app installed this copy: a store that did owns its
             // updates, and the in-app updater stays out of its way (REL-01).

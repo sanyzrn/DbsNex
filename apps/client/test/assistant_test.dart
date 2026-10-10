@@ -780,6 +780,31 @@ Sure, here you go:
       },
     );
 
+    test('kept in a file of their own, moved out of preferences', () async {
+      // PERF-07: a transcript in the preference store was decoded at every
+      // cold start with the rest of the settings.
+      final dir = Directory.systemTemp.createTempSync('nex_chat_');
+      addTearDown(() {
+        ChatHistory.storageDirectory = null;
+        dir.deleteSync(recursive: true);
+      });
+      await history.save('t1', exchange('from before the move'));
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('ai.chatThreads'), isNotNull);
+
+      ChatHistory.storageDirectory = dir.path;
+      final moved = ChatHistory(prefs);
+      expect(moved.threads.single.title, 'from before the move');
+      await Future<void>.delayed(Duration.zero);
+      expect(prefs.getString('ai.chatThreads'), isNull);
+      expect(File('${dir.path}/chat_threads.json').existsSync(), isTrue);
+
+      await moved.save('t2', exchange('after'));
+      expect(ChatHistory(prefs).threads, hasLength(2));
+      // Still part of a settings backup, under its old key.
+      expect(ChatHistory(prefs).exportForBackup(), contains('after'));
+    });
+
     testWidgets('deleting every conversation asks first (UX-01)', (
       tester,
     ) async {

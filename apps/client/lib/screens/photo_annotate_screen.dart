@@ -371,7 +371,7 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
               ),
               if (_mode == _Mode.text)
                 Padding(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(NexSpacing.sm),
                   child: Text(
                     l10n.annotateTapToPlaceText,
                     style: const TextStyle(color: Colors.white70),
@@ -381,7 +381,12 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
                 top: false,
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(
+                    NexSpacing.md,
+                    12,
+                    NexSpacing.md,
+                    NexSpacing.md,
+                  ),
                   decoration: const BoxDecoration(
                     color: Color(0xFF171717),
                     border: Border(top: BorderSide(color: Color(0xFF383838))),
@@ -471,7 +476,7 @@ class _PhotoAnnotateScreenState extends State<PhotoAnnotateScreen>
                             icon: const Icon(Icons.delete_outline),
                             onPressed: _marks.isEmpty ? null : _clear,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: NexSpacing.sm),
                           Expanded(
                             child: FilledButton.icon(
                               onPressed: _saving || _nativeWidth == null

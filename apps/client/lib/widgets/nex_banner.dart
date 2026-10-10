@@ -299,7 +299,12 @@ class _NexBannerState extends State<_NexBanner>
                 );
               },
               child: Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(10, 8, 14, 8),
+                padding: const EdgeInsetsDirectional.fromSTEB(
+                  10,
+                  NexSpacing.sm,
+                  14,
+                  NexSpacing.sm,
+                ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     if (MediaQuery.textScalerOf(context).scale(1) > 1.4 ||
@@ -316,7 +321,7 @@ class _NexBannerState extends State<_NexBanner>
                         const SizedBox(width: 10),
                         Flexible(child: message),
                         if (action != null) ...[
-                          const SizedBox(width: 4),
+                          const SizedBox(width: NexSpacing.xs),
                           action,
                         ],
                       ],

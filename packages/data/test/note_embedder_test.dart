@@ -76,6 +76,24 @@ void main() {
     expect(hits.first.noteId, 'n1');
   });
 
+  test('each model\'s own floor decides what counts as a match', () async {
+    // EmbeddingGemma scores unrelated text around 0.5, so the cloud floor of
+    // 0.3 returned the whole library for any search (AI-05, AI-12).
+    final strict = _FixedScoreEmbedder(floor: 0.5);
+    final service = EnrichmentService(repo: repo, capabilities: searching)
+      ..updateEmbedder(strict);
+    repo.insert(note('n1', 'related'));
+    repo.insert(note('n2', 'unrelated'));
+    await service.backfillEmbeddings();
+
+    final hits = await service.semanticSearch('query');
+    expect(hits.map((h) => h.noteId), ['n1']);
+
+    service.updateEmbedder(_FixedScoreEmbedder(floor: 0.3));
+    final loose = await service.semanticSearch('query');
+    expect(loose.map((h) => h.noteId).toSet(), {'n1', 'n2'});
+  });
+
   test('clearing it hands embedding back to the provider', () async {
     final provider = _CountingAdapter();
     final service = EnrichmentService(
@@ -185,6 +203,9 @@ void main() {
 /// A tiny bag-of-letters "model": deterministic, and close for texts that
 /// share words, which is all a search test needs.
 class _RecordingEmbedder implements NoteEmbedder {
+  @override
+  double get minSimilarity => 0.3;
+
   final documents = <String>[];
   final queries = <String>[];
 
@@ -213,6 +234,9 @@ class _RecordingEmbedder implements NoteEmbedder {
 }
 
 class _FailingEmbedder implements NoteEmbedder {
+  @override
+  double get minSimilarity => 0.3;
+
   @override
   String get space => 'test|failing';
 
@@ -249,6 +273,9 @@ class _CountingAdapter implements AIAdapter {
 
 /// Answers only when told to: the await an edit can land in.
 class _HeldEmbedder implements NoteEmbedder {
+  @override
+  double get minSimilarity => 0.3;
+
   final asked = Completer<void>();
   final answer = Completer<List<double>>();
 
@@ -263,4 +290,28 @@ class _HeldEmbedder implements NoteEmbedder {
 
   @override
   Future<List<double>> embedQuery(String text) => answer.future;
+}
+
+/// Vectors chosen so the query scores 0.8 against "related" and 0.45
+/// against "unrelated" — the second the kind of score EmbeddingGemma gives
+/// text with nothing in common.
+class _FixedScoreEmbedder implements NoteEmbedder {
+  _FixedScoreEmbedder({required this.floor});
+
+  final double floor;
+
+  @override
+  double get minSimilarity => floor;
+
+  @override
+  String get space => 'test|fixed';
+
+  @override
+  Future<List<double>> embedDocument(String text) async => switch (text) {
+    'related' => [0.8, 0.6],
+    _ => [0.45, 0.893],
+  };
+
+  @override
+  Future<List<double>> embedQuery(String text) async => [1, 0];
 }

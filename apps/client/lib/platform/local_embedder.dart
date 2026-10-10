@@ -30,6 +30,13 @@ class NexLocalEmbedder implements NoteEmbedder {
   @override
   String get space => embeddingSpace;
 
+  /// EmbeddingGemma scores unrelated text around 0.4–0.55 and related text
+  /// well above, so 0.3 admitted the whole library for any search: a six-note
+  /// library answered "nuclear reactor engineering" with all six (AI-12).
+  /// Keyword results are separate and unaffected.
+  @override
+  double get minSimilarity => 0.5;
+
   /// EmbeddingGemma's own prompts — the "Prompt instructions" of its model
   /// card, as Google's LiteRT-LM search demo applies them. A note and a
   /// search are told apart this way so that a short question lands near the

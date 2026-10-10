@@ -374,9 +374,32 @@ class _OpenFailed extends StatelessWidget {
     }
   }
 
+  /// A library written by a newer build (DATA-06). It is fine; this app is
+  /// the old one. Restoring a backup over it would be the one way to lose
+  /// something, so that is not offered.
+  bool get _newer => '$error'.contains('NewerLibraryException');
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    if (_newer) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Padding(
+            padding: const EdgeInsets.all(NexSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _Wordmark(),
+                const SizedBox(height: NexSpacing.md),
+                Text(l10n.libraryNewerVersion, textAlign: TextAlign.center),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
@@ -386,25 +409,25 @@ class _OpenFailed extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const _Wordmark(),
-              const SizedBox(height: 16),
+              const SizedBox(height: NexSpacing.md),
               Text(l10n.libraryOpenFailed, textAlign: TextAlign.center),
               if (error != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: NexSpacing.sm),
                 Text(
                   l10n.libraryOpenDetail('$error'),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: NexSpacing.lg),
               FilledButton(onPressed: onRetry, child: Text(l10n.tryAgain)),
-              const SizedBox(height: 8),
+              const SizedBox(height: NexSpacing.sm),
               Text(
                 l10n.restoreBackupHint,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: NexSpacing.sm),
               OutlinedButton(
                 onPressed: () => unawaited(_restore(context)),
                 child: Text(l10n.restoreBackup),

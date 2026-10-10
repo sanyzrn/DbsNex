@@ -298,7 +298,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
               ),
               if (c.history.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(NexSpacing.lg),
                   child: Text(
                     nexLabel(ctx, 'No history yet', 'هنوز سابقه‌ای نیست'),
                   ),

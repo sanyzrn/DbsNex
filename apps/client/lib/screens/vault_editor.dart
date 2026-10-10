@@ -95,7 +95,7 @@ class _VaultEditorState extends State<VaultEditor> {
     return Form(
       key: form,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, NexSpacing.xl),
         children: [
           Text(l.vaultEditHint, style: theme.textTheme.bodySmall),
           const SizedBox(height: 18),
@@ -179,7 +179,7 @@ class _VaultEditorState extends State<VaultEditor> {
                     _changed();
                   },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: NexSpacing.md),
           FilledButton.icon(
             onPressed: widget.busy
                 ? null

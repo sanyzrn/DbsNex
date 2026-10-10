@@ -296,7 +296,7 @@ class _ReportPage extends StatelessWidget {
               Row(
                 children: [
                   Icon(Icons.water_drop, color: rose, size: 22),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: NexSpacing.sm),
                   Expanded(
                     child: Text(
                       l10n.cycleReportTitle,
@@ -338,7 +338,7 @@ class _ReportPage extends StatelessWidget {
                   ],
                 ),
                 if (p.alerts.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: NexSpacing.sm),
                   for (final alert in p.alerts)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 4),

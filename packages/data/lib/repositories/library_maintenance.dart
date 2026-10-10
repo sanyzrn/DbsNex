@@ -182,6 +182,9 @@ class LibraryMaintenance {
       if (entity is! File) continue;
       final normalized = p.normalize(entity.path);
       if (referenced.contains(normalized)) continue;
+      // A voice memo the app died in the middle of: the next launch turns
+      // it into a note, and until one manages to it is not a stray (DATA-04).
+      if (normalized.endsWith('.recording')) continue;
       try {
         if (entity.statSync().modified.isAfter(cutoff)) continue;
         entity.deleteSync();

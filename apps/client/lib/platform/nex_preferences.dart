@@ -192,6 +192,9 @@ class NexPreferences extends _PreferencesStore
       'preferences': {
         for (final key in _prefs.getKeys())
           if (_portablePreference(key)) key: _prefs.get(key),
+        // Kept in a file of their own now (PERF-07), still in the backup.
+        if (chatHistory.exportForBackup() case final threads?)
+          ChatHistory.backupKey: threads,
       },
       'credentials': Map<String, String>.from(_secureApiKeys),
     };

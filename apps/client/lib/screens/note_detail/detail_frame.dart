@@ -101,7 +101,7 @@ class _ActionRow extends StatelessWidget {
           shrinkWrap: true,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, NexSpacing.sm),
               child: Text(
                 AppLocalizations.of(context).moreActions,
                 style: Theme.of(context).textTheme.titleMedium,

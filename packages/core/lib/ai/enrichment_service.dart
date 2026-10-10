@@ -217,7 +217,13 @@ class EnrichmentService {
   /// unfiltered top-N would otherwise hand back the whole library, ranked,
   /// for any query, since nothing here stops a search for "invoice" from
   /// still returning a note about breakfast in last place.
+  ///
+  /// The cloud models' floor. The on-device model sets its own through
+  /// [NoteEmbedder.minSimilarity], because its scores sit higher for the
+  /// same unrelated pair.
   static const _minSemanticSimilarity = 0.3;
+
+  double get _floor => _embedder?.minSimilarity ?? _minSemanticSimilarity;
 
   /// Semantic search by meaning. Results are separate from keyword FTS.
   Future<List<SemanticHit>> semanticSearch(
@@ -234,7 +240,7 @@ class EnrichmentService {
         for (final hit in _repo.nearestEmbeddings(
           queryVec,
           limit: limit,
-          minScore: _minSemanticSimilarity,
+          minScore: _floor,
         ))
           SemanticHit(noteId: hit.noteId, score: hit.score),
       ];

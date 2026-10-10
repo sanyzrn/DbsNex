@@ -483,7 +483,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: NexSpacing.xs),
                 IconButton(
                   constraints: const BoxConstraints.tightFor(
                     width: nexMinTapTarget,
@@ -501,7 +501,7 @@ class _CaptureSheetState extends State<CaptureSheet> {
                         : null,
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: NexSpacing.xs),
                 // Tap sends; hold schedules. The tooltip keeps its label for
                 // screen readers and tests but no longer claims the hold,
                 // which belongs to scheduling.

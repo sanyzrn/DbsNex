@@ -292,12 +292,14 @@ extension _TimelineCapture on TimelineScreenState {
       return;
     }
     final elapsed = Stopwatch()..start();
-    final path = p.join(
-      widget.services.mediaDir,
-      'voice-${DateTime.now().millisecondsSinceEpoch}.m4a',
-    );
-    await recorder.start(const RecordConfig(), path: path);
-    if (!mounted) return;
+    // Written so that a process killed mid-memo leaves a recording the next
+    // launch can still keep (DATA-04).
+    final spool = await NexVoiceSpool.start(recorder, widget.services.mediaDir);
+    if (!mounted) {
+      await spool.discard();
+      await recorder.dispose();
+      return;
+    }
     // Not dismissible: swiping the sheet away mid-recording would leave the
     // recorder running with nothing on screen driving it.
     final keep = await nexShowSheet<bool>(
@@ -305,14 +307,15 @@ extension _TimelineCapture on TimelineScreenState {
       dismissible: false,
       builder: (_) => RecordingSheet(recorder: recorder),
     );
-    final recorded = await recorder.stop();
     elapsed.stop();
-    await recorder.dispose();
-    if (keep != true || recorded == null) {
-      final file = File(path);
-      if (file.existsSync()) file.deleteSync();
+    if (keep != true) {
+      await spool.discard();
+      await recorder.dispose();
       return;
     }
+    final recorded = await spool.stop();
+    await recorder.dispose();
+    if (recorded == null) return;
     await _keepVoice(recorded, elapsed.elapsedMilliseconds);
   }
 

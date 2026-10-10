@@ -58,13 +58,19 @@ class CaptureJournal {
     final target = _file(id);
     final staging = File('${target.path}.tmp');
     staging.writeAsStringSync(
-      jsonEncode({'id': id, 'text': text}),
+      jsonEncode({
+        'id': id,
+        'text': text,
+        // When this snapshot was taken, so recovery can tell a journal that
+        // is behind the database from one that is ahead of it (DATA-05).
+        'at': DateTime.now().toUtc().toIso8601String(),
+      }),
       flush: true,
     );
     staging.renameSync(target.path);
   }
 
-  Iterable<({String id, String text})> pending() sync* {
+  Iterable<({String id, String text, DateTime at})> pending() sync* {
     if (!directory.existsSync()) return;
     for (final file
         in directory.listSync(followLinks: false).whereType<File>()) {
@@ -73,7 +79,11 @@ class CaptureJournal {
         final value = jsonDecode(file.readAsStringSync()) as Map;
         final id = value['id'] as String;
         if (_file(id).path != file.path) continue;
-        yield (id: id, text: value['text'] as String);
+        // Older journals carry no time; the file's own is the same moment.
+        final at =
+            DateTime.tryParse(value['at'] as String? ?? '') ??
+            file.lastModifiedSync();
+        yield (id: id, text: value['text'] as String, at: at.toUtc());
       } catch (_) {
         // Preserve unreadable drafts; never reset the library.
       }
