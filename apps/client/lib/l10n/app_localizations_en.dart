@@ -4636,6 +4636,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsRemindersAndNotifications => 'Reminders and notifications';
 
   @override
+  String get vaultMessagesEmpty =>
+      'Only you can see these. Write yourself a note, or tap + to keep a voice message, a photo or a file.';
+
+  @override
+  String get vaultMessageHint => 'Write a private message';
+
+  @override
+  String get vaultShareLeaves =>
+      'A copy leaves the vault for the app you choose';
+
+  @override
+  String get vaultOpenPhoto => 'Open photo';
+
+  @override
   String get vaultAttach => 'Attach';
 
   @override

@@ -7388,6 +7388,30 @@ abstract class AppLocalizations {
   /// **'Reminders and notifications'**
   String get settingsRemindersAndNotifications;
 
+  /// No description provided for @vaultMessagesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see these. Write yourself a note, or tap + to keep a voice message, a photo or a file.'**
+  String get vaultMessagesEmpty;
+
+  /// No description provided for @vaultMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a private message'**
+  String get vaultMessageHint;
+
+  /// No description provided for @vaultShareLeaves.
+  ///
+  /// In en, this message translates to:
+  /// **'A copy leaves the vault for the app you choose'**
+  String get vaultShareLeaves;
+
+  /// No description provided for @vaultOpenPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Open photo'**
+  String get vaultOpenPhoto;
+
   /// No description provided for @vaultAttach.
   ///
   /// In en, this message translates to:

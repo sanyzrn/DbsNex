@@ -4509,6 +4509,20 @@ class AppLocalizationsFa extends AppLocalizations {
   String get settingsRemindersAndNotifications => 'یادآورها و اعلان‌ها';
 
   @override
+  String get vaultMessagesEmpty =>
+      'این‌ها را فقط خودتان می‌بینید. برای خودتان یادداشتی بنویسید، یا با + یک پیام صوتی، عکس یا فایل نگه دارید.';
+
+  @override
+  String get vaultMessageHint => 'پیام خصوصی بنویسید';
+
+  @override
+  String get vaultShareLeaves =>
+      'یک نسخه از بخش خصوصی بیرون می‌رود، برای برنامه‌ای که انتخاب می‌کنید';
+
+  @override
+  String get vaultOpenPhoto => 'باز کردن عکس';
+
+  @override
   String get vaultAttach => 'پیوست';
 
   @override

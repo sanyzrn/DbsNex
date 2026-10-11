@@ -154,6 +154,8 @@ void main() {
       await tester.tap(find.text('Unlock vault'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'A private saved message');
+      // Send waits for something to send.
+      await tester.pump();
       await tester.tap(find.byIcon(Icons.send_rounded));
       await tester.pumpAndSettle();
       expect(
@@ -194,6 +196,14 @@ void main() {
     expect(find.text('contract.pdf'), findsOneWidget);
     expect(find.text('2.0 KB'), findsOneWidget);
     expect(find.text('the contract'), findsOneWidget);
+    // A file can be shared from the message itself, and the message's own
+    // sheet holds the rest: open, share, copy the words, delete.
+    expect(find.byTooltip('Share'), findsOneWidget);
+    await tester.tap(find.text('the contract'));
+    await tester.pumpAndSettle();
+    for (final action in ['Copy', 'Open', 'Share', 'Delete']) {
+      expect(find.widgetWithText(ListTile, action), findsOneWidget);
+    }
     await tester.pumpWidget(const SizedBox());
   });
   test(
@@ -351,8 +361,10 @@ void main() {
     await tester.tap(find.text('Unlock vault'));
     await tester.pumpAndSettle();
     expect(find.text('CVV2 123'), findsOneWidget);
-    // And as its own copyable row under the card.
-    expect(find.text('CVV2'), findsOneWidget);
+    // On the card, and only there: tapped to copy, not repeated in a list
+    // under the card.
+    expect(find.text('CVV2'), findsNothing);
+    expect(find.bySemanticsLabel('Copy · CVV2'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
   });

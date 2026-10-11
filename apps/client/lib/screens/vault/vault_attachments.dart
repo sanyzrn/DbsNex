@@ -199,10 +199,15 @@ class _VaultAttachmentView extends StatefulWidget {
     super.key,
     required this.entry,
     required this.files,
+    required this.onShare,
   });
 
   final VaultEntry entry;
   final VaultFiles files;
+
+  /// Sends a decrypted copy to another app — the visible way out for a file,
+  /// which on its own was a name and a size nobody knew what to do with.
+  final VoidCallback onShare;
 
   @override
   State<_VaultAttachmentView> createState() => _VaultAttachmentViewState();
@@ -213,6 +218,8 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
   AudioPlayer? _player;
   bool _playing = false;
   bool _failed = false;
+  Duration _position = Duration.zero;
+  StreamSubscription<Duration>? _positionSub;
 
   String get _id => widget.entry.value('file');
   String get _kind => widget.entry.value('fileKind');
@@ -225,6 +232,7 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
 
   @override
   void dispose() {
+    unawaited(_positionSub?.cancel());
     unawaited(_player?.dispose());
     super.dispose();
   }
@@ -240,9 +248,15 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
       if (player.audioSource == null) {
         final copy = await widget.files.openCopy(_id, 'voice.m4a');
         await player.setFilePath(copy.path);
+        _positionSub = player.positionStream.listen((at) {
+          if (mounted) setState(() => _position = at);
+        });
         player.playerStateStream.listen((state) {
           if (state.processingState == ProcessingState.completed && mounted) {
-            setState(() => _playing = false);
+            setState(() {
+              _playing = false;
+              _position = Duration.zero;
+            });
             unawaited(player.seek(Duration.zero));
             unawaited(player.pause());
           }
@@ -267,27 +281,36 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
             ? null
             : widget.entry.value('fileMime'),
       );
-      if (outcome == FileOpenOutcome.failed && mounted) {
-        setState(() => _failed = true);
-      }
+      // Nothing on the phone opens it: offer it to an app that might.
+      if (outcome == FileOpenOutcome.failed) widget.onShare();
     } catch (_) {
       if (mounted) setState(() => _failed = true);
     }
   }
 
+  void _view(Uint8List bytes) => Navigator.of(context).push(
+    NexPageRoute<void>(
+      builder: (_) => NexPhotoViewer.memory(bytes),
+      swipeBackEnabled: false,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     if (_failed) {
       return Text(
         l.vaultAttachUnreadable,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.error,
-        ),
+        style: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
       );
     }
     final persian = Localizations.localeOf(context).languageCode == 'fa';
+    String clock(int seconds) => nexDigits(
+      '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}',
+      persian: persian,
+    );
     switch (_kind) {
       case 'photo':
         return FutureBuilder<Uint8List>(
@@ -297,66 +320,118 @@ class _VaultAttachmentViewState extends State<_VaultAttachmentView> {
             final bytes = snap.data;
             if (bytes == null) {
               return const SizedBox(
-                width: 48,
-                height: 48,
+                height: 160,
                 child: Center(child: CircularProgressIndicator()),
               );
             }
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(NexRadius.md),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 240),
-                child: Image.memory(bytes, fit: BoxFit.contain),
+            return Semantics(
+              button: true,
+              label: l.vaultOpenPhoto,
+              child: GestureDetector(
+                onTap: () => _view(bytes),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(NexRadius.md),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 280),
+                    child: Image.memory(bytes, fit: BoxFit.cover),
+                  ),
+                ),
               ),
             );
           },
         );
       case 'voice':
-        final ms = int.tryParse(widget.entry.value('durationMs')) ?? 0;
-        final seconds = (ms / 1000).round();
-        final length =
-            '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+        final total = int.tryParse(widget.entry.value('durationMs')) ?? 0;
+        final shown = _playing || _position > Duration.zero
+            ? _position.inSeconds
+            : (total / 1000).round();
+        final progress = total <= 0
+            ? 0.0
+            : (_position.inMilliseconds / total).clamp(0.0, 1.0);
         return Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton.filledTonal(
+            IconButton.filled(
               tooltip: _playing ? l.vaultAttachPause : l.vaultAttachPlay,
               onPressed: _togglePlay,
               icon: Icon(_playing ? Icons.pause : Icons.play_arrow),
             ),
             const SizedBox(width: NexSpacing.sm),
-            Text(nexDigits(length, persian: persian)),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(NexRadius.xs),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 4,
+                  backgroundColor: scheme.onSecondaryContainer.withValues(
+                    alpha: 0.15,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: NexSpacing.sm),
+            Text(
+              clock(shown),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: scheme.onSecondaryContainer,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
           ],
         );
       default:
         final size = int.tryParse(widget.entry.value('fileSize')) ?? 0;
-        return InkWell(
-          borderRadius: BorderRadius.circular(NexRadius.sm),
-          onTap: _open,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: NexSpacing.xs),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.insert_drive_file_outlined),
-                const SizedBox(width: NexSpacing.sm),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.entry.value('fileName'),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        nexFormatBytes(size),
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
+        return Material(
+          color: scheme.surface.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(NexRadius.md),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: _open,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(
+                NexSpacing.sm,
+                NexSpacing.sm,
+                0,
+                NexSpacing.sm,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(NexRadius.sm),
+                    ),
+                    child: Icon(
+                      Icons.insert_drive_file_outlined,
+                      color: scheme.onPrimaryContainer,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: NexSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.entry.value('fileName'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                        Text(
+                          nexFormatBytes(size),
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: l.share,
+                    onPressed: widget.onShare,
+                    icon: const Icon(Icons.ios_share_outlined),
+                  ),
+                ],
+              ),
             ),
           ),
         );
