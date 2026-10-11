@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'dart:ui' show PlatformDispatcher;
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -35,7 +37,16 @@ class NexSponsor {
     this.starts,
     this.ends,
     this.locales = const [],
+    this.minDays,
+    this.minNotes,
   });
+
+  /// How many days after Nex was first opened the card may appear, and how
+  /// many notes make it appear sooner — `minDaysInstalled` and `minNotes` in
+  /// the file. Whichever comes first. Null means the defaults in
+  /// [NexSponsorService]; 0 means no wait.
+  final int? minDays;
+  final int? minNotes;
 
   /// Stable across edits to the same campaign, because it is what a dismissal
   /// remembers. Changing it brings the card back for everyone who hid it,
@@ -97,11 +108,18 @@ class NexSponsor {
           for (final value in (root['locales'] as List<Object?>? ?? const []))
             if (value is String) value.toLowerCase(),
         ],
+        minDays: _count(root['minDaysInstalled']),
+        minNotes: _count(root['minNotes']),
       );
     } catch (_) {
       return null;
     }
   }
+
+  /// A whole number of zero or more, or null for anything else — a missing
+  /// field and a nonsense one both mean "the default".
+  static int? _count(Object? value) =>
+      value is int && value >= 0 ? value : null;
 
   /// Whether this card belongs on screen right now.
   ///
@@ -139,8 +157,50 @@ class NexSponsorService {
     this.endpoint = defaultEndpoint,
     this.dismissible = dismissibleByDefault,
     DateTime Function()? now,
+    Random? random,
   }) : _client = client,
-       _now = now ?? DateTime.now;
+       _now = now ?? DateTime.now,
+       _random = random ?? Random();
+
+  final Random _random;
+
+  /// How many cards one file may offer. More than this are ignored.
+  static const maxCards = 5;
+
+  /// The card this phone shows from [body]: the file itself when it is one
+  /// card, or one of up to [maxCards] picked at random when it is a list.
+  ///
+  /// The pick is among the cards that could be shown here today — inside
+  /// their dates, in this phone's language — so a list of Persian and English
+  /// cards never lands an English reader on a Persian one and then shows
+  /// nothing. It is made once per refresh, about once a day, and kept until
+  /// the next: one phone sees one card for the day, and across phones each
+  /// card is seen about as often as the others. Answers the card's own JSON,
+  /// which is what is cached; null when the file is not a card or a list of
+  /// them, and an empty string for a list with nothing to show here.
+  String? choose(String body, {required String languageCode}) {
+    final Object? root;
+    try {
+      root = jsonDecode(body);
+    } catch (_) {
+      return null;
+    }
+    if (root is Map) return NexSponsor.parse(body) == null ? null : body;
+    if (root is! List) return null;
+    final now = _now();
+    final cards = <String>[];
+    for (final item in root.take(maxCards)) {
+      if (item is! Map) continue;
+      final json = jsonEncode(item);
+      final card = NexSponsor.parse(json);
+      if (card == null) continue;
+      if (card.visibleAt(now: now, languageCode: languageCode, dismissed: {})) {
+        cards.add(json);
+      }
+    }
+    if (cards.isEmpty) return '';
+    return cards[_random.nextInt(cards.length)];
+  }
 
   /// Whether the card carries a close button, and whether a dismissal hides
   /// it.
@@ -217,9 +277,9 @@ class NexSponsorService {
     [0x42, 0x4D], // BMP
   ];
 
-  /// A card is a couple of hundred bytes. Anything much larger is not the
-  /// file this expects, and reading it into memory to find that out is the
-  /// mistake this avoids.
+  /// A card is a couple of hundred bytes, and a list of [maxCards] a couple
+  /// of kilobytes. Anything much larger is not the file this expects, and
+  /// reading it into memory to find that out is the mistake this avoids.
   static const maxBytes = 16 * 1024;
 
   final NexPreferences preferences;
@@ -285,8 +345,37 @@ class NexSponsorService {
     return at != null && _now().difference(at) < maxAge;
   }
 
+  /// The days and notes a new install waits for, unless the file says
+  /// otherwise ([NexSponsor.minDays], [NexSponsor.minNotes]).
+  static const defaultMinDays = 10;
+  static const defaultMinNotes = 5;
+
+  /// Whether this phone has earned the card: [NexSponsor.minDays] since Nex
+  /// was first opened, *or* [NexSponsor.minNotes] notes — whichever comes
+  /// first. A new person's first days are for finding out what the app is,
+  /// not for being shown someone else's.
+  ///
+  /// Once earned it stays earned, so the card does not come and go as notes
+  /// are deleted, and deleting notes is not a way to hide it.
+  bool earned(NexSponsor sponsor, {required int notes}) {
+    if (preferences.sponsorEarned) return true;
+    var first = preferences.firstOpenedAt;
+    if (first == null) {
+      first = _now();
+      unawaited(preferences.markFirstOpened(first));
+    }
+    final days = sponsor.minDays ?? defaultMinDays;
+    final enough =
+        notes >= (sponsor.minNotes ?? defaultMinNotes) ||
+        _now().difference(first) >= Duration(days: days);
+    if (enough) unawaited(preferences.markSponsorEarned());
+    return enough;
+  }
+
   /// The card to draw, or null. The only method the timeline needs.
-  NexSponsor? visible({required String languageCode}) {
+  ///
+  /// [notes] is how many notes the library holds, for [earned].
+  NexSponsor? visible({required String languageCode, int notes = 0}) {
     // Stale is the same as absent. See [maxAge].
     if (!_fresh) return null;
     final sponsor = cached;
@@ -297,6 +386,7 @@ class NexSponsorService {
     // required and always says what it is. Only the first moments after
     // launch wait, while yesterday's picture is still being found on disk.
     if (sponsor.image != null && _image == null && !_imageSettled) return null;
+    if (!earned(sponsor, notes: notes)) return null;
     return sponsor.visibleAt(
           now: _now(),
           languageCode: languageCode,
@@ -406,12 +496,25 @@ class NexSponsorService {
             return true;
           }
 
-          final body = response.bodyBytes.length <= maxBytes
+          final raw = response.bodyBytes.length <= maxBytes
               ? decodeBody(response.bodyBytes)
               : null;
-          final sponsor = response.statusCode == 200 && body != null
-              ? NexSponsor.parse(body)
+          final body = response.statusCode == 200 && raw != null
+              ? choose(
+                  raw,
+                  languageCode:
+                      (preferences.locale ?? PlatformDispatcher.instance.locale)
+                          .languageCode,
+                )
               : null;
+          // A list with nothing for this phone today is a campaign with
+          // nothing to show, the same as a file that is not there.
+          if (body != null && body.isEmpty) {
+            await _forget();
+            await preferences.setSponsorFetchedAt(_now());
+            return true;
+          }
+          final sponsor = body == null ? null : NexSponsor.parse(body);
           if (sponsor != null) {
             // The picture first, then the card. A picture that cannot be had
             // no longer takes the whole card down with it; the card is shown
@@ -421,7 +524,7 @@ class NexSponsorService {
               await _dropImage();
             }
             _imageSettled = true;
-            await preferences.setSponsorPayload(body);
+            await preferences.setSponsorPayload(body!);
             await preferences.setSponsorFetchedAt(_now());
             return true;
           }

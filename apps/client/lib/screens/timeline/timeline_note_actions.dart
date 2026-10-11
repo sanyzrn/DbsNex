@@ -47,6 +47,7 @@ extension _TimelineNoteActions on TimelineScreenState {
     if (_searching || _model.filtering) return null;
     final sponsor = _sponsor.visible(
       languageCode: Localizations.localeOf(context).languageCode,
+      notes: _model.all?.length ?? 0,
     );
     if (sponsor == null) return null;
     return SponsorCard(

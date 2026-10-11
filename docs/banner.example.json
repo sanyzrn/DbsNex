@@ -6,5 +6,7 @@
   "url": "https://nexahr.example",
   "starts": "2026-09-01T00:00:00Z",
   "ends": "2026-12-31T00:00:00Z",
-  "locales": ["fa"]
+  "locales": ["fa"],
+  "minDaysInstalled": 10,
+  "minNotes": 5
 }
