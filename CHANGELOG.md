@@ -41,6 +41,7 @@ Working convention:
 - **Language & calendar, at a glance.** The calendar choice shows today's date on a little calendar leaf in each calendar, a preview card shows how a day heading and a note will look with your language and calendar, and the language AI answers in can be set here as well.
 - **Intelligence, redesigned.** Its page opens on whether it is on, with whom, and how many abilities are working; the six abilities are tiles you switch with one tap, greyed with the reason when your provider cannot do them; and "What left this device" sits next to the provider. The Intelligence category shows the same at a glance.
 - **Tools, on two shelves.** The private tools (passwords, bank cards, private messages) sit together under a lock, and Cycle, Scheduled and the password generator under Everyday; each tool has its own colour, so it is found at a glance.
+- **Library and its lists, in the new look.** The Library opens on three coloured shelves — Tags, Threads and Trash — each saying how much it holds, above the storage card; the lists of tags, threads, deleted notes and requests that left the device are drawn as rounded cards, each tag on a tile in its own colour; Recurring's three counts each have their own colour; Speed and reliability sits on cards.
 - **Tidier settings pages.** Home screen widget and About Nex are grouped into cards like the rest of Settings.
 - **Fixes.** "Persian" is shown in Persian letters on the language cards, longer choice names wrap instead of being cut off, and a photo whose file has gone no longer logs an error.
 

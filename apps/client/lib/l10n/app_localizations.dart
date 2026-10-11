@@ -98,6 +98,36 @@ abstract class AppLocalizations {
     Locale('fa'),
   ];
 
+  /// No description provided for @libraryTagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour and name what you file'**
+  String get libraryTagsHint;
+
+  /// No description provided for @libraryTrashHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept for 30 days'**
+  String get libraryTrashHint;
+
+  /// No description provided for @libraryTagCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No tags yet} =1{1 tag} other{{count} tags}}'**
+  String libraryTagCount(int count);
+
+  /// No description provided for @libraryThreadCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No threads yet} =1{1 thread} other{{count} threads}}'**
+  String libraryThreadCount(int count);
+
+  /// No description provided for @libraryTrashCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Empty} =1{1 note · kept 30 days} other{{count} notes · kept 30 days}}'**
+  String libraryTrashCount(int count);
+
   /// No description provided for @toolsSectionPrivate.
   ///
   /// In en, this message translates to:

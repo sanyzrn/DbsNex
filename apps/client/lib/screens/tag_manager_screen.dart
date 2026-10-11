@@ -6,6 +6,7 @@ import 'package:nex_data/nex_data.dart';
 
 import 'package:nex_ui/nex_ui.dart';
 
+import '../widgets/nex_shelf.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/tag_label.dart';
 import '../widgets/nex_dialog.dart';
@@ -78,33 +79,55 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
                 label: Text(l10n.createTag),
               ),
             )
-          : ListView.separated(
-              padding: EdgeInsets.only(bottom: nexBottomInset(context)),
+          : ListView.builder(
+              // Clear of the add button at the bottom, as well as the
+              // system's own strip.
+              padding: EdgeInsets.fromLTRB(
+                NexSpacing.md,
+                NexSpacing.sm,
+                NexSpacing.md,
+                88 + nexBottomInset(context),
+              ),
               itemCount: loaded.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final value = loaded[index];
-                return ListTile(
-                  minTileHeight: 56,
-                  leading: value.tag.color == null
-                      ? const Icon(Icons.label_outline)
-                      : _ColorDot(color: value.tag.color),
-                  title: Text(nexTagLabel(value.tag, l10n)),
-                  subtitle: Text(l10n.noteCount(value.count)),
-                  trailing: PopupMenuButton<String>(
-                    tooltip: l10n.tagActions,
-                    onSelected: (action) => act(action, value),
-                    itemBuilder: (_) => [
-                      PopupMenuItem(value: 'color', child: Text(l10n.color)),
-                      PopupMenuItem(value: 'rename', child: Text(l10n.rename)),
-                      // Only when there is another tag to merge into. With
-                      // one tag it opened a sheet listing every tag but this
-                      // one — that is, nothing — and the way out was to
-                      // dismiss it.
-                      if (loaded.length > 1)
-                        PopupMenuItem(value: 'merge', child: Text(l10n.merge)),
-                      PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
-                    ],
+                return NexGroupedRow(
+                  index: index,
+                  count: loaded.length,
+                  child: ListTile(
+                    minTileHeight: 56,
+                    // Each tag on a tile in its own colour, so the list reads
+                    // as the chips it becomes on a note.
+                    leading: NexIconTile(
+                      Icons.label_outline,
+                      color: nexParseTagColor(value.tag.color),
+                    ),
+                    title: Text(nexTagLabel(value.tag, l10n)),
+                    subtitle: Text(l10n.noteCount(value.count)),
+                    trailing: PopupMenuButton<String>(
+                      tooltip: l10n.tagActions,
+                      onSelected: (action) => act(action, value),
+                      itemBuilder: (_) => [
+                        PopupMenuItem(value: 'color', child: Text(l10n.color)),
+                        PopupMenuItem(
+                          value: 'rename',
+                          child: Text(l10n.rename),
+                        ),
+                        // Only when there is another tag to merge into. With
+                        // one tag it opened a sheet listing every tag but this
+                        // one — that is, nothing — and the way out was to
+                        // dismiss it.
+                        if (loaded.length > 1)
+                          PopupMenuItem(
+                            value: 'merge',
+                            child: Text(l10n.merge),
+                          ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(l10n.delete),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -248,35 +271,5 @@ class _TagManagerScreenState extends State<TagManagerScreen> {
       if (ok == true) await widget.services.deleteTag(value.tag.id);
     }
     await reload();
-  }
-}
-
-/// The tag's accent, or an empty ring when it has none.
-class _ColorDot extends StatelessWidget {
-  const _ColorDot({required this.color});
-
-  final String? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final resolved = nexParseTagColor(color);
-    return SizedBox(
-      width: 24,
-      height: 24,
-      child: Center(
-        child: Container(
-          width: 14,
-          height: 14,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: resolved ?? Colors.transparent,
-            border: resolved == null
-                ? Border.all(color: theme.colorScheme.outline)
-                : null,
-          ),
-        ),
-      ),
-    );
   }
 }

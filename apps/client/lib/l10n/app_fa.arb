@@ -1,4 +1,9 @@
 {
+  "libraryTagsHint": "نام و رنگ برای آنچه دسته می‌کنید",
+  "libraryTrashHint": "۳۰ روز نگه داشته می‌شود",
+  "libraryTagCount": "{count, plural, =0{هنوز برچسبی نیست} other{{count} برچسب}}",
+  "libraryThreadCount": "{count, plural, =0{هنوز رشته‌ای نیست} other{{count} رشته}}",
+  "libraryTrashCount": "{count, plural, =0{خالی} other{{count} یادداشت · ۳۰ روز نگه داشته می‌شود}}",
   "toolsSectionPrivate": "خصوصی",
   "toolsSectionEveryday": "روزمره",
   "intelligenceStateOn": "روشن — {provider}",

@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/nex_shelf.dart';
 import '../widgets/storage_panel.dart';
 import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
@@ -38,86 +41,131 @@ class _LibraryScreenState extends State<LibraryScreen> {
   // placeholder never goes away.
   late final Future<StorageSnapshot> _storage = widget.services.storage();
 
+  /// How much each shelf holds, said on its tile; null until counted.
+  ({int tags, int threads, int deleted})? _counts;
+
   NexServices get services => widget.services;
   NexPreferences get preferences => widget.preferences;
 
   @override
+  void initState() {
+    super.initState();
+    unawaited(_count());
+  }
+
+  Future<void> _count() async {
+    try {
+      final results = await Future.wait([
+        services.listTags(),
+        services.threads(),
+        services.deletedNotes(),
+      ]);
+      if (!mounted) return;
+      setState(
+        () => _counts = (
+          tags: results[0].length,
+          threads: results[1].length,
+          deleted: results[2].length,
+        ),
+      );
+    } catch (_) {
+      // The tiles still open their pages; only the counts are missing.
+    }
+  }
+
+  /// Opens [page], and counts again on the way back: a tag renamed into
+  /// another, a thread made, the trash emptied.
+  Future<void> _open(Widget page) async {
+    await Navigator.push(context, NexPageRoute<void>(builder: (_) => page));
+    if (mounted) await _count();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final counts = _counts;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.libraryTitle)),
       body: ListView(
-        padding: EdgeInsets.only(
-          top: NexSpacing.sm,
-          bottom: NexSpacing.sm + nexBottomInset(context),
+        padding: EdgeInsets.fromLTRB(
+          NexSpacing.md,
+          NexSpacing.sm,
+          NexSpacing.md,
+          NexSpacing.md + nexBottomInset(context),
         ),
         children: [
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: NexSpacing.lg,
-            ),
-            leading: const Icon(Icons.label_outline),
-            title: Text(l10n.tags),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              NexPageRoute<void>(
-                builder: (_) => TagManagerScreen(
-                  services: services,
-                  preferences: widget.preferences,
-                ),
-              ),
-            ),
-          ),
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: NexSpacing.lg,
-            ),
-            leading: const Icon(Icons.timeline_outlined),
-            title: Text(l10n.threads),
-            subtitle: Text(l10n.threadsSubtitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              NexPageRoute<void>(
-                builder: (_) =>
-                    ThreadsScreen(services: services, preferences: preferences),
-              ),
-            ),
-          ),
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: NexSpacing.lg,
-            ),
-            leading: const Icon(Icons.restore_from_trash_outlined),
-            title: Text(l10n.trash),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              NexPageRoute<void>(
-                builder: (_) => RecentlyDeletedScreen(
-                  services: services,
-                  preferences: preferences,
-                ),
-              ),
-            ),
-          ),
-          const Divider(height: NexSpacing.xl),
-          FutureBuilder<StorageSnapshot>(
-            future: _storage,
-            builder: (context, snapshot) => snapshot.hasData
-                ? StoragePanel(snapshot: snapshot.requireData)
-                : const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        NexSkeleton(width: 120, height: 16),
-                        SizedBox(height: NexSpacing.sm),
-                        NexSkeleton(height: 10),
-                      ],
-                    ),
+          // Three shelves, each in its own colour and saying how much it
+          // holds — the shape Tools uses, for the same reason: a place you
+          // go into reads faster as a tile than as a row.
+          nexShelfPairs([
+            NexShelfTile(
+              key: const ValueKey('library-tags'),
+              title: l10n.tags,
+              subtitle: counts == null
+                  ? l10n.libraryTagsHint
+                  : l10n.libraryTagCount(counts.tags),
+              icon: Icons.label_outline,
+              hue: NexHue.violet,
+              onTap: () => unawaited(
+                _open(
+                  TagManagerScreen(
+                    services: services,
+                    preferences: preferences,
                   ),
+                ),
+              ),
+            ),
+            NexShelfTile(
+              key: const ValueKey('library-threads'),
+              title: l10n.threads,
+              subtitle: counts == null
+                  ? l10n.threadsSubtitle
+                  : l10n.libraryThreadCount(counts.threads),
+              icon: Icons.timeline_outlined,
+              hue: NexHue.teal,
+              onTap: () => unawaited(
+                _open(
+                  ThreadsScreen(services: services, preferences: preferences),
+                ),
+              ),
+            ),
+            NexShelfTile(
+              key: const ValueKey('library-trash'),
+              title: l10n.trash,
+              subtitle: counts == null
+                  ? l10n.libraryTrashHint
+                  : l10n.libraryTrashCount(counts.deleted),
+              icon: Icons.restore_from_trash_outlined,
+              hue: NexHue.rose,
+              onTap: () => unawaited(
+                _open(
+                  RecentlyDeletedScreen(
+                    services: services,
+                    preferences: preferences,
+                  ),
+                ),
+              ),
+            ),
+          ]),
+          const SizedBox(height: NexSpacing.md),
+          NexPanel(
+            padding: const EdgeInsets.symmetric(vertical: NexSpacing.md),
+            child: FutureBuilder<StorageSnapshot>(
+              future: _storage,
+              builder: (context, snapshot) => snapshot.hasData
+                  ? StoragePanel(snapshot: snapshot.requireData)
+                  : const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: NexSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          NexSkeleton(width: 120, height: 16),
+                          SizedBox(height: NexSpacing.sm),
+                          NexSkeleton(height: 10),
+                        ],
+                      ),
+                    ),
+            ),
           ),
         ],
       ),

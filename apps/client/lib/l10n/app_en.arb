@@ -1,4 +1,12 @@
 {
+  "libraryTagsHint": "Colour and name what you file",
+  "libraryTrashHint": "Kept for 30 days",
+  "libraryTagCount": "{count, plural, =0{No tags yet} =1{1 tag} other{{count} tags}}",
+  "@libraryTagCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "libraryThreadCount": "{count, plural, =0{No threads yet} =1{1 thread} other{{count} threads}}",
+  "@libraryThreadCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "libraryTrashCount": "{count, plural, =0{Empty} =1{1 note · kept 30 days} other{{count} notes · kept 30 days}}",
+  "@libraryTrashCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
   "toolsSectionPrivate": "Private",
   "toolsSectionEveryday": "Everyday",
   "intelligenceStateOn": "On · {provider}",

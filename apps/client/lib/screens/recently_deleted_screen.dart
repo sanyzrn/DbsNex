@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:nex_data/nex_data.dart';
 import 'package:nex_ui/nex_ui.dart';
 
+import '../widgets/nex_shelf.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/nex_dialog.dart';
 import '../platform/nex_preferences.dart';
@@ -185,48 +186,59 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                   ),
                 ),
                 Expanded(
-                  child: ListView.separated(
-                    padding: EdgeInsets.only(bottom: nexBottomInset(context)),
+                  child: ListView.builder(
+                    padding: EdgeInsets.fromLTRB(
+                      NexSpacing.md,
+                      0,
+                      NexSpacing.md,
+                      NexSpacing.md + nexBottomInset(context),
+                    ),
                     itemCount: loaded.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final note = loaded[index];
-                      return ListTile(
-                        minTileHeight: 56,
-                        leading: Icon(nexNoteTypeIcon(note.type.wireName)),
-                        title: Text(
-                          note.searchableDerivedText?.trim().isNotEmpty == true
-                              ? note.searchableDerivedText!
-                              : l10n.noteType(note.type.wireName),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: note.deletedAt == null
-                            ? null
-                            : Text(
-                                // The one fact a trash screen exists to
-                                // convey: *when* this went in. It used to
-                                // repeat the note type, which duplicated
-                                // both the leading glyph and the title's
-                                // own fallback and said nothing about time.
-                                l10n.deletedWhen(
-                                  _relative(context, note.deletedAt!),
+                      return NexGroupedRow(
+                        index: index,
+                        count: loaded.length,
+                        child: ListTile(
+                          minTileHeight: 56,
+                          leading: NexIconTile(
+                            nexNoteTypeIcon(note.type.wireName),
+                          ),
+                          title: Text(
+                            note.searchableDerivedText?.trim().isNotEmpty ==
+                                    true
+                                ? note.searchableDerivedText!
+                                : l10n.noteType(note.type.wireName),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: note.deletedAt == null
+                              ? null
+                              : Text(
+                                  // The one fact a trash screen exists to
+                                  // convey: *when* this went in. It used to
+                                  // repeat the note type, which duplicated
+                                  // both the leading glyph and the title's
+                                  // own fallback and said nothing about time.
+                                  l10n.deletedWhen(
+                                    _relative(context, note.deletedAt!),
+                                  ),
                                 ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextButton(
+                                onPressed: () => unawaited(_restore(note)),
+                                child: Text(l10n.restore),
                               ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TextButton(
-                              onPressed: () => unawaited(_restore(note)),
-                              child: Text(l10n.restore),
-                            ),
-                            IconButton(
-                              tooltip: l10n.deleteForever,
-                              color: theme.colorScheme.error,
-                              onPressed: () => unawaited(_purge(note)),
-                              icon: const Icon(Icons.delete_forever_outlined),
-                            ),
-                          ],
+                              IconButton(
+                                tooltip: l10n.deleteForever,
+                                color: theme.colorScheme.error,
+                                onPressed: () => unawaited(_purge(note)),
+                                icon: const Icon(Icons.delete_forever_outlined),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
