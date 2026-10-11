@@ -2843,6 +2843,110 @@ class AppLocalizationsFa extends AppLocalizations {
       'این یادداشت دور انداخته شود؟ هنوز به یادداشت‌هایتان نرسیده، پس برگرداندنی نیست.';
 
   @override
+  String get cycleStagePeriod => 'پریود';
+
+  @override
+  String get cycleStageFollicular => 'فاز فولیکولار';
+
+  @override
+  String get cycleStageFertile => 'دورهٔ باروری';
+
+  @override
+  String get cycleStageLuteal => 'فاز لوتئال';
+
+  @override
+  String cycleStageAbout(String stage, String day) {
+    return '$stage · روز $day';
+  }
+
+  @override
+  String get cycleRingHint =>
+      'برای دیدن هر روز، حلقه را لمس کنید؛ با لمس وسط به امروز برمی‌گردید.';
+
+  @override
+  String get cycleRingBack => 'برگشت به امروز';
+
+  @override
+  String get cycleTipTitle => 'برای امروز';
+
+  @override
+  String get cycleTipPeriod1 =>
+      'گرما کمک می‌کند: کیسهٔ آب گرم روی زیر شکم یا کمر، دل‌درد را آرام‌تر می‌کند.';
+
+  @override
+  String get cycleTipPeriod2 =>
+      'کمی بیشتر از همیشه آب بنوشید و نمک کمتری بخورید؛ به نفخ کمک می‌کند.';
+
+  @override
+  String get cycleTipPeriod3 =>
+      'غذاهای آهن‌دار — عدس، اسفناج، خرما — کمبودی را که پریود ایجاد می‌کند جبران می‌کنند.';
+
+  @override
+  String get cycleTipPeriod4 =>
+      'استراحت در این روزها تجمل نیست. یک روز آرام‌تر هم روز خوبی است.';
+
+  @override
+  String get cycleTipFollicular1 =>
+      'انرژی معمولاً حالا بالا می‌رود؛ زمان خوبی برای شروع یک کار تازه است.';
+
+  @override
+  String get cycleTipFollicular2 =>
+      'خیلی‌ها در این روزها ذهن روشن‌تر و حال اجتماعی‌تری دارند. کارهای شلوغ را برای حالا بگذارید.';
+
+  @override
+  String get cycleTipFollicular3 =>
+      'ورزش سنگین‌تر معمولاً در این فاز راحت‌تر است.';
+
+  @override
+  String get cycleTipFollicular4 =>
+      'سبزیجات تازه و پروتئین به بدن کمک می‌کند بعد از پریود دوباره جان بگیرد.';
+
+  @override
+  String get cycleTipFertile1 => 'طبق تخمین، این بارورترین بخش چرخه است.';
+
+  @override
+  String get cycleTipFertile2 =>
+      'بعضی‌ها ترشحات شفاف و کشسان یا دردی خفیف در یک سمت حس می‌کنند؛ هر دو در این روزها رایج است.';
+
+  @override
+  String get cycleTipFertile3 =>
+      'اعتمادبه‌نفس و انرژی معمولاً حوالی تخمک‌گذاری به اوج می‌رسد. از آن لذت ببرید.';
+
+  @override
+  String get cycleTipFertile4 =>
+      'اگر قصد بارداری دارید، این روزها مهم‌ترین روزها هستند.';
+
+  @override
+  String get cycleTipLuteal1 =>
+      'هوس خوراکی در این روزها رایج است. کربوهیدرات‌های کامل و کمی شکلات تلخ دوستان خوبی‌اند.';
+
+  @override
+  String get cycleTipLuteal2 =>
+      'حساس‌تر بودن در این روزها طبیعی است. با خودتان مهربان باشید.';
+
+  @override
+  String get cycleTipLuteal3 =>
+      'غذاهای پرمنیزیم — مغزها، دانه‌ها، موز — ممکن است تنش پیش از پریود را کم کند.';
+
+  @override
+  String get cycleTipLuteal4 =>
+      'ورزش سبک‌تر — پیاده‌روی، کشش، یوگا — معمولاً حالا بهتر است.';
+
+  @override
+  String cycleEndCheck(String days) {
+    return 'پریودتان تمام شده؟ $days روز پیش شروع شد.';
+  }
+
+  @override
+  String get cycleEndCheckYes => 'بله، تمام شد';
+
+  @override
+  String get cycleEndCheckNo => 'هنوز ادامه دارد';
+
+  @override
+  String get cycleQuickMood => 'امروز حالتان چطور است؟';
+
+  @override
   String get cycleTitle => 'چرخه';
 
   @override

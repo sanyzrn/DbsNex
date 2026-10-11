@@ -34,6 +34,14 @@ enum CycleAlert {
   irregular,
 }
 
+/// Where a day falls in the cycle, as the screen names it.
+///
+/// The textbook four, by the calendar: the period; the days after it while
+/// the body builds up again; the fertile window round the estimated
+/// ovulation; and the days after it until the next period. Estimates, like
+/// everything here, and said as such.
+enum CycleStage { period, follicular, fertile, luteal }
+
 /// A predicted period or fertile window: [start] to [end], inclusive.
 typedef CycleSpan = ({CycleDate start, CycleDate end});
 
@@ -95,6 +103,26 @@ class CyclePrediction {
 
   /// Days until [nextStart]; negative when it is late.
   int get daysUntilNext => nextStart.daysSince(today);
+
+  /// The phase of [day]: by its place in the cycle that began at
+  /// [lastStart], for any day from then until the next period.
+  CycleStage stageOn(CycleDate day) {
+    // Today is known — the period has been logged as going or ended — and
+    // every other day is read from the averages.
+    final bleeding = day == today
+        ? inPeriod
+        : day.daysSince(lastStart) < averagePeriod;
+    if (bleeding) return CycleStage.period;
+    if (!day.isBefore(fertile.start) && !day.isAfter(fertile.end)) {
+      return CycleStage.fertile;
+    }
+    return day.isBefore(fertile.start)
+        ? CycleStage.follicular
+        : CycleStage.luteal;
+  }
+
+  /// Today's stage.
+  CycleStage get stage => stageOn(today);
 }
 
 /// Predicts from the person's own history, not from a fixed 28.
@@ -189,10 +217,16 @@ abstract final class CyclePredictor {
       final latestCycle = past.last.start.daysSince(
         past[past.length - 2].start,
       );
+      // Read as a period that was never logged, as the averages read it —
+      // not as a long cycle to see a doctor about.
+      final missedLog =
+          all.length >= 3 &&
+          latestCycle >= usual * 1.75 &&
+          latestCycle <= usual * 2.25;
       if (latestCycle >= minCycle && latestCycle < 21) {
         alerts.add(CycleAlert.shortCycle);
       }
-      if (latestCycle > 38 && latestCycle <= maxCycle) {
+      if (latestCycle > 38 && latestCycle <= maxCycle && !missedLog) {
         alerts.add(CycleAlert.longCycle);
       }
     }
@@ -217,7 +251,10 @@ abstract final class CyclePredictor {
       upcoming: [
         for (var k = 0; k < 3; k++)
           () {
-            final start = nextStart.addDays(averageCycle * k);
+            // A period that is late is still to come: the calendar counts
+            // on from today rather than marking days already gone.
+            final from = nextStart.isBefore(today) ? today : nextStart;
+            final start = from.addDays(averageCycle * k);
             final ov = start.addDays(-14);
             return (
               period: (start: start, end: start.addDays(averagePeriod - 1)),
