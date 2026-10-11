@@ -414,6 +414,8 @@ create {text | items[], at?, repeat?} · edit {id, text} · delete {id}
 tag {id, add[], remove[]} · merge {ids[], text} · to_checklist {id}
 check {id, index, done} · remind {id, at "YYYY-MM-DDTHH:MM" local, future;
 repeat once|daily|weekly; no at = cancel} · pin {id, pinned} · title {id, text}
+A note line marked "(reminder set: …)" already has that reminder: never
+offer to set one it already has, and `remind` on it replaces it.
 restore {id} · rename_tag {tag, name} · tag_color {tag, color "#RRGGBB"}
 commitment {name, every, unit hours|days|weeks|months|years, at}
 commitment_met {name} · commitment_delete {name} · thread {ids[], name}
