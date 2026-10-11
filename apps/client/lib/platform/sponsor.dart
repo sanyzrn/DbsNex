@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'dart:ui' show PlatformDispatcher;
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -155,8 +157,50 @@ class NexSponsorService {
     this.endpoint = defaultEndpoint,
     this.dismissible = dismissibleByDefault,
     DateTime Function()? now,
+    Random? random,
   }) : _client = client,
-       _now = now ?? DateTime.now;
+       _now = now ?? DateTime.now,
+       _random = random ?? Random();
+
+  final Random _random;
+
+  /// How many cards one file may offer. More than this are ignored.
+  static const maxCards = 5;
+
+  /// The card this phone shows from [body]: the file itself when it is one
+  /// card, or one of up to [maxCards] picked at random when it is a list.
+  ///
+  /// The pick is among the cards that could be shown here today — inside
+  /// their dates, in this phone's language — so a list of Persian and English
+  /// cards never lands an English reader on a Persian one and then shows
+  /// nothing. It is made once per refresh, about once a day, and kept until
+  /// the next: one phone sees one card for the day, and across phones each
+  /// card is seen about as often as the others. Answers the card's own JSON,
+  /// which is what is cached; null when the file is not a card or a list of
+  /// them, and an empty string for a list with nothing to show here.
+  String? choose(String body, {required String languageCode}) {
+    final Object? root;
+    try {
+      root = jsonDecode(body);
+    } catch (_) {
+      return null;
+    }
+    if (root is Map) return NexSponsor.parse(body) == null ? null : body;
+    if (root is! List) return null;
+    final now = _now();
+    final cards = <String>[];
+    for (final item in root.take(maxCards)) {
+      if (item is! Map) continue;
+      final json = jsonEncode(item);
+      final card = NexSponsor.parse(json);
+      if (card == null) continue;
+      if (card.visibleAt(now: now, languageCode: languageCode, dismissed: {})) {
+        cards.add(json);
+      }
+    }
+    if (cards.isEmpty) return '';
+    return cards[_random.nextInt(cards.length)];
+  }
 
   /// Whether the card carries a close button, and whether a dismissal hides
   /// it.
@@ -233,9 +277,9 @@ class NexSponsorService {
     [0x42, 0x4D], // BMP
   ];
 
-  /// A card is a couple of hundred bytes. Anything much larger is not the
-  /// file this expects, and reading it into memory to find that out is the
-  /// mistake this avoids.
+  /// A card is a couple of hundred bytes, and a list of [maxCards] a couple
+  /// of kilobytes. Anything much larger is not the file this expects, and
+  /// reading it into memory to find that out is the mistake this avoids.
   static const maxBytes = 16 * 1024;
 
   final NexPreferences preferences;
@@ -452,12 +496,25 @@ class NexSponsorService {
             return true;
           }
 
-          final body = response.bodyBytes.length <= maxBytes
+          final raw = response.bodyBytes.length <= maxBytes
               ? decodeBody(response.bodyBytes)
               : null;
-          final sponsor = response.statusCode == 200 && body != null
-              ? NexSponsor.parse(body)
+          final body = response.statusCode == 200 && raw != null
+              ? choose(
+                  raw,
+                  languageCode:
+                      (preferences.locale ?? PlatformDispatcher.instance.locale)
+                          .languageCode,
+                )
               : null;
+          // A list with nothing for this phone today is a campaign with
+          // nothing to show, the same as a file that is not there.
+          if (body != null && body.isEmpty) {
+            await _forget();
+            await preferences.setSponsorFetchedAt(_now());
+            return true;
+          }
+          final sponsor = body == null ? null : NexSponsor.parse(body);
           if (sponsor != null) {
             // The picture first, then the card. A picture that cannot be had
             // no longer takes the whole card down with it; the card is shown
@@ -467,7 +524,7 @@ class NexSponsorService {
               await _dropImage();
             }
             _imageSettled = true;
-            await preferences.setSponsorPayload(body);
+            await preferences.setSponsorPayload(body!);
             await preferences.setSponsorFetchedAt(_now());
             return true;
           }

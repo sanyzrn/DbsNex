@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -765,6 +766,82 @@ void main() {
         now: () => now,
       );
       expect(s.visible(languageCode: 'en'), isNull);
+    });
+  });
+
+  // One file may offer up to five cards; each phone shows one of them,
+  // picked at random from those it could show, until the next refresh.
+  group('a list of cards', () {
+    late NexPreferences preferences;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({
+        'sponsor.earned': true,
+        'appearance.locale': 'en',
+      });
+      preferences = await NexPreferences.load();
+    });
+
+    String list(List<String> cards) => '[${cards.join(',')}]';
+
+    NexSponsorService serving(String body, {int seed = 1}) => NexSponsorService(
+      preferences: preferences,
+      client: MockClient((_) async => http.Response(body, 200)),
+      now: () => now,
+      random: Random(seed),
+    );
+
+    test(
+      'one of them is shown, and different phones get different ones',
+      () async {
+        final body = list([for (var i = 1; i <= 5; i++) card(id: 'c$i')]);
+        final seen = <String>{};
+        for (var seed = 0; seed < 40; seed++) {
+          SharedPreferences.setMockInitialValues({'sponsor.earned': true});
+          preferences = await NexPreferences.load();
+          final service = serving(body, seed: seed);
+          await service.refresh();
+          seen.add(service.visible(languageCode: 'en')!.id);
+        }
+        expect(seen, {'c1', 'c2', 'c3', 'c4', 'c5'});
+      },
+    );
+
+    test('only cards this phone could show are picked', () async {
+      final service = serving(
+        list([
+          card(id: 'fa', locales: ['fa']),
+          card(id: 'over', ends: '2026-09-01T00:00:00Z'),
+          card(id: 'en', locales: ['en']),
+        ]),
+      );
+      await service.refresh();
+      expect(service.visible(languageCode: 'en')?.id, 'en');
+    });
+
+    test('nothing to show here means no card', () async {
+      final service = serving(
+        list([
+          card(id: 'fa', locales: ['fa']),
+        ]),
+      );
+      expect(await service.refresh(), isTrue);
+      expect(service.visible(languageCode: 'en'), isNull);
+      expect(preferences.sponsorPayload, isNull);
+    });
+
+    test('past five, the rest are ignored', () {
+      final body = list([
+        for (var i = 1; i <= 5; i++) card(id: 'c$i', locales: ['fa']),
+        card(id: 'sixth'),
+      ]);
+      expect(serving(body).choose(body, languageCode: 'en'), '');
+    });
+
+    test('a single card still works as it always has', () {
+      expect(serving(card()).choose(card(), languageCode: 'en'), card());
+      expect(serving('').choose('[1, 2]', languageCode: 'en'), '');
+      expect(serving('').choose('not json', languageCode: 'en'), isNull);
     });
   });
 
