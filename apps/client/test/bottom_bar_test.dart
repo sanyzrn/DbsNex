@@ -141,7 +141,9 @@ void main() {
       // leaving the backdrop filter only its own solid colour to sample.
       await preferences.setLiquidGlass(true);
       await open(tester);
-      await tester.tap(find.byIcon(Icons.settings_outlined));
+      // Any sheet over the timeline: the capture sheet, now that Settings is
+      // a page.
+      await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
       final sheets = tester.widgetList<BottomSheet>(find.byType(BottomSheet));

@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.20
+
+- **Settings is a page.** It opens like Tools and the Library instead of rising from the bottom, so a pull at its top can no longer close it by accident; the search box at its top now has the same rounded shape as everything under it.
+- **A new Profile page.** Your picture sits on a coloured header with a small constellation drawn from your name — every name draws its own — and the name and bio show there as you type them. Tap the picture to choose one from the gallery, take one with Nex's camera, or remove it: removing it is no longer a wide button under the picture that a tap beside it could hit. The birthday shows your age and counts the days to the next one, by the Persian calendar when you use it, and the bio's label sits where it belongs.
+- **Gestures and menus in one tap.** Every swipe action is now a chip under its edge, and a small card shows what each swipe will uncover in its own colour; the hold menu's actions are switched on and off on the same page, without opening another one.
+- **App icons: dark above, light below.** The blue octopus is gone and the swirl now also comes on light, so each of the three icons has a dark and a light version in the same column; the previews are a little smaller.
+- **Every theme has its own motif, higher up.** Autumn now has falling leaves, Rose atelier blossoms, Saffron threads of saffron and Graphite graph paper, and Midnight gains a crescent moon among its stars; only the plain Nex look stays plain. The motifs now rise over the lower half of the screen instead of the bottom third.
+- **Themes you can see before you choose.** The palettes on the Theme page are now a gallery of small previews, each in its own page colour with a note card in its tones and its motif, and the settings above them sit on a card like the rest of Settings.
+
 ## v1.99.10
 
 - **Speaking to the assistant happens in the message bar.** The microphone no longer opens the voice-note sheet over the assistant: the message bar itself becomes the recording, with the conversation still in view — **✕** cancels, the time and your voice as it is heard in the middle, **↑** sends. The microphone and send share one button: the microphone while the box is empty.

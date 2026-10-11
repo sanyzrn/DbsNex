@@ -102,132 +102,143 @@ class _ThemeScreen extends StatelessWidget {
       body: ListenableBuilder(
         listenable: preferences,
         builder: (context, _) => ListView(
-          padding: const EdgeInsets.all(NexSpacing.md),
+          padding: EdgeInsets.fromLTRB(
+            NexSpacing.md,
+            NexSpacing.md,
+            NexSpacing.md,
+            NexSpacing.lg + nexBottomInset(context),
+          ),
           children: [
-            _Row(
-              icon: Icons.dark_mode_outlined,
-              title: l10n.theme,
-              value: switch (preferences.themeMode) {
-                ThemeMode.light => l10n.themeLight,
-                ThemeMode.dark => l10n.themeDark,
-                ThemeMode.system => l10n.themeSystem,
-              },
-              onTap: () => unawaited(
-                _pick<ThemeMode>(
-                  context: context,
+            // On a card like every other settings page, rather than floating
+            // loose over the theme's own backdrop.
+            _SettingsCard(
+              children: [
+                _Row(
+                  icon: Icons.dark_mode_outlined,
                   title: l10n.theme,
-                  selected: preferences.themeMode,
-                  onSelected: preferences.setThemeMode,
-                  choices: [
-                    NexChoice(
-                      value: ThemeMode.light,
-                      label: l10n.themeLight,
-                      preview: NexThemeSwatch(
-                        mode: ThemeMode.light,
-                        comfort: preferences.comfortMode,
-                      ),
+                  value: switch (preferences.themeMode) {
+                    ThemeMode.light => l10n.themeLight,
+                    ThemeMode.dark => l10n.themeDark,
+                    ThemeMode.system => l10n.themeSystem,
+                  },
+                  onTap: () => unawaited(
+                    _pick<ThemeMode>(
+                      context: context,
+                      title: l10n.theme,
+                      selected: preferences.themeMode,
+                      onSelected: preferences.setThemeMode,
+                      choices: [
+                        NexChoice(
+                          value: ThemeMode.light,
+                          label: l10n.themeLight,
+                          preview: NexThemeSwatch(
+                            mode: ThemeMode.light,
+                            comfort: preferences.comfortMode,
+                          ),
+                        ),
+                        NexChoice(
+                          value: ThemeMode.dark,
+                          label: l10n.themeDark,
+                          preview: NexThemeSwatch(
+                            mode: ThemeMode.dark,
+                            comfort: preferences.comfortMode,
+                          ),
+                        ),
+                        NexChoice(
+                          value: ThemeMode.system,
+                          label: l10n.themeSystem,
+                          preview: NexThemeSwatch(
+                            mode: ThemeMode.system,
+                            comfort: preferences.comfortMode,
+                          ),
+                        ),
+                      ],
                     ),
-                    NexChoice(
-                      value: ThemeMode.dark,
-                      label: l10n.themeDark,
-                      preview: NexThemeSwatch(
-                        mode: ThemeMode.dark,
-                        comfort: preferences.comfortMode,
-                      ),
-                    ),
-                    NexChoice(
-                      value: ThemeMode.system,
-                      label: l10n.themeSystem,
-                      preview: NexThemeSwatch(
-                        mode: ThemeMode.system,
-                        comfort: preferences.comfortMode,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            _Row(
-              icon: Icons.format_size,
-              title: l10n.uiScale,
-              value: switch (preferences.uiScale) {
-                < 1.0 => l10n.uiScaleSmall,
-                < 1.1 => l10n.uiScaleDefault,
-                < 1.25 => l10n.uiScaleLarge,
-                _ => l10n.uiScaleLarger,
-              },
-              // The four steps are unchanged, but the type ramp underneath them
-              // came down a step — so "Large" is roughly what "Default" used to
-              // be, which is where anyone who liked the old size should land.
-              onTap: () => unawaited(
-                _pick<double>(
-                  context: context,
+                _Row(
+                  icon: Icons.format_size,
                   title: l10n.uiScale,
-                  selected: preferences.uiScale,
-                  onSelected: preferences.setUiScale,
-                  choices: [
-                    NexChoice(
-                      value: 0.9,
-                      label: l10n.uiScaleSmall,
-                      preview: const _TextSizePreview(fontSize: 13),
+                  value: switch (preferences.uiScale) {
+                    < 1.0 => l10n.uiScaleSmall,
+                    < 1.1 => l10n.uiScaleDefault,
+                    < 1.25 => l10n.uiScaleLarge,
+                    _ => l10n.uiScaleLarger,
+                  },
+                  // The four steps are unchanged, but the type ramp underneath them
+                  // came down a step — so "Large" is roughly what "Default" used to
+                  // be, which is where anyone who liked the old size should land.
+                  onTap: () => unawaited(
+                    _pick<double>(
+                      context: context,
+                      title: l10n.uiScale,
+                      selected: preferences.uiScale,
+                      onSelected: preferences.setUiScale,
+                      choices: [
+                        NexChoice(
+                          value: 0.9,
+                          label: l10n.uiScaleSmall,
+                          preview: const _TextSizePreview(fontSize: 13),
+                        ),
+                        NexChoice(
+                          value: 1.0,
+                          label: l10n.uiScaleDefault,
+                          preview: const _TextSizePreview(fontSize: 17),
+                        ),
+                        NexChoice(
+                          value: 1.15,
+                          label: l10n.uiScaleLarge,
+                          preview: const _TextSizePreview(fontSize: 21),
+                        ),
+                        NexChoice(
+                          value: 1.3,
+                          label: l10n.uiScaleLarger,
+                          preview: const _TextSizePreview(fontSize: 25),
+                        ),
+                      ],
                     ),
-                    NexChoice(
-                      value: 1.0,
-                      label: l10n.uiScaleDefault,
-                      preview: const _TextSizePreview(fontSize: 17),
-                    ),
-                    NexChoice(
-                      value: 1.15,
-                      label: l10n.uiScaleLarge,
-                      preview: const _TextSizePreview(fontSize: 21),
-                    ),
-                    NexChoice(
-                      value: 1.3,
-                      label: l10n.uiScaleLarger,
-                      preview: const _TextSizePreview(fontSize: 25),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            _Row(
-              icon: Icons.view_agenda_outlined,
-              title: l10n.cardDensity,
-              keywords:
-                  'density compact card size readable تراکم فشرده خوانا کارت',
-              value: switch (preferences.cardDensity) {
-                NexCardDensity.compact => l10n.cardDensityCompact,
-                NexCardDensity.standard => l10n.cardDensityStandard,
-                NexCardDensity.readable => l10n.cardDensityReadable,
-              },
-              onTap: () => unawaited(
-                _pick<NexCardDensity>(
-                  context: context,
+                _Row(
+                  icon: Icons.view_agenda_outlined,
                   title: l10n.cardDensity,
-                  selected: preferences.cardDensity,
-                  onSelected: preferences.setCardDensity,
-                  choices: [
-                    NexChoice(
-                      value: NexCardDensity.compact,
-                      label: l10n.cardDensityCompact,
-                      preview: const Icon(Icons.density_small),
+                  keywords:
+                      'density compact card size readable تراکم فشرده خوانا کارت',
+                  value: switch (preferences.cardDensity) {
+                    NexCardDensity.compact => l10n.cardDensityCompact,
+                    NexCardDensity.standard => l10n.cardDensityStandard,
+                    NexCardDensity.readable => l10n.cardDensityReadable,
+                  },
+                  onTap: () => unawaited(
+                    _pick<NexCardDensity>(
+                      context: context,
+                      title: l10n.cardDensity,
+                      selected: preferences.cardDensity,
+                      onSelected: preferences.setCardDensity,
+                      choices: [
+                        NexChoice(
+                          value: NexCardDensity.compact,
+                          label: l10n.cardDensityCompact,
+                          preview: const Icon(Icons.density_small),
+                        ),
+                        NexChoice(
+                          value: NexCardDensity.standard,
+                          label: l10n.cardDensityStandard,
+                          preview: const Icon(Icons.density_medium),
+                        ),
+                        NexChoice(
+                          value: NexCardDensity.readable,
+                          label: l10n.cardDensityReadable,
+                          preview: const Icon(Icons.density_large),
+                        ),
+                      ],
                     ),
-                    NexChoice(
-                      value: NexCardDensity.standard,
-                      label: l10n.cardDensityStandard,
-                      preview: const Icon(Icons.density_medium),
-                    ),
-                    NexChoice(
-                      value: NexCardDensity.readable,
-                      label: l10n.cardDensityReadable,
-                      preview: const Icon(Icons.density_large),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                _AccentColorRow(preferences: preferences),
+              ],
             ),
-            _AccentColorRow(preferences: preferences),
-            const SizedBox(height: NexSpacing.lg),
+            const SizedBox(height: NexSpacing.md),
             Text(
               nexLabel(
                 context,
@@ -237,38 +248,8 @@ class _ThemeScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
-            for (final preset in nexThemePresets)
-              Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: NexSpacing.md,
-                    vertical: 6,
-                  ),
-                  leading: CircleAvatar(
-                    backgroundColor: preset.seed,
-                    child: Icon(preset.icon, color: Colors.white),
-                  ),
-                  title: Text(nexThemePresetLabel(context, preset.id)),
-                  subtitle: Text(
-                    nexLabel(
-                      context,
-                      preset.enDescription,
-                      preset.faDescription,
-                    ),
-                  ),
-                  trailing: preferences.themePreset == preset.id
-                      ? const Icon(Icons.check_circle)
-                      : null,
-                  // A palette arrives with its own accent. A custom accent
-                  // picked earlier would otherwise keep overriding it, and
-                  // choosing "Forest" would leave a blue caret behind.
-                  onTap: () async {
-                    await preferences.setAccentSeed(null);
-                    await preferences.setThemePreset(preset.id);
-                  },
-                ),
-              ),
+            _PaletteGallery(preferences: preferences),
+            const SizedBox(height: NexSpacing.lg),
             // Last on the page: the icon on the home screen is part of how
             // the app looks, but it is the one choice that is not about the
             // inside of it.
@@ -418,15 +399,20 @@ class _AppIconTile extends StatelessWidget {
           child: Column(
             children: [
               Expanded(
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: ClipOval(
-                    child: Image.asset(
-                      NexAppIcons.preview(id),
-                      fit: BoxFit.cover,
-                      excludeFromSemantics: true,
-                      errorBuilder: (context, _, _) =>
-                          ColoredBox(color: scheme.surfaceContainerHigh),
+                // A little inside the tile: a preview the full width of a
+                // third of the screen read as a poster, not an icon.
+                child: Padding(
+                  padding: const EdgeInsets.all(NexSpacing.sm),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: ClipOval(
+                      child: Image.asset(
+                        NexAppIcons.preview(id),
+                        fit: BoxFit.cover,
+                        excludeFromSemantics: true,
+                        errorBuilder: (context, _, _) =>
+                            ColoredBox(color: scheme.surfaceContainerHigh),
+                      ),
                     ),
                   ),
                 ),

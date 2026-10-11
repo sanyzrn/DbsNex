@@ -182,6 +182,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileBioHint => 'A few words about you';
 
   @override
+  String get profilePhotoTitle => 'Profile photo';
+
+  @override
+  String get profilePhotoGallery => 'Choose from gallery';
+
+  @override
+  String get profilePhotoCamera => 'Take a photo';
+
+  @override
+  String profileAge(String age) {
+    return '$age years old';
+  }
+
+  @override
+  String get profileBirthdayToday => 'Happy birthday!';
+
+  @override
+  String get profileBirthdayTomorrow => 'Birthday tomorrow';
+
+  @override
+  String profileBirthdayIn(String days) {
+    return 'Birthday in $days days';
+  }
+
+  @override
   String get securityTitle => 'Security';
 
   @override
@@ -1151,10 +1176,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get opening => 'Nex is opening';
-
-  @override
-  String get swipeActionsHint =>
-      'Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.';
 
   @override
   String get revealInFolder => 'Copy file path';
@@ -3809,12 +3830,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get swipeAskHint => 'Open the assistant on this note';
-
-  @override
-  String get swipeLeadingEdge => 'Swipe from the left';
-
-  @override
-  String get swipeTrailingEdge => 'Swipe from the right';
 
   @override
   String get filePreviewTooLarge =>

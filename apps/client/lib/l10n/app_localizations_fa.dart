@@ -169,6 +169,31 @@ class AppLocalizationsFa extends AppLocalizations {
   String get profileBioHint => 'چند کلمه دربارهٔ خودتان';
 
   @override
+  String get profilePhotoTitle => 'عکس پروفایل';
+
+  @override
+  String get profilePhotoGallery => 'انتخاب از گالری';
+
+  @override
+  String get profilePhotoCamera => 'گرفتن عکس';
+
+  @override
+  String profileAge(String age) {
+    return '$age ساله';
+  }
+
+  @override
+  String get profileBirthdayToday => 'تولدتان مبارک!';
+
+  @override
+  String get profileBirthdayTomorrow => 'فردا تولد شماست';
+
+  @override
+  String profileBirthdayIn(String days) {
+    return '$days روز تا تولد';
+  }
+
+  @override
   String get securityTitle => 'امنیت';
 
   @override
@@ -1125,10 +1150,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get opening => 'Nex در حال باز شدن است';
-
-  @override
-  String get swipeActionsHint =>
-      'هر طرف جداگانه تنظیم می‌شود. روی هر ردیف بزنید تا کارِ آن کشیدن را انتخاب کنید یا خاموشش کنید.';
 
   @override
   String get revealInFolder => 'نمایش مسیر فایل';
@@ -3721,12 +3742,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get swipeAskHint => 'دستیار را روی همین یادداشت باز می‌کند';
-
-  @override
-  String get swipeLeadingEdge => 'کشیدن از چپ';
-
-  @override
-  String get swipeTrailingEdge => 'کشیدن از راست';
 
   @override
   String get filePreviewTooLarge =>

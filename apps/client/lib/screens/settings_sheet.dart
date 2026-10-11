@@ -8,7 +8,6 @@ import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/choice_cards.dart';
-import '../widgets/dismiss_on_overscroll.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/nex_time_picker.dart';
@@ -46,10 +45,11 @@ part 'settings/settings_rows.dart';
 part 'settings/settings_profile.dart';
 part 'settings/settings_gestures.dart';
 part 'settings/settings_appearance.dart';
+part 'settings/settings_palettes.dart';
 
 /// The v1 preference surface.
 ///
-/// One sheet, grouped into labelled cards. What changed, and why:
+/// One page, grouped into labelled cards. What changed, and why:
 ///
 /// Every choice used to be spelled out inline — three theme cards, four text
 /// sizes, three languages, two swipe mappings, all expanded, all at once. It
@@ -80,79 +80,40 @@ class SettingsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    // Leaves the sheet short of the top edge so the handle and title are
-    // never pinned under the status bar.
-    final tallest = MediaQuery.sizeOf(context).height * 0.9;
-    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
-    return SafeArea(
-      top: false,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: tallest),
-        child: _SettingsSearch(
-          // While searching, the sheet stays at its full height: a handful
-          // of results used to shrink it to the bottom of the screen, where
-          // the keyboard covered every one of them.
-          builder: (context, query, field) => SizedBox(
-            height: query.isEmpty ? null : tallest,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    NexSpacing.lg,
-                    NexSpacing.sm,
+    // A page, like Tools, Recurring and the library: Settings is somewhere
+    // a person goes and stays a while — into a category and back out of it —
+    // and a sheet that a stray pull at its top could close was the wrong
+    // container for that.
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.settings)),
+      body: _SettingsSearch(
+        builder: (context, query, field) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            field,
+            Expanded(
+              // Every picker writes through `preferences`, which notifies —
+              // without this the row that opened one would still show the old
+              // value when the picker closed, since this page is stateless
+              // and nothing else rebuilds it.
+              child: ListenableBuilder(
+                listenable: Listenable.merge([preferences, ?updates]),
+                builder: (context, _) => ListView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.fromLTRB(
                     NexSpacing.md,
+                    0,
                     NexSpacing.md,
+                    NexSpacing.lg + nexBottomInset(context),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.settings,
-                          style: theme.textTheme.titleLarge,
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: l10n.closeLabel,
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
+                  children: query.isEmpty
+                      ? _home(context, l10n)
+                      : _matching(context, l10n, query),
                 ),
-                field,
-                Flexible(
-                  child: NexDismissOnOverscroll(
-                    // Every picker writes through `preferences`, which notifies —
-                    // without this the row that opened one would still show the
-                    // old value when the picker closed, since the sheet itself is
-                    // stateless and nothing else rebuilds it.
-                    child: ListenableBuilder(
-                      listenable: Listenable.merge([preferences, ?updates]),
-                      builder: (context, _) => SingleChildScrollView(
-                        // The keyboard sits over the sheet's bottom edge, so
-                        // the last rows scroll up clear of it.
-                        padding: EdgeInsets.fromLTRB(
-                          NexSpacing.md,
-                          0,
-                          NexSpacing.md,
-                          NexSpacing.lg + keyboard,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: query.isEmpty
-                              ? _home(context, l10n)
-                              : _matching(context, l10n, query),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -514,41 +475,17 @@ class SettingsSheet extends StatelessWidget {
           '${nexSwipeActionLabel(l10n, preferences.leadingAction)} · '
           '${nexSwipeActionLabel(l10n, preferences.trailingAction)}',
       children: [
-        _Row(
-          icon: Icons.swipe_outlined,
-          title: l10n.swipeActions,
-          keywords: 'swipe gesture edge کشیدن لبه',
-          value:
-              '${nexSwipeActionLabel(l10n, preferences.leadingAction)} · '
-              '${nexSwipeActionLabel(l10n, preferences.trailingAction)}',
-          onTap: () => unawaited(
-            nexShowSheet<void>(
-              context: context,
-              builder: (_) => _PickerSheet(
-                title: l10n.swipeActions,
-                footnote: l10n.swipeActionsHint,
-                // The one picker that is two choices rather than one, so it
-                // keeps its own widget and stays open across both.
-                child: _SwipeMapping(preferences: preferences),
-              ),
-            ),
-          ),
+        _Searchable(
+          text:
+              '${l10n.swipeActions} ${l10n.swipeLeading} ${l10n.swipeTrailing} '
+              'swipe gesture edge کشیدن لبه',
+          child: _SwipeMapping(preferences: preferences),
         ),
-        _Row(
-          icon: Icons.touch_app_outlined,
-          title: nexLabel(context, 'Hold menu', 'منوی نگه‌داشتن'),
-          keywords: 'long press hold menu actions نگه داشتن منو',
-          value: nexLabel(
-            context,
-            '${preferences.holdMenuActions.length} actions',
-            '${preferences.holdMenuActions.length} گزینه',
-          ),
-          onTap: () => Navigator.push(
-            context,
-            NexPageRoute<void>(
-              builder: (_) => _HoldMenuScreen(preferences: preferences),
-            ),
-          ),
+        _Searchable(
+          text:
+              '${nexLabel(context, 'Hold menu', 'منوی نگه‌داشتن')} '
+              'long press hold menu actions نگه داشتن منو',
+          child: _HoldMenuChoices(preferences: preferences),
         ),
       ],
     ),

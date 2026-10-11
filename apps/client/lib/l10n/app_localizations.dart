@@ -392,6 +392,48 @@ abstract class AppLocalizations {
   /// **'A few words about you'**
   String get profileBioHint;
 
+  /// No description provided for @profilePhotoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile photo'**
+  String get profilePhotoTitle;
+
+  /// No description provided for @profilePhotoGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get profilePhotoGallery;
+
+  /// No description provided for @profilePhotoCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get profilePhotoCamera;
+
+  /// No description provided for @profileAge.
+  ///
+  /// In en, this message translates to:
+  /// **'{age} years old'**
+  String profileAge(String age);
+
+  /// No description provided for @profileBirthdayToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Happy birthday!'**
+  String get profileBirthdayToday;
+
+  /// No description provided for @profileBirthdayTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthday tomorrow'**
+  String get profileBirthdayTomorrow;
+
+  /// No description provided for @profileBirthdayIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthday in {days} days'**
+  String profileBirthdayIn(String days);
+
   /// No description provided for @securityTitle.
   ///
   /// In en, this message translates to:
@@ -2017,12 +2059,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nex is opening'**
   String get opening;
-
-  /// Explains that each swipe edge is configured independently
-  ///
-  /// In en, this message translates to:
-  /// **'Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.'**
-  String get swipeActionsHint;
 
   /// Copies a media note's file path to the clipboard
   ///
@@ -6127,18 +6163,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open the assistant on this note'**
   String get swipeAskHint;
-
-  /// Title of the leading-edge swipe row
-  ///
-  /// In en, this message translates to:
-  /// **'Swipe from the left'**
-  String get swipeLeadingEdge;
-
-  /// Title of the trailing-edge swipe row
-  ///
-  /// In en, this message translates to:
-  /// **'Swipe from the right'**
-  String get swipeTrailingEdge;
 
   /// A file past the in-app preview size limit
   ///

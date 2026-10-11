@@ -84,6 +84,15 @@ class _SettingsSearchState extends State<_SettingsSearch> {
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
             isDense: true,
+            // The same shape and fill as the cards under it, not the
+            // app's pill: a search box that is the odd one out reads as
+            // belonging to something else.
+            filled: true,
+            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            border: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(NexRadius.lg)),
+              borderSide: BorderSide.none,
+            ),
             prefixIcon: const Icon(Icons.search),
             hintText: nexLabel(
               context,

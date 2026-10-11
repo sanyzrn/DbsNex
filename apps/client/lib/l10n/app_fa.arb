@@ -52,6 +52,13 @@
   "profileBirthdayEmpty": "ثبت نشده",
   "profileBio": "بیو",
   "profileBioHint": "چند کلمه دربارهٔ خودتان",
+  "profilePhotoTitle": "عکس پروفایل",
+  "profilePhotoGallery": "انتخاب از گالری",
+  "profilePhotoCamera": "گرفتن عکس",
+  "profileAge": "{age} ساله",
+  "profileBirthdayToday": "تولدتان مبارک!",
+  "profileBirthdayTomorrow": "فردا تولد شماست",
+  "profileBirthdayIn": "{days} روز تا تولد",
   "securityTitle": "امنیت",
   "securityAppLock": "قفل برنامه",
   "securityOff": "خاموش",
@@ -542,10 +549,6 @@
   "opening": "Nex در حال باز شدن است",
   "@opening": {
     "description": "Screen-reader label for the startup splash"
-  },
-  "swipeActionsHint": "هر طرف جداگانه تنظیم می‌شود. روی هر ردیف بزنید تا کارِ آن کشیدن را انتخاب کنید یا خاموشش کنید.",
-  "@swipeActionsHint": {
-    "description": "Explains that each swipe edge is configured independently"
   },
   "revealInFolder": "نمایش مسیر فایل",
   "@revealInFolder": {
@@ -1442,8 +1445,6 @@
   "swipeRemindHint": "انتخاب اینکه کِی برگردد",
   "swipeShareHint": "یادداشت را به برنامهٔ دیگری بفرستید",
   "swipeAskHint": "دستیار را روی همین یادداشت باز می‌کند",
-  "swipeLeadingEdge": "کشیدن از چپ",
-  "swipeTrailingEdge": "کشیدن از راست",
   "filePreviewTooLarge": "برای نمایش اینجا بزرگ است — با برنامهٔ دیگری بازش کنید.",
   "filePreviewUnreadable": "این فایل خوانده نشد — {error}",
   "tableTruncated": "فقط {count} سطر اول نشان داده شده است.",

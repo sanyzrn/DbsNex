@@ -12,11 +12,14 @@ import '../platform/nex_preferences.dart';
 import '../platform/nex_services.dart';
 import '../platform/profile_photo.dart';
 import '../widgets/nex_banner.dart';
+import '../widgets/nex_dialog.dart';
 import '../widgets/draft_guard.dart';
 import '../widgets/nex_time_picker.dart';
 import '../platform/display_date.dart';
 import '../widgets/nex_text_field.dart';
+import 'camera_sheet.dart';
 import 'cycle/cycle_switch.dart';
+import 'profile/profile_header.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -81,13 +84,74 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
-  Future<void> _pickPhoto() async {
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 90,
-      maxWidth: 1600,
+  /// The choices behind the picture: a new one from the gallery or the
+  /// camera, or none. Removing used to be a full-width text button under the
+  /// picture, so a tap anywhere along that line took the photo away; it now
+  /// sits here, one deliberate step from the page.
+  Future<void> _choosePhoto(bool hasPhoto) async {
+    final l10n = AppLocalizations.of(context);
+    final error = Theme.of(context).colorScheme.error;
+    final choice = await nexShowSheet<String>(
+      context: context,
+      builder: (sheet) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: NexSpacing.sm),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                NexSpacing.lg,
+                0,
+                NexSpacing.lg,
+                NexSpacing.sm,
+              ),
+              child: Text(
+                l10n.profilePhotoTitle,
+                style: Theme.of(sheet).textTheme.titleMedium,
+              ),
+            ),
+            ListTile(
+              key: const ValueKey('profile-photo-gallery'),
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(l10n.profilePhotoGallery),
+              onTap: () => Navigator.pop(sheet, 'gallery'),
+            ),
+            ListTile(
+              key: const ValueKey('profile-photo-camera'),
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: Text(l10n.profilePhotoCamera),
+              onTap: () => Navigator.pop(sheet, 'camera'),
+            ),
+            if (hasPhoto)
+              ListTile(
+                key: const ValueKey('profile-photo-remove'),
+                leading: Icon(Icons.delete_outline, color: error),
+                title: Text(
+                  l10n.profileRemovePhoto,
+                  style: TextStyle(color: error),
+                ),
+                onTap: () => Navigator.pop(sheet, 'remove'),
+              ),
+          ],
+        ),
+      ),
     );
+    if (!mounted || choice == null) return;
+    if (choice == 'remove') return _removePhoto();
+    final taking = choice == 'camera'
+        ? nexTakePhoto(context)
+        : ImagePicker().pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 90,
+            maxWidth: 1600,
+          );
+    final picked = await taking;
     if (picked == null) return;
+    await _setPhoto(picked);
+  }
+
+  Future<void> _setPhoto(XFile picked) async {
     try {
       final directory = Directory(p.join(widget.services.mediaDir, 'profile'));
       await directory.create(recursive: true);
@@ -173,12 +237,19 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final photoFile = resolveProfilePhoto(
       widget.services.mediaDir,
       widget.preferences.profilePhotoPath,
     );
     final hasPhoto = photoFile != null;
+    final persian = l10n.localeName == 'fa';
+    final birthday = _birthday == null
+        ? null
+        : profileBirthdayInfo(
+            _birthday!,
+            DateTime.now(),
+            solar: widget.preferences.solarCalendar,
+          );
     return guardDraft(
       Scaffold(
         appBar: AppBar(
@@ -191,40 +262,22 @@ class _ProfileScreenState extends State<ProfileScreen>
           ],
         ),
         body: ListView(
-          padding: const EdgeInsets.all(NexSpacing.md),
+          padding: EdgeInsets.fromLTRB(
+            NexSpacing.md,
+            NexSpacing.sm,
+            NexSpacing.md,
+            NexSpacing.lg + nexBottomInset(context),
+          ),
           children: [
-            Center(
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 52,
-                    backgroundColor: theme.colorScheme.surfaceContainerHigh,
-                    backgroundImage: hasPhoto ? FileImage(photoFile) : null,
-                    child: hasPhoto
-                        ? null
-                        : Icon(
-                            Icons.person_outline,
-                            size: 44,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                  ),
-                  PositionedDirectional(
-                    end: 0,
-                    bottom: 0,
-                    child: IconButton.filled(
-                      tooltip: l10n.profileChangePhoto,
-                      onPressed: _pickPhoto,
-                      icon: const Icon(Icons.photo_camera_outlined),
-                    ),
-                  ),
-                ],
-              ),
+            ProfileHeader(
+              photo: photoFile,
+              name: _name.text,
+              bio: _bio.text,
+              birthdayLine: birthday == null
+                  ? null
+                  : profileBirthdayCountdown(l10n, birthday.daysUntil),
+              onPhoto: () => unawaited(_choosePhoto(hasPhoto)),
             ),
-            if (hasPhoto)
-              TextButton(
-                onPressed: _removePhoto,
-                child: Text(l10n.profileRemovePhoto),
-              ),
             const SizedBox(height: NexSpacing.lg),
             NexAutoDirection(
               controller: _name,
@@ -241,33 +294,32 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ),
             ),
-            const SizedBox(height: NexSpacing.md),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.cake_outlined),
-              title: Text(l10n.profileBirthday),
-              subtitle: Text(
-                _birthday == null
-                    ? l10n.profileBirthdayEmpty
-                    : nexDisplayDate(
+            const SizedBox(height: NexSpacing.sm),
+            _BirthdayRow(
+              text: _birthday == null
+                  ? l10n.profileBirthdayEmpty
+                  : [
+                      nexDisplayDate(
                         _birthday!,
                         solar: widget.preferences.solarCalendar,
-                        persian: l10n.localeName == 'fa',
+                        persian: persian,
                       ),
-              ),
-              trailing: _birthday == null
-                  ? const Icon(Icons.chevron_right)
-                  : IconButton(
-                      tooltip: l10n.clear,
-                      onPressed: () {
-                        setState(() => _birthday = null);
-                        _snapshot();
-                      },
-                      icon: const Icon(Icons.close),
-                    ),
+                      l10n.profileAge(
+                        nexDigits('${birthday!.age}', persian: persian),
+                      ),
+                    ].join(' · '),
               onTap: _pickBirthday,
+              onClear: _birthday == null
+                  ? null
+                  : () {
+                      setState(() => _birthday = null);
+                      _snapshot();
+                    },
             ),
-            const SizedBox(height: NexSpacing.md),
+            const SizedBox(height: NexSpacing.lg),
+            // No icon in front: beside a box several lines tall it either
+            // floats in the middle or has to be pushed up by hand, and the
+            // label was never where the icon ended up.
             NexTextField(
               controller: _bio,
               maxLength: 300,
@@ -278,10 +330,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                 labelText: l10n.profileBio,
                 hintText: l10n.profileBioHint,
                 alignLabelWithHint: true,
-                prefixIcon: const Padding(
-                  padding: EdgeInsets.only(bottom: 72),
-                  child: Icon(Icons.notes_outlined),
-                ),
               ),
             ),
             CycleProfileCard(
@@ -289,6 +337,87 @@ class _ProfileScreenState extends State<ProfileScreen>
               preferences: widget.preferences,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The birthday as a card of its own: date and age, the whole row opening the
+/// picker, and a clear button once one is set.
+class _BirthdayRow extends StatelessWidget {
+  const _BirthdayRow({required this.text, required this.onTap, this.onClear});
+
+  final String text;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final onClear = this.onClear;
+    return Material(
+      color: scheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(NexRadius.lg),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('profile-birthday'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(
+            NexSpacing.md,
+            NexSpacing.sm,
+            NexSpacing.xs,
+            NexSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: scheme.tertiaryContainer,
+                  borderRadius: BorderRadius.circular(NexRadius.md),
+                ),
+                child: Icon(
+                  Icons.cake_outlined,
+                  size: 20,
+                  color: scheme.onTertiaryContainer,
+                ),
+              ),
+              const SizedBox(width: NexSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.profileBirthday,
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    Text(
+                      text,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (onClear != null)
+                IconButton(
+                  tooltip: l10n.clear,
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close),
+                )
+              else
+                const Padding(
+                  padding: EdgeInsets.all(NexSpacing.sm),
+                  child: Icon(Icons.chevron_right),
+                ),
+            ],
+          ),
         ),
       ),
     );

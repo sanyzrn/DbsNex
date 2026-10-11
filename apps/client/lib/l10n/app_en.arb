@@ -55,6 +55,15 @@
   "profileBirthdayEmpty": "Not set",
   "profileBio": "Bio",
   "profileBioHint": "A few words about you",
+  "profilePhotoTitle": "Profile photo",
+  "profilePhotoGallery": "Choose from gallery",
+  "profilePhotoCamera": "Take a photo",
+  "profileAge": "{age} years old",
+  "@profileAge": {"placeholders": {"age": {"type": "String"}}},
+  "profileBirthdayToday": "Happy birthday!",
+  "profileBirthdayTomorrow": "Birthday tomorrow",
+  "profileBirthdayIn": "Birthday in {days} days",
+  "@profileBirthdayIn": {"placeholders": {"days": {"type": "String"}}},
   "securityTitle": "Security",
   "securityAppLock": "App lock",
   "securityOff": "Off",
@@ -795,10 +804,6 @@
   "opening": "Nex is opening",
   "@opening": {
     "description": "Screen-reader label for the startup splash"
-  },
-  "swipeActionsHint": "Each edge is set on its own. Tap a row to pick what that swipe does, or turn it off.",
-  "@swipeActionsHint": {
-    "description": "Explains that each swipe edge is configured independently"
   },
   "revealInFolder": "Copy file path",
   "@revealInFolder": {
@@ -2655,10 +2660,6 @@
   "@swipeShareHint": {"description": "Hint under the share swipe action"},
   "swipeAskHint": "Open the assistant on this note",
   "@swipeAskHint": {"description": "Hint under the ask-the-assistant swipe action"},
-  "swipeLeadingEdge": "Swipe from the left",
-  "@swipeLeadingEdge": {"description": "Title of the leading-edge swipe row"},
-  "swipeTrailingEdge": "Swipe from the right",
-  "@swipeTrailingEdge": {"description": "Title of the trailing-edge swipe row"},
   "filePreviewTooLarge": "Too large to show here — open it in another app.",
   "@filePreviewTooLarge": {"description": "A file past the in-app preview size limit"},
   "filePreviewUnreadable": "This file could not be read — {error}",

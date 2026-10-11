@@ -8,12 +8,9 @@ import 'package:nex_client/screens/settings_sheet.dart';
 
 import 'support/nex_harness.dart';
 
-/// Reported symptom: a fast fling starting from the bottom of Settings could
-/// cross the whole scroll range and bounce past the top in one motion — the
-/// same ballistic overshoot the existing dismiss-on-overscroll relies on to
-/// detect a genuine downward drag at the top — closing the sheet on the way
-/// there instead of merely scrolling it. A real drag once it has actually
-/// arrived at the top must still close it.
+/// Settings is a page, like Tools and the library: it opens over the
+/// timeline, its categories open pages of their own, and back walks out of
+/// them one at a time.
 void main() {
   late NexTestHarness harness;
   late NexServices services;
@@ -36,26 +33,6 @@ void main() {
   });
 
   tearDown(() => harness.dispose());
-
-  /// Dispatches a synthetic [OverscrollNotification] through the settings
-  /// sheet's real scroll view, the same one the widget's own
-  /// `NotificationListener` reacts to — this is what lets the two scenarios
-  /// below be deterministic instead of depending on a scroll physics
-  /// simulation to overshoot by the right amount at the right moment.
-  void dispatchOverscroll(WidgetTester tester, {required bool fromDrag}) {
-    final scrollable = tester.state<ScrollableState>(
-      find.byType(Scrollable).last,
-    );
-    final position = scrollable.position;
-    OverscrollNotification(
-      metrics: position.copyWith(),
-      context: scrollable.context,
-      overscroll: -20,
-      dragDetails: fromDrag
-          ? DragUpdateDetails(globalPosition: Offset.zero)
-          : null,
-    ).dispatch(scrollable.context);
-  }
 
   testWidgets('a category opens its own page, and back returns', (
     tester,
@@ -81,7 +58,7 @@ void main() {
     expect(about, findsOneWidget);
   });
 
-  testWidgets('a fling settling past the top does not close Settings', (
+  testWidgets('Settings opens as a page, and back returns to the timeline', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -92,28 +69,13 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     expect(find.byType(SettingsSheet), findsOneWidget);
+    // A page has a way back, where the sheet had a close button.
+    expect(find.byType(BackButton), findsOneWidget);
+    expect(find.byIcon(Icons.close), findsNothing);
 
-    // dragDetails: null — a ballistic simulation settling past the
-    // boundary, not a finger on the glass.
-    dispatchOverscroll(tester, fromDrag: false);
+    await tester.pageBack();
     await tester.pumpAndSettle();
-
-    expect(find.byType(SettingsSheet), findsOneWidget);
-  });
-
-  testWidgets('a real drag past the top closes Settings', (tester) async {
-    await tester.pumpWidget(
-      NexApp(services: services, preferences: preferences),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
-    expect(find.byType(SettingsSheet), findsOneWidget);
-
-    dispatchOverscroll(tester, fromDrag: true);
-    await tester.pumpAndSettle();
-
     expect(find.byType(SettingsSheet), findsNothing);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
   });
 }

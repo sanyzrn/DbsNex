@@ -1,3 +1,5 @@
+import 'dart:ui' show PictureRecorder;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nex_ui/nex_ui.dart';
@@ -49,5 +51,23 @@ void main() {
     );
     await tester.tap(find.text('notes'));
     expect(tapped, isTrue);
+  });
+
+  testWidgets('every motif paints, in the lower half only', (tester) async {
+    for (final texture in NexThemeTexture.values) {
+      final recorder = PictureRecorder();
+      NexTexturePainter(
+        texture: texture,
+        ink: const Color(0x22000000),
+      ).paint(Canvas(recorder), const Size(390, 844));
+      recorder.endRecording().dispose();
+    }
+    expect(
+      NexTexturePainter(
+        texture: NexThemeTexture.leaves,
+        ink: const Color(0x22000000),
+      ).extent,
+      0.5,
+    );
   });
 }
