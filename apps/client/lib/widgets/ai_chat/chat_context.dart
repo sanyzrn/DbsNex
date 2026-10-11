@@ -9,15 +9,33 @@ part of '../ai_chat_sheet.dart';
 String? checklistContextLine(Note note) {
   final items = note.checklistItems;
   if (items.isEmpty) return note.content;
-  String said(Iterable<ChecklistItem> list) => [
-    for (final i in list) i.text.trim(),
-  ].where((t) => t.isNotEmpty).join('; ');
-  final open = said(items.where((i) => !i.done));
-  final done = said(items.where((i) => i.done));
+  // Each item keeps its place in the list as a number: `check` names an item
+  // by that index, and the two groups below are not in list order.
+  String said(bool done) => [
+    for (var i = 0; i < items.length; i++)
+      if (items[i].done == done && items[i].text.trim().isNotEmpty)
+        '#$i ${items[i].text.trim()}',
+  ].join('; ');
+  final open = said(false);
+  final done = said(true);
   return [
     if (open.isNotEmpty) 'still to do: $open',
     if (done.isNotEmpty) 'already done: $done',
   ].join('. ');
+}
+
+/// What a note's line says about it besides its words: pinned, its
+/// reminder, the day it was written. The assistant offered to pin what was
+/// pinned and could not answer "what did I write last week".
+@visibleForTesting
+String noteContextMarks(Note note, DateTime now) {
+  final written = note.createdAt.toLocal();
+  String two(int value) => value.toString().padLeft(2, '0');
+  return [
+    if (note.pinnedAt != null) 'pinned',
+    ?reminderContextLabel(note, now),
+    'written ${written.year}-${two(written.month)}-${two(written.day)}',
+  ].join('; ');
 }
 
 /// A note's reminder as words a model reads, or null when it has none still
@@ -41,6 +59,24 @@ String? reminderContextLabel(Note note, DateTime now) {
   return repeats
       ? 'reminder set: $at, repeats ${note.dueRepeat.wireName}'
       : 'reminder set: $at';
+}
+
+/// A recurring item as the assistant reads it: its name — what the
+/// commitment actions name it by — how often it comes round, and when next.
+@visibleForTesting
+String commitmentContextLine(NexCommitment item) {
+  final next = item.dueAt.toLocal();
+  String two(int value) => value.toString().padLeft(2, '0');
+  final unit = item.cadence.wireName;
+  final every = item.every == 1
+      ? 'every ${unit.substring(0, unit.length - 1)}'
+      : 'every ${item.every} $unit';
+  return [
+    '- ${item.title}: $every',
+    'next due ${next.year}-${two(next.month)}-${two(next.day)}'
+        'T${two(next.hour)}:${two(next.minute)}',
+    if (item.paused) 'paused',
+  ].join(', ');
 }
 
 extension _ChatContext on _AiChatSheetState {
@@ -162,11 +198,12 @@ extension _ChatContext on _AiChatSheetState {
     // Its tags, so "the ones tagged work" can be answered from what is
     // already in front of the model, and acted on without a search.
     final tags = [for (final tag in note.tags) '#${tag.name}'].join(' ');
-    // Its reminder, so "remind me about it" is not offered for a note that
-    // already has one, and "when is it?" is answered rather than guessed.
-    final reminder = reminderContextLabel(note, DateTime.now());
+    // Pinned, its reminder and its date, so "remind me about it" is not
+    // offered for a note that already has one and "when is it?" is answered
+    // rather than guessed.
+    final marks = noteContextMarks(note, DateTime.now());
     return '[${note.id}] ${note.type.wireName}${tags.isEmpty ? '' : ' $tags'}'
-        '${reminder == null ? '' : ' ($reminder)'}: $clipped';
+        ' ($marks): $clipped';
   }
 
   /// The text of the file attached to [note], for the kinds Nex can read.
@@ -278,7 +315,39 @@ extension _ChatContext on _AiChatSheetState {
     // could produce would be invented, which is the one thing the prompt
     // tells it not to do.
     canAct: _context.isNotEmpty,
+    currentSettings: _currentSettings,
   );
+
+  /// The settings [assistantSettableKeys] covers, as they are now, in the
+  /// values a `setting` action takes.
+  String get _currentSettings {
+    final p = widget.preferences;
+    String onOff(bool on) => on ? 'on' : 'off';
+    String two(int value) => value.toString().padLeft(2, '0');
+    final scale = p.uiScale;
+    return [
+      'theme ${p.themeMode.name}',
+      'language ${p.locale?.languageCode ?? 'system'}',
+      'ai_language ${p.aiOutputLanguage.wireName}',
+      'text_size ${scale < 0.95
+          ? 'small'
+          : scale < 1.1
+          ? 'default'
+          : scale < 1.25
+          ? 'large'
+          : 'larger'}',
+      'palette ${p.themePreset}',
+      'accent ${p.accentSeed ?? 'default'}',
+      'haptics ${onOff(p.haptics)}',
+      'show_greeting ${onOff(p.showGreeting)}',
+      'show_digest ${onOff(p.showDaySummary)}',
+      'show_search ${onOff(p.showSearchField)}',
+      'show_tags ${onOff(p.showTagRow)}',
+      'daily_nudge ${onOff(p.dailyNudge)}',
+      'daily_nudge_time ${two(p.dailyNudgeMinutes ~/ 60)}:'
+          '${two(p.dailyNudgeMinutes % 60)}',
+    ].join(', ');
+  }
 
   /// Finds the notes a question is about through the same ranked search the
   /// search field uses (W2.4) — words and meaning, best first — so the

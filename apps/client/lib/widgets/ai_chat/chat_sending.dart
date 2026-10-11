@@ -307,6 +307,46 @@ extension _ChatSending on _AiChatSheetState {
         }
         continue;
       }
+      if (lookup.kind == AssistantActionKind.tags) {
+        findings.writeln('Tags:');
+        try {
+          final tags = await widget.services.listTags();
+          findings.writeln(
+            tags.isEmpty
+                ? '(none)'
+                : [for (final tag in tags) '#${tag.name}'].join(' '),
+          );
+        } catch (_) {
+          findings.writeln('(could not be read)');
+        }
+        continue;
+      }
+      if (lookup.kind == AssistantActionKind.commitments) {
+        findings.writeln('Recurring:');
+        try {
+          final items = await widget.services.commitments();
+          if (items.isEmpty) findings.writeln('(none)');
+          for (final item in items) {
+            findings.writeln(commitmentContextLine(item));
+          }
+        } catch (_) {
+          findings.writeln('(could not be read)');
+        }
+        continue;
+      }
+      if (lookup.kind == AssistantActionKind.deleted) {
+        findings.writeln('Recently Deleted:');
+        try {
+          final gone = await widget.services.deletedNotes(limit: 30);
+          if (gone.isEmpty) findings.writeln('(empty)');
+          for (final note in gone) {
+            if (_contextLine(note) case final line?) findings.writeln(line);
+          }
+        } catch (_) {
+          findings.writeln('(could not be read)');
+        }
+        continue;
+      }
       // Every note with a tag, or in a thread: the set a summary of "my
       // work notes" or "the Trip thread" is about. Up to thirty, newest
       // first, each with more of its text than a search hit gets, because

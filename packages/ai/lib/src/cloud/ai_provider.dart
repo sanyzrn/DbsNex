@@ -497,6 +497,7 @@ class AiChatOptions {
     this.userIntroduction = '',
     this.gentle = false,
     this.now,
+    this.currentSettings = '',
   });
 
   final AiCreativity creativity;
@@ -541,6 +542,14 @@ class AiChatOptions {
   ///
   /// Injectable so the prompt is testable. Null means now.
   final DateTime? now;
+
+  /// The settings the assistant may change, as they stand — `theme: dark,
+  /// language: fa, …` — or empty.
+  ///
+  /// Without them "switch to dark mode" from someone already in dark mode,
+  /// or "make the text bigger" with no idea how big it is, could only be
+  /// guessed at.
+  final String currentSettings;
 
   /// The user's own standing instruction, in their words — "answer with a bit
   /// of humour", "always in Persian", "keep it to three lines".
@@ -1726,6 +1735,10 @@ class CloudAIAdapter implements AIAdapter {
         'It is now ${_nowLine(options.now ?? DateTime.now())}. Every date '
         'you send must be worked out from this, and must be in the future.',
       );
+      final settings = options.currentSettings.trim();
+      if (settings.isNotEmpty && !compactActions) {
+        parts.add('The settings you may change are now: $settings.');
+      }
     }
     // Said outright, because the rule above it would otherwise argue against
     // the picture in the same request. "Answer only from the user's notes" is

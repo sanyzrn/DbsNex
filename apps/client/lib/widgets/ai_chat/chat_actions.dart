@@ -138,7 +138,10 @@ extension _ChatActions on _AiChatSheetState {
             await _addToThread(action);
           case AssistantActionKind.search ||
               AssistantActionKind.threads ||
-              AssistantActionKind.cycle:
+              AssistantActionKind.cycle ||
+              AssistantActionKind.tags ||
+              AssistantActionKind.commitments ||
+              AssistantActionKind.deleted:
             break;
         }
       }

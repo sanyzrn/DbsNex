@@ -3368,6 +3368,15 @@ class AppLocalizationsFa extends AppLocalizations {
   String get chatLookedNotes => 'یادداشت‌های مرتبط را خواند';
 
   @override
+  String get chatLookedTags => 'برچسب‌ها را نگاه کرد';
+
+  @override
+  String get chatLookedCommitments => 'موارد تکرارشونده را نگاه کرد';
+
+  @override
+  String get chatLookedDeleted => 'در حذف‌شده‌های اخیر نگاه کرد';
+
+  @override
   String get searchModelTitle => 'جست‌وجوی روی دستگاه';
 
   @override
