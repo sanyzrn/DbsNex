@@ -34,9 +34,13 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.10
+
+- **Speaking to the assistant happens in the message bar.** The microphone no longer opens the voice-note sheet over the assistant: the message bar itself becomes the recording, with the conversation still in view — **✕** cancels, the time and your voice as it is heard in the middle, **↑** sends. The microphone and send share one button: the microphone while the box is empty.
+
 ## v1.99.9
 
-- **Talk to the assistant.** With Gemini or OpenAI as your provider, the microphone in the assistant now sends what you say as your message, so you can ask and get things done by voice. It records right in the message bar, with the conversation still in view: cancel on one side, send on the other; anything it would change still waits for your confirmation. To see the words first, turn on **Check what I said before sending** in the assistant's settings.
+- **Talk to the assistant.** With Gemini or OpenAI as your provider, the microphone in the assistant now sends what you say as your message, so you can ask and get things done by voice; anything it would change still waits for your confirmation. To see the words first, turn on **Check what I said before sending** in the assistant's settings.
 - **Voice, photos and files in private messages.** The **+** beside the box in Private saved messages attaches a voice message, a photo or a file, with what you typed as its caption. Attachments are encrypted on this phone and are not part of backups.
 - **The smart summary sees your reminders.** A reminder set more than a week ahead was invisible to it, so it could advise setting a reminder you had already set. It now knows about every reminder.
 - **The assistant knows more about your notes.** Every note it reads now says whether it is pinned, its reminder if it has one, the thread it is in, and the day it was written, so it no longer offers a reminder or a pin that is already there and can answer "what did I write last week". It can also look at your tags, your recurring items with when each is next due, and Recently Deleted, so "when is the insurance due?" and "bring back the note I deleted" work, and it knows your current settings before changing one. Ticking a checklist item by voice or chat now ticks the right one.
