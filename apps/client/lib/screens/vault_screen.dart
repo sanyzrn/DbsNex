@@ -9,6 +9,9 @@ import 'package:record/record.dart';
 import 'package:uuid/uuid.dart';
 import '../platform/file_opener.dart';
 import '../platform/vault_files.dart';
+import '../platform/sharing.dart';
+import '../widgets/photo_viewer.dart';
+import 'camera_sheet.dart';
 import '../widgets/recording_sheet.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/feature_label.dart';
@@ -32,6 +35,7 @@ import '../widgets/nex_banner.dart';
 part 'vault/vault_items.dart';
 part 'vault/vault_pages.dart';
 part 'vault/vault_attachments.dart';
+part 'vault/vault_messages.dart';
 
 class VaultScreen extends StatefulWidget {
   const VaultScreen({

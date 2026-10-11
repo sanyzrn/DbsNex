@@ -38,6 +38,8 @@ import 'local_ai_support.dart';
 import 'model_store.dart';
 import 'reminders.dart';
 
+part 'folder_backup.dart';
+
 /// Thrown when sync is invoked before the device has been paired with a server.
 class SyncNotConfigured implements Exception {
   const SyncNotConfigured();
@@ -1123,93 +1125,30 @@ class NexServices {
     return true;
   }
 
-  /// Backup is throttled and runs off the launch path, inside the worker
-  /// isolate. It used to be a synchronous full-file copy on every launch.
-  Future<void> _maybeBackupInBackground() async {
-    await Future<void>.delayed(const Duration(seconds: 5));
-    if (_closed) return;
+  Future<void> _maybeBackupInBackground() => Future<void>.delayed(
+    const Duration(seconds: 5),
+  ).then((_) => backupWhenDue());
+
+  /// Both automatic backups, each when its interval has passed — at launch
+  /// and on every return to the app. Launch alone left someone who reopens
+  /// Nex from recent apps without a backup for days.
+  Future<void> backupWhenDue() => _closed
+      ? Future<void>.value()
+      : _backingUp ??= _backUpBoth().whenComplete(() => _backingUp = null);
+
+  Future<void> _backUpBoth() async {
     await backupIfDue();
-    if (_closed) return;
-    await backupToFolderIfDue();
+    if (!_closed) await backupToFolderIfDue();
   }
+
+  Future<void>? _backingUp;
+  static const localBackupsKept = NexDatabase.backupRetention;
 
   /// How often the chosen folder gets a fresh copy (W1.6).
   static const backupFolderInterval = Duration(hours: 24);
 
   /// The Android side of the chosen folder. Replaced by tests.
   NexBackupFolderChannel backupFolder = const NexBackupFolderChannel();
-
-  /// Copies an encrypted complete backup into the folder the person chose,
-  /// at most once a day unless [force]d. Returns whether a copy landed.
-  ///
-  /// The complete-backup format, with the recovery code chosen when the
-  /// folder was: the library with its media, settings and service keys —
-  /// never the private vault, which only ever leaves in a backup made by
-  /// hand. A failure is recorded for Settings to show, and never thrown.
-  Future<bool> backupToFolderIfDue({bool force = false}) async {
-    final uri = _preferences.backupFolderUri;
-    if (uri == null) return false;
-    final last = _preferences.backupFolderLastAt;
-    if (!force &&
-        last != null &&
-        DateTime.now().difference(last) < backupFolderInterval) {
-      return false;
-    }
-    String? output;
-    try {
-      // Nothing to keep yet: the first copy belongs to the first note.
-      if (!force && (await worker.timeline(limit: 1)).isEmpty) return false;
-      final key = await _preferences.backupFolderKey();
-      if (key == null) {
-        await _preferences.markBackupFolderFailed(NexBackupFolderFailure.code);
-        return false;
-      }
-      if (!await backupFolder.reachable(uri)) {
-        await _preferences.markBackupFolderFailed(
-          NexBackupFolderFailure.access,
-        );
-        return false;
-      }
-      try {
-        output = await exportFullBackup(key, includeModel: false);
-      } catch (error) {
-        unawaited(noteDiagnostic('folder backup: ${_why(error)}'));
-        await _preferences.markBackupFolderFailed(
-          NexBackupFolderFailure.backup,
-          detail: _why(error),
-        );
-        return false;
-      }
-      final problem = await backupFolder.copy(
-        uri,
-        output,
-        nexAutoBackupName(DateTime.now()),
-      );
-      if (problem == null) {
-        await _preferences.markBackupFolderCopied();
-        return true;
-      }
-      unawaited(noteDiagnostic('folder backup copy: $problem'));
-      await _preferences.markBackupFolderFailed(
-        NexBackupFolderFailure.write,
-        detail: problem,
-      );
-      return false;
-    } catch (error) {
-      unawaited(noteDiagnostic('folder backup failed: ${_why(error)}'));
-      await _preferences.markBackupFolderFailed(
-        NexBackupFolderFailure.backup,
-        detail: _why(error),
-      );
-      return false;
-    } finally {
-      if (output != null) {
-        try {
-          await File(output).delete();
-        } catch (_) {}
-      }
-    }
-  }
 
   /// What went wrong, short enough to show: the kind of error and, for the
   /// ones Nex throws itself, its own fixed wording ("Unsafe media blob") —
@@ -1266,21 +1205,35 @@ class NexServices {
     return worker.exportArchive(outputPath: out, mediaRoot: mediaDir);
   }
 
+  // Static: a closure over `this` here would be carried into the isolate
+  // below, and the preferences it reaches cannot be sent.
+  static List<File> _newestBackups(String dir) =>
+      Directory(dir)
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.nexbak'))
+          .toList()
+        ..sort((a, b) => b.path.compareTo(a.path));
+
   Future<String> exportFullBackup(
     String key, {
     required bool includeModel,
     bool includeVault = false,
+    bool reuseFresh = false,
   }) async {
     final settings = _preferences.backupSettings();
     if (includeVault) settings['vault'] = await VaultStore().backup();
-    await worker.backup(backupDir, mediaDir: mediaDir);
-    final backups =
-        Directory(backupDir)
-            .listSync()
-            .whereType<File>()
-            .where((f) => f.path.endsWith('.nexbak'))
-            .toList()
-          ..sort((a, b) => b.path.compareTo(a.path));
+    // The folder's copy reuses a restore point made moments ago rather than
+    // adding one: with five kept, a second point a day pushed history out.
+    final fresh = _newestBackups(backupDir).firstOrNull;
+    if (!reuseFresh ||
+        fresh == null ||
+        DateTime.now().difference(fresh.lastModifiedSync()) >
+            const Duration(minutes: 5)) {
+      await worker.backup(backupDir, mediaDir: mediaDir);
+      await _backupPolicy.markDone();
+    }
+    final backups = _newestBackups(backupDir);
     final library = await portableBackup(backups.first);
     final cache = await getTemporaryDirectory();
     final output = p.join(

@@ -156,14 +156,7 @@ extension _TimelineCapture on TimelineScreenState {
   /// A photo from Nex's own camera panel, or from the library. The phone's
   /// camera app is the fallback when the panel cannot open a camera.
   Future<XFile?> _pickPhoto(ImageSource source) async {
-    if (source == ImageSource.camera &&
-        (Platform.isAndroid || Platform.isIOS)) {
-      try {
-        return await showNexCamera(context);
-      } on NexCameraUnavailable {
-        if (!mounted) return null;
-      }
-    }
+    if (source == ImageSource.camera) return nexTakePhoto(context);
     return ImagePicker().pickImage(source: source);
   }
 

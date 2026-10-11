@@ -19,14 +19,19 @@ import '../restart_scope.dart';
 import '../widgets/nex_dialog.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/recovery_code.dart';
+import '../widgets/settings_group.dart';
+
+part 'backup/backup_sections.dart';
 
 /// Everything about getting the library out of this device, and back in.
 ///
-/// These four things used to be four rows in the settings sheet with nothing
-/// saying what any of them did, and two of them did not really work: Export
-/// wrote a zip to a temp path nobody on a phone could reach, and there was no
-/// way at all to read an export back — which made it a one-way write and left
-/// the automatic backup, stored on the same device, as the only real copy.
+/// Laid out by what a person wants rather than by file format: first whether
+/// they are backed up, with one button to back up now; then what happens on
+/// its own; then the restore points on this phone; then the files to keep a
+/// copy or move to a new phone. It used to be six blocks of paragraph and
+/// button, two "Export and share" and two "Choose a file", for three formats
+/// nobody should have to tell apart — the explanations now live in the
+/// dialogs and sheets where each choice is made.
 class BackupScreen extends StatefulWidget {
   const BackupScreen({
     super.key,
@@ -298,90 +303,6 @@ class _BackupScreenState extends State<BackupScreen> {
     };
   }
 
-  Widget _folderSection(AppLocalizations l10n, ThemeData theme) {
-    final uri = widget.preferences.backupFolderUri;
-    final name = widget.preferences.backupFolderName;
-    final last = widget.preferences.backupFolderLastAt;
-    final failed = widget.preferences.backupFolderFailedAt;
-    final folder = name.isEmpty ? l10n.backupFolderTitle : name;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _Explained(
-          icon: Icons.drive_folder_upload_outlined,
-          title: l10n.backupFolderTitle,
-          body: l10n.backupFolderExplained,
-          action: l10n.backupFolderChoose,
-          onPressed: _busy ? null : () => unawaited(_chooseFolder()),
-        ),
-        if (uri != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              NexSpacing.lg,
-              0,
-              NexSpacing.lg,
-              NexSpacing.md,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  last == null
-                      ? l10n.backupFolderNever(folder)
-                      : l10n.backupFolderStatus(
-                          folder,
-                          nexDisplayDate(
-                            last,
-                            solar: widget.services.solarCalendar,
-                            persian:
-                                Localizations.localeOf(context).languageCode ==
-                                'fa',
-                            time: true,
-                          ),
-                        ),
-                  style: theme.textTheme.bodyMedium,
-                ),
-                if (failed != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: NexSpacing.xs),
-                    child: Text(
-                      _failure(l10n, widget.preferences.backupFolderFailure),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.error,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: NexSpacing.sm),
-                Wrap(
-                  spacing: NexSpacing.sm,
-                  runSpacing: NexSpacing.xs,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: _busy
-                          ? null
-                          : () => unawaited(_copyToFolderNow()),
-                      icon: const Icon(Icons.sync),
-                      label: Text(l10n.backupFolderCopyNow),
-                    ),
-                    TextButton(
-                      onPressed: _busy
-                          ? null
-                          : () => unawaited(_showFolderKey()),
-                      child: Text(l10n.backupFolderShowKey),
-                    ),
-                    TextButton(
-                      onPressed: _busy ? null : () => unawaited(_stopFolder()),
-                      child: Text(l10n.backupFolderStop),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
   Future<String?> _askRecoveryKey() async {
     final controller = TextEditingController();
     final l10n = AppLocalizations.of(context);
@@ -415,17 +336,6 @@ class _BackupScreenState extends State<BackupScreen> {
     }
   }
 
-  Future<void> _backupNow() => _guard(() async {
-    final l10n = AppLocalizations.of(context);
-    try {
-      await widget.services.backupNow();
-      await _load();
-      _say(l10n.backupDone);
-    } catch (error) {
-      _say('${l10n.backupFailed} (${NexServices.describeFailure(error)})');
-    }
-  });
-
   Future<void> _export() => _guard(() async {
     final l10n = AppLocalizations.of(context);
     try {
@@ -443,17 +353,11 @@ class _BackupScreenState extends State<BackupScreen> {
     }
   });
 
-  Future<void> _import() => _guard(() async {
+  Future<void> _import(String path) => _guard(() async {
     final l10n = AppLocalizations.of(context);
-    final file = await openFile(
-      acceptedTypeGroups: const [
-        XTypeGroup(label: 'Nex export', extensions: ['zip']),
-      ],
-    );
-    if (file == null) return;
     try {
-      final result = await widget.services.importArchive(file.path);
-      await discardPickedCopy(file.path, await getTemporaryDirectory());
+      final result = await widget.services.importArchive(path);
+      await discardPickedCopy(path, await getTemporaryDirectory());
       // Said out loud, because the alternative is a silent false promise.
       //
       // An import writes its notes as already-synced — the same call the
@@ -496,24 +400,6 @@ class _BackupScreenState extends State<BackupScreen> {
       }
     }
   });
-
-  Future<void> _chooseBackup() async {
-    final file = await openFile(
-      acceptedTypeGroups: const [
-        XTypeGroup(
-          label: 'Nex backup',
-          extensions: ['nexbak', 'sqlite', 'nexfull'],
-        ),
-      ],
-    );
-    if (file == null) return;
-    try {
-      if (mounted) await _restore(File(file.path));
-    } finally {
-      // A whole library, unencrypted, in the picker's copy (SEC-01).
-      await discardPickedCopy(file.path, await getTemporaryDirectory());
-    }
-  }
 
   Future<void> _deleteBackup(File backup) async {
     final l10n = AppLocalizations.of(context);
@@ -616,134 +502,159 @@ class _BackupScreenState extends State<BackupScreen> {
     }
   }
 
+  /// The one primary action: a restore point on this phone and, when a
+  /// folder is set, a copy there too — what "back up" means to a person.
+  Future<void> _backUpEverywhere() => _guard(() async {
+    final l10n = AppLocalizations.of(context);
+    try {
+      await widget.services.backupNow();
+      await _load();
+    } catch (error) {
+      _say('${l10n.backupFailed} (${NexServices.describeFailure(error)})');
+      return;
+    }
+    if (widget.preferences.backupFolderUri == null) {
+      _say(l10n.backupDone);
+      return;
+    }
+    final copied = await widget.services.backupToFolderIfDue(force: true);
+    _say(copied ? l10n.backupDone : l10n.backupFolderCopyFailed);
+  });
+
+  /// One picker for every file Nex reads back: a complete backup, a library
+  /// backup, or an export. Which one it is decides what happens to it.
+  Future<void> _restoreFromFile() async {
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(
+          label: 'Nex',
+          extensions: ['nexfull', 'nexbak', 'sqlite', 'zip'],
+        ),
+      ],
+    );
+    if (file == null) return;
+    if (file.path.toLowerCase().endsWith('.zip')) {
+      await _import(file.path);
+      return;
+    }
+    try {
+      if (mounted) await _restore(File(file.path));
+    } finally {
+      // A whole library, unencrypted, in the picker's copy (SEC-01).
+      await discardPickedCopy(file.path, await getTemporaryDirectory());
+    }
+  }
+
+  bool _showAll = false;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final backups = _backups;
+    final shown = backups == null || _showAll || backups.length <= 3
+        ? backups
+        : backups.take(3).toList();
     return PopScope(
       canPop: !_busy,
       child: Scaffold(
-        appBar: AppBar(title: Text(l10n.dataAndBackup)),
-        body: ListView(
-          padding: EdgeInsets.only(
-            bottom: NexSpacing.xl + nexBottomInset(context),
+        appBar: AppBar(title: Text(l10n.exportTitle)),
+        body: ListenableBuilder(
+          listenable: widget.preferences,
+          builder: (context, _) => ListView(
+            padding: EdgeInsets.fromLTRB(
+              NexSpacing.md,
+              NexSpacing.sm,
+              NexSpacing.md,
+              NexSpacing.xl + nexBottomInset(context),
+            ),
+            children: [
+              _status(l10n, theme),
+              const SizedBox(height: NexSpacing.lg),
+              NexSettingsGroup(
+                title: l10n.backupAutoGroup,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.phone_android_outlined),
+                    title: Text(l10n.backupOnPhone),
+                    subtitle: Text(
+                      l10n.backupOnPhoneSub(NexServices.localBackupsKept),
+                    ),
+                  ),
+                  if (widget.services.backupFolder.supported)
+                    ListTile(
+                      leading: const Icon(Icons.drive_folder_upload_outlined),
+                      title: Text(l10n.backupFolderTitle),
+                      subtitle: _folderLine(l10n, theme),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: _busy ? null : () => unawaited(_openFolder()),
+                    ),
+                ],
+              ),
+              NexSettingsGroup(
+                title: l10n.backupPointsGroup,
+                children: [
+                  if (shown == null)
+                    const Padding(
+                      padding: EdgeInsets.all(NexSpacing.md),
+                      child: NexSkeleton(height: 16),
+                    )
+                  else if (shown.isEmpty)
+                    ListTile(title: Text(l10n.backupCount(0)))
+                  else ...[
+                    for (final backup in shown)
+                      ListTile(
+                        leading: Icon(
+                          _beforeRestore(backup)
+                              ? Icons.restore_outlined
+                              : Icons.history,
+                        ),
+                        // Every backup is offered, not only the newest: the
+                        // newest one is also the most likely to contain a
+                        // mistake just made.
+                        title: Text(_stamp(backup)),
+                        subtitle: Text(_detail(l10n, backup)),
+                        trailing: const Icon(Icons.more_horiz),
+                        onTap: _busy
+                            ? null
+                            : () => unawaited(_openBackup(backup)),
+                      ),
+                    if (shown.length < backups!.length)
+                      ListTile(
+                        title: Text(
+                          l10n.backupShowAll(backups.length),
+                          style: TextStyle(color: theme.colorScheme.primary),
+                        ),
+                        onTap: () => setState(() => _showAll = true),
+                      ),
+                  ],
+                ],
+              ),
+              NexSettingsGroup(
+                title: l10n.backupManualGroup,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.enhanced_encryption_outlined),
+                    title: Text(l10n.fullBackupTitle),
+                    subtitle: Text(l10n.fullBackupSub),
+                    onTap: _busy ? null : () => unawaited(_exportFull()),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.ios_share_outlined),
+                    title: Text(l10n.exportNotes),
+                    subtitle: Text(l10n.exportSub),
+                    onTap: _busy ? null : () => unawaited(_export()),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.file_open_outlined),
+                    title: Text(l10n.restoreFromFile),
+                    subtitle: Text(l10n.restoreFromFileSub),
+                    onTap: _busy ? null : () => unawaited(_restoreFromFile()),
+                  ),
+                ],
+              ),
+            ],
           ),
-          children: [
-            if (_busy) const LinearProgressIndicator(minHeight: 2),
-            _Explained(
-              icon: Icons.enhanced_encryption_outlined,
-              title: l10n.fullBackupTitle,
-              body: l10n.fullBackupPrivateHint,
-              action: l10n.exportAndShare,
-              onPressed: _busy ? null : () => unawaited(_exportFull()),
-            ),
-            if (widget.services.backupFolder.supported)
-              ListenableBuilder(
-                listenable: widget.preferences,
-                builder: (context, _) => _folderSection(l10n, theme),
-              ),
-            _Heading(l10n.exportTitle),
-            _Explained(
-              icon: Icons.ios_share_outlined,
-              title: l10n.export,
-              body: l10n.exportExplained,
-              action: l10n.exportAndShare,
-              onPressed: _busy ? null : () => unawaited(_export()),
-            ),
-            _Explained(
-              icon: Icons.file_download_outlined,
-              title: l10n.importTitle,
-              body: l10n.importExplained,
-              action: l10n.chooseFile,
-              onPressed: _busy ? null : () => unawaited(_import()),
-            ),
-            const Divider(height: NexSpacing.xl),
-            _Heading(l10n.localBackupsTitle),
-            _Explained(
-              icon: Icons.restore_page_outlined,
-              title: l10n.restoreBackup,
-              body: l10n.fullBackupExplained,
-              action: l10n.chooseFile,
-              onPressed: _busy ? null : () => unawaited(_chooseBackup()),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                NexSpacing.lg,
-                0,
-                NexSpacing.lg,
-                NexSpacing.md,
-              ),
-              child: Text(
-                l10n.localBackupsExplained,
-                style: theme.textTheme.bodyMedium,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: OutlinedButton.icon(
-                  onPressed: _busy ? null : () => unawaited(_backupNow()),
-                  icon: const Icon(Icons.backup_outlined),
-                  label: Text(l10n.backupNow),
-                ),
-              ),
-            ),
-            const SizedBox(height: NexSpacing.md),
-            if (backups == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-                child: NexSkeleton(height: 16),
-              )
-            else if (backups.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-                child: Text(
-                  l10n.backupCount(0),
-                  style: theme.textTheme.bodySmall,
-                ),
-              )
-            else
-              for (final backup in backups)
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: NexSpacing.lg,
-                  ),
-                  leading: const Icon(Icons.history),
-                  // Every backup is offered, not only the newest: the newest one
-                  // is also the most likely to contain a mistake just made.
-                  title: Text(_stamp(backup)),
-                  subtitle: Text(
-                    nexFormatBytes(_metadata[backup.path]?.size ?? 0),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: l10n.exportAndShare,
-                        icon: const Icon(Icons.ios_share_outlined),
-                        onPressed: _busy
-                            ? null
-                            : () => unawaited(_shareBackup(backup)),
-                      ),
-                      IconButton(
-                        tooltip: l10n.deleteBackup,
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: _busy
-                            ? null
-                            : () => unawaited(_deleteBackup(backup)),
-                      ),
-                      TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () => unawaited(_restore(backup)),
-                        child: Text(l10n.restore),
-                      ),
-                    ],
-                  ),
-                ),
-          ],
         ),
       ),
     );
@@ -758,86 +669,6 @@ class _BackupScreenState extends State<BackupScreen> {
       solar: widget.preferences.solarCalendar,
       persian: Localizations.localeOf(context).languageCode == 'fa',
       time: true,
-    );
-  }
-}
-
-class _Heading extends StatelessWidget {
-  const _Heading(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(
-      NexSpacing.lg,
-      NexSpacing.lg,
-      NexSpacing.lg,
-      NexSpacing.sm,
-    ),
-    child: Text(label, style: Theme.of(context).textTheme.bodySmall),
-  );
-}
-
-/// A thing you can do, with a sentence saying what it does.
-///
-/// The sentence is the point of this screen: "Export" on its own does not tell
-/// anyone what comes out, where it goes, or whether it can be read back.
-class _Explained extends StatelessWidget {
-  const _Explained({
-    required this.icon,
-    required this.title,
-    required this.body,
-    required this.action,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-  final String action;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        NexSpacing.lg,
-        NexSpacing.sm,
-        NexSpacing.lg,
-        NexSpacing.md,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsetsDirectional.only(
-              top: 2,
-              end: NexSpacing.md,
-            ),
-            child: Icon(icon, color: theme.colorScheme.secondary),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: theme.textTheme.titleMedium),
-                const SizedBox(height: NexSpacing.xs),
-                Text(body, style: theme.textTheme.bodyMedium),
-                const SizedBox(height: NexSpacing.sm),
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: FilledButton.tonal(
-                    onPressed: onPressed,
-                    child: Text(action),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

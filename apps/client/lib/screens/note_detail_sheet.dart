@@ -33,6 +33,7 @@ import '../platform/reminders.dart';
 import '../platform/video_preview.dart';
 import '../widgets/checklist_capture_sheet.dart';
 import '../widgets/note_editor_sheet.dart';
+import '../widgets/photo_viewer.dart';
 import '../widgets/audio_waveform.dart';
 import '../widgets/nex_banner.dart';
 import '../widgets/reminder_picker.dart';
@@ -379,7 +380,7 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                             Navigator.of(context).push(
                               NexPageRoute<void>(
                                 builder: (_) =>
-                                    _FullScreenPhoto(path: note.mediaUri!),
+                                    NexPhotoViewer.file(note.mediaUri!),
                                 swipeBackEnabled: false,
                               ),
                             );

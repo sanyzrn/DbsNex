@@ -34,6 +34,15 @@ Working convention:
 
 ## Unreleased
 
+## v1.99.10
+
+- **Speaking to the assistant happens in the message bar.** The microphone no longer opens the voice-note sheet over the assistant: the message bar itself becomes the recording, with the conversation still in view — **✕** cancels, the time and your voice as it is heard in the middle, **↑** sends. The microphone and send share one button: the microphone while the box is empty.
+- **Backup & restore, simpler.** The page (formerly "Taking it with you") now starts with whether you are backed up and one **Back up now**; then what happens automatically, the restore points on this phone (tap one to restore, share or delete it), and three plain choices: a complete backup, an export of your notes, and one **Restore or import from a file** for every kind of file.
+- **Automatic backups no longer wait for a restart.** They ran only when Nex was started from scratch, and Android often keeps it running in the background for days — so a day could pass with no backup. They now also run whenever you come back to Nex. The daily folder copy no longer adds a second restore point on the phone, which pushed older ones out.
+- **Private saved messages, redesigned.** Messages have room between them, are grouped by day and show their time, and the box and its buttons no longer touch. A photo opens full screen with zoom, as on the home screen; a file opens with a tap or goes to another app with its share icon; a voice message shows how far it has played. Tap a message for copy, open, share or delete.
+- **Everything about a bank card, on the card.** The number, name, CVV2 and expiry on its face, and the IBAN, account number, bank and notes beneath it on the same card — each copied with a tap, nothing listed twice.
+- **Nex's own camera in more places.** A receipt for a Recurring item and a photo in Private saved messages are now taken with the same camera panel as a photo note — and in private messages the photo goes straight into the vault, never into your notes.
+
 ## v1.99.9
 
 - **Talk to the assistant.** With Gemini or OpenAI as your provider, the microphone in the assistant now sends what you say as your message, so you can ask and get things done by voice; anything it would change still waits for your confirmation. To see the words first, turn on **Check what I said before sending** in the assistant's settings.

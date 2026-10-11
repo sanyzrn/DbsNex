@@ -233,6 +233,8 @@ class _NexAppState extends State<NexApp> with WidgetsBindingObserver {
       unawaited(widget.preferences.setAppLockLeftAt(DateTime.now()));
       if (_locked) unawaited(_unlock());
       unawaited(_updates.maybeCheck());
+      // Each is throttled to its own interval; most returns do nothing.
+      unawaited(widget.services.backupWhenDue());
       // Android stops the process shortly after the app leaves the screen,
       // and an installer being fetched stops with it. This is the moment it
       // can carry on — by range, from where it got to, so the wait is the

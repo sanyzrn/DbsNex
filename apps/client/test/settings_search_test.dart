@@ -89,7 +89,7 @@ void main() {
     addTearDown(tester.view.resetViewInsets);
     await tester.enterText(searchField(), 'backup');
     await tester.pumpAndSettle();
-    final row = find.text('Taking it with you');
+    final row = find.text('Backup & restore');
     expect(row, findsWidgets);
     await tester.ensureVisible(row.first);
     await tester.pumpAndSettle();

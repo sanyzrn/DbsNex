@@ -109,11 +109,8 @@ void main() {
   testWidgets('a local backup can be deleted, with confirmation', (
     tester,
   ) async {
-    // The export/import explanations above the backup list are tall enough
-    // that the row is below the fold on the default test surface — and a
-    // ListView only mounts what is within (or near) its viewport, so the
-    // delete button would not exist in the tree at all without the room to
-    // show it.
+    // Room for the whole page: a ListView only mounts what is within (or
+    // near) its viewport.
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -130,18 +127,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.delete_outline), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.delete_outline));
-    await tester.pumpAndSettle();
+    // A restore point opens its own sheet: restore, share, or delete.
+    Future<void> openDelete() async {
+      await tester.tap(find.byIcon(Icons.more_horiz));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete backup'));
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.byIcon(Icons.more_horiz), findsOneWidget);
+    await openDelete();
 
     // A confirmation, not an immediate delete — the file cannot come back.
-    expect(find.text('Delete backup'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(await services.listBackups(), hasLength(1));
 
-    await tester.tap(find.byIcon(Icons.delete_outline));
-    await tester.pumpAndSettle();
+    await openDelete();
     await tester.tap(find.text('Delete'));
     await tester.pump();
     // Deleting the manifest now also collects unreferenced blobs in an isolate.
@@ -149,7 +152,7 @@ void main() {
     for (
       var attempt = 0;
       attempt < 100 &&
-          (find.byIcon(Icons.delete_outline).evaluate().isNotEmpty ||
+          (find.byIcon(Icons.more_horiz).evaluate().isNotEmpty ||
               find.byType(LinearProgressIndicator).evaluate().isNotEmpty);
       attempt++
     ) {
@@ -161,7 +164,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(await services.listBackups(), isEmpty);
-    expect(find.byIcon(Icons.delete_outline), findsNothing);
+    expect(find.byIcon(Icons.more_horiz), findsNothing);
+    expect(find.text('No backup yet'), findsOneWidget);
   });
 
   group('the reason a failure gives the person reading the banner', () {

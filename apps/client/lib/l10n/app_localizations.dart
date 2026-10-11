@@ -2408,10 +2408,106 @@ abstract class AppLocalizations {
   /// **'The world\'s asleep, {name}'**
   String greetingNightC(String name);
 
+  /// No description provided for @backupStatusNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No backup yet'**
+  String get backupStatusNone;
+
+  /// No description provided for @backupStatusLast.
+  ///
+  /// In en, this message translates to:
+  /// **'Last backup {when}'**
+  String backupStatusLast(String when);
+
+  /// No description provided for @backupAutoGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get backupAutoGroup;
+
+  /// No description provided for @backupOnPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'On this phone'**
+  String get backupOnPhone;
+
+  /// No description provided for @backupOnPhoneSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 12 hours while you use Nex · the last {count} are kept'**
+  String backupOnPhoneSub(int count);
+
+  /// No description provided for @backupFolderOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off · a copy that survives losing the phone'**
+  String get backupFolderOff;
+
+  /// No description provided for @backupFolderChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change folder'**
+  String get backupFolderChange;
+
+  /// No description provided for @backupPointsGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore points on this phone'**
+  String get backupPointsGroup;
+
+  /// No description provided for @backupBeforeRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved just before a restore'**
+  String get backupBeforeRestore;
+
+  /// No description provided for @backupShowAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all ({count})'**
+  String backupShowAll(int count);
+
+  /// No description provided for @backupManualGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep a copy or move to a new phone'**
+  String get backupManualGroup;
+
+  /// No description provided for @fullBackupSub.
+  ///
+  /// In en, this message translates to:
+  /// **'One encrypted file with your settings and keys — for a new phone'**
+  String get fullBackupSub;
+
+  /// No description provided for @exportNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Export notes'**
+  String get exportNotes;
+
+  /// No description provided for @exportSub.
+  ///
+  /// In en, this message translates to:
+  /// **'A ZIP of Markdown and JSON, readable without Nex'**
+  String get exportSub;
+
+  /// No description provided for @restoreFromFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore or import from a file'**
+  String get restoreFromFile;
+
+  /// No description provided for @restoreFromFileSub.
+  ///
+  /// In en, this message translates to:
+  /// **'A complete backup, a backup, or a Nex export (.zip)'**
+  String get restoreFromFileSub;
+
   /// Heading above export and import
   ///
   /// In en, this message translates to:
-  /// **'Taking it with you'**
+  /// **'Backup & restore'**
   String get exportTitle;
 
   /// Says what an export actually contains
@@ -3595,6 +3691,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reading your recording…'**
   String get chatTranscribing;
+
+  /// No description provided for @chatVoiceDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get chatVoiceDone;
 
   /// Shown when a chat recording produced no text
   ///
@@ -7286,6 +7388,30 @@ abstract class AppLocalizations {
   /// **'Reminders and notifications'**
   String get settingsRemindersAndNotifications;
 
+  /// No description provided for @vaultMessagesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see these. Write yourself a note, or tap + to keep a voice message, a photo or a file.'**
+  String get vaultMessagesEmpty;
+
+  /// No description provided for @vaultMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a private message'**
+  String get vaultMessageHint;
+
+  /// No description provided for @vaultShareLeaves.
+  ///
+  /// In en, this message translates to:
+  /// **'A copy leaves the vault for the app you choose'**
+  String get vaultShareLeaves;
+
+  /// No description provided for @vaultOpenPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Open photo'**
+  String get vaultOpenPhoto;
+
   /// No description provided for @vaultAttach.
   ///
   /// In en, this message translates to:
@@ -7298,10 +7424,16 @@ abstract class AppLocalizations {
   /// **'Voice message'**
   String get vaultAttachVoice;
 
+  /// No description provided for @vaultAttachCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get vaultAttachCamera;
+
   /// No description provided for @vaultAttachPhoto.
   ///
   /// In en, this message translates to:
-  /// **'Photo'**
+  /// **'Photo from the gallery'**
   String get vaultAttachPhoto;
 
   /// No description provided for @vaultAttachFile.

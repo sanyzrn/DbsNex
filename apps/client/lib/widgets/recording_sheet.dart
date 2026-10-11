@@ -214,6 +214,62 @@ class _RecordingDotState extends State<_RecordingDot>
   );
 }
 
+/// The waveform alone, live from [recorder] — for a recording that happens
+/// in place rather than in [RecordingSheet], such as asking the assistant.
+class NexLiveWaveform extends StatefulWidget {
+  const NexLiveWaveform({
+    super.key,
+    required this.recorder,
+    required this.color,
+    this.bars = 32,
+  });
+
+  final AudioRecorder recorder;
+  final Color color;
+  final int bars;
+
+  @override
+  State<NexLiveWaveform> createState() => _NexLiveWaveformState();
+}
+
+class _NexLiveWaveformState extends State<NexLiveWaveform> {
+  late final List<double> _levels = List<double>.filled(
+    widget.bars,
+    0.04,
+    growable: true,
+  );
+  StreamSubscription<Amplitude>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _sub = widget.recorder
+        .onAmplitudeChanged(const Duration(milliseconds: 60))
+        .listen((value) {
+          if (!mounted) return;
+          // As in [RecordingSheet]: dBFS to 0–1, squared for speech.
+          final normalized = ((value.current + 60) / 60).clamp(0.0, 1.0);
+          setState(() {
+            _levels
+              ..add(0.04 + 0.96 * (normalized * normalized))
+              ..removeAt(0);
+          });
+        });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+    painter: _WaveformPainter(levels: List.of(_levels), color: widget.color),
+    size: Size.infinite,
+  );
+}
+
 /// Draws the amplitude history as mirrored bars, newest at the right.
 class _WaveformPainter extends CustomPainter {
   const _WaveformPainter({required this.levels, required this.color});
