@@ -114,3 +114,35 @@ int nexPersianMonthDays(int year, int month) {
   ).difference(DateTime.utc(year + 621, 3, _marchDay(year))).inDays;
   return days - 336;
 }
+
+/// The Solar Hijri months, Farvardin first, as a Persian reader writes them.
+const nexPersianMonthNames = [
+  'فروردین',
+  'اردیبهشت',
+  'خرداد',
+  'تیر',
+  'مرداد',
+  'شهریور',
+  'مهر',
+  'آبان',
+  'آذر',
+  'دی',
+  'بهمن',
+  'اسفند',
+];
+
+/// The same months in Latin letters, for an English interface.
+const nexPersianMonthNamesLatin = [
+  'Farvardin',
+  'Ordibehesht',
+  'Khordad',
+  'Tir',
+  'Mordad',
+  'Shahrivar',
+  'Mehr',
+  'Aban',
+  'Azar',
+  'Dey',
+  'Bahman',
+  'Esfand',
+];

@@ -72,111 +72,168 @@ class AboutScreen extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: NexSpacing.lg),
-            child: OutlinedButton.icon(
+            child: FilledButton.tonalIcon(
               onPressed: () => UpdateSheet.show(context),
               icon: const Icon(Icons.system_update_outlined),
               label: Text(l10n.checkForUpdate),
             ),
           ),
-          const SizedBox(height: NexSpacing.md),
-          const Divider(),
-          _Heading(l10n.capabilities),
-          _Bullet(icon: Icons.bolt_outlined, text: l10n.capabilityCapture),
-          _Bullet(icon: Icons.search, text: l10n.capabilitySearch),
-          _Bullet(icon: Icons.wifi_off_outlined, text: l10n.capabilityOffline),
-          _Bullet(icon: Icons.ios_share_outlined, text: l10n.capabilityExport),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.business_outlined),
-            title: Text(l10n.madeBy),
-            subtitle: const Text('DbsStudio'),
+          const SizedBox(height: NexSpacing.lg),
+          // Three cards, as on every settings page: what Nex is, who makes
+          // it, and where your notes are and what happens to them.
+          _Group(
+            children: [
+              _Heading(l10n.capabilities),
+              _Bullet(icon: Icons.bolt_outlined, text: l10n.capabilityCapture),
+              _Bullet(icon: Icons.search, text: l10n.capabilitySearch),
+              _Bullet(
+                icon: Icons.wifi_off_outlined,
+                text: l10n.capabilityOffline,
+              ),
+              _Bullet(
+                icon: Icons.ios_share_outlined,
+                text: l10n.capabilityExport,
+              ),
+              const SizedBox(height: NexSpacing.sm),
+            ],
           ),
-          _LinkTile(
-            icon: Icons.language,
-            title: l10n.website,
-            subtitle: 'DbsStudio.ir',
-            url: _websiteUrl,
-            copiedLabel: l10n.copied,
-            copyTooltip: l10n.copy,
+          _Group(
+            divided: true,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.business_outlined),
+                title: Text(l10n.madeBy),
+                subtitle: const Text('DbsStudio'),
+              ),
+              _LinkTile(
+                icon: Icons.language,
+                title: l10n.website,
+                subtitle: 'DbsStudio.ir',
+                url: _websiteUrl,
+                copiedLabel: l10n.copied,
+                copyTooltip: l10n.copy,
+              ),
+              _LinkTile(
+                icon: Icons.auto_awesome_outlined,
+                title: nexLabel(
+                  context,
+                  'Nex home page — news, downloads and help',
+                  'صفحهٔ Nex — تازه‌ها، دانلود و راهنما',
+                ),
+                subtitle: 'DbsStudio.ir/nex',
+                url: _appPageUrl,
+                copiedLabel: l10n.copied,
+                copyTooltip: l10n.copy,
+              ),
+              ListTile(
+                leading: const Icon(Icons.feedback_outlined),
+                title: Text(l10n.sendFeedback),
+                subtitle: Text(l10n.sendFeedbackSubtitle),
+                onTap: () async {
+                  final service = FeedbackService(preferences: preferences);
+                  await FeedbackSheet.show(context, service: service);
+                  service.close();
+                },
+              ),
+            ],
           ),
-          _LinkTile(
-            icon: Icons.auto_awesome_outlined,
-            title: nexLabel(
-              context,
-              'Nex home page — news, downloads and help',
-              'صفحهٔ Nex — تازه‌ها، دانلود و راهنما',
-            ),
-            subtitle: 'DbsStudio.ir/nex',
-            url: _appPageUrl,
-            copiedLabel: l10n.copied,
-            copyTooltip: l10n.copy,
-          ),
-          ListTile(
-            leading: const Icon(Icons.feedback_outlined),
-            title: Text(l10n.sendFeedback),
-            subtitle: Text(l10n.sendFeedbackSubtitle),
-            onTap: () async {
-              final service = FeedbackService(preferences: preferences);
-              await FeedbackSheet.show(context, service: service);
-              service.close();
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.folder_outlined),
-            title: Text(l10n.localFirstTitle),
-            subtitle: Text(l10n.localFirstBody(services.dbPath)),
-            trailing: IconButton(
-              tooltip: l10n.copyPath,
-              onPressed: () =>
-                  Clipboard.setData(ClipboardData(text: services.dbPath)),
-              icon: const Icon(Icons.copy),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.notifications_off_outlined),
-            title: Text(l10n.silenceTitle),
-            subtitle: Text(l10n.silenceBody),
-          ),
-          ListTile(
-            leading: const Icon(Icons.lock_outline),
-            title: Text(l10n.privacyPolicy),
-            subtitle: Text(l10n.privacyBody),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => GuideScreen.show(context, privacy: true),
-          ),
-          ListTile(
-            leading: const Icon(Icons.bug_report_outlined),
-            title: Text(l10n.shareDiagnostics),
-            subtitle: Text(l10n.shareDiagnosticsBody),
-            onTap: () async {
-              final log = await NexCrashLog.open();
-              if (!log.file.existsSync()) {
-                if (!context.mounted) return;
-                nexShowBanner(context, message: l10n.noDiagnosticsYet);
-                return;
-              }
-              await log.file.writeAsString(
-                NexCrashLog.redact(await log.file.readAsString()),
-              );
-              await nexSendFileOut(
-                log.file.path,
-                suggestedName: 'nex-diagnostics.txt',
-                mimeType: 'text/plain',
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.article_outlined),
-            title: Text(l10n.openSourceLicenses),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => showLicensePage(
-              context: context,
-              applicationName: 'Nex',
-              applicationVersion: nexAppVersion,
-            ),
+          _Group(
+            divided: true,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.folder_outlined),
+                title: Text(l10n.localFirstTitle),
+                subtitle: Text(l10n.localFirstBody(services.dbPath)),
+                trailing: IconButton(
+                  tooltip: l10n.copyPath,
+                  onPressed: () =>
+                      Clipboard.setData(ClipboardData(text: services.dbPath)),
+                  icon: const Icon(Icons.copy),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.notifications_off_outlined),
+                title: Text(l10n.silenceTitle),
+                subtitle: Text(l10n.silenceBody),
+              ),
+              ListTile(
+                leading: const Icon(Icons.lock_outline),
+                title: Text(l10n.privacyPolicy),
+                subtitle: Text(l10n.privacyBody),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => GuideScreen.show(context, privacy: true),
+              ),
+              ListTile(
+                leading: const Icon(Icons.bug_report_outlined),
+                title: Text(l10n.shareDiagnostics),
+                subtitle: Text(l10n.shareDiagnosticsBody),
+                onTap: () async {
+                  final log = await NexCrashLog.open();
+                  if (!log.file.existsSync()) {
+                    if (!context.mounted) return;
+                    nexShowBanner(context, message: l10n.noDiagnosticsYet);
+                    return;
+                  }
+                  await log.file.writeAsString(
+                    NexCrashLog.redact(await log.file.readAsString()),
+                  );
+                  await nexSendFileOut(
+                    log.file.path,
+                    suggestedName: 'nex-diagnostics.txt',
+                    mimeType: 'text/plain',
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.article_outlined),
+                title: Text(l10n.openSourceLicenses),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => showLicensePage(
+                  context: context,
+                  applicationName: 'Nex',
+                  applicationVersion: nexAppVersion,
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A rounded card holding one group of the page, with hairlines between its
+/// rows when [divided].
+class _Group extends StatelessWidget {
+  const _Group({required this.children, this.divided = false});
+
+  final List<Widget> children;
+  final bool divided;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        NexSpacing.md,
+        0,
+        NexSpacing.md,
+        NexSpacing.sm,
+      ),
+      child: Material(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(NexRadius.lg),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (divided && i > 0)
+                Divider(height: 1, indent: 56, color: scheme.outlineVariant),
+              children[i],
+            ],
+          ],
+        ),
       ),
     );
   }

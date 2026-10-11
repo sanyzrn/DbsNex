@@ -4,6 +4,13 @@ import 'dart:ui' show BoxWidthStyle;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show DateFormat;
+import 'package:nex_core/nex_core.dart'
+    show
+        nexDigits,
+        nexPersianDate,
+        nexPersianMonthNames,
+        nexPersianMonthNamesLatin;
 import 'package:nex_ui/nex_ui.dart';
 import '../app_version.dart';
 import '../l10n/app_localizations.dart';
@@ -46,6 +53,8 @@ part 'settings/settings_profile.dart';
 part 'settings/settings_gestures.dart';
 part 'settings/settings_appearance.dart';
 part 'settings/settings_palettes.dart';
+part 'settings/settings_language.dart';
+part 'settings/settings_intelligence.dart';
 
 /// The v1 preference surface.
 ///
@@ -371,22 +380,20 @@ class SettingsSheet extends StatelessWidget {
               NexChoice(
                 value: 'system',
                 label: l10n.languageSystem,
-                preview: const NexScriptSample(
-                  icon: Icons.phone_iphone_outlined,
-                ),
+                preview: const _ScriptBadge(icon: Icons.phone_iphone_outlined),
               ),
-              // Each language in its own script: recognising your own
-              // alphabet does not require reading the language the app is
-              // currently in.
+              // Each language in its own script, with the way it reads:
+              // recognising your own alphabet does not require reading the
+              // language the app is currently in.
               const NexChoice(
                 value: 'en',
                 label: 'English',
-                preview: NexScriptSample(sample: 'Aa'),
+                preview: _ScriptBadge(sample: 'Aa', rtl: false),
               ),
               const NexChoice(
                 value: 'fa',
                 label: 'فارسی',
-                preview: NexScriptSample(sample: 'اَ'),
+                preview: _ScriptBadge(sample: 'فا', rtl: true),
               ),
             ],
           ),
@@ -403,12 +410,47 @@ class SettingsSheet extends StatelessWidget {
               NexChoice(
                 value: false,
                 label: l10n.calendarGregorian,
-                preview: const Icon(Icons.calendar_today_outlined),
+                preview: const _CalendarLeaf(solar: false),
               ),
               NexChoice(
                 value: true,
                 label: l10n.calendarPersian,
-                preview: const Icon(Icons.calendar_month_outlined),
+                preview: const _CalendarLeaf(solar: true),
+              ),
+            ],
+          ),
+        ),
+        _Searchable(
+          text: '${l10n.languagePreviewTitle} preview پیش‌نمایش',
+          child: _LanguagePreview(solar: preferences.solarCalendar),
+        ),
+        // The language the assistant, the smart summary and transcriptions
+        // answer in. It also sits in the Smart summary's own page; here is
+        // where somebody looking for "language" actually looks.
+        _Searchable(
+          text:
+              '${l10n.aiOutputLanguage} AI answer language زبان پاسخ هوش مصنوعی',
+          child: _InlineChoice<AiOutputLanguage>(
+            icon: Icons.g_translate_outlined,
+            title: l10n.aiOutputLanguage,
+            selected: preferences.aiOutputLanguage,
+            onSelected: (value) =>
+                unawaited(preferences.setAiOutputLanguage(value)),
+            choices: [
+              NexChoice(
+                value: AiOutputLanguage.auto,
+                label: l10n.aiOutputLanguageAuto,
+                preview: const _ScriptBadge(icon: Icons.auto_awesome),
+              ),
+              NexChoice(
+                value: AiOutputLanguage.english,
+                label: l10n.aiOutputLanguageEnglish,
+                preview: const _ScriptBadge(sample: 'Aa'),
+              ),
+              NexChoice(
+                value: AiOutputLanguage.persian,
+                label: l10n.aiOutputLanguagePersian,
+                preview: const _ScriptBadge(sample: 'فا'),
               ),
             ],
           ),
@@ -571,6 +613,13 @@ class SettingsSheet extends StatelessWidget {
           ? preferences.aiProvider.provider.label
           : l10n.intelligenceOff,
       children: [
+        _Searchable(
+          text: '${l10n.intelligence} AI هوش مصنوعی',
+          child: _IntelligenceGlance(
+            services: services,
+            preferences: preferences,
+          ),
+        ),
         _Row(
           icon: Icons.auto_awesome_outlined,
           title: l10n.intelligenceOpen,

@@ -265,6 +265,7 @@ class _ProfileAvatar extends StatelessWidget {
                             photo,
                             fit: BoxFit.cover,
                             gaplessPlayback: true,
+                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
                           )
                         : Center(
                             child: initials.isEmpty

@@ -129,7 +129,9 @@ class _Card<T> extends StatelessWidget {
               const SizedBox(height: NexSpacing.sm),
               Text(
                 choice.label,
-                maxLines: 1,
+                // Two lines rather than an ellipsis: "Match my notes" cut to
+                // "Match my n…" told nobody what the card did.
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -266,7 +268,15 @@ class NexScriptSample extends StatelessWidget {
           ? Icon(icon, size: 20, color: theme.colorScheme.onSurface)
           : Text(
               sample!,
-              style: theme.textTheme.titleMedium?.copyWith(height: 1),
+              // In its own script's face, whatever the interface is set in:
+              // a Persian sample drawn by the Latin font came out as a
+              // stray mark rather than a letter.
+              style: theme.textTheme.titleMedium?.copyWith(
+                height: 1,
+                fontFamily: RegExp(r'[\u0600-\u06FF]').hasMatch(sample!)
+                    ? nexPersianFont
+                    : nexLatinFont,
+              ),
             ),
     );
   }

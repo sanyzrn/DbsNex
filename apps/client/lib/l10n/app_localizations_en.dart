@@ -9,6 +9,32 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get toolsSectionPrivate => 'Private';
+
+  @override
+  String get toolsSectionEveryday => 'Everyday';
+
+  @override
+  String intelligenceStateOn(String provider) {
+    return 'On · $provider';
+  }
+
+  @override
+  String intelligenceAbilitiesOn(String count, String total) {
+    return '$count of $total abilities working';
+  }
+
+  @override
+  String get intelligenceStateOffShort => 'Nothing leaves this phone';
+
+  @override
+  String get languagePreviewTitle => 'How it will look';
+
+  @override
+  String get languagePreviewNote =>
+      'Call the landlord about the heating before Friday';
+
+  @override
   String get calendar => 'Calendar';
 
   @override

@@ -1,4 +1,13 @@
 {
+  "toolsSectionPrivate": "Private",
+  "toolsSectionEveryday": "Everyday",
+  "intelligenceStateOn": "On · {provider}",
+  "@intelligenceStateOn": {"placeholders": {"provider": {"type": "String"}}},
+  "intelligenceAbilitiesOn": "{count} of {total} abilities working",
+  "@intelligenceAbilitiesOn": {"placeholders": {"count": {"type": "String"}, "total": {"type": "String"}}},
+  "intelligenceStateOffShort": "Nothing leaves this phone",
+  "languagePreviewTitle": "How it will look",
+  "languagePreviewNote": "Call the landlord about the heating before Friday",
   "calendar": "Calendar",
   "calendarPersian": "Solar Hijri",
   "calendarGregorian": "Gregorian",

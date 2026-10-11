@@ -394,6 +394,11 @@ class _NoteDetailSheetState extends State<NoteDetailSheet> {
                               height: 220,
                               width: double.infinity,
                               cacheWidth: _imageCacheWidth(context),
+                              // A photo whose file has gone — deleted
+                              // underneath an open sheet — draws nothing
+                              // rather than reporting an error.
+                              errorBuilder: (_, _, _) =>
+                                  const SizedBox(height: 220),
                             ),
                           ),
                         ),

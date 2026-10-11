@@ -38,6 +38,11 @@ Working convention:
 
 - **Sharing no longer says "could not be stored" over a share that was saved.** An older share whose file could no longer be read stayed waiting in Nex and was tried again under every new share, so each one reported a failure while its note was already in the timeline. Only the share you just made is reported now, and one that keeps failing is let go after a few tries.
 - **The assistant's light leaves the way it came.** When the assistant closes, its border no longer vanishes at once: the ring of light runs back down both sides of the screen to the + button and goes out there in a soft pulse.
+- **Language & calendar, at a glance.** The calendar choice shows today's date on a little calendar leaf in each calendar, a preview card shows how a day heading and a note will look with your language and calendar, and the language AI answers in can be set here as well.
+- **Intelligence, redesigned.** Its page opens on whether it is on, with whom, and how many abilities are working; the six abilities are tiles you switch with one tap, greyed with the reason when your provider cannot do them; and "What left this device" sits next to the provider. The Intelligence category shows the same at a glance.
+- **Tools, on two shelves.** The private tools (passwords, bank cards, private messages) sit together under a lock, and Cycle, Scheduled and the password generator under Everyday; each tool has its own colour, so it is found at a glance.
+- **Tidier settings pages.** Home screen widget and About Nex are grouped into cards like the rest of Settings.
+- **Fixes.** "Persian" is shown in Persian letters on the language cards, longer choice names wrap instead of being cut off, and a photo whose file has gone no longer logs an error.
 
 ## v1.99.20
 

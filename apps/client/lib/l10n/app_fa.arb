@@ -1,4 +1,11 @@
 {
+  "toolsSectionPrivate": "خصوصی",
+  "toolsSectionEveryday": "روزمره",
+  "intelligenceStateOn": "روشن — {provider}",
+  "intelligenceAbilitiesOn": "{count} از {total} قابلیت فعال",
+  "intelligenceStateOffShort": "هیچ چیز از این گوشی بیرون نمی‌رود",
+  "languagePreviewTitle": "این‌طور دیده می‌شود",
+  "languagePreviewNote": "قبل از جمعه با صاحبخانه دربارهٔ شوفاژ تماس بگیرم",
   "calendar": "تقویم",
   "calendarPersian": "شمسی",
   "calendarGregorian": "میلادی",
