@@ -45,6 +45,7 @@ part 'settings/settings_rows.dart';
 part 'settings/settings_profile.dart';
 part 'settings/settings_gestures.dart';
 part 'settings/settings_appearance.dart';
+part 'settings/settings_palettes.dart';
 
 /// The v1 preference surface.
 ///

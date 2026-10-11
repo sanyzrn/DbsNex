@@ -2,16 +2,27 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// A faint motif along the bottom of the screen, for the themes that have
-/// one.
+/// A faint motif rising from the bottom of the screen, for every theme but
+/// the plain Nex one.
 ///
 /// Not a background pattern: those covered the whole page and were retired
 /// for whole-app themes. This is a detail of a theme — paper fibre on
-/// Paper, tile stars on Isfahan turquoise — kept to the lower part of the
-/// screen, fading out as it rises, and drawn at a few percent of the text
-/// colour, so it is felt more than seen and never sits behind the words at
-/// the top of the timeline.
-enum NexThemeTexture { none, fibre, girih, contours, waves, stars }
+/// Paper, tile stars on Isfahan turquoise, falling leaves on Autumn — kept to
+/// the lower half of the screen, fading out as it rises, and drawn at a few
+/// percent of the text colour, so it is felt more than seen and never sits
+/// behind the words at the top of the timeline.
+enum NexThemeTexture {
+  none,
+  fibre,
+  girih,
+  contours,
+  waves,
+  stars,
+  leaves,
+  petals,
+  threads,
+  grid,
+}
 
 /// Paints [texture] behind [child], in the lower [extent] of the box.
 class NexTextureBackdrop extends StatelessWidget {
@@ -19,7 +30,7 @@ class NexTextureBackdrop extends StatelessWidget {
     super.key,
     required this.texture,
     required this.child,
-    this.extent = 0.36,
+    this.extent = 0.5,
   });
 
   final NexThemeTexture texture;
@@ -61,7 +72,7 @@ class NexTexturePainter extends CustomPainter {
   NexTexturePainter({
     required this.texture,
     required this.ink,
-    this.extent = 0.36,
+    this.extent = 0.5,
   });
 
   final NexThemeTexture texture;
@@ -98,7 +109,15 @@ class NexTexturePainter extends CustomPainter {
       case NexThemeTexture.waves:
         _waves(canvas, band, stroke);
       case NexThemeTexture.stars:
-        _stars(canvas, band, Paint()..color = ink);
+        _stars(canvas, band, stroke, Paint()..color = ink);
+      case NexThemeTexture.leaves:
+        _leaves(canvas, band, stroke);
+      case NexThemeTexture.petals:
+        _petals(canvas, band, stroke);
+      case NexThemeTexture.threads:
+        _threads(canvas, band, stroke);
+      case NexThemeTexture.grid:
+        _grid(canvas, band, stroke);
     }
     canvas.drawRect(
       band,
@@ -110,7 +129,7 @@ class NexTexturePainter extends CustomPainter {
           colors: const [Color(0x00000000), Color(0xFF000000)],
           // Full strength over the lower part of the band, not only at the
           // very bottom edge, where the navigation bar covers it.
-          stops: const [0, 0.6],
+          stops: const [0, 0.55],
         ).createShader(band),
     );
     canvas.restore();
@@ -189,17 +208,191 @@ class NexTexturePainter extends CustomPainter {
     }
   }
 
-  /// A scatter of small stars, a few of them brighter.
-  static void _stars(Canvas canvas, Rect band, Paint fill) {
+  /// A scatter of small stars; the brightest few sparkle with four points,
+  /// and two short constellations are joined up.
+  static void _stars(Canvas canvas, Rect band, Paint stroke, Paint fill) {
     final random = math.Random(11);
     final count = (band.width * band.height / 900).round();
+    final bright = <Offset>[];
     for (var i = 0; i < count; i++) {
       final at = Offset(
         band.left + random.nextDouble() * band.width,
         band.top + random.nextDouble() * band.height,
       );
-      final bright = random.nextDouble() < 0.12;
-      canvas.drawCircle(at, bright ? 1.6 : 0.8, fill);
+      final roll = random.nextDouble();
+      if (roll < 0.04) {
+        bright.add(at);
+        _sparkle(canvas, at, 3.5, fill);
+      } else {
+        canvas.drawCircle(at, roll < 0.16 ? 1.4 : 0.8, fill);
+      }
+    }
+    // Each bright star to its nearest bright neighbour: a few short lines,
+    // read as constellations rather than as a net.
+    stroke.strokeWidth = 0.6;
+    for (final a in bright.take(8)) {
+      Offset? nearest;
+      for (final b in bright) {
+        if (b == a) continue;
+        if (nearest == null || (b - a).distance < (nearest - a).distance) {
+          nearest = b;
+        }
+      }
+      if (nearest != null && (nearest - a).distance < 110) {
+        canvas.drawLine(a, nearest, stroke);
+      }
+    }
+    // And a thin crescent, low in the sky on the far side.
+    final moon = Offset(
+      band.left + band.width * 0.8,
+      band.top + band.height * 0.42,
+    );
+    const r = 15.0;
+    canvas.drawPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addOval(Rect.fromCircle(center: moon, radius: r)),
+        Path()
+          ..addOval(
+            Rect.fromCircle(
+              center: moon + const Offset(r * 0.45, -r * 0.3),
+              radius: r * 0.9,
+            ),
+          ),
+      ),
+      fill,
+    );
+  }
+
+  static void _sparkle(Canvas canvas, Offset at, double r, Paint fill) {
+    final path = Path()
+      ..moveTo(at.dx, at.dy - r)
+      ..quadraticBezierTo(at.dx, at.dy, at.dx + r, at.dy)
+      ..quadraticBezierTo(at.dx, at.dy, at.dx, at.dy + r)
+      ..quadraticBezierTo(at.dx, at.dy, at.dx - r, at.dy)
+      ..quadraticBezierTo(at.dx, at.dy, at.dx, at.dy - r)
+      ..close();
+    canvas.drawPath(path, fill);
+  }
+
+  /// A point in [band], more often low than high — so leaves and petals
+  /// gather towards the bottom, the way things that fall do.
+  static Offset _settling(math.Random random, Rect band) => Offset(
+    band.left + random.nextDouble() * band.width,
+    band.top + math.sqrt(random.nextDouble()) * band.height,
+  );
+
+  /// Falling leaves: almond outlines with a midrib, each at its own angle.
+  static void _leaves(Canvas canvas, Rect band, Paint stroke) {
+    final random = math.Random(23);
+    final count = (band.width * band.height / 6500).round();
+    stroke.strokeWidth = 1;
+    for (var i = 0; i < count; i++) {
+      final at = _settling(random, band);
+      final size = 10 + random.nextDouble() * 9;
+      canvas.save();
+      canvas.translate(at.dx, at.dy);
+      canvas.rotate(random.nextDouble() * math.pi * 2);
+      final leaf = Path()
+        ..moveTo(0, -size)
+        ..quadraticBezierTo(size * 0.75, 0, 0, size)
+        ..quadraticBezierTo(-size * 0.75, 0, 0, -size)
+        ..close();
+      canvas.drawPath(leaf, stroke);
+      // The midrib runs on past the leaf into its stalk.
+      canvas.drawLine(Offset(0, -size * 0.7), Offset(0, size * 1.35), stroke);
+      canvas.restore();
+    }
+  }
+
+  /// Five-petalled blossoms, and loose petals drifting between them.
+  static void _petals(Canvas canvas, Rect band, Paint stroke) {
+    final random = math.Random(31);
+    final count = (band.width * band.height / 7000).round();
+    stroke.strokeWidth = 1;
+    Path petal(double length) => Path()
+      ..moveTo(0, 0)
+      ..cubicTo(length * 0.5, -length * 0.45, length, -length * 0.2, length, 0)
+      ..cubicTo(length, length * 0.2, length * 0.5, length * 0.45, 0, 0)
+      ..close();
+    for (var i = 0; i < count; i++) {
+      final at = _settling(random, band);
+      canvas.save();
+      canvas.translate(at.dx, at.dy);
+      canvas.rotate(random.nextDouble() * math.pi * 2);
+      if (random.nextDouble() < 0.4) {
+        final length = 11 + random.nextDouble() * 5;
+        for (var k = 0; k < 5; k++) {
+          canvas.drawPath(petal(length), stroke);
+          canvas.rotate(math.pi * 2 / 5);
+        }
+        canvas.drawCircle(Offset.zero, 2.2, stroke);
+      } else {
+        canvas.drawPath(petal(8 + random.nextDouble() * 5), stroke);
+      }
+      canvas.restore();
+    }
+  }
+
+  /// Saffron threads: three fine, curling stigmas from one point, scattered
+  /// as if shaken from the jar.
+  static void _threads(Canvas canvas, Rect band, Paint stroke) {
+    final random = math.Random(41);
+    final count = (band.width * band.height / 4200).round();
+    stroke
+      ..strokeWidth = 1.1
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < count; i++) {
+      final at = _settling(random, band);
+      final base = random.nextDouble() * math.pi * 2;
+      final strands = random.nextDouble() < 0.5 ? 3 : 1;
+      for (var k = 0; k < strands; k++) {
+        final angle = base + (k - 1) * 0.35;
+        final length = 10 + random.nextDouble() * 9;
+        final end =
+            at + Offset(math.cos(angle) * length, math.sin(angle) * length);
+        final bend = (random.nextDouble() - 0.5) * 8;
+        final control =
+            Offset.lerp(at, end, 0.5)! +
+            Offset(-math.sin(angle) * bend, math.cos(angle) * bend);
+        canvas.drawPath(
+          Path()
+            ..moveTo(at.dx, at.dy)
+            ..quadraticBezierTo(control.dx, control.dy, end.dx, end.dy),
+          stroke,
+        );
+        // The flared tip each thread ends in.
+        canvas.drawCircle(end, 1.1, stroke);
+      }
+    }
+  }
+
+  /// Graph paper, for Graphite: a fine square grid with every fifth line a
+  /// little stronger, as on an engineer's pad.
+  static void _grid(Canvas canvas, Rect band, Paint stroke) {
+    const cell = 14.0;
+    final minor = Paint()
+      ..color = stroke.color.withValues(alpha: stroke.color.a * 0.45)
+      ..strokeWidth = 0.6;
+    final major = Paint()
+      ..color = stroke.color
+      ..strokeWidth = 0.9;
+    final top = band.top - (band.top % cell);
+    var row = (band.top / cell).floor();
+    for (var y = top; y <= band.bottom; y += cell, row++) {
+      canvas.drawLine(
+        Offset(band.left, y),
+        Offset(band.right, y),
+        row % 5 == 0 ? major : minor,
+      );
+    }
+    var column = 0;
+    for (var x = band.left; x <= band.right; x += cell, column++) {
+      canvas.drawLine(
+        Offset(x, band.top),
+        Offset(x, band.bottom),
+        column % 5 == 0 ? major : minor,
+      );
     }
   }
 

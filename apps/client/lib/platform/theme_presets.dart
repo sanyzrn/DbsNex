@@ -15,10 +15,14 @@ typedef NexThemePreset = ({
   Color? dark,
 });
 
-/// The faint motif a theme draws along the bottom of the screen, for the
-/// five whose name suggests one; the rest stay plain.
+/// The faint motif a theme draws up from the bottom of the screen. Every
+/// palette has one but the plain Nex look, which stays plain on purpose.
 NexThemeTexture nexThemeTexture(String presetId) => switch (presetId) {
   'paper' => NexThemeTexture.fibre,
+  'autumn' => NexThemeTexture.leaves,
+  'blossom' => NexThemeTexture.petals,
+  'saffron' => NexThemeTexture.threads,
+  'graphite' => NexThemeTexture.grid,
   'turquoise' => NexThemeTexture.girih,
   'forest' => NexThemeTexture.contours,
   'ocean' => NexThemeTexture.waves,
@@ -153,6 +157,15 @@ String nexThemePresetLabel(BuildContext context, String id) {
     orElse: () => nexThemePresets.first,
   );
   return nexLabel(context, p.en, p.fa);
+}
+
+/// The palette's one-line description, in the interface's language.
+String nexThemePresetDescription(BuildContext context, String id) {
+  final p = nexThemePresets.firstWhere(
+    (p) => p.id == id,
+    orElse: () => nexThemePresets.first,
+  );
+  return nexLabel(context, p.enDescription, p.faDescription);
 }
 
 ThemeData nexApplyThemePreset(ThemeData base, String id, Color? accent) {
